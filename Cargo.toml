@@ -2,5 +2,18 @@
 name = "television"
 version = "0.1.0"
 edition = "2021"
+authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
+license = "Apache-2.0"
+description = "An interactive fuzzy finder for your terminal."
+readme = "README.md"
+homepage = "https://github.com/alexpasmantier/television"
+repository = "https://github.com/alexpasmantier/television"
+keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
+categories = [
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
+]
 
 [dependencies]
