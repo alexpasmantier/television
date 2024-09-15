@@ -1,0 +1,152 @@
+name: CD # Continuous Deployment
+
+on:
+  push:
+    tags:
+      - '[v]?[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+
+    name: Publishing for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            os-name: macos
+            target: x86_64-apple-darwin
+            architecture: x86_64
+            binary-postfix: ""
+            binary-name: television-rs
+            use-cross: false
+          - os: macos-latest
+            os-name: macos
+            target: aarch64-apple-darwin
+            architecture: arm64
+            binary-postfix: ""
+            use-cross: false
+            binary-name: television-rs
+          - os: ubuntu-latest
+            os-name: linux
+            target: x86_64-unknown-linux-gnu
+            architecture: x86_64
+            binary-postfix: ""
+            use-cross: false
+            binary-name: television-rs
+          - os: windows-latest
+            os-name: windows
+            target: x86_64-pc-windows-msvc
+            architecture: x86_64
+            binary-postfix: ".exe"
+            use-cross: false
+            binary-name: television-rs
+          - os: ubuntu-latest
+            os-name: linux
+            target: aarch64-unknown-linux-gnu
+            architecture: arm64
+            binary-postfix: ""
+            use-cross: true
+            binary-name: television-rs
+          - os: ubuntu-latest
+            os-name: linux
+            target: i686-unknown-linux-gnu
+            architecture: i686
+            binary-postfix: ""
+            use-cross: true
+            binary-name: television-rs
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+
+          target: ${{ matrix.target }}
+
+          profile: minimal
+          override: true
+      - uses: Swatinem/rust-cache@v2
+      - name: Cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+
+          use-cross: ${{ matrix.use-cross }}
+
+          toolchain: stable
+
+          args: --release --target ${{ matrix.target }}
+
+
+      - name: install strip command
+        shell: bash
+        run: |
+
+          if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
+
+              sudo apt update
+              sudo apt-get install -y binutils-aarch64-linux-gnu
+          fi
+      - name: Packaging final binary
+        shell: bash
+        run: |
+
+          cd target/${{ matrix.target }}/release
+
+
+          ####### reduce binary size by removing debug symbols #######
+
+          BINARY_NAME=${{ matrix.binary-name }}${{ matrix.binary-postfix }}
+          if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
+
+            GCC_PREFIX="aarch64-linux-gnu-"
+          else
+            GCC_PREFIX=""
+          fi
+          "$GCC_PREFIX"strip $BINARY_NAME
+
+          ########## create tar.gz ##########
+
+          RELEASE_NAME=${{ matrix.binary-name }}-${GITHUB_REF/refs\/tags\//}-${{ matrix.os-name }}-${{ matrix.architecture }}
+
+          tar czvf $RELEASE_NAME.tar.gz $BINARY_NAME
+
+          ########## create sha256 ##########
+
+          if [[ ${{ runner.os }} == 'Windows' ]]; then
+
+            certutil -hashfile $RELEASE_NAME.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > $RELEASE_NAME.sha256
+          else
+            shasum -a 256 $RELEASE_NAME.tar.gz > $RELEASE_NAME.sha256
+          fi
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+
+            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.tar.gz
+            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.sha256
+
+        env:
+
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  publish-cargo:
+    name: Publishing to Cargo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo publish
+        env:
+
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
