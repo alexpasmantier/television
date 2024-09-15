@@ -1,0 +1,120 @@
+tick_rate = 1.0
+frame_rate = 15.0
+key_refresh_rate = 0.5
+enable_mouse = false
+enable_paste = false
+prompt_padding = 1
+
+[key_bindings.common]
+Esc = "Quit"
+Tab = "NextTab"
+Shift-Tab = "PreviousTab"
+Shift-Backtab = "PreviousTab"
+Down = "ScrollDown"
+Up = "ScrollUp"
+Home= "ScrollTop"
+End= "ScrollBottom"
+
+[key_bindings.popup]
+"?" = { SwitchMode = "help" }
+Enter = "ClosePopup"
+Esc = "ClosePopup"
+q = "ClosePopup"
+j = "ScrollDown"
+k = "ScrollUp"
+
+[key_bindings.picker_show_crate_info]
+"?" = { SwitchMode = "help" }
+q = { SwitchMode = "picker_hide_crate_info" }
+Esc= { SwitchMode = "picker_hide_crate_info" }
+"/" = { SwitchMode = "search" }
+"f" = { SwitchMode = "filter" }
+
+j = "ScrollDown"
+k = "ScrollUp"
+
+"<g><g>" = "ScrollTop"
+G= "ScrollBottom"
+
+l = "IncrementPage"
+h = "DecrementPage"
+Left = "DecrementPage"
+Right = "IncrementPage"
+
+ctrl-j = "ScrollCrateInfoDown"
+ctrl-k = "ScrollCrateInfoUp"
+
+ctrl-s = { ToggleSortBy = { reload = true, forward = true } }
+alt-s = { ToggleSortBy = { reload = true, forward = false } }
+
+r = "ReloadData"
+Enter = "ToggleShowCrateInfo"
+"<g><d>" = "OpenDocsUrlInBrowser"
+"<g><c>" = "OpenCratesIOUrlInBrowser"
+c = "CopyCargoAddCommandToClipboard"
+
+
+[key_bindings.picker_hide_crate_info]
+"?" = { SwitchMode = "help" }
+"/" = { SwitchMode = "search" }
+f = { SwitchMode = "filter" }
+
+j = "ScrollDown"
+k = "ScrollUp"
+
+"<g><g>" = "ScrollTop"
+G = "ScrollBottom"
+
+l = "IncrementPage"
+h = "DecrementPage"
+Left = "DecrementPage"
+Right = "IncrementPage"
+
+ctrl-j = "ScrollCrateInfoDown"
+ctrl-k = "ScrollCrateInfoUp"
+
+ctrl-s = { ToggleSortBy = { reload = true, forward = true } }
+alt-s = { ToggleSortBy = { reload = true, forward = false } }
+
+r = "ReloadData"
+Enter = "ToggleShowCrateInfo"
+"<g><d>" = "OpenDocsUrlInBrowser"
+"<g><c>" = "OpenCratesIOUrlInBrowser"
+c = "CopyCargoAddCommandToClipboard"
+
+
+[key_bindings.summary]
+"?" = { SwitchMode = "help" }
+q = "Quit"
+j = "ScrollDown"
+k = "ScrollUp"
+Down = "ScrollDown"
+Up = "ScrollUp"
+h = "PreviousSummaryMode"
+Left = "PreviousSummaryMode"
+l = "NextSummaryMode"
+Right = "NextSummaryMode"
+"Enter" = "OpenCratesIOUrlInBrowser"
+
+[key_bindings.help]
+Esc = "SwitchToLastMode"
+q = "SwitchToLastMode"
+j = "ScrollDown"
+k = "ScrollUp"
+
+
+[key_bindings.search]
+"F1" = { SwitchMode = "help" }
+ctrl-s = { ToggleSortBy = { reload = false, forward = true } }
+alt-s = { ToggleSortBy = { reload = false, forward = false } }
+Esc = { SwitchMode = "picker_hide_crate_info" }
+Enter = "SubmitSearch"
+ctrl-j = "ScrollSearchResultsDown"
+ctrl-k = "ScrollSearchResultsUp"
+
+[key_bindings.filter]
+"F1" = { SwitchMode = "help" }
+Esc = { SwitchMode = "picker_hide_crate_info" }
+Enter = { SwitchMode = "picker_hide_crate_info" }
+ctrl-j = "ScrollSearchResultsDown"
+ctrl-k = "ScrollSearchResultsUp"

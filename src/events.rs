@@ -1,259 +1,79 @@
-use ratatui::crossterm::{
-    event::{Event, KeyCode, KeyEvent, KeyModifiers},
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-};
-use ratatui::prelude::CrosstermBackend;
-use std::io::{stdout, Result};
-use std::process::Command;
-use tracing::info;
+use std::{pin::Pin, time::Duration};
 
-use crate::ui::input::backend::EventHandler;
+use crossterm::event::{Event as CrosstermEvent, *};
+use futures::{Stream, StreamExt};
+use serde::{Deserialize, Serialize};
+use tokio::time::interval;
+use tokio_stream::{wrappers::IntervalStream, StreamMap};
 
-use crate::app::{self, App};
+use crate::config;
 
-use super::editor::get_default_editor;
+pub struct Events {
+    streams: StreamMap<StreamName, Pin<Box<dyn Stream<Item = Event>>>>,
+}
 
-type Terminal = ratatui::Terminal<CrosstermBackend<std::io::Stdout>>;
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+enum StreamName {
+    Ticks,
+    KeyRefresh,
+    Render,
+    Crossterm,
+}
 
-pub fn handle_key_event(key: KeyEvent, app: &mut App, terminal: &mut Terminal) {
-    // global key bindings
-    match key {
-        // quitting the app
-        KeyEvent {
-            code: KeyCode::Char('q') | KeyCode::Esc,
-            ..
-        } => {
-            app.should_quit = true;
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Event {
+    Init,
+    Quit,
+    Error,
+    Closed,
+    Tick,
+    KeyRefresh,
+    Render,
+    Crossterm(CrosstermEvent),
+}
+
+impl Events {
+    pub fn new() -> Self {
+        Self {
+            streams: StreamMap::from_iter([
+                (StreamName::Ticks, tick_stream()),
+                (StreamName::KeyRefresh, key_refresh_stream()),
+                (StreamName::Render, render_stream()),
+                (StreamName::Crossterm, crossterm_stream()),
+            ]),
         }
-        // moving between blocks
-        KeyEvent {
-            code: KeyCode::Tab, ..
-        } => {
-            app.next_block();
-        }
-        KeyEvent {
-            code: KeyCode::BackTab,
-            ..
-        } => {
-            app.previous_block();
-        }
-        KeyEvent {
-            code: KeyCode::Char('k') | KeyCode::Up,
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            app.move_to_block_on_top();
-        }
-        KeyEvent {
-            code: KeyCode::Char('j') | KeyCode::Down,
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            app.move_to_block_below();
-        }
-        KeyEvent {
-            code: KeyCode::Char('h') | KeyCode::Left,
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            app.move_to_block_left();
-        }
-        KeyEvent {
-            code: KeyCode::Char('l') | KeyCode::Right,
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            app.move_to_block_right();
-        }
-        // moving between search results
-        KeyEvent {
-            code: KeyCode::Char('n'),
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            handle_results_key_event(
-                KeyEvent {
-                    code: KeyCode::Down,
-                    modifiers: KeyModifiers::NONE,
-                    ..key
-                },
-                app,
-            );
-        }
-        KeyEvent {
-            code: KeyCode::Char('p'),
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            handle_results_key_event(
-                KeyEvent {
-                    code: KeyCode::Up,
-                    modifiers: KeyModifiers::NONE,
-                    ..key
-                },
-                app,
-            );
-        }
-        // scrolling preview
-        KeyEvent {
-            code: KeyCode::Char('d'),
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            handle_preview_key_event(
-                KeyEvent {
-                    code: KeyCode::Char('d'),
-                    modifiers: KeyModifiers::NONE,
-                    ..key
-                },
-                app,
-                terminal,
-            );
-        }
-        KeyEvent {
-            code: KeyCode::Char('u'),
-            modifiers: KeyModifiers::CONTROL,
-            ..
-        } => {
-            handle_preview_key_event(
-                KeyEvent {
-                    code: KeyCode::Char('u'),
-                    modifiers: KeyModifiers::NONE,
-                    ..key
-                },
-                app,
-                terminal,
-            );
-        }
-        _ => {}
     }
 
-    // block specific key bindings
-    match app.current_block {
-        app::CurrentBlock::Search => {
-            handle_search_key_event(key, app);
-        }
-        app::CurrentBlock::Results => {
-            handle_results_key_event(key, app);
-        }
-        app::CurrentBlock::Preview => {
-            handle_preview_key_event(key, app, terminal);
-        }
+    pub async fn next(&mut self) -> Option<Event> {
+        self.streams.next().await.map(|(_name, event)| event)
     }
 }
 
-fn handle_search_key_event(key: KeyEvent, app: &mut App) {
-    match key.code {
-        _ => {
-            app.input.handle_event(&Event::Key(key));
-        }
-    }
+fn tick_stream() -> Pin<Box<dyn Stream<Item = Event>>> {
+    let tick_delay = Duration::from_secs_f64(1.0 / config::get().tick_rate);
+    let tick_interval = interval(tick_delay);
+    Box::pin(IntervalStream::new(tick_interval).map(|_| Event::Tick))
 }
 
-fn handle_results_key_event(key: KeyEvent, app: &mut App) {
-    match key {
-        KeyEvent {
-            code: KeyCode::Up | KeyCode::Char('k'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            if let Some(selected_index) = app.results_list.state.selected() {
-                app.results_list
-                    .state
-                    .select(Some((selected_index + 1) % app.results_list.results.len()));
-            }
-        }
-        KeyEvent {
-            code: KeyCode::Down | KeyCode::Char('j'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            if let Some(selected_index) = app.results_list.state.selected() {
-                if selected_index == 0 {
-                    app.results_list
-                        .state
-                        .select(Some(app.results_list.results.len() - 1));
-                } else {
-                    app.results_list.state.select_previous();
-                }
-            }
-        }
-        _ => {}
-    }
-    if app.results_list.state.selected().is_none() {
-        app.results_list.state.select_first();
-    }
+fn key_refresh_stream() -> Pin<Box<dyn Stream<Item = Event>>> {
+    let key_refresh_delay = Duration::from_secs_f64(1.0 / config::get().key_refresh_rate);
+    let key_refresh_interval = interval(key_refresh_delay);
+    Box::pin(IntervalStream::new(key_refresh_interval).map(|_| Event::KeyRefresh))
 }
 
-fn handle_preview_key_event(key: KeyEvent, app: &mut App, terminal: &mut Terminal) {
-    match key {
-        KeyEvent {
-            code: KeyCode::Up | KeyCode::Char('k'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            app.scroll_preview_up(1);
-        }
-        KeyEvent {
-            code: KeyCode::Down | KeyCode::Char('j'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            app.scroll_preview_down(1);
-        }
-        KeyEvent {
-            code: KeyCode::Char('d'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            app.scroll_preview_down(20);
-        }
-        KeyEvent {
-            code: KeyCode::Char('u'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            app.scroll_preview_up(20);
-        }
-        KeyEvent {
-            code: KeyCode::Char('e'),
-            modifiers: KeyModifiers::NONE,
-            ..
-        } => {
-            run_editor(terminal, app).unwrap();
-        }
-        _ => {}
-    }
+fn render_stream() -> Pin<Box<dyn Stream<Item = Event>>> {
+    let render_delay = Duration::from_secs_f64(1.0 / config::get().frame_rate);
+    let render_interval = interval(render_delay);
+    Box::pin(IntervalStream::new(render_interval).map(|_| Event::Render))
 }
 
-const VI: &str = "vi";
-const VIM: &str = "vim";
-const NVIM: &str = "nvim";
-
-fn run_editor(terminal: &mut Terminal, app: &mut App) -> Result<()> {
-    stdout().execute(LeaveAlternateScreen)?;
-    disable_raw_mode()?;
-    if let Some(selected_result) = &app.selected_result {
-        if let Ok(editor) = get_default_editor() {
-            // TODO: maybe add extra logic for opening other editors at a specific line
-            match editor.as_str() {
-                VI | VIM | NVIM => {
-                    Command::new(editor)
-                        .arg(format!("+{}", selected_result.line_number))
-                        .arg(selected_result.path.canonicalize().unwrap())
-                        .status()?;
-                }
-                _ => {
-                    Command::new(editor)
-                        .arg(selected_result.path.canonicalize().unwrap())
-                        .status()?;
-                }
-            }
+fn crossterm_stream() -> Pin<Box<dyn Stream<Item = Event>>> {
+    Box::pin(EventStream::new().fuse().filter_map(|event| async move {
+        match event {
+            // Ignore key release / repeat events
+            Ok(CrosstermEvent::Key(key)) if key.kind == KeyEventKind::Release => None,
+            Ok(event) => Some(Event::Crossterm(event)),
+            Err(_) => Some(Event::Error),
         }
-    }
-    stdout().execute(EnterAlternateScreen)?;
-    enable_raw_mode()?;
-    terminal.clear()?;
-    Ok(())
+    }))
 }

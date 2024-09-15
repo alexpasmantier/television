@@ -15,23 +15,34 @@ categories = [
   "concurrency",
   "development-tools",
 ]
+build = "build.rs"
 
 [dependencies]
 anyhow = "1.0.86"
-clap = { version = "4.5.9", features = ["derive"] }
+clap = { version = "4.5.9", features = ["cargo", "color", "derive", "string", "unicode", "unstable-styles", "wrap_help"] }
 crossbeam = { version = "0.8.4", features = ["crossbeam-queue"] }
+crossterm = { version = "0.28.1", features = ["serde", "event-stream"] }
+derive_deref = "1.1.1"
 devicons = "0.1.0"
 directories = "5.0.1"
+figment = { version = "0.10.19", features = ["env", "toml", "yaml"] }
+futures = "0.3.30"
+fuzzy-matcher = "0.3.7"
 grep = "0.3.1"
 ignore = "0.4.22"
+itertools = "0.13.0"
 lazy_static = "1.5.0"
 ratatui = "0.28.1"
 serde = { version = "1.0.204", features = ["derive"] }
 serde_json = "1.0.120"
-strsim = "0.11.1"
+serde_with = "3.9.0"
+strum = { version = "0.26.3", features = ["derive"] }
 syntect = "5.2.0"
 syntect-tui = "3.0.3"
 termcolor = "1.4.1"
+tokio = { version = "1.40.0", features = ["full"] }
+tokio-stream = "0.1.16"
+toml = "0.8.19"
 tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
@@ -40,3 +51,8 @@ unicode-width = "0.1.13"
 [[bin]]
 name = "tv"
 path = "src/main.rs"
+
+[build-dependencies]
+vergen = { version = "9.0.0", features = ["build", "cargo", "rustc"] }
+
+
