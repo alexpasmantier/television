@@ -1,6 +1,4 @@
-#![allow(dead_code)] // Remove this once you start using the code
-
-use std::{collections::HashMap, env, path::PathBuf};
+use std::{collections::HashMap, env, num::NonZeroUsize, path::PathBuf};
 
 use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -11,9 +9,14 @@ use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use tracing::error;
 
-use crate::{action::Action, app::Mode};
+use crate::{
+    action::Action,
+    app::Mode,
+    event::{convert_raw_event_to_key, Key},
+};
 
-const CONFIG: &str = include_str!("../.config/config.json5");
+//const CONFIG: &str = include_str!("../.config/config.json5");
+const CONFIG: &str = include_str!("../../.config/config.toml");
 
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AppConfig {
@@ -34,7 +37,8 @@ pub struct Config {
 }
 
 lazy_static! {
-    pub static ref PROJECT_NAME: String = env!("CARGO_CRATE_NAME").to_uppercase().to_string();
+    pub static ref PROJECT_NAME: String =
+        env!("CARGO_CRATE_NAME").to_uppercase().to_string();
     pub static ref DATA_FOLDER: Option<PathBuf> =
         env::var(format!("{}_DATA", PROJECT_NAME.clone()))
             .ok()
@@ -47,7 +51,8 @@ lazy_static! {
 
 impl Config {
     pub fn new() -> Result<Self, config::ConfigError> {
-        let default_config: Config = json5::from_str(CONFIG).unwrap();
+        //let default_config: Config = json5::from_str(CONFIG).unwrap();
+        let default_config: Config = toml::from_str(CONFIG).unwrap();
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
         let mut builder = config::Config::builder()
@@ -80,9 +85,7 @@ impl Config {
         for (mode, default_bindings) in default_config.keybindings.iter() {
             let user_bindings = cfg.keybindings.entry(*mode).or_default();
             for (key, cmd) in default_bindings.iter() {
-                user_bindings
-                    .entry(key.clone())
-                    .or_insert_with(|| cmd.clone());
+                user_bindings.entry(*key).or_insert_with(|| cmd.clone());
             }
         }
         for (mode, default_styles) in default_config.styles.iter() {
@@ -119,25 +122,28 @@ pub fn get_config_dir() -> PathBuf {
 }
 
 fn project_directory() -> Option<ProjectDirs> {
-    ProjectDirs::from("com", "kdheepak", env!("CARGO_PKG_NAME"))
+    ProjectDirs::from("com", "alexpasmantier", env!("CARGO_PKG_NAME"))
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
-pub struct KeyBindings(pub HashMap<Mode, HashMap<Vec<KeyEvent>, Action>>);
+pub struct KeyBindings(pub HashMap<Mode, HashMap<Key, Action>>);
 
 impl<'de> Deserialize<'de> for KeyBindings {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
-        let parsed_map = HashMap::<Mode, HashMap<String, Action>>::deserialize(deserializer)?;
+        let parsed_map =
+            HashMap::<Mode, HashMap<String, Action>>::deserialize(
+                deserializer,
+            )?;
 
         let keybindings = parsed_map
             .into_iter()
             .map(|(mode, inner_map)| {
                 let converted_inner_map = inner_map
                     .into_iter()
-                    .map(|(key_str, cmd)| (parse_key_sequence(&key_str).unwrap(), cmd))
+                    .map(|(key_str, cmd)| (parse_key(&key_str).unwrap(), cmd))
                     .collect();
                 (mode, converted_inner_map)
             })
@@ -291,31 +297,32 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     key
 }
 
-pub fn parse_key_sequence(raw: &str) -> Result<Vec<KeyEvent>, String> {
-    if raw.chars().filter(|c| *c == '>').count() != raw.chars().filter(|c| *c == '<').count() {
+pub fn parse_key(raw: &str) -> Result<Key, String> {
+    if raw.chars().filter(|c| *c == '>').count()
+        != raw.chars().filter(|c| *c == '<').count()
+    {
         return Err(format!("Unable to parse `{}`", raw));
     }
     let raw = if !raw.contains("><") {
         let raw = raw.strip_prefix('<').unwrap_or(raw);
-        let raw = raw.strip_prefix('>').unwrap_or(raw);
+        let raw = raw.strip_suffix('>').unwrap_or(raw);
         raw
     } else {
         raw
     };
-    let sequences = raw
-        .split("><")
-        .map(|seq| {
-            if let Some(s) = seq.strip_prefix('<') {
-                s
-            } else if let Some(s) = seq.strip_suffix('>') {
-                s
-            } else {
-                seq
-            }
-        })
-        .collect::<Vec<_>>();
+    let key_event = parse_key_event(raw)?;
+    Ok(convert_raw_event_to_key(key_event))
+}
 
-    sequences.into_iter().map(parse_key_event).collect()
+pub fn default_num_threads() -> NonZeroUsize {
+    // default to 1 thread if we can't determine the number of available threads
+    let default = NonZeroUsize::MIN;
+    // never use more than 32 threads to avoid startup overhead
+    let limit = NonZeroUsize::new(32).unwrap();
+
+    std::thread::available_parallelism()
+        .unwrap_or(default)
+        .min(limit)
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
@@ -326,7 +333,10 @@ impl<'de> Deserialize<'de> for Styles {
     where
         D: Deserializer<'de>,
     {
-        let parsed_map = HashMap::<Mode, HashMap<String, String>>::deserialize(deserializer)?;
+        let parsed_map =
+            HashMap::<Mode, HashMap<String, String>>::deserialize(
+                deserializer,
+            )?;
 
         let styles = parsed_map
             .into_iter()
@@ -405,9 +415,12 @@ fn parse_color(s: &str) -> Option<Color> {
                 .unwrap_or_default();
         Some(Color::Indexed(c))
     } else if s.contains("rgb") {
-        let red = (s.as_bytes()[3] as char).to_digit(10).unwrap_or_default() as u8;
-        let green = (s.as_bytes()[4] as char).to_digit(10).unwrap_or_default() as u8;
-        let blue = (s.as_bytes()[5] as char).to_digit(10).unwrap_or_default() as u8;
+        let red =
+            (s.as_bytes()[3] as char).to_digit(10).unwrap_or_default() as u8;
+        let green =
+            (s.as_bytes()[4] as char).to_digit(10).unwrap_or_default() as u8;
+        let blue =
+            (s.as_bytes()[5] as char).to_digit(10).unwrap_or_default() as u8;
         let c = 16 + red * 36 + green * 6 + blue;
         Some(Color::Indexed(c))
     } else if s == "bold black" {
@@ -480,7 +493,8 @@ mod tests {
 
     #[test]
     fn test_process_color_string() {
-        let (color, modifiers) = process_color_string("underline bold inverse gray");
+        let (color, modifiers) =
+            process_color_string("underline bold inverse gray");
         assert_eq!(color, "gray");
         assert!(modifiers.contains(Modifier::UNDERLINED));
         assert!(modifiers.contains(Modifier::BOLD));
@@ -505,9 +519,9 @@ mod tests {
         let c = Config::new()?;
         assert_eq!(
             c.keybindings
-                .get(&Mode::Home)
+                .get(&Mode::Input)
                 .unwrap()
-                .get(&parse_key_sequence("<q>").unwrap_or_default())
+                .get(&parse_key("<q>").unwrap())
                 .unwrap(),
             &Action::Quit
         );
@@ -562,7 +576,10 @@ mod tests {
 
         assert_eq!(
             parse_key_event("ctrl-shift-enter").unwrap(),
-            KeyEvent::new(KeyCode::Enter, KeyModifiers::CONTROL | KeyModifiers::SHIFT)
+            KeyEvent::new(
+                KeyCode::Enter,
+                KeyModifiers::CONTROL | KeyModifiers::SHIFT
+            )
         );
     }
 

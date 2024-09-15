@@ -3,45 +3,94 @@ name = "television-rs"
 version = "0.1.0"
 edition = "2021"
 description = "The revolution will be televised"
+license = "Apache-2.0"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 build = "build.rs"
 repository = "https://github.com/alexpasmantier/television"
+keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
+categories = [
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
+]
+
+
+[[bin]]
+bench = false
+path = "crates/television/main.rs"
+name = "tv"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = [
+  "crates/television_derive",
+]
 
 [dependencies]
+television-derive = { path = "crates/television_derive" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
-    "derive",
-    "cargo",
-    "wrap_help",
-    "unicode",
-    "string",
-    "unstable-styles",
+  "derive",
+  "cargo",
+  "wrap_help",
+  "unicode",
+  "string",
+  "unstable-styles",
 ] }
 color-eyre = "0.6.3"
 config = "0.14.0"
-crossterm = { version = "0.28.1", features = ["serde", "event-stream"] }
+crossterm = { version = "0.28.1", features = ["serde"] }
 derive_deref = "1.1.1"
+devicons = "0.5.4"
 directories = "5.0.1"
 futures = "0.3.30"
+fuzzy-matcher = "0.3.7"
 human-panic = "2.0.1"
+ignore = "0.4.23"
+image = "0.25.2"
+impl-enum = "0.3.1"
+infer = "0.16.0"
 json5 = "0.4.1"
 lazy_static = "1.5.0"
 libc = "0.2.158"
+nucleo = "0.5.0"
+nucleo-matcher = "0.3.1"
+parking_lot = "0.12.3"
 pretty_assertions = "1.4.0"
 ratatui = { version = "0.28.1", features = ["serde", "macros"] }
+ratatui-image = "1.0.5"
+regex = "1.10.6"
 serde = { version = "1.0.208", features = ["derive"] }
 serde_json = "1.0.125"
 signal-hook = "0.3.17"
 strip-ansi-escapes = "0.2.0"
 strum = { version = "0.26.3", features = ["derive"] }
+syntect = "5.2.0"
 tokio = { version = "1.39.3", features = ["full"] }
+tokio-stream = "0.1.16"
 tokio-util = "0.7.11"
+toml = "0.8.19"
 tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
+unicode-width = "0.2.0"
+
 
 [build-dependencies]
 anyhow = "1.0.86"
 vergen-gix = { version = "1.0.0", features = ["build", "cargo"] }
+
+
+
+[profile.release]
+opt-level = 3
+debug = "none"
+strip = "symbols"
+debug-assertions = false
+overflow-checks = false
+lto = "thin"
+panic = "abort"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }

@@ -1,10 +1,24 @@
 {
   "keybindings": {
-    "Home": {
+    "Input": {
       "<q>": "Quit", // Quit the application
-      "<Ctrl-d>": "Quit", // Another way to quit
-      "<Ctrl-c>": "Quit", // Yet another way to quit
-      "<Ctrl-z>": "Suspend" // Suspend the application
+      "<esc>": "Quit", // Quit the application
+      "<ctrl-c>": "Quit", // Yet another way to quit
+      "<ctrl-z>": "Suspend", // Suspend the application
+      "<tab>": "GoToNextPane", // Move to the next pane
+      "<backtab>": "GoToPrevPane", // Move to the previous pane
+      // "<ctrl-up>": "GoToPaneUp", // Move to the pane above
+      // "<ctrl-down>": "GoToPaneDown", // Move to the pane below
+      "<ctrl-left>": "GoToPaneLeft", // Move to the pane to the left
+      "<ctrl-right>": "GoToPaneRight", // Move to the pane to the right
+      "<down>": "SelectNextEntry", // Move to the next entry
+      "<up>": "SelectPrevEntry", // Move to the previous entry
+      "<ctrl-n>": "SelectNextEntry", // Move to the next entry
+      "<ctrl-p>": "SelectPrevEntry", // Move to the previous entry
+      "<ctrl-down>": "ScrollPreviewDown", // Scroll the preview down
+      "<ctrl-up>": "ScrollPreviewUp", // Scroll the preview up
+      "<ctrl-d>": "ScrollPreviewHalfPageDown", // Scroll the preview half a page down
+      "<ctrl-u>": "ScrollPreviewHalfPageUp", // Scroll the preview half a page up
     },
   }
 }

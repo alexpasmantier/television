@@ -1,12 +1,17 @@
 use clap::Parser;
 
+use crate::channels::CliTvChannel;
 use crate::config::{get_config_dir, get_data_dir};
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
 pub struct Cli {
+    /// Which channel shall we watch?
+    #[arg(value_enum, default_value = "files")]
+    pub channel: CliTvChannel,
+
     /// Tick rate, i.e. number of ticks per second
-    #[arg(short, long, value_name = "FLOAT", default_value_t = 4.0)]
+    #[arg(short, long, value_name = "FLOAT", default_value_t = 50.0)]
     pub tick_rate: f64,
 
     /// Frame rate, i.e. number of frames per second

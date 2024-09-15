@@ -15,7 +15,7 @@ pub fn init() -> Result<()> {
         .into_hooks();
     eyre_hook.install()?;
     std::panic::set_hook(Box::new(move |panic_info| {
-        if let Ok(mut t) = crate::tui::Tui::new() {
+        if let Ok(mut t) = crate::tui::Tui::new(std::io::stderr()) {
             if let Err(r) = t.exit() {
                 error!("Unable to exit Terminal: {:?}", r);
             }
@@ -27,8 +27,9 @@ pub fn init() -> Result<()> {
             let metadata = metadata!();
             let file_path = handle_dump(&metadata, panic_info);
             // prints human-panic message
-            print_msg(file_path, &metadata)
-                .expect("human-panic: printing error message to console failed");
+            print_msg(file_path, &metadata).expect(
+                "human-panic: printing error message to console failed",
+            );
             eprintln!("{}", panic_hook.panic_report(panic_info)); // prints color-eyre stack trace to stderr
         }
         let msg = format!("{}", panic_hook.panic_report(panic_info));
