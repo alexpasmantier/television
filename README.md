@@ -2,6 +2,6 @@
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 
 
-# television
+# 📺 television
 
-The revolution will be televised
+ The revolution will be televised.
