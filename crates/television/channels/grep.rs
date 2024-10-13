@@ -17,9 +17,7 @@ use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::{
-    files::{
-        is_not_text, is_valid_utf8, walk_builder, DEFAULT_NUM_THREADS,
-    },
+    files::{is_not_text, is_valid_utf8, walk_builder, DEFAULT_NUM_THREADS},
     strings::preprocess_line,
 };
 

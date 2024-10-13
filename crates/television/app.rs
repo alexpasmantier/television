@@ -50,7 +50,6 @@
 /// └──────────────────────────────────────────────────────────────────────────────────────────────────────┘
 use std::sync::Arc;
 
-
 use color_eyre::Result;
 use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, Mutex};

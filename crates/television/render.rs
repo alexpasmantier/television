@@ -12,10 +12,7 @@ use tokio::{
 };
 
 use crate::television::Television;
-use crate::{
-    action::Action, config::Config,
-    tui::Tui,
-};
+use crate::{action::Action, config::Config, tui::Tui};
 
 #[derive(Debug)]
 pub enum RenderingTask {

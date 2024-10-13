@@ -21,10 +21,10 @@ mod fuzzy;
 mod logging;
 mod previewers;
 mod render;
-mod tui;
-mod utils;
 pub mod television;
+mod tui;
 mod ui;
+mod utils;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {

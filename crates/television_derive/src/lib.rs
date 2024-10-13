@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use quote::quote;
 
-
 #[proc_macro_derive(CliChannel)]
 pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree

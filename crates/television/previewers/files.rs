@@ -18,9 +18,7 @@ use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
 use crate::utils::files::is_valid_utf8;
 use crate::utils::files::FileType;
-use crate::utils::files::{
-    get_file_size, is_known_text_extension,
-};
+use crate::utils::files::{get_file_size, is_known_text_extension};
 use crate::utils::strings::preprocess_line;
 
 use super::cache::PreviewCache;
