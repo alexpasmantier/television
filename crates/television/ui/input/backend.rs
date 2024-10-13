@@ -40,6 +40,7 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
     }
 }
 
+#[allow(unused)]
 /// Import this trait to implement `Input::handle_event()` for crossterm.
 pub trait EventHandler {
     /// Handle crossterm event.

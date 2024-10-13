@@ -197,8 +197,7 @@ impl App {
                         _ => {}
                     }
                 }
-                return self
-                    .config
+                self.config
                     .keybindings
                     .get(&self.mode)
                     .and_then(|keymap| keymap.get(&keycode).cloned())
@@ -206,7 +205,7 @@ impl App {
                         Action::AddInputChar(c)
                     } else {
                         Action::NoOp
-                    });
+                    })
             }
             // terminal events
             Event::Tick => Action::Tick,

@@ -15,6 +15,7 @@ use ratatui::{backend::CrosstermBackend, layout::Size};
 use tokio::task::JoinHandle;
 use tracing::debug;
 
+#[allow(dead_code)]
 pub struct Tui<W>
 where
     W: Write,
@@ -24,6 +25,7 @@ where
     pub terminal: ratatui::Terminal<CrosstermBackend<W>>,
 }
 
+#[allow(dead_code)]
 impl<W> Tui<W>
 where
     W: Write,
