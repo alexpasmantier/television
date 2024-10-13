@@ -18,6 +18,7 @@ use crate::{
 //const CONFIG: &str = include_str!("../.config/config.json5");
 const CONFIG: &str = include_str!("../../.config/config.toml");
 
+#[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct AppConfig {
     #[serde(default)]
@@ -28,6 +29,7 @@ pub struct AppConfig {
 
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
+    #[allow(clippy::struct_field_names)]
     #[serde(default, flatten)]
     pub config: AppConfig,
     #[serde(default)]
@@ -73,7 +75,7 @@ impl Config {
                 .required(false);
             builder = builder.add_source(source);
             if config_dir.join(file).exists() {
-                found_config = true
+                found_config = true;
             }
         }
         if !found_config {
@@ -84,13 +86,13 @@ impl Config {
 
         for (mode, default_bindings) in default_config.keybindings.iter() {
             let user_bindings = cfg.keybindings.entry(*mode).or_default();
-            for (key, cmd) in default_bindings.iter() {
+            for (key, cmd) in default_bindings {
                 user_bindings.entry(*key).or_insert_with(|| cmd.clone());
             }
         }
         for (mode, default_styles) in default_config.styles.iter() {
             let user_styles = cfg.styles.entry(*mode).or_default();
-            for (style_key, style) in default_styles.iter() {
+            for (style_key, style) in default_styles {
                 user_styles.entry(style_key.clone()).or_insert(*style);
             }
         }
@@ -219,8 +221,7 @@ fn parse_key_code_with_modifiers(
         "f11" => KeyCode::F(11),
         "f12" => KeyCode::F(12),
         "space" => KeyCode::Char(' '),
-        "hyphen" => KeyCode::Char('-'),
-        "minus" => KeyCode::Char('-'),
+        "hyphen" | "minus" => KeyCode::Char('-'),
         "tab" => KeyCode::Tab,
         c if c.len() == 1 => {
             let mut c = c.chars().next().unwrap();
@@ -234,6 +235,7 @@ fn parse_key_code_with_modifiers(
     Ok(KeyEvent::new(c, modifiers))
 }
 
+#[allow(dead_code)]
 pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     let char;
     let key_code = match key_event.code {
@@ -261,16 +263,16 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
             &char
         }
         KeyCode::Esc => "esc",
-        KeyCode::Null => "",
-        KeyCode::CapsLock => "",
-        KeyCode::Menu => "",
-        KeyCode::ScrollLock => "",
-        KeyCode::Media(_) => "",
-        KeyCode::NumLock => "",
-        KeyCode::PrintScreen => "",
-        KeyCode::Pause => "",
-        KeyCode::KeypadBegin => "",
-        KeyCode::Modifier(_) => "",
+        KeyCode::Null
+        | KeyCode::CapsLock
+        | KeyCode::Menu
+        | KeyCode::ScrollLock
+        | KeyCode::Media(_)
+        | KeyCode::NumLock
+        | KeyCode::PrintScreen
+        | KeyCode::Pause
+        | KeyCode::KeypadBegin
+        | KeyCode::Modifier(_) => "",
     };
 
     let mut modifiers = Vec::with_capacity(3);
@@ -301,13 +303,13 @@ pub fn parse_key(raw: &str) -> Result<Key, String> {
     if raw.chars().filter(|c| *c == '>').count()
         != raw.chars().filter(|c| *c == '<').count()
     {
-        return Err(format!("Unable to parse `{}`", raw));
+        return Err(format!("Unable to parse `{raw}`"));
     }
-    let raw = if !raw.contains("><") {
-        let raw = raw.strip_prefix('<').unwrap_or(raw);
-        let raw = raw.strip_suffix('>').unwrap_or(raw);
+    let raw = if raw.contains("><") {
         raw
     } else {
+        let raw = raw.strip_prefix('<').unwrap_or(raw);
+        let raw = raw.strip_suffix('>').unwrap_or(raw);
         raw
     };
     let key_event = parse_key_event(raw)?;
@@ -392,6 +394,7 @@ fn process_color_string(color_str: &str) -> (String, Modifier) {
     (color, modifiers)
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn parse_color(s: &str) -> Option<Color> {
     let s = s.trim_start();
     let s = s.trim_end();

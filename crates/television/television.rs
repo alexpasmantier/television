@@ -57,6 +57,7 @@ pub struct Television {
 const EMPTY_STRING: &str = "";
 
 impl Television {
+    #[must_use]
     pub fn new(cli_channel: CliTvChannel) -> Self {
         let mut tv_channel = cli_channel.to_channel();
         tv_channel.find(EMPTY_STRING);
@@ -84,6 +85,9 @@ impl Television {
         self.channel.find(pattern);
     }
 
+    #[must_use]
+    /// # Panics
+    /// This method will panic if the index doesn't fit into a u32.
     pub fn get_selected_entry(&self) -> Option<Entry> {
         self.picker_state
             .selected()
@@ -240,7 +244,7 @@ impl Television {
             Pane::Results | Pane::Input => {
                 self.current_pane = Pane::Preview;
             }
-            _ => {}
+            Pane::Preview => {}
         }
     }
 
@@ -259,23 +263,16 @@ impl Television {
         }
     }
 
+    #[must_use]
     pub fn is_input_focused(&self) -> bool {
         Pane::Input == self.current_pane
     }
 }
 
-// UI size
-const UI_WIDTH_PERCENT: u16 = 95;
-const UI_HEIGHT_PERCENT: u16 = 95;
-
 // Misc
 const FOUR_SPACES: &str = "    ";
 
 // Styles
-//  results
-const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
-const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
-const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 //  input
 const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
 const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(150, 150, 150);

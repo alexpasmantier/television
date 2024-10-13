@@ -8,7 +8,7 @@ use std::{
 use crossterm::event::{
     KeyCode::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, Home, Insert,
-        Left, Null, PageDown, PageUp, Right, Tab, Up, F,
+        Left, PageDown, PageUp, Right, Tab, Up, F,
     },
     KeyEvent, KeyModifiers,
 };
@@ -61,6 +61,7 @@ pub enum Key {
     Tab,
 }
 
+#[allow(clippy::module_name_repetitions)]
 pub struct EventLoop {
     pub rx: mpsc::UnboundedReceiver<Event<Key>>,
     //tx: mpsc::UnboundedSender<Event<Key>>,
@@ -100,7 +101,7 @@ async fn poll_event(timeout: Duration) -> bool {
 impl EventLoop {
     pub fn new(tick_rate: f64, init: bool) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        let _tx = tx.clone();
+        let tx_c = tx.clone();
         let tick_interval =
             tokio::time::Duration::from_secs_f64(1.0 / tick_rate);
 
@@ -117,32 +118,32 @@ impl EventLoop {
                     tokio::select! {
                         // if we receive a message on the abort channel, stop the event loop
                         _ = abort_recv.recv() => {
-                            _tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
-                            _tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                            tx_c.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
+                            tx_c.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
                             break;
                         },
                         // if `delay` completes, pass to the next event "frame"
-                        _ = delay => {
-                            _tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                        () = delay => {
+                            tx_c.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
                         },
                         // if the receiver dropped the channel, stop the event loop
-                        _ = _tx.closed() => break,
+                        () = tx_c.closed() => break,
                         // if an event was received, process it
                         _ = event_available => {
                             let maybe_event = crossterm::event::read();
                             match maybe_event {
                                 Ok(crossterm::event::Event::Key(key)) => {
                                     let key = convert_raw_event_to_key(key);
-                                    _tx.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
+                                    tx_c.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
                                 },
                                 Ok(crossterm::event::Event::FocusLost) => {
-                                    _tx.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
+                                    tx_c.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
                                 },
                                 Ok(crossterm::event::Event::FocusGained) => {
-                                    _tx.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
+                                    tx_c.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
                                 },
                                 Ok(crossterm::event::Event::Resize(x, y)) => {
-                                    _tx.send(Event::Resize(x, y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
+                                    tx_c.send(Event::Resize(x, y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
                                 },
                                 _ => {}
                             }
@@ -201,7 +202,6 @@ pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
         BackTab => Key::BackTab,
         Insert => Key::Insert,
         F(k) => Key::F(k),
-        Null => Key::Null,
         Esc => Key::Esc,
         Char(c) => match event.modifiers {
             KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(c),
