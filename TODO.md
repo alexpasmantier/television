@@ -15,18 +15,18 @@
 - [x] use nucleo for env
 - [ ] better keymaps
 - [ ] mutualize placeholder previews in cache (really not a priority)
-- [ ] better abstractions for channels / separation / isolation so that others can contribute new ones easily
+- [x] better abstractions for channels / separation / isolation so that others can contribute new ones easily
 - [ ] channel selection in the UI (separate menu or top panel or something)
 - [x] only render highlighted lines that are visible
 - [x] only ever read a portion of the file for the temp preview
 - [ ] make layout an attribute of the channel?
-- [ ] I feel like the finder abstraction is a superfluous layer, maybe just use the channel directly?
+- [x] I feel like the finder abstraction is a superfluous layer, maybe just use the channel directly?
 
 ## feature ideas
 - [ ] some sort of iterative fuzzy file explorer (preview contents of folders on the right, enter to go in etc.) maybe
   with mixed previews of files and folders
 - [x] environment variables
-- [ ] aliases
+- [x] aliases
 - [ ] shell history
 - [x] text
 - [ ] text in documents (pdfs, archives, ...) (rga, adapters) https://github.com/jrmuizel/pdf-extract
