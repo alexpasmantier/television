@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -27,7 +27,7 @@ members = [
 ]
 
 [dependencies]
-television-derive = { path = "crates/television_derive" }
+television-derive = { version = "0.1.0", path = "crates/television_derive" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
   "derive",
