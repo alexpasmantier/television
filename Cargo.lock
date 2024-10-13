@@ -2991,16 +2991,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
-name = "television-derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.79",
-]
-
-[[package]]
-name = "television-rs"
+name = "television"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -3045,6 +3036,15 @@ dependencies = [
  "tracing-subscriber",
  "unicode-width 0.2.0",
  "vergen-gix",
+]
+
+[[package]]
+name = "television-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.79",
 ]
 
 [[package]]

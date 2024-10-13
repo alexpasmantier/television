@@ -1,9 +1,9 @@
 [package]
-name = "television-rs"
+name = "television"
 version = "0.1.0"
 edition = "2021"
-description = "The revolution will be televised"
-license = "Apache-2.0"
+description = "The revolution will be televised."
+license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 build = "build.rs"
 repository = "https://github.com/alexpasmantier/television"
@@ -21,7 +21,6 @@ bench = false
 path = "crates/television/main.rs"
 name = "tv"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [workspace]
 members = [
   "crates/television_derive",
