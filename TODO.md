@@ -1,6 +1,6 @@
 # tasks
 - [x] preview navigation
-- [ ] add a way to open the selected file in the default editor
+- [ ] add a way to open the selected file in the default editor (or maybe that should be achieved using pipes?)
 - [x] maybe filter out image types etc. for now
 - [x] return selected entry on exit
 - [x] piping output to another command
@@ -18,7 +18,7 @@
 - [x] only ever read a portion of the file for the temp preview
 - [ ] make layout an attribute of the channel?
 - [x] I feel like the finder abstraction is a superfluous layer, maybe just use the channel directly?
-- [ ] support for images is implemented but do we really want that in the core? it's quite heavy
+- [x] support for images is implemented but do we really want that in the core? it's quite heavy
 - [ ] use an icon for the prompt
 
 ## feature ideas
@@ -35,4 +35,5 @@
 - [ ] makefile commands
 - [ ] remote files (s3, ...)
 - [ ] custom actions as part of a channel (mappable)
+- [ ] from one set of entries to another? (fuzzy-refine)
 
