@@ -4,8 +4,8 @@ use television_derive::CliChannel;
 mod alias;
 mod env;
 mod files;
-mod text;
 mod stdin;
+mod text;
 
 /// The interface that all television channels must implement.
 ///

@@ -111,4 +111,3 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 // UI size
 const UI_WIDTH_PERCENT: u16 = 90;
 const UI_HEIGHT_PERCENT: u16 = 90;
-

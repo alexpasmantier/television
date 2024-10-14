@@ -1,5 +1,5 @@
-pub mod backend;
 pub mod actions;
+pub mod backend;
 
 /// Input requests are used to change the input state.
 ///

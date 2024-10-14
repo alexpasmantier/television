@@ -1,8 +1,8 @@
+use crate::entry::Entry;
+use crate::utils::strings::{next_char_boundary, slice_at_char_boundaries};
 use ratatui::prelude::{Color, Line, Span, Style, Stylize};
 use ratatui::widgets::{Block, List, ListDirection};
 use std::str::FromStr;
-use crate::entry::Entry;
-use crate::utils::strings::{next_char_boundary, slice_at_char_boundaries};
 
 // Styles
 const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;

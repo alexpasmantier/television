@@ -1,9 +1,9 @@
 use ratatui::style::{Color, Style, Stylize};
 
 pub mod input;
-pub mod results;
-pub mod preview;
 pub mod layout;
+pub mod preview;
+pub mod results;
 
 //  input
 //const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
@@ -23,4 +23,3 @@ pub fn get_border_style(focused: bool) -> Style {
         Style::default().fg(Color::Rgb(90, 90, 110)).dim()
     }
 }
-

@@ -1,11 +1,13 @@
-use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
-use ratatui::widgets::{Block, Paragraph, Wrap};
-use ratatui::layout::{Alignment, Rect};
-use std::sync::Arc;
-use syntect::highlighting::Color as SyntectColor;
-use crate::previewers::{Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG};
+use crate::previewers::{
+    Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
+};
 use crate::television::Television;
 use crate::utils::strings::{EMPTY_STRING, FOUR_SPACES};
+use ratatui::layout::{Alignment, Rect};
+use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
+use ratatui::widgets::{Block, Paragraph, Wrap};
+use std::sync::Arc;
+use syntect::highlighting::Color as SyntectColor;
 
 //  preview
 pub const DEFAULT_PREVIEW_TITLE_FG: Color = Color::Blue;
