@@ -41,6 +41,7 @@ impl Layout {
     }
 
     /// TODO: add diagram
+    #[allow(dead_code)]
     pub fn all_panes_centered(dimensions: Dimensions, area: Rect) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
