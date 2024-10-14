@@ -72,7 +72,7 @@ where
 const DEFAULT_PREVIEW_CACHE_SIZE: usize = 100;
 
 /// A cache for previews.
-/// The cache is implemented as a LRU cache with a fixed size.
+/// The cache is implemented as an LRU cache with a fixed size.
 pub struct PreviewCache {
     entries: HashMap<String, Arc<Preview>>,
     ring_set: RingSet<String>,

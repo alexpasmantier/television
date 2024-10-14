@@ -6,9 +6,6 @@
 - [x] piping output to another command
 - [x] piping custom entries from stdin (e.g. `ls | tv`, what bout choosing previewers in that case? Some AUTO mode?)
 
-## bugs
-- [x] sanitize input (tabs, \0, etc) (see https://github.com/autobib/nucleo-picker/blob/d51dec9efd523e88842c6eda87a19c0a492f4f36/src/lib.rs#L212-L227)
-
 ## improvements
 - [x] async finder initialization
 - [x] async finder search
@@ -21,6 +18,8 @@
 - [x] only ever read a portion of the file for the temp preview
 - [ ] make layout an attribute of the channel?
 - [x] I feel like the finder abstraction is a superfluous layer, maybe just use the channel directly?
+- [ ] support for images is implemented but do we really want that in the core? it's quite heavy
+- [ ] use an icon for the prompt
 
 ## feature ideas
 - [ ] some sort of iterative fuzzy file explorer (preview contents of folders on the right, enter to go in etc.) maybe

@@ -1,4 +1,5 @@
 pub mod backend;
+pub mod actions;
 
 /// Input requests are used to change the input state.
 ///
@@ -356,7 +357,7 @@ impl Input {
 
     /// Get the scroll position with account for multispace characters.
     pub fn visual_scroll(&self, width: usize) -> usize {
-        let scroll = (self.visual_cursor()).max(width) - width;
+        let scroll = self.visual_cursor().max(width) - width;
         let mut uscroll = 0;
         let mut chars = self.value().chars();
 

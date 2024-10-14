@@ -52,6 +52,9 @@ lazy_static! {
     static ref NULL_SYMBOL: char = char::from_u32(0x2400).unwrap();
 }
 
+pub const EMPTY_STRING: &str = "";
+pub const FOUR_SPACES: &str = "    ";
+
 const SPACE_CHARACTER: char = ' ';
 const TAB_CHARACTER: char = '\t';
 const LINE_FEED_CHARACTER: char = '\x0A';

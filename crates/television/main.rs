@@ -12,7 +12,6 @@ mod action;
 mod app;
 mod channels;
 mod cli;
-mod components;
 mod config;
 mod entry;
 mod errors;

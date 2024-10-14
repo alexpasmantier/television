@@ -10,7 +10,7 @@ use std::{
     sync::Arc,
 };
 
-use tracing::info;
+use tracing::{debug, info};
 
 use super::TelevisionChannel;
 use crate::entry::Entry;
@@ -182,13 +182,18 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                 match maybe_line {
                                     Ok(l) => {
                                         line_number += 1;
+                                        let line = preprocess_line(&l);
+                                        if line.is_empty() {
+                                            debug!("Empty line");
+                                            continue;
+                                        }
                                         let candidate = CandidateLine::new(
                                             entry
                                                 .path()
                                                 .strip_prefix(&current_dir)
                                                 .unwrap()
                                                 .to_path_buf(),
-                                            preprocess_line(&l),
+                                            line,
                                             line_number,
                                         );
                                         // Send the line via the async channel

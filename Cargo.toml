@@ -41,14 +41,10 @@ color-eyre = "0.6.3"
 config = "0.14.0"
 crossterm = { version = "0.28.1", features = ["serde"] }
 derive_deref = "1.1.1"
-devicons = "0.5.4"
+devicons = "0.6.8"
 directories = "5.0.1"
 futures = "0.3.30"
-fuzzy-matcher = "0.3.7"
-human-panic = "2.0.1"
 ignore = "0.4.23"
-image = "0.25.2"
-impl-enum = "0.3.1"
 infer = "0.16.0"
 json5 = "0.4.1"
 lazy_static = "1.5.0"
@@ -56,9 +52,7 @@ libc = "0.2.158"
 nucleo = "0.5.0"
 nucleo-matcher = "0.3.1"
 parking_lot = "0.12.3"
-pretty_assertions = "1.4.0"
 ratatui = { version = "0.28.1", features = ["serde", "macros"] }
-ratatui-image = "1.0.5"
 regex = "1.10.6"
 serde = { version = "1.0.208", features = ["derive"] }
 serde_json = "1.0.125"
@@ -67,13 +61,13 @@ strip-ansi-escapes = "0.2.0"
 strum = { version = "0.26.3", features = ["derive"] }
 syntect = "5.2.0"
 tokio = { version = "1.39.3", features = ["full"] }
-tokio-stream = "0.1.16"
-tokio-util = "0.7.11"
 toml = "0.8.19"
 tracing = "0.1.40"
 tracing-error = "0.2.0"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 unicode-width = "0.2.0"
+human-panic = "2.0.2"
+pretty_assertions = "1.4.1"
 
 
 [build-dependencies]
@@ -88,7 +82,7 @@ debug = "none"
 strip = "symbols"
 debug-assertions = false
 overflow-checks = false
-lto = "thin"
+lto = "fat"
 panic = "abort"
 
 [target.'cfg(target_os = "macos")'.dependencies]

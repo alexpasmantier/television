@@ -1,6 +1,6 @@
 use color_eyre::Result;
-use image::{ImageReader, Rgb};
-use ratatui_image::picker::Picker;
+//use image::{ImageReader, Rgb};
+//use ratatui_image::picker::Picker;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
@@ -12,7 +12,8 @@ use syntect::{
     highlighting::{Style, Theme, ThemeSet},
     parsing::SyntaxSet,
 };
-use tracing::{debug, info, warn};
+//use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
@@ -27,16 +28,16 @@ pub struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     syntax_set: Arc<SyntaxSet>,
     syntax_theme: Arc<Theme>,
-    image_picker: Arc<Mutex<Picker>>,
+    //image_picker: Arc<Mutex<Picker>>,
 }
 
 impl FilePreviewer {
     pub fn new() -> Self {
         let syntax_set = SyntaxSet::load_defaults_nonewlines();
         let theme_set = ThemeSet::load_defaults();
-        info!("getting image picker");
-        let image_picker = get_image_picker();
-        info!("got image picker");
+        //info!("getting image picker");
+        //let image_picker = get_image_picker();
+        //info!("got image picker");
 
         FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
@@ -44,31 +45,31 @@ impl FilePreviewer {
             syntax_theme: Arc::new(
                 theme_set.themes["base16-ocean.dark"].clone(),
             ),
-            image_picker: Arc::new(Mutex::new(image_picker)),
+            //image_picker: Arc::new(Mutex::new(image_picker)),
         }
     }
 
-    async fn compute_image_preview(&self, entry: &entry::Entry) {
-        let cache = self.cache.clone();
-        let picker = self.image_picker.clone();
-        let entry_c = entry.clone();
-        tokio::spawn(async move {
-            info!("Loading image: {:?}", entry_c.name);
-            if let Ok(dyn_image) =
-                ImageReader::open(entry_c.name.clone()).unwrap().decode()
-            {
-                let image = picker.lock().await.new_resize_protocol(dyn_image);
-                let preview = Arc::new(Preview::new(
-                    entry_c.name.clone(),
-                    PreviewContent::Image(image),
-                ));
-                cache
-                    .lock()
-                    .await
-                    .insert(entry_c.name.clone(), preview.clone());
-            }
-        });
-    }
+    //async fn compute_image_preview(&self, entry: &entry::Entry) {
+    //    let cache = self.cache.clone();
+    //    let picker = self.image_picker.clone();
+    //    let entry_c = entry.clone();
+    //    tokio::spawn(async move {
+    //        info!("Loading image: {:?}", entry_c.name);
+    //        if let Ok(dyn_image) =
+    //            ImageReader::open(entry_c.name.clone()).unwrap().decode()
+    //        {
+    //            let image = picker.lock().await.new_resize_protocol(dyn_image);
+    //            let preview = Arc::new(Preview::new(
+    //                entry_c.name.clone(),
+    //                PreviewContent::Image(image),
+    //            ));
+    //            cache
+    //                .lock()
+    //                .await
+    //                .insert(entry_c.name.clone(), preview.clone());
+    //        }
+    //    });
+    //}
 
     async fn compute_highlighted_text_preview(
         &self,
@@ -213,8 +214,8 @@ impl FilePreviewer {
                 let preview = loading(&entry.name);
                 self.cache_preview(entry.name.clone(), preview.clone())
                     .await;
-                // compute the image preview in the background
-                self.compute_image_preview(entry).await;
+                //// compute the image preview in the background
+                //self.compute_image_preview(entry).await;
                 preview
             }
             FileType::Other => {
@@ -235,15 +236,15 @@ impl FilePreviewer {
     }
 }
 
-fn get_image_picker() -> Picker {
-    let mut picker = match Picker::from_termios() {
-        Ok(p) => p,
-        Err(_) => Picker::new((7, 14)),
-    };
-    picker.guess_protocol();
-    picker.background_color = Some(Rgb::<u8>([255, 0, 255]));
-    picker
-}
+//fn get_image_picker() -> Picker {
+//    let mut picker = match Picker::from_termios() {
+//        Ok(p) => p,
+//        Err(_) => Picker::new((7, 14)),
+//    };
+//    picker.guess_protocol();
+//    picker.background_color = Some(Rgb::<u8>([255, 0, 255]));
+//    picker
+//}
 
 /// This should be enough to most standard terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;

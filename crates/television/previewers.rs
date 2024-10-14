@@ -11,7 +11,7 @@ mod files;
 pub use basic::BasicPreviewer;
 pub use env::EnvVarPreviewer;
 pub use files::FilePreviewer;
-use ratatui_image::protocol::StatefulProtocol;
+//use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
@@ -27,7 +27,7 @@ pub enum PreviewContent {
     Empty,
     FileTooLarge,
     HighlightedText(Vec<Vec<(Style, String)>>),
-    Image(Box<dyn StatefulProtocol>),
+    //Image(Box<dyn StatefulProtocol>),
     Loading,
     NotSupported,
     PlainText(Vec<String>),

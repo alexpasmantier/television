@@ -4,7 +4,7 @@ use television_derive::CliChannel;
 mod alias;
 mod env;
 mod files;
-mod grep;
+mod text;
 mod stdin;
 
 /// The interface that all television channels must implement.
@@ -12,7 +12,7 @@ mod stdin;
 /// # Important
 /// The `TelevisionChannel` requires the `Send` trait to be implemented as
 /// well. This is necessary to allow the channels to be used in a
-/// multi-threaded environment.
+/// multithreaded environment.
 ///
 /// # Methods
 /// - `find`: Find entries that match the given pattern. This method does not
@@ -87,7 +87,7 @@ pub trait TelevisionChannel: Send {
 pub enum AvailableChannels {
     Env(env::Channel),
     Files(files::Channel),
-    Grep(grep::Channel),
+    Text(text::Channel),
     Stdin(stdin::Channel),
     Alias(alias::Channel),
 }
