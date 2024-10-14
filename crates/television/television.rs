@@ -389,9 +389,9 @@ impl Television {
     ///
     /// * `Result<()>` - An Ok result or an error.
     pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        //let layout = Layout::all_panes_centered(Dimensions::default(), area);
-        let layout =
-            Layout::results_only_centered(Dimensions::new(40, 60), area);
+        let layout = Layout::all_panes_centered(Dimensions::default(), area);
+        //let layout =
+        //    Layout::results_only_centered(Dimensions::new(40, 60), area);
 
         self.results_area_height = u32::from(layout.results.height);
         if let Some(preview_window) = layout.preview_window {
