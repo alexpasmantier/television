@@ -20,6 +20,7 @@
 - [x] I feel like the finder abstraction is a superfluous layer, maybe just use the channel directly?
 - [x] support for images is implemented but do we really want that in the core? it's quite heavy
 - [ ] use an icon for the prompt
+- [ ] profile using dyn Traits instead of an enum for channels (might degrade performance by storing on the heap)
 
 ## feature ideas
 - [ ] some sort of iterative fuzzy file explorer (preview contents of folders on the right, enter to go in etc.) maybe
