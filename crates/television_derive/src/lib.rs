@@ -36,7 +36,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
         use clap::ValueEnum;
 
         #[derive(Debug, Clone, ValueEnum, Default, Copy)]
-        pub enum CliTvChannel {
+        pub(crate) enum CliTvChannel {
             #[default]
             #(#cli_enum_variants),*
         }
@@ -67,7 +67,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
         #cli_enum
 
         impl CliTvChannel {
-            pub fn to_channel(self) -> Box<dyn TelevisionChannel> {
+            pub(crate) fn to_channel(self) -> Box<dyn TelevisionChannel> {
                 match self {
                     #(#arms),*
                 }

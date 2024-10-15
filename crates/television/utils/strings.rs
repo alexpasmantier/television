@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::fmt::Write;
 
-pub fn next_char_boundary(s: &str, start: usize) -> usize {
+pub(crate) fn next_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
     while !s.is_char_boundary(i) {
         i += 1;
@@ -9,7 +9,7 @@ pub fn next_char_boundary(s: &str, start: usize) -> usize {
     i
 }
 
-pub fn prev_char_boundary(s: &str, start: usize) -> usize {
+pub(crate) fn prev_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
     while !s.is_char_boundary(i) {
         i -= 1;
@@ -17,7 +17,7 @@ pub fn prev_char_boundary(s: &str, start: usize) -> usize {
     i
 }
 
-pub fn slice_at_char_boundaries(
+pub(crate) fn slice_at_char_boundaries(
     s: &str,
     start_byte_index: usize,
     end_byte_index: usize,
@@ -26,7 +26,7 @@ pub fn slice_at_char_boundaries(
         ..next_char_boundary(s, end_byte_index)]
 }
 
-pub fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
+pub(crate) fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
     let mut char_index = byte_index;
     while !s.is_char_boundary(char_index) {
         char_index -= 1;
@@ -64,7 +64,7 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
-pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
+pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
     let mut output = String::new();
 
     let mut idx = 0;
@@ -110,7 +110,7 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
 
 const MAX_LINE_LENGTH: usize = 500;
 
-pub fn preprocess_line(line: &str) -> String {
+pub(crate) fn preprocess_line(line: &str) -> String {
     replace_nonprintable(
         {
             if line.len() > MAX_LINE_LENGTH {
@@ -123,4 +123,16 @@ pub fn preprocess_line(line: &str) -> String {
         .as_bytes(),
         2,
     )
+}
+
+pub(crate) fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
+    if s.len() <= max_length {
+        return s.to_string();
+    }
+
+    let half_max_length = (max_length / 2) - 2;
+    let first_half = slice_up_to_char_boundary(s, half_max_length);
+    let second_half =
+        slice_at_char_boundaries(s, s.len() - half_max_length, s.len());
+    format!("{first_half}…{second_half}")
 }

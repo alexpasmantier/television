@@ -13,7 +13,7 @@ use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 
-pub struct Channel {
+pub(crate) struct Channel {
     matcher: Nucleo<DirEntry>,
     last_pattern: String,
     result_count: u32,
@@ -21,7 +21,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT.match_paths(),
             Arc::new(|| {}),

@@ -84,7 +84,7 @@ pub trait TelevisionChannel: Send {
 ///
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(CliChannel)]
-pub enum AvailableChannels {
+pub(crate) enum AvailableChannels {
     Env(env::Channel),
     Files(files::Channel),
     Text(text::Channel),

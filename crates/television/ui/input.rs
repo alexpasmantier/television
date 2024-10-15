@@ -6,7 +6,7 @@ pub mod backend;
 /// Different backends can be used to convert events into requests.
 #[allow(clippy::module_name_repetitions)]
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
-pub enum InputRequest {
+pub(crate) enum InputRequest {
     SetCursor(usize),
     InsertChar(char),
     GoToPrevChar,
@@ -24,7 +24,7 @@ pub enum InputRequest {
 }
 
 #[derive(Debug, PartialOrd, PartialEq, Eq, Clone, Copy, Hash)]
-pub struct StateChanged {
+pub(crate) struct StateChanged {
     pub value: bool,
     pub cursor: bool,
 }
@@ -45,7 +45,7 @@ pub type InputResponse = Option<StateChanged>;
 /// assert_eq!(input.to_string(), "Hello World");
 /// ```
 #[derive(Default, Debug, Clone)]
-pub struct Input {
+pub(crate) struct Input {
     value: String,
     cursor: usize,
 }
@@ -53,14 +53,14 @@ pub struct Input {
 impl Input {
     /// Initialize a new instance with a given value
     /// Cursor will be set to the given value's length.
-    pub fn new(value: String) -> Self {
+    pub(crate) fn new(value: String) -> Self {
         let len = value.chars().count();
         Self { value, cursor: len }
     }
 
     /// Set the value manually.
     /// Cursor will be set to the given value's length.
-    pub fn with_value(mut self, value: String) -> Self {
+    pub(crate) fn with_value(mut self, value: String) -> Self {
         self.cursor = value.chars().count();
         self.value = value;
         self
@@ -68,20 +68,20 @@ impl Input {
 
     /// Set the cursor manually.
     /// If the input is larger than the value length, it'll be auto adjusted.
-    pub fn with_cursor(mut self, cursor: usize) -> Self {
+    pub(crate) fn with_cursor(mut self, cursor: usize) -> Self {
         self.cursor = cursor.min(self.value.chars().count());
         self
     }
 
     // Reset the cursor and value to default
-    pub fn reset(&mut self) {
+    pub(crate) fn reset(&mut self) {
         self.cursor = Default::default();
         self.value = String::default();
     }
 
     /// Handle request and emit response.
     #[allow(clippy::too_many_lines)]
-    pub fn handle(&mut self, req: InputRequest) -> InputResponse {
+    pub(crate) fn handle(&mut self, req: InputRequest) -> InputResponse {
         use InputRequest::{
             DeleteLine, DeleteNextChar, DeleteNextWord, DeletePrevChar,
             DeletePrevWord, DeleteTillEnd, GoToEnd, GoToNextChar,
@@ -328,17 +328,17 @@ impl Input {
     }
 
     /// Get a reference to the current value.
-    pub fn value(&self) -> &str {
+    pub(crate) fn value(&self) -> &str {
         self.value.as_str()
     }
 
     /// Get the currect cursor placement.
-    pub fn cursor(&self) -> usize {
+    pub(crate) fn cursor(&self) -> usize {
         self.cursor
     }
 
     /// Get the current cursor position with account for multispace characters.
-    pub fn visual_cursor(&self) -> usize {
+    pub(crate) fn visual_cursor(&self) -> usize {
         if self.cursor == 0 {
             return 0;
         }
@@ -356,7 +356,7 @@ impl Input {
     }
 
     /// Get the scroll position with account for multispace characters.
-    pub fn visual_scroll(&self, width: usize) -> usize {
+    pub(crate) fn visual_scroll(&self, width: usize) -> usize {
         let scroll = self.visual_cursor().max(width) - width;
         let mut uscroll = 0;
         let mut chars = self.value().chars();

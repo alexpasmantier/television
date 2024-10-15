@@ -17,7 +17,7 @@ struct EnvVar {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub struct Channel {
+pub(crate) struct Channel {
     matcher: Nucleo<EnvVar>,
     last_pattern: String,
     file_icon: FileIcon,
@@ -29,7 +29,7 @@ const NUM_THREADS: usize = 1;
 const FILE_ICON_STR: &str = "config";
 
 impl Channel {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT,
             Arc::new(|| {}),

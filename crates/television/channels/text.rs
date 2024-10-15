@@ -39,7 +39,7 @@ impl CandidateLine {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub struct Channel {
+pub(crate) struct Channel {
     matcher: Nucleo<CandidateLine>,
     last_pattern: String,
     result_count: u32,
@@ -47,7 +47,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
         // start loading files in the background
         tokio::spawn(load_candidates(
@@ -139,6 +139,7 @@ impl TelevisionChannel for Channel {
                         + ":"
                         + &item.data.line_number.to_string(),
                 )
+                .with_icon(FileIcon::from(item.data.path.as_path()))
                 .with_line_number(item.data.line_number)
         })
     }

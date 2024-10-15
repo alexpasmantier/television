@@ -15,11 +15,14 @@ pub mod results;
 //const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
 //const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 
-pub fn get_border_style(focused: bool) -> Style {
-    if focused {
-        Style::default().fg(Color::Green)
-    } else {
-        // TODO: make this depend on self.config
-        Style::default().fg(Color::Rgb(90, 90, 110)).dim()
-    }
+pub(crate) fn get_border_style(focused: bool) -> Style {
+    Style::default().fg(Color::Blue)
+
+    // NOTE: do we want to change the border color based on focus? Are we
+    // keeping the focus feature at all?
+    // if focused {
+    //    Style::default().fg(Color::Green)
+    // } else {
+    //    Style::default().fg(Color::Blue)
+    // }
 }

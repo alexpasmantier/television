@@ -4,26 +4,29 @@ use crate::entry::Entry;
 
 mod basic;
 mod cache;
+mod directory;
 mod env;
 mod files;
 
 // previewer types
-pub use basic::BasicPreviewer;
-pub use env::EnvVarPreviewer;
-pub use files::FilePreviewer;
+pub(crate) use basic::BasicPreviewer;
+pub(crate) use directory::DirectoryPreviewer;
+pub(crate) use env::EnvVarPreviewer;
+pub(crate) use files::FilePreviewer;
 //use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-pub enum PreviewType {
+pub(crate) enum PreviewType {
     #[default]
     Basic,
+    Directory,
     EnvVar,
     Files,
 }
 
 #[derive(Clone)]
-pub enum PreviewContent {
+pub(crate) enum PreviewContent {
     Empty,
     FileTooLarge,
     HighlightedText(Vec<Vec<(Style, String)>>),
@@ -44,7 +47,7 @@ pub const FILE_TOO_LARGE_MSG: &str = "File too large";
 /// - `title`: The title of the preview.
 /// - `content`: The content of the preview.
 #[derive(Clone)]
-pub struct Preview {
+pub(crate) struct Preview {
     pub title: String,
     pub content: PreviewContent,
 }
@@ -59,11 +62,11 @@ impl Default for Preview {
 }
 
 impl Preview {
-    pub fn new(title: String, content: PreviewContent) -> Self {
+    pub(crate) fn new(title: String, content: PreviewContent) -> Self {
         Preview { title, content }
     }
 
-    pub fn total_lines(&self) -> u16 {
+    pub(crate) fn total_lines(&self) -> u16 {
         match &self.content {
             PreviewContent::HighlightedText(lines) => lines.len() as u16,
             _ => 0,
@@ -71,16 +74,18 @@ impl Preview {
     }
 }
 
-pub struct Previewer {
+pub(crate) struct Previewer {
     basic: BasicPreviewer,
+    directory: DirectoryPreviewer,
     file: FilePreviewer,
     env_var: EnvVarPreviewer,
 }
 
 impl Previewer {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Previewer {
             basic: BasicPreviewer::new(),
+            directory: DirectoryPreviewer::new(),
             file: FilePreviewer::new(),
             env_var: EnvVarPreviewer::new(),
         }
@@ -89,6 +94,7 @@ impl Previewer {
     pub async fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
         match entry.preview_type {
             PreviewType::Basic => self.basic.preview(entry),
+            PreviewType::Directory => self.directory.preview(entry),
             PreviewType::EnvVar => self.env_var.preview(entry),
             PreviewType::Files => self.file.preview(entry).await,
         }

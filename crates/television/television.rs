@@ -4,7 +4,7 @@ use ratatui::{
     layout::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     text::{Line, Span},
     widgets::{
         block::{Position, Title},
@@ -15,7 +15,6 @@ use ratatui::{
 use std::{collections::HashMap, str::FromStr};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::channels::{CliTvChannel, TelevisionChannel};
 use crate::entry::{Entry, ENTRY_PLACEHOLDER};
 use crate::previewers::Previewer;
 use crate::ui::get_border_style;
@@ -26,6 +25,10 @@ use crate::ui::preview::DEFAULT_PREVIEW_TITLE_FG;
 use crate::ui::results::build_results_list;
 use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
+use crate::{
+    channels::{CliTvChannel, TelevisionChannel},
+    utils::strings::shrink_with_ellipsis,
+};
 
 #[derive(PartialEq, Copy, Clone)]
 enum Pane {
@@ -36,7 +39,7 @@ enum Pane {
 
 static PANES: [Pane; 3] = [Pane::Input, Pane::Results, Pane::Preview];
 
-pub struct Television {
+pub(crate) struct Television {
     action_tx: Option<UnboundedSender<Action>>,
     config: Config,
     channel: Box<dyn TelevisionChannel>,
@@ -48,15 +51,22 @@ pub struct Television {
     picker_view_offset: usize,
     results_area_height: u32,
     previewer: Previewer,
-    pub preview_scroll: Option<u16>,
+    pub(crate) preview_scroll: Option<u16>,
     pub(crate) preview_pane_height: u16,
     current_preview_total_lines: u16,
-    pub(crate) meta_paragraph_cache: HashMap<String, Paragraph<'static>>,
+    /// A cache for meta paragraphs (i.e. previews like "Not Supported", etc.).
+    ///
+    /// The key is a tuple of the preview name and the dimensions of the
+    /// preview pane. This is a little extra security to ensure meta previews
+    /// are rendered correctly even when resizing the terminal while still
+    /// benefiting from a cache mechanism.
+    pub(crate) meta_paragraph_cache:
+        HashMap<(String, u16, u16), Paragraph<'static>>,
 }
 
 impl Television {
     #[must_use]
-    pub fn new(cli_channel: CliTvChannel) -> Self {
+    pub(crate) fn new(cli_channel: CliTvChannel) -> Self {
         let mut tv_channel = cli_channel.to_channel();
         tv_channel.find(EMPTY_STRING);
 
@@ -86,13 +96,13 @@ impl Television {
     #[must_use]
     /// # Panics
     /// This method will panic if the index doesn't fit into an u32.
-    pub fn get_selected_entry(&self) -> Option<Entry> {
+    pub(crate) fn get_selected_entry(&self) -> Option<Entry> {
         self.picker_state
             .selected()
             .and_then(|i| self.channel.get_result(u32::try_from(i).unwrap()))
     }
 
-    pub fn select_prev_entry(&mut self) {
+    pub(crate) fn select_prev_entry(&mut self) {
         if self.channel.result_count() == 0 {
             return;
         }
@@ -122,7 +132,7 @@ impl Television {
         }
     }
 
-    pub fn select_next_entry(&mut self) {
+    pub(crate) fn select_next_entry(&mut self) {
         if self.channel.result_count() == 0 {
             return;
         }
@@ -155,7 +165,7 @@ impl Television {
         self.preview_scroll = None;
     }
 
-    pub fn scroll_preview_down(&mut self, offset: u16) {
+    pub(crate) fn scroll_preview_down(&mut self, offset: u16) {
         if self.preview_scroll.is_none() {
             self.preview_scroll = Some(0);
         }
@@ -169,7 +179,7 @@ impl Television {
         }
     }
 
-    pub fn scroll_preview_up(&mut self, offset: u16) {
+    pub(crate) fn scroll_preview_up(&mut self, offset: u16) {
         if let Some(scroll) = self.preview_scroll {
             self.preview_scroll = Some(scroll.saturating_sub(offset));
         }
@@ -182,13 +192,13 @@ impl Television {
             .unwrap()
     }
 
-    pub fn next_pane(&mut self) {
+    pub(crate) fn next_pane(&mut self) {
         let current_index = self.get_current_pane_index();
         let next_index = (current_index + 1) % PANES.len();
         self.current_pane = PANES[next_index];
     }
 
-    pub fn previous_pane(&mut self) {
+    pub(crate) fn previous_pane(&mut self) {
         let current_index = self.get_current_pane_index();
         let previous_index = if current_index == 0 {
             PANES.len() - 1
@@ -207,7 +217,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search          x ││             │
     /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_on_top(&mut self) {
+    pub(crate) fn move_to_pane_on_top(&mut self) {
         if self.current_pane == Pane::Input {
             self.current_pane = Pane::Results;
         }
@@ -222,7 +232,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search            ││             │
     /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_below(&mut self) {
+    pub(crate) fn move_to_pane_below(&mut self) {
         if self.current_pane == Pane::Results {
             self.current_pane = Pane::Input;
         }
@@ -237,7 +247,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search          x ││             │
     /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_right(&mut self) {
+    pub(crate) fn move_to_pane_right(&mut self) {
         match self.current_pane {
             Pane::Results | Pane::Input => {
                 self.current_pane = Pane::Preview;
@@ -255,22 +265,22 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search            ││             │
     /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_left(&mut self) {
+    pub(crate) fn move_to_pane_left(&mut self) {
         if self.current_pane == Pane::Preview {
             self.current_pane = Pane::Results;
         }
     }
 
     #[must_use]
-    pub fn is_input_focused(&self) -> bool {
+    pub(crate) fn is_input_focused(&self) -> bool {
         Pane::Input == self.current_pane
     }
 }
 
 // Styles
 //  input
-const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
-const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(150, 150, 150);
+const DEFAULT_INPUT_FG: Color = Color::LightRed;
+const DEFAULT_RESULTS_COUNT_FG: Color = Color::LightRed;
 
 impl Television {
     /// Register an action handler that can send actions for processing if necessary.
@@ -282,7 +292,7 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub fn register_action_handler(
+    pub(crate) fn register_action_handler(
         &mut self,
         tx: UnboundedSender<Action>,
     ) -> Result<()> {
@@ -299,7 +309,10 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
+    pub(crate) fn register_config_handler(
+        &mut self,
+        config: Config,
+    ) -> Result<()> {
         self.config = config;
         Ok(())
     }
@@ -388,7 +401,11 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
+    pub(crate) fn draw(
+        &mut self,
+        frame: &mut Frame,
+        area: Rect,
+    ) -> Result<()> {
         let layout = Layout::all_panes_centered(Dimensions::default(), area);
         //let layout =
         //    Layout::results_only_centered(Dimensions::new(40, 60), area);
@@ -446,11 +463,15 @@ impl Television {
 
         frame.render_widget(input_block, layout.input);
 
+        // split input block into 3 parts: prompt symbol, input, result count
         let inner_input_chunks = RatatuiLayout::default()
             .direction(Direction::Horizontal)
             .constraints([
+                // prompt symbol
                 Constraint::Length(2),
+                // input field
                 Constraint::Fill(1),
+                // result count
                 Constraint::Length(
                     3 * ((self.channel.total_count() as f32).log10().ceil()
                         as u16
@@ -461,8 +482,11 @@ impl Television {
             .split(input_block_inner);
 
         let arrow_block = Block::default();
-        let arrow = Paragraph::new(Span::styled("> ", Style::default()))
-            .block(arrow_block);
+        let arrow = Paragraph::new(Span::styled(
+            "> ",
+            Style::default().fg(DEFAULT_INPUT_FG).bold(),
+        ))
+        .block(arrow_block);
         frame.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -472,7 +496,7 @@ impl Television {
         let input = Paragraph::new(self.input.value())
             .scroll((0, u16::try_from(scroll)?))
             .block(interactive_input_block)
-            .style(Style::default().fg(DEFAULT_INPUT_FG))
+            .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
             .alignment(Alignment::Left);
         frame.render_widget(input, inner_input_chunks[1]);
 
@@ -487,7 +511,7 @@ impl Television {
                 },
                 self.channel.result_count(),
             ),
-            Style::default().fg(DEFAULT_RESULTS_COUNT_FG),
+            Style::default().fg(DEFAULT_RESULTS_COUNT_FG).italic(),
         ))
         .block(result_count_block)
         .alignment(Alignment::Right);
@@ -519,14 +543,21 @@ impl Television {
                 let mut preview_title_spans = Vec::new();
                 if let Some(icon) = &selected_entry.icon {
                     preview_title_spans.push(Span::styled(
-                        icon.to_string(),
+                        {
+                            let mut icon_str = String::from(" ");
+                            icon_str.push(icon.icon);
+                            icon_str.push(' ');
+                            icon_str
+                        },
                         Style::default().fg(Color::from_str(icon.color)?),
                     ));
-                    preview_title_spans.push(Span::raw(" "));
                 }
                 preview_title_spans.push(Span::styled(
-                    preview.title.clone(),
-                    Style::default().fg(DEFAULT_PREVIEW_TITLE_FG),
+                    shrink_with_ellipsis(
+                        &preview.title,
+                        (preview_title_area.width - 4) as usize,
+                    ),
+                    Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
                 ));
                 let preview_title =
                     Paragraph::new(Line::from(preview_title_spans))
@@ -581,8 +612,7 @@ impl Television {
                     &preview,
                     selected_entry
                         .line_number
-                        // FIXME: this actually might panic in some edge cases
-                        .map(|l| u16::try_from(l).unwrap()),
+                        .map(|l| u16::try_from(l).unwrap_or(0)),
                 );
                 frame.render_widget(preview_block, inner);
                 //}

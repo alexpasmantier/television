@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{io::BufRead, sync::Arc};
 
 use devicons::FileIcon;
@@ -10,7 +11,7 @@ use crate::previewers::PreviewType;
 
 use super::TelevisionChannel;
 
-pub struct Channel {
+pub(crate) struct Channel {
     matcher: Nucleo<String>,
     last_pattern: String,
     result_count: u32,
@@ -21,7 +22,7 @@ pub struct Channel {
 const NUM_THREADS: usize = 2;
 
 impl Channel {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
             debug!("Read line: {:?}", line);
@@ -95,6 +96,12 @@ impl TelevisionChannel for Channel {
                 let indices = indices.drain(..);
 
                 let content = item.matcher_columns[0].to_string();
+                let path = Path::new(&content);
+                let icon = if path.try_exists().unwrap_or(false) {
+                    FileIcon::from(path)
+                } else {
+                    icon
+                };
                 Entry::new(content.clone(), PreviewType::Basic)
                     .with_name_match_ranges(
                         indices.map(|i| (i, i + 1)).collect(),
@@ -108,8 +115,19 @@ impl TelevisionChannel for Channel {
         let snapshot = self.matcher.snapshot();
         snapshot.get_matched_item(index).map(|item| {
             let content = item.matcher_columns[0].to_string();
-            Entry::new(content.clone(), PreviewType::Basic)
-                .with_icon(self.icon)
+            // if we recognize a file path, use a file icon
+            // and set the preview type to "Files"
+            let path = Path::new(&content);
+            if path.is_file() {
+                Entry::new(content.clone(), PreviewType::Files)
+                    .with_icon(FileIcon::from(path))
+            } else if path.is_dir() {
+                Entry::new(content.clone(), PreviewType::Directory)
+                    .with_icon(FileIcon::from(path))
+            } else {
+                Entry::new(content.clone(), PreviewType::Basic)
+                    .with_icon(self.icon)
+            }
         })
     }
 

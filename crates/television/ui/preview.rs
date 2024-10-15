@@ -20,7 +20,7 @@ impl Television {
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
-    pub fn build_preview_paragraph<'b>(
+    pub(crate) fn build_preview_paragraph<'b>(
         &'b mut self,
         preview_block: Block<'b>,
         inner: Rect,
@@ -34,10 +34,9 @@ impl Television {
                 for (i, line) in content.iter().enumerate() {
                     lines.push(Line::from(vec![
                         build_line_number_span(i + 1).style(Style::default().fg(
-                            // FIXME: this actually might panic in some edge cases
                             if matches!(
                                 target_line,
-                                Some(l) if l == u16::try_from(i).unwrap() + 1
+                                Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
                             )
                             {
                                 DEFAULT_PREVIEW_GUTTER_SELECTED_FG
@@ -120,7 +119,7 @@ impl Television {
         }
     }
 
-    pub fn maybe_init_preview_scroll(
+    pub(crate) fn maybe_init_preview_scroll(
         &mut self,
         target_line: Option<u16>,
         height: u16,
@@ -131,13 +130,17 @@ impl Television {
         }
     }
 
-    pub fn build_meta_preview_paragraph<'a>(
+    pub(crate) fn build_meta_preview_paragraph<'a>(
         &mut self,
         inner: Rect,
         message: &str,
         fill_char: char,
     ) -> Paragraph<'a> {
-        if let Some(paragraph) = self.meta_paragraph_cache.get(message) {
+        if let Some(paragraph) = self.meta_paragraph_cache.get(&(
+            message.to_string(),
+            inner.width,
+            inner.height,
+        )) {
             return paragraph.clone();
         }
         let message_len = message.len();
@@ -187,8 +190,10 @@ impl Television {
 
         // Create a paragraph with the generated content
         let p = Paragraph::new(Text::from(lines));
-        self.meta_paragraph_cache
-            .insert(message.to_string(), p.clone());
+        self.meta_paragraph_cache.insert(
+            (message.to_string(), inner.width, inner.height),
+            p.clone(),
+        );
         p
     }
 }

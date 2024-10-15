@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub fn is_readable_stdin() -> bool {
+pub(crate) fn is_readable_stdin() -> bool {
     use std::io::IsTerminal;
 
     #[cfg(unix)]

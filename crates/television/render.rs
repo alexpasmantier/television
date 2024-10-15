@@ -15,7 +15,7 @@ use crate::television::Television;
 use crate::{action::Action, config::Config, tui::Tui};
 
 #[derive(Debug)]
-pub enum RenderingTask {
+pub(crate) enum RenderingTask {
     ClearScreen,
     Render,
     Resize(u16, u16),
@@ -72,7 +72,7 @@ pub async fn render(
     // Rendering loop
     loop {
         select! {
-            _ = tokio::time::sleep(tokio::time::Duration::from_secs_f64(1.0 / frame_rate)) => {
+            () = tokio::time::sleep(tokio::time::Duration::from_secs_f64(1.0 / frame_rate)) => {
                 action_tx.send(Action::Render)?;
             }
             maybe_task = render_rx.recv() => {
@@ -83,13 +83,24 @@ pub async fn render(
                         }
                         RenderingTask::Render => {
                             let mut television = television.lock().await;
-                            tui.terminal.draw(|frame| {
-                                if let Err(err) = television.draw(frame, frame.area()) {
-                                    warn!("Failed to draw: {:?}", err);
-                                    let _ = action_tx
-                                        .send(Action::Error(format!("Failed to draw: {err:?}")));
+                            if let Ok(size) = tui.size() {
+                                // Ratatui uses u16s to encode terminal dimensions and its
+                                // content for each terminal cell is stored linearly in a
+                                // buffer with a u16 index which means we can't support
+                                // terminal areas larger than u16::MAX.
+                                if size.width.checked_mul(size.height).is_some() {
+                                    tui.terminal.draw(|frame| {
+                                        if let Err(err) = television.draw(frame, frame.area()) {
+                                            warn!("Failed to draw: {:?}", err);
+                                            let _ = action_tx
+                                                .send(Action::Error(format!("Failed to draw: {err:?}")));
+                                        }
+                                    })?;
+
+                                } else {
+                                    warn!("Terminal area too large");
                                 }
-                            })?;
+                            }
                         }
                         RenderingTask::Resize(w, h) => {
                             tui.resize(Rect::new(0, 0, w, h))?;

@@ -67,7 +67,7 @@ use crate::{
     render::{render, RenderingTask},
 };
 
-pub struct App {
+pub(crate) struct App {
     config: Config,
     // maybe move these two into config instead of passing them
     // via the cli?
@@ -87,7 +87,7 @@ pub struct App {
 #[derive(
     Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize,
 )]
-pub enum Mode {
+pub(crate) enum Mode {
     #[default]
     Help,
     Input,
@@ -96,7 +96,7 @@ pub enum Mode {
 }
 
 impl App {
-    pub fn new(
+    pub(crate) fn new(
         channel: CliTvChannel,
         tick_rate: f64,
         frame_rate: f64,

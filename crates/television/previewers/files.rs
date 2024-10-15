@@ -24,7 +24,7 @@ use crate::utils::strings::preprocess_line;
 
 use super::cache::PreviewCache;
 
-pub struct FilePreviewer {
+pub(crate) struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     syntax_set: Arc<SyntaxSet>,
     syntax_theme: Arc<Theme>,
@@ -32,7 +32,7 @@ pub struct FilePreviewer {
 }
 
 impl FilePreviewer {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let syntax_set = SyntaxSet::load_defaults_nonewlines();
         let theme_set = ThemeSet::load_defaults();
         //info!("getting image picker");

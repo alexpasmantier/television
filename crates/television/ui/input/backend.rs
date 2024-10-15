@@ -5,7 +5,7 @@ use ratatui::crossterm::event::{
 
 /// Converts crossterm event into input requests.
 /// TODO: make these keybindings configurable.
-pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
+pub(crate) fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
     use InputRequest::*;
     use KeyCode::*;
     match evt {

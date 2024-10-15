@@ -8,7 +8,7 @@ lazy_static::lazy_static! {
     pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 
-pub fn init() -> Result<()> {
+pub(crate) fn init() -> Result<()> {
     let directory = config::get_data_dir();
     std::fs::create_dir_all(directory.clone())?;
     let log_path = directory.join(LOG_FILE.clone());

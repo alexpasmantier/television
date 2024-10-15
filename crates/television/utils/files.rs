@@ -11,7 +11,7 @@ lazy_static::lazy_static! {
     pub static ref DEFAULT_NUM_THREADS: usize = default_num_threads().into();
 }
 
-pub fn walk_builder(path: &Path, n_threads: usize) -> WalkBuilder {
+pub(crate) fn walk_builder(path: &Path, n_threads: usize) -> WalkBuilder {
     let mut builder = WalkBuilder::new(path);
 
     // ft-based filtering
@@ -23,19 +23,19 @@ pub fn walk_builder(path: &Path, n_threads: usize) -> WalkBuilder {
     builder
 }
 
-pub fn get_file_size(path: &Path) -> Option<u64> {
+pub(crate) fn get_file_size(path: &Path) -> Option<u64> {
     std::fs::metadata(path).ok().map(|m| m.len())
 }
 
 #[derive(Debug)]
-pub enum FileType {
+pub(crate) enum FileType {
     Text,
     Image,
     Other,
     Unknown,
 }
 
-pub fn is_not_text(bytes: &[u8]) -> Option<bool> {
+pub(crate) fn is_not_text(bytes: &[u8]) -> Option<bool> {
     let infer = Infer::new();
     match infer.get(bytes) {
         Some(t) => {
@@ -56,11 +56,11 @@ pub fn is_not_text(bytes: &[u8]) -> Option<bool> {
     }
 }
 
-pub fn is_valid_utf8(bytes: &[u8]) -> bool {
+pub(crate) fn is_valid_utf8(bytes: &[u8]) -> bool {
     std::str::from_utf8(bytes).is_ok()
 }
 
-pub fn is_known_text_extension(path: &Path) -> bool {
+pub(crate) fn is_known_text_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| KNOWN_TEXT_FILE_EXTENSIONS.contains(ext))

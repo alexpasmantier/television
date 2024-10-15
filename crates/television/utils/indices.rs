@@ -1,4 +1,4 @@
-pub fn sep_name_and_value_indices(
+pub(crate) fn sep_name_and_value_indices(
     indices: &mut Vec<u32>,
     name_len: u32,
 ) -> (Vec<u32>, Vec<u32>, bool, bool) {

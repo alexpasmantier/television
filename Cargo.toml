@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -75,6 +75,12 @@ anyhow = "1.0.86"
 vergen-gix = { version = "1.0.0", features = ["build", "cargo"] }
 
 
+[profile.staging]
+inherits = "dev"
+opt-level = 3
+debug = true
+lto = false
+
 
 [profile.release]
 opt-level = 3
@@ -82,7 +88,7 @@ debug = "none"
 strip = "symbols"
 debug-assertions = false
 overflow-checks = false
-lto = "fat"
+lto = "thin"
 panic = "abort"
 
 [target.'cfg(target_os = "macos")'.dependencies]

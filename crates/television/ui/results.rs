@@ -9,7 +9,7 @@ const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
 const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 
-pub fn build_results_list<'a, 'b>(
+pub(crate) fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
 ) -> List<'a>
@@ -39,25 +39,22 @@ where
                         last_match_end,
                         start,
                     ),
-                    Style::default()
-                        .fg(DEFAULT_RESULT_NAME_FG)
-                        .bold()
-                        .italic(),
+                    Style::default().fg(DEFAULT_RESULT_NAME_FG),
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&entry.name, start, end),
-                    Style::default().fg(Color::Red).bold().italic(),
+                    Style::default().fg(Color::Red),
                 ));
                 last_match_end = end;
             }
             spans.push(Span::styled(
                 &entry.name[next_char_boundary(&entry.name, last_match_end)..],
-                Style::default().fg(DEFAULT_RESULT_NAME_FG).bold().italic(),
+                Style::default().fg(DEFAULT_RESULT_NAME_FG),
             ));
         } else {
             spans.push(Span::styled(
                 entry.display_name(),
-                Style::default().fg(DEFAULT_RESULT_NAME_FG).bold().italic(),
+                Style::default().fg(DEFAULT_RESULT_NAME_FG),
             ));
         }
         // optional line number

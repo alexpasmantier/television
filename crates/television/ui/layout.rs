@@ -1,13 +1,13 @@
 use ratatui::layout;
 use ratatui::layout::{Constraint, Direction, Rect};
 
-pub struct Dimensions {
+pub(crate) struct Dimensions {
     pub x: u16,
     pub y: u16,
 }
 
 impl Dimensions {
-    pub fn new(x: u16, y: u16) -> Self {
+    pub(crate) fn new(x: u16, y: u16) -> Self {
         Self { x, y }
     }
 }
@@ -18,7 +18,7 @@ impl Default for Dimensions {
     }
 }
 
-pub struct Layout {
+pub(crate) struct Layout {
     pub results: Rect,
     pub input: Rect,
     pub preview_title: Option<Rect>,
@@ -26,7 +26,7 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn new(
+    pub(crate) fn new(
         results: Rect,
         input: Rect,
         preview_title: Option<Rect>,
@@ -42,7 +42,7 @@ impl Layout {
 
     /// TODO: add diagram
     #[allow(dead_code)]
-    pub fn all_panes_centered(dimensions: Dimensions, area: Rect) -> Self {
+    pub(crate) fn all_panes_centered(dimensions: Dimensions, area: Rect) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
         let chunks = layout::Layout::default()
@@ -75,7 +75,7 @@ impl Layout {
 
     /// TODO: add diagram
     #[allow(dead_code)]
-    pub fn results_only_centered(dimensions: Dimensions, area: Rect) -> Self {
+    pub(crate) fn results_only_centered(dimensions: Dimensions, area: Rect) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
         let chunks = layout::Layout::default()

@@ -20,7 +20,7 @@ const CONFIG: &str = include_str!("../../.config/config.toml");
 
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Deserialize, Default)]
-pub struct AppConfig {
+pub(crate) struct AppConfig {
     #[serde(default)]
     pub data_dir: PathBuf,
     #[serde(default)]
@@ -28,7 +28,7 @@ pub struct AppConfig {
 }
 
 #[derive(Clone, Debug, Default, Deserialize)]
-pub struct Config {
+pub(crate) struct Config {
     #[allow(clippy::struct_field_names)]
     #[serde(default, flatten)]
     pub config: AppConfig,
@@ -52,7 +52,7 @@ lazy_static! {
 }
 
 impl Config {
-    pub fn new() -> Result<Self, config::ConfigError> {
+    pub(crate) fn new() -> Result<Self, config::ConfigError> {
         //let default_config: Config = json5::from_str(CONFIG).unwrap();
         let default_config: Config = toml::from_str(CONFIG).unwrap();
         let data_dir = get_data_dir();
@@ -101,7 +101,7 @@ impl Config {
     }
 }
 
-pub fn get_data_dir() -> PathBuf {
+pub(crate) fn get_data_dir() -> PathBuf {
     let directory = if let Some(s) = DATA_FOLDER.clone() {
         s
     } else if let Some(proj_dirs) = project_directory() {
@@ -112,7 +112,7 @@ pub fn get_data_dir() -> PathBuf {
     directory
 }
 
-pub fn get_config_dir() -> PathBuf {
+pub(crate) fn get_config_dir() -> PathBuf {
     let directory = if let Some(s) = CONFIG_FOLDER.clone() {
         s
     } else if let Some(proj_dirs) = project_directory() {
@@ -128,7 +128,7 @@ fn project_directory() -> Option<ProjectDirs> {
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
-pub struct KeyBindings(pub HashMap<Mode, HashMap<Key, Action>>);
+pub(crate) struct KeyBindings(pub HashMap<Mode, HashMap<Key, Action>>);
 
 impl<'de> Deserialize<'de> for KeyBindings {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -236,7 +236,7 @@ fn parse_key_code_with_modifiers(
 }
 
 #[allow(dead_code)]
-pub fn key_event_to_string(key_event: &KeyEvent) -> String {
+pub(crate) fn key_event_to_string(key_event: &KeyEvent) -> String {
     let char;
     let key_code = match key_event.code {
         KeyCode::Backspace => "backspace",
@@ -299,7 +299,7 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     key
 }
 
-pub fn parse_key(raw: &str) -> Result<Key, String> {
+pub(crate) fn parse_key(raw: &str) -> Result<Key, String> {
     if raw.chars().filter(|c| *c == '>').count()
         != raw.chars().filter(|c| *c == '<').count()
     {
@@ -316,7 +316,7 @@ pub fn parse_key(raw: &str) -> Result<Key, String> {
     Ok(convert_raw_event_to_key(key_event))
 }
 
-pub fn default_num_threads() -> NonZeroUsize {
+pub(crate) fn default_num_threads() -> NonZeroUsize {
     // default to 1 thread if we can't determine the number of available threads
     let default = NonZeroUsize::MIN;
     // never use more than 32 threads to avoid startup overhead
@@ -328,7 +328,7 @@ pub fn default_num_threads() -> NonZeroUsize {
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
-pub struct Styles(pub HashMap<Mode, HashMap<String, Style>>);
+pub(crate) struct Styles(pub HashMap<Mode, HashMap<String, Style>>);
 
 impl<'de> Deserialize<'de> for Styles {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -355,7 +355,7 @@ impl<'de> Deserialize<'de> for Styles {
     }
 }
 
-pub fn parse_style(line: &str) -> Style {
+pub(crate) fn parse_style(line: &str) -> Style {
     let (foreground, background) =
         line.split_at(line.to_lowercase().find("on ").unwrap_or(line.len()));
     let foreground = process_color_string(foreground);
