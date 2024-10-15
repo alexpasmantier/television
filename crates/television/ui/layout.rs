@@ -42,7 +42,10 @@ impl Layout {
 
     /// TODO: add diagram
     #[allow(dead_code)]
-    pub(crate) fn all_panes_centered(dimensions: Dimensions, area: Rect) -> Self {
+    pub(crate) fn all_panes_centered(
+        dimensions: Dimensions,
+        area: Rect,
+    ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
         let chunks = layout::Layout::default()
@@ -75,7 +78,10 @@ impl Layout {
 
     /// TODO: add diagram
     #[allow(dead_code)]
-    pub(crate) fn results_only_centered(dimensions: Dimensions, area: Rect) -> Self {
+    pub(crate) fn results_only_centered(
+        dimensions: Dimensions,
+        area: Rect,
+    ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
         let chunks = layout::Layout::default()
