@@ -18,6 +18,7 @@ pub(crate) struct Channel {
     last_pattern: String,
     result_count: u32,
     total_count: u32,
+    running: bool,
 }
 
 impl Channel {
@@ -38,6 +39,7 @@ impl Channel {
             last_pattern: String::new(),
             result_count: 0,
             total_count: 0,
+            running: false,
         }
     }
 
@@ -73,6 +75,7 @@ impl TelevisionChannel for Channel {
             self.result_count = snapshot.matched_item_count();
             self.total_count = snapshot.item_count();
         }
+        self.running = status.running;
         let mut indices = Vec::new();
         let mut matcher = MATCHER.lock();
 
@@ -109,6 +112,10 @@ impl TelevisionChannel for Channel {
             Entry::new(path.clone(), PreviewType::Files)
                 .with_icon(FileIcon::from(&path))
         })
+    }
+
+    fn running(&self) -> bool {
+        self.running
     }
 }
 

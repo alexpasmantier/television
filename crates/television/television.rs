@@ -15,8 +15,6 @@ use ratatui::{
 use std::{collections::HashMap, str::FromStr};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::entry::{Entry, ENTRY_PLACEHOLDER};
-use crate::previewers::Previewer;
 use crate::ui::get_border_style;
 use crate::ui::input::actions::InputActionHandler;
 use crate::ui::input::Input;
@@ -29,6 +27,11 @@ use crate::{
     channels::{CliTvChannel, TelevisionChannel},
     utils::strings::shrink_with_ellipsis,
 };
+use crate::{
+    entry::{Entry, ENTRY_PLACEHOLDER},
+    ui::spinner::Spinner,
+};
+use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 
 #[derive(PartialEq, Copy, Clone)]
 enum Pane {
@@ -62,6 +65,8 @@ pub(crate) struct Television {
     /// benefiting from a cache mechanism.
     pub(crate) meta_paragraph_cache:
         HashMap<(String, u16, u16), Paragraph<'static>>,
+    spinner: Spinner,
+    spinner_state: SpinnerState,
 }
 
 impl Television {
@@ -69,6 +74,9 @@ impl Television {
     pub(crate) fn new(cli_channel: CliTvChannel) -> Self {
         let mut tv_channel = cli_channel.to_channel();
         tv_channel.find(EMPTY_STRING);
+
+        let spinner = Spinner::default();
+        let spinner_state = SpinnerState::from(&spinner);
 
         Self {
             action_tx: None,
@@ -86,6 +94,8 @@ impl Television {
             preview_pane_height: 0,
             current_preview_total_lines: 0,
             meta_paragraph_cache: HashMap::new(),
+            spinner,
+            spinner_state,
         }
     }
 
@@ -408,7 +418,7 @@ impl Television {
     ) -> Result<()> {
         let layout = Layout::all_panes_centered(Dimensions::default(), area);
         //let layout =
-        //    Layout::results_only_centered(Dimensions::new(40, 60), area);
+        //Layout::results_only_centered(Dimensions::new(40, 60), area);
 
         self.results_area_height = u32::from(layout.results.height);
         if let Some(preview_window) = layout.preview_window {
@@ -478,6 +488,8 @@ impl Television {
                         + 1)
                         + 3,
                 ),
+                // spinner
+                Constraint::Length(1),
             ])
             .split(input_block_inner);
 
@@ -499,6 +511,14 @@ impl Television {
             .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
             .alignment(Alignment::Left);
         frame.render_widget(input, inner_input_chunks[1]);
+
+        if self.channel.running() {
+            frame.render_stateful_widget(
+                self.spinner,
+                inner_input_chunks[3],
+                &mut self.spinner_state,
+            );
+        }
 
         let result_count_block = Block::default();
         let result_count = Paragraph::new(Span::styled(

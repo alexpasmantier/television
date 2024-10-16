@@ -44,6 +44,7 @@ pub(crate) struct Channel {
     last_pattern: String,
     result_count: u32,
     total_count: u32,
+    running: bool,
 }
 
 impl Channel {
@@ -59,6 +60,7 @@ impl Channel {
             last_pattern: String::new(),
             result_count: 0,
             total_count: 0,
+            running: false,
         }
     }
 
@@ -94,6 +96,7 @@ impl TelevisionChannel for Channel {
             self.result_count = snapshot.matched_item_count();
             self.total_count = snapshot.item_count();
         }
+        self.running = status.running;
         let mut indices = Vec::new();
         let mut matcher = MATCHER.lock();
 
@@ -143,7 +146,17 @@ impl TelevisionChannel for Channel {
                 .with_line_number(item.data.line_number)
         })
     }
+
+    fn running(&self) -> bool {
+        self.running
+    }
 }
+
+/// The maximum file size we're willing to search in.
+///
+/// This is to prevent taking humongous amounts of memory when searching in
+/// a lot of files (e.g. starting tv in $HOME).
+const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
 #[allow(clippy::unused_async)]
 async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
@@ -156,6 +169,11 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
         Box::new(move |result| {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
+                    if let Ok(m) = entry.metadata() {
+                        if m.len() > MAX_FILE_SIZE {
+                            return ignore::WalkState::Continue;
+                        }
+                    }
                     // iterate over the lines of the file
                     match File::open(entry.path()) {
                         Ok(file) => {

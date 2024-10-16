@@ -17,6 +17,7 @@ pub(crate) struct Channel {
     result_count: u32,
     total_count: u32,
     icon: FileIcon,
+    running: bool,
 }
 
 const NUM_THREADS: usize = 2;
@@ -46,6 +47,7 @@ impl Channel {
             result_count: 0,
             total_count: 0,
             icon: FileIcon::from("nu"),
+            running: false,
         }
     }
 
@@ -75,6 +77,7 @@ impl TelevisionChannel for Channel {
             self.result_count = snapshot.matched_item_count();
             self.total_count = snapshot.item_count();
         }
+        self.running = status.running;
         let mut indices = Vec::new();
         let mut matcher = MATCHER.lock();
         let icon = self.icon;
@@ -137,5 +140,9 @@ impl TelevisionChannel for Channel {
 
     fn total_count(&self) -> u32 {
         self.total_count
+    }
+
+    fn running(&self) -> bool {
+        self.running
     }
 }

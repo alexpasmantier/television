@@ -4,6 +4,7 @@ pub mod input;
 pub mod layout;
 pub mod preview;
 pub mod results;
+pub mod spinner;
 
 //  input
 //const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);

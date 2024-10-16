@@ -64,6 +64,9 @@ pub trait TelevisionChannel: Send {
 
     /// Get the total number of entries currently available.
     fn total_count(&self) -> u32;
+
+    /// Check if the channel is currently running.
+    fn running(&self) -> bool;
 }
 
 /// The available television channels.

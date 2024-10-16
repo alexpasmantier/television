@@ -4,8 +4,8 @@
 
 # tasks
 - [x] preview navigation
-- [ ] add a way to open the selected file in the default editor (or maybe that
-should be achieved using pipes?)
+- [x] add a way to open the selected file in the default editor (or maybe that
+should be achieved using pipes?) --> use xargs for that
 - [x] maybe filter out image types etc. for now
 - [x] return selected entry on exit
 - [x] piping output to another command
@@ -31,6 +31,7 @@ the channel directly?
 - [x] support for images is implemented but do we really want that in the core?
 it's quite heavy
 - [x] shrink entry names that are too long (from the middle)
+- [ ] make the preview toggleable
 
 ## feature ideas
 - [ ] some sort of iterative fuzzy file explorer (preview contents of folders
@@ -51,4 +52,6 @@ https://github.com/jrmuizel/pdf-extract
 - [ ] from one set of entries to another? (fuzzy-refine) maybe piping
 tv with itself?
 - [ ] add a way of copying the selected entry name/value to the clipboard
-
+- [ ] have a keybind to send all current entries to stdout ... oorrrrr to another channel??
+- [ ] action menu on the bottom: send to channel, copy to clipboard, send to stdout, ... maybe with tab to navigate
+between possible actions (defined per channel, not all channels can pipe to all channels)

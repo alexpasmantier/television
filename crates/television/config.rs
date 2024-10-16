@@ -7,7 +7,7 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
-use tracing::error;
+use tracing::{error, info};
 
 use crate::{
     action::Action,
@@ -120,6 +120,7 @@ pub(crate) fn get_config_dir() -> PathBuf {
     } else {
         PathBuf::from(".").join(".config")
     };
+    info!("Using config directory: {:?}", directory);
     directory
 }
 
