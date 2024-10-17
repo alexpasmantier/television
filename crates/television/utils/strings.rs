@@ -108,6 +108,16 @@ pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
     output
 }
 
+pub(crate) fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
+    let mut printable = 0;
+    for &byte in buffer {
+        if byte > 32 && byte < 127 {
+            printable += 1;
+        }
+    }
+    printable as f32 / buffer.len() as f32
+}
+
 const MAX_LINE_LENGTH: usize = 500;
 
 pub(crate) fn preprocess_line(line: &str) -> String {
@@ -135,4 +145,51 @@ pub(crate) fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
     let second_half =
         slice_at_char_boundaries(s, s.len() - half_max_length, s.len());
     format!("{first_half}…{second_half}")
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    fn test_replace_nonprintable(input: &str, expected: &str) {
+        let actual = replace_nonprintable(input.as_bytes(), 2);
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn test_replace_nonprintable_ascii() {
+        test_replace_nonprintable("Hello, World!", "Hello, World!");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_tab() {
+        test_replace_nonprintable("Hello\tWorld!", "Hello  World!");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_line_feed() {
+        test_replace_nonprintable("Hello\nWorld!", "Hello␊\nWorld!");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_null() {
+        test_replace_nonprintable("Hello\x00World!", "Hello␀World!");
+        test_replace_nonprintable("Hello World!\0", "Hello World!␀");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_delete() {
+        test_replace_nonprintable("Hello\x7FWorld!", "Hello␀World!");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_bom() {
+        test_replace_nonprintable("Hello\u{FEFF}World!", "HelloWorld!");
+    }
+
+    #[test]
+    fn test_replace_nonprintable_start_txt() {
+        test_replace_nonprintable("Àì", "Àì␀");
+    }
 }

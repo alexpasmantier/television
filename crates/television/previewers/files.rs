@@ -20,7 +20,9 @@ use crate::previewers::{Preview, PreviewContent};
 use crate::utils::files::is_valid_utf8;
 use crate::utils::files::FileType;
 use crate::utils::files::{get_file_size, is_known_text_extension};
-use crate::utils::strings::preprocess_line;
+use crate::utils::strings::{
+    preprocess_line, proportion_of_printable_ascii_characters,
+};
 
 use super::cache::PreviewCache;
 
@@ -47,114 +49,6 @@ impl FilePreviewer {
             ),
             //image_picker: Arc::new(Mutex::new(image_picker)),
         }
-    }
-
-    //async fn compute_image_preview(&self, entry: &entry::Entry) {
-    //    let cache = self.cache.clone();
-    //    let picker = self.image_picker.clone();
-    //    let entry_c = entry.clone();
-    //    tokio::spawn(async move {
-    //        info!("Loading image: {:?}", entry_c.name);
-    //        if let Ok(dyn_image) =
-    //            ImageReader::open(entry_c.name.clone()).unwrap().decode()
-    //        {
-    //            let image = picker.lock().await.new_resize_protocol(dyn_image);
-    //            let preview = Arc::new(Preview::new(
-    //                entry_c.name.clone(),
-    //                PreviewContent::Image(image),
-    //            ));
-    //            cache
-    //                .lock()
-    //                .await
-    //                .insert(entry_c.name.clone(), preview.clone());
-    //        }
-    //    });
-    //}
-
-    async fn compute_highlighted_text_preview(
-        &self,
-        entry: &entry::Entry,
-        reader: BufReader<File>,
-    ) {
-        let cache = self.cache.clone();
-        let syntax_set = self.syntax_set.clone();
-        let syntax_theme = self.syntax_theme.clone();
-        let entry_c = entry.clone();
-        tokio::spawn(async move {
-            debug!(
-                "Computing highlights in the background for {:?}",
-                entry_c.name
-            );
-            let lines: Vec<String> =
-                reader.lines().map_while(Result::ok).collect();
-
-            match compute_highlights(
-                &PathBuf::from(&entry_c.name),
-                lines,
-                &syntax_set,
-                &syntax_theme,
-            ) {
-                Ok(highlighted_lines) => {
-                    debug!(
-                        "Successfully computed highlights for {:?}",
-                        entry_c.name
-                    );
-                    cache.lock().await.insert(
-                        entry_c.name.clone(),
-                        Arc::new(Preview::new(
-                            entry_c.name,
-                            PreviewContent::HighlightedText(highlighted_lines),
-                        )),
-                    );
-                    debug!("Inserted highlighted preview into cache");
-                }
-                Err(e) => {
-                    warn!("Error computing highlights: {:?}", e);
-                }
-            };
-        });
-    }
-
-    /// The maximum file size that we will try to preview.
-    /// 4 MB
-    const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
-
-    fn get_file_type(&self, path: &Path) -> FileType {
-        debug!("Getting file type for {:?}", path);
-        let mut file_type = match infer::get_from_path(path) {
-            Ok(Some(t)) => {
-                let mime_type = t.mime_type();
-                if mime_type.contains("image") {
-                    FileType::Image
-                } else if mime_type.contains("text") {
-                    FileType::Text
-                } else {
-                    FileType::Other
-                }
-            }
-            _ => FileType::Unknown,
-        };
-
-        // if the file type is unknown, try to determine it from the extension or the content
-        if matches!(file_type, FileType::Unknown) {
-            if is_known_text_extension(path) {
-                file_type = FileType::Text;
-            } else if let Ok(mut f) = File::open(path) {
-                let mut buffer = [0u8; 256];
-                if let Ok(bytes_read) = f.read(&mut buffer) {
-                    if bytes_read > 0 && is_valid_utf8(&buffer) {
-                        file_type = FileType::Text;
-                    }
-                }
-            }
-        }
-        debug!("File type for {:?}: {:?}", path, file_type);
-
-        file_type
-    }
-
-    async fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
-        self.cache.lock().await.insert(key, preview);
     }
 
     pub async fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
@@ -234,6 +128,123 @@ impl FilePreviewer {
             }
         }
     }
+
+    //async fn compute_image_preview(&self, entry: &entry::Entry) {
+    //    let cache = self.cache.clone();
+    //    let picker = self.image_picker.clone();
+    //    let entry_c = entry.clone();
+    //    tokio::spawn(async move {
+    //        info!("Loading image: {:?}", entry_c.name);
+    //        if let Ok(dyn_image) =
+    //            ImageReader::open(entry_c.name.clone()).unwrap().decode()
+    //        {
+    //            let image = picker.lock().await.new_resize_protocol(dyn_image);
+    //            let preview = Arc::new(Preview::new(
+    //                entry_c.name.clone(),
+    //                PreviewContent::Image(image),
+    //            ));
+    //            cache
+    //                .lock()
+    //                .await
+    //                .insert(entry_c.name.clone(), preview.clone());
+    //        }
+    //    });
+    //}
+
+    async fn compute_highlighted_text_preview(
+        &self,
+        entry: &entry::Entry,
+        reader: BufReader<File>,
+    ) {
+        let cache = self.cache.clone();
+        let syntax_set = self.syntax_set.clone();
+        let syntax_theme = self.syntax_theme.clone();
+        let entry_c = entry.clone();
+        tokio::spawn(async move {
+            debug!(
+                "Computing highlights in the background for {:?}",
+                entry_c.name
+            );
+            let lines: Vec<String> =
+                reader.lines().map_while(Result::ok).collect();
+
+            match compute_highlights(
+                &PathBuf::from(&entry_c.name),
+                lines,
+                &syntax_set,
+                &syntax_theme,
+            ) {
+                Ok(highlighted_lines) => {
+                    debug!(
+                        "Successfully computed highlights for {:?}",
+                        entry_c.name
+                    );
+                    cache.lock().await.insert(
+                        entry_c.name.clone(),
+                        Arc::new(Preview::new(
+                            entry_c.name,
+                            PreviewContent::HighlightedText(highlighted_lines),
+                        )),
+                    );
+                    debug!("Inserted highlighted preview into cache");
+                }
+                Err(e) => {
+                    warn!("Error computing highlights: {:?}", e);
+                }
+            };
+        });
+    }
+
+    /// The maximum file size that we will try to preview.
+    /// 4 MB
+    const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
+
+    /// The proportion of printable ascii characters that a file must have to be considered text.
+    const PRINTABLE_ASCII_THRESHOLD: f32 = 0.9;
+
+    fn get_file_type(&self, path: &Path) -> FileType {
+        debug!("Getting file type for {:?}", path);
+        let mut file_type = match infer::get_from_path(path) {
+            Ok(Some(t)) => {
+                let mime_type = t.mime_type();
+                if mime_type.contains("image") {
+                    FileType::Image
+                } else if mime_type.contains("text") {
+                    FileType::Text
+                } else {
+                    FileType::Other
+                }
+            }
+            _ => FileType::Unknown,
+        };
+
+        // if the file type is unknown, try to determine it from the extension or the content
+        if matches!(file_type, FileType::Unknown) {
+            if is_known_text_extension(path) {
+                file_type = FileType::Text;
+            } else if let Ok(mut f) = File::open(path) {
+                let mut buffer = [0u8; 256];
+                if let Ok(bytes_read) = f.read(&mut buffer) {
+                    // TODO: add a check for the proportion of non printable characters (binary
+                    // files)
+                    if bytes_read > 0
+                        && is_valid_utf8(&buffer)
+                        && proportion_of_printable_ascii_characters(&buffer)
+                            > Self::PRINTABLE_ASCII_THRESHOLD
+                    {
+                        file_type = FileType::Text;
+                    }
+                }
+            }
+        }
+        debug!("File type for {:?}: {:?}", path, file_type);
+
+        file_type
+    }
+
+    async fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
+        self.cache.lock().await.insert(key, preview);
+    }
 }
 
 //fn get_image_picker() -> Picker {
@@ -252,6 +263,8 @@ const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;
 fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     debug!("Creating plain text preview for {:?}", title);
     let mut lines = Vec::with_capacity(TEMP_PLAIN_TEXT_PREVIEW_HEIGHT);
+    // PERF: instead of using lines(), maybe check for the length of the first line instead and
+    // truncate accordingly (since this is just a temp preview)
     for maybe_line in reader.lines() {
         match maybe_line {
             Ok(line) => lines.push(preprocess_line(&line)),
