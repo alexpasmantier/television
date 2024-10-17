@@ -21,8 +21,10 @@ pub(crate) struct Cli {
 
 const VERSION_MESSAGE: &str = concat!(
     env!("CARGO_PKG_VERSION"),
-    "-",
-    env!("VERGEN_GIT_DESCRIBE"),
+    "\ntarget triple: ",
+    env!("VERGEN_CARGO_TARGET_TRIPLE"),
+    "\nbuild: ",
+    env!("VERGEN_RUSTC_SEMVER"),
     " (",
     env!("VERGEN_BUILD_DATE"),
     ")"

@@ -54,6 +54,7 @@ lazy_static! {
 
 pub const EMPTY_STRING: &str = "";
 pub const FOUR_SPACES: &str = "    ";
+pub const TAB_WIDTH: usize = 4;
 
 const SPACE_CHARACTER: char = ' ';
 const TAB_CHARACTER: char = '\t';
@@ -108,6 +109,12 @@ pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
     output
 }
 
+/// The threshold for considering a buffer to be printable ASCII.
+///
+/// This is used to determine whether a file is likely to be a text file
+/// based on a sample of its contents.
+pub const PRINTABLE_ASCII_THRESHOLD: f32 = 0.7;
+
 pub(crate) fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
     let mut printable = 0;
     for &byte in buffer {
@@ -131,7 +138,7 @@ pub(crate) fn preprocess_line(line: &str) -> String {
         }
         .trim_end_matches(['\r', '\n', '\0'])
         .as_bytes(),
-        2,
+        TAB_WIDTH,
     )
 }
 

@@ -17,11 +17,11 @@ use tracing::{debug, warn};
 
 use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
-use crate::utils::files::is_valid_utf8;
 use crate::utils::files::FileType;
 use crate::utils::files::{get_file_size, is_known_text_extension};
 use crate::utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
+    PRINTABLE_ASCII_THRESHOLD,
 };
 
 use super::cache::PreviewCache;
@@ -105,7 +105,8 @@ impl FilePreviewer {
             FileType::Image => {
                 debug!("Previewing image file: {:?}", entry.name);
                 // insert a loading preview into the cache
-                let preview = loading(&entry.name);
+                //let preview = loading(&entry.name);
+                let preview = not_supported(&entry.name);
                 self.cache_preview(entry.name.clone(), preview.clone())
                     .await;
                 //// compute the image preview in the background
@@ -199,9 +200,6 @@ impl FilePreviewer {
     /// 4 MB
     const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
-    /// The proportion of printable ascii characters that a file must have to be considered text.
-    const PRINTABLE_ASCII_THRESHOLD: f32 = 0.9;
-
     fn get_file_type(&self, path: &Path) -> FileType {
         debug!("Getting file type for {:?}", path);
         let mut file_type = match infer::get_from_path(path) {
@@ -225,12 +223,9 @@ impl FilePreviewer {
             } else if let Ok(mut f) = File::open(path) {
                 let mut buffer = [0u8; 256];
                 if let Ok(bytes_read) = f.read(&mut buffer) {
-                    // TODO: add a check for the proportion of non printable characters (binary
-                    // files)
                     if bytes_read > 0
-                        && is_valid_utf8(&buffer)
                         && proportion_of_printable_ascii_characters(&buffer)
-                            > Self::PRINTABLE_ASCII_THRESHOLD
+                            > PRINTABLE_ASCII_THRESHOLD
                     {
                         file_type = FileType::Text;
                     }

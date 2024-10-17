@@ -13,13 +13,15 @@ use std::{
 use tracing::{debug, info};
 
 use super::TelevisionChannel;
-use crate::entry::Entry;
-use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::{
     files::{is_not_text, is_valid_utf8, walk_builder, DEFAULT_NUM_THREADS},
     strings::preprocess_line,
 };
+use crate::{
+    entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
+};
+use crate::{fuzzy::MATCHER, utils::strings::PRINTABLE_ASCII_THRESHOLD};
 
 #[derive(Debug)]
 struct CandidateLine {
@@ -184,7 +186,8 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                     if (bytes_read == 0)
                                         || is_not_text(&buffer)
                                             .unwrap_or(false)
-                                        || !is_valid_utf8(&buffer)
+                                        || proportion_of_printable_ascii_characters(&buffer)
+                                            < PRINTABLE_ASCII_THRESHOLD
                                     {
                                         return ignore::WalkState::Continue;
                                     }

@@ -3,15 +3,17 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Injector, Nucleo,
 };
-use std::{path::PathBuf, sync::Arc};
+use std::{os::unix::ffi::OsStrExt, path::PathBuf, sync::Arc};
 
 use ignore::DirEntry;
 
 use super::TelevisionChannel;
-use crate::entry::Entry;
-use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use crate::{
+    entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
+};
+use crate::{fuzzy::MATCHER, utils::strings::PRINTABLE_ASCII_THRESHOLD};
 
 pub(crate) struct Channel {
     matcher: Nucleo<DirEntry>,
@@ -19,6 +21,8 @@ pub(crate) struct Channel {
     result_count: u32,
     total_count: u32,
     running: bool,
+    // TODO: cache results (to make deleting characters smoother) but like
+    // a shallow cache (maybe more like a stack actually? so we just pop result sets)
 }
 
 impl Channel {
@@ -131,6 +135,13 @@ async fn load_files(path: PathBuf, injector: Injector<DirEntry>) {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
                     // Send the path via the async channel
+                    let file_name = entry.file_name();
+                    if proportion_of_printable_ascii_characters(
+                        file_name.as_bytes(),
+                    ) < PRINTABLE_ASCII_THRESHOLD
+                    {
+                        return ignore::WalkState::Continue;
+                    }
                     let _ = injector.push(entry, |e, cols| {
                         cols[0] = e
                             .path()

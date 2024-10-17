@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -72,7 +72,7 @@ pretty_assertions = "1.4.1"
 
 [build-dependencies]
 anyhow = "1.0.86"
-vergen-gix = { version = "1.0.0", features = ["build", "cargo"] }
+vergen-gix = { version = "1.0.0", features = ["build", "cargo", "rustc"] }
 
 
 [profile.staging]
