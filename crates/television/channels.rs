@@ -4,6 +4,7 @@ use television_derive::CliChannel;
 mod alias;
 mod env;
 mod files;
+mod git_repos;
 mod stdin;
 mod text;
 
@@ -87,9 +88,10 @@ pub trait TelevisionChannel: Send {
 ///
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(CliChannel)]
-pub(crate) enum AvailableChannels {
+pub enum AvailableChannels {
     Env(env::Channel),
     Files(files::Channel),
+    GitRepos(git_repos::Channel),
     Text(text::Channel),
     Stdin(stdin::Channel),
     Alias(alias::Channel),

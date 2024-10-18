@@ -9,15 +9,15 @@ mod env;
 mod files;
 
 // previewer types
-pub(crate) use basic::BasicPreviewer;
-pub(crate) use directory::DirectoryPreviewer;
-pub(crate) use env::EnvVarPreviewer;
-pub(crate) use files::FilePreviewer;
+pub use basic::BasicPreviewer;
+pub use directory::DirectoryPreviewer;
+pub use env::EnvVarPreviewer;
+pub use files::FilePreviewer;
 //use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-pub(crate) enum PreviewType {
+pub enum PreviewType {
     #[default]
     Basic,
     Directory,
@@ -26,10 +26,10 @@ pub(crate) enum PreviewType {
 }
 
 #[derive(Clone)]
-pub(crate) enum PreviewContent {
+pub enum PreviewContent {
     Empty,
     FileTooLarge,
-    HighlightedText(Vec<Vec<(Style, String)>>),
+    SyntectHighlightedText(Vec<Vec<(Style, String)>>),
     //Image(Box<dyn StatefulProtocol>),
     Loading,
     NotSupported,
@@ -47,7 +47,7 @@ pub const FILE_TOO_LARGE_MSG: &str = "File too large";
 /// - `title`: The title of the preview.
 /// - `content`: The content of the preview.
 #[derive(Clone)]
-pub(crate) struct Preview {
+pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
 }
@@ -62,19 +62,24 @@ impl Default for Preview {
 }
 
 impl Preview {
-    pub(crate) fn new(title: String, content: PreviewContent) -> Self {
+    pub fn new(title: String, content: PreviewContent) -> Self {
         Preview { title, content }
     }
 
-    pub(crate) fn total_lines(&self) -> u16 {
+    pub fn total_lines(&self) -> u16 {
         match &self.content {
-            PreviewContent::HighlightedText(lines) => lines.len() as u16,
+            PreviewContent::SyntectHighlightedText(lines) => {
+                lines.len().try_into().unwrap_or(u16::MAX)
+            }
+            PreviewContent::PlainText(lines) => {
+                lines.len().try_into().unwrap_or(u16::MAX)
+            }
             _ => 0,
         }
     }
 }
 
-pub(crate) struct Previewer {
+pub struct Previewer {
     basic: BasicPreviewer,
     directory: DirectoryPreviewer,
     file: FilePreviewer,
@@ -82,7 +87,7 @@ pub(crate) struct Previewer {
 }
 
 impl Previewer {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Previewer {
             basic: BasicPreviewer::new(),
             directory: DirectoryPreviewer::new(),

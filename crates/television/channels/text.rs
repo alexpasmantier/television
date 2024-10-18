@@ -15,7 +15,7 @@ use tracing::{debug, info};
 use super::TelevisionChannel;
 use crate::previewers::PreviewType;
 use crate::utils::{
-    files::{is_not_text, is_valid_utf8, walk_builder, DEFAULT_NUM_THREADS},
+    files::{is_not_text, walk_builder, DEFAULT_NUM_THREADS},
     strings::preprocess_line,
 };
 use crate::{
@@ -41,7 +41,7 @@ impl CandidateLine {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub(crate) struct Channel {
+pub struct Channel {
     matcher: Nucleo<CandidateLine>,
     last_pattern: String,
     result_count: u32,
@@ -50,7 +50,7 @@ pub(crate) struct Channel {
 }
 
 impl Channel {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
         // start loading files in the background
         tokio::spawn(load_candidates(
@@ -163,7 +163,8 @@ const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 #[allow(clippy::unused_async)]
 async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
     let current_dir = std::env::current_dir().unwrap();
-    let walker = walk_builder(&path, *DEFAULT_NUM_THREADS).build_parallel();
+    let walker =
+        walk_builder(&path, *DEFAULT_NUM_THREADS, None).build_parallel();
 
     walker.run(|| {
         let injector = injector.clone();
@@ -218,7 +219,6 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                             line,
                                             line_number,
                                         );
-                                        // Send the line via the async channel
                                         let _ = injector.push(
                                             candidate,
                                             |c, cols| {

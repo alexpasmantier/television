@@ -20,7 +20,7 @@ mod fuzzy;
 mod logging;
 mod previewers;
 mod render;
-pub mod television;
+mod television;
 mod tui;
 mod ui;
 mod utils;
@@ -55,7 +55,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub(crate) fn is_readable_stdin() -> bool {
+pub fn is_readable_stdin() -> bool {
     use std::io::IsTerminal;
 
     #[cfg(unix)]

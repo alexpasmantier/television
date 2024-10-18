@@ -1,7 +1,7 @@
 use parking_lot::Mutex;
 use std::ops::DerefMut;
 
-pub(crate) struct LazyMutex<T> {
+pub struct LazyMutex<T> {
     inner: Mutex<Option<T>>,
     init: fn() -> T,
 }
@@ -14,7 +14,7 @@ impl<T> LazyMutex<T> {
         }
     }
 
-    pub(crate) fn lock(&self) -> impl DerefMut<Target = T> + '_ {
+    pub fn lock(&self) -> impl DerefMut<Target = T> + '_ {
         parking_lot::MutexGuard::map(self.inner.lock(), |val| {
             val.get_or_insert_with(self.init)
         })

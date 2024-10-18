@@ -17,7 +17,7 @@ use tokio::sync::mpsc;
 use tracing::warn;
 
 #[derive(Debug, Clone, Copy)]
-pub(crate) enum Event<I> {
+pub enum Event<I> {
     Closed,
     Input(I),
     FocusLost,
@@ -29,7 +29,7 @@ pub(crate) enum Event<I> {
 #[derive(
     Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Hash,
 )]
-pub(crate) enum Key {
+pub enum Key {
     Backspace,
     Enter,
     Left,
@@ -62,7 +62,7 @@ pub(crate) enum Key {
 }
 
 #[allow(clippy::module_name_repetitions)]
-pub(crate) struct EventLoop {
+pub struct EventLoop {
     pub rx: mpsc::UnboundedReceiver<Event<Key>>,
     //tx: mpsc::UnboundedSender<Event<Key>>,
     pub abort_tx: mpsc::UnboundedSender<()>,
@@ -99,7 +99,7 @@ async fn poll_event(timeout: Duration) -> bool {
 }
 
 impl EventLoop {
-    pub(crate) fn new(tick_rate: f64, init: bool) -> Self {
+    pub fn new(tick_rate: f64, init: bool) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let tx_c = tx.clone();
         let tick_interval =
@@ -162,7 +162,7 @@ impl EventLoop {
     }
 }
 
-pub(crate) fn convert_raw_event_to_key(event: KeyEvent) -> Key {
+pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
     match event.code {
         Backspace => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlBackspace,

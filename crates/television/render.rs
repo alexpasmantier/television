@@ -15,7 +15,7 @@ use crate::television::Television;
 use crate::{action::Action, config::Config, tui::Tui};
 
 #[derive(Debug)]
-pub(crate) enum RenderingTask {
+pub enum RenderingTask {
     ClearScreen,
     Render,
     Resize(u16, u16),

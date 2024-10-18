@@ -4,18 +4,18 @@ use std::sync::Arc;
 use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
 
-pub(crate) struct EnvVarPreviewer {
+pub struct EnvVarPreviewer {
     cache: HashMap<entry::Entry, Arc<Preview>>,
 }
 
 impl EnvVarPreviewer {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         EnvVarPreviewer {
             cache: HashMap::new(),
         }
     }
 
-    pub(crate) fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
+    pub fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
         // check if we have that preview in the cache
         if let Some(preview) = self.cache.get(entry) {
             return preview.clone();

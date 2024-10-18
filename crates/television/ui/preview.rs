@@ -20,7 +20,7 @@ impl Television {
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
-    pub(crate) fn build_preview_paragraph<'b>(
+    pub fn build_preview_paragraph<'b>(
         &'b mut self,
         preview_block: Block<'b>,
         inner: Rect,
@@ -76,7 +76,7 @@ impl Television {
                     .block(preview_block)
                     .wrap(Wrap { trim: true })
             }
-            PreviewContent::HighlightedText(highlighted_lines) => {
+            PreviewContent::SyntectHighlightedText(highlighted_lines) => {
                 compute_paragraph_from_highlighted_lines(
                     highlighted_lines,
                     target_line.map(|l| l as usize),
@@ -119,7 +119,7 @@ impl Television {
         }
     }
 
-    pub(crate) fn maybe_init_preview_scroll(
+    pub fn maybe_init_preview_scroll(
         &mut self,
         target_line: Option<u16>,
         height: u16,
@@ -130,7 +130,7 @@ impl Television {
         }
     }
 
-    pub(crate) fn build_meta_preview_paragraph<'a>(
+    pub fn build_meta_preview_paragraph<'a>(
         &mut self,
         inner: Rect,
         message: &str,

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
-pub(crate) enum Action {
+pub enum Action {
     // input actions
     AddInputChar(char),
     DeletePrevChar,

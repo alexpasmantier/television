@@ -9,7 +9,7 @@ const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
 const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 
-pub(crate) fn build_results_list<'a, 'b>(
+pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
 ) -> List<'a>

@@ -3,7 +3,7 @@ use std::env;
 use color_eyre::Result;
 use tracing::error;
 
-pub(crate) fn init() -> Result<()> {
+pub fn init() -> Result<()> {
     let (panic_hook, eyre_hook) = color_eyre::config::HookBuilder::default()
         .panic_section(format!(
             "This is a bug. Consider reporting it at {}",

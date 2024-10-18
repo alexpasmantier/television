@@ -16,7 +16,7 @@ use tokio::task::JoinHandle;
 use tracing::debug;
 
 #[allow(dead_code)]
-pub(crate) struct Tui<W>
+pub struct Tui<W>
 where
     W: Write,
 {
@@ -30,7 +30,7 @@ impl<W> Tui<W>
 where
     W: Write,
 {
-    pub(crate) fn new(writer: W) -> Result<Self> {
+    pub fn new(writer: W) -> Result<Self> {
         Ok(Self {
             task: tokio::spawn(async {}),
             frame_rate: 60.0,
@@ -38,16 +38,16 @@ where
         })
     }
 
-    pub(crate) fn frame_rate(mut self, frame_rate: f64) -> Self {
+    pub fn frame_rate(mut self, frame_rate: f64) -> Self {
         self.frame_rate = frame_rate;
         self
     }
 
-    pub(crate) fn size(&self) -> Result<Size> {
+    pub fn size(&self) -> Result<Size> {
         Ok(self.terminal.size()?)
     }
 
-    pub(crate) fn enter(&mut self) -> Result<()> {
+    pub fn enter(&mut self) -> Result<()> {
         enable_raw_mode()?;
         let mut buffered_stderr = LineWriter::new(stderr());
         execute!(buffered_stderr, EnterAlternateScreen)?;
@@ -56,7 +56,7 @@ where
         Ok(())
     }
 
-    pub(crate) fn exit(&mut self) -> Result<()> {
+    pub fn exit(&mut self) -> Result<()> {
         if is_raw_mode_enabled()? {
             debug!("Exiting terminal");
 
@@ -69,14 +69,14 @@ where
         Ok(())
     }
 
-    pub(crate) fn suspend(&mut self) -> Result<()> {
+    pub fn suspend(&mut self) -> Result<()> {
         self.exit()?;
         #[cfg(not(windows))]
         signal_hook::low_level::raise(signal_hook::consts::signal::SIGTSTP)?;
         Ok(())
     }
 
-    pub(crate) fn resume(&mut self) -> Result<()> {
+    pub fn resume(&mut self) -> Result<()> {
         self.enter()?;
         Ok(())
     }

@@ -55,7 +55,7 @@ where
     T: Eq + std::hash::Hash + Clone + std::fmt::Debug,
 {
     /// Create a new `RingSet` with the given capacity.
-    pub(crate) fn with_capacity(capacity: usize) -> Self {
+    pub fn with_capacity(capacity: usize) -> Self {
         RingSet {
             ring_buffer: VecDeque::with_capacity(capacity),
             known_keys: HashSet::with_capacity(capacity),
@@ -66,7 +66,7 @@ where
     /// Push a new item to the back of the buffer, removing the oldest item if the buffer is full.
     /// Returns the item that was removed, if any.
     /// If the item is already in the buffer, do nothing and return None.
-    pub(crate) fn push(&mut self, item: T) -> Option<T> {
+    pub fn push(&mut self, item: T) -> Option<T> {
         // If the key is already in the buffer, do nothing
         if self.contains(&item) {
             debug!("Key already in ring buffer: {:?}", item);
@@ -107,28 +107,28 @@ const DEFAULT_PREVIEW_CACHE_SIZE: usize = 100;
 
 /// A cache for previews.
 /// The cache is implemented as an LRU cache with a fixed size.
-pub(crate) struct PreviewCache {
+pub struct PreviewCache {
     entries: HashMap<String, Arc<Preview>>,
     ring_set: RingSet<String>,
 }
 
 impl PreviewCache {
     /// Create a new preview cache with the given capacity.
-    pub(crate) fn new(capacity: usize) -> Self {
+    pub fn new(capacity: usize) -> Self {
         PreviewCache {
             entries: HashMap::new(),
             ring_set: RingSet::with_capacity(capacity),
         }
     }
 
-    pub(crate) fn get(&self, key: &str) -> Option<Arc<Preview>> {
+    pub fn get(&self, key: &str) -> Option<Arc<Preview>> {
         self.entries.get(key).cloned()
     }
 
     /// Insert a new preview into the cache.
     /// If the cache is full, the oldest entry will be removed.
     /// If the key is already in the cache, the preview will be updated.
-    pub(crate) fn insert(&mut self, key: String, preview: Arc<Preview>) {
+    pub fn insert(&mut self, key: String, preview: Arc<Preview>) {
         debug!("Inserting preview into cache: {}", key);
         self.entries.insert(key.clone(), preview.clone());
         if let Some(oldest_key) = self.ring_set.push(key) {
@@ -138,7 +138,7 @@ impl PreviewCache {
     }
 
     /// Get the preview for the given key, or insert a new preview if it doesn't exist.
-    pub(crate) fn get_or_insert<F>(
+    pub fn get_or_insert<F>(
         &mut self,
         key: String,
         f: F,

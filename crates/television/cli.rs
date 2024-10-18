@@ -5,7 +5,7 @@ use crate::config::{get_config_dir, get_data_dir};
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
-pub(crate) struct Cli {
+pub struct Cli {
     /// Which channel shall we watch?
     #[arg(value_enum, default_value = "files")]
     pub channel: CliTvChannel,
@@ -30,7 +30,7 @@ const VERSION_MESSAGE: &str = concat!(
     ")"
 );
 
-pub(crate) fn version() -> String {
+pub fn version() -> String {
     let author = clap::crate_authors!();
 
     // let current_exe_path = PathBuf::from(clap::crate_name!()).display().to_string();

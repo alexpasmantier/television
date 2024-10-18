@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use ignore::{types::TypesBuilder, WalkBuilder};
+use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
 use infer::Infer;
 use lazy_static::lazy_static;
 
@@ -11,7 +11,11 @@ lazy_static::lazy_static! {
     pub static ref DEFAULT_NUM_THREADS: usize = default_num_threads().into();
 }
 
-pub(crate) fn walk_builder(path: &Path, n_threads: usize) -> WalkBuilder {
+pub fn walk_builder(
+    path: &Path,
+    n_threads: usize,
+    overrides: Option<Override>,
+) -> WalkBuilder {
     let mut builder = WalkBuilder::new(path);
 
     // ft-based filtering
@@ -20,22 +24,25 @@ pub(crate) fn walk_builder(path: &Path, n_threads: usize) -> WalkBuilder {
     builder.types(types_builder.build().unwrap());
 
     builder.threads(n_threads);
+    if let Some(ov) = overrides {
+        builder.overrides(ov);
+    }
     builder
 }
 
-pub(crate) fn get_file_size(path: &Path) -> Option<u64> {
+pub fn get_file_size(path: &Path) -> Option<u64> {
     std::fs::metadata(path).ok().map(|m| m.len())
 }
 
 #[derive(Debug)]
-pub(crate) enum FileType {
+pub enum FileType {
     Text,
     Image,
     Other,
     Unknown,
 }
 
-pub(crate) fn is_not_text(bytes: &[u8]) -> Option<bool> {
+pub fn is_not_text(bytes: &[u8]) -> Option<bool> {
     let infer = Infer::new();
     match infer.get(bytes) {
         Some(t) => {
@@ -56,11 +63,11 @@ pub(crate) fn is_not_text(bytes: &[u8]) -> Option<bool> {
     }
 }
 
-pub(crate) fn is_valid_utf8(bytes: &[u8]) -> bool {
+pub fn is_valid_utf8(bytes: &[u8]) -> bool {
     std::str::from_utf8(bytes).is_ok()
 }
 
-pub(crate) fn is_known_text_extension(path: &Path) -> bool {
+pub fn is_known_text_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| KNOWN_TEXT_FILE_EXTENSIONS.contains(ext))

@@ -22,9 +22,7 @@ path = "crates/television/main.rs"
 name = "tv"
 
 [workspace]
-members = [
-  "crates/television_derive",
-]
+members = ["crates/television_derive"]
 
 [dependencies]
 television-derive = { version = "0.1.0", path = "crates/television_derive" }
@@ -68,6 +66,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 unicode-width = "0.2.0"
 human-panic = "2.0.2"
 pretty_assertions = "1.4.1"
+termtree = "0.5.1"
 
 
 [build-dependencies]
@@ -87,13 +86,7 @@ debug = true
 
 
 [profile.release]
-opt-level = 3
-debug = "none"
-strip = "symbols"
-debug-assertions = false
-overflow-checks = false
 lto = "thin"
-panic = "abort"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }

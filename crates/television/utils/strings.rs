@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 use std::fmt::Write;
 
-pub(crate) fn next_char_boundary(s: &str, start: usize) -> usize {
+pub fn next_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
     while !s.is_char_boundary(i) {
         i += 1;
@@ -9,7 +9,7 @@ pub(crate) fn next_char_boundary(s: &str, start: usize) -> usize {
     i
 }
 
-pub(crate) fn prev_char_boundary(s: &str, start: usize) -> usize {
+pub fn prev_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
     while !s.is_char_boundary(i) {
         i -= 1;
@@ -17,7 +17,7 @@ pub(crate) fn prev_char_boundary(s: &str, start: usize) -> usize {
     i
 }
 
-pub(crate) fn slice_at_char_boundaries(
+pub fn slice_at_char_boundaries(
     s: &str,
     start_byte_index: usize,
     end_byte_index: usize,
@@ -26,7 +26,7 @@ pub(crate) fn slice_at_char_boundaries(
         ..next_char_boundary(s, end_byte_index)]
 }
 
-pub(crate) fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
+pub fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
     let mut char_index = byte_index;
     while !s.is_char_boundary(char_index) {
         char_index -= 1;
@@ -65,7 +65,7 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
-pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
+pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
     let mut output = String::new();
 
     let mut idx = 0;
@@ -84,12 +84,10 @@ pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                     output.push_str("␊\x0A");
                 }
                 // ASCII control characters from 0x00 to 0x1F
-                NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER => {
-                    output.push(*NULL_SYMBOL)
-                }
-                // control characters from \u{007F} to \u{009F}
-                DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER => {
-                    output.push(*NULL_SYMBOL)
+                // + control characters from \u{007F} to \u{009F}
+                NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
+                | DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER => {
+                    output.push(*NULL_SYMBOL);
                 }
                 // don't print BOMs
                 BOM_CHARACTER => {}
@@ -115,7 +113,7 @@ pub(crate) fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
 /// based on a sample of its contents.
 pub const PRINTABLE_ASCII_THRESHOLD: f32 = 0.7;
 
-pub(crate) fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
+pub fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
     let mut printable = 0;
     for &byte in buffer {
         if byte > 32 && byte < 127 {
@@ -127,7 +125,7 @@ pub(crate) fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
 
 const MAX_LINE_LENGTH: usize = 500;
 
-pub(crate) fn preprocess_line(line: &str) -> String {
+pub fn preprocess_line(line: &str) -> String {
     replace_nonprintable(
         {
             if line.len() > MAX_LINE_LENGTH {
@@ -142,7 +140,7 @@ pub(crate) fn preprocess_line(line: &str) -> String {
     )
 }
 
-pub(crate) fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
+pub fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
     if s.len() <= max_length {
         return s.to_string();
     }

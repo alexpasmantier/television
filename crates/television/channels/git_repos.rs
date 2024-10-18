@@ -1,19 +1,21 @@
+use std::sync::Arc;
+
 use devicons::FileIcon;
+use ignore::{overrides::OverrideBuilder, DirEntry};
 use nucleo::{
     pattern::{CaseMatching, Normalization},
-    Config, Injector, Nucleo,
+    Config, Nucleo,
 };
-use std::{os::unix::ffi::OsStrExt, path::PathBuf, sync::Arc};
+use tracing::debug;
 
-use ignore::DirEntry;
-
-use super::TelevisionChannel;
-use crate::previewers::PreviewType;
-use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use crate::{
-    entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
+    entry::Entry,
+    fuzzy::MATCHER,
+    previewers::PreviewType,
+    utils::files::{walk_builder, DEFAULT_NUM_THREADS},
 };
-use crate::{fuzzy::MATCHER, utils::strings::PRINTABLE_ASCII_THRESHOLD};
+
+use crate::channels::TelevisionChannel;
 
 pub struct Channel {
     matcher: Nucleo<DirEntry>,
@@ -21,8 +23,6 @@ pub struct Channel {
     result_count: u32,
     total_count: u32,
     running: bool,
-    // PERF: cache results (to make deleting characters smoother) but like
-    // a shallow cache (maybe more like a stack actually? so we just pop result sets)
 }
 
 impl Channel {
@@ -34,8 +34,8 @@ impl Channel {
             1,
         );
         // start loading files in the background
-        tokio::spawn(load_files(
-            std::env::current_dir().unwrap(),
+        tokio::spawn(crawl_for_repos(
+            std::env::home_dir().expect("Could not get home directory"),
             matcher.injector(),
         ));
         Channel {
@@ -100,7 +100,7 @@ impl TelevisionChannel for Channel {
                 let indices = indices.drain(..);
 
                 let path = item.matcher_columns[0].to_string();
-                Entry::new(path.clone(), PreviewType::Files)
+                Entry::new(path.clone(), PreviewType::Directory)
                     .with_name_match_ranges(
                         indices.map(|i| (i, i + 1)).collect(),
                     )
@@ -113,7 +113,7 @@ impl TelevisionChannel for Channel {
         let snapshot = self.matcher.snapshot();
         snapshot.get_matched_item(index).map(|item| {
             let path = item.matcher_columns[0].to_string();
-            Entry::new(path.clone(), PreviewType::Files)
+            Entry::new(path.clone(), PreviewType::Directory)
                 .with_icon(FileIcon::from(&path))
         })
     }
@@ -124,28 +124,31 @@ impl TelevisionChannel for Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_files(path: PathBuf, injector: Injector<DirEntry>) {
-    let current_dir = std::env::current_dir().unwrap();
-    let walker =
-        walk_builder(&path, *DEFAULT_NUM_THREADS, None).build_parallel();
+async fn crawl_for_repos(
+    starting_point: std::path::PathBuf,
+    injector: nucleo::Injector<DirEntry>,
+) {
+    let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
+    walker_overrides_builder.add(".git").unwrap();
+    let walker = walk_builder(
+        &starting_point,
+        *DEFAULT_NUM_THREADS,
+        Some(walker_overrides_builder.build().unwrap()),
+    )
+    .build_parallel();
 
     walker.run(|| {
         let injector = injector.clone();
-        let current_dir = current_dir.clone();
         Box::new(move |result| {
             if let Ok(entry) = result {
-                if entry.file_type().unwrap().is_file() {
-                    let file_name = entry.file_name();
-                    if proportion_of_printable_ascii_characters(
-                        file_name.as_bytes(),
-                    ) < PRINTABLE_ASCII_THRESHOLD
-                    {
-                        return ignore::WalkState::Continue;
-                    }
+                if entry.file_type().unwrap().is_dir()
+                    && entry.path().ends_with(".git")
+                {
+                    debug!("Found git repo: {:?}", entry.path());
                     let _ = injector.push(entry, |e, cols| {
                         cols[0] = e
                             .path()
-                            .strip_prefix(&current_dir)
+                            .parent()
                             .unwrap()
                             .to_string_lossy()
                             .into();

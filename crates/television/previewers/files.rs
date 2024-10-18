@@ -12,7 +12,6 @@ use syntect::{
     highlighting::{Style, Theme, ThemeSet},
     parsing::SyntaxSet,
 };
-//use tracing::{debug, info, warn};
 use tracing::{debug, warn};
 
 use crate::entry;
@@ -26,7 +25,7 @@ use crate::utils::strings::{
 
 use super::cache::PreviewCache;
 
-pub(crate) struct FilePreviewer {
+pub struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     syntax_set: Arc<SyntaxSet>,
     syntax_theme: Arc<Theme>,
@@ -34,7 +33,7 @@ pub(crate) struct FilePreviewer {
 }
 
 impl FilePreviewer {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let syntax_set = SyntaxSet::load_defaults_nonewlines();
         let theme_set = ThemeSet::load_defaults();
         //info!("getting image picker");
@@ -184,7 +183,9 @@ impl FilePreviewer {
                         entry_c.name.clone(),
                         Arc::new(Preview::new(
                             entry_c.name,
-                            PreviewContent::HighlightedText(highlighted_lines),
+                            PreviewContent::SyntectHighlightedText(
+                                highlighted_lines,
+                            ),
                         )),
                     );
                     debug!("Inserted highlighted preview into cache");
@@ -292,6 +293,7 @@ fn file_too_large(title: &str) -> Arc<Preview> {
     ))
 }
 
+#[allow(dead_code)]
 fn loading(title: &str) -> Arc<Preview> {
     Arc::new(Preview::new(title.to_string(), PreviewContent::Loading))
 }

@@ -55,3 +55,4 @@ tv with itself?
 - [ ] have a keybind to send all current entries to stdout ... oorrrrr to another channel??
 - [ ] action menu on the bottom: send to channel, copy to clipboard, send to stdout, ... maybe with tab to navigate
 between possible actions (defined per channel, not all channels can pipe to all channels)
+- [ ] git repositories channel (crawl the filesystem for git repos)

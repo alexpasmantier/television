@@ -16,7 +16,7 @@ pub mod spinner;
 //const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
 //const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 
-pub(crate) fn get_border_style(focused: bool) -> Style {
+pub fn get_border_style(focused: bool) -> Style {
     Style::default().fg(Color::Blue)
 
     // NOTE: do we want to change the border color based on focus? Are we

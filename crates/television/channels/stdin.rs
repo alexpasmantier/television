@@ -11,7 +11,7 @@ use crate::previewers::PreviewType;
 
 use super::TelevisionChannel;
 
-pub(crate) struct Channel {
+pub struct Channel {
     matcher: Nucleo<String>,
     last_pattern: String,
     result_count: u32,
@@ -23,7 +23,7 @@ pub(crate) struct Channel {
 const NUM_THREADS: usize = 2;
 
 impl Channel {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
             debug!("Read line: {:?}", line);

@@ -16,7 +16,7 @@ struct Alias {
     value: String,
 }
 
-pub(crate) struct Channel {
+pub struct Channel {
     matcher: Nucleo<Alias>,
     last_pattern: String,
     file_icon: FileIcon,
@@ -67,7 +67,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
 }
 
 impl Channel {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         let raw_shell = get_current_shell().unwrap_or("bash".to_string());
         let shell = raw_shell.split('/').last().unwrap();
         debug!("Current shell: {}", shell);

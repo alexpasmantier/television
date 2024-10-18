@@ -42,7 +42,7 @@ enum Pane {
 
 static PANES: [Pane; 3] = [Pane::Input, Pane::Results, Pane::Preview];
 
-pub(crate) struct Television {
+pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
     config: Config,
     channel: Box<dyn TelevisionChannel>,
@@ -54,8 +54,8 @@ pub(crate) struct Television {
     picker_view_offset: usize,
     results_area_height: u32,
     previewer: Previewer,
-    pub(crate) preview_scroll: Option<u16>,
-    pub(crate) preview_pane_height: u16,
+    pub preview_scroll: Option<u16>,
+    pub preview_pane_height: u16,
     current_preview_total_lines: u16,
     /// A cache for meta paragraphs (i.e. previews like "Not Supported", etc.).
     ///
@@ -63,15 +63,14 @@ pub(crate) struct Television {
     /// preview pane. This is a little extra security to ensure meta previews
     /// are rendered correctly even when resizing the terminal while still
     /// benefiting from a cache mechanism.
-    pub(crate) meta_paragraph_cache:
-        HashMap<(String, u16, u16), Paragraph<'static>>,
+    pub meta_paragraph_cache: HashMap<(String, u16, u16), Paragraph<'static>>,
     spinner: Spinner,
     spinner_state: SpinnerState,
 }
 
 impl Television {
     #[must_use]
-    pub(crate) fn new(cli_channel: CliTvChannel) -> Self {
+    pub fn new(cli_channel: CliTvChannel) -> Self {
         let mut tv_channel = cli_channel.to_channel();
         tv_channel.find(EMPTY_STRING);
 
@@ -106,13 +105,13 @@ impl Television {
     #[must_use]
     /// # Panics
     /// This method will panic if the index doesn't fit into an u32.
-    pub(crate) fn get_selected_entry(&self) -> Option<Entry> {
+    pub fn get_selected_entry(&self) -> Option<Entry> {
         self.picker_state
             .selected()
             .and_then(|i| self.channel.get_result(u32::try_from(i).unwrap()))
     }
 
-    pub(crate) fn select_prev_entry(&mut self) {
+    pub fn select_prev_entry(&mut self) {
         if self.channel.result_count() == 0 {
             return;
         }
@@ -142,7 +141,7 @@ impl Television {
         }
     }
 
-    pub(crate) fn select_next_entry(&mut self) {
+    pub fn select_next_entry(&mut self) {
         if self.channel.result_count() == 0 {
             return;
         }
@@ -175,7 +174,7 @@ impl Television {
         self.preview_scroll = None;
     }
 
-    pub(crate) fn scroll_preview_down(&mut self, offset: u16) {
+    pub fn scroll_preview_down(&mut self, offset: u16) {
         if self.preview_scroll.is_none() {
             self.preview_scroll = Some(0);
         }
@@ -189,7 +188,7 @@ impl Television {
         }
     }
 
-    pub(crate) fn scroll_preview_up(&mut self, offset: u16) {
+    pub fn scroll_preview_up(&mut self, offset: u16) {
         if let Some(scroll) = self.preview_scroll {
             self.preview_scroll = Some(scroll.saturating_sub(offset));
         }
@@ -202,13 +201,13 @@ impl Television {
             .unwrap()
     }
 
-    pub(crate) fn next_pane(&mut self) {
+    pub fn next_pane(&mut self) {
         let current_index = self.get_current_pane_index();
         let next_index = (current_index + 1) % PANES.len();
         self.current_pane = PANES[next_index];
     }
 
-    pub(crate) fn previous_pane(&mut self) {
+    pub fn previous_pane(&mut self) {
         let current_index = self.get_current_pane_index();
         let previous_index = if current_index == 0 {
             PANES.len() - 1
@@ -227,7 +226,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search          x ││             │
     /// └───────────────────┘└─────────────┘
-    pub(crate) fn move_to_pane_on_top(&mut self) {
+    pub fn move_to_pane_on_top(&mut self) {
         if self.current_pane == Pane::Input {
             self.current_pane = Pane::Results;
         }
@@ -242,7 +241,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search            ││             │
     /// └───────────────────┘└─────────────┘
-    pub(crate) fn move_to_pane_below(&mut self) {
+    pub fn move_to_pane_below(&mut self) {
         if self.current_pane == Pane::Results {
             self.current_pane = Pane::Input;
         }
@@ -257,7 +256,7 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search          x ││             │
     /// └───────────────────┘└─────────────┘
-    pub(crate) fn move_to_pane_right(&mut self) {
+    pub fn move_to_pane_right(&mut self) {
         match self.current_pane {
             Pane::Results | Pane::Input => {
                 self.current_pane = Pane::Preview;
@@ -275,14 +274,14 @@ impl Television {
     /// ┌───────────────────┐│             │
     /// │ Search            ││             │
     /// └───────────────────┘└─────────────┘
-    pub(crate) fn move_to_pane_left(&mut self) {
+    pub fn move_to_pane_left(&mut self) {
         if self.current_pane == Pane::Preview {
             self.current_pane = Pane::Results;
         }
     }
 
     #[must_use]
-    pub(crate) fn is_input_focused(&self) -> bool {
+    pub fn is_input_focused(&self) -> bool {
         Pane::Input == self.current_pane
     }
 }
@@ -302,7 +301,7 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub(crate) fn register_action_handler(
+    pub fn register_action_handler(
         &mut self,
         tx: UnboundedSender<Action>,
     ) -> Result<()> {
@@ -319,10 +318,7 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub(crate) fn register_config_handler(
-        &mut self,
-        config: Config,
-    ) -> Result<()> {
+    pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
         Ok(())
     }
@@ -411,11 +407,7 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub(crate) fn draw(
-        &mut self,
-        frame: &mut Frame,
-        area: Rect,
-    ) -> Result<()> {
+    pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
         let layout = Layout::all_panes_centered(Dimensions::default(), area);
         //let layout =
         //Layout::results_only_centered(Dimensions::new(40, 60), area);

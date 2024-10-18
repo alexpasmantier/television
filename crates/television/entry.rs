@@ -3,7 +3,7 @@ use devicons::FileIcon;
 use crate::previewers::PreviewType;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct Entry {
+pub struct Entry {
     pub name: String,
     display_name: Option<String>,
     pub value: Option<String>,
@@ -15,7 +15,7 @@ pub(crate) struct Entry {
 }
 
 impl Entry {
-    pub(crate) fn new(name: String, preview_type: PreviewType) -> Self {
+    pub fn new(name: String, preview_type: PreviewType) -> Self {
         Self {
             name,
             display_name: None,
@@ -28,17 +28,17 @@ impl Entry {
         }
     }
 
-    pub(crate) fn with_display_name(mut self, display_name: String) -> Self {
+    pub fn with_display_name(mut self, display_name: String) -> Self {
         self.display_name = Some(display_name);
         self
     }
 
-    pub(crate) fn with_value(mut self, value: String) -> Self {
+    pub fn with_value(mut self, value: String) -> Self {
         self.value = Some(value);
         self
     }
 
-    pub(crate) fn with_name_match_ranges(
+    pub fn with_name_match_ranges(
         mut self,
         name_match_ranges: Vec<(u32, u32)>,
     ) -> Self {
@@ -46,7 +46,7 @@ impl Entry {
         self
     }
 
-    pub(crate) fn with_value_match_ranges(
+    pub fn with_value_match_ranges(
         mut self,
         value_match_ranges: Vec<(u32, u32)>,
     ) -> Self {
@@ -54,21 +54,21 @@ impl Entry {
         self
     }
 
-    pub(crate) fn with_icon(mut self, icon: FileIcon) -> Self {
+    pub fn with_icon(mut self, icon: FileIcon) -> Self {
         self.icon = Some(icon);
         self
     }
 
-    pub(crate) fn with_line_number(mut self, line_number: usize) -> Self {
+    pub fn with_line_number(mut self, line_number: usize) -> Self {
         self.line_number = Some(line_number);
         self
     }
 
-    pub(crate) fn display_name(&self) -> &str {
+    pub fn display_name(&self) -> &str {
         self.display_name.as_ref().unwrap_or(&self.name)
     }
 
-    pub(crate) fn stdout_repr(&self) -> String {
+    pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
         if let Some(line_number) = self.line_number {
             repr.push_str(&format!(":{line_number}"));

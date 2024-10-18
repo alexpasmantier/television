@@ -1,7 +1,5 @@
 use anyhow::Result;
-use vergen_gix::{
-    BuildBuilder, CargoBuilder, Emitter, GixBuilder, RustcBuilder,
-};
+use vergen_gix::{BuildBuilder, CargoBuilder, Emitter, RustcBuilder};
 
 fn main() -> Result<()> {
     let build = BuildBuilder::default().build_date(true).build()?;
