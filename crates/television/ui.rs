@@ -1,5 +1,6 @@
 use ratatui::style::{Color, Style, Stylize};
 
+pub mod help;
 pub mod input;
 pub mod layout;
 pub mod preview;

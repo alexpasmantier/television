@@ -53,7 +53,13 @@ impl Channel {
         }
     }
 
-    const MATCHER_TICK_TIMEOUT: u64 = 10;
+    const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TelevisionChannel for Channel {

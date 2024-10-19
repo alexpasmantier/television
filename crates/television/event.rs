@@ -1,4 +1,5 @@
 use std::{
+    fmt::Display,
     future::Future,
     pin::Pin,
     task::{Context, Poll as TaskPoll},
@@ -14,7 +15,7 @@ use crossterm::event::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
-use tracing::warn;
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Event<I> {
@@ -36,6 +37,7 @@ pub enum Key {
     Right,
     Up,
     Down,
+    CtrlSpace,
     CtrlBackspace,
     CtrlEnter,
     CtrlLeft,
@@ -43,8 +45,14 @@ pub enum Key {
     CtrlUp,
     CtrlDown,
     CtrlDelete,
+    AltSpace,
+    AltEnter,
     AltBackspace,
     AltDelete,
+    AltUp,
+    AltDown,
+    AltLeft,
+    AltRight,
     Home,
     End,
     PageUp,
@@ -59,6 +67,49 @@ pub enum Key {
     Null,
     Esc,
     Tab,
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Key::Backspace => write!(f, "Backspace"),
+            Key::Enter => write!(f, "Enter"),
+            Key::Left => write!(f, "←"),
+            Key::Right => write!(f, "→"),
+            Key::Up => write!(f, "↑"),
+            Key::Down => write!(f, "↓"),
+            Key::CtrlSpace => write!(f, "Ctrl-Space"),
+            Key::CtrlBackspace => write!(f, "Ctrl-Backspace"),
+            Key::CtrlEnter => write!(f, "Ctrl-Enter"),
+            Key::CtrlLeft => write!(f, "Ctrl-←"),
+            Key::CtrlRight => write!(f, "Ctrl-→"),
+            Key::CtrlUp => write!(f, "Ctrl-↑"),
+            Key::CtrlDown => write!(f, "Ctrl-↓"),
+            Key::CtrlDelete => write!(f, "Ctrl-Del"),
+            Key::AltSpace => write!(f, "Alt+Space"),
+            Key::AltEnter => write!(f, "Alt+Enter"),
+            Key::AltBackspace => write!(f, "Alt+Backspace"),
+            Key::AltDelete => write!(f, "Alt+Delete"),
+            Key::AltUp => write!(f, "Alt↑"),
+            Key::AltDown => write!(f, "Alt↓"),
+            Key::AltLeft => write!(f, "Alt←"),
+            Key::AltRight => write!(f, "Alt→"),
+            Key::Home => write!(f, "Home"),
+            Key::End => write!(f, "End"),
+            Key::PageUp => write!(f, "PageUp"),
+            Key::PageDown => write!(f, "PageDown"),
+            Key::BackTab => write!(f, "BackTab"),
+            Key::Delete => write!(f, "Delete"),
+            Key::Insert => write!(f, "Insert"),
+            Key::F(k) => write!(f, "F{k}"),
+            Key::Char(c) => write!(f, "{c}"),
+            Key::Alt(c) => write!(f, "Alt+{c}"),
+            Key::Ctrl(c) => write!(f, "Ctrl-{c}"),
+            Key::Null => write!(f, "Null"),
+            Key::Esc => write!(f, "Esc"),
+            Key::Tab => write!(f, "Tab"),
+        }
+    }
 }
 
 #[allow(clippy::module_name_repetitions)]
@@ -163,6 +214,7 @@ impl EventLoop {
 }
 
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
+    debug!("Raw event: {:?}", event);
     match event.code {
         Backspace => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlBackspace,
@@ -176,22 +228,27 @@ pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
         },
         Enter => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlEnter,
+            KeyModifiers::ALT => Key::AltEnter,
             _ => Key::Enter,
         },
         Up => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlUp,
+            KeyModifiers::ALT => Key::AltUp,
             _ => Key::Up,
         },
         Down => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlDown,
+            KeyModifiers::ALT => Key::AltDown,
             _ => Key::Down,
         },
         Left => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlLeft,
+            KeyModifiers::ALT => Key::AltLeft,
             _ => Key::Left,
         },
         Right => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlRight,
+            KeyModifiers::ALT => Key::AltRight,
             _ => Key::Right,
         },
         Home => Key::Home,
@@ -203,6 +260,12 @@ pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
         Insert => Key::Insert,
         F(k) => Key::F(k),
         Esc => Key::Esc,
+        Char(' ') => match event.modifiers {
+            KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(' '),
+            KeyModifiers::CONTROL => Key::CtrlSpace,
+            KeyModifiers::ALT => Key::AltSpace,
+            _ => Key::Null,
+        },
         Char(c) => match event.modifiers {
             KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(c),
             KeyModifiers::CONTROL => Key::Ctrl(c),

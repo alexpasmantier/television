@@ -361,6 +361,7 @@ lazy_static! {
         "tmLanguage",
         "tmpl",
         "tmTheme",
+        "toml",
         "tpl",
         "ts",
         "tsv",

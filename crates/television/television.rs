@@ -8,21 +8,25 @@ use ratatui::{
     text::{Line, Span},
     widgets::{
         block::{Position, Title},
-        Block, BorderType, Borders, ListState, Padding, Paragraph,
+        Block, BorderType, Borders, ListState, Padding, Paragraph, Wrap,
     },
     Frame,
 };
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 use tokio::sync::mpsc::UnboundedSender;
+use tracing::debug;
 
-use crate::ui::get_border_style;
-use crate::ui::input::actions::InputActionHandler;
 use crate::ui::input::Input;
 use crate::ui::layout::{Dimensions, Layout};
 use crate::ui::preview::DEFAULT_PREVIEW_TITLE_FG;
 use crate::ui::results::build_results_list;
 use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
+use crate::{channels::channels::SelectionChannel, ui::get_border_style};
+use crate::{
+    channels::AvailableChannel, ui::input::actions::InputActionHandler,
+};
 use crate::{
     channels::{CliTvChannel, TelevisionChannel},
     utils::strings::shrink_with_ellipsis,
@@ -33,21 +37,18 @@ use crate::{
 };
 use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 
-#[derive(PartialEq, Copy, Clone)]
-enum Pane {
-    Results,
-    Preview,
-    Input,
+#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
+pub enum Mode {
+    Channel,
+    ChannelSelection,
 }
-
-static PANES: [Pane; 3] = [Pane::Input, Pane::Results, Pane::Preview];
 
 pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
-    config: Config,
-    channel: Box<dyn TelevisionChannel>,
+    pub config: Config,
+    channel: AvailableChannel,
     current_pattern: String,
-    current_pane: Pane,
+    pub mode: Mode,
     input: Input,
     picker_state: ListState,
     relative_picker_state: ListState,
@@ -82,7 +83,7 @@ impl Television {
             config: Config::default(),
             channel: tv_channel,
             current_pattern: EMPTY_STRING.to_string(),
-            current_pane: Pane::Input,
+            mode: Mode::Channel,
             input: Input::new(EMPTY_STRING.to_string()),
             picker_state: ListState::default(),
             relative_picker_state: ListState::default(),
@@ -96,6 +97,14 @@ impl Television {
             spinner,
             spinner_state,
         }
+    }
+
+    pub fn change_channel(&mut self, channel: Box<dyn TelevisionChannel>) {
+        self.reset_preview_scroll();
+        self.reset_results_selection();
+        self.current_pattern = EMPTY_STRING.to_string();
+        self.input.reset();
+        self.channel = channel;
     }
 
     fn find(&mut self, pattern: &str) {
@@ -194,95 +203,10 @@ impl Television {
         }
     }
 
-    fn get_current_pane_index(&self) -> usize {
-        PANES
-            .iter()
-            .position(|pane| *pane == self.current_pane)
-            .unwrap()
-    }
-
-    pub fn next_pane(&mut self) {
-        let current_index = self.get_current_pane_index();
-        let next_index = (current_index + 1) % PANES.len();
-        self.current_pane = PANES[next_index];
-    }
-
-    pub fn previous_pane(&mut self) {
-        let current_index = self.get_current_pane_index();
-        let previous_index = if current_index == 0 {
-            PANES.len() - 1
-        } else {
-            current_index - 1
-        };
-        self.current_pane = PANES[previous_index];
-    }
-
-    /// ┌───────────────────┐┌─────────────┐
-    /// │ Results           ││ Preview     │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// └───────────────────┘│             │
-    /// ┌───────────────────┐│             │
-    /// │ Search          x ││             │
-    /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_on_top(&mut self) {
-        if self.current_pane == Pane::Input {
-            self.current_pane = Pane::Results;
-        }
-    }
-
-    /// ┌───────────────────┐┌─────────────┐
-    /// │ Results         x ││ Preview     │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// └───────────────────┘│             │
-    /// ┌───────────────────┐│             │
-    /// │ Search            ││             │
-    /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_below(&mut self) {
-        if self.current_pane == Pane::Results {
-            self.current_pane = Pane::Input;
-        }
-    }
-
-    /// ┌───────────────────┐┌─────────────┐
-    /// │ Results         x ││ Preview     │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// └───────────────────┘│             │
-    /// ┌───────────────────┐│             │
-    /// │ Search          x ││             │
-    /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_right(&mut self) {
-        match self.current_pane {
-            Pane::Results | Pane::Input => {
-                self.current_pane = Pane::Preview;
-            }
-            Pane::Preview => {}
-        }
-    }
-
-    /// ┌───────────────────┐┌─────────────┐
-    /// │ Results           ││ Preview   x │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// │                   ││             │
-    /// └───────────────────┘│             │
-    /// ┌───────────────────┐│             │
-    /// │ Search            ││             │
-    /// └───────────────────┘└─────────────┘
-    pub fn move_to_pane_left(&mut self) {
-        if self.current_pane == Pane::Preview {
-            self.current_pane = Pane::Results;
-        }
-    }
-
-    #[must_use]
-    pub fn is_input_focused(&self) -> bool {
-        Pane::Input == self.current_pane
+    fn reset_results_selection(&mut self) {
+        self.picker_state.select(Some(0));
+        self.relative_picker_state.select(Some(0));
+        self.picker_view_offset = 0;
     }
 }
 
@@ -334,24 +258,6 @@ impl Television {
     /// * `Result<Option<Action>>` - An action to be processed or none.
     pub async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
-            Action::GoToPaneUp => {
-                self.move_to_pane_on_top();
-            }
-            Action::GoToPaneDown => {
-                self.move_to_pane_below();
-            }
-            Action::GoToPaneLeft => {
-                self.move_to_pane_left();
-            }
-            Action::GoToPaneRight => {
-                self.move_to_pane_right();
-            }
-            Action::GoToNextPane => {
-                self.next_pane();
-            }
-            Action::GoToPrevPane => {
-                self.previous_pane();
-            }
             // handle input actions
             Action::AddInputChar(_)
             | Action::DeletePrevChar
@@ -359,9 +265,7 @@ impl Television {
             | Action::GoToInputEnd
             | Action::GoToInputStart
             | Action::GoToNextChar
-            | Action::GoToPrevChar
-                if self.is_input_focused() =>
-            {
+            | Action::GoToPrevChar => {
                 self.input.handle_action(&action);
                 match action {
                     Action::AddInputChar(_)
@@ -372,9 +276,7 @@ impl Television {
                             self.current_pattern.clone_from(&new_pattern);
                             self.find(&new_pattern);
                             self.reset_preview_scroll();
-                            self.picker_state.select(Some(0));
-                            self.relative_picker_state.select(Some(0));
-                            self.picker_view_offset = 0;
+                            self.reset_results_selection();
                         }
                     }
                     _ => {}
@@ -392,6 +294,31 @@ impl Television {
             Action::ScrollPreviewUp => self.scroll_preview_up(1),
             Action::ScrollPreviewHalfPageDown => self.scroll_preview_down(20),
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
+            Action::ToChannelSelection => {
+                self.mode = Mode::ChannelSelection;
+                let selection_channel = Box::new(SelectionChannel::new());
+                self.change_channel(selection_channel);
+            }
+            Action::SelectEntry => {
+                if let Some(entry) = self.get_selected_entry() {
+                    match self.mode {
+                        Mode::Channel => self
+                            .action_tx
+                            .as_ref()
+                            .unwrap()
+                            .send(Action::SelectAndExit)?,
+                        Mode::ChannelSelection => {
+                            self.mode = Mode::Channel;
+                            let new_channel =
+                                AvailableChannel::from_entry(&entry)?;
+                            self.change_channel(new_channel);
+                        }
+                    }
+                }
+            }
+            Action::PipeInto => {
+                if let Some(entry) = self.get_selected_entry() {}
+            }
             _ => {}
         }
         Ok(None)
@@ -407,10 +334,28 @@ impl Television {
     /// # Returns
     ///
     /// * `Result<()>` - An Ok result or an error.
-    pub fn draw(&mut self, frame: &mut Frame, area: Rect) -> Result<()> {
-        let layout = Layout::all_panes_centered(Dimensions::default(), area);
-        //let layout =
-        //Layout::results_only_centered(Dimensions::new(40, 60), area);
+    pub fn draw(&mut self, f: &mut Frame, area: Rect) -> Result<()> {
+        let layout = Layout::build(
+            &Dimensions::default(),
+            area,
+            match self.mode {
+                Mode::Channel => true,
+                Mode::ChannelSelection => false,
+            },
+        );
+
+        let help_block = Block::default()
+            .borders(Borders::NONE)
+            .style(Style::default())
+            .padding(Padding::uniform(1));
+
+        let help_text = self
+            .build_help_paragraph(layout.help_bar.width.saturating_sub(4))?
+            .style(Style::default().fg(Color::DarkGray).italic())
+            .alignment(Alignment::Center)
+            .block(help_block);
+
+        f.render_widget(help_text, layout.help_bar);
 
         self.results_area_height = u32::from(layout.results.height);
         if let Some(preview_window) = layout.preview_window {
@@ -426,7 +371,7 @@ impl Television {
             )
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(Pane::Results == self.current_pane))
+            .border_style(get_border_style(false))
             .style(Style::default())
             .padding(Padding::right(1));
 
@@ -438,12 +383,12 @@ impl Television {
         }
 
         let entries = self.channel.results(
-            (layout.results.height - 2).into(),
+            (layout.results.height.saturating_sub(2)).into(),
             u32::try_from(self.picker_view_offset)?,
         );
         let results_list = build_results_list(results_block, &entries);
 
-        frame.render_stateful_widget(
+        f.render_stateful_widget(
             results_list,
             layout.results,
             &mut self.relative_picker_state,
@@ -458,12 +403,12 @@ impl Television {
             )
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(Pane::Input == self.current_pane))
+            .border_style(get_border_style(false))
             .style(Style::default());
 
         let input_block_inner = input_block.inner(layout.input);
 
-        frame.render_widget(input_block, layout.input);
+        f.render_widget(input_block, layout.input);
 
         // split input block into 3 parts: prompt symbol, input, result count
         let inner_input_chunks = RatatuiLayout::default()
@@ -491,7 +436,7 @@ impl Television {
             Style::default().fg(DEFAULT_INPUT_FG).bold(),
         ))
         .block(arrow_block);
-        frame.render_widget(arrow, inner_input_chunks[0]);
+        f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
         // keep 2 for borders and 1 for cursor
@@ -502,10 +447,10 @@ impl Television {
             .block(interactive_input_block)
             .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
             .alignment(Alignment::Left);
-        frame.render_widget(input, inner_input_chunks[1]);
+        f.render_widget(input, inner_input_chunks[1]);
 
         if self.channel.running() {
-            frame.render_stateful_widget(
+            f.render_stateful_widget(
                 self.spinner,
                 inner_input_chunks[3],
                 &mut self.spinner_state,
@@ -527,21 +472,19 @@ impl Television {
         ))
         .block(result_count_block)
         .alignment(Alignment::Right);
-        frame.render_widget(result_count, inner_input_chunks[2]);
+        f.render_widget(result_count, inner_input_chunks[2]);
 
-        if let Pane::Input = self.current_pane {
-            // Make the cursor visible and ask tui-rs to put it at the
-            // specified coordinates after rendering
-            frame.set_cursor_position((
-                // Put cursor past the end of the input text
-                inner_input_chunks[1].x
-                    + u16::try_from(
-                        self.input.visual_cursor().max(scroll) - scroll,
-                    )?,
-                // Move one line down, from the border to the input line
-                inner_input_chunks[1].y,
-            ));
-        }
+        // Make the cursor visible and ask tui-rs to put it at the
+        // specified coordinates after rendering
+        f.set_cursor_position((
+            // Put cursor past the end of the input text
+            inner_input_chunks[1].x
+                + u16::try_from(
+                    self.input.visual_cursor().max(scroll) - scroll,
+                )?,
+            // Move one line down, from the border to the input line
+            inner_input_chunks[1].y,
+        ));
 
         if layout.preview_title.is_some() || layout.preview_window.is_some() {
             let selected_entry =
@@ -567,7 +510,7 @@ impl Television {
                 preview_title_spans.push(Span::styled(
                     shrink_with_ellipsis(
                         &preview.title,
-                        (preview_title_area.width - 4) as usize,
+                        preview_title_area.width.saturating_sub(4) as usize,
                     ),
                     Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
                 ));
@@ -580,7 +523,7 @@ impl Television {
                                 .border_style(get_border_style(false)),
                         )
                         .alignment(Alignment::Left);
-                frame.render_widget(preview_title, preview_title_area);
+                f.render_widget(preview_title, preview_title_area);
             }
 
             if let Some(preview_area) = layout.preview_window {
@@ -593,9 +536,7 @@ impl Television {
                     )
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
-                    .border_style(get_border_style(
-                        Pane::Preview == self.current_pane,
-                    ))
+                    .border_style(get_border_style(false))
                     .style(Style::default())
                     .padding(Padding::right(1));
 
@@ -608,7 +549,7 @@ impl Television {
                         left: 1,
                     });
                 let inner = preview_outer_block.inner(preview_area);
-                frame.render_widget(preview_outer_block, preview_area);
+                f.render_widget(preview_outer_block, preview_area);
 
                 //if let PreviewContent::Image(img) = &preview.content {
                 //    let image_component = StatefulImage::new(None);
@@ -626,7 +567,7 @@ impl Television {
                         .line_number
                         .map(|l| u16::try_from(l).unwrap_or(0)),
                 );
-                frame.render_widget(preview_block, inner);
+                f.render_widget(preview_block, inner);
                 //}
             }
         }

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use devicons::FileIcon;
-use nucleo::{Config, Nucleo};
+use nucleo::{Config, Injector, Nucleo};
 use tracing::debug;
 
 use crate::channels::TelevisionChannel;
@@ -14,6 +14,12 @@ use crate::utils::indices::sep_name_and_value_indices;
 struct Alias {
     name: String,
     value: String,
+}
+
+impl Alias {
+    fn new(name: String, value: String) -> Self {
+        Self { name, value }
+    }
 }
 
 pub struct Channel {
@@ -68,22 +74,6 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
 
 impl Channel {
     pub fn new() -> Self {
-        let raw_shell = get_current_shell().unwrap_or("bash".to_string());
-        let shell = raw_shell.split('/').last().unwrap();
-        debug!("Current shell: {}", shell);
-        let raw_aliases = get_raw_aliases(shell);
-        debug!("Aliases: {:?}", raw_aliases);
-
-        let parsed_aliases = raw_aliases
-            .iter()
-            .map(|alias| {
-                let mut parts = alias.split('=');
-                let name = parts.next().unwrap().to_string();
-                let value = parts.next().unwrap().to_string();
-                Alias { name, value }
-            })
-            .collect::<Vec<_>>();
-
         let matcher = Nucleo::new(
             Config::DEFAULT,
             Arc::new(|| {}),
@@ -91,12 +81,7 @@ impl Channel {
             1,
         );
         let injector = matcher.injector();
-
-        for alias in parsed_aliases {
-            let _ = injector.push(alias.clone(), |_, cols| {
-                cols[0] = (alias.name.clone() + &alias.value).into();
-            });
-        }
+        tokio::spawn(load_aliases(injector));
 
         Self {
             matcher,
@@ -108,7 +93,13 @@ impl Channel {
         }
     }
 
-    const MATCHER_TICK_TIMEOUT: u64 = 10;
+    const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TelevisionChannel for Channel {
@@ -206,5 +197,35 @@ impl TelevisionChannel for Channel {
 
     fn running(&self) -> bool {
         self.running
+    }
+}
+
+#[allow(clippy::unused_async)]
+async fn load_aliases(injector: Injector<Alias>) {
+    let raw_shell = get_current_shell().unwrap_or("bash".to_string());
+    let shell = raw_shell.split('/').last().unwrap();
+    debug!("Current shell: {}", shell);
+    let raw_aliases = get_raw_aliases(shell);
+
+    let parsed_aliases = raw_aliases
+        .iter()
+        .filter_map(|alias| {
+            let mut parts = alias.split('=');
+            if let Some(name) = parts.next() {
+                if let Some(value) = parts.next() {
+                    return Some(Alias::new(
+                        name.to_string(),
+                        value.to_string(),
+                    ));
+                }
+            }
+            None
+        })
+        .collect::<Vec<_>>();
+
+    for alias in parsed_aliases {
+        let _ = injector.push(alias.clone(), |_, cols| {
+            cols[0] = (alias.name.clone() + &alias.value).into();
+        });
     }
 }

@@ -3,7 +3,11 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Injector, Nucleo,
 };
-use std::{os::unix::ffi::OsStrExt, path::PathBuf, sync::Arc};
+use std::{
+    os::unix::ffi::OsStrExt,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use ignore::DirEntry;
 
@@ -26,7 +30,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new() -> Self {
+    pub fn new(starting_dir: &Path) -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT.match_paths(),
             Arc::new(|| {}),
@@ -35,7 +39,7 @@ impl Channel {
         );
         // start loading files in the background
         tokio::spawn(load_files(
-            std::env::current_dir().unwrap(),
+            starting_dir.to_path_buf(),
             matcher.injector(),
         ));
         Channel {
@@ -47,7 +51,13 @@ impl Channel {
         }
     }
 
-    const MATCHER_TICK_TIMEOUT: u64 = 10;
+    const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new(&std::env::current_dir().unwrap())
+    }
 }
 
 impl TelevisionChannel for Channel {

@@ -3,37 +3,50 @@ use std::sync::Arc;
 
 use devicons::FileIcon;
 use termtree::Tree;
+use tokio::sync::Mutex;
 
 use crate::entry::Entry;
 
 use crate::previewers::cache::PreviewCache;
-use crate::previewers::{Preview, PreviewContent};
+use crate::previewers::{meta, Preview, PreviewContent};
 use crate::utils::files::walk_builder;
 
 pub struct DirectoryPreviewer {
-    cache: PreviewCache,
+    cache: Arc<Mutex<PreviewCache>>,
 }
 
 impl DirectoryPreviewer {
     pub fn new() -> Self {
         DirectoryPreviewer {
-            cache: PreviewCache::default(),
+            cache: Arc::new(Mutex::new(PreviewCache::default())),
         }
     }
 
-    pub fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
-        if let Some(preview) = self.cache.get(&entry.name) {
+    pub async fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
+        if let Some(preview) = self.cache.lock().await.get(&entry.name) {
             return preview;
         }
-        let preview = Arc::new(build_tree_preview(entry));
-        self.cache.insert(entry.name.clone(), preview.clone());
+        let preview = meta::loading(&entry.name);
+        self.cache
+            .lock()
+            .await
+            .insert(entry.name.clone(), preview.clone());
+        let entry_c = entry.clone();
+        let cache = self.cache.clone();
+        tokio::spawn(async move {
+            let preview = Arc::new(build_tree_preview(&entry_c));
+            cache
+                .lock()
+                .await
+                .insert(entry_c.name.clone(), preview.clone());
+        });
         preview
     }
 }
 
 fn build_tree_preview(entry: &Entry) -> Preview {
     let path = Path::new(&entry.name);
-    let tree = tree(path).unwrap();
+    let tree = tree(path, MAX_DEPTH, FIRST_LEVEL_MAX_ENTRIES, &mut 0);
     let tree_string = tree.to_string();
     Preview {
         title: entry.name.clone(),
@@ -47,33 +60,53 @@ fn build_tree_preview(entry: &Entry) -> Preview {
 }
 
 fn label<P: AsRef<Path>>(p: P, strip: &str) -> String {
-    //let path = p.as_ref().file_name().unwrap().to_str().unwrap().to_owned();
+    let icon = FileIcon::from(&p);
     let path = p.as_ref().strip_prefix(strip).unwrap();
-    let icon = FileIcon::from(&path);
     format!("{} {}", icon, path.display())
 }
 
-/// PERF: (urgent) change to use the ignore crate here
-fn tree<P: AsRef<Path>>(p: P) -> std::io::Result<Tree<String>> {
-    let result = std::fs::read_dir(&p)?
-        .filter_map(std::result::Result::ok)
-        .fold(
-            Tree::new(label(
-                p.as_ref(),
-                p.as_ref().parent().unwrap().to_str().unwrap(),
-            )),
-            |mut root, entry| {
-                let m = entry.metadata().unwrap();
-                if m.is_dir() {
-                    root.push(tree(entry.path()).unwrap());
-                } else {
-                    root.push(Tree::new(label(
-                        entry.path(),
-                        p.as_ref().to_str().unwrap(),
-                    )));
-                }
-                root
-            },
-        );
-    Ok(result)
+const MAX_DEPTH: u8 = 4;
+const FIRST_LEVEL_MAX_ENTRIES: u8 = 30;
+const NESTED_MAX_ENTRIES: u8 = 10;
+const MAX_ENTRIES: u8 = 200;
+
+fn tree<P: AsRef<Path>>(
+    p: P,
+    max_depth: u8,
+    nested_max_entries: u8,
+    total_entry_count: &mut u8,
+) -> Tree<String> {
+    let mut root = Tree::new(label(
+        p.as_ref(),
+        p.as_ref().parent().unwrap().to_str().unwrap(),
+    ));
+    let w = walk_builder(p.as_ref(), 1, None).max_depth(Some(1)).build();
+    let mut level_entry_count: u8 = 0;
+
+    for path in w.skip(1).filter_map(std::result::Result::ok) {
+        let m = path.metadata().unwrap();
+        if m.is_dir() && max_depth > 1 {
+            root.push(tree(
+                path.path(),
+                max_depth - 1,
+                NESTED_MAX_ENTRIES,
+                total_entry_count,
+            ));
+        } else {
+            root.push(Tree::new(label(
+                path.path(),
+                p.as_ref().to_str().unwrap(),
+            )));
+        }
+        level_entry_count += 1;
+        *total_entry_count += 1;
+        if level_entry_count >= nested_max_entries
+            || *total_entry_count >= MAX_ENTRIES
+        {
+            root.push(Tree::new(String::from("...")));
+            break;
+        }
+    }
+
+    root
 }

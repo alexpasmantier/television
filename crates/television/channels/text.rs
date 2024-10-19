@@ -6,7 +6,7 @@ use nucleo::{
 use std::{
     fs::File,
     io::{BufRead, Read, Seek},
-    path::PathBuf,
+    path::{Path, PathBuf},
     sync::Arc,
 };
 
@@ -50,11 +50,11 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new() -> Self {
+    pub fn new(working_dir: &Path) -> Self {
         let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
         // start loading files in the background
         tokio::spawn(load_candidates(
-            std::env::current_dir().unwrap(),
+            working_dir.to_path_buf(),
             matcher.injector(),
         ));
         Channel {
@@ -66,7 +66,13 @@ impl Channel {
         }
     }
 
-    const MATCHER_TICK_TIMEOUT: u64 = 10;
+    const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new(&std::env::current_dir().unwrap())
+    }
 }
 
 impl TelevisionChannel for Channel {

@@ -1,64 +1,66 @@
 use std::sync::Arc;
 
+use clap::ValueEnum;
 use devicons::FileIcon;
-use ignore::{overrides::OverrideBuilder, DirEntry};
 use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Nucleo,
 };
-use tracing::debug;
 
 use crate::{
+    channels::{CliTvChannel, TelevisionChannel},
     entry::Entry,
     fuzzy::MATCHER,
     previewers::PreviewType,
-    utils::files::{walk_builder, DEFAULT_NUM_THREADS},
 };
 
-use crate::channels::TelevisionChannel;
-
-pub struct Channel {
-    matcher: Nucleo<DirEntry>,
+pub struct SelectionChannel {
+    matcher: Nucleo<CliTvChannel>,
     last_pattern: String,
     result_count: u32,
     total_count: u32,
     running: bool,
-    icon: FileIcon,
 }
 
-impl Channel {
+const NUM_THREADS: usize = 1;
+
+const CHANNEL_BLACKLIST: [CliTvChannel; 1] = [CliTvChannel::Stdin];
+
+impl SelectionChannel {
     pub fn new() -> Self {
         let matcher = Nucleo::new(
-            Config::DEFAULT.match_paths(),
+            Config::DEFAULT,
             Arc::new(|| {}),
-            None,
+            Some(NUM_THREADS),
             1,
         );
-        // start loading files in the background
-        tokio::spawn(crawl_for_repos(
-            std::env::home_dir().expect("Could not get home directory"),
-            matcher.injector(),
-        ));
-        Channel {
+        let injector = matcher.injector();
+        for variant in CliTvChannel::value_variants() {
+            if CHANNEL_BLACKLIST.contains(variant) {
+                continue;
+            }
+            let _ = injector.push(*variant, |e, cols| {
+                cols[0] = (*e).to_string().into();
+            });
+        }
+        SelectionChannel {
             matcher,
             last_pattern: String::new(),
             result_count: 0,
             total_count: 0,
             running: false,
-            icon: FileIcon::from("git"),
         }
     }
 
     const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
-impl Default for Channel {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+const TV_ICON: FileIcon = FileIcon {
+    icon: '📺',
+    color: "#ffffff",
+};
 
-impl TelevisionChannel for Channel {
+impl TelevisionChannel for SelectionChannel {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -90,7 +92,6 @@ impl TelevisionChannel for Channel {
         self.running = status.running;
         let mut indices = Vec::new();
         let mut matcher = MATCHER.lock();
-        let icon = self.icon;
 
         snapshot
             .matched_items(
@@ -108,12 +109,12 @@ impl TelevisionChannel for Channel {
                 indices.dedup();
                 let indices = indices.drain(..);
 
-                let path = item.matcher_columns[0].to_string();
-                Entry::new(path.clone(), PreviewType::Directory)
+                let name = item.matcher_columns[0].to_string();
+                Entry::new(name.clone(), PreviewType::Basic)
                     .with_name_match_ranges(
                         indices.map(|i| (i, i + 1)).collect(),
                     )
-                    .with_icon(icon)
+                    .with_icon(TV_ICON)
             })
             .collect()
     }
@@ -121,50 +122,14 @@ impl TelevisionChannel for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         let snapshot = self.matcher.snapshot();
         snapshot.get_matched_item(index).map(|item| {
-            let path = item.matcher_columns[0].to_string();
-            Entry::new(path.clone(), PreviewType::Directory)
-                .with_icon(self.icon)
+            let name = item.matcher_columns[0].to_string();
+            // TODO: Add new Previewer for Channel selection which displays a
+            // short description of the channel
+            Entry::new(name.clone(), PreviewType::Basic).with_icon(TV_ICON)
         })
     }
 
     fn running(&self) -> bool {
         self.running
     }
-}
-
-#[allow(clippy::unused_async)]
-async fn crawl_for_repos(
-    starting_point: std::path::PathBuf,
-    injector: nucleo::Injector<DirEntry>,
-) {
-    let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
-    walker_overrides_builder.add(".git").unwrap();
-    let walker = walk_builder(
-        &starting_point,
-        *DEFAULT_NUM_THREADS,
-        Some(walker_overrides_builder.build().unwrap()),
-    )
-    .build_parallel();
-
-    walker.run(|| {
-        let injector = injector.clone();
-        Box::new(move |result| {
-            if let Ok(entry) = result {
-                if entry.file_type().unwrap().is_dir()
-                    && entry.path().ends_with(".git")
-                {
-                    debug!("Found git repo: {:?}", entry.path());
-                    let _ = injector.push(entry, |e, cols| {
-                        cols[0] = e
-                            .path()
-                            .parent()
-                            .unwrap()
-                            .to_string_lossy()
-                            .into();
-                    });
-                }
-            }
-            ignore::WalkState::Continue
-        })
-    });
 }

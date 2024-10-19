@@ -53,7 +53,6 @@
 use std::sync::Arc;
 
 use color_eyre::Result;
-use serde::{Deserialize, Serialize};
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
@@ -76,23 +75,11 @@ pub struct App {
     television: Arc<Mutex<Television>>,
     should_quit: bool,
     should_suspend: bool,
-    mode: Mode,
     action_tx: mpsc::UnboundedSender<Action>,
     action_rx: mpsc::UnboundedReceiver<Action>,
     event_rx: mpsc::UnboundedReceiver<Event<Key>>,
     event_abort_tx: mpsc::UnboundedSender<()>,
     render_tx: mpsc::UnboundedSender<RenderingTask>,
-}
-
-#[derive(
-    Default, Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize,
-)]
-pub enum Mode {
-    #[default]
-    Help,
-    Input,
-    Preview,
-    Results,
 }
 
 impl App {
@@ -114,7 +101,6 @@ impl App {
             should_quit: false,
             should_suspend: false,
             config: Config::new()?,
-            mode: Mode::Input,
             action_tx,
             action_rx,
             event_rx,
@@ -140,7 +126,6 @@ impl App {
         let rendering_task = tokio::spawn(async move {
             render(
                 render_rx,
-                //render_tx,
                 action_tx_r,
                 config_r,
                 television_r,
@@ -178,28 +163,23 @@ impl App {
         match event {
             Event::Input(keycode) => {
                 info!("{:?}", keycode);
-                // if the current component is the television
-                // and the mode is input, automatically handle
-                // (these mappings aren't exposed to the user)
-                if self.television.lock().await.is_input_focused() {
-                    match keycode {
-                        Key::Backspace => return Action::DeletePrevChar,
-                        Key::Delete => return Action::DeleteNextChar,
-                        Key::Left => return Action::GoToPrevChar,
-                        Key::Right => return Action::GoToNextChar,
-                        Key::Home | Key::Ctrl('a') => {
-                            return Action::GoToInputStart
-                        }
-                        Key::End | Key::Ctrl('e') => {
-                            return Action::GoToInputEnd
-                        }
-                        Key::Char(c) => return Action::AddInputChar(c),
-                        _ => {}
+                // text input events
+                match keycode {
+                    Key::Backspace => return Action::DeletePrevChar,
+                    Key::Delete => return Action::DeleteNextChar,
+                    Key::Left => return Action::GoToPrevChar,
+                    Key::Right => return Action::GoToNextChar,
+                    Key::Home | Key::Ctrl('a') => {
+                        return Action::GoToInputStart
                     }
+                    Key::End | Key::Ctrl('e') => return Action::GoToInputEnd,
+                    Key::Char(c) => return Action::AddInputChar(c),
+                    _ => {}
                 }
+                // get action based on keybindings
                 self.config
                     .keybindings
-                    .get(&self.mode)
+                    .get(&self.television.lock().await.mode)
                     .and_then(|keymap| keymap.get(&keycode).cloned())
                     .unwrap_or(if let Key::Char(c) = keycode {
                         Action::AddInputChar(c)
@@ -234,7 +214,7 @@ impl App {
                     self.should_suspend = false;
                     self.render_tx.send(RenderingTask::Resume)?;
                 }
-                Action::SelectEntry => {
+                Action::SelectAndExit => {
                     self.should_quit = true;
                     self.render_tx.send(RenderingTask::Quit)?;
                     return Ok(self

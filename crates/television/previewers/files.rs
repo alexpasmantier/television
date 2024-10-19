@@ -15,7 +15,7 @@ use syntect::{
 use tracing::{debug, warn};
 
 use crate::entry;
-use crate::previewers::{Preview, PreviewContent};
+use crate::previewers::{meta, Preview, PreviewContent};
 use crate::utils::files::FileType;
 use crate::utils::files::{get_file_size, is_known_text_extension};
 use crate::utils::strings::{
@@ -63,7 +63,7 @@ impl FilePreviewer {
         if get_file_size(&path_buf).map_or(false, |s| s > Self::MAX_FILE_SIZE)
         {
             debug!("File too large: {:?}", entry.name);
-            let preview = file_too_large(&entry.name);
+            let preview = meta::file_too_large(&entry.name);
             self.cache_preview(entry.name.clone(), preview.clone())
                 .await;
             return preview;
@@ -94,7 +94,7 @@ impl FilePreviewer {
                     }
                     Err(e) => {
                         warn!("Error opening file: {:?}", e);
-                        let p = not_supported(&entry.name);
+                        let p = meta::not_supported(&entry.name);
                         self.cache_preview(entry.name.clone(), p.clone())
                             .await;
                         p
@@ -105,7 +105,7 @@ impl FilePreviewer {
                 debug!("Previewing image file: {:?}", entry.name);
                 // insert a loading preview into the cache
                 //let preview = loading(&entry.name);
-                let preview = not_supported(&entry.name);
+                let preview = meta::not_supported(&entry.name);
                 self.cache_preview(entry.name.clone(), preview.clone())
                     .await;
                 //// compute the image preview in the background
@@ -114,14 +114,14 @@ impl FilePreviewer {
             }
             FileType::Other => {
                 debug!("Previewing other file: {:?}", entry.name);
-                let preview = not_supported(&entry.name);
+                let preview = meta::not_supported(&entry.name);
                 self.cache_preview(entry.name.clone(), preview.clone())
                     .await;
                 preview
             }
             FileType::Unknown => {
                 debug!("Unknown file type: {:?}", entry.name);
-                let preview = not_supported(&entry.name);
+                let preview = meta::not_supported(&entry.name);
                 self.cache_preview(entry.name.clone(), preview.clone())
                     .await;
                 preview
@@ -225,8 +225,9 @@ impl FilePreviewer {
                 let mut buffer = [0u8; 256];
                 if let Ok(bytes_read) = f.read(&mut buffer) {
                     if bytes_read > 0
-                        && proportion_of_printable_ascii_characters(&buffer)
-                            > PRINTABLE_ASCII_THRESHOLD
+                        && proportion_of_printable_ascii_characters(
+                            &buffer[..bytes_read],
+                        ) > PRINTABLE_ASCII_THRESHOLD
                     {
                         file_type = FileType::Text;
                     }
@@ -266,7 +267,7 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
             Ok(line) => lines.push(preprocess_line(&line)),
             Err(e) => {
                 warn!("Error reading file: {:?}", e);
-                return not_supported(title);
+                return meta::not_supported(title);
             }
         }
         if lines.len() >= TEMP_PLAIN_TEXT_PREVIEW_HEIGHT {
@@ -277,25 +278,6 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::PlainText(lines),
     ))
-}
-
-fn not_supported(title: &str) -> Arc<Preview> {
-    Arc::new(Preview::new(
-        title.to_string(),
-        PreviewContent::NotSupported,
-    ))
-}
-
-fn file_too_large(title: &str) -> Arc<Preview> {
-    Arc::new(Preview::new(
-        title.to_string(),
-        PreviewContent::FileTooLarge,
-    ))
-}
-
-#[allow(dead_code)]
-fn loading(title: &str) -> Arc<Preview> {
-    Arc::new(Preview::new(title.to_string(), PreviewContent::Loading))
 }
 
 fn compute_highlights(

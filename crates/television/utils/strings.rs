@@ -145,7 +145,7 @@ pub fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
         return s.to_string();
     }
 
-    let half_max_length = (max_length / 2) - 2;
+    let half_max_length = (max_length / 2).saturating_sub(2);
     let first_half = slice_up_to_char_boundary(s, half_max_length);
     let second_half =
         slice_at_char_boundaries(s, s.len() - half_max_length, s.len());

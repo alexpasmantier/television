@@ -11,11 +11,10 @@ use tracing::{error, info};
 
 use crate::{
     action::Action,
-    app::Mode,
     event::{convert_raw_event_to_key, Key},
+    television::Mode,
 };
 
-//const CONFIG: &str = include_str!("../.config/config.json5");
 const CONFIG: &str = include_str!("../../.config/config.toml");
 
 #[allow(dead_code, clippy::module_name_repetitions)]
@@ -523,9 +522,9 @@ mod tests {
         let c = Config::new()?;
         assert_eq!(
             c.keybindings
-                .get(&Mode::Input)
+                .get(&Mode::Channel)
                 .unwrap()
-                .get(&parse_key("<q>").unwrap())
+                .get(&parse_key("esc").unwrap())
                 .unwrap(),
             &Action::Quit
         );

@@ -1,18 +1,22 @@
-[keybindings.Input]
-q = "Quit"
+[keybindings.Channel]
 esc = "Quit"
-ctrl-c = "Quit"
-ctrl-z = "Suspend"
-tab = "GoToNextPane"
-backtab = "GoToPrevPane"
-ctrl-left = "GoToPaneLeft"
-ctrl-right = "GoToPaneRight"
 down = "SelectNextEntry"
 up = "SelectPrevEntry"
 ctrl-n = "SelectNextEntry"
 ctrl-p = "SelectPrevEntry"
-ctrl-down = "ScrollPreviewDown"
-ctrl-up = "ScrollPreviewUp"
+alt-down = "ScrollPreviewHalfPageDown"
 ctrl-d = "ScrollPreviewHalfPageDown"
+alt-up = "ScrollPreviewHalfPageUp"
 ctrl-u = "ScrollPreviewHalfPageUp"
 enter = "SelectEntry"
+ctrl-s = "ToChannelSelection"
+
+[keybindings.ChannelSelection]
+esc = "Quit"
+down = "SelectNextEntry"
+up = "SelectPrevEntry"
+ctrl-n = "SelectNextEntry"
+ctrl-p = "SelectPrevEntry"
+enter = "SelectEntry"
+ctrl-enter = "PipeInto"
+

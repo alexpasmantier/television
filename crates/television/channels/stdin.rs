@@ -26,7 +26,6 @@ impl Channel {
     pub fn new() -> Self {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
-            debug!("Read line: {:?}", line);
             lines.push(line);
         }
         let matcher = Nucleo::new(
@@ -51,7 +50,13 @@ impl Channel {
         }
     }
 
-    const MATCHER_TICK_TIMEOUT: u64 = 10;
+    const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for Channel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TelevisionChannel for Channel {

@@ -7,6 +7,7 @@ mod cache;
 mod directory;
 mod env;
 mod files;
+mod meta;
 
 // previewer types
 pub use basic::BasicPreviewer;
@@ -99,7 +100,7 @@ impl Previewer {
     pub async fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
         match entry.preview_type {
             PreviewType::Basic => self.basic.preview(entry),
-            PreviewType::Directory => self.directory.preview(entry),
+            PreviewType::Directory => self.directory.preview(entry).await,
             PreviewType::EnvVar => self.env_var.preview(entry),
             PreviewType::Files => self.file.preview(entry).await,
         }

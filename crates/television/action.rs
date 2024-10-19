@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum::Display;
 
-#[derive(Debug, Clone, PartialEq, Eq, Display, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Display)]
 pub enum Action {
     // input actions
     AddInputChar(char),
@@ -17,6 +17,7 @@ pub enum Action {
     ClearScreen,
     // results actions
     SelectEntry,
+    SelectAndExit,
     SelectNextEntry,
     SelectPrevEntry,
     // navigation actions
@@ -41,5 +42,6 @@ pub enum Action {
     Error(String),
     NoOp,
     // channel actions
-    SyncFinderResults,
+    ToChannelSelection,
+    PipeInto,
 }

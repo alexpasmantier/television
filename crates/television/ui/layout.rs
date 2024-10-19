@@ -19,6 +19,7 @@ impl Default for Dimensions {
 }
 
 pub struct Layout {
+    pub help_bar: Rect,
     pub results: Rect,
     pub input: Rect,
     pub preview_title: Option<Rect>,
@@ -27,12 +28,14 @@ pub struct Layout {
 
 impl Layout {
     pub fn new(
+        help_bar: Rect,
         results: Rect,
         input: Rect,
         preview_title: Option<Rect>,
         preview_window: Option<Rect>,
     ) -> Self {
         Self {
+            help_bar,
             results,
             input,
             preview_title,
@@ -40,56 +43,56 @@ impl Layout {
         }
     }
 
-    /// TODO: add diagram
-    #[allow(dead_code)]
-    pub fn all_panes_centered(
-        dimensions: Dimensions,
+    pub fn build(
+        dimensions: &Dimensions,
         area: Rect,
+        with_preview: bool,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks
-        let chunks = layout::Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                Constraint::Percentage(50),
-                Constraint::Percentage(50),
-            ])
+        let hz_chunks = layout::Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Length(5)])
             .split(main_block);
 
-        // left block: results + input field
-        let left_chunks = layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(10), Constraint::Length(3)])
-            .split(chunks[0]);
+        if with_preview {
+            // split the main block into two vertical chunks
+            let vt_chunks = layout::Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(50),
+                    Constraint::Percentage(50),
+                ])
+                .split(hz_chunks[0]);
 
-        // right block: preview title + preview
-        let right_chunks = layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(10)])
-            .split(chunks[1]);
+            // left block: results + input field
+            let left_chunks = layout::Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(10), Constraint::Length(3)])
+                .split(vt_chunks[0]);
 
-        Self::new(
-            left_chunks[0],
-            left_chunks[1],
-            Some(right_chunks[0]),
-            Some(right_chunks[1]),
-        )
-    }
+            // right block: preview title + preview
+            let right_chunks = layout::Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(3), Constraint::Min(10)])
+                .split(vt_chunks[1]);
 
-    /// TODO: add diagram
-    #[allow(dead_code)]
-    pub fn results_only_centered(
-        dimensions: Dimensions,
-        area: Rect,
-    ) -> Self {
-        let main_block = centered_rect(dimensions.x, dimensions.y, area);
-        // split the main block into two vertical chunks
-        let chunks = layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Min(10), Constraint::Length(3)])
-            .split(main_block);
+            Self::new(
+                hz_chunks[1],
+                left_chunks[0],
+                left_chunks[1],
+                Some(right_chunks[0]),
+                Some(right_chunks[1]),
+            )
+        } else {
+            // split the main block into two vertical chunks
+            let chunks = layout::Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(10), Constraint::Length(3)])
+                .split(hz_chunks[0]);
 
-        Self::new(chunks[0], chunks[1], None, None)
+            Self::new(hz_chunks[1], chunks[0], chunks[1], None, None)
+        }
     }
 }
 
