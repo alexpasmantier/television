@@ -71,9 +71,8 @@ pub struct Television {
 
 impl Television {
     #[must_use]
-    pub fn new(cli_channel: CliTvChannel) -> Self {
-        let mut tv_channel = cli_channel.to_channel();
-        tv_channel.find(EMPTY_STRING);
+    pub fn new(mut channel: AvailableChannel) -> Self {
+        channel.find(EMPTY_STRING);
 
         let spinner = Spinner::default();
         let spinner_state = SpinnerState::from(&spinner);
@@ -81,7 +80,7 @@ impl Television {
         Self {
             action_tx: None,
             config: Config::default(),
-            channel: tv_channel,
+            channel,
             current_pattern: EMPTY_STRING.to_string(),
             mode: Mode::Channel,
             input: Input::new(EMPTY_STRING.to_string()),
@@ -99,7 +98,7 @@ impl Television {
         }
     }
 
-    pub fn change_channel(&mut self, channel: Box<dyn TelevisionChannel>) {
+    pub fn change_channel(&mut self, channel: AvailableChannel) {
         self.reset_preview_scroll();
         self.reset_results_selection();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -296,7 +295,8 @@ impl Television {
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
             Action::ToChannelSelection => {
                 self.mode = Mode::ChannelSelection;
-                let selection_channel = Box::new(SelectionChannel::new());
+                let selection_channel =
+                    AvailableChannel::Channel(SelectionChannel::new());
                 self.change_channel(selection_channel);
             }
             Action::SelectEntry => {
@@ -308,10 +308,12 @@ impl Television {
                             .unwrap()
                             .send(Action::SelectAndExit)?,
                         Mode::ChannelSelection => {
-                            self.mode = Mode::Channel;
-                            let new_channel =
-                                AvailableChannel::from_entry(&entry)?;
-                            self.change_channel(new_channel);
+                            if let Ok(new_channel) =
+                                AvailableChannel::try_from(&entry)
+                            {
+                                self.mode = Mode::Channel;
+                                self.change_channel(new_channel);
+                            }
                         }
                     }
                 }

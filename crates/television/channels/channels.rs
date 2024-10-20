@@ -8,7 +8,7 @@ use nucleo::{
 };
 
 use crate::{
-    channels::{CliTvChannel, TelevisionChannel},
+    channels::{AvailableChannel, CliTvChannel, TelevisionChannel},
     entry::Entry,
     fuzzy::MATCHER,
     previewers::PreviewType,
@@ -24,8 +24,6 @@ pub struct SelectionChannel {
 
 const NUM_THREADS: usize = 1;
 
-const CHANNEL_BLACKLIST: [CliTvChannel; 1] = [CliTvChannel::Stdin];
-
 impl SelectionChannel {
     pub fn new() -> Self {
         let matcher = Nucleo::new(
@@ -36,9 +34,6 @@ impl SelectionChannel {
         );
         let injector = matcher.injector();
         for variant in CliTvChannel::value_variants() {
-            if CHANNEL_BLACKLIST.contains(variant) {
-                continue;
-            }
             let _ = injector.push(*variant, |e, cols| {
                 cols[0] = (*e).to_string().into();
             });
@@ -53,6 +48,12 @@ impl SelectionChannel {
     }
 
     const MATCHER_TICK_TIMEOUT: u64 = 2;
+}
+
+impl Default for SelectionChannel {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 const TV_ICON: FileIcon = FileIcon {

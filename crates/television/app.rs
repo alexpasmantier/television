@@ -56,7 +56,7 @@ use color_eyre::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::channels::CliTvChannel;
+use crate::channels::{AvailableChannel, CliTvChannel};
 use crate::television::Television;
 use crate::{
     action::Action,
@@ -84,7 +84,7 @@ pub struct App {
 
 impl App {
     pub fn new(
-        channel: CliTvChannel,
+        channel: AvailableChannel,
         tick_rate: f64,
         frame_rate: f64,
     ) -> Result<Self> {

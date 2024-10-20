@@ -1,11 +1,12 @@
 use std::io::{stdout, IsTerminal, Write};
 
+use channels::AvailableChannel;
 use clap::Parser;
 use color_eyre::Result;
 use tracing::{debug, info};
 
 use crate::app::App;
-use crate::channels::CliTvChannel;
+use crate::channels::stdin::Channel as StdinChannel;
 use crate::cli::Cli;
 
 mod action;
@@ -36,10 +37,10 @@ async fn main() -> Result<()> {
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
-                CliTvChannel::Stdin
+                AvailableChannel::Stdin(StdinChannel::default())
             } else {
                 debug!("Using {:?} channel", args.channel);
-                args.channel
+                args.channel.to_channel()
             }
         },
         args.tick_rate,

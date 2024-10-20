@@ -11,6 +11,8 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     impl_cli_channel(&ast)
 }
 
+const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "Channel"];
+
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // check that the struct is an enum
     let variants = if let syn::Data::Enum(data_enum) = &ast.data {
@@ -26,12 +28,15 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     );
 
     // create the CliTvChannel enum
-    let cli_enum_variants = variants.iter().map(|variant| {
-        let variant_name = &variant.ident;
-        quote! {
-            #variant_name
-        }
-    });
+    let cli_enum_variants = variants
+        .iter()
+        .filter(|v| !VARIANT_BLACKLIST.contains(&v.ident.to_string().as_str()))
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            quote! {
+                #variant_name
+            }
+        });
     let cli_enum = quote! {
         use clap::ValueEnum;
         use serde::{Deserialize, Serialize};
@@ -46,7 +51,9 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     };
 
     // Generate the match arms for the `to_channel` method
-    let arms = variants.iter().map(|variant| {
+    let arms = variants.iter().filter(
+        |variant| !VARIANT_BLACKLIST.contains(&variant.ident.to_string().as_str()),
+    ).map(|variant| {
         let variant_name = &variant.ident;
 
         // Get the inner type of the variant, assuming it is the first field of the variant
@@ -94,28 +101,31 @@ pub fn tv_channel_derive(input: TokenStream) -> TokenStream {
 }
 
 fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
-    // check that the struct is an enum
+    // Ensure the struct is an enum
     let variants = if let syn::Data::Enum(data_enum) = &ast.data {
         &data_enum.variants
     } else {
         panic!("#[derive(TvChannel)] is only defined for enums");
     };
 
-    // check that the enum has at least one variant
+    // Ensure the enum has at least one variant
     assert!(
         !variants.is_empty(),
         "#[derive(TvChannel)] requires at least one variant"
     );
 
+    let enum_name = &ast.ident;
+
+    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
+
     // Generate the trait implementation for the TelevisionChannel trait
-    // FIXME: fix this
     let trait_impl = quote! {
-        impl TelevisionChannel for AvailableChannel {
+        impl TelevisionChannel for #enum_name {
             fn find(&mut self, pattern: &str) {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.find(pattern);
+                        #enum_name::#variant_names(ref mut channel) => {
+                            channel.find(pattern);
                         }
                     )*
                 }
@@ -124,8 +134,8 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.results(num_entries, offset)
+                        #enum_name::#variant_names(ref mut channel) => {
+                            channel.results(num_entries, offset)
                         }
                     )*
                 }
@@ -134,8 +144,8 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn get_result(&self, index: u32) -> Option<Entry> {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.get_result(index)
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.get_result(index)
                         }
                     )*
                 }
@@ -144,8 +154,8 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn result_count(&self) -> u32 {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.result_count()
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.result_count()
                         }
                     )*
                 }
@@ -154,8 +164,8 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn total_count(&self) -> u32 {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.total_count()
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.total_count()
                         }
                     )*
                 }
@@ -164,8 +174,8 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn running(&self) -> bool {
                 match self {
                     #(
-                        AvailableChannel::#variants(_) => {
-                            self.running()
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.running()
                         }
                     )*
                 }
