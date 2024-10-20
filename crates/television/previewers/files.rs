@@ -14,6 +14,7 @@ use syntect::{
 };
 use tracing::{debug, warn};
 
+use super::cache::PreviewCache;
 use crate::entry;
 use crate::previewers::{meta, Preview, PreviewContent};
 use crate::utils::files::FileType;
@@ -22,13 +23,12 @@ use crate::utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
 };
-
-use super::cache::PreviewCache;
+use crate::utils::syntax;
 
 pub struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
-    syntax_set: Arc<SyntaxSet>,
-    syntax_theme: Arc<Theme>,
+    pub syntax_set: Arc<SyntaxSet>,
+    pub syntax_theme: Arc<Theme>,
     //image_picker: Arc<Mutex<Picker>>,
 }
 
@@ -168,7 +168,7 @@ impl FilePreviewer {
             let lines: Vec<String> =
                 reader.lines().map_while(Result::ok).collect();
 
-            match compute_highlights(
+            match syntax::compute_highlights_for_path(
                 &PathBuf::from(&entry_c.name),
                 lines,
                 &syntax_set,
@@ -278,34 +278,4 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::PlainText(lines),
     ))
-}
-
-fn compute_highlights(
-    file_path: &Path,
-    lines: Vec<String>,
-    syntax_set: &SyntaxSet,
-    syntax_theme: &Theme,
-) -> Result<Vec<Vec<(Style, String)>>> {
-    let syntax =
-        syntax_set
-            .find_syntax_for_file(file_path)?
-            .unwrap_or_else(|| {
-                warn!(
-                    "No syntax found for {:?}, defaulting to plain text",
-                    file_path
-                );
-                syntax_set.find_syntax_plain_text()
-            });
-    let mut highlighter = HighlightLines::new(syntax, syntax_theme);
-    let mut highlighted_lines = Vec::new();
-    for line in lines {
-        let hl_regions = highlighter.highlight_line(&line, syntax_set)?;
-        highlighted_lines.push(
-            hl_regions
-                .iter()
-                .map(|(style, text)| (*style, (*text).to_string()))
-                .collect(),
-        );
-    }
-    Ok(highlighted_lines)
 }

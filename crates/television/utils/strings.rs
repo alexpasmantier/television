@@ -154,7 +154,6 @@ pub fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     fn test_replace_nonprintable(input: &str, expected: &str) {

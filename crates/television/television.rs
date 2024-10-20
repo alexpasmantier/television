@@ -15,7 +15,6 @@ use ratatui::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 use tokio::sync::mpsc::UnboundedSender;
-use tracing::debug;
 
 use crate::ui::input::Input;
 use crate::ui::layout::{Dimensions, Layout};
@@ -25,10 +24,10 @@ use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
 use crate::{channels::channels::SelectionChannel, ui::get_border_style};
 use crate::{
-    channels::AvailableChannel, ui::input::actions::InputActionHandler,
+    channels::TelevisionChannel, ui::input::actions::InputActionHandler,
 };
 use crate::{
-    channels::{CliTvChannel, TelevisionChannel},
+    channels::{OnAir, UnitChannel},
     utils::strings::shrink_with_ellipsis,
 };
 use crate::{
@@ -41,12 +40,15 @@ use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 pub enum Mode {
     Channel,
     ChannelSelection,
+    SendToChannel,
 }
 
 pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
     pub config: Config,
-    channel: AvailableChannel,
+    channel: TelevisionChannel,
+    last_channel: Option<UnitChannel>,
+    last_channel_results: Vec<Entry>,
     current_pattern: String,
     pub mode: Mode,
     input: Input,
@@ -54,7 +56,7 @@ pub struct Television {
     relative_picker_state: ListState,
     picker_view_offset: usize,
     results_area_height: u32,
-    previewer: Previewer,
+    pub previewer: Previewer,
     pub preview_scroll: Option<u16>,
     pub preview_pane_height: u16,
     current_preview_total_lines: u16,
@@ -71,7 +73,7 @@ pub struct Television {
 
 impl Television {
     #[must_use]
-    pub fn new(mut channel: AvailableChannel) -> Self {
+    pub fn new(mut channel: TelevisionChannel) -> Self {
         channel.find(EMPTY_STRING);
 
         let spinner = Spinner::default();
@@ -81,6 +83,8 @@ impl Television {
             action_tx: None,
             config: Config::default(),
             channel,
+            last_channel: None,
+            last_channel_results: Vec::new(),
             current_pattern: EMPTY_STRING.to_string(),
             mode: Mode::Channel,
             input: Input::new(EMPTY_STRING.to_string()),
@@ -98,7 +102,7 @@ impl Television {
         }
     }
 
-    pub fn change_channel(&mut self, channel: AvailableChannel) {
+    pub fn change_channel(&mut self, channel: TelevisionChannel) {
         self.reset_preview_scroll();
         self.reset_results_selection();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -106,13 +110,17 @@ impl Television {
         self.channel = channel;
     }
 
+    fn backup_current_channel(&mut self) {
+        self.last_channel = Some(UnitChannel::from(&self.channel));
+        self.last_channel_results =
+            self.channel.results(self.channel.result_count(), 0);
+    }
+
     fn find(&mut self, pattern: &str) {
         self.channel.find(pattern);
     }
 
     #[must_use]
-    /// # Panics
-    /// This method will panic if the index doesn't fit into an u32.
     pub fn get_selected_entry(&self) -> Option<Entry> {
         self.picker_state
             .selected()
@@ -218,11 +226,9 @@ impl Television {
     /// Register an action handler that can send actions for processing if necessary.
     ///
     /// # Arguments
-    ///
     /// * `tx` - An unbounded sender that can send actions.
     ///
     /// # Returns
-    ///
     /// * `Result<()>` - An Ok result or an error.
     pub fn register_action_handler(
         &mut self,
@@ -235,11 +241,9 @@ impl Television {
     /// Register a configuration handler that provides configuration settings if necessary.
     ///
     /// # Arguments
-    ///
     /// * `config` - Configuration settings.
     ///
     /// # Returns
-    ///
     /// * `Result<()>` - An Ok result or an error.
     pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
@@ -249,11 +253,9 @@ impl Television {
     /// Update the state of the component based on a received action.
     ///
     /// # Arguments
-    ///
     /// * `action` - An action that may modify the state of the television.
     ///
     /// # Returns
-    ///
     /// * `Result<Option<Action>>` - An action to be processed or none.
     pub async fn update(&mut self, action: Action) -> Result<Option<Action>> {
         match action {
@@ -293,11 +295,28 @@ impl Television {
             Action::ScrollPreviewUp => self.scroll_preview_up(1),
             Action::ScrollPreviewHalfPageDown => self.scroll_preview_down(20),
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
-            Action::ToChannelSelection => {
-                self.mode = Mode::ChannelSelection;
-                let selection_channel =
-                    AvailableChannel::Channel(SelectionChannel::new());
-                self.change_channel(selection_channel);
+            Action::ToggleChannelSelection => {
+                // TODO: continue this
+                match self.mode {
+                    // if we're in channel mode, backup current channel and
+                    // switch to channel selection
+                    Mode::Channel => {
+                        self.backup_current_channel();
+                        self.mode = Mode::ChannelSelection;
+                        self.change_channel(TelevisionChannel::Channel(
+                            SelectionChannel::new(),
+                        ));
+                    }
+                    // if we're in channel selection, switch to channel mode
+                    // and restore the last channel if there is one
+                    Mode::ChannelSelection => {
+                        self.mode = Mode::Channel;
+                        if let Some(last_channel) = self.last_channel.take() {
+                            self.change_channel(last_channel.into());
+                        }
+                    }
+                    Mode::SendToChannel => {}
+                }
             }
             Action::SelectEntry => {
                 if let Some(entry) = self.get_selected_entry() {
@@ -309,16 +328,17 @@ impl Television {
                             .send(Action::SelectAndExit)?,
                         Mode::ChannelSelection => {
                             if let Ok(new_channel) =
-                                AvailableChannel::try_from(&entry)
+                                TelevisionChannel::try_from(&entry)
                             {
                                 self.mode = Mode::Channel;
                                 self.change_channel(new_channel);
                             }
                         }
+                        Mode::SendToChannel => {}
                     }
                 }
             }
-            Action::PipeInto => {
+            Action::SendToChannel => {
                 if let Some(entry) = self.get_selected_entry() {}
             }
             _ => {}
@@ -329,20 +349,24 @@ impl Television {
     /// Render the television on the screen.
     ///
     /// # Arguments
-    ///
     /// * `f` - A frame used for rendering.
     /// * `area` - The area in which the television should be drawn.
     ///
     /// # Returns
-    ///
     /// * `Result<()>` - An Ok result or an error.
     pub fn draw(&mut self, f: &mut Frame, area: Rect) -> Result<()> {
+        let dimensions = match self.mode {
+            Mode::Channel => &Dimensions::default(),
+            Mode::ChannelSelection | Mode::SendToChannel => {
+                &Dimensions::new(30, 70)
+            }
+        };
         let layout = Layout::build(
-            &Dimensions::default(),
+            dimensions,
             area,
             match self.mode {
                 Mode::Channel => true,
-                Mode::ChannelSelection => false,
+                Mode::ChannelSelection | Mode::SendToChannel => false,
             },
         );
 
@@ -352,9 +376,10 @@ impl Television {
             .padding(Padding::uniform(1));
 
         let help_text = self
-            .build_help_paragraph(layout.help_bar.width.saturating_sub(4))?
+            .build_help_paragraph()?
             .style(Style::default().fg(Color::DarkGray).italic())
             .alignment(Alignment::Center)
+            .wrap(Wrap { trim: true })
             .block(help_block);
 
         f.render_widget(help_text, layout.help_bar);

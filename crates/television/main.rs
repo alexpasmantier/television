@@ -1,6 +1,6 @@
 use std::io::{stdout, IsTerminal, Write};
 
-use channels::AvailableChannel;
+use channels::TelevisionChannel;
 use clap::Parser;
 use color_eyre::Result;
 use tracing::{debug, info};
@@ -37,7 +37,7 @@ async fn main() -> Result<()> {
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
-                AvailableChannel::Stdin(StdinChannel::default())
+                TelevisionChannel::Stdin(StdinChannel::default())
             } else {
                 debug!("Using {:?} channel", args.channel);
                 args.channel.to_channel()

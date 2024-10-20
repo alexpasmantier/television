@@ -138,11 +138,7 @@ impl PreviewCache {
     }
 
     /// Get the preview for the given key, or insert a new preview if it doesn't exist.
-    pub fn get_or_insert<F>(
-        &mut self,
-        key: String,
-        f: F,
-    ) -> Arc<Preview>
+    pub fn get_or_insert<F>(&mut self, key: String, f: F) -> Arc<Preview>
     where
         F: FnOnce() -> Preview,
     {

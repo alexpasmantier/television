@@ -1,11 +1,12 @@
 use std::sync::Arc;
-
+use color_eyre::owo_colors::OwoColorize;
 use devicons::FileIcon;
 use ignore::{overrides::OverrideBuilder, DirEntry};
 use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Nucleo,
 };
+use tokio::sync::{oneshot, watch};
 use tracing::debug;
 
 use crate::{
@@ -15,7 +16,7 @@ use crate::{
     utils::files::{walk_builder, DEFAULT_NUM_THREADS},
 };
 
-use crate::channels::TelevisionChannel;
+use crate::channels::OnAir;
 
 pub struct Channel {
     matcher: Nucleo<DirEntry>,
@@ -24,6 +25,7 @@ pub struct Channel {
     total_count: u32,
     running: bool,
     icon: FileIcon,
+    crawl_cancellation_tx: watch::Sender<bool>,
 }
 
 impl Channel {
@@ -35,9 +37,11 @@ impl Channel {
             1,
         );
         // start loading files in the background
+        let (tx, rx) = watch::channel(false);
         tokio::spawn(crawl_for_repos(
             std::env::home_dir().expect("Could not get home directory"),
             matcher.injector(),
+            rx,
         ));
         Channel {
             matcher,
@@ -46,6 +50,7 @@ impl Channel {
             total_count: 0,
             running: false,
             icon: FileIcon::from("git"),
+            crawl_cancellation_tx: tx,
         }
     }
 
@@ -58,7 +63,7 @@ impl Default for Channel {
     }
 }
 
-impl TelevisionChannel for Channel {
+impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -70,14 +75,6 @@ impl TelevisionChannel for Channel {
             );
             self.last_pattern = pattern.to_string();
         }
-    }
-
-    fn result_count(&self) -> u32 {
-        self.result_count
-    }
-
-    fn total_count(&self) -> u32 {
-        self.total_count
     }
 
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
@@ -127,8 +124,20 @@ impl TelevisionChannel for Channel {
         })
     }
 
+    fn result_count(&self) -> u32 {
+        self.result_count
+    }
+
+    fn total_count(&self) -> u32 {
+        self.total_count
+    }
+
     fn running(&self) -> bool {
         self.running
+    }
+
+    fn shutdown(&self) {
+        self.crawl_cancellation_tx.send(true).unwrap();
     }
 }
 
@@ -136,6 +145,7 @@ impl TelevisionChannel for Channel {
 async fn crawl_for_repos(
     starting_point: std::path::PathBuf,
     injector: nucleo::Injector<DirEntry>,
+    cancellation_rx: watch::Receiver<bool>,
 ) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
@@ -148,7 +158,12 @@ async fn crawl_for_repos(
 
     walker.run(|| {
         let injector = injector.clone();
+        let cancellation_rx = cancellation_rx.clone();
         Box::new(move |result| {
+            if let Ok(true) = cancellation_rx.has_changed() {
+                debug!("Crawling for git repos cancelled");
+                return ignore::WalkState::Quit;
+            }
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_dir()
                     && entry.path().ends_with(".git")

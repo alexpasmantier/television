@@ -49,7 +49,7 @@ impl Layout {
         with_preview: bool,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
-        // split the main block into two vertical chunks
+        // split the main block into two vertical chunks (help bar + rest)
         let hz_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Fill(1), Constraint::Length(5)])

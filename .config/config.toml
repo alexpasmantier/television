@@ -9,7 +9,8 @@ ctrl-d = "ScrollPreviewHalfPageDown"
 alt-up = "ScrollPreviewHalfPageUp"
 ctrl-u = "ScrollPreviewHalfPageUp"
 enter = "SelectEntry"
-ctrl-s = "ToChannelSelection"
+ctrl-enter = "SendToChannel"
+ctrl-s = "ToggleChannelSelection"
 
 [keybindings.ChannelSelection]
 esc = "Quit"
@@ -18,5 +19,5 @@ up = "SelectPrevEntry"
 ctrl-n = "SelectNextEntry"
 ctrl-p = "SelectPrevEntry"
 enter = "SelectEntry"
-ctrl-enter = "PipeInto"
+ctrl-s = "ToggleChannelSelection"
 

@@ -8,6 +8,7 @@ use std::str::FromStr;
 const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
 const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
+const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
 
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
@@ -107,7 +108,7 @@ where
         Line::from(spans)
     }))
     .direction(ListDirection::BottomToTop)
-    .highlight_style(Style::default().bg(Color::Rgb(50, 50, 50)))
+    .highlight_style(Style::default().bg(DEFAULT_RESULT_SELECTED_BG))
     .highlight_symbol("> ")
     .block(results_block)
 }

@@ -42,6 +42,6 @@ pub enum Action {
     Error(String),
     NoOp,
     // channel actions
-    ToChannelSelection,
-    PipeInto,
+    ToggleChannelSelection,
+    SendToChannel,
 }

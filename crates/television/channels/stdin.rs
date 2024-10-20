@@ -3,13 +3,12 @@ use std::{io::BufRead, sync::Arc};
 
 use devicons::FileIcon;
 use nucleo::{Config, Nucleo};
-use tracing::debug;
 
 use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 
-use super::TelevisionChannel;
+use super::OnAir;
 
 pub struct Channel {
     matcher: Nucleo<String>,
@@ -59,7 +58,7 @@ impl Default for Channel {
     }
 }
 
-impl TelevisionChannel for Channel {
+impl OnAir for Channel {
     // maybe this could be sort of automatic with a blanket impl (making Finder generic over
     // its matcher type or something)
     fn find(&mut self, pattern: &str) {
@@ -149,5 +148,9 @@ impl TelevisionChannel for Channel {
 
     fn running(&self) -> bool {
         self.running
+    }
+
+    fn shutdown(&self) {
+        todo!()
     }
 }

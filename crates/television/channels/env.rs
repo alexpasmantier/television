@@ -5,7 +5,7 @@ use nucleo::{
 };
 use std::sync::Arc;
 
-use super::TelevisionChannel;
+use super::OnAir;
 use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
@@ -62,7 +62,7 @@ impl Default for Channel {
     }
 }
 
-impl TelevisionChannel for Channel {
+impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -159,5 +159,9 @@ impl TelevisionChannel for Channel {
 
     fn running(&self) -> bool {
         self.running
+    }
+
+    fn shutdown(&self) {
+        todo!()
     }
 }

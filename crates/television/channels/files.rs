@@ -11,7 +11,7 @@ use std::{
 
 use ignore::DirEntry;
 
-use super::TelevisionChannel;
+use super::OnAir;
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use crate::{
@@ -60,7 +60,7 @@ impl Default for Channel {
     }
 }
 
-impl TelevisionChannel for Channel {
+impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -130,6 +130,10 @@ impl TelevisionChannel for Channel {
 
     fn running(&self) -> bool {
         self.running
+    }
+
+    fn shutdown(&self) {
+        todo!()
     }
 }
 

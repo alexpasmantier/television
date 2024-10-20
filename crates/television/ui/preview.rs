@@ -2,7 +2,7 @@ use crate::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
 use crate::television::Television;
-use crate::utils::strings::{EMPTY_STRING, FOUR_SPACES};
+use crate::utils::strings::EMPTY_STRING;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::widgets::{Block, Paragraph, Wrap};
@@ -235,7 +235,7 @@ fn compute_paragraph_from_highlighted_lines(
                     )))
                     .chain(l.iter().cloned().map(|sr| {
                         convert_syn_region_to_span(
-                            &(sr.0, sr.1.replace('\t', FOUR_SPACES)),
+                            &(sr.0, sr.1),
                             if line_specifier.is_some()
                                 && i == line_specifier.unwrap() - 1
                             {
@@ -257,7 +257,7 @@ fn compute_paragraph_from_highlighted_lines(
     Paragraph::new(preview_lines)
 }
 
-fn convert_syn_region_to_span<'a>(
+pub fn convert_syn_region_to_span<'a>(
     syn_region: &(syntect::highlighting::Style, String),
     background: Option<syntect::highlighting::Color>,
 ) -> Span<'a> {

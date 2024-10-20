@@ -8,7 +8,7 @@ use nucleo::{
 };
 
 use crate::{
-    channels::{AvailableChannel, CliTvChannel, TelevisionChannel},
+    channels::{CliTvChannel, OnAir},
     entry::Entry,
     fuzzy::MATCHER,
     previewers::PreviewType,
@@ -61,7 +61,7 @@ const TV_ICON: FileIcon = FileIcon {
     color: "#ffffff",
 };
 
-impl TelevisionChannel for SelectionChannel {
+impl OnAir for SelectionChannel {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -132,5 +132,9 @@ impl TelevisionChannel for SelectionChannel {
 
     fn running(&self) -> bool {
         self.running
+    }
+
+    fn shutdown(&self) {
+        todo!()
     }
 }
