@@ -161,7 +161,5 @@ impl OnAir for Channel {
         self.running
     }
 
-    fn shutdown(&self) {
-        todo!()
-    }
+    fn shutdown(&self) {}
 }

@@ -199,9 +199,7 @@ impl OnAir for Channel {
         self.running
     }
 
-    fn shutdown(&self) {
-        todo!()
-    }
+    fn shutdown(&self) {}
 }
 
 #[allow(clippy::unused_async)]

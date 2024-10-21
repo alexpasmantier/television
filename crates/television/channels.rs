@@ -1,6 +1,6 @@
 use crate::entry::Entry;
 use color_eyre::eyre::Result;
-use television_derive::{CliChannel, Broadcast, UnitChannel};
+use television_derive::{Broadcast, CliChannel, UnitChannel};
 
 mod alias;
 pub mod channels;
@@ -70,7 +70,7 @@ pub trait OnAir: Send {
 
     /// Check if the channel is currently running.
     fn running(&self) -> bool;
-    
+
     /// Turn off
     fn shutdown(&self);
 }

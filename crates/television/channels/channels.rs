@@ -134,7 +134,5 @@ impl OnAir for SelectionChannel {
         self.running
     }
 
-    fn shutdown(&self) {
-        todo!()
-    }
+    fn shutdown(&self) {}
 }

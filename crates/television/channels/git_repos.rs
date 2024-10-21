@@ -1,4 +1,3 @@
-use std::sync::Arc;
 use color_eyre::owo_colors::OwoColorize;
 use devicons::FileIcon;
 use ignore::{overrides::OverrideBuilder, DirEntry};
@@ -6,7 +5,12 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Nucleo,
 };
-use tokio::sync::{oneshot, watch};
+use parking_lot::Mutex;
+use std::{collections::HashSet, sync::Arc};
+use tokio::{
+    sync::{oneshot, watch},
+    task::JoinHandle,
+};
 use tracing::debug;
 
 use crate::{
@@ -25,7 +29,10 @@ pub struct Channel {
     total_count: u32,
     running: bool,
     icon: FileIcon,
-    crawl_cancellation_tx: watch::Sender<bool>,
+    crawl_handle: JoinHandle<()>,
+    entry_cache: Arc<Mutex<HashSet<String>>>,
+    // TODO: implement cache validation/invalidation
+    cache_valid: bool,
 }
 
 impl Channel {
@@ -36,12 +43,13 @@ impl Channel {
             None,
             1,
         );
+        let entry_cache = Arc::new(Mutex::new(HashSet::new()));
         // start loading files in the background
-        let (tx, rx) = watch::channel(false);
-        tokio::spawn(crawl_for_repos(
+        // PERF: store the results somewhere in a cache
+        let crawl_handle = tokio::spawn(crawl_for_repos(
             std::env::home_dir().expect("Could not get home directory"),
             matcher.injector(),
-            rx,
+            entry_cache.clone(),
         ));
         Channel {
             matcher,
@@ -50,7 +58,9 @@ impl Channel {
             total_count: 0,
             running: false,
             icon: FileIcon::from("git"),
-            crawl_cancellation_tx: tx,
+            crawl_handle,
+            entry_cache,
+            cache_valid: false,
         }
     }
 
@@ -137,7 +147,8 @@ impl OnAir for Channel {
     }
 
     fn shutdown(&self) {
-        self.crawl_cancellation_tx.send(true).unwrap();
+        debug!("Shutting down git repos channel");
+        self.crawl_handle.abort();
     }
 }
 
@@ -145,7 +156,7 @@ impl OnAir for Channel {
 async fn crawl_for_repos(
     starting_point: std::path::PathBuf,
     injector: nucleo::Injector<DirEntry>,
-    cancellation_rx: watch::Receiver<bool>,
+    entry_cache: Arc<Mutex<HashSet<String>>>,
 ) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
@@ -158,25 +169,31 @@ async fn crawl_for_repos(
 
     walker.run(|| {
         let injector = injector.clone();
-        let cancellation_rx = cancellation_rx.clone();
+        let entry_cache = entry_cache.clone();
         Box::new(move |result| {
-            if let Ok(true) = cancellation_rx.has_changed() {
-                debug!("Crawling for git repos cancelled");
-                return ignore::WalkState::Quit;
-            }
             if let Ok(entry) = result {
-                if entry.file_type().unwrap().is_dir()
-                    && entry.path().ends_with(".git")
-                {
-                    debug!("Found git repo: {:?}", entry.path());
-                    let _ = injector.push(entry, |e, cols| {
-                        cols[0] = e
+                if entry.file_type().unwrap().is_dir() {
+                    // if the dir is already in cache, skip it
+                    let path = entry.path().to_string_lossy().to_string();
+                    if entry_cache.lock().contains(&path) {
+                        return ignore::WalkState::Skip;
+                    }
+                    // if the entry is a .git directory, add its parent to the list
+                    // of git repos and cache it
+                    if entry.path().ends_with(".git") {
+                        let parent_path = entry
                             .path()
                             .parent()
                             .unwrap()
                             .to_string_lossy()
-                            .into();
-                    });
+                            .to_string();
+                        debug!("Found git repo: {:?}", parent_path);
+                        let _ = injector.push(entry, |_e, cols| {
+                            cols[0] = parent_path.clone().into();
+                        });
+                        entry_cache.lock().insert(parent_path);
+                        return ignore::WalkState::Skip;
+                    }
                 }
             }
             ignore::WalkState::Continue

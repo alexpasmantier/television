@@ -25,6 +25,7 @@ pub struct Channel {
     result_count: u32,
     total_count: u32,
     running: bool,
+    crawl_handle: tokio::task::JoinHandle<()>,
     // PERF: cache results (to make deleting characters smoother) but like
     // a shallow cache (maybe more like a stack actually? so we just pop result sets)
 }
@@ -38,7 +39,7 @@ impl Channel {
             1,
         );
         // start loading files in the background
-        tokio::spawn(load_files(
+        let crawl_handle = tokio::spawn(load_files(
             starting_dir.to_path_buf(),
             matcher.injector(),
         ));
@@ -48,6 +49,7 @@ impl Channel {
             result_count: 0,
             total_count: 0,
             running: false,
+            crawl_handle,
         }
     }
 
@@ -133,7 +135,7 @@ impl OnAir for Channel {
     }
 
     fn shutdown(&self) {
-        todo!()
+        self.crawl_handle.abort();
     }
 }
 

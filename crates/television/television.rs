@@ -107,13 +107,18 @@ impl Television {
         self.reset_results_selection();
         self.current_pattern = EMPTY_STRING.to_string();
         self.input.reset();
+        self.channel.shutdown();
         self.channel = channel;
     }
 
+    const MAX_BACKUP_RESULTS: u32 = 1000;
+
     fn backup_current_channel(&mut self) {
         self.last_channel = Some(UnitChannel::from(&self.channel));
-        self.last_channel_results =
-            self.channel.results(self.channel.result_count(), 0);
+        self.last_channel_results = self.channel.results(
+            self.channel.result_count().min(Self::MAX_BACKUP_RESULTS),
+            0,
+        );
     }
 
     fn find(&mut self, pattern: &str) {

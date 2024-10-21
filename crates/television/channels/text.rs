@@ -47,13 +47,14 @@ pub struct Channel {
     result_count: u32,
     total_count: u32,
     running: bool,
+    crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new(working_dir: &Path) -> Self {
         let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
         // start loading files in the background
-        tokio::spawn(load_candidates(
+        let crawl_handle = tokio::spawn(load_candidates(
             working_dir.to_path_buf(),
             matcher.injector(),
         ));
@@ -63,6 +64,7 @@ impl Channel {
             result_count: 0,
             total_count: 0,
             running: false,
+            crawl_handle,
         }
     }
 
@@ -160,7 +162,7 @@ impl OnAir for Channel {
     }
 
     fn shutdown(&self) {
-        todo!()
+        self.crawl_handle.abort();
     }
 }
 
