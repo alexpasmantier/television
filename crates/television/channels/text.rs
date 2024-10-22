@@ -7,7 +7,7 @@ use std::{
     fs::File,
     io::{BufRead, Read, Seek},
     path::{Path, PathBuf},
-    sync::Arc,
+    sync::{atomic::AtomicUsize, Arc},
 };
 
 use tracing::{debug, info};
@@ -172,16 +172,24 @@ impl OnAir for Channel {
 /// a lot of files (e.g. starting tv in $HOME).
 const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
+const MAX_IN_MEMORY_LINES: usize = 5_000_000;
+
 #[allow(clippy::unused_async)]
 async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
     let current_dir = std::env::current_dir().unwrap();
     let walker =
         walk_builder(&path, *DEFAULT_NUM_THREADS, None).build_parallel();
 
+    let lines_in_mem = Arc::new(AtomicUsize::new(0));
+
     walker.run(|| {
         let injector = injector.clone();
         let current_dir = current_dir.clone();
+        let lines_in_mem = lines_in_mem.clone();
         Box::new(move |result| {
+            if lines_in_mem.load(std::sync::atomic::Ordering::Relaxed) > MAX_IN_MEMORY_LINES {
+                return ignore::WalkState::Quit;
+            }
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
                     if let Ok(m) = entry.metadata() {
@@ -192,6 +200,7 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                     // iterate over the lines of the file
                     match File::open(entry.path()) {
                         Ok(file) => {
+                            // is the file a text-based file?
                             let mut reader = std::io::BufReader::new(&file);
                             let mut buffer = [0u8; 128];
                             match reader.read(&mut buffer) {
@@ -212,6 +221,7 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                     return ignore::WalkState::Continue;
                                 }
                             }
+                            // read the lines of the file
                             let mut line_number = 0;
                             for maybe_line in reader.lines() {
                                 match maybe_line {
@@ -238,6 +248,7 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                                     c.line.clone().into();
                                             },
                                         );
+                                        lines_in_mem.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                                     }
                                     Err(e) => {
                                         info!("Error reading line: {:?}", e);

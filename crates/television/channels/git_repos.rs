@@ -30,9 +30,9 @@ pub struct Channel {
     running: bool,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
-    entry_cache: Arc<Mutex<HashSet<String>>>,
+    git_dirs_cache: Arc<Mutex<HashSet<String>>>,
     // TODO: implement cache validation/invalidation
-    cache_valid: bool,
+    cache_valid: Arc<Mutex<bool>>,
 }
 
 impl Channel {
@@ -44,12 +44,14 @@ impl Channel {
             1,
         );
         let entry_cache = Arc::new(Mutex::new(HashSet::new()));
+        let cache_valid = Arc::new(Mutex::new(false));
         // start loading files in the background
         // PERF: store the results somewhere in a cache
         let crawl_handle = tokio::spawn(crawl_for_repos(
             std::env::home_dir().expect("Could not get home directory"),
             matcher.injector(),
             entry_cache.clone(),
+            cache_valid.clone(),
         ));
         Channel {
             matcher,
@@ -59,8 +61,8 @@ impl Channel {
             running: false,
             icon: FileIcon::from("git"),
             crawl_handle,
-            entry_cache,
-            cache_valid: false,
+            git_dirs_cache: entry_cache,
+            cache_valid,
         }
     }
 
@@ -157,6 +159,7 @@ async fn crawl_for_repos(
     starting_point: std::path::PathBuf,
     injector: nucleo::Injector<DirEntry>,
     entry_cache: Arc<Mutex<HashSet<String>>>,
+    cache_valid: Arc<Mutex<bool>>,
 ) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
@@ -199,4 +202,6 @@ async fn crawl_for_repos(
             ignore::WalkState::Continue
         })
     });
+
+    *cache_valid.lock() = true;
 }
