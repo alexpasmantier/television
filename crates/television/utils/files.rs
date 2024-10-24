@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use std::path::Path;
+use std::{collections::HashSet, path::PathBuf};
 
 use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
 use infer::Infer;
@@ -15,6 +15,7 @@ pub fn walk_builder(
     path: &Path,
     n_threads: usize,
     overrides: Option<Override>,
+    ignore_paths: Option<Vec<PathBuf>>,
 ) -> WalkBuilder {
     let mut builder = WalkBuilder::new(path);
 
@@ -22,6 +23,13 @@ pub fn walk_builder(
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
     builder.types(types_builder.build().unwrap());
+
+    // ignore paths
+    if let Some(paths) = ignore_paths {
+        for path in paths {
+            builder.add_ignore(path);
+        }
+    }
 
     builder.threads(n_threads);
     if let Some(ov) = overrides {

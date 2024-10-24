@@ -11,7 +11,7 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     impl_cli_channel(&ast)
 }
 
-const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "Channel"];
+const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "TvGuide"];
 
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // check that the struct is an enum
@@ -180,7 +180,7 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
                     )*
                 }
             }
-            
+
             fn shutdown(&self) {
                 match self {
                     #(
@@ -244,7 +244,7 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
             }
         }
     };
-    
+
     // Generate From<&TelevisionChannel> implementation
     let from_impl = quote! {
         impl From<&TelevisionChannel> for UnitChannel {

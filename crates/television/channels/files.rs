@@ -3,15 +3,11 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Injector, Nucleo,
 };
-use std::{
-    os::unix::ffi::OsStrExt,
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{os::unix::ffi::OsStrExt, path::PathBuf, sync::Arc};
 
 use ignore::DirEntry;
 
-use super::OnAir;
+use super::{OnAir, TelevisionChannel};
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use crate::{
@@ -31,7 +27,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(starting_dir: &Path) -> Self {
+    pub fn new(paths: Vec<PathBuf>) -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT.match_paths(),
             Arc::new(|| {}),
@@ -39,10 +35,7 @@ impl Channel {
             1,
         );
         // start loading files in the background
-        let crawl_handle = tokio::spawn(load_files(
-            starting_dir.to_path_buf(),
-            matcher.injector(),
-        ));
+        let crawl_handle = tokio::spawn(load_files(paths, matcher.injector()));
         Channel {
             matcher,
             last_pattern: String::new(),
@@ -58,7 +51,24 @@ impl Channel {
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new(&std::env::current_dir().unwrap())
+        Self::new(vec![std::env::current_dir().unwrap()])
+    }
+}
+
+impl From<TelevisionChannel> for Channel {
+    fn from(channel: TelevisionChannel) -> Self {
+        match channel {
+            TelevisionChannel::Files(channel) => channel,
+            TelevisionChannel::GitRepos(mut channel) => {
+                let git_project_paths = channel
+                    .results(channel.result_count(), 0)
+                    .iter()
+                    .map(|entry| PathBuf::from(entry.name.clone()))
+                    .collect();
+                Self::new(git_project_paths)
+            }
+            _ => Channel::default(),
+        }
     }
 }
 
@@ -76,14 +86,6 @@ impl OnAir for Channel {
         }
     }
 
-    fn result_count(&self) -> u32 {
-        self.result_count
-    }
-
-    fn total_count(&self) -> u32 {
-        self.total_count
-    }
-
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         let status = self.matcher.tick(Self::MATCHER_TICK_TIMEOUT);
         let snapshot = self.matcher.snapshot();
@@ -99,7 +101,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -130,6 +132,14 @@ impl OnAir for Channel {
         })
     }
 
+    fn result_count(&self) -> u32 {
+        self.result_count
+    }
+
+    fn total_count(&self) -> u32 {
+        self.total_count
+    }
+
     fn running(&self) -> bool {
         self.running
     }
@@ -140,10 +150,17 @@ impl OnAir for Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_files(path: PathBuf, injector: Injector<DirEntry>) {
+async fn load_files(paths: Vec<PathBuf>, injector: Injector<DirEntry>) {
+    if paths.is_empty() {
+        return;
+    }
     let current_dir = std::env::current_dir().unwrap();
-    let walker =
-        walk_builder(&path, *DEFAULT_NUM_THREADS, None).build_parallel();
+    let mut builder =
+        walk_builder(&paths[0], *DEFAULT_NUM_THREADS, None, None);
+    paths[1..].iter().for_each(|path| {
+        builder.add(path);
+    });
+    let walker = builder.build_parallel();
 
     walker.run(|| {
         let injector = injector.clone();

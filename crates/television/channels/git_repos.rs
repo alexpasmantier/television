@@ -6,7 +6,7 @@ use nucleo::{
     Config, Nucleo,
 };
 use parking_lot::Mutex;
-use std::{collections::HashSet, sync::Arc};
+use std::{collections::HashSet, path::PathBuf, sync::Arc};
 use tokio::{
     sync::{oneshot, watch},
     task::JoinHandle,
@@ -154,6 +154,51 @@ impl OnAir for Channel {
     }
 }
 
+fn get_ignored_paths() -> Vec<PathBuf> {
+    let mut ignored_paths = Vec::new();
+
+    if let Some(home) = std::env::home_dir() {
+        #[cfg(target_os = "macos")]
+        {
+            ignored_paths.push(home.join("Library"));
+            ignored_paths.push(home.join("Applications"));
+            ignored_paths.push(home.join("Music"));
+            ignored_paths.push(home.join("Pictures"));
+            ignored_paths.push(home.join("Movies"));
+            ignored_paths.push(home.join("Downloads"));
+            ignored_paths.push(home.join("Public"));
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            ignored_paths.push(home.join(".cache"));
+            ignored_paths.push(home.join(".config"));
+            ignored_paths.push(home.join(".local"));
+            ignored_paths.push(home.join(".thumbnails"));
+            ignored_paths.push(home.join("Downloads"));
+            ignored_paths.push(home.join("Public"));
+            ignored_paths.push(home.join("snap"));
+            ignored_paths.push(home.join(".snap"));
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            ignored_paths.push(home.join("AppData"));
+            ignored_paths.push(home.join("Downloads"));
+            ignored_paths.push(home.join("Documents"));
+            ignored_paths.push(home.join("Music"));
+            ignored_paths.push(home.join("Pictures"));
+            ignored_paths.push(home.join("Videos"));
+        }
+
+        // Common paths to ignore for all platforms
+        ignored_paths.push(home.join("node_modules"));
+        ignored_paths.push(home.join("venv"));
+        ignored_paths.push(PathBuf::from("/tmp"));
+    }
+
+    ignored_paths
+}
 #[allow(clippy::unused_async)]
 async fn crawl_for_repos(
     starting_point: std::path::PathBuf,
@@ -167,6 +212,7 @@ async fn crawl_for_repos(
         &starting_point,
         *DEFAULT_NUM_THREADS,
         Some(walker_overrides_builder.build().unwrap()),
+        Some(get_ignored_paths()),
     )
     .build_parallel();
 

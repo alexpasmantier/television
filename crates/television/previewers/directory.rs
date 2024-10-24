@@ -80,7 +80,9 @@ fn tree<P: AsRef<Path>>(
         p.as_ref(),
         p.as_ref().parent().unwrap().to_str().unwrap(),
     ));
-    let w = walk_builder(p.as_ref(), 1, None).max_depth(Some(1)).build();
+    let w = walk_builder(p.as_ref(), 1, None, None)
+        .max_depth(Some(1))
+        .build();
     let mut level_entry_count: u8 = 0;
 
     for path in w.skip(1).filter_map(std::result::Result::ok) {

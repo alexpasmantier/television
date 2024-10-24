@@ -22,13 +22,10 @@ use crate::ui::preview::DEFAULT_PREVIEW_TITLE_FG;
 use crate::ui::results::build_results_list;
 use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
-use crate::{channels::channels::SelectionChannel, ui::get_border_style};
+use crate::{channels::tv_guide::TvGuide, ui::get_border_style};
+use crate::{channels::OnAir, utils::strings::shrink_with_ellipsis};
 use crate::{
     channels::TelevisionChannel, ui::input::actions::InputActionHandler,
-};
-use crate::{
-    channels::{OnAir, UnitChannel},
-    utils::strings::shrink_with_ellipsis,
 };
 use crate::{
     entry::{Entry, ENTRY_PLACEHOLDER},
@@ -39,7 +36,7 @@ use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
     Channel,
-    ChannelSelection,
+    Guide,
     SendToChannel,
 }
 
@@ -47,8 +44,7 @@ pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
     pub config: Config,
     channel: TelevisionChannel,
-    last_channel: Option<UnitChannel>,
-    last_channel_results: Vec<Entry>,
+    guide: TelevisionChannel,
     current_pattern: String,
     pub mode: Mode,
     input: Input,
@@ -75,6 +71,7 @@ impl Television {
     #[must_use]
     pub fn new(mut channel: TelevisionChannel) -> Self {
         channel.find(EMPTY_STRING);
+        let guide = TelevisionChannel::TvGuide(TvGuide::new());
 
         let spinner = Spinner::default();
         let spinner_state = SpinnerState::from(&spinner);
@@ -83,8 +80,7 @@ impl Television {
             action_tx: None,
             config: Config::default(),
             channel,
-            last_channel: None,
-            last_channel_results: Vec::new(),
+            guide,
             current_pattern: EMPTY_STRING.to_string(),
             mode: Mode::Channel,
             input: Input::new(EMPTY_STRING.to_string()),
@@ -102,6 +98,7 @@ impl Television {
         }
     }
 
+    /// FIXME: this needs rework
     pub fn change_channel(&mut self, channel: TelevisionChannel) {
         self.reset_preview_scroll();
         self.reset_results_selection();
@@ -111,33 +108,39 @@ impl Television {
         self.channel = channel;
     }
 
-    const MAX_BACKUP_RESULTS: u32 = 1000;
-
-    fn backup_current_channel(&mut self) {
-        self.last_channel = Some(UnitChannel::from(&self.channel));
-        self.last_channel_results = self.channel.results(
-            self.channel.result_count().min(Self::MAX_BACKUP_RESULTS),
-            0,
-        );
-    }
-
     fn find(&mut self, pattern: &str) {
-        self.channel.find(pattern);
+        match self.mode {
+            Mode::Channel => {
+                self.channel.find(pattern);
+            }
+            Mode::Guide | Mode::SendToChannel => {
+                self.guide.find(pattern);
+            }
+        }
     }
 
     #[must_use]
-    pub fn get_selected_entry(&self) -> Option<Entry> {
-        self.picker_state
-            .selected()
-            .and_then(|i| self.channel.get_result(u32::try_from(i).unwrap()))
+    pub fn get_selected_entry(&mut self) -> Option<Entry> {
+        self.picker_state.selected().and_then(|i| match self.mode {
+            Mode::Channel => {
+                self.channel.get_result(u32::try_from(i).unwrap())
+            }
+            Mode::Guide | Mode::SendToChannel => {
+                self.guide.get_result(u32::try_from(i).unwrap())
+            }
+        })
     }
 
     pub fn select_prev_entry(&mut self) {
-        if self.channel.result_count() == 0 {
+        let result_count = match self.mode {
+            Mode::Channel => self.channel.result_count(),
+            Mode::Guide | Mode::SendToChannel => self.guide.total_count(),
+        };
+        if result_count == 0 {
             return;
         }
         let new_index = (self.picker_state.selected().unwrap_or(0) + 1)
-            % self.channel.result_count() as usize;
+            % result_count as usize;
         self.picker_state.select(Some(new_index));
         if new_index == 0 {
             self.picker_view_offset = 0;
@@ -163,7 +166,11 @@ impl Television {
     }
 
     pub fn select_next_entry(&mut self) {
-        if self.channel.result_count() == 0 {
+        let result_count = match self.mode {
+            Mode::Channel => self.channel.result_count(),
+            Mode::Guide | Mode::SendToChannel => self.guide.total_count(),
+        };
+        if result_count == 0 {
             return;
         }
         let selected = self.picker_state.selected().unwrap_or(0);
@@ -178,14 +185,11 @@ impl Television {
                     self.picker_view_offset.saturating_sub(1);
             }
         } else {
-            self.picker_view_offset = self
-                .channel
-                .result_count()
+            self.picker_view_offset = result_count
                 .saturating_sub(self.results_area_height - 2)
                 as usize;
-            self.picker_state.select(Some(
-                (self.channel.result_count() as usize).saturating_sub(1),
-            ));
+            self.picker_state
+                .select(Some((result_count as usize).saturating_sub(1)));
             self.relative_picker_state
                 .select(Some(self.results_area_height as usize - 3));
         }
@@ -301,24 +305,14 @@ impl Television {
             Action::ScrollPreviewHalfPageDown => self.scroll_preview_down(20),
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
             Action::ToggleChannelSelection => {
-                // TODO: continue this
                 match self.mode {
-                    // if we're in channel mode, backup current channel and
-                    // switch to channel selection
                     Mode::Channel => {
-                        self.backup_current_channel();
-                        self.mode = Mode::ChannelSelection;
-                        self.change_channel(TelevisionChannel::Channel(
-                            SelectionChannel::new(),
-                        ));
+                        self.reset_screen();
+                        self.mode = Mode::Guide;
                     }
-                    // if we're in channel selection, switch to channel mode
-                    // and restore the last channel if there is one
-                    Mode::ChannelSelection => {
+                    Mode::Guide => {
+                        self.reset_screen();
                         self.mode = Mode::Channel;
-                        if let Some(last_channel) = self.last_channel.take() {
-                            self.change_channel(last_channel.into());
-                        }
                     }
                     Mode::SendToChannel => {}
                 }
@@ -331,7 +325,7 @@ impl Television {
                             .as_ref()
                             .unwrap()
                             .send(Action::SelectAndExit)?,
-                        Mode::ChannelSelection => {
+                        Mode::Guide => {
                             if let Ok(new_channel) =
                                 TelevisionChannel::try_from(&entry)
                             {
@@ -339,16 +333,36 @@ impl Television {
                                 self.change_channel(new_channel);
                             }
                         }
-                        Mode::SendToChannel => {}
+                        Mode::SendToChannel => {
+                            // if let Ok(new_channel) =
+                            //     UnitChannel::try_from(&entry)
+                            // {
+                            // }
+                            self.reset_screen();
+                            self.mode = Mode::Channel;
+                            // TODO: spawn new channel with selected entries
+                        }
                     }
                 }
             }
             Action::SendToChannel => {
-                if let Some(entry) = self.get_selected_entry() {}
+                self.mode = Mode::SendToChannel;
+                // TODO: build new guide from current channel based on which are pipeable into
+                self.guide = TelevisionChannel::TvGuide(TvGuide::new());
+                self.reset_screen();
             }
             _ => {}
         }
         Ok(None)
+    }
+
+    fn reset_screen(&mut self) {
+        self.reset_preview_scroll();
+        self.reset_results_selection();
+        self.current_pattern = EMPTY_STRING.to_string();
+        self.input.reset();
+        self.channel.find(EMPTY_STRING);
+        self.guide.find(EMPTY_STRING);
     }
 
     /// Render the television on the screen.
@@ -362,16 +376,14 @@ impl Television {
     pub fn draw(&mut self, f: &mut Frame, area: Rect) -> Result<()> {
         let dimensions = match self.mode {
             Mode::Channel => &Dimensions::default(),
-            Mode::ChannelSelection | Mode::SendToChannel => {
-                &Dimensions::new(30, 70)
-            }
+            Mode::Guide | Mode::SendToChannel => &Dimensions::new(30, 70),
         };
         let layout = Layout::build(
             dimensions,
             area,
             match self.mode {
                 Mode::Channel => true,
-                Mode::ChannelSelection | Mode::SendToChannel => false,
+                Mode::Guide | Mode::SendToChannel => false,
             },
         );
 
@@ -407,17 +419,26 @@ impl Television {
             .style(Style::default())
             .padding(Padding::right(1));
 
-        if self.channel.result_count() > 0
-            && self.picker_state.selected().is_none()
-        {
+        let result_count = match self.mode {
+            Mode::Channel => self.channel.result_count(),
+            Mode::Guide | Mode::SendToChannel => self.guide.total_count(),
+        };
+        if result_count > 0 && self.picker_state.selected().is_none() {
             self.picker_state.select(Some(0));
             self.relative_picker_state.select(Some(0));
         }
 
-        let entries = self.channel.results(
-            (layout.results.height.saturating_sub(2)).into(),
-            u32::try_from(self.picker_view_offset)?,
-        );
+        let entries = match self.mode {
+            Mode::Channel => self.channel.results(
+                layout.results.height.saturating_sub(2).into(),
+                u32::try_from(self.picker_view_offset)?,
+            ),
+            Mode::Guide | Mode::SendToChannel => self.guide.results(
+                layout.results.height.saturating_sub(2).into(),
+                u32::try_from(self.picker_view_offset)?,
+            ),
+        };
+
         let results_list = build_results_list(results_block, &entries);
 
         f.render_stateful_widget(
@@ -443,6 +464,10 @@ impl Television {
         f.render_widget(input_block, layout.input);
 
         // split input block into 3 parts: prompt symbol, input, result count
+        let total_count = match self.mode {
+            Mode::Channel => self.channel.total_count(),
+            Mode::Guide | Mode::SendToChannel => self.guide.total_count(),
+        };
         let inner_input_chunks = RatatuiLayout::default()
             .direction(Direction::Horizontal)
             .constraints([
@@ -452,10 +477,7 @@ impl Television {
                 Constraint::Fill(1),
                 // result count
                 Constraint::Length(
-                    3 * ((self.channel.total_count() as f32).log10().ceil()
-                        as u16
-                        + 1)
-                        + 3,
+                    3 * ((total_count as f32).log10().ceil() as u16 + 1) + 3,
                 ),
                 // spinner
                 Constraint::Length(1),
@@ -467,7 +489,7 @@ impl Television {
             "> ",
             Style::default().fg(DEFAULT_INPUT_FG).bold(),
         ))
-        .block(arrow_block);
+            .block(arrow_block);
         f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -481,7 +503,10 @@ impl Television {
             .alignment(Alignment::Left);
         f.render_widget(input, inner_input_chunks[1]);
 
-        if self.channel.running() {
+        if match self.mode {
+            Mode::Channel => self.channel.running(),
+            Mode::Guide | Mode::SendToChannel => self.guide.running(),
+        } {
             f.render_stateful_widget(
                 self.spinner,
                 inner_input_chunks[3],
@@ -490,21 +515,21 @@ impl Television {
         }
 
         let result_count_block = Block::default();
-        let result_count = Paragraph::new(Span::styled(
+        let result_count_paragraph = Paragraph::new(Span::styled(
             format!(
                 " {} / {} ",
-                if self.channel.result_count() == 0 {
+                if result_count == 0 {
                     0
                 } else {
                     self.picker_state.selected().unwrap_or(0) + 1
                 },
-                self.channel.result_count(),
+                result_count,
             ),
             Style::default().fg(DEFAULT_RESULTS_COUNT_FG).italic(),
         ))
-        .block(result_count_block)
-        .alignment(Alignment::Right);
-        f.render_widget(result_count, inner_input_chunks[2]);
+            .block(result_count_block)
+            .alignment(Alignment::Right);
+        f.render_widget(result_count_paragraph, inner_input_chunks[2]);
 
         // Make the cursor visible and ask tui-rs to put it at the
         // specified coordinates after rendering
@@ -512,8 +537,8 @@ impl Television {
             // Put cursor past the end of the input text
             inner_input_chunks[1].x
                 + u16::try_from(
-                    self.input.visual_cursor().max(scroll) - scroll,
-                )?,
+                self.input.visual_cursor().max(scroll) - scroll,
+            )?,
             // Move one line down, from the border to the input line
             inner_input_chunks[1].y,
         ));

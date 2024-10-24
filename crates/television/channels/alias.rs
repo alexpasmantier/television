@@ -68,6 +68,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
                 .map(std::string::ToString::to_string)
                 .collect()
         }
+        // TODO: add more shells
         _ => Vec::new(),
     }
 }
@@ -132,7 +133,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -209,7 +210,7 @@ async fn load_aliases(injector: Injector<Alias>) {
     debug!("Current shell: {}", shell);
     let raw_aliases = get_raw_aliases(shell);
 
-    let parsed_aliases = raw_aliases
+    raw_aliases
         .iter()
         .filter_map(|alias| {
             let mut parts = alias.split('=');
@@ -223,11 +224,9 @@ async fn load_aliases(injector: Injector<Alias>) {
             }
             None
         })
-        .collect::<Vec<_>>();
-
-    for alias in parsed_aliases {
-        let _ = injector.push(alias.clone(), |_, cols| {
-            cols[0] = (alias.name.clone() + &alias.value).into();
+        .for_each(|alias| {
+            let _ = injector.push(alias.clone(), |_, cols| {
+                cols[0] = (alias.name.clone() + &alias.value).into();
+            });
         });
-    }
 }

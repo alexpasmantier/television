@@ -52,12 +52,11 @@
 */
 use std::sync::Arc;
 
-
 use color_eyre::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::channels::{TelevisionChannel, CliTvChannel};
+use crate::channels::{CliTvChannel, TelevisionChannel};
 use crate::television::Television;
 use crate::{
     action::Action,

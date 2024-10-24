@@ -172,13 +172,25 @@ impl OnAir for Channel {
 /// a lot of files (e.g. starting tv in $HOME).
 const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
+/// The maximum number of lines we're willing to keep in memory.
+///
+/// TODO: this should be configurable by the user depending on the amount of
+/// memory they have/are willing to use.
+///
+/// This is to prevent taking humongous amounts of memory when searching in
+/// a lot of files (e.g. starting tv in $HOME).
+///
+/// This is a soft limit, we might go over it a bit.
+///
+/// A typical line should take somewhere around 100 bytes in memory (for utf8 english text),
+/// so this should take around 100 x `5_000_000` = 500MB of memory.
 const MAX_IN_MEMORY_LINES: usize = 5_000_000;
 
 #[allow(clippy::unused_async)]
 async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
     let current_dir = std::env::current_dir().unwrap();
     let walker =
-        walk_builder(&path, *DEFAULT_NUM_THREADS, None).build_parallel();
+        walk_builder(&path, *DEFAULT_NUM_THREADS, None, None).build_parallel();
 
     let lines_in_mem = Arc::new(AtomicUsize::new(0));
 

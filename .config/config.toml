@@ -12,7 +12,7 @@ enter = "SelectEntry"
 ctrl-enter = "SendToChannel"
 ctrl-s = "ToggleChannelSelection"
 
-[keybindings.ChannelSelection]
+[keybindings.Guide]
 esc = "Quit"
 down = "SelectNextEntry"
 up = "SelectPrevEntry"

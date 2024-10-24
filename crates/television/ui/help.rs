@@ -20,9 +20,7 @@ impl Television {
     pub fn build_help_paragraph<'a>(&self) -> Result<Paragraph<'a>> {
         match self.mode {
             Mode::Channel => self.build_help_paragraph_for_channel(),
-            Mode::ChannelSelection => {
-                self.build_help_paragraph_for_channel_selection()
-            }
+            Mode::Guide => self.build_help_paragraph_for_channel_selection(),
             Mode::SendToChannel => self.build_help_paragraph_for_channel(),
         }
     }
@@ -53,16 +51,6 @@ impl Television {
         ns_line.extend(preview_spans);
         ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
 
-        // Send to channel
-        let send_to_channel_keys =
-            keys_for_action(keymap, Action::SendToChannel);
-        // TODO: add send icon
-        let send_to_channel_spans =
-            build_spans_for_key_groups("Send to", vec![send_to_channel_keys]);
-
-        ns_line.extend(send_to_channel_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
-
         // Select entry
         let select_entry_keys = keys_for_action(keymap, Action::SelectEntry);
         let select_entry_spans = build_spans_for_key_groups(
@@ -71,6 +59,16 @@ impl Television {
         );
 
         ns_line.extend(select_entry_spans);
+        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+
+        // Send to channel
+        let send_to_channel_keys =
+            keys_for_action(keymap, Action::SendToChannel);
+        // TODO: add send icon
+        let send_to_channel_spans =
+            build_spans_for_key_groups("Send to", vec![send_to_channel_keys]);
+
+        ns_line.extend(send_to_channel_spans);
         ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
 
         // Switch channels
@@ -135,7 +133,7 @@ impl Television {
         );
 
         ns_line.extend(switch_channels_spans);
-        
+
         lines.push(ns_line);
 
         // MISC line (quit, help, etc.)

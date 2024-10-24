@@ -14,7 +14,7 @@ use crate::{
     previewers::PreviewType,
 };
 
-pub struct SelectionChannel {
+pub struct TvGuide {
     matcher: Nucleo<CliTvChannel>,
     last_pattern: String,
     result_count: u32,
@@ -24,7 +24,7 @@ pub struct SelectionChannel {
 
 const NUM_THREADS: usize = 1;
 
-impl SelectionChannel {
+impl TvGuide {
     pub fn new() -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT,
@@ -38,7 +38,7 @@ impl SelectionChannel {
                 cols[0] = (*e).to_string().into();
             });
         }
-        SelectionChannel {
+        TvGuide {
             matcher,
             last_pattern: String::new(),
             result_count: 0,
@@ -50,7 +50,7 @@ impl SelectionChannel {
     const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
-impl Default for SelectionChannel {
+impl Default for TvGuide {
     fn default() -> Self {
         Self::new()
     }
@@ -61,7 +61,7 @@ const TV_ICON: FileIcon = FileIcon {
     color: "#ffffff",
 };
 
-impl OnAir for SelectionChannel {
+impl OnAir for TvGuide {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
