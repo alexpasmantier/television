@@ -224,7 +224,7 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
 
     // Generate a unit enum from the given enum
     let unit_enum = quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
         pub enum UnitChannel {
             #(
                 #variant_names,

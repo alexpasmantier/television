@@ -19,7 +19,9 @@ impl Default for Dimensions {
 }
 
 pub struct Layout {
-    pub help_bar: Rect,
+    pub help_bar_left: Rect,
+    pub help_bar_middle: Rect,
+    pub help_bar_right: Rect,
     pub results: Rect,
     pub input: Rect,
     pub preview_title: Option<Rect>,
@@ -28,14 +30,18 @@ pub struct Layout {
 
 impl Layout {
     pub fn new(
-        help_bar: Rect,
+        help_bar_left: Rect,
+        help_bar_middle: Rect,
+        help_bar_right: Rect,
         results: Rect,
         input: Rect,
         preview_title: Option<Rect>,
         preview_window: Option<Rect>,
     ) -> Self {
         Self {
-            help_bar,
+            help_bar_left,
+            help_bar_middle,
+            help_bar_right,
             results,
             input,
             preview_title,
@@ -52,8 +58,18 @@ impl Layout {
         // split the main block into two vertical chunks (help bar + rest)
         let hz_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Length(5)])
+            .constraints([Constraint::Length(9), Constraint::Fill(1)])
             .split(main_block);
+
+        // split the help bar into three horizontal chunks (left + center + right)
+        let help_bar_chunks = layout::Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Fill(1),
+                Constraint::Fill(1),
+                Constraint::Length(24),
+            ])
+            .split(hz_chunks[0]);
 
         if with_preview {
             // split the main block into two vertical chunks
@@ -63,7 +79,7 @@ impl Layout {
                     Constraint::Percentage(50),
                     Constraint::Percentage(50),
                 ])
-                .split(hz_chunks[0]);
+                .split(hz_chunks[1]);
 
             // left block: results + input field
             let left_chunks = layout::Layout::default()
@@ -78,7 +94,9 @@ impl Layout {
                 .split(vt_chunks[1]);
 
             Self::new(
-                hz_chunks[1],
+                help_bar_chunks[0],
+                help_bar_chunks[1],
+                help_bar_chunks[2],
                 left_chunks[0],
                 left_chunks[1],
                 Some(right_chunks[0]),
@@ -89,9 +107,17 @@ impl Layout {
             let chunks = layout::Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Min(10), Constraint::Length(3)])
-                .split(hz_chunks[0]);
+                .split(hz_chunks[1]);
 
-            Self::new(hz_chunks[1], chunks[0], chunks[1], None, None)
+            Self::new(
+                help_bar_chunks[0],
+                help_bar_chunks[1],
+                help_bar_chunks[2],
+                chunks[0],
+                chunks[1],
+                None,
+                None,
+            )
         }
     }
 }

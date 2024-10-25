@@ -1,8 +1,9 @@
 use color_eyre::eyre::{OptionExt, Result};
 use ratatui::{
+    layout::Constraint,
     style::{Color, Style},
     text::{Line, Span},
-    widgets::Paragraph,
+    widgets::{Cell, Row, Table},
 };
 use std::collections::HashMap;
 
@@ -12,142 +13,118 @@ use crate::{
     television::{Mode, Television},
 };
 
-const SEPARATOR: &str = "  ";
 const ACTION_COLOR: Color = Color::DarkGray;
 const KEY_COLOR: Color = Color::LightYellow;
 
 impl Television {
-    pub fn build_help_paragraph<'a>(&self) -> Result<Paragraph<'a>> {
+    pub fn build_help_table<'a>(&self) -> Result<Table<'a>> {
         match self.mode {
-            Mode::Channel => self.build_help_paragraph_for_channel(),
-            Mode::Guide => self.build_help_paragraph_for_channel_selection(),
-            Mode::SendToChannel => self.build_help_paragraph_for_channel(),
+            Mode::Channel => self.build_help_table_for_channel(),
+            Mode::Guide => self.build_help_table_for_channel_selection(),
+            Mode::SendToChannel => self.build_help_table_for_channel(),
         }
     }
 
-    fn build_help_paragraph_for_channel<'a>(&self) -> Result<Paragraph<'a>> {
+    fn build_help_table_for_channel<'a>(&self) -> Result<Table<'a>> {
         let keymap = self.keymap_for_mode()?;
-        let mut lines = Vec::new();
-
-        // NAVIGATION and SELECTION line
-        let mut ns_line = Line::default();
 
         // Results navigation
-        let prev = keys_for_action(keymap, Action::SelectPrevEntry);
-        let next = keys_for_action(keymap, Action::SelectNextEntry);
-        let results_spans =
-            build_spans_for_key_groups("↕ Results", vec![prev, next]);
-
-        ns_line.extend(results_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+        let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
+        let next = keys_for_action(keymap, &Action::SelectNextEntry);
+        let results_row = Row::new(build_cells_for_key_groups(
+            "↕ Results navigation",
+            vec![prev, next],
+        ));
 
         // Preview navigation
-        let up_keys = keys_for_action(keymap, Action::ScrollPreviewHalfPageUp);
+        let up_keys =
+            keys_for_action(keymap, &Action::ScrollPreviewHalfPageUp);
         let down_keys =
-            keys_for_action(keymap, Action::ScrollPreviewHalfPageDown);
-        let preview_spans =
-            build_spans_for_key_groups("↕ Preview", vec![up_keys, down_keys]);
-
-        ns_line.extend(preview_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+            keys_for_action(keymap, &Action::ScrollPreviewHalfPageDown);
+        let preview_row = Row::new(build_cells_for_key_groups(
+            "↕ Preview navigation",
+            vec![up_keys, down_keys],
+        ));
 
         // Select entry
-        let select_entry_keys = keys_for_action(keymap, Action::SelectEntry);
-        let select_entry_spans = build_spans_for_key_groups(
-            "Select entry",
+        let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
+        let select_entry_row = Row::new(build_cells_for_key_groups(
+            "✓ Select entry",
             vec![select_entry_keys],
-        );
-
-        ns_line.extend(select_entry_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+        ));
 
         // Send to channel
         let send_to_channel_keys =
-            keys_for_action(keymap, Action::SendToChannel);
-        // TODO: add send icon
-        let send_to_channel_spans =
-            build_spans_for_key_groups("Send to", vec![send_to_channel_keys]);
-
-        ns_line.extend(send_to_channel_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+            keys_for_action(keymap, &Action::SendToChannel);
+        let send_to_channel_row = Row::new(build_cells_for_key_groups(
+            "⇉ Send results to",
+            vec![send_to_channel_keys],
+        ));
 
         // Switch channels
         let switch_channels_keys =
-            keys_for_action(keymap, Action::ToggleChannelSelection);
-        let switch_channels_spans = build_spans_for_key_groups(
-            "Switch channels",
+            keys_for_action(keymap, &Action::ToggleChannelSelection);
+        let switch_channels_row = Row::new(build_cells_for_key_groups(
+            "⨀ Switch channels",
             vec![switch_channels_keys],
-        );
-
-        ns_line.extend(switch_channels_spans);
-        lines.push(ns_line);
+        ));
 
         // MISC line (quit, help, etc.)
-        // let mut misc_line = Line::default();
-        //
-        // // Quit
-        // let quit_keys = keys_for_action(keymap, Action::Quit);
-        // let quit_spans = build_spans_for_key_groups("Quit", vec![quit_keys]);
-        //
-        // misc_line.extend(quit_spans);
-        //
-        // lines.push(misc_line);
+        // Quit ⏼
+        let quit_keys = keys_for_action(keymap, &Action::Quit);
+        let quit_row =
+            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys]));
 
-        Ok(Paragraph::new(lines))
+        let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
+
+        Ok(Table::new(
+            vec![
+                results_row,
+                preview_row,
+                select_entry_row,
+                send_to_channel_row,
+                switch_channels_row,
+                quit_row,
+            ],
+            widths,
+        ))
     }
 
-    fn build_help_paragraph_for_channel_selection<'a>(
-        &self,
-    ) -> Result<Paragraph<'a>> {
+    fn build_help_table_for_channel_selection<'a>(&self) -> Result<Table<'a>> {
         let keymap = self.keymap_for_mode()?;
-        let mut lines = Vec::new();
-
-        // NAVIGATION + SELECTION line
-        let mut ns_line = Line::default();
 
         // Results navigation
-        let prev = keys_for_action(keymap, Action::SelectPrevEntry);
-        let next = keys_for_action(keymap, Action::SelectNextEntry);
-        let results_spans =
-            build_spans_for_key_groups("↕ Results", vec![prev, next]);
-
-        ns_line.extend(results_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+        let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
+        let next = keys_for_action(keymap, &Action::SelectNextEntry);
+        let results_row = Row::new(build_cells_for_key_groups(
+            "↕ Results",
+            vec![prev, next],
+        ));
 
         // Select entry
-        let select_entry_keys = keys_for_action(keymap, Action::SelectEntry);
-        let select_entry_spans = build_spans_for_key_groups(
+        let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
+        let select_entry_row = Row::new(build_cells_for_key_groups(
             "Select entry",
             vec![select_entry_keys],
-        );
-
-        ns_line.extend(select_entry_spans);
-        ns_line.push_span(Span::styled(SEPARATOR, Style::default()));
+        ));
 
         // Switch channels
         let switch_channels_keys =
-            keys_for_action(keymap, Action::ToggleChannelSelection);
-        let switch_channels_spans = build_spans_for_key_groups(
+            keys_for_action(keymap, &Action::ToggleChannelSelection);
+        let switch_channels_row = Row::new(build_cells_for_key_groups(
             "Switch channels",
             vec![switch_channels_keys],
-        );
-
-        ns_line.extend(switch_channels_spans);
-
-        lines.push(ns_line);
-
-        // MISC line (quit, help, etc.)
-        // let mut misc_line = Line::default();
+        ));
 
         // Quit
-        // let quit_keys = keys_for_action(keymap, Action::Quit);
-        // let quit_spans = build_spans_for_key_groups("Quit", vec![quit_keys]);
+        let quit_keys = keys_for_action(keymap, &Action::Quit);
+        let quit_row =
+            Row::new(build_cells_for_key_groups("Quit", vec![quit_keys]));
 
-        // misc_line.extend(quit_spans);
-
-        // lines.push(misc_line);
-
-        Ok(Paragraph::new(lines))
+        Ok(Table::new(
+            vec![results_row, select_entry_row, switch_channels_row, quit_row],
+            vec![Constraint::Fill(1), Constraint::Fill(2)],
+        ))
     }
 
     /// Get the keymap for the current mode.
@@ -189,21 +166,23 @@ impl Television {
 ///
 /// assert_eq!(spans.len(), 5);
 /// ```
-fn build_spans_for_key_groups(
+fn build_cells_for_key_groups(
     group_name: &str,
     key_groups: Vec<Vec<String>>,
-) -> Vec<Span> {
-    if key_groups.is_empty() || key_groups.iter().all(|keys| keys.is_empty()) {
-        return vec![];
+) -> Vec<Cell> {
+    if key_groups.is_empty() || key_groups.iter().all(std::vec::Vec::is_empty)
+    {
+        return vec![group_name.into(), "No keybindings".into()];
     }
     let non_empty_groups = key_groups.iter().filter(|keys| !keys.is_empty());
-    let mut spans = vec![
-        Span::styled(
-            group_name.to_owned() + ": ",
-            Style::default().fg(ACTION_COLOR),
-        ),
-        Span::styled("[", Style::default().fg(KEY_COLOR)),
-    ];
+    let mut cells = vec![Cell::from(Span::styled(
+        group_name.to_owned() + ": ",
+        Style::default().fg(ACTION_COLOR),
+    ))];
+
+    let mut spans = Vec::new();
+    //spans.push(Span::styled("[", Style::default().fg(KEY_COLOR)));
+
     let key_group_spans: Vec<Span> = non_empty_groups
         .map(|keys| {
             let key_group = keys.join(", ");
@@ -213,12 +192,14 @@ fn build_spans_for_key_groups(
     key_group_spans.iter().enumerate().for_each(|(i, span)| {
         spans.push(span.clone());
         if i < key_group_spans.len() - 1 {
-            spans.push(Span::styled(" | ", Style::default().fg(KEY_COLOR)));
+            spans.push(Span::styled(" / ", Style::default().fg(KEY_COLOR)));
         }
     });
 
-    spans.push(Span::styled("]", Style::default().fg(KEY_COLOR)));
-    spans
+    //spans.push(Span::styled("]", Style::default().fg(KEY_COLOR)));
+    cells.push(Cell::from(Line::from(spans)));
+
+    cells
 }
 
 /// Get the keys for a given action.
@@ -246,11 +227,11 @@ fn build_spans_for_key_groups(
 /// ```
 fn keys_for_action(
     keymap: &HashMap<Key, Action>,
-    action: Action,
+    action: &Action,
 ) -> Vec<String> {
     keymap
         .iter()
-        .filter(|(_key, act)| **act == action)
+        .filter(|(_key, act)| *act == action)
         .map(|(key, _act)| format!("{key}"))
         .collect()
 }

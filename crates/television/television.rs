@@ -14,12 +14,15 @@ use ratatui::{
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
+use strum::Display;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::ui::input::Input;
-use crate::ui::layout::{Dimensions, Layout};
 use crate::ui::preview::DEFAULT_PREVIEW_TITLE_FG;
 use crate::ui::results::build_results_list;
+use crate::ui::{
+    layout::{Dimensions, Layout},
+    logo::build_logo_paragraph,
+};
 use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
 use crate::{channels::tv_guide::TvGuide, ui::get_border_style};
@@ -27,13 +30,16 @@ use crate::{channels::OnAir, utils::strings::shrink_with_ellipsis};
 use crate::{
     channels::TelevisionChannel, ui::input::actions::InputActionHandler,
 };
+use crate::{channels::UnitChannel, ui::input::Input};
 use crate::{
     entry::{Entry, ENTRY_PLACEHOLDER},
     ui::spinner::Spinner,
 };
 use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 
-#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
+#[derive(
+    PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize, Display,
+)]
 pub enum Mode {
     Channel,
     Guide,
@@ -96,6 +102,10 @@ impl Television {
             spinner,
             spinner_state,
         }
+    }
+
+    pub fn current_channel(&self) -> UnitChannel {
+        UnitChannel::from(&self.channel)
     }
 
     /// FIXME: this needs rework
@@ -304,19 +314,17 @@ impl Television {
             Action::ScrollPreviewUp => self.scroll_preview_up(1),
             Action::ScrollPreviewHalfPageDown => self.scroll_preview_down(20),
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
-            Action::ToggleChannelSelection => {
-                match self.mode {
-                    Mode::Channel => {
-                        self.reset_screen();
-                        self.mode = Mode::Guide;
-                    }
-                    Mode::Guide => {
-                        self.reset_screen();
-                        self.mode = Mode::Channel;
-                    }
-                    Mode::SendToChannel => {}
+            Action::ToggleChannelSelection => match self.mode {
+                Mode::Channel => {
+                    self.reset_screen();
+                    self.mode = Mode::Guide;
                 }
-            }
+                Mode::Guide => {
+                    self.reset_screen();
+                    self.mode = Mode::Channel;
+                }
+                Mode::SendToChannel => {}
+            },
             Action::SelectEntry => {
                 if let Some(entry) = self.get_selected_entry() {
                     match self.mode {
@@ -387,19 +395,38 @@ impl Television {
             },
         );
 
-        let help_block = Block::default()
-            .borders(Borders::NONE)
+        let metadata_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Blue))
+            .padding(Padding::horizontal(1))
+            .style(Style::default());
+
+        let metadata_table = self.build_metadata_table().block(metadata_block);
+
+        f.render_widget(metadata_table, layout.help_bar_left);
+
+        let keymaps_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Blue))
             .style(Style::default())
-            .padding(Padding::uniform(1));
+            .padding(Padding::horizontal(1));
 
-        let help_text = self
-            .build_help_paragraph()?
-            .style(Style::default().fg(Color::DarkGray).italic())
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: true })
-            .block(help_block);
+        let keymaps_table = self.build_help_table()?.block(keymaps_block);
 
-        f.render_widget(help_text, layout.help_bar);
+        f.render_widget(keymaps_table, layout.help_bar_middle);
+
+        let logo_block = Block::default()
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(Color::Blue))
+            .style(Style::default().fg(Color::Yellow))
+            .padding(Padding::horizontal(1));
+
+        let logo_paragraph = build_logo_paragraph().block(logo_block);
+
+        f.render_widget(logo_paragraph, layout.help_bar_right);
 
         self.results_area_height = u32::from(layout.results.height);
         if let Some(preview_window) = layout.preview_window {
@@ -489,7 +516,7 @@ impl Television {
             "> ",
             Style::default().fg(DEFAULT_INPUT_FG).bold(),
         ))
-            .block(arrow_block);
+        .block(arrow_block);
         f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -527,8 +554,8 @@ impl Television {
             ),
             Style::default().fg(DEFAULT_RESULTS_COUNT_FG).italic(),
         ))
-            .block(result_count_block)
-            .alignment(Alignment::Right);
+        .block(result_count_block)
+        .alignment(Alignment::Right);
         f.render_widget(result_count_paragraph, inner_input_chunks[2]);
 
         // Make the cursor visible and ask tui-rs to put it at the
@@ -537,8 +564,8 @@ impl Television {
             // Put cursor past the end of the input text
             inner_input_chunks[1].x
                 + u16::try_from(
-                self.input.visual_cursor().max(scroll) - scroll,
-            )?,
+                    self.input.visual_cursor().max(scroll) - scroll,
+                )?,
             // Move one line down, from the border to the input line
             inner_input_chunks[1].y,
         ));

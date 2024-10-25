@@ -3,6 +3,8 @@ use ratatui::style::{Color, Style, Stylize};
 pub mod help;
 pub mod input;
 pub mod layout;
+pub mod logo;
+pub mod metadata;
 pub mod preview;
 pub mod results;
 pub mod spinner;
