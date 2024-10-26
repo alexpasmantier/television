@@ -1,14 +1,15 @@
-use ratatui::style::{Color, Style, Stylize};
+use ratatui::style::{Color, Style};
 
-pub mod help;
+pub(crate) mod help;
 pub mod input;
+pub mod keymap;
 pub mod layout;
 pub mod logo;
 pub mod metadata;
 pub mod preview;
+mod remote_control;
 pub mod results;
 pub mod spinner;
-
 //  input
 //const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
 //const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(150, 150, 150);

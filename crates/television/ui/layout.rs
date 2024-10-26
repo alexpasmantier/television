@@ -24,8 +24,9 @@ pub struct Layout {
     pub help_bar_right: Rect,
     pub results: Rect,
     pub input: Rect,
-    pub preview_title: Option<Rect>,
-    pub preview_window: Option<Rect>,
+    pub preview_title: Rect,
+    pub preview_window: Rect,
+    pub remote_control: Option<Rect>,
 }
 
 impl Layout {
@@ -35,8 +36,9 @@ impl Layout {
         help_bar_right: Rect,
         results: Rect,
         input: Rect,
-        preview_title: Option<Rect>,
-        preview_window: Option<Rect>,
+        preview_title: Rect,
+        preview_window: Rect,
+        remote_control: Option<Rect>,
     ) -> Self {
         Self {
             help_bar_left,
@@ -46,13 +48,14 @@ impl Layout {
             input,
             preview_title,
             preview_window,
+            remote_control,
         }
     }
 
     pub fn build(
         dimensions: &Dimensions,
         area: Rect,
-        with_preview: bool,
+        with_remote: bool,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
@@ -65,60 +68,56 @@ impl Layout {
         let help_bar_chunks = layout::Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
+                // metadata
                 Constraint::Fill(1),
+                // keymaps
                 Constraint::Fill(1),
+                // logo
                 Constraint::Length(24),
             ])
             .split(hz_chunks[0]);
 
-        if with_preview {
-            // split the main block into two vertical chunks
-            let vt_chunks = layout::Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(50),
-                    Constraint::Percentage(50),
-                ])
-                .split(hz_chunks[1]);
-
-            // left block: results + input field
-            let left_chunks = layout::Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(10), Constraint::Length(3)])
-                .split(vt_chunks[0]);
-
-            // right block: preview title + preview
-            let right_chunks = layout::Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Length(3), Constraint::Min(10)])
-                .split(vt_chunks[1]);
-
-            Self::new(
-                help_bar_chunks[0],
-                help_bar_chunks[1],
-                help_bar_chunks[2],
-                left_chunks[0],
-                left_chunks[1],
-                Some(right_chunks[0]),
-                Some(right_chunks[1]),
-            )
+        // split the main block into two vertical chunks
+        let constraints = if with_remote {
+            vec![
+                Constraint::Fill(1),
+                Constraint::Fill(1),
+                Constraint::Length(24),
+            ]
         } else {
-            // split the main block into two vertical chunks
-            let chunks = layout::Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(10), Constraint::Length(3)])
-                .split(hz_chunks[1]);
+            vec![Constraint::Percentage(50), Constraint::Percentage(50)]
+        };
+        let vt_chunks = layout::Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(constraints)
+            .split(hz_chunks[1]);
 
-            Self::new(
-                help_bar_chunks[0],
-                help_bar_chunks[1],
-                help_bar_chunks[2],
-                chunks[0],
-                chunks[1],
-                None,
-                None,
-            )
-        }
+        // left block: results + input field
+        let left_chunks = layout::Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Min(10), Constraint::Length(3)])
+            .split(vt_chunks[0]);
+
+        // right block: preview title + preview
+        let right_chunks = layout::Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Min(10)])
+            .split(vt_chunks[1]);
+
+        Self::new(
+            help_bar_chunks[0],
+            help_bar_chunks[1],
+            help_bar_chunks[2],
+            left_chunks[0],
+            left_chunks[1],
+            right_chunks[0],
+            right_chunks[1],
+            if with_remote {
+                Some(vt_chunks[2])
+            } else {
+                None
+            },
+        )
     }
 }
 

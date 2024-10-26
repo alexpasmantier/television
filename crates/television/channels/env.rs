@@ -76,14 +76,6 @@ impl OnAir for Channel {
         }
     }
 
-    fn result_count(&self) -> u32 {
-        self.result_count
-    }
-
-    fn total_count(&self) -> u32 {
-        self.total_count
-    }
-
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         let status = self.matcher.tick(Self::MATCHER_TICK_TIMEOUT);
         let snapshot = self.matcher.snapshot();
@@ -155,6 +147,14 @@ impl OnAir for Channel {
                 .with_value(value)
                 .with_icon(self.file_icon)
         })
+    }
+
+    fn result_count(&self) -> u32 {
+        self.result_count
+    }
+
+    fn total_count(&self) -> u32 {
+        self.total_count
     }
 
     fn running(&self) -> bool {

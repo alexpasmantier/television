@@ -1,4 +1,3 @@
-use color_eyre::owo_colors::OwoColorize;
 use devicons::FileIcon;
 use ignore::{overrides::OverrideBuilder, DirEntry};
 use nucleo::{
@@ -105,7 +104,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -201,7 +200,7 @@ fn get_ignored_paths() -> Vec<PathBuf> {
 }
 #[allow(clippy::unused_async)]
 async fn crawl_for_repos(
-    starting_point: std::path::PathBuf,
+    starting_point: PathBuf,
     injector: nucleo::Injector<DirEntry>,
     entry_cache: Arc<Mutex<HashSet<String>>>,
     cache_valid: Arc<Mutex<bool>>,
@@ -214,7 +213,7 @@ async fn crawl_for_repos(
         Some(walker_overrides_builder.build().unwrap()),
         Some(get_ignored_paths()),
     )
-    .build_parallel();
+        .build_parallel();
 
     walker.run(|| {
         let injector = injector.clone();

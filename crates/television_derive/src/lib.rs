@@ -1,6 +1,27 @@
 use proc_macro::TokenStream;
 use quote::quote;
 
+/// This macro generates a `CliChannel` enum and the necessary glue code
+/// to convert into a `TelevisionChannel` member:
+///
+/// ```rust
+/// use crate::channels::{TelevisionChannel, OnAir};
+/// use television_derive::CliChannel;
+/// use crate::channels::{files, text};
+///
+/// #[derive(CliChannel)]
+/// enum TelevisionChannel {
+///     Files(files::Channel),
+///     Text(text::Channel),
+///     // ...
+/// }
+///
+/// let television_channel: TelevisionChannel = CliTvChannel::Files.to_channel();
+///
+/// assert!(matches!(television_channel, TelevisionChannel::Files(_)));
+/// ```
+///
+/// The `CliChannel` enum is used to select channels from the command line.
 #[proc_macro_derive(CliChannel)]
 pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -11,7 +32,8 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     impl_cli_channel(&ast)
 }
 
-const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "TvGuide"];
+/// List of variant names that should be ignored when generating the CliTvChannel enum.
+const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "RemoteControl"];
 
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // check that the struct is an enum
@@ -88,8 +110,34 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     gen.into()
 }
 
-/// This macro generates the `OnAir` trait implementation for the
-/// given enum.
+/// This macro generates the `OnAir` trait implementation for the given enum.
+///
+/// The `OnAir` trait is used to interact with the different television channels
+/// and forwards the method calls to the corresponding channel variants.
+///
+/// Example:
+/// ```rust
+/// use television_derive::Broadcast;
+/// use crate::channels::{TelevisionChannel, OnAir};
+/// use crate::channels::{files, text};
+///
+/// #[derive(Broadcast)]
+/// enum TelevisionChannel {
+///     Files(files::Channel),
+///     Text(text::Channel),
+/// }
+///
+/// let mut channel = TelevisionChannel::Files(files::Channel::default());
+///
+/// // Use the `OnAir` trait methods directly on TelevisionChannel
+/// channel.find("pattern");
+/// let results = channel.results(10, 0);
+/// let result = channel.get_result(0);
+/// let result_count = channel.result_count();
+/// let total_count = channel.total_count();
+/// let running = channel.running();
+/// channel.shutdown();
+/// ```
 #[proc_macro_derive(Broadcast)]
 pub fn tv_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
@@ -196,6 +244,11 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
     trait_impl.into()
 }
 
+/// This macro generates a `UnitChannel` enum and the necessary glue code
+/// to convert from and to a `TelevisionChannel` member.
+///
+/// The `UnitChannel` enum is used as a unit variant of the `TelevisionChannel`
+/// enum.
 #[proc_macro_derive(UnitChannel)]
 pub fn unit_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree

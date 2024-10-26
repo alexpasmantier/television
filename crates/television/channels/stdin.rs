@@ -90,7 +90,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -118,7 +118,7 @@ impl OnAir for Channel {
             .collect()
     }
 
-    fn get_result(&self, index: u32) -> Option<super::Entry> {
+    fn get_result(&self, index: u32) -> Option<Entry> {
         let snapshot = self.matcher.snapshot();
         snapshot.get_matched_item(index).map(|item| {
             let content = item.matcher_columns[0].to_string();

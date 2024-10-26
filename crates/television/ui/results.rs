@@ -1,7 +1,16 @@
+use crate::channels::OnAir;
 use crate::entry::Entry;
+use crate::television::Television;
+use crate::ui::get_border_style;
+use crate::ui::layout::Layout;
 use crate::utils::strings::{next_char_boundary, slice_at_char_boundaries};
+use color_eyre::eyre::Result;
+use ratatui::layout::Alignment;
 use ratatui::prelude::{Color, Line, Span, Style, Stylize};
-use ratatui::widgets::{Block, List, ListDirection};
+use ratatui::widgets::{
+    Block, BorderType, Borders, List, ListDirection, Padding,
+};
+use ratatui::Frame;
 use std::str::FromStr;
 
 // Styles
@@ -13,6 +22,7 @@ const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
+    list_direction: ListDirection,
 ) -> List<'a>
 where
     'b: 'a,
@@ -107,8 +117,48 @@ where
         }
         Line::from(spans)
     }))
-    .direction(ListDirection::BottomToTop)
+    .direction(list_direction)
     .highlight_style(Style::default().bg(DEFAULT_RESULT_SELECTED_BG))
     .highlight_symbol("> ")
     .block(results_block)
+}
+
+impl Television {
+    pub(crate) fn draw_results_list(
+        &mut self,
+        f: &mut Frame,
+        layout: &Layout,
+    ) -> Result<()> {
+        let results_block = Block::default()
+            .title_top(Line::from(" Results ").alignment(Alignment::Center))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(get_border_style(false))
+            .style(Style::default())
+            .padding(Padding::right(1));
+
+        let result_count = self.channel.result_count();
+        if result_count > 0 && self.results_picker.selected().is_none() {
+            self.results_picker.select(Some(0));
+            self.results_picker.relative_select(Some(0));
+        }
+
+        let entries = self.channel.results(
+            layout.results.height.saturating_sub(2).into(),
+            u32::try_from(self.results_picker.view_offset)?,
+        );
+
+        let results_list = build_results_list(
+            results_block,
+            &entries,
+            ListDirection::BottomToTop,
+        );
+
+        f.render_stateful_widget(
+            results_list,
+            layout.results,
+            &mut self.results_picker.relative_state,
+        );
+        Ok(())
+    }
 }

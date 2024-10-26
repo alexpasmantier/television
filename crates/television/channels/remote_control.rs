@@ -14,7 +14,7 @@ use crate::{
     previewers::PreviewType,
 };
 
-pub struct TvGuide {
+pub struct RemoteControl {
     matcher: Nucleo<CliTvChannel>,
     last_pattern: String,
     result_count: u32,
@@ -24,7 +24,7 @@ pub struct TvGuide {
 
 const NUM_THREADS: usize = 1;
 
-impl TvGuide {
+impl RemoteControl {
     pub fn new() -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT,
@@ -38,7 +38,7 @@ impl TvGuide {
                 cols[0] = (*e).to_string().into();
             });
         }
-        TvGuide {
+        RemoteControl {
             matcher,
             last_pattern: String::new(),
             result_count: 0,
@@ -50,7 +50,7 @@ impl TvGuide {
     const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
-impl Default for TvGuide {
+impl Default for RemoteControl {
     fn default() -> Self {
         Self::new()
     }
@@ -61,7 +61,7 @@ const TV_ICON: FileIcon = FileIcon {
     color: "#ffffff",
 };
 
-impl OnAir for TvGuide {
+impl OnAir for RemoteControl {
     fn find(&mut self, pattern: &str) {
         if pattern != self.last_pattern {
             self.matcher.pattern.reparse(
@@ -73,14 +73,6 @@ impl OnAir for TvGuide {
             );
             self.last_pattern = pattern.to_string();
         }
-    }
-
-    fn result_count(&self) -> u32 {
-        self.result_count
-    }
-
-    fn total_count(&self) -> u32 {
-        self.total_count
     }
 
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
@@ -128,6 +120,14 @@ impl OnAir for TvGuide {
             // short description of the channel
             Entry::new(name.clone(), PreviewType::Basic).with_icon(TV_ICON)
         })
+    }
+
+    fn result_count(&self) -> u32 {
+        self.result_count
+    }
+
+    fn total_count(&self) -> u32 {
+        self.total_count
     }
 
     fn running(&self) -> bool {

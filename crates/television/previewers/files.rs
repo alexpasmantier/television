@@ -5,11 +5,10 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use syntect::easy::HighlightLines;
 use tokio::sync::Mutex;
 
 use syntect::{
-    highlighting::{Style, Theme, ThemeSet},
+    highlighting::{Theme, ThemeSet},
     parsing::SyntaxSet,
 };
 use tracing::{debug, warn};
@@ -82,7 +81,7 @@ impl FilePreviewer {
                             entry.name.clone(),
                             preview.clone(),
                         )
-                        .await;
+                            .await;
 
                         // compute the highlighted version in the background
                         let mut reader =
@@ -226,8 +225,8 @@ impl FilePreviewer {
                 if let Ok(bytes_read) = f.read(&mut buffer) {
                     if bytes_read > 0
                         && proportion_of_printable_ascii_characters(
-                            &buffer[..bytes_read],
-                        ) > PRINTABLE_ASCII_THRESHOLD
+                        &buffer[..bytes_read],
+                    ) > PRINTABLE_ASCII_THRESHOLD
                     {
                         file_type = FileType::Text;
                     }

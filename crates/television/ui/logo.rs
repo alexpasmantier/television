@@ -24,3 +24,33 @@ pub fn build_logo_paragraph<'a>() -> Paragraph<'a> {
     let logo_paragraph = Paragraph::new(lines);
     logo_paragraph
 }
+
+const REMOTE_LOGO: &str = r"
+ _____________
+/             \
+| (*)     (#) |
+|             |
+| (1) (2) (3) |
+| (4) (5) (6) |
+| (7) (8) (9) |
+|             |
+|      _      |
+|     | |     |
+|  (_¯(0)¯_)  |
+|     | |     |
+|      ¯      |
+|             |
+|             |
+| === === === |
+|             |
+|     T.V     |
+`-------------´";
+
+pub fn build_remote_logo_paragraph<'a>() -> Paragraph<'a> {
+    let lines = REMOTE_LOGO
+        .lines()
+        .map(std::convert::Into::into)
+        .collect::<Vec<_>>();
+    let logo_paragraph = Paragraph::new(lines);
+    logo_paragraph
+}

@@ -52,7 +52,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
             let aliases = String::from_utf8(output.stdout).unwrap();
             aliases
                 .lines()
-                .map(std::string::ToString::to_string)
+                .map(ToString::to_string)
                 .collect()
         }
         "zsh" => {
@@ -65,7 +65,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
             let aliases = String::from_utf8(output.stdout).unwrap();
             aliases
                 .lines()
-                .map(std::string::ToString::to_string)
+                .map(ToString::to_string)
                 .collect()
         }
         // TODO: add more shells
@@ -179,7 +179,7 @@ impl OnAir for Channel {
             .collect()
     }
 
-    fn get_result(&self, index: u32) -> Option<super::Entry> {
+    fn get_result(&self, index: u32) -> Option<Entry> {
         let snapshot = self.matcher.snapshot();
         snapshot.get_matched_item(index).map(|item| {
             Entry::new(item.data.name.clone(), PreviewType::EnvVar)

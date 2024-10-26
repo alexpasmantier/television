@@ -1,11 +1,17 @@
+use crate::entry::Entry;
 use crate::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
 use crate::television::Television;
-use crate::utils::strings::EMPTY_STRING;
+use crate::ui::get_border_style;
+use crate::ui::layout::Layout;
+use crate::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
+use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
-use ratatui::widgets::{Block, Paragraph, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
+use ratatui::Frame;
+use std::str::FromStr;
 use std::sync::Arc;
 use syntect::highlighting::Color as SyntectColor;
 
@@ -17,6 +23,91 @@ const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
 const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
 
 impl Television {
+    pub(crate) fn draw_preview_title_block(
+        &self,
+        f: &mut Frame,
+        layout: &Layout,
+        selected_entry: &Entry,
+        preview: &Arc<Preview>,
+    ) -> Result<()> {
+        let mut preview_title_spans = Vec::new();
+        if let Some(icon) = &selected_entry.icon {
+            preview_title_spans.push(Span::styled(
+                {
+                    // FIXME: this should be done using padding on the parent block
+                    let mut icon_str = String::from(" ");
+                    icon_str.push(icon.icon);
+                    icon_str.push(' ');
+                    icon_str
+                },
+                Style::default().fg(Color::from_str(icon.color)?),
+            ));
+        }
+        preview_title_spans.push(Span::styled(
+            shrink_with_ellipsis(
+                &preview.title,
+                layout.preview_window.width.saturating_sub(4) as usize,
+            ),
+            Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
+        ));
+        let preview_title = Paragraph::new(Line::from(preview_title_spans))
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_type(BorderType::Rounded)
+                    .border_style(get_border_style(false)),
+            )
+            .alignment(Alignment::Left);
+        f.render_widget(preview_title, layout.preview_title);
+        Ok(())
+    }
+
+    pub(crate) fn draw_preview_content_block(
+        &mut self,
+        f: &mut Frame,
+        layout: &Layout,
+        selected_entry: &Entry,
+        preview: &Arc<Preview>,
+    ) -> Result<()> {
+        let preview_outer_block = Block::default()
+            .title_top(Line::from(" Preview ").alignment(Alignment::Center))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(get_border_style(false))
+            .style(Style::default())
+            .padding(Padding::right(1));
+
+        let preview_inner_block =
+            Block::default().style(Style::default()).padding(Padding {
+                top: 0,
+                right: 1,
+                bottom: 0,
+                left: 1,
+            });
+        let inner = preview_outer_block.inner(layout.preview_window);
+        f.render_widget(preview_outer_block, layout.preview_window);
+
+        //if let PreviewContent::Image(img) = &preview.content {
+        //    let image_component = StatefulImage::new(None);
+        //    frame.render_stateful_widget(
+        //        image_component,
+        //        inner,
+        //        &mut img.clone(),
+        //    );
+        //} else {
+        let preview_block = self.build_preview_paragraph(
+            preview_inner_block,
+            inner,
+            &preview,
+            selected_entry
+                .line_number
+                .map(|l| u16::try_from(l).unwrap_or(0)),
+        );
+        f.render_widget(preview_block, inner);
+        //}
+        Ok(())
+    }
+
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
@@ -45,7 +136,7 @@ impl Television {
                             },
                         )),
                         Span::styled(" │ ",
-                            Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim()),
+                                     Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim()),
                         Span::styled(
                             line.to_string(),
                             Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG).bg(
@@ -83,9 +174,9 @@ impl Television {
                     self.preview_scroll.unwrap_or(0),
                     self.preview_pane_height,
                 )
-                .block(preview_block)
-                .alignment(Alignment::Left)
-                .scroll((self.preview_scroll.unwrap_or(0), 0))
+                    .block(preview_block)
+                    .alignment(Alignment::Left)
+                    .scroll((self.preview_scroll.unwrap_or(0), 0))
             }
             // meta
             PreviewContent::Loading => self
@@ -277,6 +368,6 @@ pub fn convert_syn_region_to_span<'a>(
 
 fn convert_syn_color_to_ratatui_color(
     color: syntect::highlighting::Color,
-) -> ratatui::style::Color {
-    ratatui::style::Color::Rgb(color.r, color.g, color.b)
+) -> Color {
+    Color::Rgb(color.r, color.g, color.b)
 }

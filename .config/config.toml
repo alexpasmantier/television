@@ -8,13 +8,13 @@ ctrl-d = "ScrollPreviewHalfPageDown"
 ctrl-u = "ScrollPreviewHalfPageUp"
 enter = "SelectEntry"
 ctrl-enter = "SendToChannel"
-ctrl-s = "ToggleChannelSelection"
+ctrl-s = "ToggleRemoteControl"
 
-[keybindings.Guide]
+[keybindings.RemoteControl]
 esc = "Quit"
 down = "SelectNextEntry"
 up = "SelectPrevEntry"
 ctrl-n = "SelectNextEntry"
 ctrl-p = "SelectPrevEntry"
 enter = "SelectEntry"
-ctrl-s = "ToggleChannelSelection"
+ctrl-s = "ToggleRemoteControl"

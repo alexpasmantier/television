@@ -1,3 +1,17 @@
+use crate::channels::OnAir;
+use crate::television::Television;
+use crate::ui::get_border_style;
+use crate::ui::layout::Layout;
+use color_eyre::eyre::Result;
+use ratatui::layout::{
+    Alignment, Constraint, Direction, Layout as RatatuiLayout,
+};
+use ratatui::prelude::{Span, Style};
+use ratatui::style::Stylize;
+use ratatui::text::Line;
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
+use ratatui::Frame;
+
 pub mod actions;
 pub mod backend;
 
@@ -332,12 +346,12 @@ impl Input {
         self.value.as_str()
     }
 
-    /// Get the currect cursor placement.
+    /// Get the correct cursor placement.
     pub fn cursor(&self) -> usize {
         self.cursor
     }
 
-    /// Get the current cursor position with account for multispace characters.
+    /// Get the current cursor position with account for multi space characters.
     pub fn visual_cursor(&self) -> usize {
         if self.cursor == 0 {
             return 0;
@@ -355,7 +369,7 @@ impl Input {
         })
     }
 
-    /// Get the scroll position with account for multispace characters.
+    /// Get the scroll position with account for multi space characters.
     pub fn visual_scroll(&self, width: usize) -> usize {
         let scroll = self.visual_cursor().max(width) - width;
         let mut uscroll = 0;
@@ -398,9 +412,113 @@ impl std::fmt::Display for Input {
     }
 }
 
+impl Television {
+    pub(crate) fn draw_input_box(
+        &mut self,
+        f: &mut Frame,
+        layout: &Layout,
+    ) -> Result<()> {
+        let input_block = Block::default()
+            .title_top(Line::from(" Pattern ").alignment(Alignment::Center))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(get_border_style(false))
+            .style(Style::default());
+
+        let input_block_inner = input_block.inner(layout.input);
+
+        f.render_widget(input_block, layout.input);
+
+        // split input block into 4 parts: prompt symbol, input, result count, spinner
+        let total_count = self.channel.total_count();
+        let inner_input_chunks = RatatuiLayout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                // prompt symbol
+                Constraint::Length(2),
+                // input field
+                Constraint::Fill(1),
+                // result count
+                Constraint::Length(
+                    3 * ((total_count as f32).log10().ceil() as u16 + 1) + 3,
+                ),
+                // spinner
+                Constraint::Length(1),
+            ])
+            .split(input_block_inner);
+
+        let arrow_block = Block::default();
+        let arrow = Paragraph::new(Span::styled(
+            "> ",
+            Style::default()
+                .fg(crate::television::DEFAULT_INPUT_FG)
+                .bold(),
+        ))
+        .block(arrow_block);
+        f.render_widget(arrow, inner_input_chunks[0]);
+
+        let interactive_input_block = Block::default();
+        // keep 2 for borders and 1 for cursor
+        let width = inner_input_chunks[1].width.max(3) - 3;
+        let scroll = self.results_picker.input.visual_scroll(width as usize);
+        let input = Paragraph::new(self.results_picker.input.value())
+            .scroll((0, u16::try_from(scroll)?))
+            .block(interactive_input_block)
+            .style(
+                Style::default()
+                    .fg(crate::television::DEFAULT_INPUT_FG)
+                    .bold()
+                    .italic(),
+            )
+            .alignment(Alignment::Left);
+        f.render_widget(input, inner_input_chunks[1]);
+
+        if self.channel.running() {
+            f.render_stateful_widget(
+                self.spinner,
+                inner_input_chunks[3],
+                &mut self.spinner_state,
+            );
+        }
+
+        let result_count = self.channel.result_count();
+        let result_count_block = Block::default();
+        let result_count_paragraph = Paragraph::new(Span::styled(
+            format!(
+                " {} / {} ",
+                if result_count == 0 {
+                    0
+                } else {
+                    self.results_picker.selected().unwrap_or(0) + 1
+                },
+                result_count,
+            ),
+            Style::default()
+                .fg(crate::television::DEFAULT_RESULTS_COUNT_FG)
+                .italic(),
+        ))
+        .block(result_count_block)
+        .alignment(Alignment::Right);
+        f.render_widget(result_count_paragraph, inner_input_chunks[2]);
+
+        // Make the cursor visible and ask tui-rs to put it at the
+        // specified coordinates after rendering
+        f.set_cursor_position((
+            // Put cursor past the end of the input text
+            inner_input_chunks[1].x
+                + u16::try_from(
+                    self.results_picker.input.visual_cursor().max(scroll)
+                        - scroll,
+                )?,
+            // Move one line down, from the border to the input line
+            inner_input_chunks[1].y,
+        ));
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
-
     const TEXT: &str = "first second, third.";
 
     use super::*;

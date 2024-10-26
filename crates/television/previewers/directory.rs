@@ -85,7 +85,7 @@ fn tree<P: AsRef<Path>>(
         .build();
     let mut level_entry_count: u8 = 0;
 
-    for path in w.skip(1).filter_map(std::result::Result::ok) {
+    for path in w.skip(1).filter_map(Result::ok) {
         let m = path.metadata().unwrap();
         if m.is_dir() && max_depth > 1 {
             root.push(tree(

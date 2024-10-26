@@ -154,7 +154,7 @@ impl EventLoop {
         let (tx, rx) = mpsc::unbounded_channel();
         let tx_c = tx.clone();
         let tick_interval =
-            tokio::time::Duration::from_secs_f64(1.0 / tick_rate);
+            Duration::from_secs_f64(1.0 / tick_rate);
 
         let (abort, mut abort_recv) = mpsc::unbounded_channel();
 

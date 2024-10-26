@@ -91,14 +91,6 @@ impl OnAir for Channel {
         }
     }
 
-    fn result_count(&self) -> u32 {
-        self.result_count
-    }
-
-    fn total_count(&self) -> u32 {
-        self.total_count
-    }
-
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         let status = self.matcher.tick(Self::MATCHER_TICK_TIMEOUT);
         let snapshot = self.matcher.snapshot();
@@ -155,6 +147,14 @@ impl OnAir for Channel {
                 .with_icon(FileIcon::from(item.data.path.as_path()))
                 .with_line_number(item.data.line_number)
         })
+    }
+
+    fn result_count(&self) -> u32 {
+        self.result_count
+    }
+
+    fn total_count(&self) -> u32 {
+        self.total_count
     }
 
     fn running(&self) -> bool {
@@ -219,9 +219,9 @@ async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
                                 Ok(bytes_read) => {
                                     if (bytes_read == 0)
                                         || is_not_text(&buffer)
-                                            .unwrap_or(false)
+                                        .unwrap_or(false)
                                         || proportion_of_printable_ascii_characters(&buffer)
-                                            < PRINTABLE_ASCII_THRESHOLD
+                                        < PRINTABLE_ASCII_THRESHOLD
                                     {
                                         return ignore::WalkState::Continue;
                                     }

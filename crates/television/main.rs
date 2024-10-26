@@ -19,6 +19,7 @@ mod errors;
 mod event;
 mod fuzzy;
 mod logging;
+mod picker;
 mod previewers;
 mod render;
 mod television;
@@ -28,8 +29,8 @@ mod utils;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
-    crate::errors::init()?;
-    crate::logging::init()?;
+    errors::init()?;
+    logging::init()?;
 
     let args = Cli::parse();
 
