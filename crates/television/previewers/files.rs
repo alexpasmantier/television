@@ -165,7 +165,9 @@ impl FilePreviewer {
                 entry_c.name
             );
             let lines: Vec<String> =
-                reader.lines().map_while(Result::ok).collect();
+                reader.lines().map_while(Result::ok).map(
+                    |line| preprocess_line(&line),
+                ).collect();
 
             match syntax::compute_highlights_for_path(
                 &PathBuf::from(&entry_c.name),

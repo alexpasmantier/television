@@ -2,7 +2,8 @@ use crate::channels::OnAir;
 use crate::television::Television;
 use crate::ui::get_border_style;
 use crate::ui::logo::build_remote_logo_paragraph;
-use crate::ui::results::build_results_list;
+use crate::ui::mode::mode_color;
+use crate::ui::results::{build_results_list, ResultsListColors};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
@@ -32,7 +33,7 @@ impl Television {
             .split(*area);
         self.draw_rc_channels(f, &layout[0])?;
         self.draw_rc_input(f, &layout[1])?;
-        draw_rc_logo(f, layout[2]);
+        draw_rc_logo(f, layout[2], mode_color(self.mode));
         Ok(())
     }
 
@@ -56,7 +57,7 @@ impl Television {
         );
 
         let channel_list =
-            build_results_list(rc_block, &entries, ListDirection::TopToBottom);
+            build_results_list(rc_block, &entries, ListDirection::TopToBottom, Some(ResultsListColors::default().result_name_fg(mode_color(self.mode))));
 
         f.render_stateful_widget(
             channel_list,
@@ -132,12 +133,9 @@ impl Television {
     }
 }
 
-fn draw_rc_logo(f: &mut Frame, area: Rect) {
+fn draw_rc_logo(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
-        // .borders(Borders::ALL)
-        // .border_type(BorderType::Rounded)
-        // .border_style(Style::default().fg(Color::Blue))
-        .style(Style::default().fg(Color::Yellow));
+        .style(Style::default().fg(color));
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

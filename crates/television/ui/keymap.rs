@@ -7,6 +7,7 @@ use ratatui::{
 };
 use std::collections::HashMap;
 
+use crate::ui::mode::mode_color;
 use crate::{
     action::Action,
     event::Key,
@@ -14,7 +15,6 @@ use crate::{
 };
 
 const ACTION_COLOR: Color = Color::DarkGray;
-const KEY_COLOR: Color = Color::LightYellow;
 
 impl Television {
     pub fn build_keymap_table<'a>(&self) -> Result<Table<'a>> {
@@ -29,6 +29,7 @@ impl Television {
 
     fn build_keymap_table_for_channel<'a>(&self) -> Result<Table<'a>> {
         let keymap = self.keymap_for_mode()?;
+        let key_color = mode_color(self.mode);
 
         // Results navigation
         let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
@@ -36,6 +37,7 @@ impl Television {
         let results_row = Row::new(build_cells_for_key_groups(
             "↕ Results navigation",
             vec![prev, next],
+            key_color,
         ));
 
         // Preview navigation
@@ -46,6 +48,7 @@ impl Television {
         let preview_row = Row::new(build_cells_for_key_groups(
             "↕ Preview navigation",
             vec![up_keys, down_keys],
+            key_color,
         ));
 
         // Select entry
@@ -53,6 +56,7 @@ impl Television {
         let select_entry_row = Row::new(build_cells_for_key_groups(
             "✓ Select entry",
             vec![select_entry_keys],
+            key_color,
         ));
 
         // Send to channel
@@ -61,21 +65,23 @@ impl Television {
         let send_to_channel_row = Row::new(build_cells_for_key_groups(
             "⇉ Send results to",
             vec![send_to_channel_keys],
+            key_color,
         ));
 
         // Switch channels
         let switch_channels_keys =
             keys_for_action(keymap, &Action::ToggleRemoteControl);
         let switch_channels_row = Row::new(build_cells_for_key_groups(
-            "⨀ Remote control",
+            "⨀ Toggle Remote control",
             vec![switch_channels_keys],
+            key_color,
         ));
 
         // MISC line (quit, help, etc.)
         // Quit ⏼
         let quit_keys = keys_for_action(keymap, &Action::Quit);
         let quit_row =
-            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys]));
+            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys], key_color));
 
         let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
 
@@ -96,34 +102,38 @@ impl Television {
         &self,
     ) -> Result<Table<'a>> {
         let keymap = self.keymap_for_mode()?;
+        let key_color = mode_color(self.mode);
 
         // Results navigation
         let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
         let next = keys_for_action(keymap, &Action::SelectNextEntry);
         let results_row = Row::new(build_cells_for_key_groups(
-            "↕ Results",
+            "↕ Browse channels",
             vec![prev, next],
+            key_color,
         ));
 
         // Select entry
         let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
         let select_entry_row = Row::new(build_cells_for_key_groups(
-            "Select entry",
+            "✓ Select channel",
             vec![select_entry_keys],
+            key_color,
         ));
 
         // Switch channels
         let switch_channels_keys =
             keys_for_action(keymap, &Action::ToggleRemoteControl);
         let switch_channels_row = Row::new(build_cells_for_key_groups(
-            "Switch channels",
+            "⨀ Toggle Remote control",
             vec![switch_channels_keys],
+            key_color,
         ));
 
         // Quit
         let quit_keys = keys_for_action(keymap, &Action::Quit);
         let quit_row =
-            Row::new(build_cells_for_key_groups("Quit", vec![quit_keys]));
+            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys], key_color));
 
         Ok(Table::new(
             vec![results_row, select_entry_row, switch_channels_row, quit_row],
@@ -173,6 +183,7 @@ impl Television {
 fn build_cells_for_key_groups(
     group_name: &str,
     key_groups: Vec<Vec<String>>,
+    key_color: Color,
 ) -> Vec<Cell> {
     if key_groups.is_empty() || key_groups.iter().all(Vec::is_empty)
     {
@@ -190,13 +201,13 @@ fn build_cells_for_key_groups(
     let key_group_spans: Vec<Span> = non_empty_groups
         .map(|keys| {
             let key_group = keys.join(", ");
-            Span::styled(key_group, Style::default().fg(KEY_COLOR))
+            Span::styled(key_group, Style::default().fg(key_color))
         })
         .collect();
     key_group_spans.iter().enumerate().for_each(|(i, span)| {
         spans.push(span.clone());
         if i < key_group_spans.len() - 1 {
-            spans.push(Span::styled(" / ", Style::default().fg(KEY_COLOR)));
+            spans.push(Span::styled(" / ", Style::default().fg(key_color)));
         }
     });
 

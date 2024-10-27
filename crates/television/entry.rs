@@ -1,6 +1,7 @@
 use devicons::FileIcon;
 
 use crate::previewers::PreviewType;
+use crate::utils::strings::preprocess_line;
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Entry {
@@ -17,7 +18,7 @@ pub struct Entry {
 impl Entry {
     pub fn new(name: String, preview_type: PreviewType) -> Self {
         Self {
-            name,
+            name: preprocess_line(&name),
             display_name: None,
             value: None,
             name_match_ranges: None,
@@ -29,12 +30,12 @@ impl Entry {
     }
 
     pub fn with_display_name(mut self, display_name: String) -> Self {
-        self.display_name = Some(display_name);
+        self.display_name = Some(preprocess_line(&display_name));
         self
     }
 
     pub fn with_value(mut self, value: String) -> Self {
-        self.value = Some(value);
+        self.value = Some(preprocess_line(&value));
         self
     }
 

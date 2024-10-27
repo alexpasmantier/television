@@ -4,11 +4,11 @@ use std::{io::BufRead, sync::Arc};
 use devicons::FileIcon;
 use nucleo::{Config, Nucleo};
 
+use super::OnAir;
 use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
-
-use super::OnAir;
+use crate::utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Nucleo<String>,
@@ -25,7 +25,7 @@ impl Channel {
     pub fn new() -> Self {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
-            lines.push(line);
+            lines.push(preprocess_line(&line));
         }
         let matcher = Nucleo::new(
             Config::DEFAULT,

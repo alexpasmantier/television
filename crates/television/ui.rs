@@ -10,6 +10,7 @@ pub mod preview;
 mod remote_control;
 pub mod results;
 pub mod spinner;
+mod mode;
 //  input
 //const DEFAULT_INPUT_FG: Color = Color::Rgb(200, 200, 200);
 //const DEFAULT_RESULTS_COUNT_FG: Color = Color::Rgb(150, 150, 150);

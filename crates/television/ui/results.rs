@@ -19,14 +19,56 @@ const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
 
+pub struct ResultsListColors {
+    pub result_name_fg: Color,
+    pub result_preview_fg: Color,
+    pub result_line_number_fg: Color,
+    pub result_selected_bg: Color,
+}
+
+impl Default for ResultsListColors {
+    fn default() -> Self {
+        Self {
+            result_name_fg: DEFAULT_RESULT_NAME_FG,
+            result_preview_fg: DEFAULT_RESULT_PREVIEW_FG,
+            result_line_number_fg: DEFAULT_RESULT_LINE_NUMBER_FG,
+            result_selected_bg: DEFAULT_RESULT_SELECTED_BG,
+        }
+    }
+}
+
+impl ResultsListColors {
+    pub fn result_name_fg(mut self, color: Color) -> Self {
+        self.result_name_fg = color;
+        self
+    }
+
+    pub fn result_preview_fg(mut self, color: Color) -> Self {
+        self.result_preview_fg = color;
+        self
+    }
+
+    pub fn result_line_number_fg(mut self, color: Color) -> Self {
+        self.result_line_number_fg = color;
+        self
+    }
+
+    pub fn result_selected_bg(mut self, color: Color) -> Self {
+        self.result_selected_bg = color;
+        self
+    }
+}
+
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
     list_direction: ListDirection,
+    results_list_colors: Option<ResultsListColors>,
 ) -> List<'a>
 where
     'b: 'a,
 {
+    let results_list_colors = results_list_colors.unwrap_or_default();
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
         // optional icon
@@ -50,7 +92,7 @@ where
                         last_match_end,
                         start,
                     ),
-                    Style::default().fg(DEFAULT_RESULT_NAME_FG),
+                    Style::default().fg(results_list_colors.result_name_fg),
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&entry.name, start, end),
@@ -60,19 +102,19 @@ where
             }
             spans.push(Span::styled(
                 &entry.name[next_char_boundary(&entry.name, last_match_end)..],
-                Style::default().fg(DEFAULT_RESULT_NAME_FG),
+                Style::default().fg(results_list_colors.result_name_fg),
             ));
         } else {
             spans.push(Span::styled(
                 entry.display_name(),
-                Style::default().fg(DEFAULT_RESULT_NAME_FG),
+                Style::default().fg(results_list_colors.result_name_fg),
             ));
         }
         // optional line number
         if let Some(line_number) = entry.line_number {
             spans.push(Span::styled(
                 format!(":{line_number}"),
-                Style::default().fg(DEFAULT_RESULT_LINE_NUMBER_FG),
+                Style::default().fg(results_list_colors.result_line_number_fg),
             ));
         }
         // optional preview
@@ -92,7 +134,7 @@ where
                                 last_match_end,
                                 start,
                             ),
-                            Style::default().fg(DEFAULT_RESULT_PREVIEW_FG),
+                            Style::default().fg(results_list_colors.result_preview_fg),
                         ));
                         spans.push(Span::styled(
                             slice_at_char_boundaries(preview, start, end),
@@ -105,22 +147,22 @@ where
                             preview,
                             preview_match_ranges.last().unwrap().1 as usize,
                         )..],
-                        Style::default().fg(DEFAULT_RESULT_PREVIEW_FG),
+                        Style::default().fg(results_list_colors.result_preview_fg),
                     ));
                 }
             } else {
                 spans.push(Span::styled(
                     preview,
-                    Style::default().fg(DEFAULT_RESULT_PREVIEW_FG),
+                    Style::default().fg(results_list_colors.result_preview_fg),
                 ));
             }
         }
         Line::from(spans)
     }))
-    .direction(list_direction)
-    .highlight_style(Style::default().bg(DEFAULT_RESULT_SELECTED_BG))
-    .highlight_symbol("> ")
-    .block(results_block)
+        .direction(list_direction)
+        .highlight_style(Style::default().bg(results_list_colors.result_selected_bg))
+        .highlight_symbol("> ")
+        .block(results_block)
 }
 
 impl Television {
@@ -152,6 +194,7 @@ impl Television {
             results_block,
             &entries,
             ListDirection::BottomToTop,
+            None,
         );
 
         f.render_stateful_widget(

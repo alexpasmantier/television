@@ -1,15 +1,11 @@
 use devicons::FileIcon;
-use ignore::{overrides::OverrideBuilder, DirEntry};
+use ignore::overrides::OverrideBuilder;
 use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Nucleo,
 };
-use parking_lot::Mutex;
-use std::{collections::HashSet, path::PathBuf, sync::Arc};
-use tokio::{
-    sync::{oneshot, watch},
-    task::JoinHandle,
-};
+use std::{path::PathBuf, sync::Arc};
+use tokio::task::JoinHandle;
 use tracing::debug;
 
 use crate::{
@@ -20,18 +16,16 @@ use crate::{
 };
 
 use crate::channels::OnAir;
+use crate::utils::strings::preprocess_line;
 
 pub struct Channel {
-    matcher: Nucleo<DirEntry>,
+    matcher: Nucleo<String>,
     last_pattern: String,
     result_count: u32,
     total_count: u32,
     running: bool,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
-    git_dirs_cache: Arc<Mutex<HashSet<String>>>,
-    // TODO: implement cache validation/invalidation
-    cache_valid: Arc<Mutex<bool>>,
 }
 
 impl Channel {
@@ -42,15 +36,9 @@ impl Channel {
             None,
             1,
         );
-        let entry_cache = Arc::new(Mutex::new(HashSet::new()));
-        let cache_valid = Arc::new(Mutex::new(false));
-        // start loading files in the background
-        // PERF: store the results somewhere in a cache
         let crawl_handle = tokio::spawn(crawl_for_repos(
             std::env::home_dir().expect("Could not get home directory"),
             matcher.injector(),
-            entry_cache.clone(),
-            cache_valid.clone(),
         ));
         Channel {
             matcher,
@@ -60,8 +48,6 @@ impl Channel {
             running: false,
             icon: FileIcon::from("git"),
             crawl_handle,
-            git_dirs_cache: entry_cache,
-            cache_valid,
         }
     }
 
@@ -201,9 +187,7 @@ fn get_ignored_paths() -> Vec<PathBuf> {
 #[allow(clippy::unused_async)]
 async fn crawl_for_repos(
     starting_point: PathBuf,
-    injector: nucleo::Injector<DirEntry>,
-    entry_cache: Arc<Mutex<HashSet<String>>>,
-    cache_valid: Arc<Mutex<bool>>,
+    injector: nucleo::Injector<String>,
 ) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
@@ -217,29 +201,20 @@ async fn crawl_for_repos(
 
     walker.run(|| {
         let injector = injector.clone();
-        let entry_cache = entry_cache.clone();
         Box::new(move |result| {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_dir() {
-                    // if the dir is already in cache, skip it
-                    let path = entry.path().to_string_lossy().to_string();
-                    if entry_cache.lock().contains(&path) {
-                        return ignore::WalkState::Skip;
-                    }
-                    // if the entry is a .git directory, add its parent to the list
-                    // of git repos and cache it
+                    // if the entry is a .git directory, add its parent to the list of git repos
                     if entry.path().ends_with(".git") {
-                        let parent_path = entry
+                        let parent_path = preprocess_line(&*entry
                             .path()
                             .parent()
                             .unwrap()
-                            .to_string_lossy()
-                            .to_string();
+                            .to_string_lossy());
                         debug!("Found git repo: {:?}", parent_path);
-                        let _ = injector.push(entry, |_e, cols| {
-                            cols[0] = parent_path.clone().into();
+                        let _ = injector.push(parent_path, |e, cols| {
+                            cols[0] = e.clone().into();
                         });
-                        entry_cache.lock().insert(parent_path);
                         return ignore::WalkState::Skip;
                     }
                 }
@@ -247,6 +222,4 @@ async fn crawl_for_repos(
             ignore::WalkState::Continue
         })
     });
-
-    *cache_valid.lock() = true;
 }

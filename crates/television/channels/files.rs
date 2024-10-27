@@ -3,20 +3,17 @@ use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Injector, Nucleo,
 };
-use std::{os::unix::ffi::OsStrExt, path::PathBuf, sync::Arc};
-
-use ignore::DirEntry;
+use std::{path::PathBuf, sync::Arc};
 
 use super::{OnAir, TelevisionChannel};
+use crate::entry::Entry;
+use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
-use crate::{
-    entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
-};
-use crate::{fuzzy::MATCHER, utils::strings::PRINTABLE_ASCII_THRESHOLD};
+use crate::utils::strings::preprocess_line;
 
 pub struct Channel {
-    matcher: Nucleo<DirEntry>,
+    matcher: Nucleo<String>,
     last_pattern: String,
     result_count: u32,
     total_count: u32,
@@ -101,7 +98,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -150,7 +147,7 @@ impl OnAir for Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_files(paths: Vec<PathBuf>, injector: Injector<DirEntry>) {
+async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
     if paths.is_empty() {
         return;
     }
@@ -168,20 +165,9 @@ async fn load_files(paths: Vec<PathBuf>, injector: Injector<DirEntry>) {
         Box::new(move |result| {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
-                    let file_name = entry.file_name();
-                    if proportion_of_printable_ascii_characters(
-                        file_name.as_bytes(),
-                    ) < PRINTABLE_ASCII_THRESHOLD
-                    {
-                        return ignore::WalkState::Continue;
-                    }
-                    let _ = injector.push(entry, |e, cols| {
-                        cols[0] = e
-                            .path()
-                            .strip_prefix(&current_dir)
-                            .unwrap()
-                            .to_string_lossy()
-                            .into();
+                    let file_path = preprocess_line(&*entry.path().strip_prefix(&current_dir).unwrap().to_string_lossy());
+                    let _ = injector.push(file_path, |e, cols| {
+                        cols[0] = e.clone().into();
                     });
                 }
             }

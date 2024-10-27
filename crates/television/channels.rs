@@ -85,12 +85,24 @@ pub trait OnAir: Send {
 /// implement the `OnAir` trait for it.
 ///
 /// # Derive
+/// ## `CliChannel`
 /// The `CliChannel` derive macro generates the necessary glue code to
 /// automatically create the corresponding `CliTvChannel` enum with unit
 /// variants that can be used to select the channel from the command line.
 /// It also generates the necessary glue code to automatically create a channel
 /// instance from the selected CLI enum variant.
 ///
+/// ## `Broadcast`
+/// The `Broadcast` derive macro generates the necessary glue code to
+/// automatically forward method calls to the corresponding channel variant.
+/// This allows to use the `OnAir` trait methods directly on the `TelevisionChannel`
+/// enum. In a more straightforward way, it implements the `OnAir` trait for the
+/// `TelevisionChannel` enum.
+///
+/// ## `UnitChannel`
+/// This macro generates an enum with unit variants that can be used instead
+/// of carrying the actual channel instances around. It also generates the necessary
+/// glue code to automatically create a channel instance from the selected enum variant.
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(UnitChannel, CliChannel, Broadcast)]
 pub enum TelevisionChannel {
@@ -113,6 +125,7 @@ pub enum TelevisionChannel {
     /// The standard input channel.
     ///
     /// This channel allows to search through whatever is passed through stdin.
+    #[exclude_from_cli]
     Stdin(stdin::Channel),
     /// The alias channel.
     ///
@@ -121,6 +134,7 @@ pub enum TelevisionChannel {
     /// The remote control channel.
     ///
     /// This channel allows to switch between different channels.
+    #[exclude_from_cli]
     RemoteControl(remote_control::RemoteControl),
 }
 

@@ -22,7 +22,10 @@ use quote::quote;
 /// ```
 ///
 /// The `CliChannel` enum is used to select channels from the command line.
-#[proc_macro_derive(CliChannel)]
+///
+/// Any variant that should not be included in the CLI should be annotated with
+/// `#[exclude_from_cli]`.
+#[proc_macro_derive(CliChannel, attributes(exclude_from_cli))]
 pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -32,8 +35,9 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     impl_cli_channel(&ast)
 }
 
-/// List of variant names that should be ignored when generating the CliTvChannel enum.
-const VARIANT_BLACKLIST: [&str; 2] = ["Stdin", "RemoteControl"];
+fn has_exclude_attr(attrs: &[syn::Attribute]) -> bool {
+    attrs.iter().any(|attr| attr.path().is_ident("exclude_from_cli"))
+}
 
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // check that the struct is an enum
@@ -52,7 +56,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // create the CliTvChannel enum
     let cli_enum_variants = variants
         .iter()
-        .filter(|v| !VARIANT_BLACKLIST.contains(&v.ident.to_string().as_str()))
+        .filter(|variant| !has_exclude_attr(&variant.attrs))
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
@@ -74,7 +78,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
 
     // Generate the match arms for the `to_channel` method
     let arms = variants.iter().filter(
-        |variant| !VARIANT_BLACKLIST.contains(&variant.ident.to_string().as_str()),
+        |variant| !has_exclude_attr(&variant.attrs)
     ).map(|variant| {
         let variant_name = &variant.ident;
 

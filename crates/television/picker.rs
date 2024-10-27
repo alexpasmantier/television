@@ -86,7 +86,7 @@ impl Picker {
             }
         } else {
             self.view_offset = total_items.saturating_sub(height - 2);
-            self.select(Some((total_items).saturating_sub(1)));
+            self.select(Some(total_items.saturating_sub(1)));
             self.relative_select(Some(height - 3));
         }
     }

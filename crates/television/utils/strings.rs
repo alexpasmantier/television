@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use std::fmt::Write;
+use tracing::debug;
 
 pub fn next_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
@@ -53,7 +54,6 @@ lazy_static! {
 }
 
 pub const EMPTY_STRING: &str = "";
-pub const FOUR_SPACES: &str = "    ";
 pub const TAB_WIDTH: usize = 4;
 
 const SPACE_CHARACTER: char = ' ';
@@ -78,11 +78,12 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                 // space
                 SPACE_CHARACTER => output.push(' '),
                 // tab
-                TAB_CHARACTER => output.push_str(&" ".repeat(tab_width)),
-                // line feed
-                LINE_FEED_CHARACTER => {
-                    output.push_str("␊\x0A");
+                TAB_CHARACTER => {
+                    output.push_str(&" ".repeat(tab_width));
                 }
+                // line feed
+                LINE_FEED_CHARACTER => {}
+
                 // ASCII control characters from 0x00 to 0x1F
                 // + control characters from \u{007F} to \u{009F}
                 NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
@@ -91,12 +92,15 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                 }
                 // don't print BOMs
                 BOM_CHARACTER => {}
-                // unicode characters above 0x0700 seem unstable with ratatui
+                // Unicode characters above 0x0700 seem unstable with ratatui
                 c if c > '\u{0700}' => {
                     output.push(*NULL_SYMBOL);
                 }
                 // everything else
-                c => output.push(c),
+                c => {
+                    debug!("char: {:?}", c);
+                    output.push(c)
+                }
             }
         } else {
             write!(output, "\\x{:02X}", input[idx]).ok();
@@ -123,7 +127,7 @@ pub fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
     printable as f32 / buffer.len() as f32
 }
 
-const MAX_LINE_LENGTH: usize = 500;
+const MAX_LINE_LENGTH: usize = 300;
 
 pub fn preprocess_line(line: &str) -> String {
     replace_nonprintable(
@@ -134,8 +138,8 @@ pub fn preprocess_line(line: &str) -> String {
                 line
             }
         }
-        .trim_end_matches(['\r', '\n', '\0'])
-        .as_bytes(),
+            .trim_end_matches(['\r', '\n', '\0'])
+            .as_bytes(),
         TAB_WIDTH,
     )
 }
@@ -169,11 +173,16 @@ mod tests {
     #[test]
     fn test_replace_nonprintable_tab() {
         test_replace_nonprintable("Hello\tWorld!", "Hello  World!");
+        test_replace_nonprintable(
+            "	-- AND
+",
+            "  -- AND",
+        )
     }
 
     #[test]
     fn test_replace_nonprintable_line_feed() {
-        test_replace_nonprintable("Hello\nWorld!", "Hello␊\nWorld!");
+        test_replace_nonprintable("Hello\nWorld!", "HelloWorld!");
     }
 
     #[test]

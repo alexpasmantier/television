@@ -108,8 +108,8 @@ impl Television {
     }
 
     #[must_use]
-    pub fn get_selected_entry(&mut self) -> Option<Entry> {
-        match self.mode {
+    pub fn get_selected_entry(&mut self, mode: Option<Mode>) -> Option<Entry> {
+        match mode.unwrap_or(self.mode) {
             Mode::Channel => self.results_picker.selected().and_then(|i| {
                 self.channel.get_result(u32::try_from(i).unwrap())
             }),
@@ -298,7 +298,7 @@ impl Television {
                 Mode::SendToChannel => {}
             },
             Action::SelectEntry => {
-                if let Some(entry) = self.get_selected_entry() {
+                if let Some(entry) = self.get_selected_entry(None) {
                     match self.mode {
                         Mode::Channel => self
                             .action_tx
@@ -378,7 +378,7 @@ impl Television {
         self.draw_input_box(f, &layout)?;
 
         let selected_entry =
-            self.get_selected_entry().unwrap_or(ENTRY_PLACEHOLDER);
+            self.get_selected_entry(Some(Mode::Channel)).unwrap_or(ENTRY_PLACEHOLDER);
         let preview = block_on(self.previewer.preview(&selected_entry));
 
         // top right block: preview title

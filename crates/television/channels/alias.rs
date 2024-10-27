@@ -9,6 +9,7 @@ use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::indices::sep_name_and_value_indices;
+use crate::utils::strings::preprocess_line;
 
 #[derive(Debug, Clone)]
 struct Alias {
@@ -217,8 +218,8 @@ async fn load_aliases(injector: Injector<Alias>) {
             if let Some(name) = parts.next() {
                 if let Some(value) = parts.next() {
                     return Some(Alias::new(
-                        name.to_string(),
-                        value.to_string(),
+                        preprocess_line(name),
+                        preprocess_line(value),
                     ));
                 }
             }

@@ -1,17 +1,18 @@
 use crate::television::Television;
 use crate::ui::layout::Layout;
 use crate::ui::logo::build_logo_paragraph;
+use crate::ui::mode::mode_color;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, BorderType, Borders, Padding};
 use ratatui::Frame;
 
-pub fn draw_logo_block(f: &mut Frame, area: Rect) {
+pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(Color::Blue))
-        .style(Style::default().fg(Color::Yellow))
+        .style(Style::default().fg(color))
         .padding(Padding::horizontal(1));
 
     let logo_paragraph = build_logo_paragraph().block(logo_block);
@@ -27,7 +28,7 @@ impl Television {
     ) -> color_eyre::Result<()> {
         self.draw_metadata_block(f, layout.help_bar_left);
         self.draw_keymaps_block(f, layout.help_bar_middle)?;
-        draw_logo_block(f, layout.help_bar_right);
+        draw_logo_block(f, layout.help_bar_right, mode_color(self.mode));
         Ok(())
     }
 
