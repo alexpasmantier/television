@@ -90,7 +90,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                    .min(snapshot.matched_item_count()),
+                        .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -197,7 +197,7 @@ async fn crawl_for_repos(
         Some(walker_overrides_builder.build().unwrap()),
         Some(get_ignored_paths()),
     )
-        .build_parallel();
+    .build_parallel();
 
     walker.run(|| {
         let injector = injector.clone();
@@ -206,11 +206,9 @@ async fn crawl_for_repos(
                 if entry.file_type().unwrap().is_dir() {
                     // if the entry is a .git directory, add its parent to the list of git repos
                     if entry.path().ends_with(".git") {
-                        let parent_path = preprocess_line(&*entry
-                            .path()
-                            .parent()
-                            .unwrap()
-                            .to_string_lossy());
+                        let parent_path = preprocess_line(
+                            &*entry.path().parent().unwrap().to_string_lossy(),
+                        );
                         debug!("Found git repo: {:?}", parent_path);
                         let _ = injector.push(parent_path, |e, cols| {
                             cols[0] = e.clone().into();

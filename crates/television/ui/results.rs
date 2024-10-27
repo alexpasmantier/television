@@ -134,7 +134,8 @@ where
                                 last_match_end,
                                 start,
                             ),
-                            Style::default().fg(results_list_colors.result_preview_fg),
+                            Style::default()
+                                .fg(results_list_colors.result_preview_fg),
                         ));
                         spans.push(Span::styled(
                             slice_at_char_boundaries(preview, start, end),
@@ -147,7 +148,8 @@ where
                             preview,
                             preview_match_ranges.last().unwrap().1 as usize,
                         )..],
-                        Style::default().fg(results_list_colors.result_preview_fg),
+                        Style::default()
+                            .fg(results_list_colors.result_preview_fg),
                     ));
                 }
             } else {
@@ -159,10 +161,12 @@ where
         }
         Line::from(spans)
     }))
-        .direction(list_direction)
-        .highlight_style(Style::default().bg(results_list_colors.result_selected_bg))
-        .highlight_symbol("> ")
-        .block(results_block)
+    .direction(list_direction)
+    .highlight_style(
+        Style::default().bg(results_list_colors.result_selected_bg),
+    )
+    .highlight_symbol("> ")
+    .block(results_block)
 }
 
 impl Television {

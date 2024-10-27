@@ -8,7 +8,6 @@ use ratatui::{
 use crate::television::Television;
 use crate::ui::mode::mode_color;
 
-
 const METADATA_FIELD_NAME_COLOR: Color = Color::DarkGray;
 const METADATA_FIELD_VALUE_COLOR: Color = Color::Gray;
 

@@ -28,7 +28,7 @@ impl Television {
                     Constraint::Length(3),
                     Constraint::Length(20),
                 ]
-                    .as_ref(),
+                .as_ref(),
             )
             .split(*area);
         self.draw_rc_channels(f, &layout[0])?;
@@ -56,8 +56,15 @@ impl Television {
             u32::try_from(self.rc_picker.view_offset)?,
         );
 
-        let channel_list =
-            build_results_list(rc_block, &entries, ListDirection::TopToBottom, Some(ResultsListColors::default().result_name_fg(mode_color(self.mode))));
+        let channel_list = build_results_list(
+            rc_block,
+            &entries,
+            ListDirection::TopToBottom,
+            Some(
+                ResultsListColors::default()
+                    .result_name_fg(mode_color(self.mode)),
+            ),
+        );
 
         f.render_stateful_widget(
             channel_list,
@@ -99,7 +106,7 @@ impl Television {
                 .fg(crate::television::DEFAULT_INPUT_FG)
                 .bold(),
         ))
-            .block(prompt_symbol_block);
+        .block(prompt_symbol_block);
         f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -124,8 +131,8 @@ impl Television {
             // Put cursor past the end of the input text
             inner_input_chunks[1].x
                 + u16::try_from(
-                self.rc_picker.input.visual_cursor().max(scroll) - scroll,
-            )?,
+                    self.rc_picker.input.visual_cursor().max(scroll) - scroll,
+                )?,
             // Move one line down, from the border to the input line
             inner_input_chunks[1].y,
         ));
@@ -134,8 +141,7 @@ impl Television {
 }
 
 fn draw_rc_logo(f: &mut Frame, area: Rect, color: Color) {
-    let logo_block = Block::default()
-        .style(Style::default().fg(color));
+    let logo_block = Block::default().style(Style::default().fg(color));
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

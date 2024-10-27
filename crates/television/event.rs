@@ -153,8 +153,7 @@ impl EventLoop {
     pub fn new(tick_rate: f64, init: bool) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let tx_c = tx.clone();
-        let tick_interval =
-            Duration::from_secs_f64(1.0 / tick_rate);
+        let tick_interval = Duration::from_secs_f64(1.0 / tick_rate);
 
         let (abort, mut abort_recv) = mpsc::unbounded_channel();
 

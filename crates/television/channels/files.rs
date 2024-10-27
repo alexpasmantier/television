@@ -98,7 +98,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                    .min(snapshot.matched_item_count()),
+                        .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -165,7 +165,13 @@ async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
         Box::new(move |result| {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
-                    let file_path = preprocess_line(&*entry.path().strip_prefix(&current_dir).unwrap().to_string_lossy());
+                    let file_path = preprocess_line(
+                        &*entry
+                            .path()
+                            .strip_prefix(&current_dir)
+                            .unwrap()
+                            .to_string_lossy(),
+                    );
                     let _ = injector.push(file_path, |e, cols| {
                         cols[0] = e.clone().into();
                     });

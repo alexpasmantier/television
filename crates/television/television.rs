@@ -377,8 +377,9 @@ impl Television {
         // bottom left block: input
         self.draw_input_box(f, &layout)?;
 
-        let selected_entry =
-            self.get_selected_entry(Some(Mode::Channel)).unwrap_or(ENTRY_PLACEHOLDER);
+        let selected_entry = self
+            .get_selected_entry(Some(Mode::Channel))
+            .unwrap_or(ENTRY_PLACEHOLDER);
         let preview = block_on(self.previewer.preview(&selected_entry));
 
         // top right block: preview title

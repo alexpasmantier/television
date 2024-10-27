@@ -36,7 +36,9 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
 }
 
 fn has_exclude_attr(attrs: &[syn::Attribute]) -> bool {
-    attrs.iter().any(|attr| attr.path().is_ident("exclude_from_cli"))
+    attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("exclude_from_cli"))
 }
 
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {

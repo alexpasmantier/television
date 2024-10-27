@@ -81,7 +81,7 @@ impl FilePreviewer {
                             entry.name.clone(),
                             preview.clone(),
                         )
-                            .await;
+                        .await;
 
                         // compute the highlighted version in the background
                         let mut reader =
@@ -164,10 +164,11 @@ impl FilePreviewer {
                 "Computing highlights in the background for {:?}",
                 entry_c.name
             );
-            let lines: Vec<String> =
-                reader.lines().map_while(Result::ok).map(
-                    |line| preprocess_line(&line),
-                ).collect();
+            let lines: Vec<String> = reader
+                .lines()
+                .map_while(Result::ok)
+                .map(|line| preprocess_line(&line))
+                .collect();
 
             match syntax::compute_highlights_for_path(
                 &PathBuf::from(&entry_c.name),
@@ -227,8 +228,8 @@ impl FilePreviewer {
                 if let Ok(bytes_read) = f.read(&mut buffer) {
                     if bytes_read > 0
                         && proportion_of_printable_ascii_characters(
-                        &buffer[..bytes_read],
-                    ) > PRINTABLE_ASCII_THRESHOLD
+                            &buffer[..bytes_read],
+                        ) > PRINTABLE_ASCII_THRESHOLD
                     {
                         file_type = FileType::Text;
                     }

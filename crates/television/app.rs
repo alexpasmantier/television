@@ -52,7 +52,6 @@
 */
 use std::sync::Arc;
 
-
 use color_eyre::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
@@ -133,7 +132,7 @@ impl App {
                 frame_rate,
                 is_output_tty,
             )
-                .await
+            .await
         });
 
         // event handling loop

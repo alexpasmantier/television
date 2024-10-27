@@ -51,10 +51,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
                 .output()
                 .expect("failed to execute process");
             let aliases = String::from_utf8(output.stdout).unwrap();
-            aliases
-                .lines()
-                .map(ToString::to_string)
-                .collect()
+            aliases.lines().map(ToString::to_string).collect()
         }
         "zsh" => {
             let output = std::process::Command::new("zsh")
@@ -64,10 +61,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
                 .output()
                 .expect("failed to execute process");
             let aliases = String::from_utf8(output.stdout).unwrap();
-            aliases
-                .lines()
-                .map(ToString::to_string)
-                .collect()
+            aliases.lines().map(ToString::to_string).collect()
         }
         // TODO: add more shells
         _ => Vec::new(),
@@ -134,7 +128,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                    .min(snapshot.matched_item_count()),
+                        .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(

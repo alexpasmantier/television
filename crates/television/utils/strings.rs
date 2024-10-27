@@ -138,8 +138,8 @@ pub fn preprocess_line(line: &str) -> String {
                 line
             }
         }
-            .trim_end_matches(['\r', '\n', '\0'])
-            .as_bytes(),
+        .trim_end_matches(['\r', '\n', '\0'])
+        .as_bytes(),
         TAB_WIDTH,
     )
 }
@@ -175,8 +175,7 @@ mod tests {
         test_replace_nonprintable("Hello\tWorld!", "Hello  World!");
         test_replace_nonprintable(
             "	-- AND
-",
-            "  -- AND",
+", "  -- AND",
         )
     }
 

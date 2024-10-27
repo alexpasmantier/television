@@ -80,8 +80,11 @@ impl Television {
         // MISC line (quit, help, etc.)
         // Quit ⏼
         let quit_keys = keys_for_action(keymap, &Action::Quit);
-        let quit_row =
-            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys], key_color));
+        let quit_row = Row::new(build_cells_for_key_groups(
+            "⏼ Quit",
+            vec![quit_keys],
+            key_color,
+        ));
 
         let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
 
@@ -132,8 +135,11 @@ impl Television {
 
         // Quit
         let quit_keys = keys_for_action(keymap, &Action::Quit);
-        let quit_row =
-            Row::new(build_cells_for_key_groups("⏼ Quit", vec![quit_keys], key_color));
+        let quit_row = Row::new(build_cells_for_key_groups(
+            "⏼ Quit",
+            vec![quit_keys],
+            key_color,
+        ));
 
         Ok(Table::new(
             vec![results_row, select_entry_row, switch_channels_row, quit_row],
@@ -185,8 +191,7 @@ fn build_cells_for_key_groups(
     key_groups: Vec<Vec<String>>,
     key_color: Color,
 ) -> Vec<Cell> {
-    if key_groups.is_empty() || key_groups.iter().all(Vec::is_empty)
-    {
+    if key_groups.is_empty() || key_groups.iter().all(Vec::is_empty) {
         return vec![group_name.into(), "No keybindings".into()];
     }
     let non_empty_groups = key_groups.iter().filter(|keys| !keys.is_empty());
