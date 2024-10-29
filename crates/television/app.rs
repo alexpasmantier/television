@@ -56,7 +56,7 @@ use color_eyre::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::channels::{CliTvChannel, TelevisionChannel};
+use crate::channels::TelevisionChannel;
 use crate::television::{Mode, Television};
 use crate::{
     action::Action,
@@ -234,6 +234,7 @@ impl App {
                 }
                 _ => {}
             }
+            // forward action to the television handler
             if let Some(action) =
                 self.television.lock().await.update(action.clone()).await?
             {

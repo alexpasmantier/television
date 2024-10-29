@@ -1,4 +1,5 @@
 use devicons::FileIcon;
+use ignore::WalkState;
 use nucleo::{
     pattern::{CaseMatching, Normalization},
     Config, Injector, Nucleo,
@@ -8,11 +9,11 @@ use std::{
     io::{BufRead, Read, Seek},
     path::{Path, PathBuf},
     sync::{atomic::AtomicUsize, Arc},
+    u32,
 };
+use tracing::{debug, warn};
 
-use tracing::{debug, info};
-
-use super::OnAir;
+use super::{OnAir, TelevisionChannel};
 use crate::previewers::PreviewType;
 use crate::utils::{
     files::{is_not_text, walk_builder, DEFAULT_NUM_THREADS},
@@ -51,13 +52,46 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(working_dir: &Path) -> Self {
+    pub fn new(directories: Vec<PathBuf>) -> Self {
         let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
         // start loading files in the background
-        let crawl_handle = tokio::spawn(load_candidates(
-            working_dir.to_path_buf(),
+        let crawl_handle = tokio::spawn(crawl_for_candidates(
+            directories,
             matcher.injector(),
         ));
+        Channel {
+            matcher,
+            last_pattern: String::new(),
+            result_count: 0,
+            total_count: 0,
+            running: false,
+            crawl_handle,
+        }
+    }
+
+    fn from_file_paths(file_paths: Vec<PathBuf>) -> Self {
+        let matcher = Nucleo::new(
+            Config::DEFAULT.match_paths(),
+            Arc::new(|| {}),
+            None,
+            1,
+        );
+        let injector = matcher.injector();
+        let current_dir = std::env::current_dir().unwrap();
+        let crawl_handle = tokio::spawn(async move {
+            let mut lines_in_mem = 0;
+            for path in file_paths {
+                if lines_in_mem > MAX_LINES_IN_MEM {
+                    break;
+                }
+                if let Some(injected_lines) =
+                    try_inject_lines(injector.clone(), &current_dir, &path)
+                {
+                    lines_in_mem += injected_lines;
+                }
+            }
+        });
+
         Channel {
             matcher,
             last_pattern: String::new(),
@@ -73,7 +107,50 @@ impl Channel {
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new(&std::env::current_dir().unwrap())
+        Self::new(vec![std::env::current_dir().unwrap()])
+    }
+}
+
+/// Since we're limiting the number of lines in memory, it makes sense to also limit the number of files
+/// we're willing to search in when piping from the `Files` channel.
+/// This prevents blocking the UI for too long when piping from a channel with a lot of files.
+///
+/// This should be calculated based on the number of lines we're willing to keep in memory:
+/// `MAX_LINES_IN_MEM / 100` (assuming 100 lines per file on average).
+const MAX_PIPED_FILES: usize = MAX_LINES_IN_MEM / 200;
+
+impl From<&mut TelevisionChannel> for Channel {
+    fn from(value: &mut TelevisionChannel) -> Self {
+        match value {
+            c @ TelevisionChannel::Files(_) => {
+                let entries = c.results(
+                    c.result_count().min(
+                        u32::try_from(MAX_PIPED_FILES).unwrap_or(u32::MAX),
+                    ),
+                    0,
+                );
+                Self::from_file_paths(
+                    entries
+                        .iter()
+                        .flat_map(|entry| {
+                            PathBuf::from(entry.name.clone()).canonicalize()
+                        })
+                        .collect(),
+                )
+            }
+            c @ TelevisionChannel::GitRepos(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::new(
+                    entries
+                        .iter()
+                        .flat_map(|entry| {
+                            PathBuf::from(entry.name.clone()).canonicalize()
+                        })
+                        .collect(),
+                )
+            }
+            _ => unreachable!(),
+        }
     }
 }
 
@@ -106,7 +183,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -125,11 +202,11 @@ impl OnAir for Channel {
                     display_path.clone() + &item.data.line_number.to_string(),
                     PreviewType::Files,
                 )
-                .with_display_name(display_path)
-                .with_value(line)
-                .with_value_match_ranges(indices.map(|i| (i, i + 1)).collect())
-                .with_icon(FileIcon::from(item.data.path.as_path()))
-                .with_line_number(item.data.line_number)
+                    .with_display_name(display_path)
+                    .with_value(line)
+                    .with_value_match_ranges(indices.map(|i| (i, i + 1)).collect())
+                    .with_icon(FileIcon::from(item.data.path.as_path()))
+                    .with_line_number(item.data.line_number)
             })
             .collect()
     }
@@ -184,98 +261,120 @@ const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 ///
 /// A typical line should take somewhere around 100 bytes in memory (for utf8 english text),
 /// so this should take around 100 x `5_000_000` = 500MB of memory.
-const MAX_IN_MEMORY_LINES: usize = 5_000_000;
+const MAX_LINES_IN_MEM: usize = 5_000_000;
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(path: PathBuf, injector: Injector<CandidateLine>) {
+async fn crawl_for_candidates(
+    directories: Vec<PathBuf>,
+    injector: Injector<CandidateLine>,
+) {
+    if directories.is_empty() {
+        return;
+    }
     let current_dir = std::env::current_dir().unwrap();
-    let walker =
-        walk_builder(&path, *DEFAULT_NUM_THREADS, None, None).build_parallel();
+    let mut walker =
+        walk_builder(&directories[0], *DEFAULT_NUM_THREADS, None, None);
+    for path in directories[1..].iter() {
+        walker.add(path);
+    }
 
     let lines_in_mem = Arc::new(AtomicUsize::new(0));
 
-    walker.run(|| {
+    walker.build_parallel().run(|| {
         let injector = injector.clone();
         let current_dir = current_dir.clone();
         let lines_in_mem = lines_in_mem.clone();
         Box::new(move |result| {
-            if lines_in_mem.load(std::sync::atomic::Ordering::Relaxed) > MAX_IN_MEMORY_LINES {
-                return ignore::WalkState::Quit;
+            if lines_in_mem.load(std::sync::atomic::Ordering::Relaxed)
+                > MAX_LINES_IN_MEM
+            {
+                return WalkState::Quit;
             }
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
                     if let Ok(m) = entry.metadata() {
                         if m.len() > MAX_FILE_SIZE {
-                            return ignore::WalkState::Continue;
+                            return WalkState::Continue;
                         }
                     }
-                    // iterate over the lines of the file
-                    match File::open(entry.path()) {
-                        Ok(file) => {
-                            // is the file a text-based file?
-                            let mut reader = std::io::BufReader::new(&file);
-                            let mut buffer = [0u8; 128];
-                            match reader.read(&mut buffer) {
-                                Ok(bytes_read) => {
-                                    if (bytes_read == 0)
-                                        || is_not_text(&buffer)
-                                        .unwrap_or(false)
-                                        || proportion_of_printable_ascii_characters(&buffer)
-                                        < PRINTABLE_ASCII_THRESHOLD
-                                    {
-                                        return ignore::WalkState::Continue;
-                                    }
-                                    reader
-                                        .seek(std::io::SeekFrom::Start(0))
-                                        .unwrap();
-                                }
-                                Err(_) => {
-                                    return ignore::WalkState::Continue;
-                                }
-                            }
-                            // read the lines of the file
-                            let mut line_number = 0;
-                            for maybe_line in reader.lines() {
-                                match maybe_line {
-                                    Ok(l) => {
-                                        line_number += 1;
-                                        let line = preprocess_line(&l);
-                                        if line.is_empty() {
-                                            debug!("Empty line");
-                                            continue;
-                                        }
-                                        let candidate = CandidateLine::new(
-                                            entry
-                                                .path()
-                                                .strip_prefix(&current_dir)
-                                                .unwrap()
-                                                .to_path_buf(),
-                                            line,
-                                            line_number,
-                                        );
-                                        let _ = injector.push(
-                                            candidate,
-                                            |c, cols| {
-                                                cols[0] =
-                                                    c.line.clone().into();
-                                            },
-                                        );
-                                        lines_in_mem.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                                    }
-                                    Err(e) => {
-                                        info!("Error reading line: {:?}", e);
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            info!("Error opening file: {:?}", e);
-                        }
+                    // try to inject the lines of the file
+                    if let Some(injected_lines) = try_inject_lines(
+                        injector.clone(),
+                        &current_dir,
+                        entry.path(),
+                    ) {
+                        lines_in_mem.fetch_add(
+                            injected_lines,
+                            std::sync::atomic::Ordering::Relaxed,
+                        );
                     }
                 }
             }
-            ignore::WalkState::Continue
+            WalkState::Continue
         })
     });
+}
+
+fn try_inject_lines(
+    injector: Injector<CandidateLine>,
+    current_dir: &PathBuf,
+    path: &Path,
+) -> Option<usize> {
+    match File::open(path) {
+        Ok(file) => {
+            // is the file a text-based file?
+            let mut reader = std::io::BufReader::new(&file);
+            let mut buffer = [0u8; 128];
+            match reader.read(&mut buffer) {
+                Ok(bytes_read) => {
+                    if (bytes_read == 0)
+                        || is_not_text(&buffer).unwrap_or(false)
+                        || proportion_of_printable_ascii_characters(&buffer)
+                        < PRINTABLE_ASCII_THRESHOLD
+                    {
+                        return None;
+                    }
+                    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+                }
+                Err(_) => {
+                    return None;
+                }
+            }
+            // read the lines of the file
+            let mut line_number = 0;
+            let mut injected_lines = 0;
+            for maybe_line in reader.lines() {
+                match maybe_line {
+                    Ok(l) => {
+                        line_number += 1;
+                        let line = preprocess_line(&l);
+                        if line.is_empty() {
+                            debug!("Empty line");
+                            continue;
+                        }
+                        let candidate = CandidateLine::new(
+                            path.strip_prefix(&current_dir)
+                                .unwrap_or(path)
+                                .to_path_buf(),
+                            line,
+                            line_number,
+                        );
+                        let _ = injector.push(candidate, |c, cols| {
+                            cols[0] = c.line.clone().into();
+                        });
+                        injected_lines += 1;
+                    }
+                    Err(e) => {
+                        warn!("Error reading line: {:?}", e);
+                        break;
+                    }
+                }
+            }
+            Some(injected_lines)
+        }
+        Err(e) => {
+            warn!("Error opening file {:?}: {:?}", path, e);
+            None
+        }
+    }
 }

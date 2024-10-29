@@ -61,7 +61,7 @@ fn build_tree_preview(entry: &Entry) -> Preview {
 
 fn label<P: AsRef<Path>>(p: P, strip: &str) -> String {
     let icon = FileIcon::from(&p);
-    let path = p.as_ref().strip_prefix(strip).unwrap();
+    let path = p.as_ref().strip_prefix(strip).unwrap_or(p.as_ref());
     format!("{} {}", icon, path.display())
 }
 

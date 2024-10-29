@@ -20,6 +20,7 @@ pub enum Action {
     SelectAndExit,
     SelectNextEntry,
     SelectPrevEntry,
+    CopyEntryToClipboard,
     // navigation actions
     GoToPaneUp,
     GoToPaneDown,
@@ -43,5 +44,5 @@ pub enum Action {
     NoOp,
     // channel actions
     ToggleRemoteControl,
-    SendToChannel,
+    ToggleSendToChannel,
 }

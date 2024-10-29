@@ -7,8 +7,9 @@ ctrl-p = "SelectPrevEntry"
 ctrl-d = "ScrollPreviewHalfPageDown"
 ctrl-u = "ScrollPreviewHalfPageUp"
 enter = "SelectEntry"
-ctrl-enter = "SendToChannel"
+ctrl-y = "CopyEntryToClipboard"
 ctrl-s = "ToggleRemoteControl"
+alt-s = "ToggleSendToChannel"
 
 [keybindings.RemoteControl]
 esc = "Quit"
@@ -18,3 +19,12 @@ ctrl-n = "SelectNextEntry"
 ctrl-p = "SelectPrevEntry"
 enter = "SelectEntry"
 ctrl-s = "ToggleRemoteControl"
+
+[keybindings.SendToChannel]
+esc = "Quit"
+down = "SelectNextEntry"
+up = "SelectPrevEntry"
+ctrl-n = "SelectNextEntry"
+ctrl-p = "SelectPrevEntry"
+enter = "SelectEntry"
+alt-s = "ToggleSendToChannel"

@@ -1,10 +1,10 @@
 use lazy_static::lazy_static;
 use std::fmt::Write;
-use tracing::debug;
 
 pub fn next_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
-    while !s.is_char_boundary(i) {
+    let len = s.len();
+    while !s.is_char_boundary(i) && i < len - 1 {
         i += 1;
     }
     i
@@ -12,7 +12,7 @@ pub fn next_char_boundary(s: &str, start: usize) -> usize {
 
 pub fn prev_char_boundary(s: &str, start: usize) -> usize {
     let mut i = start;
-    while !s.is_char_boundary(i) {
+    while !s.is_char_boundary(i) && i > 0 {
         i -= 1;
     }
     i
@@ -23,6 +23,9 @@ pub fn slice_at_char_boundaries(
     start_byte_index: usize,
     end_byte_index: usize,
 ) -> &str {
+    if start_byte_index > end_byte_index || start_byte_index > s.len() || end_byte_index > s.len() {
+        return EMPTY_STRING;
+    }
     &s[prev_char_boundary(s, start_byte_index)
         ..next_char_boundary(s, end_byte_index)]
 }
@@ -97,10 +100,7 @@ pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
                     output.push(*NULL_SYMBOL);
                 }
                 // everything else
-                c => {
-                    debug!("char: {:?}", c);
-                    output.push(c)
-                }
+                c => output.push(c),
             }
         } else {
             write!(output, "\\x{:02X}", input[idx]).ok();
@@ -138,8 +138,8 @@ pub fn preprocess_line(line: &str) -> String {
                 line
             }
         }
-        .trim_end_matches(['\r', '\n', '\0'])
-        .as_bytes(),
+            .trim_end_matches(['\r', '\n', '\0'])
+            .as_bytes(),
         TAB_WIDTH,
     )
 }

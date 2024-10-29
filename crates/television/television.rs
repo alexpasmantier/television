@@ -1,6 +1,5 @@
 use crate::channels::remote_control::RemoteControl;
-use crate::channels::OnAir;
-use crate::channels::UnitChannel;
+use crate::channels::{OnAir, UnitChannel};
 use crate::picker::Picker;
 use crate::ui::layout::{Dimensions, Layout};
 use crate::utils::strings::EMPTY_STRING;
@@ -14,6 +13,7 @@ use crate::{
 };
 use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 use color_eyre::Result;
+use copypasta::{ClipboardContext, ClipboardProvider};
 use futures::executor::block_on;
 use ratatui::{layout::Rect, style::Color, widgets::Paragraph, Frame};
 use serde::{Deserialize, Serialize};
@@ -65,7 +65,7 @@ impl Television {
             config: Config::default(),
             channel,
             remote_control: TelevisionChannel::RemoteControl(
-                RemoteControl::new(),
+                RemoteControl::default(),
             ),
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
@@ -286,6 +286,9 @@ impl Television {
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
             Action::ToggleRemoteControl => match self.mode {
                 Mode::Channel => {
+                    self.remote_control = TelevisionChannel::RemoteControl(
+                        RemoteControl::default(),
+                    );
                     self.mode = Mode::RemoteControl;
                 }
                 Mode::RemoteControl => {
@@ -307,6 +310,7 @@ impl Television {
                             .send(Action::SelectAndExit)?,
                         Mode::RemoteControl => {
                             if let Ok(new_channel) =
+                                // FIXME: this is kind of shitty
                                 TelevisionChannel::try_from(&entry)
                             {
                                 // this resets the RC picker
@@ -318,24 +322,41 @@ impl Television {
                             }
                         }
                         Mode::SendToChannel => {
-                            // if let Ok(new_channel) =
-                            //     UnitChannel::try_from(&entry)
-                            // {
-                            // }
-                            self.reset_screen();
+                            let new_channel = self
+                                .channel
+                                .transition_to(entry.name.as_str().into());
+                            self.reset_picker_selection();
+                            self.reset_picker_input();
+                            self.remote_control.find(EMPTY_STRING);
                             self.mode = Mode::Channel;
-                            // TODO: spawn new channel with selected entries
+                            self.change_channel(new_channel);
                         }
                     }
                 }
             }
-            Action::SendToChannel => {
-                self.mode = Mode::SendToChannel;
-                // TODO: build new guide from current channel based on which are pipeable into
-                self.remote_control =
-                    TelevisionChannel::RemoteControl(RemoteControl::new());
-                self.reset_screen();
-            }
+            Action::CopyEntryToClipboard => match self.mode {
+                Mode::Channel => {
+                    if let Some(entry) = self.get_selected_entry(None) {
+                        let mut ctx = ClipboardContext::new().unwrap();
+                        ctx.set_contents(entry.name).unwrap();
+                    }
+                }
+                _ => {}
+            },
+            Action::ToggleSendToChannel => match self.mode {
+                Mode::Channel | Mode::RemoteControl => {
+                    self.mode = Mode::SendToChannel;
+                    self.remote_control = TelevisionChannel::RemoteControl(
+                        RemoteControl::with_transitions_from(&self.channel),
+                    );
+                }
+                Mode::SendToChannel => {
+                    self.reset_picker_input();
+                    self.remote_control.find(EMPTY_STRING);
+                    self.reset_picker_selection();
+                    self.mode = Mode::Channel;
+                }
+            },
             _ => {}
         }
         Ok(None)
@@ -395,7 +416,7 @@ impl Television {
         )?;
 
         // remote control
-        if matches!(self.mode, Mode::RemoteControl) {
+        if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {
             self.draw_remote_control(f, &layout.remote_control.unwrap())?;
         }
         Ok(())

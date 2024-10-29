@@ -6,10 +6,10 @@ use quote::quote;
 ///
 /// ```rust
 /// use crate::channels::{TelevisionChannel, OnAir};
-/// use television_derive::CliChannel;
+/// use television_derive::ToCliChannel;
 /// use crate::channels::{files, text};
 ///
-/// #[derive(CliChannel)]
+/// #[derive(ToCliChannel)]
 /// enum TelevisionChannel {
 ///     Files(files::Channel),
 ///     Text(text::Channel),
@@ -25,7 +25,7 @@ use quote::quote;
 ///
 /// Any variant that should not be included in the CLI should be annotated with
 /// `#[exclude_from_cli]`.
-#[proc_macro_derive(CliChannel, attributes(exclude_from_cli))]
+#[proc_macro_derive(ToCliChannel, attributes(exclude_from_cli))]
 pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -35,11 +35,11 @@ pub fn cli_channel_derive(input: TokenStream) -> TokenStream {
     impl_cli_channel(&ast)
 }
 
-fn has_exclude_attr(attrs: &[syn::Attribute]) -> bool {
-    attrs
-        .iter()
-        .any(|attr| attr.path().is_ident("exclude_from_cli"))
+fn has_attribute(attrs: &[syn::Attribute], attribute: &str) -> bool {
+    attrs.iter().any(|attr| attr.path().is_ident(attribute))
 }
+
+const EXCLUDE_FROM_CLI: &str = "exclude_from_cli";
 
 fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // check that the struct is an enum
@@ -58,7 +58,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     // create the CliTvChannel enum
     let cli_enum_variants = variants
         .iter()
-        .filter(|variant| !has_exclude_attr(&variant.attrs))
+        .filter(|variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_CLI))
         .map(|variant| {
             let variant_name = &variant.ident;
             quote! {
@@ -80,7 +80,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
 
     // Generate the match arms for the `to_channel` method
     let arms = variants.iter().filter(
-        |variant| !has_exclude_attr(&variant.attrs)
+        |variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_CLI),
     ).map(|variant| {
         let variant_name = &variant.ident;
 
@@ -255,7 +255,7 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
 ///
 /// The `UnitChannel` enum is used as a unit variant of the `TelevisionChannel`
 /// enum.
-#[proc_macro_derive(UnitChannel)]
+#[proc_macro_derive(ToUnitChannel, attributes(exclude_from_unit))]
 pub fn unit_channel_derive(input: TokenStream) -> TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate
@@ -264,6 +264,8 @@ pub fn unit_channel_derive(input: TokenStream) -> TokenStream {
     // Build the trait implementation
     impl_unit_channel(&ast)
 }
+
+const EXCLUDE_FROM_UNIT: &str = "exclude_from_unit";
 
 fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
     // Ensure the struct is an enum
@@ -279,7 +281,17 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
         "#[derive(UnitChannel)] requires at least one variant"
     );
 
-    let variant_names: Vec<_> = variants.iter().map(|v| &v.ident).collect();
+    let variant_names: Vec<_> = variants
+        .iter()
+        .filter(|variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_UNIT))
+        .map(|v| &v.ident)
+        .collect();
+
+    let excluded_variants: Vec<_> = variants
+        .iter()
+        .filter(|variant| has_attribute(&variant.attrs, EXCLUDE_FROM_UNIT))
+        .map(|v| &v.ident)
+        .collect();
 
     // Generate a unit enum from the given enum
     let unit_enum = quote! {
@@ -310,7 +322,37 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
             fn from(channel: &TelevisionChannel) -> Self {
                 match channel {
                     #(
-                        TelevisionChannel::#variant_names(_) => UnitChannel::#variant_names,
+                        TelevisionChannel::#variant_names(_) => Self::#variant_names,
+                    )*
+                    #(
+                        TelevisionChannel::#excluded_variants(_) => panic!("Cannot convert excluded variant to unit channel."),
+                    )*
+                }
+            }
+        }
+    };
+
+    // Generate From<&str> implementation
+    let from_str_impl = quote! {
+        impl From<&str> for UnitChannel {
+            fn from(channel: &str) -> Self {
+                match channel {
+                    #(
+                        stringify!(#variant_names) => Self::#variant_names,
+                    )*
+                    _ => panic!("Invalid unit channel name."),
+                }
+            }
+        }
+    };
+
+    // Generate Into<&str> implementation
+    let into_str_impl = quote! {
+        impl Into<&str> for UnitChannel {
+            fn into(self) -> &'static str {
+                match self {
+                    #(
+                        UnitChannel::#variant_names => stringify!(#variant_names),
                     )*
                 }
             }
@@ -321,6 +363,8 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
         #unit_enum
         #into_impl
         #from_impl
+        #from_str_impl
+        #into_str_impl
     };
 
     gen.into()

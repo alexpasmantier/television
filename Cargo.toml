@@ -67,6 +67,7 @@ unicode-width = "0.2.0"
 human-panic = "2.0.2"
 pretty_assertions = "1.4.1"
 termtree = "0.5.1"
+copypasta = "0.10.1"
 
 
 [build-dependencies]
@@ -86,7 +87,7 @@ debug = true
 
 
 [profile.release]
-lto = "thin"
+lto = "fat"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }

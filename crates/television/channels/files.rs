@@ -52,19 +52,19 @@ impl Default for Channel {
     }
 }
 
-impl From<TelevisionChannel> for Channel {
-    fn from(channel: TelevisionChannel) -> Self {
-        match channel {
-            TelevisionChannel::Files(channel) => channel,
-            TelevisionChannel::GitRepos(mut channel) => {
-                let git_project_paths = channel
-                    .results(channel.result_count(), 0)
-                    .iter()
-                    .map(|entry| PathBuf::from(entry.name.clone()))
-                    .collect();
-                Self::new(git_project_paths)
+impl From<&mut TelevisionChannel> for Channel {
+    fn from(value: &mut TelevisionChannel) -> Self {
+        match value {
+            c @ TelevisionChannel::GitRepos(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::new(
+                    entries
+                        .iter()
+                        .map(|entry| PathBuf::from(entry.name.clone()))
+                        .collect(),
+                )
             }
-            _ => Channel::default(),
+            _ => unreachable!(),
         }
     }
 }
@@ -166,10 +166,10 @@ async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
                     let file_path = preprocess_line(
-                        &*entry
+                        &entry
                             .path()
                             .strip_prefix(&current_dir)
-                            .unwrap()
+                            .unwrap_or(entry.path())
                             .to_string_lossy(),
                     );
                     let _ = injector.push(file_path, |e, cols| {

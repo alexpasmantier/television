@@ -7,6 +7,7 @@ use nucleo::{
     Config, Nucleo,
 };
 
+use crate::channels::{TelevisionChannel, UnitChannel};
 use crate::{
     channels::{CliTvChannel, OnAir},
     entry::Entry,
@@ -15,7 +16,7 @@ use crate::{
 };
 
 pub struct RemoteControl {
-    matcher: Nucleo<CliTvChannel>,
+    matcher: Nucleo<String>,
     last_pattern: String,
     result_count: u32,
     total_count: u32,
@@ -25,7 +26,7 @@ pub struct RemoteControl {
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new() -> Self {
+    pub fn new(channels: Vec<UnitChannel>) -> Self {
         let matcher = Nucleo::new(
             Config::DEFAULT,
             Arc::new(|| {}),
@@ -33,9 +34,9 @@ impl RemoteControl {
             1,
         );
         let injector = matcher.injector();
-        for variant in CliTvChannel::value_variants() {
-            let _ = injector.push(*variant, |e, cols| {
-                cols[0] = (*e).to_string().into();
+        for channel in channels {
+            let _ = injector.push(channel.to_string(), |e, cols| {
+                cols[0] = e.clone().into();
             });
         }
         RemoteControl {
@@ -47,12 +48,23 @@ impl RemoteControl {
         }
     }
 
+    pub fn with_transitions_from(
+        television_channel: &TelevisionChannel,
+    ) -> Self {
+        Self::new(television_channel.available_transitions())
+    }
+
     const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
 impl Default for RemoteControl {
     fn default() -> Self {
-        Self::new()
+        Self::new(
+            CliTvChannel::value_variants()
+                .iter()
+                .map(|v| v.to_string().as_str().into())
+                .collect(),
+        )
     }
 }
 
@@ -103,7 +115,7 @@ impl OnAir for RemoteControl {
                 let indices = indices.drain(..);
 
                 let name = item.matcher_columns[0].to_string();
-                Entry::new(name.clone(), PreviewType::Basic)
+                Entry::new(name, PreviewType::Basic)
                     .with_name_match_ranges(
                         indices.map(|i| (i, i + 1)).collect(),
                     )

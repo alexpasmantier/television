@@ -24,11 +24,11 @@ impl Television {
             .direction(Direction::Vertical)
             .constraints(
                 [
-                    Constraint::Fill(1),
+                    Constraint::Min(3),
                     Constraint::Length(3),
                     Constraint::Length(20),
                 ]
-                .as_ref(),
+                    .as_ref(),
             )
             .split(*area);
         self.draw_rc_channels(f, &layout[0])?;
@@ -106,7 +106,7 @@ impl Television {
                 .fg(crate::television::DEFAULT_INPUT_FG)
                 .bold(),
         ))
-        .block(prompt_symbol_block);
+            .block(prompt_symbol_block);
         f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -131,8 +131,8 @@ impl Television {
             // Put cursor past the end of the input text
             inner_input_chunks[1].x
                 + u16::try_from(
-                    self.rc_picker.input.visual_cursor().max(scroll) - scroll,
-                )?,
+                self.rc_picker.input.visual_cursor().max(scroll) - scroll,
+            )?,
             // Move one line down, from the border to the input line
             inner_input_chunks[1].y,
         ));

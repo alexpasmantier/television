@@ -23,7 +23,9 @@ impl Television {
             Mode::RemoteControl => {
                 self.build_keymap_table_for_channel_selection()
             }
-            Mode::SendToChannel => self.build_keymap_table_for_channel(),
+            Mode::SendToChannel => {
+                self.build_keymap_table_for_channel_transitions()
+            }
         }
     }
 
@@ -35,7 +37,7 @@ impl Television {
         let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
         let next = keys_for_action(keymap, &Action::SelectNextEntry);
         let results_row = Row::new(build_cells_for_key_groups(
-            "↕ Results navigation",
+            "Results navigation",
             vec![prev, next],
             key_color,
         ));
@@ -46,7 +48,7 @@ impl Television {
         let down_keys =
             keys_for_action(keymap, &Action::ScrollPreviewHalfPageDown);
         let preview_row = Row::new(build_cells_for_key_groups(
-            "↕ Preview navigation",
+            "Preview navigation",
             vec![up_keys, down_keys],
             key_color,
         ));
@@ -54,16 +56,25 @@ impl Television {
         // Select entry
         let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
         let select_entry_row = Row::new(build_cells_for_key_groups(
-            "✓ Select entry",
+            "Select entry",
             vec![select_entry_keys],
+            key_color,
+        ));
+
+        // Copy entry to clipboard
+        let copy_entry_keys =
+            keys_for_action(keymap, &Action::CopyEntryToClipboard);
+        let copy_entry_row = Row::new(build_cells_for_key_groups(
+            "Copy entry to clipboard",
+            vec![copy_entry_keys],
             key_color,
         ));
 
         // Send to channel
         let send_to_channel_keys =
-            keys_for_action(keymap, &Action::SendToChannel);
+            keys_for_action(keymap, &Action::ToggleSendToChannel);
         let send_to_channel_row = Row::new(build_cells_for_key_groups(
-            "⇉ Send results to",
+            "Send results to",
             vec![send_to_channel_keys],
             key_color,
         ));
@@ -72,7 +83,7 @@ impl Television {
         let switch_channels_keys =
             keys_for_action(keymap, &Action::ToggleRemoteControl);
         let switch_channels_row = Row::new(build_cells_for_key_groups(
-            "⨀ Toggle Remote control",
+            "Toggle Remote control",
             vec![switch_channels_keys],
             key_color,
         ));
@@ -81,7 +92,7 @@ impl Television {
         // Quit ⏼
         let quit_keys = keys_for_action(keymap, &Action::Quit);
         let quit_row = Row::new(build_cells_for_key_groups(
-            "⏼ Quit",
+            "Quit",
             vec![quit_keys],
             key_color,
         ));
@@ -93,6 +104,7 @@ impl Television {
                 results_row,
                 preview_row,
                 select_entry_row,
+                copy_entry_row,
                 send_to_channel_row,
                 switch_channels_row,
                 quit_row,
@@ -111,7 +123,7 @@ impl Television {
         let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
         let next = keys_for_action(keymap, &Action::SelectNextEntry);
         let results_row = Row::new(build_cells_for_key_groups(
-            "↕ Browse channels",
+            "Browse channels",
             vec![prev, next],
             key_color,
         ));
@@ -119,16 +131,16 @@ impl Television {
         // Select entry
         let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
         let select_entry_row = Row::new(build_cells_for_key_groups(
-            "✓ Select channel",
+            "Select channel",
             vec![select_entry_keys],
             key_color,
         ));
 
-        // Switch channels
+        // Remote control
         let switch_channels_keys =
             keys_for_action(keymap, &Action::ToggleRemoteControl);
         let switch_channels_row = Row::new(build_cells_for_key_groups(
-            "⨀ Toggle Remote control",
+            "Toggle Remote control",
             vec![switch_channels_keys],
             key_color,
         ));
@@ -136,13 +148,59 @@ impl Television {
         // Quit
         let quit_keys = keys_for_action(keymap, &Action::Quit);
         let quit_row = Row::new(build_cells_for_key_groups(
-            "⏼ Quit",
+            "Quit",
             vec![quit_keys],
             key_color,
         ));
 
         Ok(Table::new(
             vec![results_row, select_entry_row, switch_channels_row, quit_row],
+            vec![Constraint::Fill(1), Constraint::Fill(2)],
+        ))
+    }
+
+    fn build_keymap_table_for_channel_transitions<'a>(
+        &self,
+    ) -> Result<Table<'a>> {
+        let keymap = self.keymap_for_mode()?;
+        let key_color = mode_color(self.mode);
+
+        // Results navigation
+        let prev = keys_for_action(keymap, &Action::SelectPrevEntry);
+        let next = keys_for_action(keymap, &Action::SelectNextEntry);
+        let results_row = Row::new(build_cells_for_key_groups(
+            "Browse channels",
+            vec![prev, next],
+            key_color,
+        ));
+
+        // Select entry
+        let select_entry_keys = keys_for_action(keymap, &Action::SelectEntry);
+        let select_entry_row = Row::new(build_cells_for_key_groups(
+            "Send to channel",
+            vec![select_entry_keys],
+            key_color,
+        ));
+
+        // Cancel
+        let cancel_keys =
+            keys_for_action(keymap, &Action::ToggleSendToChannel);
+        let cancel_row = Row::new(build_cells_for_key_groups(
+            "Cancel",
+            vec![cancel_keys],
+            key_color,
+        ));
+
+        // Quit
+        let quit_keys = keys_for_action(keymap, &Action::Quit);
+        let quit_row = Row::new(build_cells_for_key_groups(
+            "Quit",
+            vec![quit_keys],
+            key_color,
+        ));
+
+        Ok(Table::new(
+            vec![results_row, select_entry_row, cancel_row, quit_row],
             vec![Constraint::Fill(1), Constraint::Fill(2)],
         ))
     }
