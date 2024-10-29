@@ -71,10 +71,6 @@ pub fn is_not_text(bytes: &[u8]) -> Option<bool> {
     }
 }
 
-pub fn is_valid_utf8(bytes: &[u8]) -> bool {
-    std::str::from_utf8(bytes).is_ok()
-}
-
 pub fn is_known_text_extension(path: &Path) -> bool {
     path.extension()
         .and_then(|ext| ext.to_str())

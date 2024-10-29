@@ -26,6 +26,7 @@ pub struct AppConfig {
     pub config_dir: PathBuf,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
     #[allow(clippy::struct_field_names)]

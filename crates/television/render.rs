@@ -84,10 +84,10 @@ pub async fn render(
                         RenderingTask::Render => {
                             let mut television = television.lock().await;
                             if let Ok(size) = tui.size() {
-                                // Ratatui uses u16s to encode terminal dimensions and its
+                                // Ratatui uses `u16`s to encode terminal dimensions and its
                                 // content for each terminal cell is stored linearly in a
-                                // buffer with a u16 index which means we can't support
-                                // terminal areas larger than u16::MAX.
+                                // buffer with a `u16` index which means we can't support
+                                // terminal areas larger than `u16::MAX`.
                                 if size.width.checked_mul(size.height).is_some() {
                                     tui.terminal.draw(|frame| {
                                         if let Err(err) = television.draw(frame, frame.area()) {

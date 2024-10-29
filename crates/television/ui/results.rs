@@ -1,12 +1,12 @@
 use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::television::Television;
-use crate::ui::get_border_style;
 use crate::ui::layout::Layout;
+use crate::ui::BORDER_COLOR;
 use crate::utils::strings::{next_char_boundary, slice_at_char_boundaries};
 use color_eyre::eyre::Result;
 use ratatui::layout::Alignment;
-use ratatui::prelude::{Color, Line, Span, Style, Stylize};
+use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, Padding,
 };
@@ -37,6 +37,7 @@ impl Default for ResultsListColors {
     }
 }
 
+#[allow(dead_code)]
 impl ResultsListColors {
     pub fn result_name_fg(mut self, color: Color) -> Self {
         self.result_name_fg = color;
@@ -161,12 +162,12 @@ where
         }
         Line::from(spans)
     }))
-    .direction(list_direction)
-    .highlight_style(
-        Style::default().bg(results_list_colors.result_selected_bg),
-    )
-    .highlight_symbol("> ")
-    .block(results_block)
+        .direction(list_direction)
+        .highlight_style(
+            Style::default().bg(results_list_colors.result_selected_bg),
+        )
+        .highlight_symbol("> ")
+        .block(results_block)
 }
 
 impl Television {
@@ -179,7 +180,7 @@ impl Television {
             .title_top(Line::from(" Results ").alignment(Alignment::Center))
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(false))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default())
             .padding(Padding::right(1));
 

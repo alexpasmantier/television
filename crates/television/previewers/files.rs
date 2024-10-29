@@ -1,11 +1,11 @@
 use color_eyre::Result;
 //use image::{ImageReader, Rgb};
 //use ratatui_image::picker::Picker;
+use parking_lot::Mutex;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Read, Seek};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use tokio::sync::Mutex;
 
 use syntect::{
     highlighting::{Theme, ThemeSet},
@@ -53,7 +53,7 @@ impl FilePreviewer {
         let path_buf = PathBuf::from(&entry.name);
 
         // do we have a preview in cache for that entry?
-        if let Some(preview) = self.cache.lock().await.get(&entry.name) {
+        if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview.clone();
         }
         debug!("No preview in cache for {:?}", entry.name);
@@ -181,7 +181,7 @@ impl FilePreviewer {
                         "Successfully computed highlights for {:?}",
                         entry_c.name
                     );
-                    cache.lock().await.insert(
+                    cache.lock().insert(
                         entry_c.name.clone(),
                         Arc::new(Preview::new(
                             entry_c.name,
@@ -242,7 +242,7 @@ impl FilePreviewer {
     }
 
     async fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
-        self.cache.lock().await.insert(key, preview);
+        self.cache.lock().insert(key, preview);
     }
 }
 

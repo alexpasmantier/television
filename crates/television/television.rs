@@ -86,7 +86,6 @@ impl Television {
         UnitChannel::from(&self.channel)
     }
 
-    /// FIXME: this needs rework
     pub fn change_channel(&mut self, channel: TelevisionChannel) {
         self.reset_preview_scroll();
         self.reset_picker_selection();
@@ -360,15 +359,6 @@ impl Television {
             _ => {}
         }
         Ok(None)
-    }
-
-    fn reset_screen(&mut self) {
-        self.reset_preview_scroll();
-        self.reset_picker_selection();
-        self.reset_picker_input();
-        self.current_pattern = EMPTY_STRING.to_string();
-        self.channel.find(EMPTY_STRING);
-        self.remote_control.find(EMPTY_STRING);
     }
 
     /// Render the television on the screen.

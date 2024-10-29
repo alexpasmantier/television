@@ -34,6 +34,7 @@ pub fn compute_highlights_for_path(
     Ok(highlighted_lines)
 }
 
+#[allow(dead_code)]
 pub fn compute_highlights_for_line<'a>(
     line: &'a str,
     syntax_set: &SyntaxSet,

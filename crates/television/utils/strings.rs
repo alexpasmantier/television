@@ -68,7 +68,7 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
-pub fn replace_nonprintable(input: &[u8], tab_width: usize) -> String {
+pub fn replace_non_printable(input: &[u8], tab_width: usize) -> String {
     let mut output = String::new();
 
     let mut idx = 0;
@@ -130,7 +130,7 @@ pub fn proportion_of_printable_ascii_characters(buffer: &[u8]) -> f32 {
 const MAX_LINE_LENGTH: usize = 300;
 
 pub fn preprocess_line(line: &str) -> String {
-    replace_nonprintable(
+    replace_non_printable(
         {
             if line.len() > MAX_LINE_LENGTH {
                 slice_up_to_char_boundary(line, MAX_LINE_LENGTH)
@@ -160,48 +160,48 @@ pub fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
 mod tests {
     use super::*;
 
-    fn test_replace_nonprintable(input: &str, expected: &str) {
-        let actual = replace_nonprintable(input.as_bytes(), 2);
+    fn test_replace_non_printable(input: &str, expected: &str) {
+        let actual = replace_non_printable(input.as_bytes(), 2);
         assert_eq!(actual, expected);
     }
 
     #[test]
-    fn test_replace_nonprintable_ascii() {
-        test_replace_nonprintable("Hello, World!", "Hello, World!");
+    fn test_replace_non_printable_ascii() {
+        test_replace_non_printable("Hello, World!", "Hello, World!");
     }
 
     #[test]
-    fn test_replace_nonprintable_tab() {
-        test_replace_nonprintable("Hello\tWorld!", "Hello  World!");
-        test_replace_nonprintable(
+    fn test_replace_non_printable_tab() {
+        test_replace_non_printable("Hello\tWorld!", "Hello  World!");
+        test_replace_non_printable(
             "	-- AND
 ", "  -- AND",
         )
     }
 
     #[test]
-    fn test_replace_nonprintable_line_feed() {
-        test_replace_nonprintable("Hello\nWorld!", "HelloWorld!");
+    fn test_replace_non_printable_line_feed() {
+        test_replace_non_printable("Hello\nWorld!", "HelloWorld!");
     }
 
     #[test]
-    fn test_replace_nonprintable_null() {
-        test_replace_nonprintable("Hello\x00World!", "Hello␀World!");
-        test_replace_nonprintable("Hello World!\0", "Hello World!␀");
+    fn test_replace_non_printable_null() {
+        test_replace_non_printable("Hello\x00World!", "Hello␀World!");
+        test_replace_non_printable("Hello World!\0", "Hello World!␀");
     }
 
     #[test]
-    fn test_replace_nonprintable_delete() {
-        test_replace_nonprintable("Hello\x7FWorld!", "Hello␀World!");
+    fn test_replace_non_printable_delete() {
+        test_replace_non_printable("Hello\x7FWorld!", "Hello␀World!");
     }
 
     #[test]
-    fn test_replace_nonprintable_bom() {
-        test_replace_nonprintable("Hello\u{FEFF}World!", "HelloWorld!");
+    fn test_replace_non_printable_bom() {
+        test_replace_non_printable("Hello\u{FEFF}World!", "HelloWorld!");
     }
 
     #[test]
-    fn test_replace_nonprintable_start_txt() {
-        test_replace_nonprintable("Àì", "Àì␀");
+    fn test_replace_non_printable_start_txt() {
+        test_replace_non_printable("Àì", "Àì␀");
     }
 }

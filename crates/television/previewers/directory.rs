@@ -2,8 +2,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use devicons::FileIcon;
+use parking_lot::Mutex;
 use termtree::Tree;
-use tokio::sync::Mutex;
 
 use crate::entry::Entry;
 
@@ -23,22 +23,18 @@ impl DirectoryPreviewer {
     }
 
     pub async fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
-        if let Some(preview) = self.cache.lock().await.get(&entry.name) {
+        if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview;
         }
         let preview = meta::loading(&entry.name);
         self.cache
             .lock()
-            .await
             .insert(entry.name.clone(), preview.clone());
         let entry_c = entry.clone();
         let cache = self.cache.clone();
         tokio::spawn(async move {
             let preview = Arc::new(build_tree_preview(&entry_c));
-            cache
-                .lock()
-                .await
-                .insert(entry_c.name.clone(), preview.clone());
+            cache.lock().insert(entry_c.name.clone(), preview.clone());
         });
         preview
     }

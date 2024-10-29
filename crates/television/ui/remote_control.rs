@@ -1,6 +1,6 @@
 use crate::channels::OnAir;
 use crate::television::Television;
-use crate::ui::get_border_style;
+use crate::ui::BORDER_COLOR;
 use crate::ui::logo::build_remote_logo_paragraph;
 use crate::ui::mode::mode_color;
 use crate::ui::results::{build_results_list, ResultsListColors};
@@ -41,7 +41,7 @@ impl Television {
         let rc_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(false))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default())
             .padding(Padding::right(1));
 
@@ -81,7 +81,7 @@ impl Television {
             )
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(false))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default());
 
         let input_block_inner = input_block.inner(*area);

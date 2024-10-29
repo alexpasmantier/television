@@ -3,7 +3,7 @@ use crate::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
 use crate::television::Television;
-use crate::ui::get_border_style;
+use crate::ui::BORDER_COLOR;
 use crate::ui::layout::Layout;
 use crate::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
 use color_eyre::eyre::Result;
@@ -55,7 +55,7 @@ impl Television {
                 Block::default()
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
-                    .border_style(get_border_style(false)),
+                    .border_style(Style::default().fg(BORDER_COLOR)),
             )
             .alignment(Alignment::Left);
         f.render_widget(preview_title, layout.preview_title);
@@ -73,7 +73,7 @@ impl Television {
             .title_top(Line::from(" Preview ").alignment(Alignment::Center))
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(get_border_style(false))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default())
             .padding(Padding::right(1));
 

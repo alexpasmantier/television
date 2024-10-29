@@ -1,4 +1,5 @@
 use devicons::FileIcon;
+use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
 use nucleo::{
     pattern::{CaseMatching, Normalization},
@@ -36,8 +37,9 @@ impl Channel {
             None,
             1,
         );
+        let base_dirs = BaseDirs::new().unwrap();
         let crawl_handle = tokio::spawn(crawl_for_repos(
-            std::env::home_dir().expect("Could not get home directory"),
+            base_dirs.home_dir().to_path_buf(),
             matcher.injector(),
         ));
         Channel {
@@ -142,7 +144,9 @@ impl OnAir for Channel {
 fn get_ignored_paths() -> Vec<PathBuf> {
     let mut ignored_paths = Vec::new();
 
-    if let Some(home) = std::env::home_dir() {
+    if let Some(base_dirs) = BaseDirs::new() {
+        let home = base_dirs.home_dir();
+
         #[cfg(target_os = "macos")]
         {
             ignored_paths.push(home.join("Library"));
@@ -207,7 +211,7 @@ async fn crawl_for_repos(
                     // if the entry is a .git directory, add its parent to the list of git repos
                     if entry.path().ends_with(".git") {
                         let parent_path = preprocess_line(
-                            &*entry.path().parent().unwrap().to_string_lossy(),
+                            &entry.path().parent().unwrap().to_string_lossy(),
                         );
                         debug!("Found git repo: {:?}", parent_path);
                         let _ = injector.push(parent_path, |e, cols| {
