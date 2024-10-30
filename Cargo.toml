@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.1.7"
+version = "0.1.8"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -9,10 +9,10 @@ build = "build.rs"
 repository = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-    "command-line-utilities",
-    "command-line-interface",
-    "concurrency",
-    "development-tools",
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
 ]
 
 
@@ -25,15 +25,15 @@ name = "tv"
 members = ["crates/television_derive"]
 
 [dependencies]
-television-derive = { version = "0.1.0", path = "crates/television_derive" }
+television-derive = { version = "0.1.1", path = "crates/television_derive" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
-    "derive",
-    "cargo",
-    "wrap_help",
-    "unicode",
-    "string",
-    "unstable-styles",
+  "derive",
+  "cargo",
+  "wrap_help",
+  "unicode",
+  "string",
+  "unstable-styles",
 ] }
 color-eyre = "0.6.3"
 config = "0.14.0"
