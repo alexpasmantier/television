@@ -3,8 +3,8 @@ use crate::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
 use crate::television::Television;
-use crate::ui::BORDER_COLOR;
 use crate::ui::layout::Layout;
+use crate::ui::BORDER_COLOR;
 use crate::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -174,9 +174,9 @@ impl Television {
                     self.preview_scroll.unwrap_or(0),
                     self.preview_pane_height,
                 )
-                .block(preview_block)
-                .alignment(Alignment::Left)
-                .scroll((self.preview_scroll.unwrap_or(0), 0))
+                    .block(preview_block)
+                    .alignment(Alignment::Left)
+                    .scroll((self.preview_scroll.unwrap_or(0), 0))
             }
             // meta
             PreviewContent::Loading => self
@@ -235,6 +235,9 @@ impl Television {
             return paragraph.clone();
         }
         let message_len = message.len();
+        if message_len + 8 > inner.width as usize {
+            return Paragraph::new(Text::from(EMPTY_STRING));
+        }
         let fill_char_str = fill_char.to_string();
         let fill_line = fill_char_str.repeat(inner.width as usize);
 

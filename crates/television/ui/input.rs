@@ -426,6 +426,9 @@ impl Television {
             .style(Style::default());
 
         let input_block_inner = input_block.inner(layout.input);
+        if input_block_inner.area() == 0 {
+            return Ok(());
+        }
 
         f.render_widget(input_block, layout.input);
 

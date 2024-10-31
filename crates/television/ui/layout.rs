@@ -61,7 +61,7 @@ impl Layout {
         // split the main block into two vertical chunks (help bar + rest)
         let hz_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(9), Constraint::Fill(1)])
+            .constraints([Constraint::Max(9), Constraint::Fill(1)])
             .split(main_block);
 
         // split the help bar into three horizontal chunks (left + center + right)
@@ -95,13 +95,13 @@ impl Layout {
         // left block: results + input field
         let left_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(10), Constraint::Length(3)])
+            .constraints([Constraint::Min(3), Constraint::Length(3)])
             .split(vt_chunks[0]);
 
         // right block: preview title + preview
         let right_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(10)])
+            .constraints([Constraint::Length(3), Constraint::Min(3)])
             .split(vt_chunks[1]);
 
         Self::new(
@@ -145,5 +145,5 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
 }
 
 // UI size
-const UI_WIDTH_PERCENT: u16 = 90;
-const UI_HEIGHT_PERCENT: u16 = 90;
+const UI_WIDTH_PERCENT: u16 = 95;
+const UI_HEIGHT_PERCENT: u16 = 95;

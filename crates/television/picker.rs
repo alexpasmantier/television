@@ -85,9 +85,9 @@ impl Picker {
                 self.view_offset = self.view_offset.saturating_sub(1);
             }
         } else {
-            self.view_offset = total_items.saturating_sub(height - 2);
+            self.view_offset = total_items.saturating_sub(height.saturating_sub(2));
             self.select(Some(total_items.saturating_sub(1)));
-            self.relative_select(Some(height - 3));
+            self.relative_select(Some(height.saturating_sub(3)));
         }
     }
 
@@ -99,10 +99,10 @@ impl Picker {
             self.relative_select(Some(0));
             return;
         }
-        if self.relative_selected().unwrap_or(0) == height - 3 {
+        if self.relative_selected().unwrap_or(0) == height.saturating_sub(3) {
             self.view_offset += 1;
             self.relative_select(Some(
-                self.selected().unwrap_or(0).min(height - 3),
+                self.selected().unwrap_or(0).min(height.saturating_sub(3)),
             ));
         } else {
             self.relative_select(Some(
