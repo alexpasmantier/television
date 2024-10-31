@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -87,7 +87,7 @@ debug = true
 
 
 [profile.release]
-lto = "fat"
+lto = "thin"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }

@@ -101,6 +101,44 @@ impl Channel {
         }
     }
 
+    fn from_text_entries(entries: Vec<Entry>) -> Self {
+        let matcher = Nucleo::new(
+            Config::DEFAULT.match_paths(),
+            Arc::new(|| {}),
+            None,
+            1,
+        );
+        let injector = matcher.injector();
+        let load_handle = tokio::spawn(async move {
+            let mut lines_in_mem = 0;
+            for entry in entries {
+                if lines_in_mem > MAX_LINES_IN_MEM {
+                    break;
+                }
+                injector.push(
+                    CandidateLine::new(
+                        entry.display_name().into(),
+                        entry.value.unwrap(),
+                        entry.line_number.unwrap(),
+                    ),
+                    |c, cols| {
+                        cols[0] = c.line.clone().into();
+                    },
+                );
+                lines_in_mem += 1;
+            }
+        });
+
+        Channel {
+            matcher,
+            last_pattern: String::new(),
+            result_count: 0,
+            total_count: 0,
+            running: false,
+            crawl_handle: load_handle,
+        }
+    }
+
     const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
@@ -147,6 +185,10 @@ impl From<&mut TelevisionChannel> for Channel {
                         })
                         .collect(),
                 )
+            }
+            c @ TelevisionChannel::Text(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::from_text_entries(entries)
             }
             _ => unreachable!(),
         }

@@ -23,7 +23,10 @@ pub fn slice_at_char_boundaries(
     start_byte_index: usize,
     end_byte_index: usize,
 ) -> &str {
-    if start_byte_index > end_byte_index || start_byte_index > s.len() || end_byte_index > s.len() {
+    if start_byte_index > end_byte_index
+        || start_byte_index > s.len()
+        || end_byte_index > s.len()
+    {
         return EMPTY_STRING;
     }
     &s[prev_char_boundary(s, start_byte_index)
@@ -138,8 +141,8 @@ pub fn preprocess_line(line: &str) -> String {
                 line
             }
         }
-            .trim_end_matches(['\r', '\n', '\0'])
-            .as_bytes(),
+        .trim_end_matches(['\r', '\n', '\0'])
+        .as_bytes(),
         TAB_WIDTH,
     )
 }

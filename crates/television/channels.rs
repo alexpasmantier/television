@@ -248,7 +248,8 @@ macro_rules! define_transitions {
 }
 
 define_transitions! {
-    Files => [Text],
+    Text => [Files, Text],
+    Files => [Files, Text],
     GitRepos => [Files, Text],
 }
 

@@ -174,9 +174,9 @@ impl Television {
                     self.preview_scroll.unwrap_or(0),
                     self.preview_pane_height,
                 )
-                    .block(preview_block)
-                    .alignment(Alignment::Left)
-                    .scroll((self.preview_scroll.unwrap_or(0), 0))
+                .block(preview_block)
+                .alignment(Alignment::Left)
+                .scroll((self.preview_scroll.unwrap_or(0), 0))
             }
             // meta
             PreviewContent::Loading => self

@@ -457,7 +457,7 @@ impl Television {
                 .fg(crate::television::DEFAULT_INPUT_FG)
                 .bold(),
         ))
-            .block(arrow_block);
+        .block(arrow_block);
         f.render_widget(arrow, inner_input_chunks[0]);
 
         let interactive_input_block = Block::default();
@@ -500,8 +500,8 @@ impl Television {
                 .fg(crate::television::DEFAULT_RESULTS_COUNT_FG)
                 .italic(),
         ))
-            .block(result_count_block)
-            .alignment(Alignment::Right);
+        .block(result_count_block)
+        .alignment(Alignment::Right);
         f.render_widget(result_count_paragraph, inner_input_chunks[2]);
 
         // Make the cursor visible and ask tui-rs to put it at the
@@ -510,9 +510,9 @@ impl Television {
             // Put cursor past the end of the input text
             inner_input_chunks[1].x
                 + u16::try_from(
-                self.results_picker.input.visual_cursor().max(scroll)
-                    - scroll,
-            )?,
+                    self.results_picker.input.visual_cursor().max(scroll)
+                        - scroll,
+                )?,
             // Move one line down, from the border to the input line
             inner_input_chunks[1].y,
         ));

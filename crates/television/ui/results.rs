@@ -162,12 +162,12 @@ where
         }
         Line::from(spans)
     }))
-        .direction(list_direction)
-        .highlight_style(
-            Style::default().bg(results_list_colors.result_selected_bg),
-        )
-        .highlight_symbol("> ")
-        .block(results_block)
+    .direction(list_direction)
+    .highlight_style(
+        Style::default().bg(results_list_colors.result_selected_bg),
+    )
+    .highlight_symbol("> ")
+    .block(results_block)
 }
 
 impl Television {

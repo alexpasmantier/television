@@ -85,7 +85,8 @@ impl Picker {
                 self.view_offset = self.view_offset.saturating_sub(1);
             }
         } else {
-            self.view_offset = total_items.saturating_sub(height.saturating_sub(2));
+            self.view_offset =
+                total_items.saturating_sub(height.saturating_sub(2));
             self.select(Some(total_items.saturating_sub(1)));
             self.relative_select(Some(height.saturating_sub(3)));
         }

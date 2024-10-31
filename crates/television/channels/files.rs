@@ -1,16 +1,16 @@
-use devicons::FileIcon;
-use nucleo::{
-    pattern::{CaseMatching, Normalization},
-    Config, Injector, Nucleo,
-};
-use std::{path::PathBuf, sync::Arc};
-
 use super::{OnAir, TelevisionChannel};
 use crate::entry::Entry;
 use crate::fuzzy::MATCHER;
 use crate::previewers::PreviewType;
 use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use crate::utils::strings::preprocess_line;
+use devicons::FileIcon;
+use nucleo::{
+    pattern::{CaseMatching, Normalization},
+    Config, Injector, Nucleo,
+};
+use std::collections::HashSet;
+use std::{path::PathBuf, sync::Arc};
 
 pub struct Channel {
     matcher: Nucleo<String>,
@@ -19,8 +19,8 @@ pub struct Channel {
     total_count: u32,
     running: bool,
     crawl_handle: tokio::task::JoinHandle<()>,
-    // PERF: cache results (to make deleting characters smoother) but like
-    // a shallow cache (maybe more like a stack actually? so we just pop result sets)
+    // PERF: cache results (to make deleting characters smoother) with
+    // a shallow stack of sub-patterns as keys (e.g. "a", "ab", "abc")
 }
 
 impl Channel {
@@ -61,6 +61,26 @@ impl From<&mut TelevisionChannel> for Channel {
                     entries
                         .iter()
                         .map(|entry| PathBuf::from(entry.name.clone()))
+                        .collect(),
+                )
+            }
+            c @ TelevisionChannel::Files(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::new(
+                    entries
+                        .iter()
+                        .map(|entry| PathBuf::from(entry.name.clone()))
+                        .collect(),
+                )
+            }
+            c @ TelevisionChannel::Text(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::new(
+                    entries
+                        .iter()
+                        .map(|entry| PathBuf::from(entry.display_name()))
+                        .collect::<HashSet<_>>()
+                        .into_iter()
                         .collect(),
                 )
             }
