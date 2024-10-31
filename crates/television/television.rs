@@ -333,12 +333,14 @@ impl Television {
                     }
                 }
             }
-            Action::CopyEntryToClipboard => if self.mode == Mode::Channel {
-                if let Some(entry) = self.get_selected_entry(None) {
-                    let mut ctx = ClipboardContext::new().unwrap();
-                    ctx.set_contents(entry.name).unwrap();
+            Action::CopyEntryToClipboard => {
+                if self.mode == Mode::Channel {
+                    if let Some(entry) = self.get_selected_entry(None) {
+                        let mut ctx = ClipboardContext::new().unwrap();
+                        ctx.set_contents(entry.name).unwrap();
+                    }
                 }
-            },
+            }
             Action::ToggleSendToChannel => match self.mode {
                 Mode::Channel | Mode::RemoteControl => {
                     self.mode = Mode::SendToChannel;
