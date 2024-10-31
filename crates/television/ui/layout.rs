@@ -30,6 +30,7 @@ pub struct Layout {
 }
 
 impl Layout {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         help_bar_left: Rect,
         help_bar_middle: Rect,

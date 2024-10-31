@@ -98,7 +98,7 @@ impl Television {
         let preview_block = self.build_preview_paragraph(
             preview_inner_block,
             inner,
-            &preview,
+            preview,
             selected_entry
                 .line_number
                 .map(|l| u16::try_from(l).unwrap_or(0)),
@@ -174,9 +174,9 @@ impl Television {
                     self.preview_scroll.unwrap_or(0),
                     self.preview_pane_height,
                 )
-                .block(preview_block)
-                .alignment(Alignment::Left)
-                .scroll((self.preview_scroll.unwrap_or(0), 0))
+                    .block(preview_block)
+                    .alignment(Alignment::Left)
+                    .scroll((self.preview_scroll.unwrap_or(0), 0))
             }
             // meta
             PreviewContent::Loading => self

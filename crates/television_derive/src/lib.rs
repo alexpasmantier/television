@@ -4,7 +4,7 @@ use quote::quote;
 /// This macro generates a `CliChannel` enum and the necessary glue code
 /// to convert into a `TelevisionChannel` member:
 ///
-/// ```rust
+/// ```ignore
 /// use crate::channels::{TelevisionChannel, OnAir};
 /// use television_derive::ToCliChannel;
 /// use crate::channels::{files, text};
@@ -122,7 +122,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
 /// and forwards the method calls to the corresponding channel variants.
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// use television_derive::Broadcast;
 /// use crate::channels::{TelevisionChannel, OnAir};
 /// use crate::channels::{files, text};

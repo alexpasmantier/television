@@ -110,11 +110,7 @@ impl Channel {
         );
         let injector = matcher.injector();
         let load_handle = tokio::spawn(async move {
-            let mut lines_in_mem = 0;
-            for entry in entries {
-                if lines_in_mem > MAX_LINES_IN_MEM {
-                    break;
-                }
+            for entry in entries.into_iter().take(MAX_LINES_IN_MEM) {
                 injector.push(
                     CandidateLine::new(
                         entry.display_name().into(),
@@ -125,7 +121,6 @@ impl Channel {
                         cols[0] = c.line.clone().into();
                     },
                 );
-                lines_in_mem += 1;
             }
         });
 
@@ -224,7 +219,7 @@ impl OnAir for Channel {
             .matched_items(
                 offset
                     ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
+                    .min(snapshot.matched_item_count()),
             )
             .map(move |item| {
                 snapshot.pattern().column_pattern(0).indices(
@@ -243,11 +238,11 @@ impl OnAir for Channel {
                     display_path.clone() + &item.data.line_number.to_string(),
                     PreviewType::Files,
                 )
-                .with_display_name(display_path)
-                .with_value(line)
-                .with_value_match_ranges(indices.map(|i| (i, i + 1)).collect())
-                .with_icon(FileIcon::from(item.data.path.as_path()))
-                .with_line_number(item.data.line_number)
+                    .with_display_name(display_path)
+                    .with_value(line)
+                    .with_value_match_ranges(indices.map(|i| (i, i + 1)).collect())
+                    .with_icon(FileIcon::from(item.data.path.as_path()))
+                    .with_line_number(item.data.line_number)
             })
             .collect()
     }
@@ -369,7 +364,7 @@ fn try_inject_lines(
                     if (bytes_read == 0)
                         || is_not_text(&buffer).unwrap_or(false)
                         || proportion_of_printable_ascii_characters(&buffer)
-                            < PRINTABLE_ASCII_THRESHOLD
+                        < PRINTABLE_ASCII_THRESHOLD
                     {
                         return None;
                     }

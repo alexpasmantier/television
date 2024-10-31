@@ -33,8 +33,10 @@
 - [x] support for images is implemented but do we really want that in the core?
   it's quite heavy
 - [x] shrink entry names that are too long (from the middle)
+- [ ] more syntaxes for the previewer https://www.sublimetext.com/docs/syntax.html#include-syntax
+- [ ] more preview colorschemes
 
-## feature ideas
+## features
 
 - [x] environment variables
 - [x] aliases
