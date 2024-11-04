@@ -1,42 +1,29 @@
 use devicons::FileIcon;
 use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
-use nucleo::{
-    pattern::{CaseMatching, Normalization},
-    Config, Nucleo,
-};
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 use tokio::task::JoinHandle;
 use tracing::debug;
 
 use crate::{
     entry::Entry,
-    fuzzy::MATCHER,
     previewers::PreviewType,
     utils::files::{walk_builder, DEFAULT_NUM_THREADS},
 };
 
 use crate::channels::OnAir;
+use crate::fuzzy::matcher::{Config, Injector, Matcher};
 use crate::utils::strings::preprocess_line;
 
 pub struct Channel {
-    matcher: Nucleo<String>,
-    last_pattern: String,
-    result_count: u32,
-    total_count: u32,
-    running: bool,
+    matcher: Matcher<String>,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = Nucleo::new(
-            Config::DEFAULT.match_paths(),
-            Arc::new(|| {}),
-            None,
-            1,
-        );
+        let matcher = Matcher::new(Config::default().match_paths(true));
         let base_dirs = BaseDirs::new().unwrap();
         let crawl_handle = tokio::spawn(crawl_for_repos(
             base_dirs.home_dir().to_path_buf(),
@@ -44,16 +31,10 @@ impl Channel {
         ));
         Channel {
             matcher,
-            last_pattern: String::new(),
-            result_count: 0,
-            total_count: 0,
-            running: false,
             icon: FileIcon::from("git"),
             crawl_handle,
         }
     }
-
-    const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
 impl Default for Channel {
@@ -64,75 +45,41 @@ impl Default for Channel {
 
 impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
-        if pattern != self.last_pattern {
-            self.matcher.pattern.reparse(
-                0,
-                pattern,
-                CaseMatching::Smart,
-                Normalization::Smart,
-                pattern.starts_with(&self.last_pattern),
-            );
-            self.last_pattern = pattern.to_string();
-        }
+        self.matcher.find(pattern);
     }
 
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
-        let status = self.matcher.tick(Self::MATCHER_TICK_TIMEOUT);
-        let snapshot = self.matcher.snapshot();
-        if status.changed {
-            self.result_count = snapshot.matched_item_count();
-            self.total_count = snapshot.item_count();
-        }
-        self.running = status.running;
-        let mut indices = Vec::new();
-        let mut matcher = MATCHER.lock();
-        let icon = self.icon;
-
-        snapshot
-            .matched_items(
-                offset
-                    ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
-            )
-            .map(move |item| {
-                snapshot.pattern().column_pattern(0).indices(
-                    item.matcher_columns[0].slice(..),
-                    &mut matcher,
-                    &mut indices,
-                );
-                indices.sort_unstable();
-                indices.dedup();
-                let indices = indices.drain(..);
-
-                let path = item.matcher_columns[0].to_string();
+        self.matcher.tick();
+        self.matcher
+            .results(num_entries, offset)
+            .into_iter()
+            .map(|item| {
+                let path = item.matched_string;
                 Entry::new(path.clone(), PreviewType::Directory)
-                    .with_name_match_ranges(
-                        indices.map(|i| (i, i + 1)).collect(),
-                    )
-                    .with_icon(icon)
+                    .with_name_match_ranges(item.match_indices)
+                    .with_icon(self.icon)
             })
             .collect()
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
-        let snapshot = self.matcher.snapshot();
-        snapshot.get_matched_item(index).map(|item| {
-            let path = item.matcher_columns[0].to_string();
+        self.matcher.get_result(index).map(|item| {
+            let path = item.matched_string;
             Entry::new(path.clone(), PreviewType::Directory)
                 .with_icon(self.icon)
         })
     }
 
     fn result_count(&self) -> u32 {
-        self.result_count
+        self.matcher.matched_item_count
     }
 
     fn total_count(&self) -> u32 {
-        self.total_count
+        self.matcher.total_item_count
     }
 
     fn running(&self) -> bool {
-        self.running
+        self.matcher.status.running
     }
 
     fn shutdown(&self) {
@@ -189,10 +136,7 @@ fn get_ignored_paths() -> Vec<PathBuf> {
     ignored_paths
 }
 #[allow(clippy::unused_async)]
-async fn crawl_for_repos(
-    starting_point: PathBuf,
-    injector: nucleo::Injector<String>,
-) {
+async fn crawl_for_repos(starting_point: PathBuf, injector: Injector<String>) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
     let walker = walk_builder(
@@ -214,7 +158,7 @@ async fn crawl_for_repos(
                             &entry.path().parent().unwrap().to_string_lossy(),
                         );
                         debug!("Found git repo: {:?}", parent_path);
-                        let _ = injector.push(parent_path, |e, cols| {
+                        let () = injector.push(parent_path, |e, cols| {
                             cols[0] = e.clone().into();
                         });
                         return ignore::WalkState::Skip;

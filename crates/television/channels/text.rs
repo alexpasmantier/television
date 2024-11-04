@@ -1,9 +1,5 @@
 use devicons::FileIcon;
 use ignore::WalkState;
-use nucleo::{
-    pattern::{CaseMatching, Normalization},
-    Config, Injector, Nucleo,
-};
 use std::{
     fs::File,
     io::{BufRead, Read, Seek},
@@ -13,7 +9,7 @@ use std::{
 use tracing::{debug, warn};
 
 use super::{OnAir, TelevisionChannel};
-use crate::previewers::PreviewType;
+use crate::utils::strings::PRINTABLE_ASCII_THRESHOLD;
 use crate::utils::{
     files::{is_not_text, walk_builder, DEFAULT_NUM_THREADS},
     strings::preprocess_line,
@@ -21,9 +17,12 @@ use crate::utils::{
 use crate::{
     entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
 };
-use crate::{fuzzy::MATCHER, utils::strings::PRINTABLE_ASCII_THRESHOLD};
+use crate::{
+    fuzzy::matcher::{Config, Injector, Matcher},
+    previewers::PreviewType,
+};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct CandidateLine {
     path: PathBuf,
     line: String,
@@ -42,17 +41,13 @@ impl CandidateLine {
 
 #[allow(clippy::module_name_repetitions)]
 pub struct Channel {
-    matcher: Nucleo<CandidateLine>,
-    last_pattern: String,
-    result_count: u32,
-    total_count: u32,
-    running: bool,
+    matcher: Matcher<CandidateLine>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new(directories: Vec<PathBuf>) -> Self {
-        let matcher = Nucleo::new(Config::DEFAULT, Arc::new(|| {}), None, 1);
+        let matcher = Matcher::new(Config::default());
         // start loading files in the background
         let crawl_handle = tokio::spawn(crawl_for_candidates(
             directories,
@@ -60,21 +55,12 @@ impl Channel {
         ));
         Channel {
             matcher,
-            last_pattern: String::new(),
-            result_count: 0,
-            total_count: 0,
-            running: false,
             crawl_handle,
         }
     }
 
     fn from_file_paths(file_paths: Vec<PathBuf>) -> Self {
-        let matcher = Nucleo::new(
-            Config::DEFAULT.match_paths(),
-            Arc::new(|| {}),
-            None,
-            1,
-        );
+        let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         let current_dir = std::env::current_dir().unwrap();
         let crawl_handle = tokio::spawn(async move {
@@ -93,21 +79,12 @@ impl Channel {
 
         Channel {
             matcher,
-            last_pattern: String::new(),
-            result_count: 0,
-            total_count: 0,
-            running: false,
             crawl_handle,
         }
     }
 
     fn from_text_entries(entries: Vec<Entry>) -> Self {
-        let matcher = Nucleo::new(
-            Config::DEFAULT.match_paths(),
-            Arc::new(|| {}),
-            None,
-            1,
-        );
+        let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         let load_handle = tokio::spawn(async move {
             for entry in entries.into_iter().take(MAX_LINES_IN_MEM) {
@@ -126,15 +103,9 @@ impl Channel {
 
         Channel {
             matcher,
-            last_pattern: String::new(),
-            result_count: 0,
-            total_count: 0,
-            running: false,
             crawl_handle: load_handle,
         }
     }
-
-    const MATCHER_TICK_TIMEOUT: u64 = 2;
 }
 
 impl Default for Channel {
@@ -192,86 +163,55 @@ impl From<&mut TelevisionChannel> for Channel {
 
 impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
-        if pattern != self.last_pattern {
-            self.matcher.pattern.reparse(
-                0,
-                pattern,
-                CaseMatching::Smart,
-                Normalization::Smart,
-                pattern.starts_with(&self.last_pattern),
-            );
-            self.last_pattern = pattern.to_string();
-        }
+        self.matcher.find(pattern);
     }
 
     fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
-        let status = self.matcher.tick(Self::MATCHER_TICK_TIMEOUT);
-        let snapshot = self.matcher.snapshot();
-        if status.changed {
-            self.result_count = snapshot.matched_item_count();
-            self.total_count = snapshot.item_count();
-        }
-        self.running = status.running;
-        let mut indices = Vec::new();
-        let mut matcher = MATCHER.lock();
-
-        snapshot
-            .matched_items(
-                offset
-                    ..(num_entries + offset)
-                        .min(snapshot.matched_item_count()),
-            )
-            .map(move |item| {
-                snapshot.pattern().column_pattern(0).indices(
-                    item.matcher_columns[0].slice(..),
-                    &mut matcher,
-                    &mut indices,
-                );
-                indices.sort_unstable();
-                indices.dedup();
-                let indices = indices.drain(..);
-
-                let line = item.matcher_columns[0].to_string();
+        self.matcher.tick();
+        self.matcher
+            .results(num_entries, offset)
+            .into_iter()
+            .map(|item| {
+                let line = item.matched_string;
                 let display_path =
-                    item.data.path.to_string_lossy().to_string();
+                    item.inner.path.to_string_lossy().to_string();
                 Entry::new(
-                    display_path.clone() + &item.data.line_number.to_string(),
+                    display_path.clone() + &item.inner.line_number.to_string(),
                     PreviewType::Files,
                 )
                 .with_display_name(display_path)
                 .with_value(line)
-                .with_value_match_ranges(indices.map(|i| (i, i + 1)).collect())
-                .with_icon(FileIcon::from(item.data.path.as_path()))
-                .with_line_number(item.data.line_number)
+                .with_value_match_ranges(item.match_indices)
+                .with_icon(FileIcon::from(item.inner.path.as_path()))
+                .with_line_number(item.inner.line_number)
             })
             .collect()
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
-        let snapshot = self.matcher.snapshot();
-        snapshot.get_matched_item(index).map(|item| {
-            let display_path = item.data.path.to_string_lossy().to_string();
+        self.matcher.get_result(index).map(|item| {
+            let display_path = item.inner.path.to_string_lossy().to_string();
             Entry::new(display_path.clone(), PreviewType::Files)
                 .with_display_name(
                     display_path.clone()
                         + ":"
-                        + &item.data.line_number.to_string(),
+                        + &item.inner.line_number.to_string(),
                 )
-                .with_icon(FileIcon::from(item.data.path.as_path()))
-                .with_line_number(item.data.line_number)
+                .with_icon(FileIcon::from(item.inner.path.as_path()))
+                .with_line_number(item.inner.line_number)
         })
     }
 
     fn result_count(&self) -> u32 {
-        self.result_count
+        self.matcher.matched_item_count
     }
 
     fn total_count(&self) -> u32 {
-        self.total_count
+        self.matcher.total_item_count
     }
 
     fn running(&self) -> bool {
-        self.running
+        self.matcher.status.running
     }
 
     fn shutdown(&self) {
@@ -310,9 +250,9 @@ async fn crawl_for_candidates(
     let current_dir = std::env::current_dir().unwrap();
     let mut walker =
         walk_builder(&directories[0], *DEFAULT_NUM_THREADS, None, None);
-    for path in directories[1..].iter() {
+    directories[1..].iter().for_each(|path| {
         walker.add(path);
-    }
+    });
 
     let lines_in_mem = Arc::new(AtomicUsize::new(0));
 
@@ -393,7 +333,7 @@ fn try_inject_lines(
                             line,
                             line_number,
                         );
-                        let _ = injector.push(candidate, |c, cols| {
+                        let () = injector.push(candidate, |c, cols| {
                             cols[0] = c.line.clone().into();
                         });
                         injected_lines += 1;

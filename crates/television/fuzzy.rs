@@ -1,6 +1,8 @@
 use parking_lot::Mutex;
 use std::ops::DerefMut;
 
+pub mod matcher;
+
 pub struct LazyMutex<T> {
     inner: Mutex<Option<T>>,
     init: fn() -> T,
