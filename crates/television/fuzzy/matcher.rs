@@ -16,8 +16,11 @@ pub struct MatchedItem<I>
 where
     I: Sync + Send + Clone + 'static,
 {
+    /// The matched item.
     pub inner: I,
+    /// The dimension against which the item was matched (as a string).
     pub matched_string: String,
+    /// The indices of the matched characters.
     pub match_indices: Vec<(u32, u32)>,
 }
 
@@ -29,6 +32,7 @@ where
 /// front-end and display a loading indicator.
 #[derive(Default)]
 pub struct Status {
+    /// Whether the matcher is currently running.
     pub running: bool,
 }
 
@@ -52,9 +56,13 @@ impl From<nucleo::Status> for Status {
 /// cores on the current machine).
 #[derive(Copy, Clone)]
 pub struct Config {
+    /// The number of threads to use for the fuzzy matcher.
     pub n_threads: Option<usize>,
+    /// Whether to ignore case when matching.
     pub ignore_case: bool,
+    /// Whether to prefer prefix matches.
     pub prefer_prefix: bool,
+    /// Whether to optimize for matching paths.
     pub match_paths: bool,
 }
 
@@ -118,6 +126,7 @@ pub struct Injector<I>
 where
     I: Sync + Send + Clone + 'static,
 {
+    /// The inner `Injector` from the `Nucleo` fuzzy matcher.
     inner: nucleo::Injector<I>,
 }
 
@@ -166,10 +175,15 @@ pub struct Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
+    /// The inner `Nucleo` fuzzy matcher.
     inner: nucleo::Nucleo<I>,
+    /// The current total number of items in the matcher.
     pub total_item_count: u32,
+    /// The current number of matched items in the matcher.
     pub matched_item_count: u32,
+    /// The current status of the matcher.
     pub status: Status,
+    /// The last pattern that was matched against.
     pub last_pattern: String,
 }
 

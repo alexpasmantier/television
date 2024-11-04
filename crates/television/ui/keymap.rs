@@ -221,14 +221,6 @@ impl Television {
 
 /// Build the corresponding spans for a group of keys.
 ///
-/// # Arguments
-///     - `group_name`: The name of the group.
-///     - `key_groups`: A vector of vectors of strings representing the keys for each group.
-///        Each vector of strings represents a group of alternate keys for a given `Action`.
-///
-/// # Returns
-/// A vector of `Span`s representing the key groups.
-///
 /// # Example
 /// ```rust
 /// use ratatui::text::Span;
@@ -259,7 +251,6 @@ fn build_cells_for_key_groups(
     ))];
 
     let mut spans = Vec::new();
-    //spans.push(Span::styled("[", Style::default().fg(KEY_COLOR)));
 
     let key_group_spans: Vec<Span> = non_empty_groups
         .map(|keys| {
@@ -274,20 +265,12 @@ fn build_cells_for_key_groups(
         }
     });
 
-    //spans.push(Span::styled("]", Style::default().fg(KEY_COLOR)));
     cells.push(Cell::from(Line::from(spans)));
 
     cells
 }
 
 /// Get the keys for a given action.
-///
-/// # Arguments
-///    - `keymap`: A hashmap of keybindings.
-///    - `action`: The action to get the keys for.
-///
-/// # Returns
-/// A vector of strings representing the keys for the given action.
 ///
 /// # Example
 /// ```rust
