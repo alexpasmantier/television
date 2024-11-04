@@ -36,7 +36,7 @@
 - [ ] more syntaxes for the previewer https://www.sublimetext.com/docs/syntax.html#include-syntax
 - [ ] more preview colorschemes
 
-## features
+## feature ideas
 
 - [x] environment variables
 - [x] aliases
