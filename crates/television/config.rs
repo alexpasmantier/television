@@ -7,7 +7,7 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 
 use crate::{
     action::Action,
