@@ -8,6 +8,12 @@ pub struct EnvVarPreviewer {
     cache: HashMap<entry::Entry, Arc<Preview>>,
 }
 
+impl Default for EnvVarPreviewer {
+    fn default() -> Self {
+        EnvVarPreviewer::new()
+    }
+}
+
 impl EnvVarPreviewer {
     pub fn new() -> Self {
         EnvVarPreviewer {

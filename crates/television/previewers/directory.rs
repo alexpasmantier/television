@@ -15,6 +15,12 @@ pub struct DirectoryPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
 }
 
+impl Default for DirectoryPreviewer {
+    fn default() -> Self {
+        DirectoryPreviewer::new()
+    }
+}
+
 impl DirectoryPreviewer {
     pub fn new() -> Self {
         DirectoryPreviewer {

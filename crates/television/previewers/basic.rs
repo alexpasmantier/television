@@ -5,6 +5,12 @@ use crate::previewers::{Preview, PreviewContent};
 
 pub struct BasicPreviewer {}
 
+impl Default for BasicPreviewer {
+    fn default() -> Self {
+        BasicPreviewer::new()
+    }
+}
+
 impl BasicPreviewer {
     pub fn new() -> Self {
         BasicPreviewer {}

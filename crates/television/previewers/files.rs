@@ -31,6 +31,12 @@ pub struct FilePreviewer {
     //image_picker: Arc<Mutex<Picker>>,
 }
 
+impl Default for FilePreviewer {
+    fn default() -> Self {
+        FilePreviewer::new()
+    }
+}
+
 impl FilePreviewer {
     pub fn new() -> Self {
         let syntax_set = SyntaxSet::load_defaults_nonewlines();

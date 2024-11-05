@@ -87,6 +87,12 @@ pub struct Previewer {
     env_var: EnvVarPreviewer,
 }
 
+impl Default for Previewer {
+    fn default() -> Self {
+        Previewer::new()
+    }
+}
+
 impl Previewer {
     pub fn new() -> Self {
         Previewer {
