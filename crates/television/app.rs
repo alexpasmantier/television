@@ -14,19 +14,29 @@ use crate::{
     render::{render, RenderingTask},
 };
 
+/// The main application struct that holds the state of the application.
 pub struct App {
+    /// The configuration of the application.
     config: Config,
     // maybe move these two into config instead of passing them
     // via the cli?
     tick_rate: f64,
     frame_rate: f64,
+    /// The television instance that handles channels and entries.
     television: Arc<Mutex<Television>>,
+    /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
+    /// A flag that indicates whether the application should suspend during the next frame.
     should_suspend: bool,
+    /// A sender channel for actions.
     action_tx: mpsc::UnboundedSender<Action>,
+    /// The receiver channel for actions.
     action_rx: mpsc::UnboundedReceiver<Action>,
+    /// The receiver channel for events.
     event_rx: mpsc::UnboundedReceiver<Event<Key>>,
+    /// A sender channel to abort the event loop.
     event_abort_tx: mpsc::UnboundedSender<()>,
+    /// A sender channel for rendering tasks.
     render_tx: mpsc::UnboundedSender<RenderingTask>,
 }
 
@@ -57,6 +67,20 @@ impl App {
         })
     }
 
+    /// Run the application main loop.
+    ///
+    /// This function will start the event loop and the rendering loop and handle
+    /// all actions that are sent to the application.
+    /// The function will return the selected entry if the application is exited.
+    ///
+    /// # Arguments
+    /// * `is_output_tty` - A flag that indicates whether the output is a tty.
+    ///
+    /// # Returns
+    /// The selected entry (if any) if the application is exited.
+    ///
+    /// # Errors
+    /// If an error occurs during the execution of the application.
     pub async fn run(&mut self, is_output_tty: bool) -> Result<Option<Entry>> {
         info!("Starting backend event loop");
         let event_loop = EventLoop::new(self.tick_rate, true);
@@ -107,6 +131,16 @@ impl App {
         }
     }
 
+    /// Convert an event to an action.
+    ///
+    /// This function will convert an event to an action based on the current
+    /// mode the television is in.
+    ///
+    /// # Arguments
+    /// * `event` - The event to convert to an action.
+    ///
+    /// # Returns
+    /// The action that corresponds to the given event.
     async fn convert_event_to_action(&self, event: Event<Key>) -> Action {
         match event {
             Event::Input(keycode) => {
@@ -144,6 +178,16 @@ impl App {
         }
     }
 
+    /// Handle actions.
+    ///
+    /// This function will handle all actions that are sent to the application.
+    /// The function will return the selected entry if the application is exited.
+    ///
+    /// # Returns
+    /// The selected entry (if any) if the application is exited.
+    ///
+    /// # Errors
+    /// If an error occurs during the execution of the application.
     async fn handle_actions(&mut self) -> Result<Option<Entry>> {
         while let Ok(action) = self.action_rx.try_recv() {
             if action != Action::Tick && action != Action::Render {
