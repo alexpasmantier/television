@@ -61,3 +61,7 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
         run: cargo doc --no-deps --document-private-items --all-features --workspace --examples
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: "target/docs"
