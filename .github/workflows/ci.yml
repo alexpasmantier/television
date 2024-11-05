@@ -49,27 +49,12 @@ jobs:
         run: cargo clippy --all-targets --all-features --workspace -- -D warnings
 
   docs:
-    name: Docs
+    name: Documentation
     runs-on: ubuntu-latest
+    env:
+      RUSTDOCFLAGS: -Dwarnings
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
-      - name: Configure cache
-        uses: Swatinem/rust-cache@v2
-      - name: Setup pages
-        id: pages
-        uses: actions/configure-pages@v4
-      - name: Clean docs folder
-        run: cargo clean --doc
-      - name: Build docs
-        run: cargo doc --no-deps
-      - name: Add redirect
-        run: echo '<meta http-equiv="refresh" content="0;url=tv/index.html">' > target/doc/index.html
-      - name: Remove lock file
-        run: rm target/doc/.lock
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: target/doc
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: dtolnay/install@cargo-docs-rs
+      - run: cargo docs-rs

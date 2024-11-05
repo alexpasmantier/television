@@ -12,6 +12,12 @@ impl Dimensions {
     }
 }
 
+impl From<u16> for Dimensions {
+    fn from(x: u16) -> Self {
+        Self::new(x, x)
+    }
+}
+
 impl Default for Dimensions {
     fn default() -> Self {
         Self::new(UI_WIDTH_PERCENT, UI_HEIGHT_PERCENT)

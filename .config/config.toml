@@ -1,3 +1,18 @@
+# Television configuration file
+# ----------------------------------------------------------------------------
+#
+# Ui settings
+# ----------------------------------------------------------------------------
+[ui]
+# Whether to use nerd font icons in the UI
+use_nerd_font_icons = false
+# How much space to allocate for the UI (in percentage of the screen)
+ui_scale = 80
+
+# Keybindings
+# ----------------------------------------------------------------------------
+#
+# Channel mode keybindings
 [keybindings.Channel]
 esc = "Quit"
 down = "SelectNextEntry"
@@ -11,6 +26,7 @@ ctrl-y = "CopyEntryToClipboard"
 ctrl-r = "ToggleRemoteControl"
 ctrl-s = "ToggleSendToChannel"
 
+# Remote control mode keybindings
 [keybindings.RemoteControl]
 esc = "Quit"
 down = "SelectNextEntry"
@@ -20,6 +36,7 @@ ctrl-p = "SelectPrevEntry"
 enter = "SelectEntry"
 ctrl-r = "ToggleRemoteControl"
 
+# Send to channel mode keybindings
 [keybindings.SendToChannel]
 esc = "Quit"
 down = "SelectNextEntry"

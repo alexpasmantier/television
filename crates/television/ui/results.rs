@@ -65,6 +65,7 @@ pub fn build_results_list<'a, 'b>(
     entries: &'a [Entry],
     list_direction: ListDirection,
     results_list_colors: Option<ResultsListColors>,
+    use_icons: bool,
 ) -> List<'a>
 where
     'b: 'a,
@@ -73,7 +74,8 @@ where
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
         // optional icon
-        if let Some(icon) = &entry.icon {
+        if entry.icon.is_some() && use_icons {
+            let icon = entry.icon.as_ref().unwrap();
             spans.push(Span::styled(
                 icon.to_string(),
                 Style::default().fg(Color::from_str(icon.color).unwrap()),
@@ -200,6 +202,7 @@ impl Television {
             &entries,
             ListDirection::BottomToTop,
             None,
+            self.config.ui.use_nerd_font_icons,
         );
 
         f.render_stateful_widget(

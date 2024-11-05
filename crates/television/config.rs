@@ -7,7 +7,7 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
-use tracing::{error, info};
+use tracing::{debug, error, info, warn};
 
 use crate::{
     action::Action,
@@ -26,6 +26,23 @@ pub struct AppConfig {
     pub config_dir: PathBuf,
 }
 
+const DEFAULT_UI_SCALE: u16 = 90;
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct UiConfig {
+    pub use_nerd_font_icons: bool,
+    pub ui_scale: u16,
+}
+
+impl Default for UiConfig {
+    fn default() -> Self {
+        Self {
+            use_nerd_font_icons: false,
+            ui_scale: DEFAULT_UI_SCALE,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
@@ -36,6 +53,7 @@ pub struct Config {
     pub keybindings: KeyBindings,
     #[serde(default)]
     pub styles: Styles,
+    pub ui: UiConfig,
 }
 
 lazy_static! {
@@ -51,34 +69,32 @@ lazy_static! {
             .map(PathBuf::from);
 }
 
+const CONFIG_FILE_NAME: &str = "config.toml";
+
 impl Config {
     pub fn new() -> Result<Self, config::ConfigError> {
-        let default_config: Config = toml::from_str(CONFIG).unwrap();
+        let default_config: Config =
+            toml::from_str(CONFIG).expect("default config");
+
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?;
 
-        let config_files = [
-            ("config.json5", config::FileFormat::Json5),
-            ("config.json", config::FileFormat::Json),
-            ("config.yaml", config::FileFormat::Yaml),
-            ("config.toml", config::FileFormat::Toml),
-            ("config.ini", config::FileFormat::Ini),
-        ];
-        let mut found_config = false;
-        for (file, format) in &config_files {
-            let source = config::File::from(config_dir.join(file))
-                .format(*format)
-                .required(false);
-            builder = builder.add_source(source);
-            if config_dir.join(file).exists() {
-                found_config = true;
-            }
-        }
-        if !found_config {
-            error!("No configuration file found. Application may not behave as expected");
+        // Load the default_config values as base defaults
+        builder = builder.add_source(config::File::from_str(
+            CONFIG,
+            config::FileFormat::Toml,
+        ));
+
+        let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
+            .format(config::FileFormat::Toml)
+            .required(false);
+        builder = builder.add_source(source);
+
+        if !config_dir.join(CONFIG_FILE_NAME).is_file() {
+            warn!("No config file found at {:?}", config_dir);
         }
 
         let mut cfg: Self = builder.build()?.try_deserialize()?;

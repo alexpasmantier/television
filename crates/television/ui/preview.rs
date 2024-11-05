@@ -31,12 +31,12 @@ impl Television {
         preview: &Arc<Preview>,
     ) -> Result<()> {
         let mut preview_title_spans = Vec::new();
-        if let Some(icon) = &selected_entry.icon {
+        if selected_entry.icon.is_some() && self.config.ui.use_nerd_font_icons
+        {
+            let icon = selected_entry.icon.as_ref().unwrap();
             preview_title_spans.push(Span::styled(
                 {
-                    // FIXME: this should be done using padding on the parent block
-                    let mut icon_str = String::from(" ");
-                    icon_str.push(icon.icon);
+                    let mut icon_str = String::from(icon.icon);
                     icon_str.push(' ');
                     icon_str
                 },
@@ -53,6 +53,7 @@ impl Television {
         let preview_title = Paragraph::new(Line::from(preview_title_spans))
             .block(
                 Block::default()
+                    .padding(Padding::horizontal(1))
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
                     .border_style(Style::default().fg(BORDER_COLOR)),

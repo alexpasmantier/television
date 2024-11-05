@@ -6,8 +6,8 @@
 # tasks
 
 - [x] preview navigation
-- [x] add a way to open the selected file in the default editor (or maybe that
-  should be achieved using pipes?) --> use xargs for that
+- [ ] add a way to open the selected file in the default editor (or maybe that
+  should be achieved using pipes?) --> xargs
 - [x] maybe filter out image types etc. for now
 - [x] return selected entry on exit
 - [x] piping output to another command

@@ -370,7 +370,7 @@ impl Television {
     /// * `Result<()>` - An Ok result or an error.
     pub fn draw(&mut self, f: &mut Frame, area: Rect) -> Result<()> {
         let layout = Layout::build(
-            &Dimensions::default(),
+            &Dimensions::from(self.config.ui.ui_scale),
             area,
             !matches!(self.mode, Mode::Channel),
         );
