@@ -4,6 +4,7 @@ use std::{collections::HashSet, path::PathBuf};
 use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
 use infer::Infer;
 use lazy_static::lazy_static;
+use tracing::debug;
 
 use crate::config::default_num_threads;
 
@@ -26,9 +27,14 @@ pub fn walk_builder(
 
     // ignore paths
     if let Some(paths) = ignore_paths {
-        for path in paths {
-            builder.add_ignore(path);
-        }
+        builder.filter_entry(move |e| {
+            let path = e.path();
+            if paths.iter().any(|p| path.starts_with(p)) {
+                debug!("Ignoring path: {:?}", path);
+                return false;
+            }
+            true
+        });
     }
 
     builder.threads(n_threads);
