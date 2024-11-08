@@ -1,3 +1,4 @@
+use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
@@ -216,7 +217,7 @@ impl Television {
         target_line: Option<u16>,
         height: u16,
     ) {
-        if self.preview_scroll.is_none() {
+        if self.preview_scroll.is_none() && !self.channel.running() {
             self.preview_scroll =
                 Some(target_line.unwrap_or(0).saturating_sub(height / 3));
         }

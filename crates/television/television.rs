@@ -264,20 +264,20 @@ impl Television {
                         if new_pattern != self.current_pattern {
                             self.current_pattern.clone_from(&new_pattern);
                             self.find(&new_pattern);
-                            self.reset_preview_scroll();
                             self.reset_picker_selection();
+                            self.reset_preview_scroll();
                         }
                     }
                     _ => {}
                 }
             }
             Action::SelectNextEntry => {
-                self.select_next_entry();
                 self.reset_preview_scroll();
+                self.select_next_entry();
             }
             Action::SelectPrevEntry => {
-                self.select_prev_entry();
                 self.reset_preview_scroll();
+                self.select_prev_entry();
             }
             Action::ScrollPreviewDown => self.scroll_preview_down(1),
             Action::ScrollPreviewUp => self.scroll_preview_up(1),
