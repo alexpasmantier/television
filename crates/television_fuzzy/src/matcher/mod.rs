@@ -89,7 +89,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{Config, Matcher};
+    /// use television_fuzzy::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
     /// let matcher = Matcher::new(config);
@@ -139,7 +139,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{Config, Matcher};
+    /// use television_fuzzy::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
     /// let mut matcher: Matcher<String> = Matcher::new(config);
@@ -195,7 +195,7 @@ where
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{Config, Matcher};
+    /// use television_fuzzy::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
     /// let mut matcher: Matcher<String> = Matcher::new(config);

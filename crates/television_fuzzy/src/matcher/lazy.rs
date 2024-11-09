@@ -25,6 +25,8 @@ use std::ops::DerefMut;
 /// static THING_TO_LAZY_INIT: LazyMutex<Thing> = LazyMutex::new(|| {
 ///    Thing::new()
 /// });
+///
+/// let _thing = THING_TO_LAZY_INIT.lock();
 /// ```
 pub struct LazyMutex<T> {
     /// The inner value, wrapped in a mutex.
@@ -58,7 +60,7 @@ impl<T> LazyMutex<T> {
 /// This matcher is used as a convenience for computing match indices on a subset of matched items.
 ///
 /// # Example
-/// ```
+/// ```ignore
 /// use television_fuzzy::matcher::{lazy::MATCHER, matched_item::MatchedItem};
 ///
 /// let snapshot = channel_matcher.snapshot();
