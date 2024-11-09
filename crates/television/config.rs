@@ -12,6 +12,7 @@ use tracing::{info, warn};
 use crate::{
     action::Action,
     event::{convert_raw_event_to_key, Key},
+    previewers::{self, PreviewerConfig},
     television::Mode,
 };
 
@@ -43,6 +44,40 @@ impl Default for UiConfig {
     }
 }
 
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct PreviewersConfig {
+    #[serde(default)]
+    pub basic: BasicPreviewerConfig,
+    #[serde(default)]
+    pub directory: DirectoryPreviewerConfig,
+    pub file: FilePreviewerConfig,
+    #[serde(default)]
+    pub env_var: EnvVarPreviewerConfig,
+}
+
+impl Into<PreviewerConfig> for PreviewersConfig {
+    fn into(self) -> PreviewerConfig {
+        PreviewerConfig::default().file(previewers::FilePreviewerConfig::new(
+            self.file.theme.clone(),
+        ))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct BasicPreviewerConfig {}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct DirectoryPreviewerConfig {}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct FilePreviewerConfig {
+    //pub max_file_size: u64,
+    pub theme: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Default)]
+pub struct EnvVarPreviewerConfig {}
+
 #[allow(dead_code)]
 #[derive(Clone, Debug, Default, Deserialize)]
 pub struct Config {
@@ -54,19 +89,25 @@ pub struct Config {
     #[serde(default)]
     pub styles: Styles,
     pub ui: UiConfig,
+    #[serde(default)]
+    pub previewers: PreviewersConfig,
 }
 
 lazy_static! {
     pub static ref PROJECT_NAME: String =
         env!("CARGO_CRATE_NAME").to_uppercase().to_string();
     pub static ref DATA_FOLDER: Option<PathBuf> =
-        env::var(format!("{}_DATA", PROJECT_NAME.clone()))
-            .ok()
-            .map(PathBuf::from);
+        // if `TELEVISION_DATA` is set, use that as the data directory
+        env::var_os(format!("{}_DATA", PROJECT_NAME.clone())).or_else(|| {
+            // otherwise, use the XDG data directory
+            env::var_os("XDG_DATA_HOME")
+        }).map(PathBuf::from).filter(|p| p.is_absolute());
     pub static ref CONFIG_FOLDER: Option<PathBuf> =
-        env::var(format!("{}_CONFIG", PROJECT_NAME.clone()))
-            .ok()
-            .map(PathBuf::from);
+        // if `TELEVISION_CONFIG` is set, use that as the config directory
+        env::var_os(format!("{}_CONFIG", PROJECT_NAME.clone())).or_else(|| {
+            // otherwise, use the XDG config directory
+            env::var_os("XDG_CONFIG_HOME")
+        }).map(PathBuf::from).filter(|p| p.is_absolute());
 }
 
 const CONFIG_FILE_NAME: &str = "config.toml";

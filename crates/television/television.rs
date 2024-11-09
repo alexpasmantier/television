@@ -1,6 +1,7 @@
 use crate::channels::remote_control::RemoteControl;
 use crate::channels::{OnAir, UnitChannel};
 use crate::picker::Picker;
+use crate::previewers;
 use crate::ui::layout::{Dimensions, Layout};
 use crate::utils::strings::EMPTY_STRING;
 use crate::{action::Action, config::Config};
@@ -72,7 +73,7 @@ impl Television {
             results_picker: Picker::default(),
             rc_picker: Picker::default().inverted(),
             results_area_height: 0,
-            previewer: Previewer::new(),
+            previewer: Previewer::default(),
             preview_scroll: None,
             preview_pane_height: 0,
             current_preview_total_lines: 0,
@@ -229,6 +230,11 @@ impl Television {
     /// * `Result<()>` - An Ok result or an error.
     pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
+        let previewer_config =
+            std::convert::Into::<previewers::PreviewerConfig>::into(
+                self.config.previewers.clone(),
+            );
+        self.previewer.set_config(previewer_config);
         Ok(())
     }
 

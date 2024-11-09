@@ -4,20 +4,20 @@ use std::sync::Arc;
 use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
 
+#[derive(Debug, Default)]
 pub struct EnvVarPreviewer {
     cache: HashMap<entry::Entry, Arc<Preview>>,
+    config: EnvVarPreviewerConfig,
 }
 
-impl Default for EnvVarPreviewer {
-    fn default() -> Self {
-        EnvVarPreviewer::new()
-    }
-}
+#[derive(Debug, Default)]
+pub struct EnvVarPreviewerConfig {}
 
 impl EnvVarPreviewer {
-    pub fn new() -> Self {
+    pub fn new(config: Option<EnvVarPreviewerConfig>) -> Self {
         EnvVarPreviewer {
             cache: HashMap::new(),
+            config: config.unwrap_or_default(),
         }
     }
 

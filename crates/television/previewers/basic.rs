@@ -3,17 +3,19 @@ use std::sync::Arc;
 use crate::entry::Entry;
 use crate::previewers::{Preview, PreviewContent};
 
-pub struct BasicPreviewer {}
-
-impl Default for BasicPreviewer {
-    fn default() -> Self {
-        BasicPreviewer::new()
-    }
+#[derive(Debug, Default)]
+pub struct BasicPreviewer {
+    config: BasicPreviewerConfig,
 }
 
+#[derive(Debug, Default)]
+pub struct BasicPreviewerConfig {}
+
 impl BasicPreviewer {
-    pub fn new() -> Self {
-        BasicPreviewer {}
+    pub fn new(config: Option<BasicPreviewerConfig>) -> Self {
+        BasicPreviewer {
+            config: config.unwrap_or_default(),
+        }
     }
 
     pub fn preview(&self, entry: &Entry) -> Arc<Preview> {

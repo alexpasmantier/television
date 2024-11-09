@@ -11,9 +11,13 @@ mod meta;
 
 // previewer types
 pub use basic::BasicPreviewer;
+pub use basic::BasicPreviewerConfig;
 pub use directory::DirectoryPreviewer;
+pub use directory::DirectoryPreviewerConfig;
 pub use env::EnvVarPreviewer;
+pub use env::EnvVarPreviewerConfig;
 pub use files::FilePreviewer;
+pub use files::FilePreviewerConfig;
 //use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
 
@@ -26,7 +30,7 @@ pub enum PreviewType {
     Files,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum PreviewContent {
     Empty,
     FileTooLarge,
@@ -47,7 +51,7 @@ pub const FILE_TOO_LARGE_MSG: &str = "File too large";
 /// # Fields
 /// - `title`: The title of the preview.
 /// - `content`: The content of the preview.
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
@@ -80,6 +84,7 @@ impl Preview {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Previewer {
     basic: BasicPreviewer,
     directory: DirectoryPreviewer,
@@ -87,19 +92,44 @@ pub struct Previewer {
     env_var: EnvVarPreviewer,
 }
 
-impl Default for Previewer {
-    fn default() -> Self {
-        Previewer::new()
+#[derive(Debug, Default)]
+pub struct PreviewerConfig {
+    basic: BasicPreviewerConfig,
+    directory: DirectoryPreviewerConfig,
+    file: FilePreviewerConfig,
+    env_var: EnvVarPreviewerConfig,
+}
+
+impl PreviewerConfig {
+    pub fn basic(mut self, config: BasicPreviewerConfig) -> Self {
+        self.basic = config;
+        self
+    }
+
+    pub fn directory(mut self, config: DirectoryPreviewerConfig) -> Self {
+        self.directory = config;
+        self
+    }
+
+    pub fn file(mut self, config: FilePreviewerConfig) -> Self {
+        self.file = config;
+        self
+    }
+
+    pub fn env_var(mut self, config: EnvVarPreviewerConfig) -> Self {
+        self.env_var = config;
+        self
     }
 }
 
 impl Previewer {
-    pub fn new() -> Self {
+    pub fn new(config: Option<PreviewerConfig>) -> Self {
+        let config = config.unwrap_or_default();
         Previewer {
-            basic: BasicPreviewer::new(),
-            directory: DirectoryPreviewer::new(),
-            file: FilePreviewer::new(),
-            env_var: EnvVarPreviewer::new(),
+            basic: BasicPreviewer::new(Some(config.basic)),
+            directory: DirectoryPreviewer::new(Some(config.directory)),
+            file: FilePreviewer::new(Some(config.file)),
+            env_var: EnvVarPreviewer::new(Some(config.env_var)),
         }
     }
 
@@ -110,5 +140,12 @@ impl Previewer {
             PreviewType::EnvVar => self.env_var.preview(entry),
             PreviewType::Files => self.file.preview(entry).await,
         }
+    }
+
+    pub fn set_config(&mut self, config: PreviewerConfig) {
+        self.basic = BasicPreviewer::new(Some(config.basic));
+        self.directory = DirectoryPreviewer::new(Some(config.directory));
+        self.file = FilePreviewer::new(Some(config.file));
+        self.env_var = EnvVarPreviewer::new(Some(config.env_var));
     }
 }

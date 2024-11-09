@@ -22,8 +22,9 @@ use crate::utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
 };
-use crate::utils::syntax;
+use crate::utils::syntax::{self, load_highlighting_assets};
 
+#[derive(Debug, Default)]
 pub struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     pub syntax_set: Arc<SyntaxSet>,
@@ -31,16 +32,29 @@ pub struct FilePreviewer {
     //image_picker: Arc<Mutex<Picker>>,
 }
 
-impl Default for FilePreviewer {
-    fn default() -> Self {
-        FilePreviewer::new()
+#[derive(Debug, Clone, Default)]
+pub struct FilePreviewerConfig {
+    pub theme: String,
+}
+
+impl FilePreviewerConfig {
+    pub fn new(theme: String) -> Self {
+        FilePreviewerConfig { theme }
     }
 }
 
 impl FilePreviewer {
-    pub fn new() -> Self {
-        let syntax_set = SyntaxSet::load_defaults_nonewlines();
-        let theme_set = ThemeSet::load_defaults();
+    pub fn new(config: Option<FilePreviewerConfig>) -> Self {
+        let hl_assets = load_highlighting_assets();
+        let syntax_set = hl_assets.get_syntax_set().unwrap().clone();
+
+        let theme = config.map_or_else(
+            || {
+                let theme_set = ThemeSet::load_defaults();
+                theme_set.themes["base16-ocean.dark"].clone()
+            },
+            |c| hl_assets.get_theme(&c.theme).clone(),
+        );
         //info!("getting image picker");
         //let image_picker = get_image_picker();
         //info!("got image picker");
@@ -48,9 +62,7 @@ impl FilePreviewer {
         FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
             syntax_set: Arc::new(syntax_set),
-            syntax_theme: Arc::new(
-                theme_set.themes["base16-ocean.dark"].clone(),
-            ),
+            syntax_theme: Arc::new(theme),
             //image_picker: Arc::new(Mutex::new(image_picker)),
         }
     }
@@ -173,7 +185,9 @@ impl FilePreviewer {
             let lines: Vec<String> = reader
                 .lines()
                 .map_while(Result::ok)
-                .map(|line| preprocess_line(&line))
+                // we need to add a newline here because sublime syntaxes expect one
+                // to be present at the end of each line
+                .map(|line| preprocess_line(&line) + "\n")
                 .collect();
 
             match syntax::compute_highlights_for_path(

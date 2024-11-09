@@ -44,6 +44,7 @@ use crate::previewers::Preview;
 /// assert!(ring_set.contains(&3));
 /// assert!(ring_set.contains(&4));
 /// ```
+#[derive(Debug)]
 struct RingSet<T> {
     ring_buffer: VecDeque<T>,
     known_keys: HashSet<T>,
@@ -107,6 +108,7 @@ const DEFAULT_PREVIEW_CACHE_SIZE: usize = 100;
 
 /// A cache for previews.
 /// The cache is implemented as an LRU cache with a fixed size.
+#[derive(Debug)]
 pub struct PreviewCache {
     entries: HashMap<String, Arc<Preview>>,
     ring_set: RingSet<String>,

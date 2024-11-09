@@ -9,6 +9,12 @@ use_nerd_font_icons = false
 # How much space to allocate for the UI (in percentage of the screen)
 ui_scale = 80
 
+# Previewers settings
+# ----------------------------------------------------------------------------
+[previewers.file]
+# The theme to use for syntax highlighting
+theme = "Catppuccin Mocha"
+
 # Keybindings
 # ----------------------------------------------------------------------------
 #

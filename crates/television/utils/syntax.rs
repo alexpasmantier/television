@@ -1,4 +1,5 @@
-use std::path::Path;
+use bat::assets::HighlightingAssets;
+use std::path::{Path, PathBuf};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme};
 use syntect::parsing::SyntaxSet;
@@ -55,4 +56,50 @@ pub fn compute_highlights_for_line<'a>(
             Ok(highlighter.highlight_line(line, syntax_set)?)
         }
     }
+}
+
+// Based on code from https://github.com/sharkdp/bat e981e974076a926a38f124b7d8746de2ca5f0a28
+
+use directories::BaseDirs;
+use lazy_static::lazy_static;
+
+#[cfg(target_os = "macos")]
+use std::env;
+
+/// Wrapper for 'dirs' that treats MacOS more like Linux, by following the XDG specification.
+/// This means that the `XDG_CACHE_HOME` and `XDG_CONFIG_HOME` environment variables are
+/// checked first. The fallback directories are `~/.cache/bat` and `~/.config/bat`, respectively.
+pub struct BatProjectDirs {
+    cache_dir: PathBuf,
+}
+
+impl BatProjectDirs {
+    fn new() -> Option<BatProjectDirs> {
+        #[cfg(target_os = "macos")]
+        let cache_dir_op = env::var_os("XDG_CACHE_HOME")
+            .map(PathBuf::from)
+            .filter(|p| p.is_absolute())
+            .or_else(|| BaseDirs::new().map(|d| d.home_dir().join(".cache")));
+
+        #[cfg(not(target_os = "macos"))]
+        let cache_dir_op = BaseDirs::new().map(|d| d.cache_dir().to_owned());
+
+        let cache_dir = cache_dir_op.map(|d| d.join("bat"))?;
+
+        Some(BatProjectDirs { cache_dir })
+    }
+
+    pub fn cache_dir(&self) -> &Path {
+        &self.cache_dir
+    }
+}
+
+lazy_static! {
+    pub static ref PROJECT_DIRS: BatProjectDirs = BatProjectDirs::new()
+        .unwrap_or_else(|| panic!("Could not get home directory"));
+}
+
+pub fn load_highlighting_assets() -> HighlightingAssets {
+    HighlightingAssets::from_cache(PROJECT_DIRS.cache_dir())
+        .unwrap_or_else(|_| bat::assets::HighlightingAssets::from_binary())
 }

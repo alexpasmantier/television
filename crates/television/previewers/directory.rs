@@ -11,20 +11,20 @@ use crate::previewers::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use crate::utils::files::walk_builder;
 
+#[derive(Debug, Default)]
 pub struct DirectoryPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
+    config: DirectoryPreviewerConfig,
 }
 
-impl Default for DirectoryPreviewer {
-    fn default() -> Self {
-        DirectoryPreviewer::new()
-    }
-}
+#[derive(Debug, Default)]
+pub struct DirectoryPreviewerConfig {}
 
 impl DirectoryPreviewer {
-    pub fn new() -> Self {
+    pub fn new(config: Option<DirectoryPreviewerConfig>) -> Self {
         DirectoryPreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
+            config: config.unwrap_or_default(),
         }
     }
 

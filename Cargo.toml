@@ -68,6 +68,7 @@ human-panic = "2.0.2"
 pretty_assertions = "1.4.1"
 termtree = "0.5.1"
 copypasta = "0.10.1"
+bat = "0.24.0"
 
 
 [build-dependencies]
