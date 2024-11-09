@@ -3094,7 +3094,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.3.13"
+version = "0.4.13"
 dependencies = [
  "anyhow",
  "bat",
@@ -3126,8 +3126,11 @@ dependencies = [
  "strip-ansi-escapes",
  "strum",
  "syntect",
+ "television-channels",
  "television-derive",
  "television-fuzzy",
+ "television-previewers",
+ "television-utils",
  "termtree",
  "tokio",
  "toml",
@@ -3139,8 +3142,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "television-channels"
+version = "0.0.0"
+dependencies = [
+ "clap",
+ "color-eyre",
+ "devicons",
+ "directories",
+ "eyre",
+ "ignore",
+ "serde",
+ "strum",
+ "television-derive",
+ "television-fuzzy",
+ "television-utils",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
 name = "television-derive"
-version = "0.1.2"
+version = "0.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3149,10 +3171,40 @@ dependencies = [
 
 [[package]]
 name = "television-fuzzy"
-version = "0.1.1"
+version = "0.0.0"
 dependencies = [
  "nucleo",
  "parking_lot",
+]
+
+[[package]]
+name = "television-previewers"
+version = "0.0.0"
+dependencies = [
+ "color-eyre",
+ "devicons",
+ "infer",
+ "parking_lot",
+ "syntect",
+ "television-channels",
+ "television-utils",
+ "termtree",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "television-utils"
+version = "0.0.0"
+dependencies = [
+ "bat",
+ "color-eyre",
+ "directories",
+ "ignore",
+ "infer",
+ "lazy_static",
+ "syntect",
+ "tracing",
 ]
 
 [[package]]

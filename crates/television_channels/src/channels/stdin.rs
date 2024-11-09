@@ -4,10 +4,9 @@ use std::path::Path;
 use devicons::FileIcon;
 
 use super::OnAir;
-use crate::entry::Entry;
-use crate::previewers::PreviewType;
-use crate::utils::strings::preprocess_line;
+use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, Matcher};
+use television_utils::utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,

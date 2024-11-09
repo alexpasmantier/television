@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
-use crate::entry::Entry;
 use crate::previewers::{Preview, PreviewContent};
+use television_channels::entry::Entry;
 
 #[derive(Debug, Default)]
 pub struct BasicPreviewer {

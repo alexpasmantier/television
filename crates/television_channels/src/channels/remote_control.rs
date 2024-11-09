@@ -1,9 +1,5 @@
-use crate::channels::{TelevisionChannel, UnitChannel};
-use crate::{
-    channels::{CliTvChannel, OnAir},
-    entry::Entry,
-    previewers::PreviewType,
-};
+use crate::channels::{CliTvChannel, OnAir, TelevisionChannel, UnitChannel};
+use crate::entry::{Entry, PreviewType};
 use clap::ValueEnum;
 use devicons::FileIcon;
 use television_fuzzy::matcher::{config::Config, Matcher};

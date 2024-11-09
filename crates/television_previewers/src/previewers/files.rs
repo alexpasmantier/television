@@ -14,15 +14,15 @@ use syntect::{
 use tracing::{debug, warn};
 
 use super::cache::PreviewCache;
-use crate::entry;
 use crate::previewers::{meta, Preview, PreviewContent};
-use crate::utils::files::FileType;
-use crate::utils::files::{get_file_size, is_known_text_extension};
-use crate::utils::strings::{
+use television_channels::entry;
+use television_utils::utils::files::FileType;
+use television_utils::utils::files::{get_file_size, is_known_text_extension};
+use television_utils::utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
 };
-use crate::utils::syntax::{self, load_highlighting_assets};
+use television_utils::utils::syntax::{self, load_highlighting_assets};
 
 #[derive(Debug, Default)]
 pub struct FilePreviewer {

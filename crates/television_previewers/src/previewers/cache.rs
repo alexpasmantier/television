@@ -16,6 +16,8 @@ use crate::previewers::Preview;
 ///
 /// # Example
 /// ```rust
+/// use television_previewers::previewers::cache::RingSet;
+///
 /// let mut ring_set = RingSet::with_capacity(3);
 /// // push 3 values into the ringset
 /// assert_eq!(ring_set.push(1), None);
@@ -45,7 +47,7 @@ use crate::previewers::Preview;
 /// assert!(ring_set.contains(&4));
 /// ```
 #[derive(Debug)]
-struct RingSet<T> {
+pub struct RingSet<T> {
     ring_buffer: VecDeque<T>,
     known_keys: HashSet<T>,
     capacity: usize,
@@ -94,7 +96,7 @@ where
         }
     }
 
-    fn contains(&self, key: &T) -> bool {
+    pub fn contains(&self, key: &T) -> bool {
         self.known_keys.contains(key)
     }
 }

@@ -1,18 +1,9 @@
-use crate::channels::remote_control::RemoteControl;
-use crate::channels::{OnAir, UnitChannel};
 use crate::picker::Picker;
-use crate::previewers;
+use crate::ui::input::actions::InputActionHandler;
 use crate::ui::layout::{Dimensions, Layout};
-use crate::utils::strings::EMPTY_STRING;
+use crate::ui::spinner::Spinner;
+use crate::ui::spinner::SpinnerState;
 use crate::{action::Action, config::Config};
-use crate::{
-    channels::TelevisionChannel, ui::input::actions::InputActionHandler,
-};
-use crate::{
-    entry::{Entry, ENTRY_PLACEHOLDER},
-    ui::spinner::Spinner,
-};
-use crate::{previewers::Previewer, ui::spinner::SpinnerState};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use futures::executor::block_on;
@@ -20,6 +11,13 @@ use ratatui::{layout::Rect, style::Color, widgets::Paragraph, Frame};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use strum::Display;
+use television_channels::channels::{
+    remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
+};
+use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
+use television_previewers::previewers;
+use television_previewers::previewers::Previewer;
+use television_utils::utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(

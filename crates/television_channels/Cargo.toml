@@ -1,0 +1,19 @@
+[package]
+name = "television-channels"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+television-fuzzy = { path = "../television_fuzzy", version = "0.0.0" }
+television-utils = { path = "../television_utils", version = "0.0.0" }
+television-derive = { path = "../television_derive", version = "0.0.0" }
+devicons = "0.6.11"
+tracing = "0.1.40"
+eyre = "0.6.12"
+ignore = "0.4.23"
+tokio = { version = "1.41.1", features = ["rt"] }
+clap = { version = "4.5.20", features = ["derive"] }
+directories = "5.0.1"
+color-eyre = "0.6.3"
+serde = "1.0.214"
+strum = { version = "0.26.3", features = ["derive"] }

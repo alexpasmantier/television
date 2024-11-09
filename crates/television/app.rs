@@ -4,15 +4,15 @@ use color_eyre::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::channels::TelevisionChannel;
 use crate::television::{Mode, Television};
 use crate::{
     action::Action,
     config::Config,
-    entry::Entry,
     event::{Event, EventLoop, Key},
     render::{render, RenderingTask},
 };
+use television_channels::channels::TelevisionChannel;
+use television_channels::entry::Entry;
 
 /// The main application struct that holds the state of the application.
 pub struct App {

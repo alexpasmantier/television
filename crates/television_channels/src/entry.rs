@@ -1,7 +1,5 @@
 use devicons::FileIcon;
 
-use crate::previewers::PreviewType;
-
 // NOTE: having an enum for entry types would be nice since it would allow
 // having a nicer implementation for transitions between channels. This would
 // permit implementing `From<EntryType>` for channels which would make the
@@ -127,3 +125,12 @@ pub const ENTRY_PLACEHOLDER: Entry = Entry {
     line_number: None,
     preview_type: PreviewType::EnvVar,
 };
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+pub enum PreviewType {
+    #[default]
+    Basic,
+    Directory,
+    EnvVar,
+    Files,
+}

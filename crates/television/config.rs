@@ -1,5 +1,10 @@
-use std::{collections::HashMap, env, num::NonZeroUsize, path::PathBuf};
+use std::{collections::HashMap, env, path::PathBuf};
 
+use crate::{
+    action::Action,
+    event::{convert_raw_event_to_key, Key},
+    television::Mode,
+};
 use color_eyre::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use derive_deref::{Deref, DerefMut};
@@ -7,14 +12,8 @@ use directories::ProjectDirs;
 use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
+use television_previewers::previewers::{self, PreviewerConfig};
 use tracing::{info, warn};
-
-use crate::{
-    action::Action,
-    event::{convert_raw_event_to_key, Key},
-    previewers::{self, PreviewerConfig},
-    television::Mode,
-};
 
 const CONFIG: &str = include_str!("../../.config/config.toml");
 
@@ -371,17 +370,6 @@ pub fn parse_key(raw: &str) -> Result<Key, String> {
     };
     let key_event = parse_key_event(raw)?;
     Ok(convert_raw_event_to_key(key_event))
-}
-
-pub fn default_num_threads() -> NonZeroUsize {
-    // default to 1 thread if we can't determine the number of available threads
-    let default = NonZeroUsize::MIN;
-    // never use more than 32 threads to avoid startup overhead
-    let limit = NonZeroUsize::new(32).unwrap();
-
-    std::thread::available_parallelism()
-        .unwrap_or(default)
-        .min(limit)
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]

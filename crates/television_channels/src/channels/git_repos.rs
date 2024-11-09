@@ -5,15 +5,11 @@ use std::path::PathBuf;
 use tokio::task::JoinHandle;
 use tracing::debug;
 
-use crate::{
-    entry::Entry,
-    previewers::PreviewType,
-    utils::files::{walk_builder, DEFAULT_NUM_THREADS},
-};
-
 use crate::channels::OnAir;
-use crate::utils::strings::preprocess_line;
+use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use television_utils::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use television_utils::utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,

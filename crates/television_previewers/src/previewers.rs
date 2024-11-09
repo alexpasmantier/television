@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
-use crate::entry::Entry;
+use television_channels::entry::{Entry, PreviewType};
 
-mod basic;
-mod cache;
-mod directory;
-mod env;
-mod files;
-mod meta;
+pub mod basic;
+pub mod cache;
+pub mod directory;
+pub mod env;
+pub mod files;
+pub mod meta;
 
 // previewer types
 pub use basic::BasicPreviewer;
@@ -20,15 +20,6 @@ pub use files::FilePreviewer;
 pub use files::FilePreviewerConfig;
 //use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-pub enum PreviewType {
-    #[default]
-    Basic,
-    Directory,
-    EnvVar,
-    Files,
-}
 
 #[derive(Clone, Debug)]
 pub enum PreviewContent {

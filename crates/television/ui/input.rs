@@ -1,4 +1,3 @@
-use crate::channels::OnAir;
 use crate::television::Television;
 use crate::ui::layout::Layout;
 use crate::ui::BORDER_COLOR;
@@ -11,6 +10,7 @@ use ratatui::style::Stylize;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
+use television_channels::channels::OnAir;
 
 pub mod actions;
 pub mod backend;

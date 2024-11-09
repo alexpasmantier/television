@@ -1,31 +1,27 @@
 use std::io::{stdout, IsTerminal, Write};
 
-use channels::TelevisionChannel;
 use clap::Parser;
 use color_eyre::Result;
+use television_channels::channels::TelevisionChannel;
 use tracing::{debug, info};
 
 use crate::app::App;
-use crate::channels::stdin::Channel as StdinChannel;
 use crate::cli::Cli;
-use crate::utils::is_readable_stdin;
+use television_channels::channels::stdin::Channel as StdinChannel;
+use television_utils::utils::is_readable_stdin;
 
 pub mod action;
 pub mod app;
-pub mod channels;
 pub mod cli;
 pub mod config;
-pub mod entry;
 pub mod errors;
 pub mod event;
 pub mod logging;
 pub mod picker;
-pub mod previewers;
 pub mod render;
 pub mod television;
 pub mod tui;
 pub mod ui;
-pub mod utils;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {

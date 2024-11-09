@@ -1,9 +1,6 @@
-use crate::channels::OnAir;
-use crate::entry::Entry;
 use crate::television::Television;
 use crate::ui::layout::Layout;
 use crate::ui::BORDER_COLOR;
-use crate::utils::strings::{next_char_boundary, slice_at_char_boundaries};
 use color_eyre::eyre::Result;
 use ratatui::layout::Alignment;
 use ratatui::prelude::{Color, Line, Span, Style};
@@ -12,6 +9,11 @@ use ratatui::widgets::{
 };
 use ratatui::Frame;
 use std::str::FromStr;
+use television_channels::channels::OnAir;
+use television_channels::entry::Entry;
+use television_utils::utils::strings::{
+    next_char_boundary, slice_at_char_boundaries,
+};
 
 // Styles
 const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;

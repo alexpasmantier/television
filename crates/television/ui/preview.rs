@@ -1,12 +1,6 @@
-use crate::channels::OnAir;
-use crate::entry::Entry;
-use crate::previewers::{
-    Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
-};
 use crate::television::Television;
 use crate::ui::layout::Layout;
 use crate::ui::BORDER_COLOR;
-use crate::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
@@ -15,6 +9,12 @@ use ratatui::Frame;
 use std::str::FromStr;
 use std::sync::Arc;
 use syntect::highlighting::Color as SyntectColor;
+use television_channels::channels::OnAir;
+use television_channels::entry::Entry;
+use television_previewers::previewers::{
+    Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
+};
+use television_utils::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
 
 //  preview
 pub const DEFAULT_PREVIEW_TITLE_FG: Color = Color::Blue;

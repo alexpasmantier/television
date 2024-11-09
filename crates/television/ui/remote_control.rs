@@ -1,4 +1,3 @@
-use crate::channels::OnAir;
 use crate::television::Television;
 use crate::ui::logo::build_remote_logo_paragraph;
 use crate::ui::mode::mode_color;
@@ -13,6 +12,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, ListDirection, Padding, Paragraph,
 };
 use ratatui::Frame;
+use television_channels::channels::OnAir;
 
 impl Television {
     pub fn draw_remote_control(

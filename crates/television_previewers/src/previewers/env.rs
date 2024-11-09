@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::entry;
 use crate::previewers::{Preview, PreviewContent};
+use television_channels::entry;
 
 #[derive(Debug, Default)]
 pub struct EnvVarPreviewer {

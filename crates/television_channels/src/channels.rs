@@ -23,7 +23,7 @@ mod text;
 ///   return anything and instead typically stores the results internally for
 ///   later retrieval allowing to perform the search in the background while
 ///   incrementally polling the results.
-///   ```rust
+///   ```ignore
 ///   fn find(&mut self, pattern: &str);
 ///   ```
 /// - `results`: Get the results of the search (at a given point in time, see
@@ -31,20 +31,20 @@ mod text;
 ///   search pattern. The `num_entries` parameter specifies the number of
 ///   entries to return and the `offset` parameter specifies the starting index
 ///   of the entries to return.
-///   ```rust
+///   ```ignore
 ///   fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry>;
 ///   ```
 /// - `get_result`: Get a specific result by its index.
-///   ```rust
+///   ```ignore
 ///   fn get_result(&self, index: u32) -> Option<Entry>;
 ///   ```
 /// - `result_count`: Get the number of results currently available.
-///   ```rust
+///   ```ignore
 ///   fn result_count(&self) -> u32;
 ///   ```
 /// - `total_count`: Get the total number of entries currently available (e.g.
 ///   the haystack).
-///   ```rust
+///   ```ignore
 ///   fn total_count(&self) -> u32;
 ///   ```
 ///
@@ -195,7 +195,7 @@ macro_rules! variant_to_module {
 /// # Example
 /// The following example defines transitions from the `Files` channel to the `Text`
 /// channel and from the `GitRepos` channel to the `Files` and `Text` channels.
-/// ```rust
+/// ```ignore
 /// define_transitions! {
 ///     // The `Files` channel can transition to the `Text` channel.
 ///     Files => [Text],
@@ -204,7 +204,7 @@ macro_rules! variant_to_module {
 /// }
 /// ```
 /// This will generate the following methods for the `TelevisionChannel` enum:
-/// ```rust
+/// ```ignore
 /// impl TelevisionChannel {
 ///     pub fn available_transitions(&self) -> Vec<UnitChannel> {
 ///         match self {

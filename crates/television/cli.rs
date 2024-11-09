@@ -1,7 +1,7 @@
 use clap::Parser;
 
-use crate::channels::CliTvChannel;
 use crate::config::{get_config_dir, get_data_dir};
+use television_channels::channels::CliTvChannel;
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]

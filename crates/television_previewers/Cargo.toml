@@ -1,0 +1,16 @@
+[package]
+name = "television-previewers"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+syntect = "5.2.0"
+television-channels = { version = "0.0.0", path = "../television_channels" }
+television-utils = { version = "0.0.0", path = "../television_utils" }
+tracing = "0.1.40"
+parking_lot = "0.12.3"
+tokio = "1.41.1"
+termtree = "0.5.1"
+devicons = "0.6.11"
+color-eyre = "0.6.3"
+infer = "0.16.0"
