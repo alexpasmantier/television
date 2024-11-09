@@ -42,6 +42,7 @@ lint:
 fix: format
 	@echo "Fixing $(NAME)"
 	@cargo fix --allow-staged
+	@make lint
 
 run:
 	@echo "Running debug"
