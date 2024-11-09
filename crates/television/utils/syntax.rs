@@ -101,5 +101,5 @@ lazy_static! {
 
 pub fn load_highlighting_assets() -> HighlightingAssets {
     HighlightingAssets::from_cache(PROJECT_DIRS.cache_dir())
-        .unwrap_or_else(|_| bat::assets::HighlightingAssets::from_binary())
+        .unwrap_or_else(|_| HighlightingAssets::from_binary())
 }

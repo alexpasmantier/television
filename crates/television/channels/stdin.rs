@@ -5,9 +5,9 @@ use devicons::FileIcon;
 
 use super::OnAir;
 use crate::entry::Entry;
-use crate::fuzzy::matcher::{Config, Matcher};
 use crate::previewers::PreviewType;
 use crate::utils::strings::preprocess_line;
+use television_fuzzy::matcher::{config::Config, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,

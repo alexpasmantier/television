@@ -12,8 +12,8 @@ use crate::{
 };
 
 use crate::channels::OnAir;
-use crate::fuzzy::matcher::{Config, Injector, Matcher};
 use crate::utils::strings::preprocess_line;
+use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,

@@ -2,10 +2,10 @@ use devicons::FileIcon;
 
 use super::OnAir;
 use crate::entry::Entry;
-use crate::fuzzy::matcher::{Config, Matcher};
 use crate::previewers::PreviewType;
 use crate::utils::indices::sep_name_and_value_indices;
 use crate::utils::strings::preprocess_line;
+use television_fuzzy::matcher::{config::Config, Matcher};
 
 #[derive(Debug, Clone)]
 struct EnvVar {

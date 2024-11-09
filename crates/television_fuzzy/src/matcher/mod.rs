@@ -1,28 +1,16 @@
+use injector::Injector;
 use std::sync::Arc;
 
-use super::MATCHER;
+use crate::matcher::{
+    config::Config, lazy::MATCHER, matched_item::MatchedItem,
+};
+
+pub mod config;
+pub mod injector;
+pub mod lazy;
+pub mod matched_item;
 
 const MATCHER_TICK_TIMEOUT: u64 = 2;
-
-/// A matched item.
-///
-/// This contains the matched item, the dimension against which it was matched,
-/// represented as a string, and the indices of the matched characters.
-///
-/// The indices are pairs of `(start, end)` where `start` is the index of the
-/// first character in the match, and `end` is the index of the character after
-/// the last character in the match.
-pub struct MatchedItem<I>
-where
-    I: Sync + Send + Clone + 'static,
-{
-    /// The matched item.
-    pub inner: I,
-    /// The dimension against which the item was matched (as a string).
-    pub matched_string: String,
-    /// The indices of the matched characters.
-    pub match_indices: Vec<(u32, u32)>,
-}
 
 /// The status of the fuzzy matcher.
 ///
@@ -30,7 +18,7 @@ where
 /// running in the background.
 /// This mostly serves as a way to communicate the status of the matcher to the
 /// front-end and display a loading indicator.
-#[derive(Default)]
+#[derive(Default, Debug, Clone, Copy)]
 pub struct Status {
     /// Whether the matcher is currently running.
     pub running: bool,
@@ -41,125 +29,6 @@ impl From<nucleo::Status> for Status {
         Self {
             running: status.running,
         }
-    }
-}
-
-/// The configuration of the fuzzy matcher.
-///
-/// This contains the number of threads to use, whether to ignore case, whether
-/// to prefer prefix matches, and whether to optimize for matching paths.
-///
-/// The default configuration uses the default configuration of the `Nucleo`
-/// fuzzy matcher, e.g. case-insensitive matching, no preference for prefix
-/// matches, and no optimization for matching paths as well as using the
-/// default number of threads (which corresponds to the number of available logical
-/// cores on the current machine).
-#[derive(Copy, Clone)]
-pub struct Config {
-    /// The number of threads to use for the fuzzy matcher.
-    pub n_threads: Option<usize>,
-    /// Whether to ignore case when matching.
-    pub ignore_case: bool,
-    /// Whether to prefer prefix matches.
-    pub prefer_prefix: bool,
-    /// Whether to optimize for matching paths.
-    pub match_paths: bool,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            n_threads: None,
-            ignore_case: true,
-            prefer_prefix: false,
-            match_paths: false,
-        }
-    }
-}
-
-impl Config {
-    /// Set the number of threads to use.
-    pub fn n_threads(mut self, n_threads: usize) -> Self {
-        self.n_threads = Some(n_threads);
-        self
-    }
-
-    /// Set whether to ignore case.
-    pub fn ignore_case(mut self, ignore_case: bool) -> Self {
-        self.ignore_case = ignore_case;
-        self
-    }
-
-    /// Set whether to prefer prefix matches.
-    pub fn prefer_prefix(mut self, prefer_prefix: bool) -> Self {
-        self.prefer_prefix = prefer_prefix;
-        self
-    }
-
-    /// Set whether to optimize for matching paths.
-    pub fn match_paths(mut self, match_paths: bool) -> Self {
-        self.match_paths = match_paths;
-        self
-    }
-}
-
-impl From<&Config> for nucleo::Config {
-    fn from(config: &Config) -> Self {
-        let mut matcher_config = nucleo::Config::DEFAULT;
-        matcher_config.ignore_case = config.ignore_case;
-        matcher_config.prefer_prefix = config.prefer_prefix;
-        if config.match_paths {
-            matcher_config = matcher_config.match_paths();
-        }
-        matcher_config
-    }
-}
-
-/// An injector that can be used to push items of type `I` into the fuzzy matcher.
-///
-/// This is a wrapper around the `Injector` type from the `Nucleo` fuzzy matcher.
-///
-/// The `push` method takes an item of type `I` and a closure that produces the
-/// string to match against based on the item.
-#[derive(Clone)]
-pub struct Injector<I>
-where
-    I: Sync + Send + Clone + 'static,
-{
-    /// The inner `Injector` from the `Nucleo` fuzzy matcher.
-    inner: nucleo::Injector<I>,
-}
-
-impl<I> Injector<I>
-where
-    I: Sync + Send + Clone + 'static,
-{
-    pub fn new(inner: nucleo::Injector<I>) -> Self {
-        Self { inner }
-    }
-
-    /// Push an item into the fuzzy matcher.
-    ///
-    /// The closure `f` should produce the string to match against based on the
-    /// item.
-    ///
-    /// # Example
-    /// ```
-    /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
-    ///
-    /// let injector = matcher.injector();
-    /// injector.push(
-    ///     ("some string", 3, "some other string"),
-    ///     // Say we want to match against the third element of the tuple
-    ///     |s, cols| cols[0] = s.2.into()
-    /// );
-    /// ```
-    pub fn push<F>(&self, item: I, f: F)
-    where
-        F: FnOnce(&I, &mut [nucleo::Utf32String]),
-    {
-        self.inner.push(item, f);
     }
 }
 
@@ -220,6 +89,8 @@ where
     ///
     /// # Example
     /// ```
+    /// use television_fuzzy::matcher::{Config, Matcher};
+    ///
     /// let config = Config::default();
     /// let matcher = Matcher::new(config);
     /// let injector = matcher.injector();
@@ -268,8 +139,10 @@ where
     ///
     /// # Example
     /// ```
+    /// use television_fuzzy::matcher::{Config, Matcher};
+    ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(config);
     /// matcher.find("some pattern");
     ///
     /// let results = matcher.results(10, 0);
@@ -322,12 +195,13 @@ where
     ///
     /// # Example
     /// ```
+    /// use television_fuzzy::matcher::{Config, Matcher};
+    ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(config);
     /// matcher.find("some pattern");
     ///
     /// if let Some(item) = matcher.get_result(0) {
-    ///     println!("{:?}", item);
     ///     // Do something with the matched item
     ///     // ...
     /// }

@@ -18,7 +18,6 @@ pub mod config;
 pub mod entry;
 pub mod errors;
 pub mod event;
-pub mod fuzzy;
 pub mod logging;
 pub mod picker;
 pub mod previewers;

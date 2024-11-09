@@ -1,12 +1,11 @@
-use crate::fuzzy::matcher::{Config, Injector, Matcher};
-use devicons::FileIcon;
-use tracing::debug;
-
 use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::previewers::PreviewType;
 use crate::utils::indices::sep_name_and_value_indices;
 use crate::utils::strings::preprocess_line;
+use devicons::FileIcon;
+use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use tracing::debug;
 
 #[derive(Debug, Clone)]
 struct Alias {

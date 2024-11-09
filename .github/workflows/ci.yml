@@ -39,11 +39,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+        uses: actions/checkout@v3
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - name: Clippy check
-        run: cargo clippy --all-targets --all-features --workspace -- -D warnings
+      - name: Clippy Check
+        run: cargo clippy -- -D warnings

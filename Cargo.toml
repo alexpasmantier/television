@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.2.13"
+version = "0.3.13"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -22,9 +22,10 @@ path = "crates/television/main.rs"
 name = "tv"
 
 [workspace]
-members = ["crates/television_derive"]
+members = ["crates/television_derive", "crates/television_fuzzy"]
 
 [dependencies]
+television-fuzzy = { version = "0.1.1", path = "crates/television_fuzzy" }
 television-derive = { version = "0.1.2", path = "crates/television_derive" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [

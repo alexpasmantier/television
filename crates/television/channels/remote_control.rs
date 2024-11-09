@@ -1,13 +1,12 @@
-use clap::ValueEnum;
-use devicons::FileIcon;
-
 use crate::channels::{TelevisionChannel, UnitChannel};
 use crate::{
     channels::{CliTvChannel, OnAir},
     entry::Entry,
-    fuzzy::matcher::{Config, Matcher},
     previewers::PreviewType,
 };
+use clap::ValueEnum;
+use devicons::FileIcon;
+use television_fuzzy::matcher::{config::Config, Matcher};
 
 pub struct RemoteControl {
     matcher: Matcher<String>,

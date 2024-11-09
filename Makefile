@@ -1,4 +1,4 @@
-VERSION=0.2.13
+VERSION=0.3.13
 NAME=television
 EXEC=tv
 PREFIX=$(HOME)/.local

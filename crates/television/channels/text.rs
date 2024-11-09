@@ -1,14 +1,5 @@
-use devicons::FileIcon;
-use ignore::WalkState;
-use std::{
-    fs::File,
-    io::{BufRead, Read, Seek},
-    path::{Path, PathBuf},
-    sync::{atomic::AtomicUsize, Arc},
-};
-use tracing::{debug, warn};
-
 use super::{OnAir, TelevisionChannel};
+use crate::previewers::PreviewType;
 use crate::utils::strings::PRINTABLE_ASCII_THRESHOLD;
 use crate::utils::{
     files::{is_not_text, walk_builder, DEFAULT_NUM_THREADS},
@@ -17,10 +8,16 @@ use crate::utils::{
 use crate::{
     entry::Entry, utils::strings::proportion_of_printable_ascii_characters,
 };
-use crate::{
-    fuzzy::matcher::{Config, Injector, Matcher},
-    previewers::PreviewType,
+use devicons::FileIcon;
+use ignore::WalkState;
+use std::{
+    fs::File,
+    io::{BufRead, Read, Seek},
+    path::{Path, PathBuf},
+    sync::{atomic::AtomicUsize, Arc},
 };
+use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone)]
 struct CandidateLine {

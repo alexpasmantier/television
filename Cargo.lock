@@ -3094,7 +3094,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.2.13"
+version = "0.3.13"
 dependencies = [
  "anyhow",
  "bat",
@@ -3127,6 +3127,7 @@ dependencies = [
  "strum",
  "syntect",
  "television-derive",
+ "television-fuzzy",
  "termtree",
  "tokio",
  "toml",
@@ -3144,6 +3145,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.87",
+]
+
+[[package]]
+name = "television-fuzzy"
+version = "0.1.1"
+dependencies = [
+ "nucleo",
+ "parking_lot",
 ]
 
 [[package]]
