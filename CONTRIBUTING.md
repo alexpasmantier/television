@@ -63,12 +63,16 @@ configuration:
 
 To build the project in debug mode, run the following command in the project directory:
 ```shell
-make build_debug
+make
+```
+or
+```shell
+make build
 ```
 
 To build the project in release mode, run the following command in the project directory:
 ```shell
-make build_release
+make release
 ```
 Formatting the code
 ```shell
