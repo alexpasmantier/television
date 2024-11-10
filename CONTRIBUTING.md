@@ -42,6 +42,25 @@ this project:
 
 
 ### Building the project
+Before anything else:
+```shell
+make setup
+```
+To run the application in debug mode while developing, with the ability to see logs and debug information:
+```shell
+make run
+```
+
+**Accessing the Logs:**
+
+The logs are written to a file called `television.log` in a directory that depends on your operating system /
+configuration:
+| Platform | Location |
+|----------|----------|
+| Linux | `$XDG_DATA_HOME/television/television.log` or `$HOME/.local/share/television/television.log` |
+| macOS | `$XDG_DATA_HOME/television/television.log` or `$HOME/Library/Application\ Support/television/television.log` |
+| Windows | `{FOLDERID_LocalAppData}\television\television.log` |
+
 To build the project in debug mode, run the following command in the project directory:
 ```shell
 make build_debug
