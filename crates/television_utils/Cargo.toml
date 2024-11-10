@@ -2,6 +2,17 @@
 name = "television-utils"
 version = "0.0.0"
 edition = "2021"
+description = "The revolution will be televised."
+license = "MIT"
+authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
+repository = "https://github.com/alexpasmantier/television"
+keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
+categories = [
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
+]
 
 [dependencies]
 ignore = "0.4.23"
@@ -12,3 +23,6 @@ color-eyre = "0.6.3"
 bat = "0.24.0"
 directories = "5.0.1"
 syntect = "5.2.0"
+
+[profile.release]
+lto = "thin"
