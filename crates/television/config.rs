@@ -54,11 +54,10 @@ pub struct PreviewersConfig {
     pub env_var: EnvVarPreviewerConfig,
 }
 
-impl Into<PreviewerConfig> for PreviewersConfig {
-    fn into(self) -> PreviewerConfig {
-        PreviewerConfig::default().file(previewers::FilePreviewerConfig::new(
-            self.file.theme.clone(),
-        ))
+impl From<PreviewersConfig> for PreviewerConfig {
+    fn from(val: PreviewersConfig) -> Self {
+        PreviewerConfig::default()
+            .file(previewers::FilePreviewerConfig::new(val.file.theme.clone()))
     }
 }
 
