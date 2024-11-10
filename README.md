@@ -137,6 +137,16 @@ tv text | xargs -oI {} sh -c 'vim "$(echo {} | cut -d ":" -f 1)" +$(echo {} | cu
 ls -1a | tv
 ```
 
+## Terminal Emulators Compatibility
+Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
+
+| Terminal Emulator | Compatibility |
+| --- | --- |
+| Alacritty | ✅ |
+| Kitty | ✅ |
+| iTerm2 | ✅ |
+| Wezterm | ✅ |
+| macOS Terminal | functional but coloring issues |
 
 
 ## Customization
