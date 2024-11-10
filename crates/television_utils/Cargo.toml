@@ -24,3 +24,6 @@ bat = "0.24.0"
 directories = "5.0.1"
 syntect = "5.2.0"
 gag = "1.0.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.9"

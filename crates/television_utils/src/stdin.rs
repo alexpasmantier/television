@@ -1,3 +1,6 @@
+#![allow(unused_imports)]
+use tracing::debug;
+
 /// Heuristic to determine if stdin is readable.
 ///
 /// This is used to determine if we should use the stdin channel.
@@ -32,7 +35,7 @@ pub fn is_readable_stdin() -> bool {
         let typ = match winapi_util::file::typ(stdin) {
             Ok(typ) => typ,
             Err(err) => {
-                log::debug!(
+                debug!(
                     "for heuristic stdin detection on Windows, \
                      could not get file type of stdin \
                      (thus assuming stdin is not readable): {err}",
@@ -43,7 +46,7 @@ pub fn is_readable_stdin() -> bool {
         let is_disk = typ.is_disk();
         let is_pipe = typ.is_pipe();
         let is_readable = is_disk || is_pipe;
-        log::debug!(
+        debug!(
             "for heuristic stdin detection on Windows, \
              found that is_disk={is_disk} and is_pipe={is_pipe}, \
              and thus concluded that is_stdin_readable={is_readable}",
@@ -53,7 +56,7 @@ pub fn is_readable_stdin() -> bool {
 
     #[cfg(not(any(unix, windows)))]
     fn imp() -> bool {
-        log::debug!("on non-{{Unix,Windows}}, assuming stdin is not readable");
+        debug!("on non-{{Unix,Windows}}, assuming stdin is not readable");
         false
     }
 
