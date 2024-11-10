@@ -1,31 +1,18 @@
+
+
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 
 
 # 📺 television
-
-```
-           _______________
-          |,----------.  |\
-          ||           |=| |
-          ||           | | |
-          ||           |o| |
-          |`-----------' |/
-          `--------------'
-  __      __         _     _
- / /____ / /__ _  __(_)__ (_)__  ___
-/ __/ -_) / -_) |/ / (_-</ / _ \/ _ \
-\__/\__/_/\__/|___/_/___/_/\___/_//_/
-
-```
-
- The revolution will (not) be televised.
-
+| ![television.png](https://github.com/user-attachments/assets/cffc3556-c9f3-4704-8303-8bddf661d139) | 
+|:--:| 
+| *The revolution will (not) be televised.* |
 
 ## 📺 About
-`Television` is an extremely fast general purpose fuzzy finder TUI written in Rust. 
+`Television` is a very fast general purpose fuzzy finder TUI written in Rust. 
 
-It is inspired by the neovim [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim) plugin and the [fzf](https://github.com/junegunn/fzf) command line tool. It is designed to be fast, efficient, easy to use and easily extensible. It is built on top of [tokio](https://github.com/tokio-rs/tokio), [ratatui](https://github.com/ratatui/ratatui) and the *nucleo* matcher used in the [helix](https://github.com/helix-editor/helix) editor.
+It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and is designed to be fast, efficient, simple to use and easily extensible. It is built on top of [tokio](https://github.com/tokio-rs/tokio), [ratatui](https://github.com/ratatui/ratatui) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor.
 
 
 ## 📺 Installation
