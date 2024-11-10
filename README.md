@@ -146,6 +146,8 @@ is a simple TOML file that allows you to customize the behavior of `television` 
 Any of these paths may be overriden by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration folder.
 
 #### Default Configuration
+The default configuration file can be found in [./.config/config.toml](./.config/config.toml).
+
 <details>
 <summary>Television's default `config.toml`</summary>
   
