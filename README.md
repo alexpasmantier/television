@@ -1,17 +1,22 @@
+<div align="center">
+
+# 📺  television
+**A blazingly fast general purpose fuzzy finder for your terminal written in Rust.**
+
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 [![Crates.io](https://img.shields.io/crates/v/television.svg)](https://crates.io/crates/television)
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/television)
 
-
-# 📺  television
 | ![television.png](https://github.com/user-attachments/assets/cffc3556-c9f3-4704-8303-8bddf661d139) | 
 |:--:| 
 | *The revolution will (not) be televised.* |
 
+</div>
+
 ## About
-`Television` is a very fast general purpose fuzzy finder TUI written in Rust. 
+`Television` is a blazingly fast general purpose fuzzy finder TUI written in Rust.
 
 It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and is designed to be fast, efficient, simple to use and easily extensible. It is built on top of [tokio](https://github.com/tokio-rs/tokio), [ratatui](https://github.com/ratatui/ratatui) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor.
 
@@ -26,6 +31,9 @@ cargo install television
 tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
 ```
 By default, `television` will launch with the `files` channel on.
+| <img width="2213" alt="Screenshot 2024-11-10 at 15 04 20" src="https://github.com/user-attachments/assets/a0fd70a9-ea26-452a-b235-cbce8aeed67f"> |
+|:--:|
+| `tv`'s `files` channel running on the *curl* codebase |
 
 ## Built-in Channels
 The following channels are currently available:
@@ -106,6 +114,9 @@ is a simple TOML file that allows you to customize the behavior of `television` 
 Any of these paths may be overriden by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration folder.
 
 #### Default Configuration
+<details>
+<summary>Television's default `config.toml`</summary>
+  
 ```toml
 # Ui settings
 # ----------------------------------------------------------------------------
@@ -192,3 +203,4 @@ enter = "SelectEntry"
 # Toggle the send to channel mode
 ctrl-s = "ToggleSendToChannel"
 ```
+</details>
