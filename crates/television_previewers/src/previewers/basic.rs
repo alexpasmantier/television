@@ -5,7 +5,7 @@ use television_channels::entry::Entry;
 
 #[derive(Debug, Default)]
 pub struct BasicPreviewer {
-    config: BasicPreviewerConfig,
+    _config: BasicPreviewerConfig,
 }
 
 #[derive(Debug, Default)]
@@ -14,7 +14,7 @@ pub struct BasicPreviewerConfig {}
 impl BasicPreviewer {
     pub fn new(config: Option<BasicPreviewerConfig>) -> Self {
         BasicPreviewer {
-            config: config.unwrap_or_default(),
+            _config: config.unwrap_or_default(),
         }
     }
 

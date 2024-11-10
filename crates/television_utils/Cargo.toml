@@ -23,6 +23,3 @@ color-eyre = "0.6.3"
 bat = "0.24.0"
 directories = "5.0.1"
 syntect = "5.2.0"
-
-[profile.release]
-lto = "thin"

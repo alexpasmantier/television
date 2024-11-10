@@ -7,7 +7,7 @@ use television_channels::entry;
 #[derive(Debug, Default)]
 pub struct EnvVarPreviewer {
     cache: HashMap<entry::Entry, Arc<Preview>>,
-    config: EnvVarPreviewerConfig,
+    _config: EnvVarPreviewerConfig,
 }
 
 #[derive(Debug, Default)]
@@ -17,7 +17,7 @@ impl EnvVarPreviewer {
     pub fn new(config: Option<EnvVarPreviewerConfig>) -> Self {
         EnvVarPreviewer {
             cache: HashMap::new(),
-            config: config.unwrap_or_default(),
+            _config: config.unwrap_or_default(),
         }
     }
 

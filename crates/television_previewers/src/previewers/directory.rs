@@ -14,7 +14,7 @@ use television_utils::files::walk_builder;
 #[derive(Debug, Default)]
 pub struct DirectoryPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
-    config: DirectoryPreviewerConfig,
+    _config: DirectoryPreviewerConfig,
 }
 
 #[derive(Debug, Default)]
@@ -24,7 +24,7 @@ impl DirectoryPreviewer {
     pub fn new(config: Option<DirectoryPreviewerConfig>) -> Self {
         DirectoryPreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
-            config: config.unwrap_or_default(),
+            _config: config.unwrap_or_default(),
         }
     }
 

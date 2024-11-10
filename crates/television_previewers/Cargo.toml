@@ -26,6 +26,3 @@ devicons = "0.6.11"
 color-eyre = "0.6.3"
 infer = "0.16.0"
 
-[profile.release]
-lto = "thin"
-
