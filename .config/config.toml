@@ -30,7 +30,7 @@ ui_scale = 80
 # The theme to use for syntax highlighting
 # A list of available themes can be found in the https://github.com/sharkdp/bat
 # repository which uses the same syntax highlighting engine as television
-theme = "Catppuccin Mocha"
+theme = "Visual Studio Dark+"
 
 # Keybindings
 # ----------------------------------------------------------------------------

@@ -61,6 +61,37 @@ contents of a file, the value of an environment variable, etc. Because entries r
 represent different types of data, **Television** allows for channels to declare the type of previewer that should be
 used. Television comes with a set of built-in previewers that can be used out of the box and will grow over time.
 
+## Recipes
+Here are some examples of how you can use `television` to make your life easier, more productive and fun. You may want to add some of these examples as aliases to your shell configuration file so that you can easily access them.
+
+**NOTE**: *most of the following examples are meant for macOS. Most of the commands should work on Linux as well, but you may need to adjust them slightly.*
+
+#### CDing into git repo
+```bash
+cd `tv git-repos`
+```
+#### Opening file in default editor
+```bash
+open `tv`
+```
+##### VSCode:
+```bash
+code --goto `tv`
+```
+##### Vim
+```bash
+vim `tv`
+```
+at a specific line using the text channel
+```bash
+tv text | xargs -oI {} sh -c 'vim "$(echo {} | cut -d ":" -f 1)" +$(echo {} | cut -d ":" -f 2)'
+```
+#### Inspecting the current directory
+```bash
+ls -1a | tv
+```
+
+
 
 ## Customization
 You may wish to customize the behavior of `television` by providing your own configuration file. The configuration file
@@ -108,7 +139,7 @@ ui_scale = 80
 # The theme to use for syntax highlighting
 # A list of available themes can be found in the https://github.com/sharkdp/bat
 # repository which uses the same syntax highlighting engine as television
-theme = "Catppuccin Mocha"
+theme = "Visual Studio Dark+"
 
 # Keybindings
 # ----------------------------------------------------------------------------

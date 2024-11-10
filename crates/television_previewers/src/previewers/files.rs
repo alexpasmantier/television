@@ -22,7 +22,9 @@ use television_utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
 };
-use television_utils::syntax::{self, load_highlighting_assets};
+use television_utils::syntax::{
+    self, load_highlighting_assets, HighlightingAssetsExt,
+};
 
 #[derive(Debug, Default)]
 pub struct FilePreviewer {
@@ -53,7 +55,7 @@ impl FilePreviewer {
                 let theme_set = ThemeSet::load_defaults();
                 theme_set.themes["base16-ocean.dark"].clone()
             },
-            |c| hl_assets.get_theme(&c.theme).clone(),
+            |c| hl_assets.get_theme_no_output(&c.theme).clone(),
         );
         //info!("getting image picker");
         //let image_picker = get_image_picker();

@@ -1,4 +1,5 @@
 use bat::assets::HighlightingAssets;
+use gag::Gag;
 use std::path::{Path, PathBuf};
 use syntect::easy::HighlightLines;
 use syntect::highlighting::{Style, Theme};
@@ -66,7 +67,8 @@ use lazy_static::lazy_static;
 #[cfg(target_os = "macos")]
 use std::env;
 
-/// Wrapper for 'dirs' that treats MacOS more like Linux, by following the XDG specification.
+/// Wrapper for 'dirs' that treats `MacOS` more like `Linux`, by following the XDG specification.
+///
 /// This means that the `XDG_CACHE_HOME` and `XDG_CONFIG_HOME` environment variables are
 /// checked first. The fallback directories are `~/.cache/bat` and `~/.config/bat`, respectively.
 pub struct BatProjectDirs {
@@ -102,4 +104,22 @@ lazy_static! {
 pub fn load_highlighting_assets() -> HighlightingAssets {
     HighlightingAssets::from_cache(PROJECT_DIRS.cache_dir())
         .unwrap_or_else(|_| HighlightingAssets::from_binary())
+}
+
+pub trait HighlightingAssetsExt {
+    fn get_theme_no_output(&self, theme_name: &str) -> &Theme;
+}
+
+impl HighlightingAssetsExt for HighlightingAssets {
+    /// Get a theme by name. If the theme is not found, the default theme is returned.
+    ///
+    /// This is an ugly hack to work around the fact that bat actually prints a warning
+    /// to stderr when a theme is not found which might mess up the TUI. This function
+    /// suppresses that warning by temporarily redirecting stderr and stdout.
+    fn get_theme_no_output(&self, theme_name: &str) -> &Theme {
+        let _e = Gag::stderr().unwrap();
+        let _o = Gag::stdout().unwrap();
+        let theme = self.get_theme(theme_name);
+        theme
+    }
 }
