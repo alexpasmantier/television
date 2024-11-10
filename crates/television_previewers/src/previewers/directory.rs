@@ -9,7 +9,7 @@ use television_channels::entry::Entry;
 
 use crate::previewers::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
-use television_utils::utils::files::walk_builder;
+use television_utils::files::walk_builder;
 
 #[derive(Debug, Default)]
 pub struct DirectoryPreviewer {

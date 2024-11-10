@@ -16,13 +16,13 @@ use tracing::{debug, warn};
 use super::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
-use television_utils::utils::files::FileType;
-use television_utils::utils::files::{get_file_size, is_known_text_extension};
-use television_utils::utils::strings::{
+use television_utils::files::FileType;
+use television_utils::files::{get_file_size, is_known_text_extension};
+use television_utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
 };
-use television_utils::utils::syntax::{self, load_highlighting_assets};
+use television_utils::syntax::{self, load_highlighting_assets};
 
 #[derive(Debug, Default)]
 pub struct FilePreviewer {

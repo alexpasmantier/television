@@ -8,7 +8,7 @@ use tracing::{debug, info};
 use crate::app::App;
 use crate::cli::Cli;
 use television_channels::channels::stdin::Channel as StdinChannel;
-use television_utils::utils::is_readable_stdin;
+use television_utils::stdin::is_readable_stdin;
 
 pub mod action;
 pub mod app;

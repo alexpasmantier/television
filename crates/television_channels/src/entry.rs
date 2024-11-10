@@ -31,8 +31,8 @@ impl Entry {
     ///
     /// Additional fields can be set using the builder pattern.
     /// ```
-    /// use television::entry::{Entry, PreviewType};
-    /// use television::devicons::FileIcon;
+    /// use television_channels::entry::{Entry, PreviewType};
+    /// use devicons::FileIcon;
     ///
     /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
     ///                 .with_display_name("display_name".to_string())

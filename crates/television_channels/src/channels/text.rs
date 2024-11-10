@@ -9,12 +9,12 @@ use std::{
     sync::{atomic::AtomicUsize, Arc},
 };
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
-use television_utils::utils::strings::{
-    proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
+use television_utils::files::{
+    is_not_text, walk_builder, DEFAULT_NUM_THREADS,
 };
-use television_utils::utils::{
-    files::{is_not_text, walk_builder, DEFAULT_NUM_THREADS},
-    strings::preprocess_line,
+use television_utils::strings::{
+    preprocess_line, proportion_of_printable_ascii_characters,
+    PRINTABLE_ASCII_THRESHOLD,
 };
 use tracing::{debug, warn};
 

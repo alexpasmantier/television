@@ -3,8 +3,8 @@ use crate::entry::Entry;
 use crate::entry::PreviewType;
 use devicons::FileIcon;
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
-use television_utils::utils::indices::sep_name_and_value_indices;
-use television_utils::utils::strings::preprocess_line;
+use television_utils::indices::sep_name_and_value_indices;
+use television_utils::strings::preprocess_line;
 use tracing::debug;
 
 #[derive(Debug, Clone)]

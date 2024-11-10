@@ -14,7 +14,7 @@ use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
-use television_utils::utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
+use television_utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
 
 //  preview
 pub const DEFAULT_PREVIEW_TITLE_FG: Color = Color::Blue;

@@ -8,8 +8,8 @@ use tracing::debug;
 use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
-use television_utils::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
-use television_utils::utils::strings::preprocess_line;
+use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use television_utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,

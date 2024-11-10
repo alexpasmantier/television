@@ -17,7 +17,7 @@ use television_channels::channels::{
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers;
 use television_previewers::previewers::Previewer;
-use television_utils::utils::strings::EMPTY_STRING;
+use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(

@@ -6,7 +6,7 @@ use infer::Infer;
 use lazy_static::lazy_static;
 use tracing::debug;
 
-use crate::utils::default_num_threads;
+use crate::threads::default_num_threads;
 
 lazy_static::lazy_static! {
     pub static ref DEFAULT_NUM_THREADS: usize = default_num_threads().into();

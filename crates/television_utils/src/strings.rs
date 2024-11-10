@@ -8,7 +8,7 @@ use std::fmt::Write;
 ///
 /// # Examples
 /// ```
-/// use strings::next_char_boundary;
+/// use television_utils::strings::next_char_boundary;
 ///
 /// let s = "Hello, World!";
 /// assert_eq!(next_char_boundary(s, 0), 0);
@@ -42,7 +42,7 @@ pub fn next_char_boundary(s: &str, start: usize) -> usize {
 ///
 /// # Examples
 /// ```
-/// use strings::prev_char_boundary;
+/// use television_utils::strings::prev_char_boundary;
 ///
 /// let s = "Hello, World!";
 /// assert_eq!(prev_char_boundary(s, 0), 0);
@@ -69,7 +69,7 @@ pub fn prev_char_boundary(s: &str, start: usize) -> usize {
 ///
 /// # Examples
 /// ```
-/// use strings::slice_at_char_boundaries;
+/// use television_utils::strings::slice_at_char_boundaries;
 ///
 /// let s = "Hello, World!";
 /// assert_eq!(slice_at_char_boundaries(s, 0, 0), "");
@@ -103,19 +103,18 @@ pub fn slice_at_char_boundaries(
 ///
 /// # Examples
 /// ```
-/// use strings::slice_up_to_char_boundary;
+/// use television_utils::strings::slice_up_to_char_boundary;
 ///
 /// let s = "Hello, World!";
 /// assert_eq!(slice_up_to_char_boundary(s, 0), "");
 /// assert_eq!(slice_up_to_char_boundary(s, 1), "H");
 /// assert_eq!(slice_up_to_char_boundary(s, 13), "Hello, World!");
 ///
-/// let s = "👋
-/// 🌍!";
+/// let s = "👋\n🌍!";
 /// assert_eq!(slice_up_to_char_boundary(s, 0), "");
 /// assert_eq!(slice_up_to_char_boundary(s, 1), "👋");
 /// assert_eq!(slice_up_to_char_boundary(s, 4), "👋");
-/// assert_eq!(slice_up_to_char_boundary(s, 7), "👋🌍");
+/// assert_eq!(slice_up_to_char_boundary(s, 7), "👋\n🌍");
 /// ```
 pub fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
     &s[..next_char_boundary(s, byte_index)]
@@ -160,7 +159,7 @@ const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 ///
 /// # Examples
 /// ```
-/// use strings::replace_non_printable;
+/// use television_utils::strings::replace_non_printable;
 ///
 /// let input = b"Hello, World!";
 /// let output = replace_non_printable(input, 2);
@@ -237,7 +236,7 @@ pub const PRINTABLE_ASCII_THRESHOLD: f32 = 0.7;
 ///
 /// # Examples
 /// ```
-/// use strings::proportion_of_printable_ascii_characters;
+/// use television_utils::strings::proportion_of_printable_ascii_characters;
 ///
 /// let buffer = b"Hello, World!";
 /// let proportion = proportion_of_printable_ascii_characters(buffer);
@@ -270,7 +269,7 @@ const MAX_LINE_LENGTH: usize = 300;
 ///
 /// # Examples
 /// ```
-/// use strings::preprocess_line;
+/// use television_utils::strings::preprocess_line;
 ///
 /// let line = "Hello, World!";
 /// let processed = preprocess_line(line);
@@ -307,11 +306,11 @@ pub fn preprocess_line(line: &str) -> String {
 ///
 /// # Examples
 /// ```
-/// use strings::shrink_with_ellipsis;
+/// use television_utils::strings::shrink_with_ellipsis;
 ///
 /// let s = "Hello, World!";
 /// assert_eq!(shrink_with_ellipsis(s, 13), "Hello, World!");
-/// assert_eq!(shrink_with_ellipsis(s, 6), "He…d!");
+/// assert_eq!(shrink_with_ellipsis(s, 6), "H…!");
 /// ```
 pub fn shrink_with_ellipsis(s: &str, max_length: usize) -> String {
     if s.len() <= max_length {

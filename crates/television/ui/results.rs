@@ -11,7 +11,7 @@ use ratatui::Frame;
 use std::str::FromStr;
 use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
-use television_utils::utils::strings::{
+use television_utils::strings::{
     next_char_boundary, slice_at_char_boundaries,
 };
 

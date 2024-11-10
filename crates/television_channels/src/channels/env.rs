@@ -3,8 +3,8 @@ use devicons::FileIcon;
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, Matcher};
-use television_utils::utils::indices::sep_name_and_value_indices;
-use television_utils::utils::strings::preprocess_line;
+use television_utils::indices::sep_name_and_value_indices;
+use television_utils::strings::preprocess_line;
 
 #[derive(Debug, Clone)]
 struct EnvVar {
