@@ -22,9 +22,15 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 
 ## Installation
+#### With `cargo`:
 ```bash
 cargo install television
 ```
+
+#### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
+- Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
+- Unpack and copy to the relevant location for your system (e.g. `/usr/local/bin` on macos and linux)
+
 
 ## Usage
 ```bash
