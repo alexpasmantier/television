@@ -19,7 +19,7 @@ jobs:
             target: x86_64-apple-darwin
             architecture: x86_64
             binary-postfix: ""
-            binary-name: television-rs
+            binary-name: tv
             use-cross: false
           - os: macos-latest
             os-name: macos
@@ -27,35 +27,35 @@ jobs:
             architecture: arm64
             binary-postfix: ""
             use-cross: false
-            binary-name: television-rs
+            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: x86_64-unknown-linux-gnu
             architecture: x86_64
             binary-postfix: ""
             use-cross: false
-            binary-name: television-rs
+            binary-name: tv
           - os: windows-latest
             os-name: windows
             target: x86_64-pc-windows-msvc
             architecture: x86_64
             binary-postfix: ".exe"
             use-cross: false
-            binary-name: television-rs
+            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: aarch64-unknown-linux-gnu
             architecture: arm64
             binary-postfix: ""
             use-cross: true
-            binary-name: television-rs
+            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: i686-unknown-linux-gnu
             architecture: i686
             binary-postfix: ""
             use-cross: true
-            binary-name: television-rs
+            binary-name: tv
 
     steps:
       - name: Checkout repository
