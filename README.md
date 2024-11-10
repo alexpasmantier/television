@@ -46,7 +46,7 @@ By default, `television` will launch with the `files` channel on.
 input pattern that you provide.
 
 | Matcher | Pattern |
-| --- | --- |
+| --- | :---: |
 | Fuzzy | `foo` |
 | Substring | `'foo` / `!foo` to negate |
 | Prefix | `^foo` / `!^foo` to negate |
@@ -60,7 +60,7 @@ For more information on the matcher behavior, see the
 Default keybindings are as follows:
 
 | Key | Description |
-| --- | ----------- |
+| :---: | ----------- |
 | <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>n</kbd> / <kbd>p</kbd> | Navigate through the list of entries |
 | <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
 | <kbd>Enter</kbd> | Select the current entry |
@@ -141,7 +141,7 @@ ls -1a | tv
 Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
 
 | Terminal Emulator | Compatibility |
-| --- | --- |
+| --- | :---: |
 | Alacritty | ✅ |
 | Kitty | ✅ |
 | iTerm2 | ✅ |
@@ -154,7 +154,7 @@ You may wish to customize the behavior of `television` by providing your own con
 is a simple TOML file that allows you to customize the behavior of `television` in a number of ways.
 
 |Platform|Value|
-|--------|-----|
+|--------|:-----:|
 |Linux|`$XDG_CONFIG_HOME/television/config.toml` or `$HOME/.config/television/config.toml`|
 |macOS|`$HOME/Library/Application Support/television/config.toml`|
 |Windows|`{FOLDERID_LocalAppData}\television\config`|
