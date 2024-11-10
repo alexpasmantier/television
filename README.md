@@ -33,7 +33,22 @@ tv [channel] #[default: files] [possible values: env, files, git-repos, text, al
 By default, `television` will launch with the `files` channel on.
 | <img width="2213" alt="Screenshot 2024-11-10 at 15 04 20" src="https://github.com/user-attachments/assets/a0fd70a9-ea26-452a-b235-cbce8aeed67f"> |
 |:--:|
-| `tv`'s `files` channel running on the *curl* codebase |
+| *`tv`'s `files` channel running on the *curl* codebase* |
+
+## Keybindings
+Default keybindings are as follows:
+
+| Key | Description |
+| --- | ----------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>n</kbd> / <kbd>p</kbd> | Navigate through the list of entries |
+| <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
+| <kbd>Enter</kbd> | Select the current entry |
+| <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
+| <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
+| <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
+| <kbd>Esc</kbd> | Quit the application |
+
+These keybindings can be customized in the configuration file (see [Customization](#customization)).
 
 ## Built-in Channels
 The following channels are currently available:
