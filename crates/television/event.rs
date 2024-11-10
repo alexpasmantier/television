@@ -11,7 +11,7 @@ use crossterm::event::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, Home, Insert,
         Left, PageDown, PageUp, Right, Tab, Up, F,
     },
-    KeyEvent, KeyModifiers,
+    KeyEvent, KeyEventKind, KeyModifiers,
 };
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
@@ -214,6 +214,9 @@ impl EventLoop {
 
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
     debug!("Raw event: {:?}", event);
+    if event.kind == KeyEventKind::Release {
+        return Key::Null;
+    }
     match event.code {
         Backspace => match event.modifiers {
             KeyModifiers::CONTROL => Key::CtrlBackspace,
