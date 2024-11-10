@@ -35,6 +35,21 @@ By default, `television` will launch with the `files` channel on.
 |:--:|
 | *`tv`'s `files` channel running on the *curl* codebase* |
 
+#### Matcher behavior
+`television` uses a fuzzy matching algorithm to filter the list of entries. The algorithm that is used depends on the
+input pattern that you provide.
+
+| Matcher | Pattern |
+| --- | --- |
+| Fuzzy | `foo` |
+| Substring | `'foo` / `!foo` to negate |
+| Prefix | `^foo` / `!^foo` to negate |
+| Suffix | `foo$` / `!foo$` to negate |
+| Exact | `^foo$` / `!^foo$` to negate |
+
+For more information on the matcher behavior, see the
+[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
+
 ## Keybindings
 Default keybindings are as follows:
 
@@ -60,16 +75,18 @@ The following channels are currently available:
 - `Stdin`: search through lines of text from stdin.
 
 
-## Design
+## Design (high-level)
 #### Channels
 **Television**'s design is primarily based on the concept of **Channels**.
+Channels are just structs that implement the `OnAir` trait. 
 
-A **Channel** is a source of data that can be used for fuzzy finding. It can be anything from a file system directory, a git repository, a list of strings, a list of numbers, etc. 
+As such, channels can virtually be anything that can respond to a user query and return a result under the form of a list of entries. This means channels can be anything from conventional data sources you might want to search through (like files, git repositories, remote filesystems, environment variables etc.) to more exotic implementations that might inclue a REPL, a calculator, a web browser, search through your spotify library, your email, etc.
 
-**Television** provides a set of built-in **Channels** that can be used out of the box (see [Built-in Channels](#📺-built-in-channels)). The list of available channels
+
+
+**Television** provides a set of built-in **Channels** that can be used out of the box (see [Built-in Channels](#built-in-channels)). The list of available channels
 will grow over time as new channels are implemented to satisfy different use cases. 
 
-Because a **Channel** is nothing more than a source of data that can respond to a user query, channels can virtually search through anything ranging from a local file system to a remote database, a list of environment variables, something passed through stdin, etc.
 
 #### Transitions
 When it makes sense, **Television** allows for transitions between different channels. For example, you might want to
@@ -219,3 +236,9 @@ enter = "SelectEntry"
 ctrl-s = "ToggleSendToChannel"
 ```
 </details>
+
+## Contributions
+
+Contributions, issues and pull requests are welcome.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
