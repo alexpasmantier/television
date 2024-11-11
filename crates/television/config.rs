@@ -92,20 +92,20 @@ pub struct Config {
 }
 
 lazy_static! {
-    pub static ref PROJECT_NAME: String =
-        env!("CARGO_CRATE_NAME").to_uppercase().to_string();
+    pub static ref PROJECT_NAME: String = String::from("television");
+    pub static ref PROJECT_NAME_UPPER: String = PROJECT_NAME.to_uppercase().to_string();
     pub static ref DATA_FOLDER: Option<PathBuf> =
         // if `TELEVISION_DATA` is set, use that as the data directory
-        env::var_os(format!("{}_DATA", PROJECT_NAME.clone())).or_else(|| {
+        env::var_os(format!("{}_DATA", PROJECT_NAME_UPPER.clone())).or_else(|| {
             // otherwise, use the XDG data directory
             env::var_os("XDG_DATA_HOME")
-        }).map(PathBuf::from).filter(|p| p.is_absolute());
+        }).map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute());
     pub static ref CONFIG_FOLDER: Option<PathBuf> =
         // if `TELEVISION_CONFIG` is set, use that as the config directory
-        env::var_os(format!("{}_CONFIG", PROJECT_NAME.clone())).or_else(|| {
+        env::var_os(format!("{}_CONFIG", PROJECT_NAME_UPPER.clone())).or_else(|| {
             // otherwise, use the XDG config directory
             env::var_os("XDG_CONFIG_HOME")
-        }).map(PathBuf::from).filter(|p| p.is_absolute());
+        }).map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute());
 }
 
 const CONFIG_FILE_NAME: &str = "config.toml";
