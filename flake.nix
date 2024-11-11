@@ -1,34 +1,66 @@
 {
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
-    nci = {
-      url = "github:yusdacra/nix-cargo-integration";
-      inputs.nixpkgs.follows = "nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+
+    nixpkgs-mozilla = {
+      url = "github:mozilla/nixpkgs-mozilla";
+      flake = false;
     };
-    parts = {
-      url = "github:hercules-ci/flake-parts";
-      inputs.nixpkgs-lib.follows = "nixpkgs";
-    };
+
+    flake-utils.url = "github:numtide/flake-utils";
+    naersk.url = "github:nix-community/naersk";
   };
 
-  outputs = inputs @ {
-    parts,
-    nci,
-    ...
+  outputs = {
+    self,
+    flake-utils,
+    naersk,
+    nixpkgs,
+    nixpkgs-mozilla,
   }:
-    parts.lib.mkFlake {inherit inputs;} {
-      systems = ["x86_64-linux"];
-      imports = [nci.flakeModule ./crates.nix];
-      perSystem = {config, ...}: let
-        outputs = config.nci.outputs;
-        package =
-          outputs."television".packages.release;
-      in {
-        devShells.default = outputs."television".devShell;
-        packages.default = package;
-        apps.default = {
-          program = "${config.packages.default}/bin/tv";
+    flake-utils.lib.eachDefaultSystem (
+      system: let
+        pkgs = (import nixpkgs) {
+          inherit system;
+
+          overlays = [
+            (import nixpkgs-mozilla)
+          ];
         };
-      };
-    };
+
+        toolchain =
+          (
+            pkgs.rustChannelOf
+            {
+              rustToolchain = ./rust-toolchain.toml;
+              sha256 = "6eN/GKzjVSjEhGO9FhWObkRFaE1Jf+uqMSdQnb8lcB4=";
+            }
+          )
+          .rust;
+
+        naersk' = pkgs.callPackage naersk {
+          cargo = toolchain;
+          rustc = toolchain;
+        };
+      in {
+        packages.default = naersk'.buildPackage {
+          src = ./.;
+        };
+        apps = {
+          default = flake-utils.lib.mkApp {
+            drv = self.packages.${system}.default;
+            exePath = "/bin/tv";
+          };
+        };
+
+        devShell = pkgs.mkShell {
+          nativeBuildInputs = [toolchain];
+          packages = with pkgs; [
+            rustfmt
+            clippy
+            rust-analyzer
+          ];
+        };
+      }
+    );
 }

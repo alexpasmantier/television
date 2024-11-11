@@ -15,7 +15,13 @@ categories = [
   "concurrency",
   "development-tools",
 ]
-include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs", ".config/config.toml"]
+include = [
+  "LICENSE",
+  "README.md",
+  "crates/television/**/*.rs",
+  "build.rs",
+  ".config/config.toml",
+]
 rust-version = "1.80.0"
 
 [workspace]
@@ -38,6 +44,7 @@ categories = [
 ]
 include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
 rust-version = "1.80.0"
+readme = "README.md"
 
 
 [[bin]]
@@ -104,8 +111,6 @@ vergen-gix = { version = "1.0.0", features = ["build", "cargo", "rustc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
-
-
 
 
 [profile.staging]
