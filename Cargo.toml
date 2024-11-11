@@ -14,6 +14,7 @@ categories = [
   "concurrency",
   "development-tools",
 ]
+include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
 
 
 [[bin]]
