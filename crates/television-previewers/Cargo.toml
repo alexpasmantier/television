@@ -1,6 +1,6 @@
 [package]
 name = "television-previewers"
-version = "0.0.2"
+version = "0.0.3"
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
@@ -15,8 +15,8 @@ publish = false
 
 [dependencies]
 syntect = "5.2.0"
-television-channels = { path = "../television-channels", version = "0.0.2" }
-television-utils = { path = "../television-utils", version = "0.0.2" }
+television-channels = { path = "../television-channels", version = "0.0.3" }
+television-utils = { path = "../television-utils", version = "0.0.3" }
 tracing = "0.1.40"
 parking_lot = "0.12.3"
 tokio = "1.41.1"

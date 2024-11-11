@@ -47,11 +47,11 @@ name = "tv"
 
 [dependencies]
 # workspace dependencies
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.2" }
-television-derive = { path = "crates/television-derive", version = "0.0.2" }
-television-channels = { path = "crates/television-channels", version = "0.0.2" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.2" }
-television-utils = { path = "crates/television-utils", version = "0.0.2" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.3" }
+television-derive = { path = "crates/television-derive", version = "0.0.3" }
+television-channels = { path = "crates/television-channels", version = "0.0.3" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.3" }
+television-utils = { path = "crates/television-utils", version = "0.0.3" }
 
 # external dependencies
 better-panic = "0.3.0"

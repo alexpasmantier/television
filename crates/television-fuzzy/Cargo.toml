@@ -1,6 +1,6 @@
 [package]
 name = "television-fuzzy"
-version = "0.0.2"
+version = "0.0.3"
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
