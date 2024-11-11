@@ -161,7 +161,7 @@ pub fn get_data_dir() -> PathBuf {
     } else if let Some(proj_dirs) = project_directory() {
         proj_dirs.data_local_dir().to_path_buf()
     } else {
-        PathBuf::from(".").join(".data")
+        PathBuf::from("../../../../..").join(".data")
     };
     directory
 }
@@ -172,7 +172,7 @@ pub fn get_config_dir() -> PathBuf {
     } else if let Some(proj_dirs) = project_directory() {
         proj_dirs.config_local_dir().to_path_buf()
     } else {
-        PathBuf::from(".").join(".config")
+        PathBuf::from("../../../../..").join("../../../../../.config")
     };
     info!("Using config directory: {:?}", directory);
     directory

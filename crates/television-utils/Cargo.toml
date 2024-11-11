@@ -1,0 +1,28 @@
+[package]
+name = "television-utils"
+version = "0.0.0"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+license.workspace = true
+include.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+ignore = "0.4.23"
+infer = "0.16.0"
+lazy_static = "1.5.0"
+tracing = "0.1.40"
+color-eyre = "0.6.3"
+bat = { version = "0.24.0", default-features = false, features = ["regex-onig"] }
+directories = "5.0.1"
+syntect = "5.2.0"
+gag = "1.0.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.9"

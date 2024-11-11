@@ -61,7 +61,7 @@ impl<T> LazyMutex<T> {
 ///
 /// # Example
 /// ```ignore
-/// use television_fuzzy::matcher::{lazy::MATCHER, matched_item::MatchedItem};
+/// use television-fuzzy::matcher::{lazy::MATCHER, matched_item::MatchedItem};
 ///
 /// let snapshot = channel_matcher.snapshot();
 ///

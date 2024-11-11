@@ -1,12 +1,13 @@
 [package]
 name = "television"
-version = "0.4.19"
+version = "0.4.20"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 build = "build.rs"
 repository = "https://github.com/alexpasmantier/television"
+homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
   "command-line-utilities",
@@ -15,22 +16,19 @@ categories = [
   "development-tools",
 ]
 include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
-
+rust-version = "1.80.0"
 
 [[bin]]
 bench = false
 path = "crates/television/main.rs"
 name = "tv"
 
-[workspace]
-members = ["crates/television_channels","crates/television_derive", "crates/television_fuzzy", "crates/television_previewers", "crates/television_utils"]
-
 [dependencies]
-television-fuzzy = { version = "0.0.1", path = "crates/television_fuzzy" }
-television-derive = { version = "0.0.0", path = "crates/television_derive" }
-television-channels = { version = "0.0.1", path = "crates/television_channels" }
-television-previewers = { version = "0.0.1", path = "crates/television_previewers" }
-television-utils = { version = "0.0.1", path = "crates/television_utils" }
+television-fuzzy = { workspace = true }
+television-derive = { workspace = true}
+television-channels = { workspace = true}
+television-previewers = { workspace = true}
+television-utils = { workspace = true}
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
   "derive",
@@ -73,11 +71,42 @@ human-panic = "2.0.2"
 pretty_assertions = "1.4.1"
 termtree = "0.5.1"
 copypasta = "0.10.1"
-
-
 [build-dependencies]
 anyhow = "1.0.86"
 vergen-gix = { version = "1.0.0", features = ["build", "cargo", "rustc"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
+
+[workspace]
+resolver = "2"
+members = ["crates/television-channels", "crates/television-derive", "crates/television-fuzzy", "crates/television-previewers", "crates/television-utils"]
+
+[workspace.dependencies]
+television-derive = { path = "crates/television-derive" }
+television-fuzzy = { path = "crates/television-fuzzy" }
+television-previewers = { path = "crates/television-previewers" }
+television-utils = { path = "crates/television-utils" }
+television-channels = { path = "crates/television-channels" }
+
+[workspace.package]
+edition = "2021"
+description = "The revolution will be televised."
+license = "MIT"
+authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
+build = "build.rs"
+repository = "https://github.com/alexpasmantier/television"
+homepage = "https://github.com/alexpasmantier/television"
+keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
+categories = [
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
+]
+include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
+rust-version = "1.80.0"
+
 
 
 [profile.staging]
@@ -93,6 +122,3 @@ debug = true
 
 [profile.release]
 lto = "thin"
-
-[target.'cfg(target_os = "macos")'.dependencies]
-crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
