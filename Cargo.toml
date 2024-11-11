@@ -15,7 +15,7 @@ categories = [
   "concurrency",
   "development-tools",
 ]
-include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
+include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs", ".config/config.toml"]
 rust-version = "1.80.0"
 
 [workspace]

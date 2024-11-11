@@ -1,6 +1,7 @@
 [package]
 name = "television-channels"
 version = "0.0.3"
+description.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
@@ -8,10 +9,8 @@ keywords.workspace = true
 categories.workspace = true
 readme.workspace = true
 license.workspace = true
-include.workspace = true
 edition.workspace = true
 rust-version.workspace = true
-publish = false
 
 [dependencies]
 television-fuzzy = { path = "../television-fuzzy", version = "0.0.3" }
