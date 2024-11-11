@@ -17,7 +17,7 @@ categories = [
 [dependencies]
 syntect = "5.2.0"
 television-channels = { version = "0.0.0", path = "../television_channels" }
-television-utils = { version = "0.0.0", path = "../television_utils" }
+television-utils = { version = "0.0.1", path = "../television_utils" }
 tracing = "0.1.40"
 parking_lot = "0.12.3"
 tokio = "1.41.1"

@@ -29,7 +29,7 @@ television-fuzzy = { version = "0.0.0", path = "crates/television_fuzzy" }
 television-derive = { version = "0.0.0", path = "crates/television_derive" }
 television-channels = { version = "0.0.0", path = "crates/television_channels" }
 television-previewers = { version = "0.0.0", path = "crates/television_previewers" }
-television-utils = { version = "0.0.0", path = "crates/television_utils" }
+television-utils = { version = "0.0.1", path = "crates/television_utils" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
   "derive",
