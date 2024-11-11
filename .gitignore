@@ -18,3 +18,5 @@ Cargo.lock
 
 .data/*.log
 
+# Direnv (Nix Shell)
+.direnv/
