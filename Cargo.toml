@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.4.18"
+version = "0.4.19"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -25,11 +25,11 @@ name = "tv"
 members = ["crates/television_channels","crates/television_derive", "crates/television_fuzzy", "crates/television_previewers", "crates/television_utils"]
 
 [dependencies]
-television-fuzzy = { version = "0.0.0", path = "crates/television_fuzzy" }
+television-fuzzy = { version = "0.0.1", path = "crates/television_fuzzy" }
 television-derive = { version = "0.0.0", path = "crates/television_derive" }
-television-channels = { version = "0.0.0", path = "crates/television_channels" }
-television-previewers = { version = "0.0.0", path = "crates/television_previewers" }
-television-utils = { version = "0.0.0", path = "crates/television_utils" }
+television-channels = { version = "0.0.1", path = "crates/television_channels" }
+television-previewers = { version = "0.0.1", path = "crates/television_previewers" }
+television-utils = { version = "0.0.1", path = "crates/television_utils" }
 better-panic = "0.3.0"
 clap = { version = "4.4.5", features = [
   "derive",

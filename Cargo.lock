@@ -3104,7 +3104,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.4.18"
+version = "0.4.19"
 dependencies = [
  "anyhow",
  "bat",
@@ -3153,7 +3153,7 @@ dependencies = [
 
 [[package]]
 name = "television-channels"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "clap",
  "color-eyre",
@@ -3181,7 +3181,7 @@ dependencies = [
 
 [[package]]
 name = "television-fuzzy"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "nucleo",
  "parking_lot",
@@ -3189,7 +3189,7 @@ dependencies = [
 
 [[package]]
 name = "television-previewers"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "color-eyre",
  "devicons",
@@ -3205,7 +3205,7 @@ dependencies = [
 
 [[package]]
 name = "television-utils"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
  "bat",
  "color-eyre",
