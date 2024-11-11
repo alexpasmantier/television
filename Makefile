@@ -46,3 +46,11 @@ run:
 test:
 	@echo "Testing $(NAME)"
 	@cargo test --all
+
+bump-workspace:
+	@echo "Bumping workspace"
+	@./scripts/bump.sh
+
+publish:
+	@echo "Publishing $(NAME)"
+	@./scripts/publish.sh
