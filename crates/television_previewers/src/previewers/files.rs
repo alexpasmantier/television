@@ -69,6 +69,10 @@ impl FilePreviewer {
         }
     }
 
+    /// Get a preview for a file entry.
+    ///
+    /// # Panics
+    /// Panics if seeking to the start of the file fails.
     pub async fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
         let path_buf = PathBuf::from(&entry.name);
 
@@ -281,6 +285,7 @@ impl FilePreviewer {
 /// This should be enough to most standard terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;
 
+#[allow(dead_code)]
 fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     debug!("Creating plain text preview for {:?}", title);
     let mut lines = Vec::with_capacity(TEMP_PLAIN_TEXT_PREVIEW_HEIGHT);
