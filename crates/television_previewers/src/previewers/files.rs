@@ -69,6 +69,10 @@ impl FilePreviewer {
         }
     }
 
+    /// Get a preview for a file entry.
+    ///
+    /// # Panics
+    /// Panics if seeking to the start of the file fails.
     pub async fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
         let path_buf = PathBuf::from(&entry.name);
 
@@ -94,9 +98,8 @@ impl FilePreviewer {
             FileType::Text => {
                 match File::open(&path_buf) {
                     Ok(file) => {
-                        // insert a non-highlighted version of the preview into the cache
-                        let reader = BufReader::new(&file);
-                        let preview = plain_text_preview(&entry.name, reader);
+                        // insert a loading preview into the cache
+                        let preview = meta::loading(&entry.name);
                         self.cache_preview(
                             entry.name.clone(),
                             preview.clone(),
@@ -104,8 +107,7 @@ impl FilePreviewer {
                         .await;
 
                         // compute the highlighted version in the background
-                        let mut reader =
-                            BufReader::new(file.try_clone().unwrap());
+                        let mut reader = BufReader::new(file);
                         reader.seek(std::io::SeekFrom::Start(0)).unwrap();
                         self.compute_highlighted_text_preview(entry, reader)
                             .await;
@@ -216,6 +218,8 @@ impl FilePreviewer {
                 }
                 Err(e) => {
                     warn!("Error computing highlights: {:?}", e);
+                    let preview = meta::not_supported(&entry_c.name);
+                    cache.lock().insert(entry_c.name.clone(), preview);
                 }
             };
         });
@@ -281,6 +285,7 @@ impl FilePreviewer {
 /// This should be enough to most standard terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;
 
+#[allow(dead_code)]
 fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     debug!("Creating plain text preview for {:?}", title);
     let mut lines = Vec::with_capacity(TEMP_PLAIN_TEXT_PREVIEW_HEIGHT);
