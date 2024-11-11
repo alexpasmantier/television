@@ -110,6 +110,7 @@ impl Television {
         Ok(())
     }
 
+    #[allow(dead_code)]
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
