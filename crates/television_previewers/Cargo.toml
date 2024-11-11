@@ -1,6 +1,6 @@
 [package]
 name = "television-previewers"
-version = "0.0.0"
+version = "0.0.1"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -16,7 +16,7 @@ categories = [
 
 [dependencies]
 syntect = "5.2.0"
-television-channels = { version = "0.0.0", path = "../television_channels" }
+television-channels = { version = "0.0.1", path = "../television_channels" }
 television-utils = { version = "0.0.1", path = "../television_utils" }
 tracing = "0.1.40"
 parking_lot = "0.12.3"
