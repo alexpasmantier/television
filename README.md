@@ -147,6 +147,10 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | iTerm2 | ✅ |
 | Wezterm | ✅ |
 | macOS Terminal | functional but coloring issues |
+| Konsole | ✅ |
+| Terminator | ✅ |
+| Xterm | ✅ |
+| Cmder | ✖️ |
 
 
 ## Customization
