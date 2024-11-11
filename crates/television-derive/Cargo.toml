@@ -1,0 +1,24 @@
+[package]
+name = "television-derive"
+version = "0.0.0"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+license.workspace = true
+include.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+proc-macro2 = "1.0.87"
+quote = "1.0.37"
+syn = "2.0.79"
+
+
+[lib]
+proc-macro = true
+

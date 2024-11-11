@@ -46,9 +46,9 @@ dependencies = [
 
 [[package]]
 name = "allocator-api2"
-version = "0.2.19"
+version = "0.2.20"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "611cc2ae7d2e242c457e4be7f97036b8ad9ca152b499f53faf99b1ed8fc2553f"
+checksum = "45862d1c77f2228b9e10bc609d5bc203d86ebc9b87ad8d5d5167a6c9abf739d9"
 
 [[package]]
 name = "ansi_colours"
@@ -2963,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.4.19"
+version = "0.4.20"
 dependencies = [
  "anyhow",
  "better-panic",
@@ -3011,7 +3011,7 @@ dependencies = [
 
 [[package]]
 name = "television-channels"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "clap",
  "color-eyre",
@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "television-fuzzy"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "nucleo",
  "parking_lot",
@@ -3047,7 +3047,7 @@ dependencies = [
 
 [[package]]
 name = "television-previewers"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "color-eyre",
  "devicons",
@@ -3063,7 +3063,7 @@ dependencies = [
 
 [[package]]
 name = "television-utils"
-version = "0.0.1"
+version = "0.0.0"
 dependencies = [
  "bat",
  "color-eyre",

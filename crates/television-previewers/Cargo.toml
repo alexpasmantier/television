@@ -1,0 +1,27 @@
+[package]
+name = "television-previewers"
+version = "0.0.0"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+license.workspace = true
+include.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+syntect = "5.2.0"
+television-channels = { workspace = true }
+television-utils = { workspace = true }
+tracing = "0.1.40"
+parking_lot = "0.12.3"
+tokio = "1.41.1"
+termtree = "0.5.1"
+devicons = "0.6.11"
+color-eyre = "0.6.3"
+infer = "0.16.0"
+

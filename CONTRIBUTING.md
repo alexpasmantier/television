@@ -105,7 +105,7 @@ As such, channels can virtually be anything that can respond to a user query and
 When contributing a new channel, you should create a new module in the `television_channels` crate with a new struct for
 your channel that implements the `OnAir` trait.
 ```rust
-// crates/television_channels/src/channels/my_new_channel.rs
+// crates/television-channels/src/channels/my_new_channel.rs
 
 use television_channels::channels::OnAir;
 
@@ -118,7 +118,7 @@ impl OnAir for MyNewChannel {
 
 You should also add your channel to the `TelevisionChannel` enum in the `television_channels` crate.
 ```rust
-// crates/television_channels/src/channels.rs
+// crates/television-channels/src/channels.rs
 
 #[derive(ToUnitChannel, ToCliChannel, Broadcast)]
 pub enum TelevisionChannel {

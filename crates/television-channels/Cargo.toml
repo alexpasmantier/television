@@ -1,0 +1,30 @@
+[package]
+name = "television-channels"
+version = "0.0.0"
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
+keywords.workspace = true
+categories.workspace = true
+readme.workspace = true
+license.workspace = true
+include.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+television-fuzzy = {workspace = true}
+television-utils = {workspace = true}
+television-derive = {workspace = true}
+devicons = "0.6.11"
+tracing = "0.1.40"
+eyre = "0.6.12"
+ignore = "0.4.23"
+tokio = { version = "1.41.1", features = ["rt"] }
+clap = { version = "4.5.20", features = ["derive"] }
+directories = "5.0.1"
+color-eyre = "0.6.3"
+serde = "1.0.214"
+strum = { version = "0.26.3", features = ["derive"] }
+

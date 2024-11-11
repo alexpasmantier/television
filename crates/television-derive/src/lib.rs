@@ -6,7 +6,7 @@ use quote::quote;
 ///
 /// ```ignore
 /// use crate::channels::{TelevisionChannel, OnAir};
-/// use television_derive::ToCliChannel;
+/// use television-derive::ToCliChannel;
 /// use crate::channels::{files, text};
 ///
 /// #[derive(ToCliChannel)]
@@ -123,7 +123,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
 ///
 /// Example:
 /// ```ignore
-/// use television_derive::Broadcast;
+/// use television-derive::Broadcast;
 /// use crate::channels::{TelevisionChannel, OnAir};
 /// use crate::channels::{files, text};
 ///
