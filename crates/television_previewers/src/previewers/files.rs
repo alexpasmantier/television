@@ -94,9 +94,8 @@ impl FilePreviewer {
             FileType::Text => {
                 match File::open(&path_buf) {
                     Ok(file) => {
-                        // insert a non-highlighted version of the preview into the cache
-                        let reader = BufReader::new(&file);
-                        let preview = plain_text_preview(&entry.name, reader);
+                        // insert a loading preview into the cache
+                        let preview = meta::loading(&entry.name);
                         self.cache_preview(
                             entry.name.clone(),
                             preview.clone(),
@@ -104,8 +103,7 @@ impl FilePreviewer {
                         .await;
 
                         // compute the highlighted version in the background
-                        let mut reader =
-                            BufReader::new(file.try_clone().unwrap());
+                        let mut reader = BufReader::new(file);
                         reader.seek(std::io::SeekFrom::Start(0)).unwrap();
                         self.compute_highlighted_text_preview(entry, reader)
                             .await;
@@ -216,6 +214,8 @@ impl FilePreviewer {
                 }
                 Err(e) => {
                     warn!("Error computing highlights: {:?}", e);
+                    let preview = meta::not_supported(&entry_c.name);
+                    cache.lock().insert(entry_c.name.clone(), preview);
                 }
             };
         });

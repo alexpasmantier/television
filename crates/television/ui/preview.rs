@@ -194,7 +194,7 @@ impl Television {
                 .build_meta_preview_paragraph(
                     inner,
                     PREVIEW_NOT_SUPPORTED_MSG,
-                    Self::FILL_CHAR_SLANTED,
+                    Self::FILL_CHAR_EMPTY,
                 )
                 .block(preview_block)
                 .alignment(Alignment::Left)
@@ -203,7 +203,7 @@ impl Television {
                 .build_meta_preview_paragraph(
                     inner,
                     FILE_TOO_LARGE_MSG,
-                    Self::FILL_CHAR_SLANTED,
+                    Self::FILL_CHAR_EMPTY,
                 )
                 .block(preview_block)
                 .alignment(Alignment::Left)
