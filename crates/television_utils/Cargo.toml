@@ -20,7 +20,7 @@ infer = "0.16.0"
 lazy_static = "1.5.0"
 tracing = "0.1.40"
 color-eyre = "0.6.3"
-bat = "0.24.0"
+bat = { version = "0.24.0", default-features = false, features = ["regex-onig"] }
 directories = "5.0.1"
 syntect = "5.2.0"
 gag = "1.0.0"
