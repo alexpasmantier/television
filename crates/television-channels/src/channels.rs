@@ -5,6 +5,7 @@ use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 mod alias;
 mod env;
 mod files;
+mod git_branches;
 mod git_repos;
 pub mod remote_control;
 pub mod stdin;
@@ -119,6 +120,10 @@ pub enum TelevisionChannel {
     ///
     /// This channel allows to search through git repositories.
     GitRepos(git_repos::Channel),
+    /// The git branches channel.
+    ///
+    /// This channel allows to search through git branches.
+    GitBranches(git_branches::Channel),
     /// The text channel.
     ///
     /// This channel allows to search through the contents of text files.
@@ -148,6 +153,9 @@ impl TryFrom<&Entry> for TelevisionChannel {
         match entry.name.to_ascii_lowercase().as_ref() {
             "env" => Ok(TelevisionChannel::Env(env::Channel::default())),
             "files" => Ok(TelevisionChannel::Files(files::Channel::default())),
+            "gitbranches" => Ok(TelevisionChannel::GitBranches(
+                git_branches::Channel::default(),
+            )),
             "gitrepos" => {
                 Ok(TelevisionChannel::GitRepos(git_repos::Channel::default()))
             }
