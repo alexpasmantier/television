@@ -1,3 +1,4 @@
+#![allow(clippy::module_name_repetitions)]
 use std::{collections::HashMap, env, path::PathBuf};
 
 use crate::{
@@ -13,7 +14,7 @@ use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use television_previewers::previewers::{self, PreviewerConfig};
-use tracing::{info, warn};
+use tracing::{debug, warn};
 
 const CONFIG: &str = include_str!("../../.config/config.toml");
 
@@ -96,24 +97,25 @@ lazy_static! {
     pub static ref PROJECT_NAME_UPPER: String = PROJECT_NAME.to_uppercase().to_string();
     pub static ref DATA_FOLDER: Option<PathBuf> =
         // if `TELEVISION_DATA` is set, use that as the data directory
-        env::var_os(format!("{}_DATA", PROJECT_NAME_UPPER.clone())).or_else(|| {
+        env::var_os(format!("{}_DATA", PROJECT_NAME_UPPER.clone())).map(PathBuf::from).or_else(|| {
             // otherwise, use the XDG data directory
-            env::var_os("XDG_DATA_HOME")
-        }).map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute());
+            env::var_os("XDG_DATA_HOME").map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute())
+        });
     pub static ref CONFIG_FOLDER: Option<PathBuf> =
-        // if `TELEVISION_CONFIG` is set, use that as the config directory
-        env::var_os(format!("{}_CONFIG", PROJECT_NAME_UPPER.clone())).or_else(|| {
-            // otherwise, use the XDG config directory
-            env::var_os("XDG_CONFIG_HOME")
-        }).map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute());
+        // if `TELEVISION_CONFIG` is set, use that as the television config directory
+        env::var_os(format!("{}_CONFIG", PROJECT_NAME_UPPER.clone())).map(PathBuf::from).or_else(|| {
+            // otherwise, use the XDG config directory + 'television'
+            env::var_os("XDG_CONFIG_HOME").map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute())
+        });
 }
 
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 impl Config {
+    #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new() -> Result<Self, config::ConfigError> {
         let default_config: Config =
-            toml::from_str(CONFIG).expect("default config");
+            toml::from_str(CONFIG).expect("default config should be valid");
 
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
@@ -157,29 +159,32 @@ impl Config {
 
 pub fn get_data_dir() -> PathBuf {
     let directory = if let Some(s) = DATA_FOLDER.clone() {
+        debug!("Using data directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
+        debug!("Falling back to default data dir");
         proj_dirs.data_local_dir().to_path_buf()
     } else {
-        PathBuf::from("../../../../..").join(".data")
+        PathBuf::from(".").join(".data")
     };
     directory
 }
 
 pub fn get_config_dir() -> PathBuf {
     let directory = if let Some(s) = CONFIG_FOLDER.clone() {
+        debug!("Using config directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
+        debug!("Falling back to default config dir");
         proj_dirs.config_local_dir().to_path_buf()
     } else {
-        PathBuf::from("../../../../..").join("../../../../../.config")
+        PathBuf::from(".").join(".config")
     };
-    info!("Using config directory: {:?}", directory);
     directory
 }
 
 fn project_directory() -> Option<ProjectDirs> {
-    ProjectDirs::from("com", "alexpasmantier", env!("CARGO_PKG_NAME"))
+    ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
