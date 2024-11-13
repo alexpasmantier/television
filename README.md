@@ -160,10 +160,16 @@ is a simple TOML file that allows you to customize the behavior of `television` 
 |Platform|Value|
 |--------|:-----:|
 |Linux|`$XDG_CONFIG_HOME/television/config.toml` or `$HOME/.config/television/config.toml`|
-|macOS|`$HOME/Library/Application Support/television/config.toml`|
+|macOS|`$HOME/Library/Application Support/com.television/config.toml`|
 |Windows|`{FOLDERID_LocalAppData}\television\config`|
 
-Any of these paths may be overriden by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration folder.
+You may also override these default paths by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration **folder**.
+
+Example:
+```bash
+export TELEVISION_CONFIG=$HOME/.config/television
+touch $TELEVISION_CONFIG/config.toml
+```
 
 #### Default Configuration
 The default configuration file can be found in [./.config/config.toml](./.config/config.toml).
