@@ -13,7 +13,7 @@ use lazy_static::lazy_static;
 use ratatui::style::{Color, Modifier, Style};
 use serde::{de::Deserializer, Deserialize};
 use television_previewers::previewers::{self, PreviewerConfig};
-use tracing::{info, warn};
+use tracing::{debug, info, warn};
 
 const CONFIG: &str = include_str!("../../.config/config.toml");
 
@@ -157,29 +157,33 @@ impl Config {
 
 pub fn get_data_dir() -> PathBuf {
     let directory = if let Some(s) = DATA_FOLDER.clone() {
+        debug!("Using data directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
+        debug!("Falling back to default data dir");
         proj_dirs.data_local_dir().to_path_buf()
     } else {
-        PathBuf::from("../../../../..").join(".data")
+        PathBuf::from(".").join(".data")
     };
     directory
 }
 
 pub fn get_config_dir() -> PathBuf {
     let directory = if let Some(s) = CONFIG_FOLDER.clone() {
+        debug!("Using config directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
+        debug!("Falling back to default config dir");
         proj_dirs.config_local_dir().to_path_buf()
     } else {
-        PathBuf::from("../../../../..").join("../../../../../.config")
+        PathBuf::from(".").join(".config")
     };
     info!("Using config directory: {:?}", directory);
     directory
 }
 
 fn project_directory() -> Option<ProjectDirs> {
-    ProjectDirs::from("com", "alexpasmantier", env!("CARGO_PKG_NAME"))
+    ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
