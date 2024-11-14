@@ -211,8 +211,7 @@ impl Television {
     /// A reference to the keymap for the current mode.
     fn keymap_for_mode(&self) -> Result<&HashMap<Key, Action>> {
         let keymap = self
-            .config
-            .keybindings
+            .keymap
             .get(&self.mode)
             .ok_or_eyre("No keybindings found for the current Mode")?;
         Ok(keymap)

@@ -1,3 +1,4 @@
+use crate::app::Keymap;
 use crate::picker::Picker;
 use crate::ui::input::actions::InputActionHandler;
 use crate::ui::layout::{Dimensions, Layout};
@@ -32,6 +33,7 @@ pub enum Mode {
 pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
     pub config: Config,
+    pub keymap: Keymap,
     pub(crate) channel: TelevisionChannel,
     pub(crate) remote_control: TelevisionChannel,
     pub mode: Mode,
@@ -62,6 +64,7 @@ impl Television {
         Self {
             action_tx: None,
             config: Config::default(),
+            keymap: Keymap::default(),
             channel,
             remote_control: TelevisionChannel::RemoteControl(
                 RemoteControl::default(),
@@ -228,6 +231,7 @@ impl Television {
     /// * `Result<()>` - An Ok result or an error.
     pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
         self.config = config;
+        self.keymap = Keymap::from(&self.config.keybindings);
         let previewer_config =
             std::convert::Into::<previewers::PreviewerConfig>::into(
                 self.config.previewers.clone(),

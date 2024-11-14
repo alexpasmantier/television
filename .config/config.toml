@@ -35,51 +35,50 @@ theme = "Visual Studio Dark+"
 # Keybindings
 # ----------------------------------------------------------------------------
 #
-# Channel mode keybindings
+# Channel mode
+# ------------------------
 [keybindings.Channel]
 # Quit the application
-esc = "Quit"
+Quit = "esc"
 # Scrolling through entries
-down = "SelectNextEntry"
-ctrl-n = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-p = "SelectPrevEntry"
+SelectNextEntry = "down"
+SelectPrevEntry = "up"
 # Scrolling the preview pane
-ctrl-d = "ScrollPreviewHalfPageDown"
-ctrl-u = "ScrollPreviewHalfPageUp"
+ScrollPreviewHalfPageDown = "ctrl-d"
+ScrollPreviewHalfPageUp = "ctrl-u"
 # Select an entry
-enter = "SelectEntry"
+SelectEntry = "enter"
 # Copy the selected entry to the clipboard
-ctrl-y = "CopyEntryToClipboard"
+CopyEntryToClipboard = "ctrl-y"
 # Toggle the remote control mode
-ctrl-r = "ToggleRemoteControl"
+ToggleRemoteControl = "ctrl-r"
 # Toggle the send to channel mode
-ctrl-s = "ToggleSendToChannel"
+ToggleSendToChannel = "ctrl-s"
 
-# Remote control mode keybindings
+
+# Remote control mode
+# -------------------------------
 [keybindings.RemoteControl]
 # Quit the application
-esc = "Quit"
+Quit = "esc"
 # Scrolling through entries
-down = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-n = "SelectNextEntry"
-ctrl-p = "SelectPrevEntry"
+SelectNextEntry = "down"
+SelectPrevEntry = "up"
 # Select an entry
-enter = "SelectEntry"
+SelectEntry = "enter"
 # Toggle the remote control mode
-ctrl-r = "ToggleRemoteControl"
+ToggleRemoteControl = "ctrl-r"
 
-# Send to channel mode keybindings
+
+# Send to channel mode
+# --------------------------------
 [keybindings.SendToChannel]
 # Quit the application
-esc = "Quit"
+Quit = "esc"
 # Scrolling through entries
-down = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-n = "SelectNextEntry"
-ctrl-p = "SelectPrevEntry"
+SelectNextEntry = "down"
+SelectPrevEntry = "up"
 # Select an entry
-enter = "SelectEntry"
+SelectEntry = "enter"
 # Toggle the send to channel mode
-ctrl-s = "ToggleSendToChannel"
+ToggleSendToChannel = "ctrl-s"

@@ -6,7 +6,7 @@ use crate::{
     event::{convert_raw_event_to_key, Key},
     television::Mode,
 };
-use color_eyre::Result;
+use color_eyre::{eyre::Context, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use derive_deref::{Deref, DerefMut};
 use directories::ProjectDirs;
@@ -113,22 +113,19 @@ const CONFIG_FILE_NAME: &str = "config.toml";
 
 impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
-    pub fn new() -> Result<Self, config::ConfigError> {
+    pub fn new() -> Result<Self> {
+        // Load the default_config values as base defaults
         let default_config: Config =
             toml::from_str(CONFIG).expect("default config should be valid");
 
+        // initialize the config builder
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?;
 
-        // Load the default_config values as base defaults
-        builder = builder.add_source(config::File::from_str(
-            CONFIG,
-            config::FileFormat::Toml,
-        ));
-
+        // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
             .format(config::FileFormat::Toml)
             .required(false);
@@ -138,14 +135,21 @@ impl Config {
             warn!("No config file found at {:?}", config_dir);
         }
 
-        let mut cfg: Self = builder.build()?.try_deserialize()?;
+        let mut cfg: Self =
+            builder.build()?.try_deserialize().with_context(|| {
+                format!(
+                    "Error parsing config file at {:?}",
+                    config_dir.join(CONFIG_FILE_NAME)
+                )
+            })?;
 
         for (mode, default_bindings) in default_config.keybindings.iter() {
             let user_bindings = cfg.keybindings.entry(*mode).or_default();
-            for (key, cmd) in default_bindings {
-                user_bindings.entry(*key).or_insert_with(|| cmd.clone());
+            for (command, key) in default_bindings {
+                user_bindings.entry(command.clone()).or_insert_with(|| *key);
             }
         }
+
         for (mode, default_styles) in default_config.styles.iter() {
             let user_styles = cfg.styles.entry(*mode).or_default();
             for (style_key, style) in default_styles {
@@ -153,6 +157,7 @@ impl Config {
             }
         }
 
+        debug!("Config: {:?}", cfg);
         Ok(cfg)
     }
 }
@@ -188,7 +193,7 @@ fn project_directory() -> Option<ProjectDirs> {
 }
 
 #[derive(Clone, Debug, Default, Deref, DerefMut)]
-pub struct KeyBindings(pub HashMap<Mode, HashMap<Key, Action>>);
+pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Key>>);
 
 impl<'de> Deserialize<'de> for KeyBindings {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
@@ -196,7 +201,7 @@ impl<'de> Deserialize<'de> for KeyBindings {
         D: Deserializer<'de>,
     {
         let parsed_map =
-            HashMap::<Mode, HashMap<String, Action>>::deserialize(
+            HashMap::<Mode, HashMap<Action, String>>::deserialize(
                 deserializer,
             )?;
 
@@ -205,7 +210,7 @@ impl<'de> Deserialize<'de> for KeyBindings {
             .map(|(mode, inner_map)| {
                 let converted_inner_map = inner_map
                     .into_iter()
-                    .map(|(key_str, cmd)| (parse_key(&key_str).unwrap(), cmd))
+                    .map(|(cmd, key_str)| (cmd, parse_key(&key_str).unwrap()))
                     .collect();
                 (mode, converted_inner_map)
             })
@@ -573,9 +578,8 @@ mod tests {
             c.keybindings
                 .get(&Mode::Channel)
                 .unwrap()
-                .get(&parse_key("esc").unwrap())
-                .unwrap(),
-            &Action::Quit
+                .get(&Action::Quit),
+            Some(&parse_key("esc").unwrap())
         );
         Ok(())
     }

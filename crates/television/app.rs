@@ -1,9 +1,12 @@
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use color_eyre::Result;
+use derive_deref::Deref;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
+use crate::config::KeyBindings;
 use crate::television::{Mode, Television};
 use crate::{
     action::Action,
@@ -14,10 +17,28 @@ use crate::{
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::Entry;
 
+#[derive(Deref, Default)]
+pub struct Keymap(pub HashMap<Mode, HashMap<Key, Action>>);
+
+impl From<&KeyBindings> for Keymap {
+    fn from(keybindings: &KeyBindings) -> Self {
+        let mut keymap = HashMap::new();
+        for (mode, bindings) in keybindings.iter() {
+            let mut mode_keymap = HashMap::new();
+            for (action, key) in bindings {
+                mode_keymap.insert(*key, action.clone());
+            }
+            keymap.insert(*mode, mode_keymap);
+        }
+        Self(keymap)
+    }
+}
+
 /// The main application struct that holds the state of the application.
 pub struct App {
     /// The configuration of the application.
     config: Config,
+    keymap: Keymap,
     // maybe move these two into config instead of passing them
     // via the cli?
     tick_rate: f64,
@@ -51,14 +72,17 @@ impl App {
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
         let television = Arc::new(Mutex::new(Television::new(channel)));
+        let config = Config::new()?;
+        let keymap = Keymap::from(&config.keybindings);
 
         Ok(Self {
+            config,
+            keymap,
             tick_rate,
             frame_rate,
             television,
             should_quit: false,
             should_suspend: false,
-            config: Config::new()?,
             action_tx,
             action_rx,
             event_rx,
@@ -159,8 +183,7 @@ impl App {
                     _ => {}
                 }
                 // get action based on keybindings
-                self.config
-                    .keybindings
+                self.keymap
                     .get(&self.television.lock().await.mode)
                     .and_then(|keymap| keymap.get(&keycode).cloned())
                     .unwrap_or(if let Key::Char(c) = keycode {

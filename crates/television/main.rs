@@ -30,7 +30,7 @@ async fn main() -> Result<()> {
 
     let args = Cli::parse();
 
-    let mut app: App = App::new(
+    match App::new(
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
@@ -42,13 +42,19 @@ async fn main() -> Result<()> {
         },
         args.tick_rate,
         args.frame_rate,
-    )?;
-
-    if let Some(entry) = app.run(stdout().is_terminal()).await? {
-        // print entry to stdout
-        stdout().flush()?;
-        info!("{:?}", entry);
-        writeln!(stdout(), "{}", entry.stdout_repr())?;
+    ) {
+        Ok(mut app) => {
+            if let Some(entry) = app.run(stdout().is_terminal()).await? {
+                // print entry to stdout
+                stdout().flush()?;
+                info!("{:?}", entry);
+                writeln!(stdout(), "{}", entry.stdout_repr())?;
+            }
+            Ok(())
+        }
+        Err(err) => {
+            println!("{err:?}");
+            return Ok(());
+        }
     }
-    Ok(())
 }
