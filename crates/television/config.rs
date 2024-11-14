@@ -131,34 +131,38 @@ impl Config {
             .required(false);
         builder = builder.add_source(source);
 
-        if !config_dir.join(CONFIG_FILE_NAME).is_file() {
+        if config_dir.join(CONFIG_FILE_NAME).is_file() {
+            debug!("Found config file at {:?}", config_dir);
+            let mut cfg: Self =
+                builder.build()?.try_deserialize().with_context(|| {
+                    format!(
+                        "Error parsing config file at {:?}",
+                        config_dir.join(CONFIG_FILE_NAME)
+                    )
+                })?;
+
+            for (mode, default_bindings) in default_config.keybindings.iter() {
+                let user_bindings = cfg.keybindings.entry(*mode).or_default();
+                for (command, key) in default_bindings {
+                    user_bindings
+                        .entry(command.clone())
+                        .or_insert_with(|| *key);
+                }
+            }
+
+            for (mode, default_styles) in default_config.styles.iter() {
+                let user_styles = cfg.styles.entry(*mode).or_default();
+                for (style_key, style) in default_styles {
+                    user_styles.entry(style_key.clone()).or_insert(*style);
+                }
+            }
+
+            debug!("Config: {:?}", cfg);
+            Ok(cfg)
+        } else {
             warn!("No config file found at {:?}", config_dir);
+            Ok(default_config)
         }
-
-        let mut cfg: Self =
-            builder.build()?.try_deserialize().with_context(|| {
-                format!(
-                    "Error parsing config file at {:?}",
-                    config_dir.join(CONFIG_FILE_NAME)
-                )
-            })?;
-
-        for (mode, default_bindings) in default_config.keybindings.iter() {
-            let user_bindings = cfg.keybindings.entry(*mode).or_default();
-            for (command, key) in default_bindings {
-                user_bindings.entry(command.clone()).or_insert_with(|| *key);
-            }
-        }
-
-        for (mode, default_styles) in default_config.styles.iter() {
-            let user_styles = cfg.styles.entry(*mode).or_default();
-            for (style_key, style) in default_styles {
-                user_styles.entry(style_key.clone()).or_insert(*style);
-            }
-        }
-
-        debug!("Config: {:?}", cfg);
-        Ok(cfg)
     }
 }
 
