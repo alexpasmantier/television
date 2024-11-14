@@ -312,17 +312,14 @@ impl Television {
                             .unwrap()
                             .send(Action::SelectAndExit)?,
                         Mode::RemoteControl => {
-                            if let Ok(new_channel) =
-                                // FIXME: this is kind of shitty
-                                TelevisionChannel::try_from(&entry)
-                            {
-                                // this resets the RC picker
-                                self.reset_picker_selection();
-                                self.reset_picker_input();
-                                self.remote_control.find(EMPTY_STRING);
-                                self.mode = Mode::Channel;
-                                self.change_channel(new_channel);
-                            }
+                            // FIXME: this is kind of shitty
+                            let new_channel = TelevisionChannel::from(&entry);
+                            // this resets the RC picker
+                            self.reset_picker_selection();
+                            self.reset_picker_input();
+                            self.remote_control.find(EMPTY_STRING);
+                            self.mode = Mode::Channel;
+                            self.change_channel(new_channel);
                         }
                         Mode::SendToChannel => {
                             let new_channel = self
