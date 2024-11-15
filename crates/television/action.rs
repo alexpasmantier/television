@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use strum::Display;
 
 /// The different actions that can be performed by the application.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Display)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Display, Hash,
+)]
 pub enum Action {
     // input actions
     /// Add a character to the input buffer.
