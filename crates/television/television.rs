@@ -378,6 +378,7 @@ impl Television {
             &Dimensions::from(self.config.ui.ui_scale),
             area,
             !matches!(self.mode, Mode::Channel),
+            self.config.ui.show_help_bar,
         );
 
         // help bar (metadata, keymaps, logo)
