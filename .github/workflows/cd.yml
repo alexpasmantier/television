@@ -8,15 +8,34 @@ on:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Tag to deploy'
+      tags:
+        description: 'Tags to deploy'
         required: true
         default: 'v0.0.0'
 
 jobs:
+  create-release:
+    name: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the release version from the tag
+        if: env.VERSION == ''
+        run: echo "VERSION=${{ github.ref_name }}" >> $GITHUB_ENV
+      - name: Show the version
+        run: |
+          echo "version is: $VERSION"
+      - name: Create GitHub release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create $VERSION --draft --verify-tag --title $VERSION
+    outputs:
+      version: ${{ env.VERSION }}
+
   publish-release:
 
     name: Publishing for ${{ matrix.os }}
+    needs: ['create-release']
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -145,6 +164,7 @@ jobs:
 
   publish-release-deb:
     name: publish-release-deb
+    needs: ['create-release']
     runs-on: ubuntu-latest
     env:
       TARGET: x86_64-unknown-linux-musl
@@ -181,6 +201,12 @@ jobs:
       run: |
         rustup target add x86_64-unknown-linux-musl
 
+    # for some reason, the above action doesn't seem to set the target correctly
+    - name: Add rustup target
+      shell: bash
+      run: |
+        rustup target add x86_64-unknown-linux-musl
+
     - name: Install cargo-deb
       shell: bash
       run: |
@@ -197,7 +223,7 @@ jobs:
       shell: bash
       run: |
         cargo deb --profile deb --target ${{ env.TARGET }}
-        version="${GITHUB_REF/refs\/tags\//}"
+        version="${{ needs.create-release.outputs.version }}"
         echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
         echo "DEB_NAME=television_$version-1_amd64.deb" >> $GITHUB_ENV
 
@@ -215,5 +241,5 @@ jobs:
       shell: bash
       run: |
         cd "$DEB_DIR"
-        version="${GITHUB_REF/refs\/tags\//}"
+        version="${{ needs.create-release.outputs.version }}"
         gh release upload "$version" "$DEB_NAME" "$SUM"
