@@ -22,9 +22,10 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 
 ## Installation
-#### With `cargo`:
+#### Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
 ```bash
-cargo install television
+curl -LO https://github.com/alexpasmantier/television/releases/download/0.4.22/television_0.4.22-1_amd64.deb
+sudo dpkg -i television_0.4.22-1_amd64.deb
 ```
 
 #### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
@@ -32,6 +33,10 @@ cargo install television
 - Unpack and copy to the relevant location for your system (e.g. `/usr/local/bin` on macos and linux)
 
 
+#### From source using `cargo`:
+```bash
+cargo install television
+```
 ## Usage
 ```bash
 tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
