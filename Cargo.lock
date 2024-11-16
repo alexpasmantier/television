@@ -2963,7 +2963,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.4.21"
+version = "0.4.22"
 dependencies = [
  "anyhow",
  "better-panic",
