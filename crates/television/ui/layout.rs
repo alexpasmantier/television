@@ -24,10 +24,25 @@ impl Default for Dimensions {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct HelpBarLayout {
+    pub left: Rect,
+    pub middle: Rect,
+    pub right: Rect,
+}
+
+impl HelpBarLayout {
+    pub fn new(left: Rect, middle: Rect, right: Rect) -> Self {
+        Self {
+            left,
+            middle,
+            right,
+        }
+    }
+}
+
 pub struct Layout {
-    pub help_bar_left: Rect,
-    pub help_bar_middle: Rect,
-    pub help_bar_right: Rect,
+    pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
     pub input: Rect,
     pub preview_title: Rect,
@@ -38,9 +53,7 @@ pub struct Layout {
 impl Layout {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        help_bar_left: Rect,
-        help_bar_middle: Rect,
-        help_bar_right: Rect,
+        help_bar: Option<HelpBarLayout>,
         results: Rect,
         input: Rect,
         preview_title: Rect,
@@ -48,9 +61,7 @@ impl Layout {
         remote_control: Option<Rect>,
     ) -> Self {
         Self {
-            help_bar_left,
-            help_bar_middle,
-            help_bar_right,
+            help_bar,
             results,
             input,
             preview_title,
@@ -63,26 +74,42 @@ impl Layout {
         dimensions: &Dimensions,
         area: Rect,
         with_remote: bool,
+        with_help_bar: bool,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
-        let hz_chunks = layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Max(9), Constraint::Fill(1)])
-            .split(main_block);
+        let main_rect: Rect;
+        let help_bar_layout: Option<HelpBarLayout>;
 
-        // split the help bar into three horizontal chunks (left + center + right)
-        let help_bar_chunks = layout::Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints([
-                // metadata
-                Constraint::Fill(1),
-                // keymaps
-                Constraint::Fill(1),
-                // logo
-                Constraint::Length(24),
-            ])
-            .split(hz_chunks[0]);
+        if with_help_bar {
+            let hz_chunks = layout::Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Max(9), Constraint::Fill(1)])
+                .split(main_block);
+            main_rect = hz_chunks[1];
+
+            // split the help bar into three horizontal chunks (left + center + right)
+            let help_bar_chunks = layout::Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    // metadata
+                    Constraint::Fill(1),
+                    // keymaps
+                    Constraint::Fill(1),
+                    // logo
+                    Constraint::Length(24),
+                ])
+                .split(hz_chunks[0]);
+
+            help_bar_layout = Some(HelpBarLayout {
+                left: help_bar_chunks[0],
+                middle: help_bar_chunks[1],
+                right: help_bar_chunks[2],
+            });
+        } else {
+            main_rect = main_block;
+            help_bar_layout = None;
+        }
 
         // split the main block into two vertical chunks
         let constraints = if with_remote {
@@ -97,7 +124,7 @@ impl Layout {
         let vt_chunks = layout::Layout::default()
             .direction(Direction::Horizontal)
             .constraints(constraints)
-            .split(hz_chunks[1]);
+            .split(main_rect);
 
         // left block: results + input field
         let left_chunks = layout::Layout::default()
@@ -112,9 +139,7 @@ impl Layout {
             .split(vt_chunks[1]);
 
         Self::new(
-            help_bar_chunks[0],
-            help_bar_chunks[1],
-            help_bar_chunks[2],
+            help_bar_layout,
             left_chunks[0],
             left_chunks[1],
             right_chunks[0],

@@ -26,9 +26,11 @@ impl Television {
         f: &mut Frame,
         layout: &Layout,
     ) -> color_eyre::Result<()> {
-        self.draw_metadata_block(f, layout.help_bar_left);
-        self.draw_keymaps_block(f, layout.help_bar_middle)?;
-        draw_logo_block(f, layout.help_bar_right, mode_color(self.mode));
+        if let Some(help_bar) = layout.help_bar {
+            self.draw_metadata_block(f, help_bar.left);
+            self.draw_keymaps_block(f, help_bar.middle)?;
+            draw_logo_block(f, help_bar.right, mode_color(self.mode));
+        }
         Ok(())
     }
 

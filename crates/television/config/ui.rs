@@ -8,6 +8,7 @@ const DEFAULT_UI_SCALE: u16 = 90;
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
+    pub show_help_bar: bool,
 }
 
 impl Default for UiConfig {
@@ -15,6 +16,7 @@ impl Default for UiConfig {
         Self {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
+            show_help_bar: true,
         }
     }
 }
@@ -29,6 +31,10 @@ impl From<UiConfig> for ValueKind {
         m.insert(
             String::from("ui_scale"),
             ValueKind::U64(val.ui_scale.into()).into(),
+        );
+        m.insert(
+            String::from("show_help_bar"),
+            ValueKind::Boolean(val.show_help_bar).into(),
         );
         ValueKind::Table(m)
     }
