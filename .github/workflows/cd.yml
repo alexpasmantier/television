@@ -6,6 +6,12 @@ on:
   push:
     tags:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        default: 'v0.0.0'
 
 jobs:
   publish-release:
