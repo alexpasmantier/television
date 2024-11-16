@@ -126,3 +126,7 @@ debug = true
 
 [profile.release]
 lto = "thin"
+
+[profile.deb]
+inherits = "release"
+debug = false
