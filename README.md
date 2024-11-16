@@ -30,12 +30,18 @@ sudo dpkg -i television_0.4.22-1_amd64.deb
 
 #### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
-- Unpack and copy to the relevant location for your system (e.g. `/usr/local/bin` on macos and linux)
+- Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
 
 
 #### From source using `cargo`:
+Setup the latest stable Rust toolchain via rustup:
 ```bash
-cargo install television
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup update
+```
+Install `television`:
+```bash
+cargo install --locked television
 ```
 ## Usage
 ```bash
@@ -150,7 +156,7 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | Alacritty | macOS, Linux | ✅ |
 | Kitty | macOS, Linux | ✅ |
 | iTerm2 | macOS | ✅ |
-| Wezterm | macOS | ✅ |
+| Wezterm | macOS, Linux, Windows | ✅ |
 | macOS Terminal | macOS | functional but coloring issues |
 | Konsole | Linux | ✅ |
 | Terminator | Linux | ✅ |
@@ -177,98 +183,7 @@ touch $TELEVISION_CONFIG/config.toml
 ```
 
 #### Default Configuration
-The default configuration file can be found in [./.config/config.toml](./.config/config.toml).
-
-<details>
-<summary>Television's default `config.toml`</summary>
-  
-```toml
-# Ui settings
-# ----------------------------------------------------------------------------
-[ui]
-# Whether to use nerd font icons in the UI
-# This option requires a font patched with Nerd Font in order to properly
-# display glyphs (see https://www.nerdfonts.com/ for more information)
-use_nerd_font_icons = false
-# How much space to allocate for the UI (in percentage of the screen)
-# ┌───────────────────────────────────────┐
-# │                                       │
-# │            Terminal screen            │
-# │    ┌─────────────────────────────┐    │
-# │    │                             │    │
-# │    │                             │    │
-# │    │                             │    │
-# │    │       Television UI         │    │
-# │    │                             │    │
-# │    │                             │    │
-# │    │                             │    │
-# │    │                             │    │
-# │    └─────────────────────────────┘    │
-# │                                       │
-# │                                       │
-# └───────────────────────────────────────┘
-ui_scale = 80
-
-# Previewers settings
-# ----------------------------------------------------------------------------
-[previewers.file]
-# The theme to use for syntax highlighting
-# A list of available themes can be found in the https://github.com/sharkdp/bat
-# repository which uses the same syntax highlighting engine as television
-theme = "Visual Studio Dark+"
-
-# Keybindings
-# ----------------------------------------------------------------------------
-# Channel mode keybindings
-[keybindings.Channel]
-# Quit the application
-esc = "Quit"
-# Scrolling through entries
-down = "SelectNextEntry"
-ctrl-n = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-p = "SelectPrevEntry"
-# Scrolling the preview pane
-ctrl-d = "ScrollPreviewHalfPageDown"
-ctrl-u = "ScrollPreviewHalfPageUp"
-# Select an entry
-enter = "SelectEntry"
-# Copy the selected entry to the clipboard
-ctrl-y = "CopyEntryToClipboard"
-# Toggle the remote control mode
-ctrl-r = "ToggleRemoteControl"
-# Toggle the send to channel mode
-ctrl-s = "ToggleSendToChannel"
-
-# Remote control mode keybindings
-[keybindings.RemoteControl]
-# Quit the application
-esc = "Quit"
-# Scrolling through entries
-down = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-n = "SelectNextEntry"
-ctrl-p = "SelectPrevEntry"
-# Select an entry
-enter = "SelectEntry"
-# Toggle the remote control mode
-ctrl-r = "ToggleRemoteControl"
-
-# Send to channel mode keybindings
-[keybindings.SendToChannel]
-# Quit the application
-esc = "Quit"
-# Scrolling through entries
-down = "SelectNextEntry"
-up = "SelectPrevEntry"
-ctrl-n = "SelectNextEntry"
-ctrl-p = "SelectPrevEntry"
-# Select an entry
-enter = "SelectEntry"
-# Toggle the send to channel mode
-ctrl-s = "ToggleSendToChannel"
-```
-</details>
+The default configuration file can be found in the repository's [./.config/config.toml](./.config/config.toml).
 
 ## Contributions
 
