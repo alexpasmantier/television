@@ -8,7 +8,7 @@ on:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
-  publish:
+  publish-release:
 
     name: Publishing for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -137,3 +137,78 @@ jobs:
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  publish-release-deb:
+    name: publish-release-deb
+    runs-on: ubuntu-latest
+    env:
+      TARGET: x86_64-unknown-linux-musl
+      # Emit backtraces on panics.
+      RUST_BACKTRACE: 1
+      # Since we're distributing the dpkg, we don't know whether the user will
+      # have PCRE2 installed, so just do a static build.
+      PCRE2_SYS_STATIC: 1
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install packages (Ubuntu)
+      shell: bash
+      run: |
+       if ! command -V sudo; then
+        apt-get update
+        apt-get install -y --no-install-recommends sudo
+       fi
+       sudo apt-get update
+       sudo apt-get install -y --no-install-recommends \
+        zsh xz-utils liblz4-tool musl-tools brotli zstd 
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        target: ${{ env.TARGET }}
+
+    - name: Install cargo-deb
+      shell: bash
+      run: |
+        cargo install cargo-deb
+
+    - name: Build debug binary to create release assets
+      shell: bash
+      run: |
+        cargo build --release --target ${{ env.TARGET }}
+        bin="target/${{ env.TARGET }}/release/tv"
+        echo "BIN=$bin" >> $GITHUB_ENV
+
+    - name: Create deployment directory
+      shell: bash
+      run: |
+        dir=deployment/deb
+        mkdir -p "$dir"
+        echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+    - name: Build release binary
+      shell: bash
+      run: |
+        cargo deb --profile deb --target ${{ env.TARGET }}
+        version="${GITHUB_REF/refs\/tags\//}"
+        echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
+        echo "DEB_NAME=television_$version-1_amd64.deb" >> $GITHUB_ENV
+
+    - name: Create sha256 sum of deb file
+      shell: bash
+      run: |
+        cd "$DEB_DIR"
+        sum="$DEB_NAME.sha256"
+        shasum -a 256 "$DEB_NAME" > "$sum"
+        echo "SUM=$sum" >> $GITHUB_ENV
+
+    - name: Upload release archive
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        cd "$DEB_DIR"
+        version="${GITHUB_REF/refs\/tags\//}"
+        gh release upload "$version" "$DEB_NAME" "$SUM"
