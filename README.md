@@ -30,12 +30,18 @@ sudo dpkg -i television_0.4.22-1_amd64.deb
 
 #### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
-- Unpack and copy to the relevant location for your system (e.g. `/usr/local/bin` on macos and linux)
+- Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
 
 
 #### From source using `cargo`:
+Setup the latest stable Rust toolchain via rustup:
 ```bash
-cargo install television
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup update
+```
+Install `television`:
+```bash
+cargo install --locked television
 ```
 ## Usage
 ```bash
