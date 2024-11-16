@@ -7,6 +7,7 @@ use crate::{
     television::Mode,
 };
 use color_eyre::{eyre::Context, Result};
+use config::ValueKind;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use derive_deref::{Deref, DerefMut};
 use directories::ProjectDirs;
@@ -41,6 +42,21 @@ impl Default for UiConfig {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
         }
+    }
+}
+
+impl Into<ValueKind> for UiConfig {
+    fn into(self) -> ValueKind {
+        let mut m = HashMap::new();
+        m.insert(
+            String::from("use_nerd_font_icons"),
+            ValueKind::Boolean(self.use_nerd_font_icons).into(),
+        );
+        m.insert(
+            String::from("ui_scale"),
+            ValueKind::U64(self.ui_scale.into()).into(),
+        );
+        ValueKind::Table(m)
     }
 }
 
@@ -87,6 +103,7 @@ pub struct Config {
     pub keybindings: KeyBindings,
     #[serde(default)]
     pub styles: Styles,
+    #[serde(default)]
     pub ui: UiConfig,
     #[serde(default)]
     pub previewers: PreviewersConfig,
@@ -123,7 +140,8 @@ impl Config {
         let config_dir = get_config_dir();
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
-            .set_default("config_dir", config_dir.to_str().unwrap())?;
+            .set_default("config_dir", config_dir.to_str().unwrap())?
+            .set_default("ui", UiConfig::default())?;
 
         // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
