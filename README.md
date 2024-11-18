@@ -24,8 +24,8 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 ## Installation
 #### Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
 ```bash
-curl -LO https://github.com/alexpasmantier/television/releases/download/0.4.23/television_0.4.23-1_amd64.deb
-sudo dpkg -i television_0.4.23-1_amd64.deb
+curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.0/television_0.5.0-1_amd64.deb
+sudo dpkg -i television_0.5.0-1_amd64.deb
 ```
 
 #### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
