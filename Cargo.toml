@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.4.23"
+version = "0.5.0"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"

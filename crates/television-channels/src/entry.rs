@@ -108,9 +108,6 @@ impl Entry {
         if let Some(line_number) = self.line_number {
             repr.push_str(&format!(":{line_number}"));
         }
-        if let Some(preview) = &self.value {
-            repr.push_str(&format!("\n{preview}"));
-        }
         repr
     }
 }

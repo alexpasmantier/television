@@ -3,6 +3,7 @@ use std::{env, path::PathBuf};
 
 use color_eyre::{eyre::Context, Result};
 use directories::ProjectDirs;
+pub use keybindings::parse_key;
 pub use keybindings::KeyBindings;
 use lazy_static::lazy_static;
 use previewers::PreviewersConfig;

@@ -1,6 +1,7 @@
 use std::io::{stdout, IsTerminal, Write};
 
 use clap::Parser;
+use cli::PostProcessedCli;
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
 use tracing::{debug, info};
@@ -28,7 +29,9 @@ async fn main() -> Result<()> {
     errors::init()?;
     logging::init()?;
 
-    let args = Cli::parse();
+    let args: PostProcessedCli = Cli::parse().into();
+
+    debug!("{:?}", args);
 
     match App::new(
         {
@@ -42,12 +45,16 @@ async fn main() -> Result<()> {
         },
         args.tick_rate,
         args.frame_rate,
+        args.passthrough_keybindings,
     ) {
         Ok(mut app) => {
-            if let Some(entry) = app.run(stdout().is_terminal()).await? {
-                // print entry to stdout
-                stdout().flush()?;
-                info!("{:?}", entry);
+            stdout().flush()?;
+            let output = app.run(stdout().is_terminal()).await?;
+            info!("{:?}", output);
+            if let Some(passthrough) = output.passthrough {
+                writeln!(stdout(), "{passthrough}")?;
+            }
+            if let Some(entry) = output.selected_entry {
                 writeln!(stdout(), "{}", entry.stdout_repr())?;
             }
             Ok(())
