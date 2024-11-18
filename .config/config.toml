@@ -41,46 +41,46 @@ theme = "Visual Studio Dark+"
 # ------------------------
 [keybindings.Channel]
 # Quit the application
-Quit = "esc"
+quit = "esc"
 # Scrolling through entries
-SelectNextEntry = "down"
-SelectPrevEntry = "up"
+select_next_entry = "down"
+select_prev_entry = "up"
 # Scrolling the preview pane
-ScrollPreviewHalfPageDown = "ctrl-d"
-ScrollPreviewHalfPageUp = "ctrl-u"
+scroll_preview_half_page_down = "ctrl-d"
+scroll_preview_half_page_up = "ctrl-u"
 # Select an entry
-SelectEntry = "enter"
+select_entry = "enter"
 # Copy the selected entry to the clipboard
-CopyEntryToClipboard = "ctrl-y"
+copy_entry_to_clipboard = "ctrl-y"
 # Toggle the remote control mode
-ToggleRemoteControl = "ctrl-r"
+toggle_remote_control = "ctrl-r"
 # Toggle the send to channel mode
-ToggleSendToChannel = "ctrl-s"
+toggle_send_to_channel = "ctrl-s"
 
 
 # Remote control mode
 # -------------------------------
 [keybindings.RemoteControl]
 # Quit the application
-Quit = "esc"
+quit = "esc"
 # Scrolling through entries
-SelectNextEntry = "down"
-SelectPrevEntry = "up"
+select_next_entry = "down"
+select_prev_entry = "up"
 # Select an entry
-SelectEntry = "enter"
+select_entry = "enter"
 # Toggle the remote control mode
-ToggleRemoteControl = "ctrl-r"
+toggle_remote_control = "ctrl-r"
 
 
 # Send to channel mode
 # --------------------------------
 [keybindings.SendToChannel]
 # Quit the application
-Quit = "esc"
+quit = "esc"
 # Scrolling through entries
-SelectNextEntry = "down"
-SelectPrevEntry = "up"
+select_next_entry = "down"
+select_prev_entry = "up"
 # Select an entry
-SelectEntry = "enter"
+select_entry = "enter"
 # Toggle the send to channel mode
-ToggleSendToChannel = "ctrl-s"
+toggle_send_to_channel = "ctrl-s"
