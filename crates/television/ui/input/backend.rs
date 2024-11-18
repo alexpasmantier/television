@@ -19,14 +19,10 @@ pub fn to_input_request(evt: &CrosstermEvent) -> Option<InputRequest> {
             (Delete, KeyModifiers::NONE) => Some(DeleteNextChar),
             (Tab, KeyModifiers::NONE) => None,
             (Left, KeyModifiers::NONE) => Some(GoToPrevChar),
-            //(Left, KeyModifiers::CONTROL) => Some(GoToPrevWord),
             (Right, KeyModifiers::NONE) => Some(GoToNextChar),
-            //(Right, KeyModifiers::CONTROL) => Some(GoToNextWord),
-            //(Char('u'), KeyModifiers::CONTROL) => Some(DeleteLine),
             (Char('w'), KeyModifiers::CONTROL)
             | (Backspace, KeyModifiers::ALT) => Some(DeletePrevWord),
             (Delete, KeyModifiers::CONTROL) => Some(DeleteNextWord),
-            //(Char('k'), KeyModifiers::CONTROL) => Some(DeleteTillEnd),
             (Char('a'), KeyModifiers::CONTROL)
             | (Home, KeyModifiers::NONE) => Some(GoToStart),
             (Char('e'), KeyModifiers::CONTROL) | (End, KeyModifiers::NONE) => {

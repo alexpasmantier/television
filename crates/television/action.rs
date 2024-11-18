@@ -31,6 +31,9 @@ pub enum Action {
     // results actions
     /// Select the entry currently under the cursor.
     SelectEntry,
+    /// Select the entry currently under the cursor and pass the key that was pressed
+    /// through to be handled the parent process.
+    SelectPassthrough(String),
     /// Select the entry currently under the cursor and exit the application.
     SelectAndExit,
     /// Select the next entry in the currently focused list.

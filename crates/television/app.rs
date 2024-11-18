@@ -6,7 +6,7 @@ use derive_deref::Deref;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::config::KeyBindings;
+use crate::config::{parse_key, KeyBindings};
 use crate::television::{Mode, Television};
 use crate::{
     action::Action,
@@ -17,7 +17,7 @@ use crate::{
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::Entry;
 
-#[derive(Deref, Default)]
+#[derive(Deref, Default, Debug)]
 pub struct Keymap(pub HashMap<Mode, HashMap<Key, Action>>);
 
 impl From<&KeyBindings> for Keymap {
@@ -31,6 +31,22 @@ impl From<&KeyBindings> for Keymap {
             keymap.insert(*mode, mode_keymap);
         }
         Self(keymap)
+    }
+}
+
+impl Keymap {
+    pub fn with_mode_mappings(
+        mut self,
+        mode: Mode,
+        mappings: Vec<(Key, Action)>,
+    ) -> Result<Self> {
+        let mode_keymap = self.0.get_mut(&mode).ok_or_else(|| {
+            color_eyre::eyre::eyre!("Mode {:?} not found", mode)
+        })?;
+        for (key, action) in mappings {
+            mode_keymap.insert(key, action);
+        }
+        Ok(self)
     }
 }
 
@@ -61,11 +77,46 @@ pub struct App {
     render_tx: mpsc::UnboundedSender<RenderingTask>,
 }
 
+/// The outcome of an action.
+#[derive(Debug)]
+pub enum ActionOutcome {
+    Entry(Entry),
+    Passthrough(Entry, String),
+    None,
+}
+
+/// The result of the application.
+#[derive(Debug)]
+pub struct AppOutput {
+    pub selected_entry: Option<Entry>,
+    pub passthrough: Option<String>,
+}
+
+impl From<ActionOutcome> for AppOutput {
+    fn from(outcome: ActionOutcome) -> Self {
+        match outcome {
+            ActionOutcome::Entry(entry) => Self {
+                selected_entry: Some(entry),
+                passthrough: None,
+            },
+            ActionOutcome::Passthrough(entry, key) => Self {
+                selected_entry: Some(entry),
+                passthrough: Some(key),
+            },
+            ActionOutcome::None => Self {
+                selected_entry: None,
+                passthrough: None,
+            },
+        }
+    }
+}
+
 impl App {
     pub fn new(
         channel: TelevisionChannel,
         tick_rate: f64,
         frame_rate: f64,
+        passthrough_keybindings: Vec<String>,
     ) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, _) = mpsc::unbounded_channel();
@@ -73,7 +124,17 @@ impl App {
         let (event_abort_tx, _) = mpsc::unbounded_channel();
         let television = Arc::new(Mutex::new(Television::new(channel)));
         let config = Config::new()?;
-        let keymap = Keymap::from(&config.keybindings);
+        let keymap = Keymap::from(&config.keybindings).with_mode_mappings(
+            Mode::Channel,
+            passthrough_keybindings
+                .iter()
+                .flat_map(|s| match parse_key(s) {
+                    Ok(key) => Ok((key, Action::SelectPassthrough(s.clone()))),
+                    Err(e) => Err(e),
+                })
+                .collect(),
+        )?;
+        debug!("{:?}", keymap);
 
         Ok(Self {
             config,
@@ -105,7 +166,7 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    pub async fn run(&mut self, is_output_tty: bool) -> Result<Option<Entry>> {
+    pub async fn run(&mut self, is_output_tty: bool) -> Result<AppOutput> {
         info!("Starting backend event loop");
         let event_loop = EventLoop::new(self.tick_rate, true);
         self.event_rx = event_loop.rx;
@@ -141,7 +202,7 @@ impl App {
                 action_tx.send(action)?;
             }
 
-            let maybe_selected = self.handle_actions().await?;
+            let action_outcome = self.handle_actions().await?;
 
             if self.should_quit {
                 // send a termination signal to the event loop
@@ -150,7 +211,7 @@ impl App {
                 // wait for the rendering task to finish
                 rendering_task.await??;
 
-                return Ok(maybe_selected);
+                return Ok(AppOutput::from(action_outcome));
             }
         }
     }
@@ -211,7 +272,7 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    async fn handle_actions(&mut self) -> Result<Option<Entry>> {
+    async fn handle_actions(&mut self) -> Result<ActionOutcome> {
         while let Ok(action) = self.action_rx.try_recv() {
             if action != Action::Tick && action != Action::Render {
                 debug!("{action:?}");
@@ -232,11 +293,25 @@ impl App {
                 Action::SelectAndExit => {
                     self.should_quit = true;
                     self.render_tx.send(RenderingTask::Quit)?;
-                    return Ok(self
-                        .television
-                        .lock()
-                        .await
-                        .get_selected_entry(Some(Mode::Channel)));
+                    if let Some(entry) =
+                        self.television.lock().await.get_selected_entry(None)
+                    {
+                        return Ok(ActionOutcome::Entry(entry));
+                    }
+                    return Ok(ActionOutcome::None);
+                }
+                Action::SelectPassthrough(passthrough) => {
+                    self.should_quit = true;
+                    self.render_tx.send(RenderingTask::Quit)?;
+                    if let Some(entry) =
+                        self.television.lock().await.get_selected_entry(None)
+                    {
+                        return Ok(ActionOutcome::Passthrough(
+                            entry,
+                            passthrough,
+                        ));
+                    }
+                    return Ok(ActionOutcome::None);
                 }
                 Action::ClearScreen => {
                     self.render_tx.send(RenderingTask::ClearScreen)?;
@@ -256,6 +331,6 @@ impl App {
                 self.action_tx.send(action)?;
             };
         }
-        Ok(None)
+        Ok(ActionOutcome::None)
     }
 }
