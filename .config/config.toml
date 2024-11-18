@@ -56,6 +56,8 @@ copy_entry_to_clipboard = "ctrl-y"
 toggle_remote_control = "ctrl-r"
 # Toggle the send to channel mode
 toggle_send_to_channel = "ctrl-s"
+# Toggle the help bar
+toggle_help = "ctrl-g"
 
 
 # Remote control mode
@@ -70,6 +72,8 @@ select_prev_entry = "up"
 select_entry = "enter"
 # Toggle the remote control mode
 toggle_remote_control = "ctrl-r"
+# Toggle the help bar
+toggle_help = "ctrl-g"
 
 
 # Send to channel mode
@@ -84,3 +88,5 @@ select_prev_entry = "up"
 select_entry = "enter"
 # Toggle the send to channel mode
 toggle_send_to_channel = "ctrl-s"
+# Toggle the help bar
+toggle_help = "ctrl-g"

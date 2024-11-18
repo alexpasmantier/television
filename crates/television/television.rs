@@ -360,6 +360,9 @@ impl Television {
                     self.mode = Mode::Channel;
                 }
             },
+            Action::ToggleHelp => {
+                self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
+            }
             _ => {}
         }
         Ok(None)

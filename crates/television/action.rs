@@ -87,9 +87,9 @@ pub enum Action {
     /// Quit the application.
     #[serde(alias = "quit")]
     Quit,
-    /// Toggle the help screen.
-    #[serde(skip)]
-    Help,
+    /// Toggle the help bar.
+    #[serde(alias = "toggle_help")]
+    ToggleHelp,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),
