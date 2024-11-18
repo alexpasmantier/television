@@ -1,2 +1,4 @@
 edition = "2021"
 max_width = 79
+reorder_imports = true
+use_field_init_shorthand = true
