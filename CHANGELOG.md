@@ -7,6 +7,11 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Add instructions for installing on Arch Linux (#43)
+- *(brew)* Add brew installation method for MacOS to README
+
+### ⚙️ Miscellaneous Tasks
+
+- Add CHANGELOG.md (#44)
 
 ## [0.5.0] - 2024-11-18
 
