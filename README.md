@@ -27,6 +27,10 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.0/television_0.5.0-1_amd64.deb
 sudo dpkg -i television_0.5.0-1_amd64.deb
 ```
+#### Arch Linux
+```bash
+pacman -S television
+```
 
 #### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
