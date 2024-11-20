@@ -19,7 +19,9 @@ impl Channel {
     pub fn new() -> Self {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
-            lines.push(preprocess_line(&line));
+            if !line.trim().is_empty() {
+                lines.push(preprocess_line(&line));
+            }
         }
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
