@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 
 - Add CHANGELOG.md (#44)
 - *(config)* Default configuration now uses 100% of terminal screen space (#47)
+- *(changelog)* Udpate changelog and add corresponding makefile command
 
 ## [0.5.0] - 2024-11-18
 
