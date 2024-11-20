@@ -105,6 +105,10 @@ impl Entry {
 
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
+        if repr.contains(|c| char::is_ascii_whitespace(&c)) {
+            repr.insert(0, '\'');
+            repr.push('\'');
+        }
         if let Some(line_number) = self.line_number {
             repr.push_str(&format!(":{line_number}"));
         }
