@@ -54,3 +54,7 @@ bump-workspace:
 publish:
 	@echo "Publishing $(NAME)"
 	@./scripts/publish.sh
+
+update-changelog:
+	@echo "Updating changelog"
+	@git cliff -o CHANGELOG.md

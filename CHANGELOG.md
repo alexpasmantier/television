@@ -7,11 +7,14 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Add instructions for installing on Arch Linux (#43)
-- *(brew)* Add brew installation method for MacOS to README
+- *(brew)* Add brew installation method for MacOS to README (#45)
+- *(config)* Update docs to mention XDG_CONFIG_HOME precedence on all platform (#48)
 
 ### ⚙️ Miscellaneous Tasks
 
 - Add CHANGELOG.md (#44)
+- *(config)* Default configuration now uses 100% of terminal screen space (#47)
+- *(changelog)* Udpate changelog and add corresponding makefile command
 
 ## [0.5.0] - 2024-11-18
 
@@ -132,6 +135,9 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
+- Fixing various issues
+- Fixing various issues
+- Fix linting issues and ignore derive docs for tests
 - Filtering system directories in gitrepos
 - Stabilize preview scroll initialization
 - Doctests imports
@@ -139,16 +145,25 @@ All notable changes to this project will be documented in this file.
 
 ### 🚜 Refactor
 
+- Refactoring
+- Refactoring matcher
 - Extract matcher logic into separate crate
 - Split project into separate crates
 - More refactoring and fixing doctests
 
 ### 📚 Documentation
 
+- Docs and linting
+- Documentation
 - Update README.md
 - Add default keybindings to README.md
 - Some work on CONTRIBUTING.md
 - More work on CONTRIBUTING.md
+
+### 🧪 Testing
+
+- Tests and docs for strings.rs
+- Testing ci
 
 ### ⚙️ Miscellaneous Tasks
 
