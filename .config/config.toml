@@ -22,7 +22,7 @@ use_nerd_font_icons = false
 # │                                       │
 # │                                       │
 # └───────────────────────────────────────┘
-ui_scale = 80
+ui_scale = 100
 # Whether to show the top help bar in the UI
 show_help_bar = true
 
