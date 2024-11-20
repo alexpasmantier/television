@@ -2,12 +2,25 @@ use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
 use crate::television::Mode;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use derive_deref::{Deref, DerefMut};
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
+use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, Debug, Default, Deref, DerefMut)]
+#[derive(Clone, Debug, Default)]
 pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Key>>);
+
+impl Deref for KeyBindings {
+    type Target = config::Map<Mode, config::Map<Action, Key>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for KeyBindings {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<'de> Deserialize<'de> for KeyBindings {
     fn deserialize<D>(deserializer: D) -> color_eyre::Result<Self, D::Error>

@@ -156,7 +156,6 @@ mod tests {
     use crate::action::Action;
     use crate::config::keybindings::parse_key;
     use crate::television::Mode;
-    use pretty_assertions::assert_eq;
 
     #[test]
     fn test_config() -> Result<()> {

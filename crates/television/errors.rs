@@ -33,7 +33,7 @@ pub fn init() -> Result<()> {
             eprintln!("{}", panic_hook.panic_report(panic_info)); // prints color-eyre stack trace to stderr
         }
         let msg = format!("{}", panic_hook.panic_report(panic_info));
-        error!("Error: {}", strip_ansi_escapes::strip_str(msg));
+        error!("Error: {}", msg);
 
         #[cfg(debug_assertions)]
         {
@@ -45,7 +45,7 @@ pub fn init() -> Result<()> {
                 .create_panic_handler()(panic_info);
         }
 
-        std::process::exit(libc::EXIT_FAILURE);
+        std::process::exit(1);
     }));
     Ok(())
 }

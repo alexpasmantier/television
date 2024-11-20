@@ -1,11 +1,26 @@
 use crate::television::Mode;
-use derive_deref::{Deref, DerefMut};
 use ratatui::prelude::{Color, Modifier, Style};
 use serde::{Deserialize, Deserializer};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+};
 
-#[derive(Clone, Debug, Default, Deref, DerefMut)]
+#[derive(Clone, Debug, Default)]
 pub struct Styles(pub HashMap<Mode, HashMap<String, Style>>);
+
+impl Deref for Styles {
+    type Target = HashMap<Mode, HashMap<String, Style>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for Styles {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<'de> Deserialize<'de> for Styles {
     fn deserialize<D>(deserializer: D) -> color_eyre::Result<Self, D::Error>
@@ -147,33 +162,33 @@ mod tests {
     #[test]
     fn test_parse_style_default() {
         let style = parse_style("");
-        pretty_assertions::assert_eq!(style, Style::default());
+        assert_eq!(style, Style::default());
     }
 
     #[test]
     fn test_parse_style_foreground() {
         let style = parse_style("red");
-        pretty_assertions::assert_eq!(style.fg, Some(Color::Indexed(1)));
+        assert_eq!(style.fg, Some(Color::Indexed(1)));
     }
 
     #[test]
     fn test_parse_style_background() {
         let style = parse_style("on blue");
-        pretty_assertions::assert_eq!(style.bg, Some(Color::Indexed(4)));
+        assert_eq!(style.bg, Some(Color::Indexed(4)));
     }
 
     #[test]
     fn test_parse_style_modifiers() {
         let style = parse_style("underline red on blue");
-        pretty_assertions::assert_eq!(style.fg, Some(Color::Indexed(1)));
-        pretty_assertions::assert_eq!(style.bg, Some(Color::Indexed(4)));
+        assert_eq!(style.fg, Some(Color::Indexed(1)));
+        assert_eq!(style.bg, Some(Color::Indexed(4)));
     }
 
     #[test]
     fn test_process_color_string() {
         let (color, modifiers) =
             process_color_string("underline bold inverse gray");
-        pretty_assertions::assert_eq!(color, "gray");
+        assert_eq!(color, "gray");
         assert!(modifiers.contains(Modifier::UNDERLINED));
         assert!(modifiers.contains(Modifier::BOLD));
         assert!(modifiers.contains(Modifier::REVERSED));
@@ -183,12 +198,12 @@ mod tests {
     fn test_parse_color_rgb() {
         let color = parse_color("rgb123");
         let expected = 16 + 36 + 2 * 6 + 3;
-        pretty_assertions::assert_eq!(color, Some(Color::Indexed(expected)));
+        assert_eq!(color, Some(Color::Indexed(expected)));
     }
 
     #[test]
     fn test_parse_color_unknown() {
         let color = parse_color("unknown");
-        pretty_assertions::assert_eq!(color, None);
+        assert_eq!(color, None);
     }
 }

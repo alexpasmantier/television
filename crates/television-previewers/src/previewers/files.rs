@@ -73,7 +73,7 @@ impl FilePreviewer {
     ///
     /// # Panics
     /// Panics if seeking to the start of the file fails.
-    pub async fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
+    pub fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
         let path_buf = PathBuf::from(&entry.name);
 
         // do we have a preview in cache for that entry?
@@ -87,8 +87,7 @@ impl FilePreviewer {
         {
             debug!("File too large: {:?}", entry.name);
             let preview = meta::file_too_large(&entry.name);
-            self.cache_preview(entry.name.clone(), preview.clone())
-                .await;
+            self.cache_preview(entry.name.clone(), preview.clone());
             return preview;
         }
 
@@ -103,21 +102,18 @@ impl FilePreviewer {
                         self.cache_preview(
                             entry.name.clone(),
                             preview.clone(),
-                        )
-                        .await;
+                        );
 
                         // compute the highlighted version in the background
                         let mut reader = BufReader::new(file);
                         reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                        self.compute_highlighted_text_preview(entry, reader)
-                            .await;
+                        self.compute_highlighted_text_preview(entry, reader);
                         preview
                     }
                     Err(e) => {
                         warn!("Error opening file: {:?}", e);
                         let p = meta::not_supported(&entry.name);
-                        self.cache_preview(entry.name.clone(), p.clone())
-                            .await;
+                        self.cache_preview(entry.name.clone(), p.clone());
                         p
                     }
                 }
@@ -127,8 +123,7 @@ impl FilePreviewer {
                 // insert a loading preview into the cache
                 //let preview = loading(&entry.name);
                 let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone())
-                    .await;
+                self.cache_preview(entry.name.clone(), preview.clone());
                 //// compute the image preview in the background
                 //self.compute_image_preview(entry).await;
                 preview
@@ -136,15 +131,13 @@ impl FilePreviewer {
             FileType::Other => {
                 debug!("Previewing other file: {:?}", entry.name);
                 let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone())
-                    .await;
+                self.cache_preview(entry.name.clone(), preview.clone());
                 preview
             }
             FileType::Unknown => {
                 debug!("Unknown file type: {:?}", entry.name);
                 let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone())
-                    .await;
+                self.cache_preview(entry.name.clone(), preview.clone());
                 preview
             }
         }
@@ -172,7 +165,7 @@ impl FilePreviewer {
     //    });
     //}
 
-    async fn compute_highlighted_text_preview(
+    fn compute_highlighted_text_preview(
         &self,
         entry: &entry::Entry,
         reader: BufReader<File>,
@@ -267,7 +260,7 @@ impl FilePreviewer {
         file_type
     }
 
-    async fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
+    fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
         self.cache.lock().insert(key, preview);
     }
 }
