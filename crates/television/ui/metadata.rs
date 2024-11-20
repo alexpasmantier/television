@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use ratatui::{
     layout::Constraint,
     style::{Color, Style},
@@ -5,11 +7,21 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 
-use crate::television::Television;
+use crate::television::{Mode, Television};
 use crate::ui::mode::mode_color;
 
 const METADATA_FIELD_NAME_COLOR: Color = Color::DarkGray;
 const METADATA_FIELD_VALUE_COLOR: Color = Color::Gray;
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::Channel => write!(f, "Channel"),
+            Mode::RemoteControl => write!(f, "Remote Control"),
+            Mode::SendToChannel => write!(f, "Send to Channel"),
+        }
+    }
+}
 
 impl Television {
     pub fn build_metadata_table<'a>(&self) -> Table<'a> {

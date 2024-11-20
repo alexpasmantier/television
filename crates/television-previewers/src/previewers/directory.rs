@@ -28,7 +28,7 @@ impl DirectoryPreviewer {
         }
     }
 
-    pub async fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
+    pub fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
         if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview;
         }

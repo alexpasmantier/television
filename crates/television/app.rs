@@ -1,8 +1,8 @@
 use std::collections::HashMap;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use color_eyre::Result;
-use derive_deref::Deref;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
@@ -17,8 +17,15 @@ use crate::{
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::Entry;
 
-#[derive(Deref, Default, Debug)]
+#[derive(Default, Debug)]
 pub struct Keymap(pub HashMap<Mode, HashMap<Key, Action>>);
+
+impl Deref for Keymap {
+    type Target = HashMap<Mode, HashMap<Key, Action>>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl From<&KeyBindings> for Keymap {
     fn from(keybindings: &KeyBindings) -> Self {

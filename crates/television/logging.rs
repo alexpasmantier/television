@@ -1,5 +1,4 @@
 use color_eyre::Result;
-use tracing_error::ErrorLayer;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use crate::config;
@@ -23,7 +22,6 @@ pub fn init() -> Result<()> {
 
     tracing_subscriber::registry()
         .with(file_subscriber)
-        .with(ErrorLayer::default())
         .try_init()?;
     Ok(())
 }

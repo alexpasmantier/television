@@ -7,11 +7,9 @@ use crate::ui::spinner::SpinnerState;
 use crate::{action::Action, config::Config};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use futures::executor::block_on;
 use ratatui::{layout::Rect, style::Color, widgets::Paragraph, Frame};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use strum::Display;
 use television_channels::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
 };
@@ -21,9 +19,7 @@ use television_previewers::previewers::Previewer;
 use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
 
-#[derive(
-    PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize, Display,
-)]
+#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
     Channel,
     RemoteControl,
@@ -376,7 +372,7 @@ impl Television {
     ///
     /// # Returns
     /// * `Result<()>` - An Ok result or an error.
-    pub fn draw(&mut self, f: &mut Frame, area: Rect) -> Result<()> {
+    pub fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         let layout = Layout::build(
             &Dimensions::from(self.config.ui.ui_scale),
             area,
@@ -399,7 +395,7 @@ impl Television {
         let selected_entry = self
             .get_selected_entry(Some(Mode::Channel))
             .unwrap_or(ENTRY_PLACEHOLDER);
-        let preview = block_on(self.previewer.preview(&selected_entry));
+        let preview = self.previewer.preview(&selected_entry);
 
         // top right block: preview title
         self.current_preview_total_lines = preview.total_lines();
