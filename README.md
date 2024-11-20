@@ -179,9 +179,12 @@ is a simple TOML file that allows you to customize the behavior of `television` 
 
 |Platform|Value|
 |--------|:-----:|
-|Linux|`$XDG_CONFIG_HOME/television/config.toml` or `$HOME/.config/television/config.toml`|
+|Linux|`$HOME/.config/television/config.toml`|
 |macOS|`$HOME/Library/Application Support/com.television/config.toml`|
 |Windows|`{FOLDERID_LocalAppData}\television\config`|
+
+**NOTE**: on either platform, `XDG_CONFIG_HOME` will always take precedence over default locations if set, in which case
+television will expect the configuration file to be in `$XDG_CONFIG_HOME/television/config.toml`.
 
 You may also override these default paths by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration **folder**.
 
