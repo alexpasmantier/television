@@ -25,7 +25,7 @@ impl Channel {
         }
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
-        for line in &lines {
+        for line in lines.iter().rev() {
             let () = injector.push(line.clone(), |e, cols| {
                 cols[0] = e.clone().into();
             });
