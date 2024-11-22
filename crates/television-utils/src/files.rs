@@ -1,11 +1,16 @@
+use std::fmt::Debug;
+use std::fs::File;
+use std::io::Read;
 use std::path::Path;
 use std::{collections::HashSet, path::PathBuf};
 
 use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
-use infer::Infer;
 use lazy_static::lazy_static;
-use tracing::debug;
+use tracing::{debug, warn};
 
+use crate::strings::{
+    proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
+};
 use crate::threads::default_num_threads;
 
 lazy_static::lazy_static! {
@@ -51,34 +56,44 @@ pub fn get_file_size(path: &Path) -> Option<u64> {
 #[derive(Debug)]
 pub enum FileType {
     Text,
-    Image,
     Other,
     Unknown,
 }
 
-pub fn is_not_text(bytes: &[u8]) -> Option<bool> {
-    let infer = Infer::new();
-    match infer.get(bytes) {
-        Some(t) => {
-            let mime_type = t.mime_type();
-            if mime_type.contains("image")
-                || mime_type.contains("video")
-                || mime_type.contains("audio")
-                || mime_type.contains("archive")
-                || mime_type.contains("book")
-                || mime_type.contains("font")
-            {
-                Some(true)
-            } else {
-                None
-            }
+impl<P> From<P> for FileType
+where
+    P: AsRef<Path> + Debug,
+{
+    fn from(path: P) -> Self {
+        debug!("Getting file type for {:?}", path);
+        let p = path.as_ref();
+        if is_known_text_extension(p) {
+            return FileType::Text;
         }
-        None => None,
+        if let Ok(mut f) = File::open(p) {
+            let mut buffer = [0u8; 256];
+            if let Ok(bytes_read) = f.read(&mut buffer) {
+                if bytes_read > 0
+                    && proportion_of_printable_ascii_characters(
+                        &buffer[..bytes_read],
+                    ) > PRINTABLE_ASCII_THRESHOLD
+                {
+                    return FileType::Text;
+                }
+            }
+        } else {
+            warn!("Error opening file: {:?}", path);
+        }
+        FileType::Other
     }
 }
 
-pub fn is_known_text_extension(path: &Path) -> bool {
-    path.extension()
+pub fn is_known_text_extension<P>(path: P) -> bool
+where
+    P: AsRef<Path>,
+{
+    path.as_ref()
+        .extension()
         .and_then(|ext| ext.to_str())
         .is_some_and(|ext| KNOWN_TEXT_FILE_EXTENSIONS.contains(ext))
 }

@@ -22,5 +22,4 @@ tokio = "1.41.1"
 termtree = "0.5.1"
 devicons = "0.6.11"
 color-eyre = "0.6.3"
-infer = "0.16.0"
 

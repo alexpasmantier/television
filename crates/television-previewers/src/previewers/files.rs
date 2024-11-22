@@ -3,8 +3,8 @@ use color_eyre::Result;
 //use ratatui_image::picker::Picker;
 use parking_lot::Mutex;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Read, Seek};
-use std::path::{Path, PathBuf};
+use std::io::{BufRead, BufReader, Seek};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use syntect::{
@@ -16,12 +16,9 @@ use tracing::{debug, warn};
 use super::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
+use television_utils::files::get_file_size;
 use television_utils::files::FileType;
-use television_utils::files::{get_file_size, is_known_text_extension};
-use television_utils::strings::{
-    preprocess_line, proportion_of_printable_ascii_characters,
-    PRINTABLE_ASCII_THRESHOLD,
-};
+use television_utils::strings::preprocess_line;
 use television_utils::syntax::{
     self, load_highlighting_assets, HighlightingAssetsExt,
 };
@@ -69,6 +66,10 @@ impl FilePreviewer {
         }
     }
 
+    /// The maximum file size that we will try to preview.
+    /// 4 MB
+    const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
+
     /// Get a preview for a file entry.
     ///
     /// # Panics
@@ -93,53 +94,32 @@ impl FilePreviewer {
 
         // try to determine file type
         debug!("Computing preview for {:?}", entry.name);
-        match self.get_file_type(&path_buf) {
-            FileType::Text => {
-                match File::open(&path_buf) {
-                    Ok(file) => {
-                        // insert a loading preview into the cache
-                        let preview = meta::loading(&entry.name);
-                        self.cache_preview(
-                            entry.name.clone(),
-                            preview.clone(),
-                        );
+        if let FileType::Text = FileType::from(&path_buf) {
+            debug!("File is text-based: {:?}", entry.name);
+            match File::open(&path_buf) {
+                Ok(file) => {
+                    // insert a loading preview into the cache
+                    let preview = meta::loading(&entry.name);
+                    self.cache_preview(entry.name.clone(), preview.clone());
 
-                        // compute the highlighted version in the background
-                        let mut reader = BufReader::new(file);
-                        reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                        self.compute_highlighted_text_preview(entry, reader);
-                        preview
-                    }
-                    Err(e) => {
-                        warn!("Error opening file: {:?}", e);
-                        let p = meta::not_supported(&entry.name);
-                        self.cache_preview(entry.name.clone(), p.clone());
-                        p
-                    }
+                    // compute the highlighted version in the background
+                    let mut reader = BufReader::new(file);
+                    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+                    self.compute_highlighted_text_preview(entry, reader);
+                    preview
+                }
+                Err(e) => {
+                    warn!("Error opening file: {:?}", e);
+                    let p = meta::not_supported(&entry.name);
+                    self.cache_preview(entry.name.clone(), p.clone());
+                    p
                 }
             }
-            FileType::Image => {
-                debug!("Previewing image file: {:?}", entry.name);
-                // insert a loading preview into the cache
-                //let preview = loading(&entry.name);
-                let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone());
-                //// compute the image preview in the background
-                //self.compute_image_preview(entry).await;
-                preview
-            }
-            FileType::Other => {
-                debug!("Previewing other file: {:?}", entry.name);
-                let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone());
-                preview
-            }
-            FileType::Unknown => {
-                debug!("Unknown file type: {:?}", entry.name);
-                let preview = meta::not_supported(&entry.name);
-                self.cache_preview(entry.name.clone(), preview.clone());
-                preview
-            }
+        } else {
+            debug!("File isn't text-based: {:?}", entry.name);
+            let preview = meta::not_supported(&entry.name);
+            self.cache_preview(entry.name.clone(), preview.clone());
+            preview
         }
     }
 
@@ -216,48 +196,6 @@ impl FilePreviewer {
                 }
             };
         });
-    }
-
-    /// The maximum file size that we will try to preview.
-    /// 4 MB
-    const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
-
-    fn get_file_type(&self, path: &Path) -> FileType {
-        debug!("Getting file type for {:?}", path);
-        let mut file_type = match infer::get_from_path(path) {
-            Ok(Some(t)) => {
-                let mime_type = t.mime_type();
-                if mime_type.contains("image") {
-                    FileType::Image
-                } else if mime_type.contains("text") {
-                    FileType::Text
-                } else {
-                    FileType::Other
-                }
-            }
-            _ => FileType::Unknown,
-        };
-
-        // if the file type is unknown, try to determine it from the extension or the content
-        if matches!(file_type, FileType::Unknown) {
-            if is_known_text_extension(path) {
-                file_type = FileType::Text;
-            } else if let Ok(mut f) = File::open(path) {
-                let mut buffer = [0u8; 256];
-                if let Ok(bytes_read) = f.read(&mut buffer) {
-                    if bytes_read > 0
-                        && proportion_of_printable_ascii_characters(
-                            &buffer[..bytes_read],
-                        ) > PRINTABLE_ASCII_THRESHOLD
-                    {
-                        file_type = FileType::Text;
-                    }
-                }
-            }
-        }
-        debug!("File type for {:?}: {:?}", path, file_type);
-
-        file_type
     }
 
     fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {

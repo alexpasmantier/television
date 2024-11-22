@@ -9,9 +9,7 @@ use std::{
     sync::{atomic::AtomicUsize, Arc},
 };
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
-use television_utils::files::{
-    is_not_text, walk_builder, DEFAULT_NUM_THREADS,
-};
+use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use television_utils::strings::{
     preprocess_line, proportion_of_printable_ascii_characters,
     PRINTABLE_ASCII_THRESHOLD,
@@ -298,7 +296,6 @@ fn try_inject_lines(
             match reader.read(&mut buffer) {
                 Ok(bytes_read) => {
                     if (bytes_read == 0)
-                        || is_not_text(&buffer).unwrap_or(false)
                         || proportion_of_printable_ascii_characters(&buffer)
                             < PRINTABLE_ASCII_THRESHOLD
                     {
