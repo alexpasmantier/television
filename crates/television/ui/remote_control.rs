@@ -53,7 +53,7 @@ impl Television {
 
         let entries = self.remote_control.results(
             area.height.saturating_sub(2).into(),
-            u32::try_from(self.rc_picker.view_offset)?,
+            u32::try_from(self.rc_picker.offset())?,
         );
 
         let channel_list = build_results_list(

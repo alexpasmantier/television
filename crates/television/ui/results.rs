@@ -196,7 +196,7 @@ impl Television {
 
         let entries = self.channel.results(
             layout.results.height.saturating_sub(2).into(),
-            u32::try_from(self.results_picker.view_offset)?,
+            u32::try_from(self.results_picker.offset())?,
         );
 
         let results_list = build_results_list(

@@ -8,9 +8,13 @@ All notable changes to this project will be documented in this file.
 
 - Quote file names that contain spaces when printing them to stdout (#51)
 
+### 🚜 Refactor
+
+- *(picker)* Refactor picker logic and add tests for picker, cli and events
+
 ### 📚 Documentation
 
-- Terminal emulators compatibility and good first issues
+- Terminal emulators compatibility and good first issues (#56)
 
 ### ⚙️ Miscellaneous Tasks
 

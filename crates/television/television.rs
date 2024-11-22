@@ -67,8 +67,8 @@ impl Television {
             ),
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
-            results_picker: Picker::default(),
-            rc_picker: Picker::default().inverted(),
+            results_picker: Picker::default().inverted(),
+            rc_picker: Picker::default(),
             results_area_height: 0,
             previewer: Previewer::default(),
             preview_scroll: None,
@@ -383,7 +383,7 @@ impl Television {
         // help bar (metadata, keymaps, logo)
         self.draw_help_bar(f, &layout)?;
 
-        self.results_area_height = u32::from(layout.results.height);
+        self.results_area_height = u32::from(layout.results.height - 2); // 2 for the borders
         self.preview_pane_height = layout.preview_window.height;
 
         // top left block: results

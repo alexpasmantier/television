@@ -91,3 +91,28 @@ Config directory: {config_dir_path}
 Data directory: {data_dir_path}"
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_from_cli() {
+        let cli = Cli {
+            channel: CliTvChannel::Files,
+            tick_rate: 50.0,
+            frame_rate: 60.0,
+            passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
+        };
+
+        let post_processed_cli: PostProcessedCli = cli.into();
+
+        assert_eq!(post_processed_cli.channel, CliTvChannel::Files);
+        assert_eq!(post_processed_cli.tick_rate, 50.0);
+        assert_eq!(post_processed_cli.frame_rate, 60.0);
+        assert_eq!(
+            post_processed_cli.passthrough_keybindings,
+            vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
+        );
+    }
+}

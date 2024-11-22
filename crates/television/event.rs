@@ -277,3 +277,194 @@ pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
         _ => Key::Null,
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::{
+        KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers,
+    };
+
+    #[test]
+    fn test_convert_raw_event_to_key() {
+        // character keys
+        let event = KeyEvent {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Char('a'));
+
+        let event = KeyEvent {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Ctrl('a'));
+
+        let event = KeyEvent {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::ALT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Alt('a'));
+
+        let event = KeyEvent {
+            code: KeyCode::Char('a'),
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Char('a'));
+
+        let event = KeyEvent {
+            code: KeyCode::Char(' '),
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Char(' '));
+
+        let event = KeyEvent {
+            code: KeyCode::Char(' '),
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::CtrlSpace);
+
+        let event = KeyEvent {
+            code: KeyCode::Char(' '),
+            modifiers: KeyModifiers::ALT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::AltSpace);
+
+        let event = KeyEvent {
+            code: KeyCode::Char(' '),
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Char(' '));
+
+        let event = KeyEvent {
+            code: KeyCode::Backspace,
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::Backspace);
+
+        let event = KeyEvent {
+            code: KeyCode::Backspace,
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+        assert_eq!(convert_raw_event_to_key(event), Key::CtrlBackspace);
+
+        let event = KeyEvent {
+            code: KeyCode::Backspace,
+            modifiers: KeyModifiers::ALT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::AltBackspace);
+
+        let event = KeyEvent {
+            code: KeyCode::Backspace,
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Backspace);
+
+        let event = KeyEvent {
+            code: KeyCode::Delete,
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Delete);
+
+        let event = KeyEvent {
+            code: KeyCode::Delete,
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::CtrlDelete);
+
+        let event = KeyEvent {
+            code: KeyCode::Delete,
+            modifiers: KeyModifiers::ALT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::AltDelete);
+
+        let event = KeyEvent {
+            code: KeyCode::Delete,
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Delete);
+
+        let event = KeyEvent {
+            code: KeyCode::Enter,
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Enter);
+
+        let event = KeyEvent {
+            code: KeyCode::Enter,
+            modifiers: KeyModifiers::CONTROL,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::CtrlEnter);
+
+        let event = KeyEvent {
+            code: KeyCode::Enter,
+            modifiers: KeyModifiers::ALT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::AltEnter);
+
+        let event = KeyEvent {
+            code: KeyCode::Enter,
+            modifiers: KeyModifiers::SHIFT,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Enter);
+
+        let event = KeyEvent {
+            code: KeyCode::Up,
+            modifiers: KeyModifiers::NONE,
+            kind: KeyEventKind::Press,
+            state: KeyEventState::NONE,
+        };
+
+        assert_eq!(convert_raw_event_to_key(event), Key::Up);
+    }
+}
