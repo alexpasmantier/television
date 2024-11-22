@@ -36,7 +36,7 @@ lint:
 
 fix: format
 	@echo "Fixing $(NAME)"
-	@cargo fix --allow-staged
+	@cargo fix --allow-staged --allow-dirty
 	@make lint
 
 run:
