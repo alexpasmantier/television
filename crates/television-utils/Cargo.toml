@@ -14,7 +14,6 @@ rust-version.workspace = true
 
 [dependencies]
 ignore = "0.4.23"
-infer = "0.16.0"
 lazy_static = "1.5.0"
 tracing = "0.1.40"
 color-eyre = "0.6.3"
