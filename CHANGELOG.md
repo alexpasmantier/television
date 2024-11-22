@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### 🐛 Bug Fixes
+
+- Quote file names that contain spaces when printing them to stdout (#51)
+
+### ⚙️ Miscellaneous Tasks
+
+- Add readme version update to github actions
+
+## [0.5.1] - 2024-11-20
+
 ### 📚 Documentation
 
 - Add instructions for installing on Arch Linux (#43)
@@ -14,7 +24,9 @@ All notable changes to this project will be documented in this file.
 
 - Add CHANGELOG.md (#44)
 - *(config)* Default configuration now uses 100% of terminal screen space (#47)
-- *(changelog)* Udpate changelog and add corresponding makefile command
+- *(changelog)* Udpate changelog and add corresponding makefile command (#53)
+- *(actions)* Remove changelog update from the main branch
+- Bump version to 0.5.1
 
 ## [0.5.0] - 2024-11-18
 
