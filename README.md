@@ -1,7 +1,7 @@
 <div align="center">
 
 # 📺  television
-**A blazingly fast general purpose fuzzy finder for your terminal written in Rust.**
+**A blazingly fast general purpose fuzzy finder TUI.**
 
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 [![Crates.io](https://img.shields.io/crates/v/television.svg)](https://crates.io/crates/television)
@@ -16,7 +16,7 @@
 </div>
 
 ## About
-`Television` is a blazingly fast general purpose fuzzy finder TUI written in Rust.
+`Television` is a blazingly fast general purpose fuzzy finder TUI.
 
 It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and is designed to be fast, efficient, simple to use and easily extensible. It is built on top of [tokio](https://github.com/tokio-rs/tokio), [ratatui](https://github.com/ratatui/ratatui) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor.
 
@@ -37,7 +37,7 @@ sudo dpkg -i television_0.5.0-1_amd64.deb
 pacman -S television
 ```
 
-#### From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page
+#### Binary ([latest release](https://github.com/alexpasmantier/television/releases/latest))
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
 - Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
 
@@ -171,6 +171,12 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | Terminator | Linux | ✅ |
 | Xterm | Linux | ✅ |
 | Cmder | Windows | ✖️ |
+| Foot | Linux | ✅ |
+| Rio | macOS, Linux, Windows | ✅ |
+| Warp | macOS | ✅ |
+| Hyper | macOS | ✅ |
+
+
 
 
 ## Customization
@@ -201,4 +207,4 @@ The default configuration file can be found in the repository's [./.config/confi
 
 Contributions, issues and pull requests are welcome.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [good first issues](https://github.com/alexpasmantier/television/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) for more information.
