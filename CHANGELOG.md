@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🚜 Refactor
 
-- *(picker)* Refactor picker logic and add tests for picker, cli and events
+- *(picker)* Refactor picker logic and add tests to picker, cli, and events (#57)
 
 ### 📚 Documentation
 
@@ -19,6 +19,10 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Add readme version update to github actions (#55)
+
+### Build
+
+- *(infer)* Drop infer dependency and refactor code to a simpler heuristic
 
 ## [0.5.1] - 2024-11-20
 
