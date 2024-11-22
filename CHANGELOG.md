@@ -10,7 +10,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🚜 Refactor
 
-- *(picker)* Refactor picker logic, add test
+- *(picker)* Refactor picker logic and add tests for picker, cli and events
 
 ### 📚 Documentation
 
