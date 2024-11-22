@@ -8,9 +8,13 @@ All notable changes to this project will be documented in this file.
 
 - Quote file names that contain spaces when printing them to stdout (#51)
 
+### 📚 Documentation
+
+- Terminal emulators compatibility and good first issues
+
 ### ⚙️ Miscellaneous Tasks
 
-- Add readme version update to github actions
+- Add readme version update to github actions (#55)
 
 ## [0.5.1] - 2024-11-20
 
