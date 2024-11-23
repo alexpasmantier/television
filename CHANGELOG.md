@@ -29,6 +29,7 @@ All notable changes to this project will be documented in this file.
 
 - Add readme version update to github actions (#55)
 - *(version)* Bump workspace crates and television
+- *(changelog)* Update changelog (auto)
 
 ### Build
 
