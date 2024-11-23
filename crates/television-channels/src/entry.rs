@@ -90,10 +90,6 @@ impl Entry {
         self
     }
 
-    //pub fn display_name(&self) -> &str {
-    //    self.display_name.as_ref().unwrap_or(&self.name)
-    //}
-
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
         if repr.contains(|c| char::is_ascii_whitespace(&c)) {

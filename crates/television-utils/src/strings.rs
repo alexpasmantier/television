@@ -194,16 +194,6 @@ const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 /// let (output, offsets) = replace_non_printable(input, 2);
 /// assert_eq!(output, "Hello,World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
-///
-/// let input = b"Hello,\x00World!";
-/// let (output, offsets) = replace_non_printable(input, 2);
-/// assert_eq!(output, "Hello,␀World!");
-/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
-///
-/// let input = b"Hello,\x7FWorld!";
-/// let (output, offsets) = replace_non_printable(input, 2);
-/// assert_eq!(output, "Hello,␀World!");
-/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 /// ```
 pub fn replace_non_printable(
     input: &[u8],
@@ -567,6 +557,35 @@ mod tests {
     #[test]
     fn test_replace_non_printable_start_txt() {
         test_replace_non_printable("Àì", "Àì␀");
+    }
+
+    #[test]
+    fn test_replace_non_printable_range_tab() {
+        let input = b"Hello,\tWorld!";
+        let (output, offsets) = replace_non_printable(input, 4);
+        assert_eq!(output, "Hello,    World!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3]);
+    }
+
+    #[test]
+    fn test_replace_non_printable_range_line_feed() {
+        let input = b"Hello,\nWorld!";
+        let (output, offsets) = replace_non_printable(input, 2);
+        assert_eq!(output, "Hello,World!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1]);
+    }
+
+    #[test]
+    fn test_replace_non_printable_no_range_changes() {
+        let input = b"Hello,\x00World!";
+        let (output, offsets) = replace_non_printable(input, 2);
+        assert_eq!(output, "Hello,␀World!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+
+        let input = b"Hello,\x7FWorld!";
+        let (output, offsets) = replace_non_printable(input, 2);
+        assert_eq!(output, "Hello,␀World!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
 
     fn test_proportion_of_printable_ascii_characters(
