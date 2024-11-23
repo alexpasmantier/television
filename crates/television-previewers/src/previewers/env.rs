@@ -35,6 +35,7 @@ impl EnvVarPreviewer {
             } else {
                 PreviewContent::Empty
             },
+            icon: entry.icon,
         });
         self.cache.insert(entry.clone(), preview.clone());
         preview

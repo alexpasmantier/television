@@ -11,8 +11,7 @@ use std::{
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use television_utils::strings::{
-    preprocess_line, proportion_of_printable_ascii_characters,
-    PRINTABLE_ASCII_THRESHOLD,
+    proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
 };
 use tracing::{debug, warn};
 
@@ -84,7 +83,7 @@ impl Channel {
             for entry in entries.into_iter().take(MAX_LINES_IN_MEM) {
                 injector.push(
                     CandidateLine::new(
-                        entry.display_name().into(),
+                        entry.name.into(),
                         entry.value.unwrap(),
                         entry.line_number.unwrap(),
                     ),
@@ -169,15 +168,11 @@ impl OnAir for Channel {
                 let line = item.matched_string;
                 let display_path =
                     item.inner.path.to_string_lossy().to_string();
-                Entry::new(
-                    display_path.clone() + &item.inner.line_number.to_string(),
-                    PreviewType::Files,
-                )
-                .with_display_name(display_path)
-                .with_value(line)
-                .with_value_match_ranges(item.match_indices)
-                .with_icon(FileIcon::from(item.inner.path.as_path()))
-                .with_line_number(item.inner.line_number)
+                Entry::new(display_path.clone(), PreviewType::Files)
+                    .with_value(line)
+                    .with_value_match_ranges(item.match_indices)
+                    .with_icon(FileIcon::from(item.inner.path.as_path()))
+                    .with_line_number(item.inner.line_number)
             })
             .collect()
     }
@@ -186,11 +181,6 @@ impl OnAir for Channel {
         self.matcher.get_result(index).map(|item| {
             let display_path = item.inner.path.to_string_lossy().to_string();
             Entry::new(display_path.clone(), PreviewType::Files)
-                .with_display_name(
-                    display_path.clone()
-                        + ":"
-                        + &item.inner.line_number.to_string(),
-                )
                 .with_icon(FileIcon::from(item.inner.path.as_path()))
                 .with_line_number(item.inner.line_number)
         })
@@ -314,8 +304,7 @@ fn try_inject_lines(
                 match maybe_line {
                     Ok(l) => {
                         line_number += 1;
-                        let line = preprocess_line(&l);
-                        if line.is_empty() {
+                        if l.is_empty() {
                             debug!("Empty line");
                             continue;
                         }
@@ -323,7 +312,7 @@ fn try_inject_lines(
                             path.strip_prefix(current_dir)
                                 .unwrap_or(path)
                                 .to_path_buf(),
-                            line,
+                            l,
                             line_number,
                         );
                         let () = injector.push(candidate, |c, cols| {

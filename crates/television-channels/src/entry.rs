@@ -10,8 +10,6 @@ use devicons::FileIcon;
 pub struct Entry {
     /// The name of the entry.
     pub name: String,
-    /// The display name of the entry.
-    display_name: Option<String>,
     /// An optional value associated with the entry.
     pub value: Option<String>,
     /// The optional ranges for matching characters in the name.
@@ -35,7 +33,6 @@ impl Entry {
     /// use devicons::FileIcon;
     ///
     /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
-    ///                 .with_display_name("display_name".to_string())
     ///                 .with_value("value".to_string())
     ///                 .with_name_match_ranges(vec![(0, 1)])
     ///                 .with_value_match_ranges(vec![(0, 1)])
@@ -53,7 +50,6 @@ impl Entry {
     pub fn new(name: String, preview_type: PreviewType) -> Self {
         Self {
             name,
-            display_name: None,
             value: None,
             name_match_ranges: None,
             value_match_ranges: None,
@@ -61,11 +57,6 @@ impl Entry {
             line_number: None,
             preview_type,
         }
-    }
-
-    pub fn with_display_name(mut self, display_name: String) -> Self {
-        self.display_name = Some(display_name);
-        self
     }
 
     pub fn with_value(mut self, value: String) -> Self {
@@ -99,10 +90,6 @@ impl Entry {
         self
     }
 
-    pub fn display_name(&self) -> &str {
-        self.display_name.as_ref().unwrap_or(&self.name)
-    }
-
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
         if repr.contains(|c| char::is_ascii_whitespace(&c)) {
@@ -118,7 +105,6 @@ impl Entry {
 
 pub const ENTRY_PLACEHOLDER: Entry = Entry {
     name: String::new(),
-    display_name: None,
     value: None,
     name_match_ranges: None,
     value_match_ranges: None,

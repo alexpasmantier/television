@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### 🐛 Bug Fixes
 
 - Quote file names that contain spaces when printing them to stdout (#51)
+- *(entry)* Preserve raw input
 
 ### 🚜 Refactor
 
@@ -15,15 +16,20 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Terminal emulators compatibility and good first issues (#56)
-- *(contributing)* Add setup step
 
 ### 🎨 Styling
 
-- *(git)* Enforce conventional commits on git push with a hook
+- *(git)* Enforce conventional commits on git push with a hook (#61)
+
+### 🧪 Testing
+
+- Add tests for replace_non_printable and cleanup commented out code
 
 ### ⚙️ Miscellaneous Tasks
 
 - Add readme version update to github actions (#55)
+- *(version)* Bump workspace crates and television
+- *(changelog)* Update changelog (auto)
 
 ### Build
 

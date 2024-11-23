@@ -4,7 +4,6 @@ use super::OnAir;
 use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, Matcher};
 use television_utils::indices::sep_name_and_value_indices;
-use television_utils::strings::preprocess_line;
 
 #[derive(Debug, Clone)]
 struct EnvVar {
@@ -26,15 +25,9 @@ impl Channel {
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         for (name, value) in std::env::vars() {
-            let () = injector.push(
-                EnvVar {
-                    name: preprocess_line(&name),
-                    value: preprocess_line(&value),
-                },
-                |e, cols| {
-                    cols[0] = (e.name.clone() + &e.value).into();
-                },
-            );
+            let () = injector.push(EnvVar { name, value }, |e, cols| {
+                cols[0] = (e.name.clone() + &e.value).into();
+            });
         }
         Channel {
             matcher,

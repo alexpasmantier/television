@@ -6,7 +6,6 @@ use devicons::FileIcon;
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, Matcher};
-use television_utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,
@@ -20,7 +19,7 @@ impl Channel {
         let mut lines = Vec::new();
         for line in std::io::stdin().lock().lines().map_while(Result::ok) {
             if !line.trim().is_empty() {
-                lines.push(preprocess_line(&line));
+                lines.push(line);
             }
         }
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));

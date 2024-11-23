@@ -12,7 +12,8 @@ use std::str::FromStr;
 use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
 use television_utils::strings::{
-    next_char_boundary, slice_at_char_boundaries,
+    make_matched_string_printable, next_char_boundary,
+    slice_at_char_boundaries,
 };
 
 // Styles
@@ -76,45 +77,41 @@ where
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
         // optional icon
-        if entry.icon.is_some() && use_icons {
-            let icon = entry.icon.as_ref().unwrap();
-            spans.push(Span::styled(
-                icon.to_string(),
-                Style::default().fg(Color::from_str(icon.color).unwrap()),
-            ));
-            spans.push(Span::raw(" "));
+        if let Some(icon) = entry.icon.as_ref() {
+            if use_icons {
+                spans.push(Span::styled(
+                    icon.to_string(),
+                    Style::default().fg(Color::from_str(icon.color).unwrap()),
+                ));
+                spans.push(Span::raw(" "));
+            }
         }
         // entry name
-        if let Some(name_match_ranges) = &entry.name_match_ranges {
-            let mut last_match_end = 0;
-            for (start, end) in name_match_ranges
-                .iter()
-                .map(|(s, e)| (*s as usize, *e as usize))
-            {
-                spans.push(Span::styled(
-                    slice_at_char_boundaries(
-                        &entry.name,
-                        last_match_end,
-                        start,
-                    ),
-                    Style::default().fg(results_list_colors.result_name_fg),
-                ));
-                spans.push(Span::styled(
-                    slice_at_char_boundaries(&entry.name, start, end),
-                    Style::default().fg(Color::Red),
-                ));
-                last_match_end = end;
-            }
+        let (entry_name, name_match_ranges) = make_matched_string_printable(
+            &entry.name,
+            entry.name_match_ranges.as_deref(),
+        );
+        let mut last_match_end = 0;
+        for (start, end) in name_match_ranges
+            .iter()
+            .map(|(s, e)| (*s as usize, *e as usize))
+        {
             spans.push(Span::styled(
-                &entry.name[next_char_boundary(&entry.name, last_match_end)..],
+                slice_at_char_boundaries(&entry_name, last_match_end, start)
+                    .to_string(),
                 Style::default().fg(results_list_colors.result_name_fg),
             ));
-        } else {
             spans.push(Span::styled(
-                entry.display_name(),
-                Style::default().fg(results_list_colors.result_name_fg),
+                slice_at_char_boundaries(&entry_name, start, end).to_string(),
+                Style::default().fg(Color::Red),
             ));
+            last_match_end = end;
         }
+        spans.push(Span::styled(
+            entry_name[next_char_boundary(&entry_name, last_match_end)..]
+                .to_string(),
+            Style::default().fg(results_list_colors.result_name_fg),
+        ));
         // optional line number
         if let Some(line_number) = entry.line_number {
             spans.push(Span::styled(
@@ -126,43 +123,32 @@ where
         if let Some(preview) = &entry.value {
             spans.push(Span::raw(": "));
 
-            if let Some(preview_match_ranges) = &entry.value_match_ranges {
-                if !preview_match_ranges.is_empty() {
-                    let mut last_match_end = 0;
-                    for (start, end) in preview_match_ranges
-                        .iter()
-                        .map(|(s, e)| (*s as usize, *e as usize))
-                    {
-                        spans.push(Span::styled(
-                            slice_at_char_boundaries(
-                                preview,
-                                last_match_end,
-                                start,
-                            ),
-                            Style::default()
-                                .fg(results_list_colors.result_preview_fg),
-                        ));
-                        spans.push(Span::styled(
-                            slice_at_char_boundaries(preview, start, end),
-                            Style::default().fg(Color::Red),
-                        ));
-                        last_match_end = end;
-                    }
-                    spans.push(Span::styled(
-                        &preview[next_char_boundary(
-                            preview,
-                            preview_match_ranges.last().unwrap().1 as usize,
-                        )..],
-                        Style::default()
-                            .fg(results_list_colors.result_preview_fg),
-                    ));
-                }
-            } else {
-                spans.push(Span::styled(
+            let (preview, preview_match_ranges) =
+                make_matched_string_printable(
                     preview,
+                    entry.value_match_ranges.as_deref(),
+                );
+            let mut last_match_end = 0;
+            for (start, end) in preview_match_ranges
+                .iter()
+                .map(|(s, e)| (*s as usize, *e as usize))
+            {
+                spans.push(Span::styled(
+                    slice_at_char_boundaries(&preview, last_match_end, start)
+                        .to_string(),
                     Style::default().fg(results_list_colors.result_preview_fg),
                 ));
+                spans.push(Span::styled(
+                    slice_at_char_boundaries(&preview, start, end).to_string(),
+                    Style::default().fg(Color::Red),
+                ));
+                last_match_end = end;
             }
+            spans.push(Span::styled(
+                preview[next_char_boundary(&preview, last_match_end)..]
+                    .to_string(),
+                Style::default().fg(results_list_colors.result_preview_fg),
+            ));
         }
         Line::from(spans)
     }))

@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
-use television_utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,
@@ -58,7 +57,7 @@ impl From<&mut TelevisionChannel> for Channel {
                 Self::new(
                     entries
                         .iter()
-                        .map(|entry| PathBuf::from(entry.display_name()))
+                        .map(|entry| PathBuf::from(&entry.name))
                         .collect::<HashSet<_>>()
                         .into_iter()
                         .collect(),
@@ -132,16 +131,15 @@ async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
         Box::new(move |result| {
             if let Ok(entry) = result {
                 if entry.file_type().unwrap().is_file() {
-                    let file_path = preprocess_line(
-                        &entry
-                            .path()
-                            .strip_prefix(&current_dir)
-                            .unwrap_or(entry.path())
-                            .to_string_lossy(),
-                    );
-                    let () = injector.push(file_path, |e, cols| {
-                        cols[0] = e.clone().into();
-                    });
+                    let file_path = &entry
+                        .path()
+                        .strip_prefix(&current_dir)
+                        .unwrap_or(entry.path())
+                        .to_string_lossy();
+                    let () =
+                        injector.push(file_path.to_string(), |e, cols| {
+                            cols[0] = e.clone().into();
+                        });
                 }
             }
             ignore::WalkState::Continue
