@@ -26,4 +26,5 @@ directories = "5.0.1"
 color-eyre = "0.6.3"
 serde = "1.0.214"
 strum = { version = "0.26.3", features = ["derive"] }
+bollard = "0.18.1"
 

@@ -2,6 +2,7 @@ use crate::entry::Entry;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
+mod docker;
 mod env;
 mod files;
 mod git_repos;
@@ -121,6 +122,10 @@ pub enum TelevisionChannel {
     /// The text channel.
     ///
     /// This channel allows to search through the contents of text files.
+    Docker(docker::Channel),
+    /// The docker channel.
+    /// 
+    /// This channel allows to search through available docker images.
     Text(text::Channel),
     /// The standard input channel.
     ///
@@ -163,6 +168,9 @@ macro_rules! variant_to_module {
     };
     (Alias) => {
         alias::Channel
+    };
+    (Docker) => {
+        docker::Channel
     };
     (RemoteControl) => {
         remote_control::RemoteControl
