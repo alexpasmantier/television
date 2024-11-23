@@ -17,7 +17,7 @@ jobs:
           fetch-depth: 0
       - name: Update README.md
         run: |
-          sed -i "/television/s/[0-9]\+\.[0-9]\+\.[0-9]\+/${{ github.event.ref }}/g" README.md
+          sed -i "/television/s/[0-9]\+\.[0-9]\+\.[0-9]\+/${{ github.ref_name }}/g" README.md
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -29,5 +29,5 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           set +e
           git add README.md
-          git commit -m "Update README.md with new version"
+          git commit -m "docs(version): update README.md with new version"
           git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git ${{ steps.extract_branch.outputs.branch }}

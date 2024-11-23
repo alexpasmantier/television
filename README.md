@@ -29,8 +29,8 @@ brew install alexpasmantier/television/television
 
 #### Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
 ```bash
-curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.0/television_0.5.0-1_amd64.deb
-sudo dpkg -i television_0.5.0-1_amd64.deb
+curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.2/television_0.5.2-1_amd64.deb
+sudo dpkg -i television_0.5.2-1_amd64.deb
 ```
 #### Arch Linux
 ```bash
