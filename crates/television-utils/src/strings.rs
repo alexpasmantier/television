@@ -1,5 +1,4 @@
 use lazy_static::lazy_static;
-use std::fmt::Write;
 
 /// Returns the index of the next character boundary in the given string.
 ///
@@ -121,7 +120,24 @@ pub fn slice_up_to_char_boundary(s: &str, byte_index: usize) -> &str {
 }
 
 /// Attempts to parse a UTF-8 character from the given byte slice.
-fn try_parse_utf8_char(input: &[u8]) -> Option<(char, usize)> {
+///
+/// The function returns the parsed character and the number of bytes consumed.
+///
+/// # Examples
+/// ```
+/// use television_utils::strings::try_parse_utf8_char;
+///
+/// let input = b"Hello, World!";
+/// let (chr, n) = try_parse_utf8_char(input).unwrap();
+/// assert_eq!(chr, 'H');
+/// assert_eq!(n, 1);
+///
+/// let input = b"\xF0\x9F\x91\x8B\xF0\x9F\x8C\x8D!";
+/// let (chr, n) = try_parse_utf8_char(input).unwrap();
+/// assert_eq!(chr, '👋');
+/// assert_eq!(n, 4);
+/// ```
+pub fn try_parse_utf8_char(input: &[u8]) -> Option<(char, usize)> {
     let str_from_utf8 = |seq| std::str::from_utf8(seq).ok();
 
     let decoded = input
@@ -143,7 +159,6 @@ lazy_static! {
 pub const EMPTY_STRING: &str = "";
 pub const TAB_WIDTH: usize = 4;
 
-const SPACE_CHARACTER: char = ' ';
 const TAB_CHARACTER: char = '\t';
 const LINE_FEED_CHARACTER: char = '\x0A';
 const DELETE_CHARACTER: char = '\x7F';
@@ -152,62 +167,78 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
+#[allow(clippy::missing_panics_doc)]
 /// Replaces non-printable characters in the given byte slice with default printable characters.
 ///
 /// The tab width is used to determine how many spaces to replace a tab character with.
 /// The default printable character for non-printable characters is the Unicode symbol for NULL.
+///
+/// The function returns a tuple containing the processed string and a vector of offsets introduced
+/// by the transformation.
 ///
 /// # Examples
 /// ```
 /// use television_utils::strings::replace_non_printable;
 ///
 /// let input = b"Hello, World!";
-/// let output = replace_non_printable(input, 2);
+/// let (output, offsets) = replace_non_printable(input, 2);
 /// assert_eq!(output, "Hello, World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
-/// let input = b"Hello\tWorld!";
-/// let output = replace_non_printable(input, 2);
-/// assert_eq!(output, "Hello  World!");
+/// let input = b"Hello,\tWorld!";
+/// let (output, offsets) = replace_non_printable(input, 4);
+/// assert_eq!(output, "Hello,    World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,3,3,3,3,3,3]);
 ///
-/// let input = b"Hello\nWorld!";
-/// let output = replace_non_printable(input, 2);
-/// assert_eq!(output, "HelloWorld!");
+/// let input = b"Hello,\nWorld!";
+/// let (output, offsets) = replace_non_printable(input, 2);
+/// assert_eq!(output, "Hello,World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
 ///
-/// let input = b"Hello\x00World!";
-/// let output = replace_non_printable(input, 2);
-/// assert_eq!(output, "Hello␀World!");
+/// let input = b"Hello,\x00World!";
+/// let (output, offsets) = replace_non_printable(input, 2);
+/// assert_eq!(output, "Hello,␀World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
-/// let input = b"Hello\x7FWorld!";
-/// let output = replace_non_printable(input, 2);
-/// assert_eq!(output, "Hello␀World!");
+/// let input = b"Hello,\x7FWorld!";
+/// let (output, offsets) = replace_non_printable(input, 2);
+/// assert_eq!(output, "Hello,␀World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 /// ```
-pub fn replace_non_printable(input: &[u8], tab_width: usize) -> String {
+pub fn replace_non_printable(
+    input: &[u8],
+    tab_width: usize,
+) -> (String, Vec<i16>) {
     let mut output = String::new();
+    let mut offsets = Vec::new();
+    let mut cumulative_offset: i16 = 0;
 
     let mut idx = 0;
     let len = input.len();
     while idx < len {
+        offsets.push(cumulative_offset);
         if let Some((chr, skip_ahead)) = try_parse_utf8_char(&input[idx..]) {
             idx += skip_ahead;
 
             match chr {
-                // space
-                SPACE_CHARACTER => output.push(' '),
                 // tab
                 TAB_CHARACTER => {
                     output.push_str(&" ".repeat(tab_width));
+                    cumulative_offset += i16::try_from(tab_width).unwrap() - 1;
                 }
                 // line feed
-                LINE_FEED_CHARACTER => {}
+                LINE_FEED_CHARACTER => {
+                    cumulative_offset -= 1;
+                }
 
                 // ASCII control characters from 0x00 to 0x1F
                 // + control characters from \u{007F} to \u{009F}
+                // + BOM
                 NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
-                | DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER => {
+                | DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER
+                | BOM_CHARACTER => {
                     output.push(*NULL_SYMBOL);
                 }
-                // don't print BOMs
-                BOM_CHARACTER => {}
                 // Unicode characters above 0x0700 seem unstable with ratatui
                 c if c > '\u{0700}' => {
                     output.push(*NULL_SYMBOL);
@@ -216,12 +247,12 @@ pub fn replace_non_printable(input: &[u8], tab_width: usize) -> String {
                 c => output.push(c),
             }
         } else {
-            write!(output, "\\x{:02X}", input[idx]).ok();
+            output.push(*NULL_SYMBOL);
             idx += 1;
         }
     }
 
-    output
+    (output, offsets)
 }
 
 /// The threshold for considering a buffer to be printable ASCII.
@@ -272,18 +303,21 @@ const MAX_LINE_LENGTH: usize = 300;
 /// use television_utils::strings::preprocess_line;
 ///
 /// let line = "Hello, World!";
-/// let processed = preprocess_line(line);
+/// let (processed, offsets) = preprocess_line(line);
 /// assert_eq!(processed, "Hello, World!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
 /// let line = "\x00World\x7F!";
-/// let processed = preprocess_line(line);
+/// let (processed, offsets) = preprocess_line(line);
 /// assert_eq!(processed, "␀World␀!");
+/// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0]);
 ///
 /// let line = "a".repeat(400);
-/// let processed = preprocess_line(&line);
+/// let (processed, offsets) = preprocess_line(&line);
 /// assert_eq!(processed.len(), 300);
+/// assert_eq!(offsets, vec![0; 300]);
 /// ```
-pub fn preprocess_line(line: &str) -> String {
+pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
     replace_non_printable(
         {
             if line.len() > MAX_LINE_LENGTH {
@@ -292,10 +326,99 @@ pub fn preprocess_line(line: &str) -> String {
                 line
             }
         }
-        .trim_end_matches(['\r', '\n', '\0'])
         .as_bytes(),
         TAB_WIDTH,
     )
+}
+
+/// Make a matched string printable while preserving match ranges in the process.
+///
+/// This function preprocesses the matched string and returns a printable version of it along with
+/// the match ranges adjusted to the new string.
+///
+/// # Examples
+/// ```
+/// use television_utils::strings::make_matched_string_printable;
+///
+/// let matched_string = "Hello, World!";
+/// let match_ranges = vec![(0, 1), (7, 8)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "Hello, World!");
+/// assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
+///
+/// let matched_string = "Hello,\tWorld!";
+/// let match_ranges = vec![(0, 1), (7, 8)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "Hello,    World!");
+/// assert_eq!(match_indices, vec![(0, 1), (10, 11)]);
+///
+/// let matched_string = "Hello,\nWorld!";
+/// let match_ranges = vec![(0, 1), (7, 8)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "Hello,World!");
+/// assert_eq!(match_indices, vec![(0, 1), (6, 7)]);
+///
+/// let matched_string = "Hello, World!";
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, None);
+/// assert_eq!(printable, "Hello, World!");
+/// assert_eq!(match_indices, vec![]);
+///
+/// let matched_string = "build.rs";
+/// let match_ranges = vec![(0, 1), (7, 8)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "build.rs");
+/// assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
+///
+/// let matched_string = "a\tb";
+/// let match_ranges = vec![(0, 1), (2, 3)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "a    b");
+/// assert_eq!(match_indices, vec![(0, 1), (5, 6)]);
+///
+/// let matched_string = "a\tbcd".repeat(65);
+/// let match_ranges = vec![(0, 1), (310, 311)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(&matched_string, match_ranges);
+/// assert_eq!(printable.len(), 480);
+/// assert_eq!(match_indices, vec![(0, 1)]);
+/// ```
+///
+/// # Panics
+/// This will panic if the length of the printable string or the match indices don't fit into a
+/// `u32`.
+pub fn make_matched_string_printable(
+    matched_string: &str,
+    match_ranges: Option<&[(u32, u32)]>,
+) -> (String, Vec<(u32, u32)>) {
+    let (printable, transformation_offsets) = preprocess_line(matched_string);
+    let mut match_indices = Vec::new();
+
+    if let Some(ranges) = match_ranges {
+        for (start, end) in ranges.iter().take_while(|(start, _)| {
+            *start < u32::try_from(transformation_offsets.len()).unwrap()
+        }) {
+            let new_start = i64::from(*start)
+                + i64::from(transformation_offsets[*start as usize]);
+            let new_end = i64::from(*end)
+                + i64::from(
+                    // Use the last offset if the end index is out of bounds
+                    // (this will be the case when the match range includes the last character)
+                    transformation_offsets[(*end as usize)
+                        .min(transformation_offsets.len() - 1)],
+                );
+            match_indices.push((
+                u32::try_from(new_start).unwrap(),
+                u32::try_from(new_end).unwrap(),
+            ));
+        }
+    }
+
+    (printable, match_indices)
 }
 
 /// Shrink a string to a maximum length, adding an ellipsis in the middle.
@@ -402,7 +525,7 @@ mod tests {
     }
 
     fn test_replace_non_printable(input: &str, expected: &str) {
-        let actual = replace_non_printable(input.as_bytes(), 2);
+        let (actual, _offset) = replace_non_printable(input.as_bytes(), 2);
         assert_eq!(actual, expected);
     }
 
@@ -438,7 +561,7 @@ mod tests {
 
     #[test]
     fn test_replace_non_printable_bom() {
-        test_replace_non_printable("Hello\u{FEFF}World!", "HelloWorld!");
+        test_replace_non_printable("Hello\u{FEFF}World!", "Hello␀World!");
     }
 
     #[test]
@@ -469,17 +592,17 @@ mod tests {
     }
 
     fn test_preprocess_line(input: &str, expected: &str) {
-        let actual = preprocess_line(input);
-        assert_eq!(actual, expected);
+        let (actual, _offset) = preprocess_line(input);
+        assert_eq!(actual, expected, "input: {:?}", input);
     }
 
     #[test]
     fn test_preprocess_line_cases() {
         test_preprocess_line("Hello, World!", "Hello, World!");
         test_preprocess_line("Hello, World!\n", "Hello, World!");
-        test_preprocess_line("Hello, World!\x00", "Hello, World!");
+        test_preprocess_line("Hello, World!\x00", "Hello, World!␀");
         test_preprocess_line("Hello, World!\x7F", "Hello, World!␀");
-        test_preprocess_line("Hello, World!\u{FEFF}", "Hello, World!");
+        test_preprocess_line("Hello, World!\u{FEFF}", "Hello, World!␀");
         test_preprocess_line(&"a".repeat(400), &"a".repeat(300));
     }
 }

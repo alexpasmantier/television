@@ -399,15 +399,17 @@ impl Television {
 
         // top right block: preview title
         self.current_preview_total_lines = preview.total_lines();
-        self.draw_preview_title_block(f, &layout, &selected_entry, &preview)?;
+        self.draw_preview_title_block(f, &layout, &preview)?;
 
         // bottom right block: preview content
         self.draw_preview_content_block(
             f,
             &layout,
-            &selected_entry,
+            selected_entry
+                .line_number
+                .map(|l| u16::try_from(l).unwrap_or(0)),
             &preview,
-        )?;
+        );
 
         // remote control
         if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {

@@ -164,7 +164,7 @@ impl FilePreviewer {
                 .map_while(Result::ok)
                 // we need to add a newline here because sublime syntaxes expect one
                 // to be present at the end of each line
-                .map(|line| preprocess_line(&line) + "\n")
+                .map(|line| preprocess_line(&line).0 + "\n")
                 .collect();
 
             match syntax::compute_highlights_for_path(
@@ -185,6 +185,7 @@ impl FilePreviewer {
                             PreviewContent::SyntectHighlightedText(
                                 highlighted_lines,
                             ),
+                            entry_c.icon,
                         )),
                     );
                     debug!("Inserted highlighted preview into cache");
@@ -224,7 +225,7 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     // truncate accordingly (since this is just a temp preview)
     for maybe_line in reader.lines() {
         match maybe_line {
-            Ok(line) => lines.push(preprocess_line(&line)),
+            Ok(line) => lines.push(preprocess_line(&line).0),
             Err(e) => {
                 warn!("Error reading file: {:?}", e);
                 return meta::not_supported(title);
@@ -237,5 +238,6 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     Arc::new(Preview::new(
         title.to_string(),
         PreviewContent::PlainText(lines),
+        None,
     ))
 }

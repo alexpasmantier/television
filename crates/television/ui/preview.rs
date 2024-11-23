@@ -10,7 +10,6 @@ use std::str::FromStr;
 use std::sync::Arc;
 use syntect::highlighting::Color as SyntectColor;
 use television_channels::channels::OnAir;
-use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
@@ -28,13 +27,11 @@ impl Television {
         &self,
         f: &mut Frame,
         layout: &Layout,
-        selected_entry: &Entry,
         preview: &Arc<Preview>,
     ) -> Result<()> {
         let mut preview_title_spans = Vec::new();
-        if selected_entry.icon.is_some() && self.config.ui.use_nerd_font_icons
-        {
-            let icon = selected_entry.icon.as_ref().unwrap();
+        if preview.icon.is_some() && self.config.ui.use_nerd_font_icons {
+            let icon = preview.icon.as_ref().unwrap();
             preview_title_spans.push(Span::styled(
                 {
                     let mut icon_str = String::from(icon.icon);
@@ -68,9 +65,9 @@ impl Television {
         &mut self,
         f: &mut Frame,
         layout: &Layout,
-        selected_entry: &Entry,
+        target_line: Option<u16>,
         preview: &Arc<Preview>,
-    ) -> Result<()> {
+    ) {
         let preview_outer_block = Block::default()
             .title_top(Line::from(" Preview ").alignment(Alignment::Center))
             .borders(Borders::ALL)
@@ -101,13 +98,10 @@ impl Television {
             preview_inner_block,
             inner,
             preview,
-            selected_entry
-                .line_number
-                .map(|l| u16::try_from(l).unwrap_or(0)),
+            target_line,
         );
         f.render_widget(preview_block, inner);
         //}
-        Ok(())
     }
 
     #[allow(dead_code)]
@@ -209,7 +203,7 @@ impl Television {
                 .block(preview_block)
                 .alignment(Alignment::Left)
                 .style(Style::default().add_modifier(Modifier::ITALIC)),
-            _ => Paragraph::new(Text::raw(EMPTY_STRING)),
+            PreviewContent::Empty => Paragraph::new(Text::raw(EMPTY_STRING)),
         }
     }
 
@@ -317,7 +311,7 @@ fn compute_paragraph_from_highlighted_lines(
             let line_number =
                 build_line_number_span(i + 1).style(Style::default().fg(
                     if line_specifier.is_some()
-                        && i == line_specifier.unwrap() - 1
+                        && i == line_specifier.unwrap().saturating_sub(1)
                     {
                         DEFAULT_PREVIEW_GUTTER_SELECTED_FG
                     } else {
@@ -334,7 +328,9 @@ fn compute_paragraph_from_highlighted_lines(
                         convert_syn_region_to_span(
                             &(sr.0, sr.1),
                             if line_specifier.is_some()
-                                && i == line_specifier.unwrap() - 1
+                                && i == line_specifier
+                                    .unwrap()
+                                    .saturating_sub(1)
                             {
                                 Some(SyntectColor {
                                     r: 50,

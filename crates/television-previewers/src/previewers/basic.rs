@@ -22,6 +22,7 @@ impl BasicPreviewer {
         Arc::new(Preview {
             title: entry.name.clone(),
             content: PreviewContent::PlainTextWrapped(entry.name.clone()),
+            icon: entry.icon,
         })
     }
 }

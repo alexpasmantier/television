@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use devicons::FileIcon;
 use television_channels::entry::{Entry, PreviewType};
 
 pub mod basic;
@@ -46,6 +47,7 @@ pub const FILE_TOO_LARGE_MSG: &str = "File too large";
 pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
+    pub icon: Option<FileIcon>,
 }
 
 impl Default for Preview {
@@ -53,13 +55,22 @@ impl Default for Preview {
         Preview {
             title: String::new(),
             content: PreviewContent::Empty,
+            icon: None,
         }
     }
 }
 
 impl Preview {
-    pub fn new(title: String, content: PreviewContent) -> Self {
-        Preview { title, content }
+    pub fn new(
+        title: String,
+        content: PreviewContent,
+        icon: Option<FileIcon>,
+    ) -> Self {
+        Preview {
+            title,
+            content,
+            icon,
+        }
     }
 
     pub fn total_lines(&self) -> u16 {

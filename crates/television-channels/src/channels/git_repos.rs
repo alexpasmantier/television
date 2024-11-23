@@ -9,7 +9,6 @@ use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewType};
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
-use television_utils::strings::preprocess_line;
 
 pub struct Channel {
     matcher: Matcher<String>,
@@ -150,13 +149,15 @@ async fn crawl_for_repos(starting_point: PathBuf, injector: Injector<String>) {
                 if entry.file_type().unwrap().is_dir() {
                     // if the entry is a .git directory, add its parent to the list of git repos
                     if entry.path().ends_with(".git") {
-                        let parent_path = preprocess_line(
-                            &entry.path().parent().unwrap().to_string_lossy(),
-                        );
+                        let parent_path =
+                            &entry.path().parent().unwrap().to_string_lossy();
                         debug!("Found git repo: {:?}", parent_path);
-                        let () = injector.push(parent_path, |e, cols| {
-                            cols[0] = e.clone().into();
-                        });
+                        let () = injector.push(
+                            parent_path.to_string(),
+                            |e, cols| {
+                                cols[0] = e.clone().into();
+                            },
+                        );
                         return ignore::WalkState::Skip;
                     }
                 }

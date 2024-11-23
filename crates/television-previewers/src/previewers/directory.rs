@@ -58,6 +58,7 @@ fn build_tree_preview(entry: &Entry) -> Preview {
                 .map(std::borrow::ToOwned::to_owned)
                 .collect(),
         ),
+        icon: entry.icon,
     }
 }
 
