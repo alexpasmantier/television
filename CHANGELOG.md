@@ -4,10 +4,16 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### ⚙️ Miscellaneous Tasks
+
+- *(update_readme)* Fix `update_readme` workflow
+
+## [0.5.2] - 2024-11-23
+
 ### 🐛 Bug Fixes
 
 - Quote file names that contain spaces when printing them to stdout (#51)
-- *(entry)* Preserve raw input
+- *(entry)* Always preserve raw input + match ranges conversions (#62)
 
 ### 🚜 Refactor
 
@@ -21,15 +27,9 @@ All notable changes to this project will be documented in this file.
 
 - *(git)* Enforce conventional commits on git push with a hook (#61)
 
-### 🧪 Testing
-
-- Add tests for replace_non_printable and cleanup commented out code
-
 ### ⚙️ Miscellaneous Tasks
 
 - Add readme version update to github actions (#55)
-- *(version)* Bump workspace crates and television
-- *(changelog)* Update changelog (auto)
 
 ### Build
 
