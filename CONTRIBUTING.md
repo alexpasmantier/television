@@ -8,8 +8,7 @@ If you're not sure where to start, take a look at the [hot topics](#hot-topics) 
 
 ## Getting started
 ### Prerequisites
-These are pretty much the only things you need to have installed on your machine to get started with contributing to
-this project:
+These are pretty much the only things you need to have installed on your machine to get started with contributing to this project:
 - the [Rust](https://www.rust-lang.org/tools/install) toolchain installed on your machine
 - any working version of [Git](https://git-scm.com/downloads)
 
@@ -98,12 +97,18 @@ The project is laid out in several rust crates that are organized in the followi
 
 
 ### Contributing a new channel
-Channels are just structs that implement the `OnAir` trait.
 
-As such, channels can virtually be anything that can respond to a user query and return a result under the form of a list of entries. This means channels can be anything from conventional data sources you might want to search through (like files, git repositories, remote filesystems, environment variables etc.) to more exotic implementations that might inclue a REPL, a calculator, a web browser, search through your spotify library, your email, etc.
+`television` is built around the concept of _channels_.
+
+From a technical standpoint, channels are structs that implement the `OnAir` trait defined in `crates/television-channels/src/channels.rs`.
+
+They can be anything that can respond to a user query and return a result under the form of a list of entries. This means channels can be anything from conventional data sources you might want to search through (like files, git repositories, remote filesystems, environment variables etc.) to more exotic implementations that might include a REPL, a calculator, a web browser, search through your spotify library, your email, etc.
+
+As mentioned in [Project structure](#project-structure) `television` uses [crates](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html) for its different subcomponents (_previewers_, _channels_, _utils_, etc).
 
 When contributing a new channel, you should create a new module in the `television_channels` crate with a new struct for
-your channel that implements the `OnAir` trait.
+your channel and ensure that it implements the `OnAir` trait defined in [crates/television-channels/src/channels.rs](crates/television-channels/src/channels.rs)
+
 ```rust
 // crates/television-channels/src/channels/my_new_channel.rs
 
@@ -117,8 +122,11 @@ impl OnAir for MyNewChannel {
 ```
 
 You should also add your channel to the `TelevisionChannel` enum in the `television_channels` crate.
+
 ```rust
 // crates/television-channels/src/channels.rs
+
+
 
 #[derive(ToUnitChannel, ToCliChannel, Broadcast)]
 pub enum TelevisionChannel {
@@ -127,10 +135,12 @@ pub enum TelevisionChannel {
 }
 ```
 
+☝️ There are built-in channels in `television` that you might want to draw inspiration from if need be, they're located at [crates/television-channels/src/channels](crates/television-channels/src/channels).
+
 **TODO**: document transitions between channels and previewers
 
 
-## Hot topics
+## Hot Topics
 Here are some ideas for contributions that would be very welcome:
 
 - `Customization`:
