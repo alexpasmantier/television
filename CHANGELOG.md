@@ -15,6 +15,11 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Terminal emulators compatibility and good first issues (#56)
+- *(contributing)* Add setup step
+
+### 🎨 Styling
+
+- *(git)* Enforce conventional commits on git push with a hook
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -22,7 +27,7 @@ All notable changes to this project will be documented in this file.
 
 ### Build
 
-- *(infer)* Drop infer dependency and refactor code to a simpler heuristic
+- *(infer)* Drop infer dependency and refactor code to a simpler heuristic (#58)
 
 ## [0.5.1] - 2024-11-20
 

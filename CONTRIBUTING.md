@@ -24,20 +24,24 @@ These are pretty much the only things you need to have installed on your machine
    cd television
    git remote add upstream https://github.com/alexpasmantier/television.git
    ```
-4. Create a new branch for your feature or bug fix:
+4. Install the project dependencies by running the following command:
+   ```shell
+    make setup
+    ```
+5. Create a new branch for your feature or bug fix:
    ```shell
    git checkout -b <branch-name>
    ```
-5. Make your changes and commit them to your branch:
+6. Make your changes and commit them to your branch:
    ```shell
    git add .
    git commit -m "Your commit message"
    ```
-6. Push your changes to your forked repository:
+7. Push your changes to your forked repository:
    ```shell
    git push origin <branch-name>
    ```
-7. Create a pull request by navigating to the original repository and clicking on the `New pull request` button.
+8. If not done automatically, create a pull request by navigating to the original repository and clicking on the `New pull request` button.
 
 
 ### Building the project
