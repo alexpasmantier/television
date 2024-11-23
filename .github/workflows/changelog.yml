@@ -1,7 +1,6 @@
 name: changelog
 
 on:
-  pull_request:
   push:
     branches:
       - main
@@ -32,12 +31,13 @@ jobs:
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
         id: extract_branch
 
-      - name: Commit
-        run: |
-          git checkout ${{ steps.extract_branch.outputs.branch }}
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          set +e
-          git add CHANGELOG.md
-          git commit -m "chore(changelog): update changelog (auto)"
-          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git ${{ steps.extract_branch.outputs.branch }} 
+      - name: Create PR
+        uses: peter-evans/create-pull-request@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(changelog): update changelog (auto)'
+          title: 'chore(changelog): update changelog (auto)'
+          body: 'This PR was created by a GitHub Action to update the changelog.'
+          branch: ${{ steps.extract_branch.outputs.branch }}
+          base: main
+          branch-suffix: timestamp
