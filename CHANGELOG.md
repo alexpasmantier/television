@@ -4,12 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
-### ⚙️ Miscellaneous Tasks
-
-- *(update_readme)* Fix `update_readme` workflow
-
-## [0.5.2] - 2024-11-23
-
 ### 🐛 Bug Fixes
 
 - Quote file names that contain spaces when printing them to stdout (#51)
@@ -30,6 +24,9 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Add readme version update to github actions (#55)
+- *(update_readme)* Fix `update_readme` workflow
+- *(changelog)* Update changelog (auto)
+- *(update_readme)* Fix `update_readme` workflow
 
 ### Build
 
