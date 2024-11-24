@@ -17,6 +17,10 @@ All notable changes to this project will be documented in this file.
 
 - Terminal emulators compatibility and good first issues (#56)
 
+### ⚡ Performance
+
+- *(preview)* Cap the number of concurrent preview tokio tasks in the background (#67)
+
 ### 🎨 Styling
 
 - *(git)* Enforce conventional commits on git push with a hook (#61)
@@ -24,9 +28,8 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - Add readme version update to github actions (#55)
-- *(update_readme)* Fix `update_readme` workflow
-- *(changelog)* Update changelog (auto)
-- *(update_readme)* Fix `update_readme` workflow
+- *(update_readme)* Fix `update_readme` workflow (#63)
+- *(changelog)* Update changelog action trigger (#68)
 
 ### Build
 

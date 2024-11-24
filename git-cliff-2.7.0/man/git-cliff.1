@@ -1,0 +1,214 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH git-cliff 1  "git-cliff 2.7.0" 
+.SH NAME
+git\-cliff \- A highly customizable changelog generator ⛰️
+.SH SYNOPSIS
+\fBgit\-cliff\fR [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fB\-v\fR|\fB\-\-verbose\fR]... [\fB\-i\fR|\fB\-\-init\fR] [\fB\-c\fR|\fB\-\-config\fR] [\fB\-w\fR|\fB\-\-workdir\fR] [\fB\-r\fR|\fB\-\-repository\fR] [\fB\-\-include\-path\fR] [\fB\-\-exclude\-path\fR] [\fB\-\-tag\-pattern\fR] [\fB\-\-with\-commit\fR] [\fB\-\-with\-tag\-message\fR] [\fB\-\-ignore\-tags\fR] [\fB\-\-count\-tags\fR] [\fB\-\-skip\-commit\fR] [\fB\-p\fR|\fB\-\-prepend\fR] [\fB\-o\fR|\fB\-\-output\fR] [\fB\-t\fR|\fB\-\-tag\fR] [\fB\-\-bump\fR] [\fB\-\-bumped\-version\fR] [\fB\-b\fR|\fB\-\-body\fR] [\fB\-l\fR|\fB\-\-latest\fR] [\fB\-\-current\fR] [\fB\-u\fR|\fB\-\-unreleased\fR] [\fB\-\-topo\-order\fR] [\fB\-\-use\-branch\-tags\fR] [\fB\-\-no\-exec\fR] [\fB\-x\fR|\fB\-\-context\fR] [\fB\-\-from\-context\fR] [\fB\-s\fR|\fB\-\-strip\fR] [\fB\-\-sort\fR] [\fB\-\-github\-token\fR] [\fB\-\-github\-repo\fR] [\fB\-\-gitlab\-token\fR] [\fB\-\-gitlab\-repo\fR] [\fB\-\-gitea\-token\fR] [\fB\-\-gitea\-repo\fR] [\fB\-\-bitbucket\-token\fR] [\fB\-\-bitbucket\-repo\fR] [\fIRANGE\fR] 
+.SH DESCRIPTION
+A highly customizable changelog generator ⛰️
+.SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Prints help information
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Prints version information
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Increases the logging verbosity
+.TP
+\fB\-i\fR, \fB\-\-init\fR=\fICONFIG\fR
+Writes the default configuration file to cliff.toml
+.TP
+\fB\-c\fR, \fB\-\-config\fR=\fIPATH\fR [default: cliff.toml]
+Sets the configuration file
+.RS
+May also be specified with the \fBGIT_CLIFF_CONFIG\fR environment variable. 
+.RE
+.TP
+\fB\-w\fR, \fB\-\-workdir\fR=\fIPATH\fR
+Sets the working directory
+.RS
+May also be specified with the \fBGIT_CLIFF_WORKDIR\fR environment variable. 
+.RE
+.TP
+\fB\-r\fR, \fB\-\-repository\fR=\fIPATH\fR
+Sets the git repository
+.RS
+May also be specified with the \fBGIT_CLIFF_REPOSITORY\fR environment variable. 
+.RE
+.TP
+\fB\-\-include\-path\fR=\fIPATTERN\fR
+Sets the path to include related commits
+.RS
+May also be specified with the \fBGIT_CLIFF_INCLUDE_PATH\fR environment variable. 
+.RE
+.TP
+\fB\-\-exclude\-path\fR=\fIPATTERN\fR
+Sets the path to exclude related commits
+.RS
+May also be specified with the \fBGIT_CLIFF_EXCLUDE_PATH\fR environment variable. 
+.RE
+.TP
+\fB\-\-tag\-pattern\fR=\fIPATTERN\fR
+Sets the regex for matching git tags
+.RS
+May also be specified with the \fBGIT_CLIFF_TAG_PATTERN\fR environment variable. 
+.RE
+.TP
+\fB\-\-with\-commit\fR=\fIMSG\fR
+Sets custom commit messages to include in the changelog
+.RS
+May also be specified with the \fBGIT_CLIFF_WITH_COMMIT\fR environment variable. 
+.RE
+.TP
+\fB\-\-with\-tag\-message\fR=\fIMSG\fR
+Sets custom message for the latest release
+.RS
+May also be specified with the \fBGIT_CLIFF_WITH_TAG_MESSAGE\fR environment variable. 
+.RE
+.TP
+\fB\-\-ignore\-tags\fR=\fIPATTERN\fR
+Sets the tags to ignore in the changelog
+.RS
+May also be specified with the \fBGIT_CLIFF_IGNORE_TAGS\fR environment variable. 
+.RE
+.TP
+\fB\-\-count\-tags\fR=\fIPATTERN\fR
+Sets the tags to count in the changelog
+.RS
+May also be specified with the \fBGIT_CLIFF_COUNT_TAGS\fR environment variable. 
+.RE
+.TP
+\fB\-\-skip\-commit\fR=\fISHA1\fR
+Sets commits that will be skipped in the changelog
+.RS
+May also be specified with the \fBGIT_CLIFF_SKIP_COMMIT\fR environment variable. 
+.RE
+.TP
+\fB\-p\fR, \fB\-\-prepend\fR=\fIPATH\fR
+Prepends entries to the given changelog file
+.RS
+May also be specified with the \fBGIT_CLIFF_PREPEND\fR environment variable. 
+.RE
+.TP
+\fB\-o\fR, \fB\-\-output\fR=\fIPATH\fR
+Writes output to the given file
+.RS
+May also be specified with the \fBGIT_CLIFF_OUTPUT\fR environment variable. 
+.RE
+.TP
+\fB\-t\fR, \fB\-\-tag\fR=\fITAG\fR
+Sets the tag for the latest version
+.RS
+May also be specified with the \fBGIT_CLIFF_TAG\fR environment variable. 
+.RE
+.TP
+\fB\-\-bump\fR=\fIBUMP\fR
+Bumps the version for unreleased changes. Optionally with specified version
+.TP
+\fB\-\-bumped\-version\fR
+Prints bumped version for unreleased changes
+.TP
+\fB\-b\fR, \fB\-\-body\fR=\fITEMPLATE\fR
+Sets the template for the changelog body
+.RS
+May also be specified with the \fBGIT_CLIFF_TEMPLATE\fR environment variable. 
+.RE
+.TP
+\fB\-l\fR, \fB\-\-latest\fR
+Processes the commits starting from the latest tag
+.TP
+\fB\-\-current\fR
+Processes the commits that belong to the current tag
+.TP
+\fB\-u\fR, \fB\-\-unreleased\fR
+Processes the commits that do not belong to a tag
+.TP
+\fB\-\-topo\-order\fR
+Sorts the tags topologically
+.TP
+\fB\-\-use\-branch\-tags\fR
+Include only the tags that belong to the current branch
+.TP
+\fB\-\-no\-exec\fR
+Disables the external command execution
+.TP
+\fB\-x\fR, \fB\-\-context\fR
+Prints changelog context as JSON
+.TP
+\fB\-\-from\-context\fR=\fIPATH\fR
+Generates changelog from a JSON context
+.RS
+May also be specified with the \fBGIT_CLIFF_CONTEXT\fR environment variable. 
+.RE
+.TP
+\fB\-s\fR, \fB\-\-strip\fR=\fIPART\fR
+Strips the given parts from the changelog
+.br
+
+.br
+[\fIpossible values: \fRheader, footer, all]
+.TP
+\fB\-\-sort\fR=\fISORT\fR [default: oldest]
+Sets sorting of the commits inside sections
+.br
+
+.br
+[\fIpossible values: \fRoldest, newest]
+.TP
+\fB\-\-github\-token\fR=\fITOKEN\fR
+Sets the GitHub API token
+.RS
+May also be specified with the \fBGITHUB_TOKEN\fR environment variable. 
+.RE
+.TP
+\fB\-\-github\-repo\fR=\fIOWNER/REPO\fR
+Sets the GitHub repository
+.RS
+May also be specified with the \fBGITHUB_REPO\fR environment variable. 
+.RE
+.TP
+\fB\-\-gitlab\-token\fR=\fITOKEN\fR
+Sets the GitLab API token
+.RS
+May also be specified with the \fBGITLAB_TOKEN\fR environment variable. 
+.RE
+.TP
+\fB\-\-gitlab\-repo\fR=\fIOWNER/REPO\fR
+Sets the GitLab repository
+.RS
+May also be specified with the \fBGITLAB_REPO\fR environment variable. 
+.RE
+.TP
+\fB\-\-gitea\-token\fR=\fITOKEN\fR
+Sets the Gitea API token
+.RS
+May also be specified with the \fBGITEA_TOKEN\fR environment variable. 
+.RE
+.TP
+\fB\-\-gitea\-repo\fR=\fIOWNER/REPO\fR
+Sets the Gitea repository
+.RS
+May also be specified with the \fBGITEA_REPO\fR environment variable. 
+.RE
+.TP
+\fB\-\-bitbucket\-token\fR=\fITOKEN\fR
+Sets the Bitbucket API token
+.RS
+May also be specified with the \fBBITBUCKET_TOKEN\fR environment variable. 
+.RE
+.TP
+\fB\-\-bitbucket\-repo\fR=\fIOWNER/REPO\fR
+Sets the Bitbucket repository
+.RS
+May also be specified with the \fBBITBUCKET_REPO\fR environment variable. 
+.RE
+.TP
+[\fIRANGE\fR]
+Sets the commit range to process
+.SH VERSION
+v2.7.0
+.SH AUTHORS
+git\-cliff contributors <git\-cliff@protonmail.com>

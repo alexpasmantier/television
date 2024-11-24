@@ -1,0 +1,86 @@
+#compdef git-cliff
+
+autoload -U is-at-least
+
+_git-cliff() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" : \
+'-i+[Writes the default configuration file to cliff.toml]' \
+'--init=[Writes the default configuration file to cliff.toml]' \
+'-c+[Sets the configuration file]:PATH:_files' \
+'--config=[Sets the configuration file]:PATH:_files' \
+'-w+[Sets the working directory]:PATH:_files' \
+'--workdir=[Sets the working directory]:PATH:_files' \
+'*-r+[Sets the git repository]:PATH:_files' \
+'*--repository=[Sets the git repository]:PATH:_files' \
+'*--include-path=[Sets the path to include related commits]:PATTERN:_default' \
+'*--exclude-path=[Sets the path to exclude related commits]:PATTERN:_default' \
+'--tag-pattern=[Sets the regex for matching git tags]:PATTERN:_default' \
+'*--with-commit=[Sets custom commit messages to include in the changelog]:MSG:_default' \
+'--with-tag-message=[Sets custom message for the latest release]' \
+'--ignore-tags=[Sets the tags to ignore in the changelog]:PATTERN:_default' \
+'--count-tags=[Sets the tags to count in the changelog]:PATTERN:_default' \
+'*--skip-commit=[Sets commits that will be skipped in the changelog]:SHA1:_default' \
+'-p+[Prepends entries to the given changelog file]:PATH:_files' \
+'--prepend=[Prepends entries to the given changelog file]:PATH:_files' \
+'-o+[Writes output to the given file]' \
+'--output=[Writes output to the given file]' \
+'-t+[Sets the tag for the latest version]:TAG:_default' \
+'--tag=[Sets the tag for the latest version]:TAG:_default' \
+'--bump=[Bumps the version for unreleased changes. Optionally with specified version]' \
+'-b+[Sets the template for the changelog body]:TEMPLATE:_default' \
+'--body=[Sets the template for the changelog body]:TEMPLATE:_default' \
+'--from-context=[Generates changelog from a JSON context]:PATH:_files' \
+'-s+[Strips the given parts from the changelog]:PART:(header footer all)' \
+'--strip=[Strips the given parts from the changelog]:PART:(header footer all)' \
+'--sort=[Sets sorting of the commits inside sections]:SORT:(oldest newest)' \
+'--github-token=[Sets the GitHub API token]:TOKEN:_default' \
+'--github-repo=[Sets the GitHub repository]:OWNER/REPO:_default' \
+'--gitlab-token=[Sets the GitLab API token]:TOKEN:_default' \
+'--gitlab-repo=[Sets the GitLab repository]:OWNER/REPO:_default' \
+'--gitea-token=[Sets the Gitea API token]:TOKEN:_default' \
+'--gitea-repo=[Sets the Gitea repository]:OWNER/REPO:_default' \
+'--bitbucket-token=[Sets the Bitbucket API token]:TOKEN:_default' \
+'--bitbucket-repo=[Sets the Bitbucket repository]:OWNER/REPO:_default' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+'*-v[Increases the logging verbosity]' \
+'*--verbose[Increases the logging verbosity]' \
+'--bumped-version[Prints bumped version for unreleased changes]' \
+'-l[Processes the commits starting from the latest tag]' \
+'--latest[Processes the commits starting from the latest tag]' \
+'--current[Processes the commits that belong to the current tag]' \
+'-u[Processes the commits that do not belong to a tag]' \
+'--unreleased[Processes the commits that do not belong to a tag]' \
+'--topo-order[Sorts the tags topologically]' \
+'--use-branch-tags[Include only the tags that belong to the current branch]' \
+'--no-exec[Disables the external command execution]' \
+'-x[Prints changelog context as JSON]' \
+'--context[Prints changelog context as JSON]' \
+'::range -- Sets the commit range to process:_default' \
+&& ret=0
+}
+
+(( $+functions[_git-cliff_commands] )) ||
+_git-cliff_commands() {
+    local commands; commands=()
+    _describe -t commands 'git-cliff commands' commands "$@"
+}
+
+if [ "$funcstack[1]" = "_git-cliff" ]; then
+    _git-cliff "$@"
+else
+    compdef _git-cliff git-cliff
+fi
