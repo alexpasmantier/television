@@ -3,8 +3,19 @@
 First of all, thanks for considering contributing to this project. All contributions are welcome, whether they are bug
 reports, documentation improvements, feature requests, or pull requests.
 
+Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a positive experience for everyone involved.
+
 If you're not sure where to start, take a look at the [hot topics](#hot-topics) section for some ideas on what you could work on.
 
+## Table of Contents
+- [Getting started](#getting-started)
+- [Prerequisites](#prerequisites)
+- [Forking the repository and setting up the project](#forking-the-repository-and-setting-up-the-project)
+- [Building the project](#building-the-project)
+- [Accessing the Logs](#accessing-the-logs)
+- [Project structure](#project-structure)
+- [Contributing a new channel](#contributing-a-new-channel)
+- [Hot Topics](#hot-topics)
 
 ## Getting started
 ### Prerequisites
