@@ -52,6 +52,12 @@ pub enum Action {
     /// Select the previous entry in the currently focused list.
     #[serde(alias = "select_prev_entry")]
     SelectPrevEntry,
+    /// Select the next page of entries in the currently focused list.
+    #[serde(alias = "select_next_page")]
+    SelectNextPage,
+    /// Select the previous page of entries in the currently focused list.
+    #[serde(alias = "select_prev_page")]
+    SelectPrevPage,
     /// Copy the currently selected entry to the clipboard.
     #[serde(alias = "copy_entry_to_clipboard")]
     CopyEntryToClipboard,

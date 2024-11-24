@@ -45,6 +45,8 @@ quit = "esc"
 # Scrolling through entries
 select_next_entry = "down"
 select_prev_entry = "up"
+select_next_page = "pagedown"
+select_prev_page = "pageup"
 # Scrolling the preview pane
 scroll_preview_half_page_down = "ctrl-d"
 scroll_preview_half_page_up = "ctrl-u"
@@ -68,6 +70,8 @@ quit = "esc"
 # Scrolling through entries
 select_next_entry = "down"
 select_prev_entry = "up"
+select_next_page = "pagedown"
+select_prev_page = "pageup"
 # Select an entry
 select_entry = "enter"
 # Toggle the remote control mode
@@ -84,6 +88,8 @@ quit = "esc"
 # Scrolling through entries
 select_next_entry = "down"
 select_prev_entry = "up"
+select_next_page = "pagedown"
+select_prev_page = "pageup"
 # Select an entry
 select_entry = "enter"
 # Toggle the send to channel mode

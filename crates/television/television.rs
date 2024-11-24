@@ -118,7 +118,7 @@ impl Television {
         }
     }
 
-    pub fn select_prev_entry(&mut self) {
+    pub fn select_prev_entry(&mut self, step: u32) {
         let (result_count, picker) = match self.mode {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
@@ -131,12 +131,13 @@ impl Television {
             return;
         }
         picker.select_prev(
+            step,
             result_count as usize,
             self.results_area_height as usize,
         );
     }
 
-    pub fn select_next_entry(&mut self) {
+    pub fn select_next_entry(&mut self, step: u32) {
         let (result_count, picker) = match self.mode {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
@@ -149,6 +150,7 @@ impl Television {
             return;
         }
         picker.select_next(
+            step,
             result_count as usize,
             self.results_area_height as usize,
         );
@@ -277,11 +279,19 @@ impl Television {
             }
             Action::SelectNextEntry => {
                 self.reset_preview_scroll();
-                self.select_next_entry();
+                self.select_next_entry(1);
             }
             Action::SelectPrevEntry => {
                 self.reset_preview_scroll();
-                self.select_prev_entry();
+                self.select_prev_entry(1);
+            }
+            Action::SelectNextPage => {
+                self.reset_preview_scroll();
+                self.select_next_entry(self.results_area_height);
+            }
+            Action::SelectPrevPage => {
+                self.reset_preview_scroll();
+                self.select_prev_entry(self.results_area_height);
             }
             Action::ScrollPreviewDown => self.scroll_preview_down(1),
             Action::ScrollPreviewUp => self.scroll_preview_up(1),
