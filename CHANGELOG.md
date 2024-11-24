@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.5.3] - 2024-11-24
 
 ### 🚀 Features
 
@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - *(update_readme)* Fix `update_readme` workflow (#63)
 - *(changelog)* Update changelog action trigger (#68)
 - *(changelog)* Update changelog (auto) (#70)
+- *(changelog)* Update changelog (auto) (#73)
+- Bump crate to 0.5.3 and workspace crates to 0.0.7
 
 ### Build
 
