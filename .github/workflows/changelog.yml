@@ -1,9 +1,10 @@
 name: changelog
 permissions:
   contents: write
+  pull_request: write
+
 
 on:
-  pull_request:
   push:
     tags:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
