@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### 🚀 Features
+
+- *(navigation)* Add action to scroll results list by a page (#72)
+
 ### 🐛 Bug Fixes
 
 - Quote file names that contain spaces when printing them to stdout (#51)
@@ -16,6 +20,7 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Terminal emulators compatibility and good first issues (#56)
+- *(contributing)* Added TOC and Code of Conduct link (#65)
 
 ### ⚡ Performance
 
@@ -30,6 +35,7 @@ All notable changes to this project will be documented in this file.
 - Add readme version update to github actions (#55)
 - *(update_readme)* Fix `update_readme` workflow (#63)
 - *(changelog)* Update changelog action trigger (#68)
+- *(changelog)* Update changelog (auto) (#70)
 
 ### Build
 
