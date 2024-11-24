@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.5.2"
+version = "0.5.3"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -54,11 +54,11 @@ name = "tv"
 
 [dependencies]
 # workspace dependencies
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.6" }
-television-derive = { path = "crates/television-derive", version = "0.0.6" }
-television-channels = { path = "crates/television-channels", version = "0.0.6" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.6" }
-television-utils = { path = "crates/television-utils", version = "0.0.6" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.7" }
+television-derive = { path = "crates/television-derive", version = "0.0.7" }
+television-channels = { path = "crates/television-channels", version = "0.0.7" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.7" }
+television-utils = { path = "crates/television-utils", version = "0.0.7" }
 
 # external dependencies
 better-panic = "0.3.0"
