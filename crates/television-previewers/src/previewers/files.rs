@@ -4,7 +4,8 @@ use color_eyre::Result;
 use parking_lot::Mutex;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 
 use syntect::{
@@ -28,6 +29,8 @@ pub struct FilePreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     pub syntax_set: Arc<SyntaxSet>,
     pub syntax_theme: Arc<Theme>,
+    concurrent_preview_tasks: Arc<AtomicU8>,
+    last_previewed: Arc<Mutex<Arc<Preview>>>,
     //image_picker: Arc<Mutex<Picker>>,
 }
 
@@ -62,6 +65,8 @@ impl FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
             syntax_set: Arc::new(syntax_set),
             syntax_theme: Arc::new(theme),
+            concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
+            last_previewed: Arc::new(Mutex::new(Arc::new(Preview::default()))),
             //image_picker: Arc::new(Mutex::new(image_picker)),
         }
     }
@@ -69,6 +74,8 @@ impl FilePreviewer {
     /// The maximum file size that we will try to preview.
     /// 4 MB
     const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
+
+    const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 4;
 
     /// Get a preview for a file entry.
     ///
@@ -93,34 +100,63 @@ impl FilePreviewer {
         }
 
         // try to determine file type
-        debug!("Computing preview for {:?}", entry.name);
-        if let FileType::Text = FileType::from(&path_buf) {
-            debug!("File is text-based: {:?}", entry.name);
-            match File::open(&path_buf) {
-                Ok(file) => {
-                    // insert a loading preview into the cache
-                    let preview = meta::loading(&entry.name);
-                    self.cache_preview(entry.name.clone(), preview.clone());
-
-                    // compute the highlighted version in the background
-                    let mut reader = BufReader::new(file);
-                    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                    self.compute_highlighted_text_preview(entry, reader);
-                    preview
-                }
-                Err(e) => {
-                    warn!("Error opening file: {:?}", e);
-                    let p = meta::not_supported(&entry.name);
-                    self.cache_preview(entry.name.clone(), p.clone());
-                    p
-                }
-            }
-        } else {
-            debug!("File isn't text-based: {:?}", entry.name);
-            let preview = meta::not_supported(&entry.name);
-            self.cache_preview(entry.name.clone(), preview.clone());
-            preview
+        debug!(
+            "Computing preview for {:?}, concurrent tasks: {}",
+            entry.name,
+            self.concurrent_preview_tasks.load(Ordering::Relaxed)
+        );
+        if self.concurrent_preview_tasks.load(Ordering::Relaxed)
+            < Self::MAX_CONCURRENT_PREVIEW_TASKS
+        {
+            self.concurrent_preview_tasks
+                .fetch_add(1, Ordering::Relaxed);
+            self.try_preview(entry, &path_buf);
         }
+
+        self.last_previewed.lock().clone()
+    }
+
+    pub fn try_preview(&mut self, entry: &entry::Entry, path: &Path) {
+        let cache = self.cache.clone();
+        let entry_c = entry.clone();
+        let syntax_set = self.syntax_set.clone();
+        let syntax_theme = self.syntax_theme.clone();
+        let path = path.to_path_buf();
+        let concurrent_tasks = self.concurrent_preview_tasks.clone();
+        let last_previewed = self.last_previewed.clone();
+        tokio::spawn(async move {
+            if matches!(FileType::from(&path), FileType::Text) {
+                debug!("File is text-based: {:?}", entry_c.name);
+                match File::open(&path) {
+                    Ok(file) => {
+                        // compute the highlighted version in the background
+                        let mut reader = BufReader::new(file);
+                        reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+                        let preview = Self::compute_highlighted_text_preview(
+                            &entry_c,
+                            reader,
+                            &syntax_set,
+                            &syntax_theme,
+                        );
+                        cache
+                            .lock()
+                            .insert(entry_c.name.clone(), preview.clone());
+                        let mut tp = last_previewed.lock();
+                        *tp = preview;
+                    }
+                    Err(e) => {
+                        warn!("Error opening file: {:?}", e);
+                        let p = meta::not_supported(&entry_c.name);
+                        cache.lock().insert(entry_c.name.clone(), p.clone());
+                    }
+                }
+            } else {
+                debug!("File isn't text-based: {:?}", entry_c.name);
+                let preview = meta::not_supported(&entry_c.name);
+                cache.lock().insert(entry_c.name.clone(), preview.clone());
+            }
+            concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
+        });
     }
 
     //async fn compute_image_preview(&self, entry: &entry::Entry) {
@@ -146,57 +182,45 @@ impl FilePreviewer {
     //}
 
     fn compute_highlighted_text_preview(
-        &self,
         entry: &entry::Entry,
         reader: BufReader<File>,
-    ) {
-        let cache = self.cache.clone();
-        let syntax_set = self.syntax_set.clone();
-        let syntax_theme = self.syntax_theme.clone();
-        let entry_c = entry.clone();
-        tokio::spawn(async move {
-            debug!(
-                "Computing highlights in the background for {:?}",
-                entry_c.name
-            );
-            let lines: Vec<String> = reader
-                .lines()
-                .map_while(Result::ok)
-                // we need to add a newline here because sublime syntaxes expect one
-                // to be present at the end of each line
-                .map(|line| preprocess_line(&line).0 + "\n")
-                .collect();
+        syntax_set: &SyntaxSet,
+        syntax_theme: &Theme,
+    ) -> Arc<Preview> {
+        debug!(
+            "Computing highlights in the background for {:?}",
+            entry.name
+        );
+        let lines: Vec<String> = reader
+            .lines()
+            .map_while(Result::ok)
+            // we need to add a newline here because sublime syntaxes expect one
+            // to be present at the end of each line
+            .map(|line| preprocess_line(&line).0 + "\n")
+            .collect();
 
-            match syntax::compute_highlights_for_path(
-                &PathBuf::from(&entry_c.name),
-                lines,
-                &syntax_set,
-                &syntax_theme,
-            ) {
-                Ok(highlighted_lines) => {
-                    debug!(
-                        "Successfully computed highlights for {:?}",
-                        entry_c.name
-                    );
-                    cache.lock().insert(
-                        entry_c.name.clone(),
-                        Arc::new(Preview::new(
-                            entry_c.name,
-                            PreviewContent::SyntectHighlightedText(
-                                highlighted_lines,
-                            ),
-                            entry_c.icon,
-                        )),
-                    );
-                    debug!("Inserted highlighted preview into cache");
-                }
-                Err(e) => {
-                    warn!("Error computing highlights: {:?}", e);
-                    let preview = meta::not_supported(&entry_c.name);
-                    cache.lock().insert(entry_c.name.clone(), preview);
-                }
-            };
-        });
+        match syntax::compute_highlights_for_path(
+            &PathBuf::from(&entry.name),
+            lines,
+            syntax_set,
+            syntax_theme,
+        ) {
+            Ok(highlighted_lines) => {
+                debug!(
+                    "Successfully computed highlights for {:?}",
+                    entry.name
+                );
+                Arc::new(Preview::new(
+                    entry.name.clone(),
+                    PreviewContent::SyntectHighlightedText(highlighted_lines),
+                    entry.icon,
+                ))
+            }
+            Err(e) => {
+                warn!("Error computing highlights: {:?}", e);
+                meta::not_supported(&entry.name)
+            }
+        }
     }
 
     fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {

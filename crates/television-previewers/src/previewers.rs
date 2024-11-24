@@ -35,7 +35,7 @@ pub enum PreviewContent {
 }
 
 pub const PREVIEW_NOT_SUPPORTED_MSG: &str =
-    "Preview for this file type is not yet supported";
+    "Preview for this file type is not supported";
 pub const FILE_TOO_LARGE_MSG: &str = "File too large";
 
 /// A preview of an entry.
