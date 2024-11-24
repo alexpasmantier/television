@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file.
 - Add readme version update to github actions (#55)
 - *(update_readme)* Fix `update_readme` workflow (#63)
 - *(changelog)* Update changelog action trigger (#68)
+- *(changelog)* Update changelog (auto) (#70)
 
 ### Build
 
