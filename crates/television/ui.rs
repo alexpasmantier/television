@@ -1,5 +1,6 @@
 use ratatui::style::Color;
 
+pub mod cache;
 pub(crate) mod help;
 pub mod input;
 pub mod keymap;

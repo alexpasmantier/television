@@ -51,6 +51,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "45862d1c77f2228b9e10bc609d5bc203d86ebc9b87ad8d5d5167a6c9abf739d9"
 
 [[package]]
+name = "ansi-to-tui"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67555e1f1ece39d737e28c8a017721287753af3f93225e4a445b29ccb0f5912c"
+dependencies = [
+ "nom",
+ "ratatui",
+ "simdutf8",
+ "smallvec",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "ansi_colours"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2660,6 +2673,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "simdutf8"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
+
+[[package]]
 name = "slab"
 version = "0.4.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2814,6 +2833,7 @@ dependencies = [
 name = "television"
 version = "0.5.3"
 dependencies = [
+ "ansi-to-tui",
  "better-panic",
  "clap",
  "color-eyre",
@@ -2823,6 +2843,7 @@ dependencies = [
  "directories",
  "human-panic",
  "lazy_static",
+ "parking_lot",
  "ratatui",
  "serde",
  "signal-hook",
@@ -2881,13 +2902,14 @@ dependencies = [
 name = "television-previewers"
 version = "0.0.7"
 dependencies = [
+ "ansi-to-tui",
  "color-eyre",
  "devicons",
  "parking_lot",
+ "ratatui",
  "syntect",
  "television-channels",
  "television-utils",
- "termtree",
  "tokio",
  "tracing",
 ]

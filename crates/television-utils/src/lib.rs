@@ -1,3 +1,4 @@
+pub mod cache;
 pub mod files;
 pub mod indices;
 pub mod stdin;

@@ -1,10 +1,8 @@
 use std::{
     io::{stdin, BufRead},
-    path::Path,
     thread::spawn,
 };
 
-use devicons::FileIcon;
 use tracing::debug;
 
 use super::OnAir;
@@ -13,32 +11,32 @@ use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,
-    icon: FileIcon,
+    preview_type: PreviewType,
 }
 
 impl Channel {
-    pub fn new() -> Self {
+    pub fn new(preview_type: Option<PreviewType>) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
 
-        spawn(move || stream_from_stdin(injector.clone()));
+        spawn(move || stream_from_stdin(&injector));
 
         Self {
             matcher,
-            icon: FileIcon::from("nu"),
+            preview_type: preview_type.unwrap_or_default(),
         }
     }
 }
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-fn stream_from_stdin(injector: Injector<String>) {
+fn stream_from_stdin(injector: &Injector<String>) {
     let mut stdin = stdin().lock();
     let mut buffer = String::new();
 
@@ -78,34 +76,15 @@ impl OnAir for Channel {
             .results(num_entries, offset)
             .into_iter()
             .map(|item| {
-                let path = Path::new(&item.matched_string);
-                let icon = if path.try_exists().unwrap_or(false) {
-                    FileIcon::from(path)
-                } else {
-                    self.icon
-                };
-                Entry::new(item.matched_string, PreviewType::Basic)
+                Entry::new(item.matched_string, self.preview_type.clone())
                     .with_name_match_ranges(item.match_indices)
-                    .with_icon(icon)
             })
             .collect()
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
-            let path = Path::new(&item.matched_string);
-            // if we recognize a file path, use a file icon
-            // and set the preview type to "Files"
-            if path.is_file() {
-                Entry::new(item.matched_string.clone(), PreviewType::Files)
-                    .with_icon(FileIcon::from(path))
-            } else if path.is_dir() {
-                Entry::new(item.matched_string.clone(), PreviewType::Directory)
-                    .with_icon(FileIcon::from(path))
-            } else {
-                Entry::new(item.matched_string.clone(), PreviewType::Basic)
-                    .with_icon(self.icon)
-            }
+            Entry::new(item.matched_string.clone(), self.preview_type.clone())
         })
     }
 

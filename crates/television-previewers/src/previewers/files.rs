@@ -1,6 +1,4 @@
 use color_eyre::Result;
-//use image::{ImageReader, Rgb};
-//use ratatui_image::picker::Picker;
 use parking_lot::Mutex;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
@@ -31,7 +29,6 @@ pub struct FilePreviewer {
     pub syntax_theme: Arc<Theme>,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
-    //image_picker: Arc<Mutex<Picker>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -63,9 +60,6 @@ impl FilePreviewer {
             },
             |c| hl_assets.get_theme_no_output(&c.theme).clone(),
         );
-        //info!("getting image picker");
-        //let image_picker = get_image_picker();
-        //info!("got image picker");
 
         FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
@@ -73,7 +67,6 @@ impl FilePreviewer {
             syntax_theme: Arc::new(theme),
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
             last_previewed: Arc::new(Mutex::new(Arc::new(Preview::default()))),
-            //image_picker: Arc::new(Mutex::new(image_picker)),
         }
     }
 
@@ -118,31 +111,9 @@ impl FilePreviewer {
         self.last_previewed.lock().clone()
     }
 
-    //async fn compute_image_preview(&self, entry: &entry::Entry) {
-    //    let cache = self.cache.clone();
-    //    let picker = self.image_picker.clone();
-    //    let entry_c = entry.clone();
-    //    tokio::spawn(async move {
-    //        info!("Loading image: {:?}", entry_c.name);
-    //        if let Ok(dyn_image) =
-    //            ImageReader::open(entry_c.name.clone()).unwrap().decode()
-    //        {
-    //            let image = picker.lock().await.new_resize_protocol(dyn_image);
-    //            let preview = Arc::new(Preview::new(
-    //                entry_c.name.clone(),
-    //                PreviewContent::Image(image),
-    //            ));
-    //            cache
-    //                .lock()
-    //                .await
-    //                .insert(entry_c.name.clone(), preview.clone());
-    //        }
-    //    });
-    //}
-
     #[allow(dead_code)]
     fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
-        self.cache.lock().insert(key, preview);
+        self.cache.lock().insert(key, &preview);
     }
 }
 
@@ -160,7 +131,7 @@ pub fn try_preview(
     if get_file_size(path).map_or(false, |s| s > MAX_FILE_SIZE) {
         debug!("File too large: {:?}", entry.name);
         let preview = meta::file_too_large(&entry.name);
-        cache.lock().insert(entry.name.clone(), preview);
+        cache.lock().insert(entry.name.clone(), &preview);
     }
 
     if matches!(FileType::from(&path), FileType::Text) {
@@ -176,20 +147,20 @@ pub fn try_preview(
                     syntax_set,
                     syntax_theme,
                 );
-                cache.lock().insert(entry.name.clone(), preview.clone());
+                cache.lock().insert(entry.name.clone(), &preview);
                 let mut tp = last_previewed.lock();
                 *tp = preview;
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
                 let p = meta::not_supported(&entry.name);
-                cache.lock().insert(entry.name.clone(), p);
+                cache.lock().insert(entry.name.clone(), &p);
             }
         }
     } else {
         debug!("File isn't text-based: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);
-        cache.lock().insert(entry.name.clone(), preview);
+        cache.lock().insert(entry.name.clone(), &preview);
     }
     concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
 }
@@ -232,16 +203,6 @@ fn compute_highlighted_text_preview(
         }
     }
 }
-
-//fn get_image_picker() -> Picker {
-//    let mut picker = match Picker::from_termios() {
-//        Ok(p) => p,
-//        Err(_) => Picker::new((7, 14)),
-//    };
-//    picker.guess_protocol();
-//    picker.background_color = Some(Rgb::<u8>([255, 0, 255]));
-//    picker
-//}
 
 /// This should be enough to most standard terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;

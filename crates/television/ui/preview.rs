@@ -1,5 +1,6 @@
 use crate::television::Television;
 use crate::ui::BORDER_COLOR;
+use ansi_to_tui::IntoText;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
@@ -9,6 +10,7 @@ use std::str::FromStr;
 use std::sync::Arc;
 use syntect::highlighting::Color as SyntectColor;
 use television_channels::channels::OnAir;
+use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
@@ -64,7 +66,7 @@ impl Television {
         &mut self,
         f: &mut Frame,
         rect: Rect,
-        target_line: Option<u16>,
+        entry: &Entry,
         preview: &Arc<Preview>,
     ) {
         let preview_outer_block = Block::default()
@@ -85,125 +87,196 @@ impl Television {
         let inner = preview_outer_block.inner(rect);
         f.render_widget(preview_outer_block, rect);
 
-        //if let PreviewContent::Image(img) = &preview.content {
-        //    let image_component = StatefulImage::new(None);
-        //    frame.render_stateful_widget(
-        //        image_component,
-        //        inner,
-        //        &mut img.clone(),
-        //    );
-        //} else {
-        let preview_block = self.build_preview_paragraph(
+        let target_line =
+            entry.line_number.map(|l| u16::try_from(l).unwrap_or(0));
+
+        self.maybe_init_preview_scroll(target_line, inner.height);
+
+        // Check if the rendered preview content is already in the cache
+        if let Some(preview_paragraph) =
+            self.rendered_preview_cache.lock().get(&preview.title)
+        {
+            let p = preview_paragraph.as_ref().clone();
+            f.render_widget(
+                p.scroll((self.preview_scroll.unwrap_or(0), 0)),
+                inner,
+            );
+            return;
+        }
+        // If not, render the preview content and cache it
+        let rp = Self::build_preview_paragraph(
             preview_inner_block,
             inner,
-            preview,
+            preview.content.clone(),
             target_line,
+            self.preview_scroll,
         );
-        f.render_widget(preview_block, inner);
-        //}
+        self.rendered_preview_cache
+            .lock()
+            .insert(preview.title.clone(), &Arc::new(rp.clone()));
+        f.render_widget(
+            Arc::new(rp)
+                .as_ref()
+                .clone()
+                .scroll((self.preview_scroll.unwrap_or(0), 0)),
+            inner,
+        );
     }
 
     #[allow(dead_code)]
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
-    pub fn build_preview_paragraph<'b>(
-        &'b mut self,
-        preview_block: Block<'b>,
+    pub fn build_preview_paragraph(
+        preview_block: Block,
         inner: Rect,
-        preview: &Arc<Preview>,
+        preview_content: PreviewContent,
         target_line: Option<u16>,
-    ) -> Paragraph<'b> {
-        self.maybe_init_preview_scroll(target_line, inner.height);
-        match &preview.content {
+        preview_scroll: Option<u16>,
+    ) -> Paragraph {
+        match preview_content {
+            PreviewContent::AnsiText(text) => Self::build_ansi_text_paragraph(
+                text,
+                preview_block,
+                preview_scroll,
+            ),
             PreviewContent::PlainText(content) => {
-                let mut lines = Vec::new();
-                for (i, line) in content.iter().enumerate() {
-                    lines.push(Line::from(vec![
-                        build_line_number_span(i + 1).style(Style::default().fg(
-                            if matches!(
-                                target_line,
-                                Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
-                            )
-                            {
-                                DEFAULT_PREVIEW_GUTTER_SELECTED_FG
-                            } else {
-                                DEFAULT_PREVIEW_GUTTER_FG
-                            },
-                        )),
-                        Span::styled(" │ ",
-                                     Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim()),
-                        Span::styled(
-                            line.to_string(),
-                            Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG).bg(
-                                if matches!(target_line, Some(l) if l == u16::try_from(i).unwrap() + 1) {
-                                    DEFAULT_SELECTED_PREVIEW_BG
-                                } else {
-                                    Color::Reset
-                                },
-                            ),
-                        ),
-                    ]));
-                }
-                let text = Text::from(lines);
-                Paragraph::new(text)
-                    .block(preview_block)
-                    .scroll((self.preview_scroll.unwrap_or(0), 0))
+                Self::build_plain_text_paragraph(
+                    content,
+                    preview_block,
+                    target_line,
+                    preview_scroll,
+                )
             }
             PreviewContent::PlainTextWrapped(content) => {
-                let mut lines = Vec::new();
-                for line in content.lines() {
-                    lines.push(Line::styled(
-                        line.to_string(),
-                        Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG),
-                    ));
-                }
-                let text = Text::from(lines);
-                Paragraph::new(text)
-                    .block(preview_block)
-                    .wrap(Wrap { trim: true })
+                Self::build_plain_text_wrapped_paragraph(
+                    content,
+                    preview_block,
+                )
             }
             PreviewContent::SyntectHighlightedText(highlighted_lines) => {
-                compute_paragraph_from_highlighted_lines(
+                Self::build_syntect_highlighted_paragraph(
                     highlighted_lines,
-                    target_line.map(|l| l as usize),
-                    self.preview_scroll.unwrap_or(0),
-                    self.preview_pane_height,
+                    preview_block,
+                    target_line,
+                    preview_scroll,
                 )
-                .block(preview_block)
-                .alignment(Alignment::Left)
-                .scroll((self.preview_scroll.unwrap_or(0), 0))
             }
             // meta
-            PreviewContent::Loading => self
-                .build_meta_preview_paragraph(
-                    inner,
-                    "Loading...",
-                    Self::FILL_CHAR_EMPTY,
-                )
-                .block(preview_block)
-                .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC)),
-            PreviewContent::NotSupported => self
-                .build_meta_preview_paragraph(
+            PreviewContent::Loading => Self::build_meta_preview_paragraph(
+                inner,
+                "Loading...",
+                Self::FILL_CHAR_EMPTY,
+            )
+            .block(preview_block)
+            .alignment(Alignment::Left)
+            .style(Style::default().add_modifier(Modifier::ITALIC)),
+            PreviewContent::NotSupported => {
+                Self::build_meta_preview_paragraph(
                     inner,
                     PREVIEW_NOT_SUPPORTED_MSG,
                     Self::FILL_CHAR_EMPTY,
                 )
                 .block(preview_block)
                 .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC)),
-            PreviewContent::FileTooLarge => self
-                .build_meta_preview_paragraph(
+                .style(Style::default().add_modifier(Modifier::ITALIC))
+            }
+            PreviewContent::FileTooLarge => {
+                Self::build_meta_preview_paragraph(
                     inner,
                     FILE_TOO_LARGE_MSG,
                     Self::FILL_CHAR_EMPTY,
                 )
                 .block(preview_block)
                 .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC)),
+                .style(Style::default().add_modifier(Modifier::ITALIC))
+            }
             PreviewContent::Empty => Paragraph::new(Text::raw(EMPTY_STRING)),
         }
+    }
+
+    fn build_ansi_text_paragraph(
+        text: String,
+        preview_block: Block,
+        preview_scroll: Option<u16>,
+    ) -> Paragraph {
+        let text = text.into_text().unwrap();
+        Paragraph::new(text)
+            .block(preview_block)
+            .scroll((preview_scroll.unwrap_or(0), 0))
+    }
+
+    fn build_plain_text_paragraph(
+        text: Vec<String>,
+        preview_block: Block,
+        target_line: Option<u16>,
+        preview_scroll: Option<u16>,
+    ) -> Paragraph {
+        let mut lines = Vec::new();
+        for (i, line) in text.iter().enumerate() {
+            lines.push(Line::from(vec![
+                build_line_number_span(i + 1).style(Style::default().fg(
+                    if matches!(
+                        target_line,
+                        Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
+                    )
+                    {
+                        DEFAULT_PREVIEW_GUTTER_SELECTED_FG
+                    } else {
+                        DEFAULT_PREVIEW_GUTTER_FG
+                    },
+                )),
+                Span::styled(" │ ",
+                             Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim()),
+                Span::styled(
+                    line.to_string(),
+                    Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG).bg(
+                        if matches!(target_line, Some(l) if l == u16::try_from(i).unwrap() + 1) {
+                            DEFAULT_SELECTED_PREVIEW_BG
+                        } else {
+                            Color::Reset
+                        },
+                    ),
+                ),
+            ]));
+        }
+        let text = Text::from(lines);
+        Paragraph::new(text)
+            .block(preview_block)
+            .scroll((preview_scroll.unwrap_or(0), 0))
+    }
+
+    fn build_plain_text_wrapped_paragraph(
+        text: String,
+        preview_block: Block,
+    ) -> Paragraph {
+        let mut lines = Vec::new();
+        for line in text.lines() {
+            lines.push(Line::styled(
+                line.to_string(),
+                Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG),
+            ));
+        }
+        let text = Text::from(lines);
+        Paragraph::new(text)
+            .block(preview_block)
+            .wrap(Wrap { trim: true })
+    }
+
+    fn build_syntect_highlighted_paragraph(
+        highlighted_lines: Vec<Vec<(syntect::highlighting::Style, String)>>,
+        preview_block: Block,
+        target_line: Option<u16>,
+        preview_scroll: Option<u16>,
+    ) -> Paragraph {
+        compute_paragraph_from_highlighted_lines(
+            &highlighted_lines,
+            target_line.map(|l| l as usize),
+            preview_scroll.unwrap_or(0),
+        )
+        .block(preview_block)
+        .alignment(Alignment::Left)
+        .scroll((preview_scroll.unwrap_or(0), 0))
     }
 
     pub fn maybe_init_preview_scroll(
@@ -218,18 +291,10 @@ impl Television {
     }
 
     pub fn build_meta_preview_paragraph<'a>(
-        &mut self,
         inner: Rect,
         message: &str,
         fill_char: char,
     ) -> Paragraph<'a> {
-        if let Some(paragraph) = self.meta_paragraph_cache.get(&(
-            message.to_string(),
-            inner.width,
-            inner.height,
-        )) {
-            return paragraph.clone();
-        }
         let message_len = message.len();
         if message_len + 8 > inner.width as usize {
             return Paragraph::new(Text::from(EMPTY_STRING));
@@ -279,12 +344,7 @@ impl Television {
         }
 
         // Create a paragraph with the generated content
-        let p = Paragraph::new(Text::from(lines));
-        self.meta_paragraph_cache.insert(
-            (message.to_string(), inner.width, inner.height),
-            p.clone(),
-        );
-        p
+        Paragraph::new(Text::from(lines))
     }
 }
 
@@ -296,15 +356,12 @@ fn compute_paragraph_from_highlighted_lines(
     highlighted_lines: &[Vec<(syntect::highlighting::Style, String)>],
     line_specifier: Option<usize>,
     scroll: u16,
-    preview_pane_height: u16,
 ) -> Paragraph<'static> {
     let preview_lines: Vec<Line> = highlighted_lines
         .iter()
         .enumerate()
         .map(|(i, l)| {
-            if i < scroll as usize
-                || i >= (scroll + preview_pane_height) as usize
-            {
+            if i < scroll as usize {
                 return Line::from(Span::raw(EMPTY_STRING));
             }
             let line_number =

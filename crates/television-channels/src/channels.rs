@@ -2,6 +2,7 @@ use crate::entry::Entry;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
+mod custom;
 mod env;
 mod files;
 mod git_repos;
@@ -137,6 +138,10 @@ pub enum TelevisionChannel {
     #[exclude_from_unit]
     #[exclude_from_cli]
     RemoteControl(remote_control::RemoteControl),
+    /// A custom channel.
+    ///
+    /// This channel allows to search through custom data.
+    Custom(custom::Channel),
 }
 
 impl From<&Entry> for TelevisionChannel {

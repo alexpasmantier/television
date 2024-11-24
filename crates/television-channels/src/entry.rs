@@ -121,7 +121,7 @@ pub const ENTRY_PLACEHOLDER: Entry = Entry {
 pub enum PreviewType {
     #[default]
     Basic,
-    Directory,
     EnvVar,
     Files,
+    Command(String),
 }

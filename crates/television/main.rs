@@ -5,6 +5,7 @@ use clap::Parser;
 use cli::PostProcessedCli;
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
+use television_channels::entry::PreviewType;
 use tracing::{debug, info};
 
 use crate::app::App;
@@ -38,7 +39,9 @@ async fn main() -> Result<()> {
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
-                TelevisionChannel::Stdin(StdinChannel::default())
+                TelevisionChannel::Stdin(StdinChannel::new(
+                    args.preview.map(PreviewType::Command),
+                ))
             } else {
                 debug!("Using {:?} channel", args.channel);
                 args.channel.to_channel()

@@ -1,5 +1,6 @@
 use crate::app::Keymap;
 use crate::picker::Picker;
+use crate::ui::cache::RenderedPreviewCache;
 use crate::ui::input::actions::InputActionHandler;
 use crate::ui::layout::{Dimensions, InputPosition, Layout};
 use crate::ui::spinner::Spinner;
@@ -7,9 +8,10 @@ use crate::ui::spinner::SpinnerState;
 use crate::{action::Action, config::Config};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use ratatui::{layout::Rect, style::Color, widgets::Paragraph, Frame};
+use parking_lot::Mutex;
+use ratatui::{layout::Rect, style::Color, Frame};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::sync::Arc;
 use television_channels::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
 };
@@ -40,14 +42,8 @@ pub struct Television {
     pub preview_scroll: Option<u16>,
     pub preview_pane_height: u16,
     current_preview_total_lines: u16,
-    /// A cache for meta paragraphs (i.e. previews like "Not Supported", etc.).
-    ///
-    /// The key is a tuple of the preview name and the dimensions of the
-    /// preview pane. This is a little extra security to ensure meta previews
-    /// are rendered correctly even when resizing the terminal while still
-    /// benefiting from a cache mechanism.
-    pub meta_paragraph_cache: HashMap<(String, u16, u16), Paragraph<'static>>,
     pub icon_color_cache: HashMap<String, Color>,
+    pub rendered_preview_cache: Arc<Mutex<RenderedPreviewCache<'static>>>,
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
 }
@@ -81,8 +77,10 @@ impl Television {
             preview_scroll: None,
             preview_pane_height: 0,
             current_preview_total_lines: 0,
-            meta_paragraph_cache: HashMap::new(),
             icon_color_cache: HashMap::new(),
+            rendered_preview_cache: Arc::new(Mutex::new(
+                RenderedPreviewCache::default(),
+            )),
             spinner,
             spinner_state: SpinnerState::from(&spinner),
         }
@@ -406,9 +404,7 @@ impl Television {
         self.draw_preview_content_block(
             f,
             layout.preview_window,
-            selected_entry
-                .line_number
-                .map(|l| u16::try_from(l).unwrap_or(0)),
+            &selected_entry,
             &preview,
         );
 

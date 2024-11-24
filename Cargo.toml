@@ -80,6 +80,8 @@ unicode-width = "0.2.0"
 human-panic = "2.0.2"
 termtree = "0.5.1"
 copypasta = "0.10.1"
+ansi-to-tui = "7.0.0"
+parking_lot = "0.12.3"
 
 
 [build-dependencies]

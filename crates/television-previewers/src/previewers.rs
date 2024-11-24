@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
+use command::CommandPreviewer;
+use command::CommandPreviewerConfig;
 use devicons::FileIcon;
 use television_channels::entry::{Entry, PreviewType};
 
 pub mod basic;
 pub mod cache;
-pub mod directory;
+pub mod command;
 pub mod env;
 pub mod files;
 pub mod meta;
@@ -13,8 +15,6 @@ pub mod meta;
 // previewer types
 pub use basic::BasicPreviewer;
 pub use basic::BasicPreviewerConfig;
-pub use directory::DirectoryPreviewer;
-pub use directory::DirectoryPreviewerConfig;
 pub use env::EnvVarPreviewer;
 pub use env::EnvVarPreviewerConfig;
 pub use files::FilePreviewer;
@@ -32,6 +32,7 @@ pub enum PreviewContent {
     NotSupported,
     PlainText(Vec<String>),
     PlainTextWrapped(String),
+    AnsiText(String),
 }
 
 pub const PREVIEW_NOT_SUPPORTED_MSG: &str =
@@ -81,6 +82,9 @@ impl Preview {
             PreviewContent::PlainText(lines) => {
                 lines.len().try_into().unwrap_or(u16::MAX)
             }
+            PreviewContent::AnsiText(text) => {
+                text.lines().count().try_into().unwrap_or(u16::MAX)
+            }
             _ => 0,
         }
     }
@@ -89,27 +93,22 @@ impl Preview {
 #[derive(Debug, Default)]
 pub struct Previewer {
     basic: BasicPreviewer,
-    directory: DirectoryPreviewer,
     file: FilePreviewer,
     env_var: EnvVarPreviewer,
+    command: CommandPreviewer,
 }
 
 #[derive(Debug, Default)]
 pub struct PreviewerConfig {
     basic: BasicPreviewerConfig,
-    directory: DirectoryPreviewerConfig,
     file: FilePreviewerConfig,
     env_var: EnvVarPreviewerConfig,
+    command: CommandPreviewerConfig,
 }
 
 impl PreviewerConfig {
     pub fn basic(mut self, config: BasicPreviewerConfig) -> Self {
         self.basic = config;
-        self
-    }
-
-    pub fn directory(mut self, config: DirectoryPreviewerConfig) -> Self {
-        self.directory = config;
         self
     }
 
@@ -129,24 +128,23 @@ impl Previewer {
         let config = config.unwrap_or_default();
         Previewer {
             basic: BasicPreviewer::new(Some(config.basic)),
-            directory: DirectoryPreviewer::new(Some(config.directory)),
             file: FilePreviewer::new(Some(config.file)),
             env_var: EnvVarPreviewer::new(Some(config.env_var)),
+            command: CommandPreviewer::new(Some(config.command)),
         }
     }
 
     pub fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
-        match entry.preview_type {
+        match &entry.preview_type {
             PreviewType::Basic => self.basic.preview(entry),
-            PreviewType::Directory => self.directory.preview(entry),
             PreviewType::EnvVar => self.env_var.preview(entry),
             PreviewType::Files => self.file.preview(entry),
+            PreviewType::Command(cmd) => self.command.preview(entry, cmd),
         }
     }
 
     pub fn set_config(&mut self, config: PreviewerConfig) {
         self.basic = BasicPreviewer::new(Some(config.basic));
-        self.directory = DirectoryPreviewer::new(Some(config.directory));
         self.file = FilePreviewer::new(Some(config.file));
         self.env_var = EnvVarPreviewer::new(Some(config.env_var));
     }
