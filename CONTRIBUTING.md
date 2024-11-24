@@ -5,7 +5,7 @@ reports, documentation improvements, feature requests, or pull requests.
 
 Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a positive experience for everyone involved.
 
-If you're not sure where to start, take a look at the [hot topics](#hot-topics) section for some ideas on what you could work on.
+If you're not sure where to start, take a look at the [Hot Topics](#hot-topics) section for some ideas on what you could work on.
 
 ## Table of Contents
 - [Getting started](#getting-started)
