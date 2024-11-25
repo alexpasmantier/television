@@ -1,5 +1,8 @@
+use std::fmt::Display;
+
 use ratatui::layout;
 use ratatui::layout::{Constraint, Direction, Rect};
+use serde::Deserialize;
 
 pub struct Dimensions {
     pub x: u16,
@@ -41,6 +44,24 @@ impl HelpBarLayout {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Default)]
+pub enum InputPosition {
+    #[serde(rename = "top")]
+    Top,
+    #[serde(rename = "bottom")]
+    #[default]
+    Bottom,
+}
+
+impl Display for InputPosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            InputPosition::Top => write!(f, "top"),
+            InputPosition::Bottom => write!(f, "bottom"),
+        }
+    }
+}
+
 pub struct Layout {
     pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
@@ -75,6 +96,7 @@ impl Layout {
         area: Rect,
         with_remote: bool,
         with_help_bar: bool,
+        input_position: InputPosition,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
@@ -127,23 +149,47 @@ impl Layout {
             .split(main_rect);
 
         // left block: results + input field
+        let results_constraints =
+            vec![Constraint::Min(3), Constraint::Length(3)];
+
         let left_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Length(3)])
+            .constraints(match input_position {
+                InputPosition::Top => {
+                    results_constraints.into_iter().rev().collect()
+                }
+                InputPosition::Bottom => results_constraints,
+            })
             .split(vt_chunks[0]);
+        let (input, results) = match input_position {
+            InputPosition::Bottom => (left_chunks[1], left_chunks[0]),
+            InputPosition::Top => (left_chunks[0], left_chunks[1]),
+        };
 
         // right block: preview title + preview
+        let preview_constraints =
+            vec![Constraint::Length(3), Constraint::Min(3)];
+
         let right_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Min(3)])
+            .constraints(match input_position {
+                InputPosition::Top => {
+                    preview_constraints.into_iter().rev().collect()
+                }
+                InputPosition::Bottom => preview_constraints,
+            })
             .split(vt_chunks[1]);
+        let (preview_title, preview_window) = match input_position {
+            InputPosition::Bottom => (right_chunks[0], right_chunks[1]),
+            InputPosition::Top => (right_chunks[1], right_chunks[0]),
+        };
 
         Self::new(
             help_bar_layout,
-            left_chunks[0],
-            left_chunks[1],
-            right_chunks[0],
-            right_chunks[1],
+            results,
+            input,
+            preview_title,
+            preview_window,
             if with_remote {
                 Some(vt_chunks[2])
             } else {

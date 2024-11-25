@@ -25,6 +25,8 @@ use_nerd_font_icons = false
 ui_scale = 100
 # Whether to show the top help bar in the UI
 show_help_bar = true
+# Where to place the input bar in the UI (top or bottom)
+input_bar_position = "bottom"
 
 # Previewers settings
 # ----------------------------------------------------------------------------

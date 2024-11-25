@@ -59,8 +59,6 @@ impl Keymap {
 
 /// The main application struct that holds the state of the application.
 pub struct App {
-    /// The configuration of the application.
-    config: Config,
     keymap: Keymap,
     // maybe move these two into config instead of passing them
     // via the cli?
@@ -123,13 +121,12 @@ impl App {
         channel: TelevisionChannel,
         tick_rate: f64,
         frame_rate: f64,
-        passthrough_keybindings: Vec<String>,
+        passthrough_keybindings: &[String],
     ) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, _) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let television = Arc::new(Mutex::new(Television::new(channel)));
         let config = Config::new()?;
         let keymap = Keymap::from(&config.keybindings).with_mode_mappings(
             Mode::Channel,
@@ -142,9 +139,10 @@ impl App {
                 .collect(),
         )?;
         debug!("{:?}", keymap);
+        let television =
+            Arc::new(Mutex::new(Television::new(channel, config.clone())));
 
         Ok(Self {
-            config,
             keymap,
             tick_rate,
             frame_rate,
@@ -184,14 +182,12 @@ impl App {
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         self.render_tx = render_tx.clone();
         let action_tx_r = self.action_tx.clone();
-        let config_r = self.config.clone();
         let television_r = self.television.clone();
         let frame_rate = self.frame_rate;
         let rendering_task = tokio::spawn(async move {
             render(
                 render_rx,
                 action_tx_r,
-                config_r,
                 television_r,
                 frame_rate,
                 is_output_tty,

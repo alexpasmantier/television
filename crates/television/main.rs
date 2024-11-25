@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
         },
         args.tick_rate,
         args.frame_rate,
-        args.passthrough_keybindings,
+        &args.passthrough_keybindings,
     ) {
         Ok(mut app) => {
             stdout().flush()?;

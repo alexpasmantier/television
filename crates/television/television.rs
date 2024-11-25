@@ -1,7 +1,7 @@
 use crate::app::Keymap;
 use crate::picker::Picker;
 use crate::ui::input::actions::InputActionHandler;
-use crate::ui::layout::{Dimensions, Layout};
+use crate::ui::layout::{Dimensions, InputPosition, Layout};
 use crate::ui::spinner::Spinner;
 use crate::ui::spinner::SpinnerState;
 use crate::{action::Action, config::Config};
@@ -14,7 +14,6 @@ use television_channels::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
 };
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
-use television_previewers::previewers;
 use television_previewers::previewers::Previewer;
 use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
@@ -54,23 +53,30 @@ pub struct Television {
 
 impl Television {
     #[must_use]
-    pub fn new(mut channel: TelevisionChannel) -> Self {
+    pub fn new(mut channel: TelevisionChannel, config: Config) -> Self {
+        let results_picker = match config.ui.input_bar_position {
+            InputPosition::Bottom => Picker::default().inverted(),
+            InputPosition::Top => Picker::default(),
+        };
+        let previewer = Previewer::new(Some(config.previewers.clone().into()));
+        let keymap = Keymap::from(&config.keybindings);
+
         channel.find(EMPTY_STRING);
         let spinner = Spinner::default();
         Self {
             action_tx: None,
-            config: Config::default(),
-            keymap: Keymap::default(),
+            config,
+            keymap,
             channel,
             remote_control: TelevisionChannel::RemoteControl(
                 RemoteControl::default(),
             ),
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
-            results_picker: Picker::default().inverted(),
+            results_picker,
             rc_picker: Picker::default(),
             results_area_height: 0,
-            previewer: Previewer::default(),
+            previewer,
             preview_scroll: None,
             preview_pane_height: 0,
             current_preview_total_lines: 0,
@@ -217,24 +223,6 @@ impl Television {
         tx: UnboundedSender<Action>,
     ) -> Result<()> {
         self.action_tx = Some(tx.clone());
-        Ok(())
-    }
-
-    /// Register a configuration handler that provides configuration settings if necessary.
-    ///
-    /// # Arguments
-    /// * `config` - Configuration settings.
-    ///
-    /// # Returns
-    /// * `Result<()>` - An Ok result or an error.
-    pub fn register_config_handler(&mut self, config: Config) -> Result<()> {
-        self.config = config;
-        self.keymap = Keymap::from(&self.config.keybindings);
-        let previewer_config =
-            std::convert::Into::<previewers::PreviewerConfig>::into(
-                self.config.previewers.clone(),
-            );
-        self.previewer.set_config(previewer_config);
         Ok(())
     }
 
@@ -388,33 +376,34 @@ impl Television {
             area,
             !matches!(self.mode, Mode::Channel),
             self.config.ui.show_help_bar,
+            self.config.ui.input_bar_position,
         );
 
         // help bar (metadata, keymaps, logo)
-        self.draw_help_bar(f, &layout)?;
+        self.draw_help_bar(f, &layout.help_bar)?;
 
         self.results_area_height = u32::from(layout.results.height - 2); // 2 for the borders
         self.preview_pane_height = layout.preview_window.height;
 
-        // top left block: results
-        self.draw_results_list(f, &layout)?;
+        // results list
+        self.draw_results_list(f, layout.results)?;
 
-        // bottom left block: input
-        self.draw_input_box(f, &layout)?;
+        // input box
+        self.draw_input_box(f, layout.input)?;
 
         let selected_entry = self
             .get_selected_entry(Some(Mode::Channel))
             .unwrap_or(ENTRY_PLACEHOLDER);
         let preview = self.previewer.preview(&selected_entry);
 
-        // top right block: preview title
+        // preview title
         self.current_preview_total_lines = preview.total_lines();
-        self.draw_preview_title_block(f, &layout, &preview)?;
+        self.draw_preview_title_block(f, layout.preview_title, &preview)?;
 
-        // bottom right block: preview content
+        // preview content
         self.draw_preview_content_block(
             f,
-            &layout,
+            layout.preview_window,
             selected_entry
                 .line_number
                 .map(|l| u16::try_from(l).unwrap_or(0)),
@@ -423,7 +412,7 @@ impl Television {
 
         // remote control
         if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {
-            self.draw_remote_control(f, &layout.remote_control.unwrap())?;
+            self.draw_remote_control(f, layout.remote_control.unwrap())?;
         }
         Ok(())
     }

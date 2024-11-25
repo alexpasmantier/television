@@ -1,5 +1,4 @@
 use crate::television::Television;
-use crate::ui::layout::Layout;
 use crate::ui::BORDER_COLOR;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -26,7 +25,7 @@ impl Television {
     pub(crate) fn draw_preview_title_block(
         &self,
         f: &mut Frame,
-        layout: &Layout,
+        rect: Rect,
         preview: &Arc<Preview>,
     ) -> Result<()> {
         let mut preview_title_spans = Vec::new();
@@ -44,7 +43,7 @@ impl Television {
         preview_title_spans.push(Span::styled(
             shrink_with_ellipsis(
                 &preview.title,
-                layout.preview_window.width.saturating_sub(4) as usize,
+                rect.width.saturating_sub(4) as usize,
             ),
             Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
         ));
@@ -57,14 +56,14 @@ impl Television {
                     .border_style(Style::default().fg(BORDER_COLOR)),
             )
             .alignment(Alignment::Left);
-        f.render_widget(preview_title, layout.preview_title);
+        f.render_widget(preview_title, rect);
         Ok(())
     }
 
     pub(crate) fn draw_preview_content_block(
         &mut self,
         f: &mut Frame,
-        layout: &Layout,
+        rect: Rect,
         target_line: Option<u16>,
         preview: &Arc<Preview>,
     ) {
@@ -83,8 +82,8 @@ impl Television {
                 bottom: 0,
                 left: 1,
             });
-        let inner = preview_outer_block.inner(layout.preview_window);
-        f.render_widget(preview_outer_block, layout.preview_window);
+        let inner = preview_outer_block.inner(rect);
+        f.render_widget(preview_outer_block, rect);
 
         //if let PreviewContent::Image(img) = &preview.content {
         //    let image_component = StatefulImage::new(None);
