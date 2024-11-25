@@ -12,7 +12,7 @@ use tokio::{
 };
 
 use crate::television::Television;
-use crate::{action::Action, config::Config, tui::Tui};
+use crate::{action::Action, tui::Tui};
 
 #[derive(Debug)]
 pub enum RenderingTask {
@@ -42,7 +42,6 @@ impl IoStream {
 pub async fn render(
     mut render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     action_tx: mpsc::UnboundedSender<Action>,
-    config: Config,
     television: Arc<Mutex<Television>>,
     frame_rate: f64,
     is_output_tty: bool,
@@ -59,15 +58,11 @@ pub async fn render(
     debug!("Entering tui");
     tui.enter()?;
 
-    debug!("Registering action handler and config handler");
+    debug!("Registering action handler");
     television
         .lock()
         .await
         .register_action_handler(action_tx.clone())?;
-    television
-        .lock()
-        .await
-        .register_config_handler(config.clone())?;
 
     // Rendering loop
     loop {

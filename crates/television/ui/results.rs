@@ -1,8 +1,8 @@
 use crate::television::Television;
-use crate::ui::layout::Layout;
+use crate::ui::layout::InputPosition;
 use crate::ui::BORDER_COLOR;
 use color_eyre::eyre::Result;
-use ratatui::layout::Alignment;
+use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, Padding,
@@ -164,7 +164,7 @@ impl Television {
     pub(crate) fn draw_results_list(
         &mut self,
         f: &mut Frame,
-        layout: &Layout,
+        rect: Rect,
     ) -> Result<()> {
         let results_block = Block::default()
             .title_top(Line::from(" Results ").alignment(Alignment::Center))
@@ -181,21 +181,24 @@ impl Television {
         }
 
         let entries = self.channel.results(
-            layout.results.height.saturating_sub(2).into(),
+            rect.height.saturating_sub(2).into(),
             u32::try_from(self.results_picker.offset())?,
         );
 
         let results_list = build_results_list(
             results_block,
             &entries,
-            ListDirection::BottomToTop,
+            match self.config.ui.input_bar_position {
+                InputPosition::Bottom => ListDirection::BottomToTop,
+                InputPosition::Top => ListDirection::TopToBottom,
+            },
             None,
             self.config.ui.use_nerd_font_icons,
         );
 
         f.render_stateful_widget(
             results_list,
-            layout.results,
+            rect,
             &mut self.results_picker.relative_state,
         );
         Ok(())

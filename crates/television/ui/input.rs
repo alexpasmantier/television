@@ -1,9 +1,8 @@
 use crate::television::Television;
-use crate::ui::layout::Layout;
 use crate::ui::BORDER_COLOR;
 use color_eyre::eyre::Result;
 use ratatui::layout::{
-    Alignment, Constraint, Direction, Layout as RatatuiLayout,
+    Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
 };
 use ratatui::prelude::{Span, Style};
 use ratatui::style::Stylize;
@@ -416,7 +415,7 @@ impl Television {
     pub(crate) fn draw_input_box(
         &mut self,
         f: &mut Frame,
-        layout: &Layout,
+        rect: Rect,
     ) -> Result<()> {
         let input_block = Block::default()
             .title_top(Line::from(" Pattern ").alignment(Alignment::Center))
@@ -425,12 +424,12 @@ impl Television {
             .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default());
 
-        let input_block_inner = input_block.inner(layout.input);
+        let input_block_inner = input_block.inner(rect);
         if input_block_inner.area() == 0 {
             return Ok(());
         }
 
-        f.render_widget(input_block, layout.input);
+        f.render_widget(input_block, rect);
 
         // split input block into 4 parts: prompt symbol, input, result count, spinner
         let total_count = self.channel.total_count();

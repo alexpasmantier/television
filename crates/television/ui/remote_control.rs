@@ -18,7 +18,7 @@ impl Television {
     pub fn draw_remote_control(
         &mut self,
         f: &mut Frame,
-        area: &Rect,
+        rect: Rect,
     ) -> Result<()> {
         let layout = Layout::default()
             .direction(Direction::Vertical)
@@ -30,7 +30,7 @@ impl Television {
                 ]
                 .as_ref(),
             )
-            .split(*area);
+            .split(rect);
         self.draw_rc_channels(f, &layout[0])?;
         self.draw_rc_input(f, &layout[1])?;
         draw_rc_logo(f, layout[2], mode_color(self.mode));
