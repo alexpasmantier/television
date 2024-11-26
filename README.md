@@ -22,41 +22,70 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 
 ## Installation
-#### MacOS
-```bash
-brew install alexpasmantier/television/television
-```
+<details>  
+<summary>MacOS</summary>
+    
+  ```bash
+  brew install alexpasmantier/television/television
+  ```
 
-#### Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
-```bash
-curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.2/television_0.5.2-1_amd64.deb
-sudo dpkg -i television_0.5.2-1_amd64.deb
-```
-#### Arch Linux
-```bash
-pacman -S television
-```
+</details>
+<details>
+  <summary>
+    Arch Linux
+  </summary>
 
-#### Cross-Platform from `conda-forge`
-```bash
-pixi global install television
-```
+  ```bash
+  pacman -S television
+  ```
 
-#### Binary ([latest release](https://github.com/alexpasmantier/television/releases/latest))
-- Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
-- Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
+</details>
+<details>
+  <summary>
+    Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
+  </summary>
+    
+  ```bash
+  curl -LO https://github.com/alexpasmantier/television/releases/download/0.5.2/television_0.5.2-1_amd64.deb
+  sudo dpkg -i television_0.5.2-1_amd64.deb
+  ```
+    
+</details>
+<details>
+  <summary>
+    Conda-forge (cross-platform)
+  </summary>
+  
+  ```bash
+  pixi global install television
+  ```
+</details>
+<details>
+  <summary>
+    Binary
+  </summary>
+  
+  From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page:
+  - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
+  - Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
 
+</details>
+<details>
+  <summary>
+    Cargo
+  </summary>
 
-#### From source using `cargo`:
-Setup the latest stable Rust toolchain via rustup:
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-rustup update
-```
-Install `television`:
-```bash
-cargo install --locked television
-```
+  Setup the latest stable Rust toolchain via rustup:
+  ```bash
+  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+  rustup update
+  ```
+  Install `television`:
+  ```bash
+  cargo install --locked television
+  ```
+</details>
+
 ## Usage
 ```bash
 tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
