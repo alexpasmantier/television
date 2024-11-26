@@ -1,34 +1,28 @@
-use std::io::BufRead;
-use std::path::Path;
+use std::{
+    io::{stdin, BufRead},
+    path::Path,
+    thread::spawn,
+};
 
 use devicons::FileIcon;
+use tracing::debug;
 
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
-use television_fuzzy::matcher::{config::Config, Matcher};
+use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,
     icon: FileIcon,
 }
 
-const NUM_THREADS: usize = 2;
-
 impl Channel {
     pub fn new() -> Self {
-        let mut lines = Vec::new();
-        for line in std::io::stdin().lock().lines().map_while(Result::ok) {
-            if !line.trim().is_empty() {
-                lines.push(line);
-            }
-        }
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
-        for line in lines.iter().rev() {
-            let () = injector.push(line.clone(), |e, cols| {
-                cols[0] = e.clone().into();
-            });
-        }
+
+        spawn(move || stream_from_stdin(injector.clone()));
+
         Self {
             matcher,
             icon: FileIcon::from("nu"),
@@ -39,6 +33,37 @@ impl Channel {
 impl Default for Channel {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
+
+fn stream_from_stdin(injector: Injector<String>) {
+    let mut stdin = stdin().lock();
+    let mut buffer = String::new();
+
+    let instant = std::time::Instant::now();
+    loop {
+        match stdin.read_line(&mut buffer) {
+            Ok(c) if c > 0 => {
+                if !buffer.trim().is_empty() {
+                    injector.push(buffer.clone(), |e, cols| {
+                        cols[0] = e.clone().into();
+                    });
+                }
+                buffer.clear();
+            }
+            Ok(0) => {
+                debug!("EOF");
+                break;
+            }
+            _ => {
+                debug!("Error reading from stdin");
+                if instant.elapsed() > TIMEOUT {
+                    break;
+                }
+            }
+        }
     }
 }
 
