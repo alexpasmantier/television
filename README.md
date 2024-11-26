@@ -37,6 +37,11 @@ sudo dpkg -i television_0.5.2-1_amd64.deb
 pacman -S television
 ```
 
+#### Cross-Platform from `conda-forge`
+```bash
+pixi global install television
+```
+
 #### Binary ([latest release](https://github.com/alexpasmantier/television/releases/latest))
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
 - Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
