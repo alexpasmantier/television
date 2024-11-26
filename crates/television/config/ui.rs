@@ -11,6 +11,7 @@ pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
     pub show_help_bar: bool,
+    #[serde(default)]
     pub input_bar_position: InputPosition,
 }
 

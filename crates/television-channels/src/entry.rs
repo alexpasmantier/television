@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use devicons::FileIcon;
 
 // NOTE: having an enum for entry types would be nice since it would allow
@@ -92,7 +94,9 @@ impl Entry {
 
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
-        if repr.contains(|c| char::is_ascii_whitespace(&c)) {
+        if PathBuf::from(&repr).exists()
+            && repr.contains(|c| char::is_ascii_whitespace(&c))
+        {
             repr.insert(0, '\'');
             repr.push('\'');
         }
