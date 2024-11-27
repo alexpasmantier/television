@@ -140,7 +140,7 @@ impl App {
         )?;
         debug!("{:?}", keymap);
         let television =
-            Arc::new(Mutex::new(Television::new(channel, config.clone())));
+            Arc::new(Mutex::new(Television::new(channel, config)));
 
         Ok(Self {
             keymap,

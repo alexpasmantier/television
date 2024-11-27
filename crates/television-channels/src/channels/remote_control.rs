@@ -57,7 +57,7 @@ impl OnAir for RemoteControl {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path.clone(), PreviewType::Basic)
+                Entry::new(path, PreviewType::Basic)
                     .with_name_match_ranges(item.match_indices)
                     .with_icon(TV_ICON)
             })
@@ -67,7 +67,7 @@ impl OnAir for RemoteControl {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path.clone(), PreviewType::Basic).with_icon(TV_ICON)
+            Entry::new(path, PreviewType::Basic).with_icon(TV_ICON)
         })
     }
 

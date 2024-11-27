@@ -134,7 +134,7 @@ impl PreviewCache {
     /// If the key is already in the cache, the preview will be updated.
     pub fn insert(&mut self, key: String, preview: Arc<Preview>) {
         debug!("Inserting preview into cache: {}", key);
-        self.entries.insert(key.clone(), preview.clone());
+        self.entries.insert(key.clone(), preview);
         if let Some(oldest_key) = self.ring_set.push(key) {
             debug!("Cache full, removing oldest entry: {}", oldest_key);
             self.entries.remove(&oldest_key);

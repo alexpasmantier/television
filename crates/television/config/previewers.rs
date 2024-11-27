@@ -18,7 +18,7 @@ pub struct PreviewersConfig {
 impl From<PreviewersConfig> for PreviewerConfig {
     fn from(val: PreviewersConfig) -> Self {
         PreviewerConfig::default()
-            .file(previewers::FilePreviewerConfig::new(val.file.theme.clone()))
+            .file(previewers::FilePreviewerConfig::new(val.file.theme))
     }
 }
 

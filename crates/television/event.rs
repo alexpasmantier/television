@@ -152,7 +152,6 @@ async fn poll_event(timeout: Duration) -> bool {
 impl EventLoop {
     pub fn new(tick_rate: f64, init: bool) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        let tx_c = tx.clone();
         let tick_interval = Duration::from_secs_f64(1.0 / tick_rate);
 
         let (abort, mut abort_recv) = mpsc::unbounded_channel();
@@ -168,32 +167,32 @@ impl EventLoop {
                     tokio::select! {
                         // if we receive a message on the abort channel, stop the event loop
                         _ = abort_recv.recv() => {
-                            tx_c.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
-                            tx_c.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                            tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
+                            tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
                             break;
                         },
                         // if `delay` completes, pass to the next event "frame"
                         () = delay => {
-                            tx_c.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                            tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
                         },
                         // if the receiver dropped the channel, stop the event loop
-                        () = tx_c.closed() => break,
+                        () = tx.closed() => break,
                         // if an event was received, process it
                         _ = event_available => {
                             let maybe_event = crossterm::event::read();
                             match maybe_event {
                                 Ok(crossterm::event::Event::Key(key)) => {
                                     let key = convert_raw_event_to_key(key);
-                                    tx_c.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
+                                    tx.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
                                 },
                                 Ok(crossterm::event::Event::FocusLost) => {
-                                    tx_c.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
+                                    tx.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
                                 },
                                 Ok(crossterm::event::Event::FocusGained) => {
-                                    tx_c.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
+                                    tx.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
                                 },
                                 Ok(crossterm::event::Event::Resize(x, y)) => {
-                                    tx_c.send(Event::Resize(x, y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
+                                    tx.send(Event::Resize(x, y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
                                 },
                                 _ => {}
                             }

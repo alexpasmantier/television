@@ -85,7 +85,7 @@ impl OnAir for Channel {
 
                 let mut entry =
                     Entry::new(item.inner.name.clone(), PreviewType::EnvVar)
-                        .with_value(item.inner.value.clone())
+                        .with_value(item.inner.value)
                         .with_icon(self.file_icon);
 
                 if should_add_name_indices {
@@ -111,7 +111,7 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             Entry::new(item.inner.name.clone(), PreviewType::EnvVar)
-                .with_value(item.inner.value.clone())
+                .with_value(item.inner.value)
                 .with_icon(self.file_icon)
         })
     }

@@ -40,7 +40,7 @@ impl DirectoryPreviewer {
         let cache = self.cache.clone();
         tokio::spawn(async move {
             let preview = Arc::new(build_tree_preview(&entry_c));
-            cache.lock().insert(entry_c.name.clone(), preview.clone());
+            cache.lock().insert(entry_c.name.clone(), preview);
         });
         preview
     }

@@ -168,7 +168,7 @@ impl OnAir for Channel {
                 let line = item.matched_string;
                 let display_path =
                     item.inner.path.to_string_lossy().to_string();
-                Entry::new(display_path.clone(), PreviewType::Files)
+                Entry::new(display_path, PreviewType::Files)
                     .with_value(line)
                     .with_value_match_ranges(item.match_indices)
                     .with_icon(FileIcon::from(item.inner.path.as_path()))
@@ -180,7 +180,7 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let display_path = item.inner.path.to_string_lossy().to_string();
-            Entry::new(display_path.clone(), PreviewType::Files)
+            Entry::new(display_path, PreviewType::Files)
                 .with_icon(FileIcon::from(item.inner.path.as_path()))
                 .with_line_number(item.inner.line_number)
         })
