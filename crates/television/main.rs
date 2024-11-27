@@ -1,4 +1,5 @@
 use std::io::{stdout, IsTerminal, Write};
+use std::process::exit;
 
 use clap::Parser;
 use cli::PostProcessedCli;
@@ -57,11 +58,11 @@ async fn main() -> Result<()> {
             if let Some(entry) = output.selected_entry {
                 writeln!(stdout(), "{}", entry.stdout_repr())?;
             }
-            Ok(())
+            exit(0);
         }
         Err(err) => {
             println!("{err:?}");
-            return Ok(());
+            exit(1);
         }
     }
 }
