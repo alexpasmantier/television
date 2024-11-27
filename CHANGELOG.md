@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚀 Features
+
+- *(layout)* Allow reversing the layout and placing input bar on top (#76)
+
+### 🐛 Bug Fixes
+
+- *(output)* Quote output string when it contains spaces and points to an existing path (#77)
+- *(stdin)* Better handling of long running stdin streams (#81)
+
+### 🚜 Refactor
+
+- *(exit)* Use std::process::exit explicitly (#84)
+
+### 📚 Documentation
+
+- *(install)* Update the installation section of the README (#79)
+
+### ⚡ Performance
+
+- Remove unnecessary clone() calls (#83)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#74)
+
 ## [0.5.3] - 2024-11-24
 
 ### 🚀 Features
