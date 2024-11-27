@@ -172,7 +172,7 @@ impl App {
     /// # Errors
     /// If an error occurs during the execution of the application.
     pub async fn run(&mut self, is_output_tty: bool) -> Result<AppOutput> {
-        info!("Starting backend event loop");
+        debug!("Starting backend event loop");
         let event_loop = EventLoop::new(self.tick_rate, true);
         self.event_rx = event_loop.rx;
         self.event_abort_tx = event_loop.abort_tx;

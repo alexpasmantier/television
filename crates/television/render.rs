@@ -111,6 +111,7 @@ pub async fn render(
                             tui.enter()?;
                         }
                         RenderingTask::Quit => {
+                            debug!("Exiting rendering loop");
                             tui.exit()?;
                             break Ok(());
                         }
