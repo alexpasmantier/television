@@ -46,7 +46,7 @@ pub struct Config {
 
 lazy_static! {
     pub static ref PROJECT_NAME: String = String::from("television");
-    pub static ref PROJECT_NAME_UPPER: String = PROJECT_NAME.to_uppercase().to_string();
+    pub static ref PROJECT_NAME_UPPER: String = PROJECT_NAME.to_uppercase();
     pub static ref DATA_FOLDER: Option<PathBuf> =
         // if `TELEVISION_DATA` is set, use that as the data directory
         env::var_os(format!("{}_DATA", PROJECT_NAME_UPPER.clone())).map(PathBuf::from).or_else(|| {

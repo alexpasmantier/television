@@ -50,7 +50,7 @@ impl OnAir for Channel {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path.clone(), PreviewType::Directory)
+                Entry::new(path, PreviewType::Directory)
                     .with_name_match_ranges(item.match_indices)
                     .with_icon(self.icon)
             })
@@ -60,8 +60,7 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path.clone(), PreviewType::Directory)
-                .with_icon(self.icon)
+            Entry::new(path, PreviewType::Directory).with_icon(self.icon)
         })
     }
 

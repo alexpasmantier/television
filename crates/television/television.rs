@@ -222,7 +222,7 @@ impl Television {
         &mut self,
         tx: UnboundedSender<Action>,
     ) -> Result<()> {
-        self.action_tx = Some(tx.clone());
+        self.action_tx = Some(tx);
         Ok(())
     }
 

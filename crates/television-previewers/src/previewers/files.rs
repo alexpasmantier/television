@@ -86,7 +86,7 @@ impl FilePreviewer {
 
         // do we have a preview in cache for that entry?
         if let Some(preview) = self.cache.lock().get(&entry.name) {
-            return preview.clone();
+            return preview;
         }
         debug!("No preview in cache for {:?}", entry.name);
 
@@ -99,7 +99,7 @@ impl FilePreviewer {
             let entry_c = entry.clone();
             let syntax_set = self.syntax_set.clone();
             let syntax_theme = self.syntax_theme.clone();
-            let path = path_buf.clone();
+            let path = path_buf;
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
             let last_previewed = self.last_previewed.clone();
             tokio::spawn(async move {
@@ -161,7 +161,7 @@ pub fn try_preview(
         if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
             debug!("File too large: {:?}", entry.name);
             let preview = meta::file_too_large(&entry.name);
-            cache.lock().insert(entry.name.clone(), preview.clone());
+            cache.lock().insert(entry.name.clone(), preview);
         }
 
         if matches!(FileType::from(&path), FileType::Text) {
@@ -184,13 +184,13 @@ pub fn try_preview(
                 Err(e) => {
                     warn!("Error opening file: {:?}", e);
                     let p = meta::not_supported(&entry.name);
-                    cache.lock().insert(entry.name.clone(), p.clone());
+                    cache.lock().insert(entry.name.clone(), p);
                 }
             }
         } else {
             debug!("File isn't text-based: {:?}", entry.name);
             let preview = meta::not_supported(&entry.name);
-            cache.lock().insert(entry.name.clone(), preview.clone());
+            cache.lock().insert(entry.name.clone(), preview);
         }
         concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
     });
