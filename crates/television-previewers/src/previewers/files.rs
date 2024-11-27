@@ -104,13 +104,13 @@ impl FilePreviewer {
             let last_previewed = self.last_previewed.clone();
             tokio::spawn(async move {
                 try_preview(
-                    entry_c,
-                    path,
-                    cache,
-                    syntax_set,
-                    syntax_theme,
-                    concurrent_tasks,
-                    last_previewed,
+                    &entry_c,
+                    &path,
+                    &cache,
+                    &syntax_set,
+                    &syntax_theme,
+                    &concurrent_tasks,
+                    &last_previewed,
                 );
             });
         }
@@ -147,53 +147,51 @@ impl FilePreviewer {
 }
 
 pub fn try_preview(
-    entry: entry::Entry,
-    path: PathBuf,
-    cache: Arc<Mutex<PreviewCache>>,
-    syntax_set: Arc<SyntaxSet>,
-    syntax_theme: Arc<Theme>,
-    concurrent_tasks: Arc<AtomicU8>,
-    last_previewed: Arc<Mutex<Arc<Preview>>>,
+    entry: &entry::Entry,
+    path: &PathBuf,
+    cache: &Arc<Mutex<PreviewCache>>,
+    syntax_set: &Arc<SyntaxSet>,
+    syntax_theme: &Arc<Theme>,
+    concurrent_tasks: &Arc<AtomicU8>,
+    last_previewed: &Arc<Mutex<Arc<Preview>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
-    tokio::spawn(async move {
-        // check file size
-        if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
-            debug!("File too large: {:?}", entry.name);
-            let preview = meta::file_too_large(&entry.name);
-            cache.lock().insert(entry.name.clone(), preview);
-        }
+    // check file size
+    if get_file_size(path).map_or(false, |s| s > MAX_FILE_SIZE) {
+        debug!("File too large: {:?}", entry.name);
+        let preview = meta::file_too_large(&entry.name);
+        cache.lock().insert(entry.name.clone(), preview);
+    }
 
-        if matches!(FileType::from(&path), FileType::Text) {
-            debug!("File is text-based: {:?}", entry.name);
-            match File::open(&path) {
-                Ok(file) => {
-                    // compute the highlighted version in the background
-                    let mut reader = BufReader::new(file);
-                    reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                    let preview = compute_highlighted_text_preview(
-                        &entry,
-                        reader,
-                        &syntax_set,
-                        &syntax_theme,
-                    );
-                    cache.lock().insert(entry.name.clone(), preview.clone());
-                    let mut tp = last_previewed.lock();
-                    *tp = preview;
-                }
-                Err(e) => {
-                    warn!("Error opening file: {:?}", e);
-                    let p = meta::not_supported(&entry.name);
-                    cache.lock().insert(entry.name.clone(), p);
-                }
+    if matches!(FileType::from(&path), FileType::Text) {
+        debug!("File is text-based: {:?}", entry.name);
+        match File::open(path) {
+            Ok(file) => {
+                // compute the highlighted version in the background
+                let mut reader = BufReader::new(file);
+                reader.seek(std::io::SeekFrom::Start(0)).unwrap();
+                let preview = compute_highlighted_text_preview(
+                    entry,
+                    reader,
+                    syntax_set,
+                    syntax_theme,
+                );
+                cache.lock().insert(entry.name.clone(), preview.clone());
+                let mut tp = last_previewed.lock();
+                *tp = preview;
             }
-        } else {
-            debug!("File isn't text-based: {:?}", entry.name);
-            let preview = meta::not_supported(&entry.name);
-            cache.lock().insert(entry.name.clone(), preview);
+            Err(e) => {
+                warn!("Error opening file: {:?}", e);
+                let p = meta::not_supported(&entry.name);
+                cache.lock().insert(entry.name.clone(), p);
+            }
         }
-        concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
-    });
+    } else {
+        debug!("File isn't text-based: {:?}", entry.name);
+        let preview = meta::not_supported(&entry.name);
+        cache.lock().insert(entry.name.clone(), preview);
+    }
+    concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
 }
 
 fn compute_highlighted_text_preview(
