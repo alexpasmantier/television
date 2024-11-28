@@ -40,7 +40,7 @@ async fn main() -> Result<()> {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
                 TelevisionChannel::Stdin(StdinChannel::new(
-                    args.preview.map(PreviewType::Command),
+                    args.preview_command.map(PreviewType::Command),
                 ))
             } else {
                 debug!("Using {:?} channel", args.channel);

@@ -46,7 +46,7 @@ impl FilePreviewerConfig {
 /// 4 MB
 const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
-const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 2;
+const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 3;
 
 impl FilePreviewer {
     pub fn new(config: Option<FilePreviewerConfig>) -> Self {
@@ -204,7 +204,7 @@ fn compute_highlighted_text_preview(
     }
 }
 
-/// This should be enough to most standard terminal sizes
+/// This should be enough for most terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;
 
 #[allow(dead_code)]

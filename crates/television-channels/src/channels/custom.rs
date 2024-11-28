@@ -1,5 +1,5 @@
 use crate::channels::OnAir;
-use crate::entry::{Entry, PreviewType};
+use crate::entry::{Entry, PreviewCommand, PreviewType};
 use television_fuzzy::{
     matcher::{config::Config, injector::Injector},
     Matcher,
@@ -8,20 +8,24 @@ use television_fuzzy::{
 pub struct Channel {
     matcher: Matcher<String>,
     entries_command: String,
-    preview_command: String,
+    preview_command: PreviewCommand,
     name: String,
 }
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new("find . -type f", "bat -n --color=always {}", "Files")
+        Self::new(
+            "find . -type d",
+            PreviewCommand::new("bat -n --color=always {}", ":"),
+            "Files",
+        )
     }
 }
 
 impl Channel {
     pub fn new(
         entries_command: &str,
-        preview_command: &str,
+        preview_command: PreviewCommand,
         name: &str,
     ) -> Self {
         let matcher = Matcher::new(Config::default().n_threads(2));
@@ -30,7 +34,7 @@ impl Channel {
         Self {
             matcher,
             entries_command: entries_command.to_string(),
-            preview_command: preview_command.to_string(),
+            preview_command,
             name: name.to_string(),
         }
     }
@@ -53,8 +57,6 @@ async fn load_candidates(command: String, injector: Injector<String>) {
     }
 }
 
-const PREVIEW_COMMAND: &str = "bat -n --color=always {}";
-
 impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
@@ -69,7 +71,7 @@ impl OnAir for Channel {
                 let path = item.matched_string;
                 Entry::new(
                     path.clone(),
-                    PreviewType::Command(PREVIEW_COMMAND.to_string()),
+                    PreviewType::Command(self.preview_command.clone()),
                 )
                 .with_name_match_ranges(item.match_indices)
             })
@@ -81,7 +83,7 @@ impl OnAir for Channel {
             let path = item.matched_string;
             Entry::new(
                 path.clone(),
-                PreviewType::Command(PREVIEW_COMMAND.to_string()),
+                PreviewType::Command(self.preview_command.clone()),
             )
         })
     }

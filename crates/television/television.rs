@@ -8,10 +8,9 @@ use crate::ui::spinner::SpinnerState;
 use crate::{action::Action, config::Config};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use parking_lot::Mutex;
 use ratatui::{layout::Rect, style::Color, Frame};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use television_channels::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
 };

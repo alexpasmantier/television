@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use command::CommandPreviewer;
-use command::CommandPreviewerConfig;
 use devicons::FileIcon;
 use television_channels::entry::{Entry, PreviewType};
 
@@ -15,11 +13,12 @@ pub mod meta;
 // previewer types
 pub use basic::BasicPreviewer;
 pub use basic::BasicPreviewerConfig;
+pub use command::CommandPreviewer;
+pub use command::CommandPreviewerConfig;
 pub use env::EnvVarPreviewer;
 pub use env::EnvVarPreviewerConfig;
 pub use files::FilePreviewer;
 pub use files::FilePreviewerConfig;
-//use ratatui_image::protocol::StatefulProtocol;
 use syntect::highlighting::Style;
 
 #[derive(Clone, Debug)]
@@ -27,7 +26,6 @@ pub enum PreviewContent {
     Empty,
     FileTooLarge,
     SyntectHighlightedText(Vec<Vec<(Style, String)>>),
-    //Image(Box<dyn StatefulProtocol>),
     Loading,
     NotSupported,
     PlainText(Vec<String>),

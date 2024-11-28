@@ -76,7 +76,9 @@ impl OnAir for Channel {
             .results(num_entries, offset)
             .into_iter()
             .map(|item| {
-                Entry::new(item.matched_string, self.preview_type.clone())
+                // NOTE: we're passing `PreviewType::Basic` here just as a placeholder
+                // to avoid storing the preview command multiple times for each item.
+                Entry::new(item.matched_string, PreviewType::Basic)
                     .with_name_match_ranges(item.match_indices)
             })
             .collect()

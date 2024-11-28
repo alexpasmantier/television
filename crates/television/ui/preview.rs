@@ -89,12 +89,13 @@ impl Television {
 
         let target_line =
             entry.line_number.map(|l| u16::try_from(l).unwrap_or(0));
+        let cache_key = compute_cache_key(entry);
 
         self.maybe_init_preview_scroll(target_line, inner.height);
 
         // Check if the rendered preview content is already in the cache
         if let Some(preview_paragraph) =
-            self.rendered_preview_cache.lock().get(&preview.title)
+            self.rendered_preview_cache.lock().unwrap().get(&cache_key)
         {
             let p = preview_paragraph.as_ref().clone();
             f.render_widget(
@@ -113,7 +114,8 @@ impl Television {
         );
         self.rendered_preview_cache
             .lock()
-            .insert(preview.title.clone(), &Arc::new(rp.clone()));
+            .unwrap()
+            .insert(cache_key, &Arc::new(rp.clone()));
         f.render_widget(
             Arc::new(rp)
                 .as_ref()
@@ -127,6 +129,8 @@ impl Television {
     const FILL_CHAR_SLANTED: char = '╱';
     const FILL_CHAR_EMPTY: char = ' ';
 
+    // FIXME: I broke the previewer (srolling is not working as intended)
+    // and it looks like the previewer displays the wrong previews
     pub fn build_preview_paragraph(
         preview_block: Block,
         inner: Rect,
@@ -361,9 +365,6 @@ fn compute_paragraph_from_highlighted_lines(
         .iter()
         .enumerate()
         .map(|(i, l)| {
-            if i < scroll as usize {
-                return Line::from(Span::raw(EMPTY_STRING));
-            }
             let line_number =
                 build_line_number_span(i + 1).style(Style::default().fg(
                     if line_specifier.is_some()
@@ -428,4 +429,12 @@ fn convert_syn_color_to_ratatui_color(
     color: syntect::highlighting::Color,
 ) -> Color {
     Color::Rgb(color.r, color.g, color.b)
+}
+
+fn compute_cache_key(entry: &Entry) -> String {
+    let mut cache_key = entry.name.clone();
+    if let Some(line_number) = entry.line_number {
+        cache_key.push_str(&line_number.to_string());
+    }
+    cache_key
 }
