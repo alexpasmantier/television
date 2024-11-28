@@ -23,10 +23,10 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 ## Installation
 <details>  
-<summary>MacOS</summary>
+<summary>Homebrew</summary>
     
   ```bash
-  brew install alexpasmantier/television/television
+  brew install television
   ```
 
 </details>
