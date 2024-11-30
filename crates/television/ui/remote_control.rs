@@ -65,6 +65,7 @@ impl Television {
                     .result_name_fg(mode_color(self.mode)),
             ),
             self.config.ui.use_nerd_font_icons,
+            &mut self.icon_color_cache,
         );
 
         f.render_stateful_widget(

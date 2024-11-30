@@ -8,6 +8,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, Padding,
 };
 use ratatui::Frame;
+use std::collections::HashMap;
 use std::str::FromStr;
 use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
@@ -69,6 +70,7 @@ pub fn build_results_list<'a, 'b>(
     list_direction: ListDirection,
     results_list_colors: Option<ResultsListColors>,
     use_icons: bool,
+    icon_color_cache: &mut HashMap<String, Color>,
 ) -> List<'a>
 where
     'b: 'a,
@@ -79,10 +81,21 @@ where
         // optional icon
         if let Some(icon) = entry.icon.as_ref() {
             if use_icons {
-                spans.push(Span::styled(
-                    icon.to_string(),
-                    Style::default().fg(Color::from_str(icon.color).unwrap()),
-                ));
+                if let Some(icon_color) = icon_color_cache.get(icon.color) {
+                    spans.push(Span::styled(
+                        icon.to_string(),
+                        Style::default().fg(*icon_color),
+                    ));
+                } else {
+                    let icon_color = Color::from_str(icon.color).unwrap();
+                    icon_color_cache
+                        .insert(icon.color.to_string(), icon_color);
+                    spans.push(Span::styled(
+                        icon.to_string(),
+                        Style::default().fg(icon_color),
+                    ));
+                }
+
                 spans.push(Span::raw(" "));
             }
         }
@@ -194,6 +207,7 @@ impl Television {
             },
             None,
             self.config.ui.use_nerd_font_icons,
+            &mut self.icon_color_cache,
         );
 
         f.render_stateful_widget(
