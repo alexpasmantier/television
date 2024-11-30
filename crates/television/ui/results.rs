@@ -8,6 +8,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, Padding,
 };
 use ratatui::Frame;
+use std::collections::HashMap;
 use std::str::FromStr;
 use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
@@ -63,6 +64,19 @@ impl ResultsListColors {
     }
 }
 
+pub fn get_cached_color(
+    icon_color: &str,
+    color_cache: &mut HashMap<String, Color>,
+) -> Color {
+    if let Some(cached_value) = color_cache.get(icon_color) {
+        cached_value.clone()
+    } else {
+        let computed_value = Color::from_str(icon_color).unwrap();
+        color_cache.insert(icon_color.to_string(), computed_value.clone());
+        computed_value
+    }
+}
+
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
@@ -74,14 +88,18 @@ where
     'b: 'a,
 {
     let results_list_colors = results_list_colors.unwrap_or_default();
+    let mut color_cache: HashMap<String, Color> = HashMap::new();
+
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
         // optional icon
         if let Some(icon) = entry.icon.as_ref() {
             if use_icons {
+                let cached_color =
+                    get_cached_color(icon.color, &mut color_cache);
                 spans.push(Span::styled(
                     icon.to_string(),
-                    Style::default().fg(Color::from_str(icon.color).unwrap()),
+                    Style::default().fg(cached_color),
                 ));
                 spans.push(Span::raw(" "));
             }
