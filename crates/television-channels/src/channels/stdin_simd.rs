@@ -1,6 +1,5 @@
 use std::{
     io::{stdin, BufRead},
-    path::Path,
     thread::spawn,
 };
 
@@ -9,16 +8,16 @@ use tracing::debug;
 
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
-use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
+use television_fuzzy::{SimdInjector, SimdMatcher};
 
 pub struct Channel {
-    matcher: NucleoMatcher<String>,
+    matcher: SimdMatcher<String>,
     icon: FileIcon,
 }
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = NucleoMatcher::new(NucleoConfig::default());
+        let matcher = SimdMatcher::new(|s: &String| s.trim_end().to_string());
         let injector = matcher.injector();
 
         spawn(move || stream_from_stdin(injector.clone()));
@@ -38,7 +37,7 @@ impl Default for Channel {
 
 const TIMEOUT: std::time::Duration = std::time::Duration::from_secs(10);
 
-fn stream_from_stdin(injector: NucleoInjector<String>) {
+fn stream_from_stdin(injector: SimdInjector<String>) {
     let mut stdin = stdin().lock();
     let mut buffer = String::new();
 
@@ -47,9 +46,7 @@ fn stream_from_stdin(injector: NucleoInjector<String>) {
         match stdin.read_line(&mut buffer) {
             Ok(c) if c > 0 => {
                 if !buffer.trim().is_empty() {
-                    injector.push(buffer.clone(), |e, cols| {
-                        cols[0] = e.clone().into();
-                    });
+                    injector.push(buffer.clone());
                 }
                 buffer.clear();
             }
@@ -77,48 +74,30 @@ impl OnAir for Channel {
         self.matcher
             .results(num_entries, offset)
             .into_iter()
-            .map(|item| {
-                let path = Path::new(&item.matched_string);
-                let icon = if path.try_exists().unwrap_or(false) {
-                    FileIcon::from(path)
-                } else {
-                    self.icon
-                };
-                Entry::new(item.matched_string, PreviewType::Basic)
-                    .with_name_match_ranges(item.match_indices)
-                    .with_icon(icon)
+            .map(|s| {
+                Entry::new(s.inner, PreviewType::Basic)
+                    .with_icon(self.icon.clone())
+                    .with_name_match_ranges(s.match_indices)
             })
             .collect()
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
-        self.matcher.get_result(index).map(|item| {
-            let path = Path::new(&item.matched_string);
-            // if we recognize a file path, use a file icon
-            // and set the preview type to "Files"
-            if path.is_file() {
-                Entry::new(item.matched_string.clone(), PreviewType::Files)
-                    .with_icon(FileIcon::from(path))
-            } else if path.is_dir() {
-                Entry::new(item.matched_string.clone(), PreviewType::Directory)
-                    .with_icon(FileIcon::from(path))
-            } else {
-                Entry::new(item.matched_string.clone(), PreviewType::Basic)
-                    .with_icon(self.icon)
-            }
-        })
+        self.matcher
+            .get_result(index as usize)
+            .map(|s| Entry::new(s.clone(), PreviewType::Basic))
     }
 
     fn result_count(&self) -> u32 {
-        self.matcher.matched_item_count
+        self.matcher.result_count() as u32
     }
 
     fn total_count(&self) -> u32 {
-        self.matcher.total_item_count
+        self.matcher.total_count() as u32
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.running()
     }
 
     fn shutdown(&self) {}

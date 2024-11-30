@@ -1,0 +1,9 @@
+[package]
+name = "frizbee"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+crossbeam = "0.8.4"
+memchr = "2.7.4"
+smith_waterman_macro = { path = "./smith_waterman_macro" }

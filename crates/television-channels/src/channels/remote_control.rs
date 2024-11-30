@@ -2,17 +2,18 @@ use crate::channels::{CliTvChannel, OnAir, TelevisionChannel, UnitChannel};
 use crate::entry::{Entry, PreviewType};
 use clap::ValueEnum;
 use devicons::FileIcon;
-use television_fuzzy::matcher::{config::Config, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoMatcher};
 
 pub struct RemoteControl {
-    matcher: Matcher<String>,
+    matcher: NucleoMatcher<String>,
 }
 
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
     pub fn new(channels: Vec<UnitChannel>) -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher =
+            NucleoMatcher::new(NucleoConfig::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         for channel in channels {
             let () = injector.push(channel.to_string(), |e, cols| {

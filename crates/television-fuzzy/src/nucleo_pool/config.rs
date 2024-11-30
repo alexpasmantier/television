@@ -1,16 +1,16 @@
-/// The configuration of the fuzzy matcher.
+/// The configuration of the fuzzy nucleo_pool.
 ///
 /// This contains the number of threads to use, whether to ignore case, whether
 /// to prefer prefix matches, and whether to optimize for matching paths.
 ///
 /// The default configuration uses the default configuration of the `Nucleo`
-/// fuzzy matcher, e.g. case-insensitive matching, no preference for prefix
+/// fuzzy nucleo_pool, e.g. case-insensitive matching, no preference for prefix
 /// matches, and no optimization for matching paths as well as using the
 /// default number of threads (which corresponds to the number of available logical
 /// cores on the current machine).
 #[derive(Copy, Clone, Debug)]
 pub struct Config {
-    /// The number of threads to use for the fuzzy matcher.
+    /// The number of threads to use for the fuzzy nucleo_pool.
     pub n_threads: Option<usize>,
     /// Whether to ignore case when matching.
     pub ignore_case: bool,

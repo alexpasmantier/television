@@ -2,7 +2,7 @@ use devicons::FileIcon;
 
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
-use television_fuzzy::matcher::{config::Config, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoMatcher};
 use television_utils::indices::sep_name_and_value_indices;
 
 #[derive(Debug, Clone)]
@@ -13,7 +13,7 @@ struct EnvVar {
 
 #[allow(clippy::module_name_repetitions)]
 pub struct Channel {
-    matcher: Matcher<EnvVar>,
+    matcher: NucleoMatcher<EnvVar>,
     file_icon: FileIcon,
 }
 
@@ -22,7 +22,8 @@ const FILE_ICON_STR: &str = "config";
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher =
+            NucleoMatcher::new(NucleoConfig::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         for (name, value) in std::env::vars() {
             let () = injector.push(EnvVar { name, value }, |e, cols| {

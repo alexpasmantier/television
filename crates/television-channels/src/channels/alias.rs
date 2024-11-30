@@ -2,7 +2,7 @@ use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::entry::PreviewType;
 use devicons::FileIcon;
-use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
 use television_utils::indices::sep_name_and_value_indices;
 use tracing::debug;
 
@@ -19,7 +19,7 @@ impl Alias {
 }
 
 pub struct Channel {
-    matcher: Matcher<Alias>,
+    matcher: NucleoMatcher<Alias>,
     file_icon: FileIcon,
 }
 
@@ -45,7 +45,8 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher =
+            NucleoMatcher::new(NucleoConfig::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         tokio::spawn(load_aliases(injector));
 
@@ -132,7 +133,7 @@ impl OnAir for Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_aliases(injector: Injector<Alias>) {
+async fn load_aliases(injector: NucleoInjector<Alias>) {
     let raw_shell = get_current_shell().unwrap_or("bash".to_string());
     let shell = raw_shell.split('/').last().unwrap();
     debug!("Current shell: {}", shell);

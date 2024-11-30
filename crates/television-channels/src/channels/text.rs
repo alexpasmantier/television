@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{atomic::AtomicUsize, Arc},
 };
-use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use television_utils::strings::{
     proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
@@ -34,13 +34,13 @@ impl CandidateLine {
 
 #[allow(clippy::module_name_repetitions)]
 pub struct Channel {
-    matcher: Matcher<CandidateLine>,
+    matcher: NucleoMatcher<CandidateLine>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new(directories: Vec<PathBuf>) -> Self {
-        let matcher = Matcher::new(Config::default());
+        let matcher = NucleoMatcher::new(NucleoConfig::default());
         // start loading files in the background
         let crawl_handle = tokio::spawn(crawl_for_candidates(
             directories,
@@ -53,7 +53,7 @@ impl Channel {
     }
 
     fn from_file_paths(file_paths: Vec<PathBuf>) -> Self {
-        let matcher = Matcher::new(Config::default());
+        let matcher = NucleoMatcher::new(NucleoConfig::default());
         let injector = matcher.injector();
         let current_dir = std::env::current_dir().unwrap();
         let crawl_handle = tokio::spawn(async move {
@@ -77,7 +77,7 @@ impl Channel {
     }
 
     fn from_text_entries(entries: Vec<Entry>) -> Self {
-        let matcher = Matcher::new(Config::default());
+        let matcher = NucleoMatcher::new(NucleoConfig::default());
         let injector = matcher.injector();
         let load_handle = tokio::spawn(async move {
             for entry in entries.into_iter().take(MAX_LINES_IN_MEM) {
@@ -226,7 +226,7 @@ const MAX_LINES_IN_MEM: usize = 5_000_000;
 #[allow(clippy::unused_async)]
 async fn crawl_for_candidates(
     directories: Vec<PathBuf>,
-    injector: Injector<CandidateLine>,
+    injector: NucleoInjector<CandidateLine>,
 ) {
     if directories.is_empty() {
         return;
@@ -274,7 +274,7 @@ async fn crawl_for_candidates(
 }
 
 fn try_inject_lines(
-    injector: &Injector<CandidateLine>,
+    injector: &NucleoInjector<CandidateLine>,
     current_dir: &PathBuf,
     path: &Path,
 ) -> Option<usize> {

@@ -9,7 +9,7 @@ use tracing::{debug, info};
 
 use crate::app::App;
 use crate::cli::Cli;
-use television_channels::channels::stdin::Channel as StdinChannel;
+use television_channels::channels::stdin_simd::Channel as StdinSimdChannel;
 use television_utils::stdin::is_readable_stdin;
 
 pub mod action;
@@ -38,7 +38,8 @@ async fn main() -> Result<()> {
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
-                TelevisionChannel::Stdin(StdinChannel::default())
+                // TelevisionChannel::Stdin(StdinChannel::default())
+                TelevisionChannel::StdinSimd(StdinSimdChannel::default())
             } else {
                 debug!("Using {:?} channel", args.channel);
                 args.channel.to_channel()

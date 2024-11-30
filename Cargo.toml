@@ -59,6 +59,7 @@ television-derive = { path = "crates/television-derive", version = "0.0.7" }
 television-channels = { path = "crates/television-channels", version = "0.0.7" }
 television-previewers = { path = "crates/television-previewers", version = "0.0.7" }
 television-utils = { path = "crates/television-utils", version = "0.0.7" }
+frizbee = { path = "crates/television-fuzzy/src/simd/frizbee"}
 
 # external dependencies
 better-panic = "0.3.0"

@@ -7,18 +7,19 @@ use tracing::debug;
 
 use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewType};
-use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 
 pub struct Channel {
-    matcher: Matcher<String>,
+    matcher: NucleoMatcher<String>,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = Matcher::new(Config::default().match_paths(true));
+        let matcher =
+            NucleoMatcher::new(NucleoConfig::default().match_paths(true));
         let base_dirs = BaseDirs::new().unwrap();
         let crawl_handle = tokio::spawn(crawl_for_repos(
             base_dirs.home_dir().to_path_buf(),
@@ -130,7 +131,10 @@ fn get_ignored_paths() -> Vec<PathBuf> {
     ignored_paths
 }
 #[allow(clippy::unused_async)]
-async fn crawl_for_repos(starting_point: PathBuf, injector: Injector<String>) {
+async fn crawl_for_repos(
+    starting_point: PathBuf,
+    injector: NucleoInjector<String>,
+) {
     let mut walker_overrides_builder = OverrideBuilder::new(&starting_point);
     walker_overrides_builder.add(".git").unwrap();
     let walker = walk_builder(

@@ -1,7 +1,7 @@
 use injector::Injector;
 use std::sync::Arc;
 
-use crate::matcher::{
+use crate::nucleo_pool::{
     config::Config, lazy::MATCHER, matched_item::MatchedItem,
 };
 
@@ -12,15 +12,15 @@ pub mod matched_item;
 
 const MATCHER_TICK_TIMEOUT: u64 = 2;
 
-/// The status of the fuzzy matcher.
+/// The status of the fuzzy nucleo_pool.
 ///
-/// This currently only contains a boolean indicating whether the matcher is
+/// This currently only contains a boolean indicating whether the nucleo_pool is
 /// running in the background.
-/// This mostly serves as a way to communicate the status of the matcher to the
+/// This mostly serves as a way to communicate the status of the nucleo_pool to the
 /// front-end and display a loading indicator.
 #[derive(Default, Debug, Clone, Copy)]
 pub struct Status {
-    /// Whether the matcher is currently running.
+    /// Whether the nucleo_pool is currently running.
     pub running: bool,
 }
 
@@ -32,35 +32,35 @@ impl From<nucleo::Status> for Status {
     }
 }
 
-/// A fuzzy matcher that can be used to match items of type `I`.
+/// A fuzzy nucleo_pool that can be used to match items of type `I`.
 ///
 /// `I` should be `Sync`, `Send`, `Clone`, and `'static`.
-/// This is a wrapper around the `Nucleo` fuzzy matcher that only matches
+/// This is a wrapper around the `Nucleo` fuzzy nucleo_pool that only matches
 /// on a single dimension.
 ///
-/// The matcher can be used to find items that match a given pattern and to
+/// The nucleo_pool can be used to find items that match a given pattern and to
 /// retrieve the matched items as well as the indices of the matched characters.
 pub struct Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
-    /// The inner `Nucleo` fuzzy matcher.
+    /// The inner `Nucleo` fuzzy nucleo_pool.
     inner: nucleo::Nucleo<I>,
-    /// The current total number of items in the matcher.
+    /// The current total number of items in the nucleo_pool.
     pub total_item_count: u32,
-    /// The current number of matched items in the matcher.
+    /// The current number of matched items in the nucleo_pool.
     pub matched_item_count: u32,
-    /// The current status of the matcher.
-    pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
+    /// The current status of the nucleo_pool.
+    pub status: Status,
 }
 
 impl<I> Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
-    /// Create a new fuzzy matcher with the given configuration.
+    /// Create a new fuzzy nucleo_pool with the given configuration.
     pub fn new(config: Config) -> Self {
         Self {
             inner: nucleo::Nucleo::new(
@@ -71,29 +71,30 @@ where
             ),
             total_item_count: 0,
             matched_item_count: 0,
-            status: Status::default(),
             last_pattern: String::new(),
+            status: Status::default(),
         }
     }
 
-    /// Tick the fuzzy matcher.
+    /// Tick the fuzzy nucleo_pool.
     ///
-    /// This should be called periodically to update the state of the matcher.
-    pub fn tick(&mut self) {
+    /// This should be called periodically to update the state of the nucleo_pool.
+    pub fn tick(&mut self) -> Status {
         self.status = self.inner.tick(MATCHER_TICK_TIMEOUT).into();
+        self.status
     }
 
-    /// Get an injector that can be used to push items into the fuzzy matcher.
+    /// Get an injector that can be used to push items into the fuzzy nucleo_pool.
     ///
-    /// This can be used at any time to push items into the fuzzy matcher.
+    /// This can be used at any time to push items into the fuzzy nucleo_pool.
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{config::Config, Matcher};
+    /// use television_fuzzy::{NucleoConfig, NucleoMatcher};
     ///
-    /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
-    /// let injector = matcher.injector();
+    /// let config = NucleoConfig::default();
+    /// let nucleo_pool = NucleoMatcher::new(config);
+    /// let injector = nucleo_pool.injector();
     ///
     /// injector.push(
     ///     ("some string", 3, "some other string"),
@@ -139,10 +140,10 @@ where
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{config::Config, Matcher};
+    /// use television_fuzzy::{NucleoConfig, NucleoMatcher};
     ///
-    /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let config = NucleoConfig::default();
+    /// let mut matcher: NucleoMatcher<String> = NucleoMatcher::new(config);
     /// matcher.find("some pattern");
     ///
     /// let results = matcher.results(10, 0);
@@ -195,10 +196,10 @@ where
     ///
     /// # Example
     /// ```
-    /// use television_fuzzy::matcher::{config::Config, Matcher};
+    /// use television_fuzzy::{NucleoConfig, NucleoMatcher};
     ///
-    /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let config = NucleoConfig::default();
+    /// let mut matcher: NucleoMatcher<String> = NucleoMatcher::new(config);
     /// matcher.find("some pattern");
     ///
     /// if let Some(item) = matcher.get_result(0) {

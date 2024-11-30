@@ -7,6 +7,7 @@ mod files;
 mod git_repos;
 pub mod remote_control;
 pub mod stdin;
+pub mod stdin_simd;
 mod text;
 
 /// The interface that all television channels must implement.
@@ -127,6 +128,8 @@ pub enum TelevisionChannel {
     /// This channel allows to search through whatever is passed through stdin.
     #[exclude_from_cli]
     Stdin(stdin::Channel),
+    #[exclude_from_cli]
+    StdinSimd(stdin_simd::Channel),
     /// The alias channel.
     ///
     /// This channel allows to search through aliases.

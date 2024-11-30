@@ -4,12 +4,12 @@ use std::ops::DerefMut;
 
 /// A lazy-initialized mutex.
 ///
-/// This is used to lazily initialize a nucleo matcher (which pre-allocates
+/// This is used to lazily initialize a nucleo_pool nucleo_pool (which pre-allocates
 /// quite a bit of memory upfront which can be expensive during initialization).
 ///
 /// # Example
 /// ```rust
-/// use television_fuzzy::matcher::lazy::LazyMutex;
+/// use television_fuzzy::nucleo_pool::lazy::LazyMutex;
 ///
 /// struct Thing {
 ///     // ...
@@ -52,28 +52,28 @@ impl<T> LazyMutex<T> {
     }
 }
 
-/// A lazy-initialized nucleo matcher used for conveniently computing match indices.
+/// A lazy-initialized nucleo_pool nucleo_pool used for conveniently computing match indices.
 ///
-/// This is used to lazily initialize a nucleo matcher (which pre-allocates quite a bit of memory
+/// This is used to lazily initialize a nucleo_pool nucleo_pool (which pre-allocates quite a bit of memory
 /// upfront which can be expensive at initialization).
 ///
-/// This matcher is used as a convenience for computing match indices on a subset of matched items.
+/// This nucleo_pool is used as a convenience for computing match indices on a subset of matched items.
 ///
 /// # Example
 /// ```ignore
-/// use television-fuzzy::matcher::{lazy::MATCHER, matched_item::MatchedItem};
+/// use television-fuzzy::nucleo_pool::{lazy::MATCHER, matched_item::MatchedItem};
 ///
 /// let snapshot = channel_matcher.snapshot();
 ///
 /// let mut col_indices = vec![];
-/// let mut matcher = MATCHER.lock();
+/// let mut nucleo_pool = MATCHER.lock();
 ///
 /// snapshot
 ///     .matched_items(..)
 ///     .map(move |item| {
 ///         snapshot.pattern().column_pattern(0).indices(
 ///             item.matcher_columns[0].slice(..),
-///             &mut matcher,
+///             &mut nucleo_pool,
 ///             &mut col_indices,
 ///         );
 ///         col_indices.sort_unstable();

@@ -3,11 +3,11 @@ use crate::entry::{Entry, PreviewType};
 use devicons::FileIcon;
 use std::collections::HashSet;
 use std::path::PathBuf;
-use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
+use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 
 pub struct Channel {
-    matcher: Matcher<String>,
+    matcher: NucleoMatcher<String>,
     crawl_handle: tokio::task::JoinHandle<()>,
     // PERF: cache results (to make deleting characters smoother) with
     // a shallow stack of sub-patterns as keys (e.g. "a", "ab", "abc")
@@ -15,7 +15,8 @@ pub struct Channel {
 
 impl Channel {
     pub fn new(paths: Vec<PathBuf>) -> Self {
-        let matcher = Matcher::new(Config::default().match_paths(true));
+        let matcher =
+            NucleoMatcher::new(NucleoConfig::default().match_paths(true));
         // start loading files in the background
         let crawl_handle = tokio::spawn(load_files(paths, matcher.injector()));
         Channel {
@@ -113,7 +114,7 @@ impl OnAir for Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
+async fn load_files(paths: Vec<PathBuf>, injector: NucleoInjector<String>) {
     if paths.is_empty() {
         return;
     }
