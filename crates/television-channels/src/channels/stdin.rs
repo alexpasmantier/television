@@ -21,7 +21,7 @@ impl Channel {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
 
-        spawn(move || stream_from_stdin(injector.clone()));
+        spawn(move || stream_from_stdin(injector));
 
         Self {
             matcher,
