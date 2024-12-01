@@ -16,7 +16,7 @@ pub struct Cli {
 
     /// The delimiter used to extract fields from the entry to provide to the preview command
     /// (defaults to ":")
-    #[arg(long, value_name = "STRING", default_value = ":", value_parser = delimiter_parser)]
+    #[arg(long, value_name = "STRING", default_value = " ", value_parser = delimiter_parser)]
     pub delimiter: String,
 
     /// Tick rate, i.e. number of ticks per second

@@ -2887,6 +2887,7 @@ dependencies = [
  "television-fuzzy",
  "television-utils",
  "tokio",
+ "toml",
  "tracing",
 ]
 

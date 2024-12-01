@@ -1,8 +1,10 @@
+/// git log --oneline --date=short --pretty="format:%C(auto)%h %s %Cblue%an %C(green)%cd" "$@" | ~/code/rust/television/target/release/tv --preview 'git show -p --stat --pretty=fuller --color=always {0}' --delimiter ' '
 use crate::previewers::cache::PreviewCache;
 use crate::previewers::{Preview, PreviewContent};
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use regex::Regex;
+use std::collections::HashSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use television_channels::entry::{Entry, PreviewCommand};
@@ -14,6 +16,7 @@ pub struct CommandPreviewer {
     config: CommandPreviewerConfig,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
+    in_flight_previews: Arc<Mutex<HashSet<String>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,7 +42,7 @@ impl CommandPreviewerConfig {
     }
 }
 
-const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 2;
+const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 3;
 
 impl CommandPreviewer {
     pub fn new(config: Option<CommandPreviewerConfig>) -> Self {
@@ -48,7 +51,10 @@ impl CommandPreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
             config,
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
-            last_previewed: Arc::new(Mutex::new(Arc::new(Preview::default()))),
+            last_previewed: Arc::new(Mutex::new(Arc::new(
+                Preview::default().stale(),
+            ))),
+            in_flight_previews: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
@@ -61,7 +67,13 @@ impl CommandPreviewer {
         if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview.clone();
         }
-        debug!("No preview in cache for {:?}", entry.name);
+        debug!("Preview cache miss for {:?}", entry.name);
+
+        // are we already computing a preview in the background for that entry?
+        if self.in_flight_previews.lock().contains(&entry.name) {
+            debug!("Preview already in flight for {:?}", entry.name);
+            return self.last_previewed.lock().clone();
+        }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
             < MAX_CONCURRENT_PREVIEW_TASKS
@@ -150,11 +162,12 @@ pub fn try_preview(
             entry.name.clone(),
             PreviewContent::AnsiText(content),
             None,
+            false,
         ));
 
         cache.lock().insert(entry.name.clone(), &preview);
         let mut tp = last_previewed.lock();
-        *tp = preview;
+        *tp = preview.stale().into();
     } else {
         let content = String::from_utf8(output.stderr)
             .unwrap_or(String::from("Failed to read error\n"));
@@ -162,6 +175,7 @@ pub fn try_preview(
             entry.name.clone(),
             PreviewContent::AnsiText(content),
             None,
+            false,
         ));
         cache.lock().insert(entry.name.clone(), &preview);
     }

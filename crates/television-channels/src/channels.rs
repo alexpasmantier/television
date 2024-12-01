@@ -1,4 +1,5 @@
 use crate::entry::Entry;
+use color_eyre::Result;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
@@ -141,12 +142,25 @@ pub enum TelevisionChannel {
     /// A custom channel.
     ///
     /// This channel allows to search through custom data.
+    #[exclude_from_unit]
+    #[exclude_from_cli]
     Custom(custom::Channel),
 }
 
 impl From<&Entry> for TelevisionChannel {
     fn from(entry: &Entry) -> Self {
-        UnitChannel::from(entry.name.as_str()).into()
+        UnitChannel::try_from(entry.name.as_str()).unwrap().into()
+    }
+}
+
+impl TelevisionChannel {
+    pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
+        match self {
+            TelevisionChannel::RemoteControl(remote_control) => {
+                remote_control.zap(channel_name)
+            }
+            _ => unreachable!(),
+        }
     }
 }
 

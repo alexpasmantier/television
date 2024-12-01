@@ -14,7 +14,10 @@ use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
 };
-use television_utils::strings::{shrink_with_ellipsis, EMPTY_STRING};
+use television_utils::strings::{
+    replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
+    EMPTY_STRING,
+};
 
 //  preview
 pub const DEFAULT_PREVIEW_TITLE_FG: Color = Color::Blue;
@@ -44,7 +47,11 @@ impl Television {
         }
         preview_title_spans.push(Span::styled(
             shrink_with_ellipsis(
-                &preview.title,
+                &replace_non_printable(
+                    preview.title.as_bytes(),
+                    ReplaceNonPrintableConfig::default(),
+                )
+                .0,
                 rect.width.saturating_sub(4) as usize,
             ),
             Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
@@ -104,7 +111,7 @@ impl Television {
             );
             return;
         }
-        // If not, render the preview content and cache it
+        // If not, render the preview content and cache it if not empty
         let rp = Self::build_preview_paragraph(
             preview_inner_block,
             inner,
@@ -112,10 +119,12 @@ impl Television {
             target_line,
             self.preview_scroll,
         );
-        self.rendered_preview_cache
-            .lock()
-            .unwrap()
-            .insert(cache_key, &Arc::new(rp.clone()));
+        if !preview.stale {
+            self.rendered_preview_cache
+                .lock()
+                .unwrap()
+                .insert(cache_key, &Arc::new(rp.clone()));
+        }
         f.render_widget(
             Arc::new(rp)
                 .as_ref()
@@ -204,7 +213,17 @@ impl Television {
         preview_block: Block,
         preview_scroll: Option<u16>,
     ) -> Paragraph {
-        let text = text.into_text().unwrap();
+        let text = replace_non_printable(
+            text.as_bytes(),
+            ReplaceNonPrintableConfig {
+                replace_line_feed: false,
+                replace_control_characters: false,
+                ..Default::default()
+            },
+        )
+        .0
+        .into_text()
+        .unwrap();
         Paragraph::new(text)
             .block(preview_block)
             .scroll((preview_scroll.unwrap_or(0), 0))
@@ -276,7 +295,6 @@ impl Television {
         compute_paragraph_from_highlighted_lines(
             &highlighted_lines,
             target_line.map(|l| l as usize),
-            preview_scroll.unwrap_or(0),
         )
         .block(preview_block)
         .alignment(Alignment::Left)
@@ -359,7 +377,6 @@ fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
 fn compute_paragraph_from_highlighted_lines(
     highlighted_lines: &[Vec<(syntect::highlighting::Style, String)>],
     line_specifier: Option<usize>,
-    scroll: u16,
 ) -> Paragraph<'static> {
     let preview_lines: Vec<Line> = highlighted_lines
         .iter()

@@ -1,5 +1,6 @@
 use color_eyre::Result;
 use parking_lot::Mutex;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use std::path::PathBuf;
@@ -17,7 +18,7 @@ use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
 use television_utils::files::get_file_size;
 use television_utils::files::FileType;
-use television_utils::strings::preprocess_line;
+use television_utils::strings::{preprocess_line, ReplaceNonPrintableConfig};
 use television_utils::syntax::{
     self, load_highlighting_assets, HighlightingAssetsExt,
 };
@@ -29,6 +30,7 @@ pub struct FilePreviewer {
     pub syntax_theme: Arc<Theme>,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
+    in_flight_previews: Arc<Mutex<HashSet<String>>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -66,7 +68,10 @@ impl FilePreviewer {
             syntax_set: Arc::new(syntax_set),
             syntax_theme: Arc::new(theme),
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
-            last_previewed: Arc::new(Mutex::new(Arc::new(Preview::default()))),
+            last_previewed: Arc::new(Mutex::new(Arc::new(
+                Preview::default().stale(),
+            ))),
+            in_flight_previews: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
@@ -75,35 +80,40 @@ impl FilePreviewer {
     /// # Panics
     /// Panics if seeking to the start of the file fails.
     pub fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
-        let path_buf = PathBuf::from(&entry.name);
-
         // do we have a preview in cache for that entry?
         if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview;
         }
-        debug!("No preview in cache for {:?}", entry.name);
+        debug!("Preview cache miss for {:?}", entry.name);
+
+        // are we already computing a preview in the background for that entry?
+        if self.in_flight_previews.lock().contains(&entry.name) {
+            debug!("Preview already in flight for {:?}", entry.name);
+            return self.last_previewed.lock().clone();
+        }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
             < MAX_CONCURRENT_PREVIEW_TASKS
         {
+            self.in_flight_previews.lock().insert(entry.name.clone());
             self.concurrent_preview_tasks
                 .fetch_add(1, Ordering::Relaxed);
             let cache = self.cache.clone();
             let entry_c = entry.clone();
             let syntax_set = self.syntax_set.clone();
             let syntax_theme = self.syntax_theme.clone();
-            let path = path_buf;
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
             let last_previewed = self.last_previewed.clone();
+            let in_flight_previews = self.in_flight_previews.clone();
             tokio::spawn(async move {
                 try_preview(
                     &entry_c,
-                    &path,
                     &cache,
                     &syntax_set,
                     &syntax_theme,
                     &concurrent_tasks,
                     &last_previewed,
+                    &in_flight_previews,
                 );
             });
         }
@@ -119,16 +129,17 @@ impl FilePreviewer {
 
 pub fn try_preview(
     entry: &entry::Entry,
-    path: &PathBuf,
     cache: &Arc<Mutex<PreviewCache>>,
     syntax_set: &Arc<SyntaxSet>,
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
     last_previewed: &Arc<Mutex<Arc<Preview>>>,
+    in_flight_previews: &Arc<Mutex<HashSet<String>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
+    let path = PathBuf::from(&entry.name);
     // check file size
-    if get_file_size(path).map_or(false, |s| s > MAX_FILE_SIZE) {
+    if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
         debug!("File too large: {:?}", entry.name);
         let preview = meta::file_too_large(&entry.name);
         cache.lock().insert(entry.name.clone(), &preview);
@@ -148,8 +159,9 @@ pub fn try_preview(
                     syntax_theme,
                 );
                 cache.lock().insert(entry.name.clone(), &preview);
+                in_flight_previews.lock().remove(&entry.name);
                 let mut tp = last_previewed.lock();
-                *tp = preview;
+                *tp = preview.stale().into();
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
@@ -180,7 +192,10 @@ fn compute_highlighted_text_preview(
         .map_while(Result::ok)
         // we need to add a newline here because sublime syntaxes expect one
         // to be present at the end of each line
-        .map(|line| preprocess_line(&line).0 + "\n")
+        .map(|line| {
+            preprocess_line(&line, ReplaceNonPrintableConfig::default()).0
+                + "\n"
+        })
         .collect();
 
     match syntax::compute_highlights_for_path(
@@ -195,6 +210,7 @@ fn compute_highlighted_text_preview(
                 entry.name.clone(),
                 PreviewContent::SyntectHighlightedText(highlighted_lines),
                 entry.icon,
+                false,
             ))
         }
         Err(e) => {
@@ -215,7 +231,9 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     // truncate accordingly (since this is just a temp preview)
     for maybe_line in reader.lines() {
         match maybe_line {
-            Ok(line) => lines.push(preprocess_line(&line).0),
+            Ok(line) => lines.push(
+                preprocess_line(&line, ReplaceNonPrintableConfig::default()).0,
+            ),
             Err(e) => {
                 warn!("Error reading file: {:?}", e);
                 return meta::not_supported(title);
@@ -229,5 +247,6 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::PlainText(lines),
         None,
+        false,
     ))
 }

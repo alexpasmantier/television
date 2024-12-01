@@ -1,34 +1,48 @@
 use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewCommand, PreviewType};
+use crate::recipes::ChannelRecipe;
 use television_fuzzy::{
     matcher::{config::Config, injector::Injector},
     Matcher,
 };
 
 pub struct Channel {
+    name: String,
     matcher: Matcher<String>,
     entries_command: String,
     preview_command: PreviewCommand,
-    name: String,
 }
 
 impl Default for Channel {
     fn default() -> Self {
         Self::new(
-            "find . -type d",
-            PreviewCommand::new("bat -n --color=always {}", ":"),
             "Files",
+            "find . -type f",
+            PreviewCommand::new("bat -n --color=always {}", ":"),
+        )
+    }
+}
+
+impl From<ChannelRecipe> for Channel {
+    fn from(recipe: ChannelRecipe) -> Self {
+        Self::new(
+            &recipe.name,
+            &recipe.source_command,
+            PreviewCommand::new(
+                &recipe.preview_command,
+                &recipe.preview_delimiter,
+            ),
         )
     }
 }
 
 impl Channel {
     pub fn new(
+        name: &str,
         entries_command: &str,
         preview_command: PreviewCommand,
-        name: &str,
     ) -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(2));
+        let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         tokio::spawn(load_candidates(entries_command.to_string(), injector));
         Self {

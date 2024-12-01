@@ -47,6 +47,7 @@ pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
     pub icon: Option<FileIcon>,
+    pub stale: bool,
 }
 
 impl Default for Preview {
@@ -55,6 +56,7 @@ impl Default for Preview {
             title: String::new(),
             content: PreviewContent::Empty,
             icon: None,
+            stale: false,
         }
     }
 }
@@ -64,11 +66,20 @@ impl Preview {
         title: String,
         content: PreviewContent,
         icon: Option<FileIcon>,
+        stale: bool,
     ) -> Self {
         Preview {
             title,
             content,
             icon,
+            stale,
+        }
+    }
+
+    pub fn stale(&self) -> Self {
+        Preview {
+            stale: true,
+            ..self.clone()
         }
     }
 
