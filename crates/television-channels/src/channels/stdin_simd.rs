@@ -17,7 +17,7 @@ pub struct Channel {
 
 impl Channel {
     pub fn new() -> Self {
-        let matcher = SimdMatcher::new(|s: &String| s.trim_end().to_string());
+        let matcher = SimdMatcher::new(|s: &String| s.trim_end());
         let injector = matcher.injector();
 
         spawn(move || stream_from_stdin(injector.clone()));
@@ -85,7 +85,7 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher
             .get_result(index as usize)
-            .map(|s| Entry::new(s.clone(), PreviewType::Basic))
+            .map(|s| Entry::new(s.matched_string.clone(), PreviewType::Basic))
     }
 
     fn result_count(&self) -> u32 {

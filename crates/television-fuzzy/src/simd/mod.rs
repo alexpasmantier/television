@@ -1,14 +1,16 @@
+use std::fmt::Debug;
 use std::num::NonZero;
+use std::ops::Deref;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::thread::available_parallelism;
-use tracing::debug;
+use std::thread::{available_parallelism, spawn};
 
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use frizbee::{match_list, match_list_for_matched_indices, Options};
 use parking_lot::Mutex;
 use rayon::prelude::ParallelSliceMut;
 use threadpool::ThreadPool;
+use tracing::debug;
 
 pub struct Injector<I>
 where
@@ -108,20 +110,19 @@ impl From<Arc<Status>> for MatcherStatus {
     }
 }
 
-type IntoHaystackFn<I> = fn(&I) -> String;
+type IntoHaystackFn<I> = fn(&I) -> &str;
 
 pub struct Matcher<I>
 where
-    I: Sync + Send + Clone + 'static,
+    I: Sync + Send + Clone + 'static + Debug,
 {
     pattern: String,
-    items: Arc<Mutex<Vec<I>>>,
+    items: Arc<boxcar::Vec<I>>,
     into_haystack: IntoHaystackFn<I>,
     worker_pool: WorkerPool,
     injection_channel_rx: Receiver<I>,
     injection_channel_tx: Sender<I>,
-    /// The indices of the matched items.
-    results: Arc<Mutex<Vec<MatchResult>>>,
+    results: Arc<boxcar::Vec<MatchResult>>,
     status: Arc<Status>,
 }
 
@@ -129,9 +130,10 @@ const DEFAULT_ITEMS_CAPACITY: usize = 1024 * 1024;
 /// The maximum number of items that can be acquired per tick.
 ///
 /// This is used to prevent item acquisition from holding onto the lock on `self.items` for too long.
-const MAX_ACQUIRED_ITEMS_PER_TICK: usize = 1024 * 1024;
+const MAX_ACQUIRED_ITEMS_PER_TICK: usize = 1024 * 1024 * 4;
 
-const JOB_CHUNK_SIZE: usize = 1024 * 64;
+/// Number of items to match in a single simd job.
+const JOB_CHUNK_SIZE: usize = 1024 * 1024;
 const SMITH_WATERMAN_OPTS: Options = Options {
     indices: false,
     prefilter: true,
@@ -142,26 +144,27 @@ const SMITH_WATERMAN_OPTS: Options = Options {
 
 impl<I> Matcher<I>
 where
-    I: Sync + Send + Clone + 'static,
+    I: Sync + Send + Clone + 'static + Debug,
 {
     pub fn new(f: IntoHaystackFn<I>) -> Self {
-        debug!("Creating threadpool");
-        let thread_pool = ThreadPool::new(usize::from(
-            available_parallelism().unwrap_or(NonZero::new(8).unwrap()),
-        ));
+        let thread_pool = ThreadPool::with_name(
+            "SimdMatcher".to_string(),
+            usize::from(
+                available_parallelism().unwrap_or(NonZero::new(8).unwrap()),
+            ),
+        );
         let worker_pool = WorkerPool::new(thread_pool);
         let (sender, receiver) = unbounded();
-        debug!("finished initializing matcher");
         Self {
             pattern: String::new(),
-            items: Arc::new(Mutex::new(Vec::with_capacity(
+            items: Arc::new(boxcar::Vec::with_capacity(
                 DEFAULT_ITEMS_CAPACITY,
-            ))),
+            )),
             into_haystack: f,
             worker_pool,
             injection_channel_rx: receiver,
             injection_channel_tx: sender,
-            results: Arc::new(Mutex::new(Vec::new())),
+            results: Arc::new(boxcar::Vec::new()),
             status: Arc::new(Status::default()),
         }
     }
@@ -177,7 +180,8 @@ where
             .results_need_sorting
             .load(std::sync::atomic::Ordering::Relaxed)
         {
-            let mut results = self.results.lock_arc();
+            debug!("Sorting results");
+            // let mut results = self.results.clone();
             // results.par_sort_unstable_by_key(|r| std::cmp::Reverse(r.score));
             self.status
                 .results_need_sorting
@@ -196,65 +200,100 @@ where
     pub fn match_items(&mut self) {
         // debug!("items.len(): {}, injected: {}", self.items.lock_arc().len(), self.worker_pool.num_injected_items);
         // if all items have already been fed to the worker pool, simply return
-        if self.items.lock_arc().len() == self.worker_pool.num_injected_items {
+        let item_count = self.items.count();
+        if item_count == self.worker_pool.num_injected_items {
             return;
         }
         let n_injected_items = self.worker_pool.num_injected_items;
-        let items = self.items.lock_arc();
-        let new_item_chunks: Vec<&[I]> =
-            items[n_injected_items..].chunks(JOB_CHUNK_SIZE).collect();
-        let into_haystack = self.into_haystack;
-        let mut item_offset = n_injected_items;
-        for chunk in new_item_chunks {
-            let chunk = chunk.to_vec();
-            let chunk_size = chunk.len();
-            let pattern = self.pattern.clone();
+        let pattern = self.pattern.clone();
+
+        let mut chunks = Vec::new();
+        let mut offsets = Vec::new();
+        let mut current_offset = n_injected_items;
+        let items = Arc::clone(&self.items);
+        loop {
+            if current_offset >= item_count {
+                break;
+            }
+            let chunk_size = (item_count - current_offset).min(JOB_CHUNK_SIZE);
+            chunks.push(
+                items
+                    .iter()
+                    .skip(current_offset)
+                    .take(chunk_size)
+                    .map(|(_, v)| (self.into_haystack)(v)),
+            );
+            offsets.push(current_offset);
+            current_offset += chunk_size;
+        }
+
+        let offsets_c = offsets.clone();
+
+        for (i, chunk) in chunks.into_iter().enumerate() {
+            let pattern = pattern.clone();
             let results = Arc::clone(&self.results);
             let status = Arc::clone(&self.status);
+            let cur_offset = offsets_c[i];
             self.worker_pool.execute(move || {
-                let strings: Vec<String> =
-                    chunk.iter().map(|item| (into_haystack)(item)).collect();
-                let matches =
-                    match_list(&pattern, &strings.iter().map(|s| s.as_str()).collect::<Vec<_>>()[..], SMITH_WATERMAN_OPTS);
-                // debug!("matches: {:?}", matches);
+                let matches = match_list(
+                    &pattern,
+                    &chunk.collect::<Vec<&str>>(),
+                    SMITH_WATERMAN_OPTS,
+                );
                 if matches.is_empty() {
                     return;
                 }
-                let mut results = results.lock_arc();
-                results.extend(matches.into_iter().map(|m| {
-                    MatchResult::new(
-                        m.index_in_haystack + item_offset,
+                for m in &matches {
+                    results.push(MatchResult::new(
+                        m.index_in_haystack + cur_offset,
                         m.score,
-                    )
-                }));
+                    ));
+                }
                 status
                     .results_need_sorting
                     .store(true, std::sync::atomic::Ordering::Relaxed);
             });
-            self.worker_pool.num_injected_items += chunk_size;
-            item_offset += chunk_size;
         }
+        self.worker_pool.num_injected_items = item_count;
     }
 
     /// reads from the injection channel and puts new items into the items vec
     fn acquire_new_items(&self) {
         let items = Arc::clone(&self.items);
+        if self.injection_channel_rx.is_empty() {
+            return;
+        }
+        debug!("Acquiring new items");
         let injection_channel_rx = self.injection_channel_rx.clone();
         let status = Arc::clone(&self.status);
-        self.worker_pool.execute(move || {
-            let injection_channel_rx = injection_channel_rx;
+        spawn(move || {
             status
                 .injector_running
                 .store(true, std::sync::atomic::Ordering::Relaxed);
-            items.lock_arc().extend(
-                injection_channel_rx
-                    .try_iter()
-                    .take(MAX_ACQUIRED_ITEMS_PER_TICK),
-            );
+            for item in injection_channel_rx
+                .try_iter()
+                .take(MAX_ACQUIRED_ITEMS_PER_TICK)
+            {
+                items.push(item);
+            }
             status
                 .injector_running
                 .store(false, std::sync::atomic::Ordering::Relaxed);
         });
+        //self.worker_pool.execute(move || {
+        //    let injection_channel_rx = injection_channel_rx;
+        //    status
+        //        .injector_running
+        //        .store(true, std::sync::atomic::Ordering::Relaxed);
+        //    items.lock_arc().extend(
+        //        injection_channel_rx
+        //            .try_iter()
+        //            .take(MAX_ACQUIRED_ITEMS_PER_TICK),
+        //    );
+        //    status
+        //        .injector_running
+        //        .store(false, std::sync::atomic::Ordering::Relaxed);
+        //});
     }
 
     pub fn injector(&self) -> Injector<I> {
@@ -269,7 +308,7 @@ where
             return;
         }
         self.pattern = pattern.to_string();
-        self.results.lock_arc().clear();
+        self.results = Arc::new(boxcar::Vec::new());
         self.worker_pool.num_injected_items = 0;
     }
 
@@ -278,28 +317,23 @@ where
         num_entries: u32,
         offset: u32,
     ) -> Vec<MatchedItem<I>> {
-        let global_results = self.results.lock_arc();
         let mut indices = Vec::new();
-        let items = self.items.lock_arc();
-        global_results
+        self.results
             .iter()
             .skip(offset as usize)
+            .map(|(_, v)| v)
             .take(num_entries as usize)
             .for_each(|r| {
                 indices.push(r.index_in_haystack);
             });
         let matched_inner: Vec<_> =
-            indices.iter().map(|i| items[*i].clone()).collect();
-        let matched_strings = matched_inner
-            .iter()
-            .map(|s| (self.into_haystack)(s))
-            .collect::<Vec<_>>();
+            indices.iter().map(|i| self.items[*i].clone()).collect();
         let matched_indices = match_list_for_matched_indices(
             &self.pattern,
-            &matched_strings
+            &matched_inner
                 .iter()
-                .map(|s| s.as_str())
-                .collect::<Vec<_>>()[..],
+                .map(|item| (self.into_haystack)(item))
+                .collect::<Vec<_>>(),
         );
         let mut matched_items = Vec::new();
         for (inner, indices) in
@@ -307,7 +341,7 @@ where
         {
             matched_items.push(MatchedItem {
                 inner: inner.clone(),
-                matched_string: (self.into_haystack)(inner),
+                matched_string: (self.into_haystack)(inner).to_string(),
                 match_indices: indices
                     .iter()
                     .map(|i| (*i as u32, *i as u32 + 1))
@@ -317,22 +351,27 @@ where
         matched_items
     }
 
-    pub fn get_result(&self, index: usize) -> Option<I> {
-        let results = self.results.lock_arc();
-        if index >= results.len() {
+    pub fn get_result(&self, index: usize) -> Option<MatchedItem<I>> {
+        if index >= self.results.count() {
             return None;
         }
-        let result = &results[index];
-        let items = self.items.lock_arc();
-        Some(items[result.index_in_haystack].clone())
+        let result = &self.results[index];
+        Some(MatchedItem {
+            inner: self.items[result.index_in_haystack].clone(),
+            matched_string: (self.into_haystack)(
+                &self.items[result.index_in_haystack],
+            )
+            .to_string(),
+            match_indices: vec![],
+        })
     }
 
     pub fn result_count(&self) -> usize {
-        self.results.lock_arc().len()
+        self.results.count()
     }
 
     pub fn total_count(&self) -> usize {
-        self.items.lock_arc().len()
+        self.items.count()
     }
 
     pub fn running(&self) -> bool {

@@ -248,6 +248,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "boxcar"
+version = "0.2.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7f839cdf7e2d3198ac6ca003fd8ebc61715755f41c1cad15ff13df67531e00ed"
+
+[[package]]
 name = "bstr"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2933,6 +2939,7 @@ dependencies = [
 name = "television-fuzzy"
 version = "0.0.7"
 dependencies = [
+ "boxcar",
  "crossbeam-channel",
  "frizbee",
  "nucleo",

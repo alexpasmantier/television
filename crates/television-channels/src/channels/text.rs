@@ -8,7 +8,9 @@ use std::{
     path::{Path, PathBuf},
     sync::{atomic::AtomicUsize, Arc},
 };
-use television_fuzzy::{NucleoConfig, NucleoInjector, NucleoMatcher};
+use television_fuzzy::{
+    NucleoConfig, NucleoInjector, NucleoMatcher, SimdInjector, SimdMatcher,
+};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use television_utils::strings::{
     proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
@@ -34,13 +36,15 @@ impl CandidateLine {
 
 #[allow(clippy::module_name_repetitions)]
 pub struct Channel {
-    matcher: NucleoMatcher<CandidateLine>,
+    //matcher: NucleoMatcher<CandidateLine>,
+    matcher: SimdMatcher<CandidateLine>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 impl Channel {
     pub fn new(directories: Vec<PathBuf>) -> Self {
-        let matcher = NucleoMatcher::new(NucleoConfig::default());
+        //let matcher = NucleoMatcher::new(NucleoConfig::default());
+        let matcher = SimdMatcher::new(|c: &CandidateLine| &*c.line);
         // start loading files in the background
         let crawl_handle = tokio::spawn(crawl_for_candidates(
             directories,
@@ -53,7 +57,8 @@ impl Channel {
     }
 
     fn from_file_paths(file_paths: Vec<PathBuf>) -> Self {
-        let matcher = NucleoMatcher::new(NucleoConfig::default());
+        //let matcher = NucleoMatcher::new(NucleoConfig::default());
+        let matcher = SimdMatcher::new(|c: &CandidateLine| &*c.line);
         let injector = matcher.injector();
         let current_dir = std::env::current_dir().unwrap();
         let crawl_handle = tokio::spawn(async move {
@@ -77,7 +82,8 @@ impl Channel {
     }
 
     fn from_text_entries(entries: Vec<Entry>) -> Self {
-        let matcher = NucleoMatcher::new(NucleoConfig::default());
+        //let matcher = NucleoMatcher::new(NucleoConfig::default());
+        let matcher = SimdMatcher::new(|c: &CandidateLine| &*c.line);
         let injector = matcher.injector();
         let load_handle = tokio::spawn(async move {
             for entry in entries.into_iter().take(MAX_LINES_IN_MEM) {
@@ -87,9 +93,9 @@ impl Channel {
                         entry.value.unwrap(),
                         entry.line_number.unwrap(),
                     ),
-                    |c, cols| {
-                        cols[0] = c.line.clone().into();
-                    },
+                    //|c, cols| {
+                    //    cols[0] = c.line.clone().into();
+                    //},
                 );
             }
         });
@@ -178,7 +184,7 @@ impl OnAir for Channel {
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
-        self.matcher.get_result(index).map(|item| {
+        self.matcher.get_result(index as usize).map(|item| {
             let display_path = item.inner.path.to_string_lossy().to_string();
             Entry::new(display_path, PreviewType::Files)
                 .with_icon(FileIcon::from(item.inner.path.as_path()))
@@ -187,15 +193,18 @@ impl OnAir for Channel {
     }
 
     fn result_count(&self) -> u32 {
-        self.matcher.matched_item_count
+        //self.matcher.matched_item_count
+        self.matcher.result_count().try_into().unwrap()
     }
 
     fn total_count(&self) -> u32 {
-        self.matcher.total_item_count
+        //self.matcher.total_item_count
+        self.matcher.total_count().try_into().unwrap()
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        //self.matcher.status.running
+        self.matcher.running()
     }
 
     fn shutdown(&self) {
@@ -221,12 +230,13 @@ const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 ///
 /// A typical line should take somewhere around 100 bytes in memory (for utf8 english text),
 /// so this should take around 100 x `5_000_000` = 500MB of memory.
-const MAX_LINES_IN_MEM: usize = 5_000_000;
+const MAX_LINES_IN_MEM: usize = 50_000_000;
 
 #[allow(clippy::unused_async)]
 async fn crawl_for_candidates(
     directories: Vec<PathBuf>,
-    injector: NucleoInjector<CandidateLine>,
+    //injector: NucleoInjector<CandidateLine>,
+    injector: SimdInjector<CandidateLine>,
 ) {
     if directories.is_empty() {
         return;
@@ -274,7 +284,8 @@ async fn crawl_for_candidates(
 }
 
 fn try_inject_lines(
-    injector: &NucleoInjector<CandidateLine>,
+    //injector: &NucleoInjector<CandidateLine>,
+    injector: &SimdInjector<CandidateLine>,
     current_dir: &PathBuf,
     path: &Path,
 ) -> Option<usize> {
@@ -315,9 +326,10 @@ fn try_inject_lines(
                             l,
                             line_number,
                         );
-                        let () = injector.push(candidate, |c, cols| {
-                            cols[0] = c.line.clone().into();
-                        });
+                        //let () = injector.push(candidate, |c, cols| {
+                        //    cols[0] = c.line.clone().into();
+                        //});
+                        injector.push(candidate);
                         injected_lines += 1;
                     }
                     Err(e) => {
