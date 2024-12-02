@@ -96,22 +96,29 @@ where
             .iter()
             .map(|(s, e)| (*s as usize, *e as usize))
         {
+            // from the end of the last match to the start of the current one
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, last_match_end, start)
                     .to_string(),
                 Style::default().fg(results_list_colors.result_name_fg),
             ));
+            // the current match
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, start, end).to_string(),
                 Style::default().fg(Color::Red),
             ));
             last_match_end = end;
         }
-        spans.push(Span::styled(
-            entry_name[next_char_boundary(&entry_name, last_match_end)..]
-                .to_string(),
-            Style::default().fg(results_list_colors.result_name_fg),
-        ));
+        // we need to push a span for the remainder of the entry name
+        // but only if there's something left
+        let next_boundary = next_char_boundary(&entry_name, last_match_end);
+        if next_boundary < entry_name.len() {
+            let remainder = entry_name[next_boundary..].to_string();
+            spans.push(Span::styled(
+                remainder,
+                Style::default().fg(results_list_colors.result_name_fg),
+            ));
+        }
         // optional line number
         if let Some(line_number) = entry.line_number {
             spans.push(Span::styled(
@@ -144,11 +151,13 @@ where
                 ));
                 last_match_end = end;
             }
-            spans.push(Span::styled(
-                preview[next_char_boundary(&preview, last_match_end)..]
-                    .to_string(),
-                Style::default().fg(results_list_colors.result_preview_fg),
-            ));
+            let next_boundary = next_char_boundary(&preview, last_match_end);
+            if next_boundary < preview.len() {
+                spans.push(Span::styled(
+                    preview[next_boundary..].to_string(),
+                    Style::default().fg(results_list_colors.result_preview_fg),
+                ));
+            }
         }
         Line::from(spans)
     }))
