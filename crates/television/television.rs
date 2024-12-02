@@ -47,6 +47,7 @@ pub struct Television {
     /// are rendered correctly even when resizing the terminal while still
     /// benefiting from a cache mechanism.
     pub meta_paragraph_cache: HashMap<(String, u16, u16), Paragraph<'static>>,
+    pub icon_color_cache: HashMap<String, Color>,
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
 }
@@ -81,6 +82,7 @@ impl Television {
             preview_pane_height: 0,
             current_preview_total_lines: 0,
             meta_paragraph_cache: HashMap::new(),
+            icon_color_cache: HashMap::new(),
             spinner,
             spinner_state: SpinnerState::from(&spinner),
         }
