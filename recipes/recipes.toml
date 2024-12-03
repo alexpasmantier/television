@@ -1,22 +1,22 @@
 # GIT
-[[recipes]]
+[[cable_channel]]
 name = "Git log"
 source_command = 'git log --oneline --date=short --pretty="format:%h %s %an %cd" "$@"'
 preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
 
-[[recipes]]
+[[cable_channel]]
 name = "Git branch"
 source_command = 'git --no-pager branch --all --format="%(refname:short)"'
 preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
 
 # Homebrew
-[[recipes]]
+[[cable_channel]]
 name = "Brew list"
 source_command = 'brew list --versions'
 preview_command = 'brew info {0}'
 
 # Docker
-[[recipes]]
+[[cable_channel]]
 name = "Docker images"
 source_command = 'docker image list --format "{{.ID}} {{.Repository}}\t{{.Tag}}\t{{.Size}}"'
 preview_command = 'docker image inspect {0} | jq -C'

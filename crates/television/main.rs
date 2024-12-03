@@ -15,6 +15,7 @@ use television_utils::stdin::is_readable_stdin;
 
 pub mod action;
 pub mod app;
+pub mod cable;
 pub mod cli;
 pub mod config;
 pub mod errors;

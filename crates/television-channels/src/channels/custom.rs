@@ -1,6 +1,6 @@
+use crate::cable::CableChannelPrototype;
 use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewCommand, PreviewType};
-use crate::recipes::ChannelRecipe;
 use television_fuzzy::{
     matcher::{config::Config, injector::Injector},
     Matcher,
@@ -23,14 +23,14 @@ impl Default for Channel {
     }
 }
 
-impl From<ChannelRecipe> for Channel {
-    fn from(recipe: ChannelRecipe) -> Self {
+impl From<CableChannelPrototype> for Channel {
+    fn from(prototype: CableChannelPrototype) -> Self {
         Self::new(
-            &recipe.name,
-            &recipe.source_command,
+            &prototype.name,
+            &prototype.source_command,
             PreviewCommand::new(
-                &recipe.preview_command,
-                &recipe.preview_delimiter,
+                &prototype.preview_command,
+                &prototype.preview_delimiter,
             ),
         )
     }

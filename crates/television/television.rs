@@ -1,4 +1,5 @@
 use crate::app::Keymap;
+use crate::cable::load_cable_channels;
 use crate::picker::Picker;
 use crate::ui::cache::RenderedPreviewCache;
 use crate::ui::input::actions::InputActionHandler;
@@ -11,6 +12,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
+use television_channels::channels::remote_control::load_builtin_channels;
 use television_channels::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
 };
@@ -56,6 +58,8 @@ impl Television {
         };
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
         let keymap = Keymap::from(&config.keybindings);
+        let builtin_channels = load_builtin_channels();
+        let cable_channels = load_cable_channels().unwrap_or_default();
 
         channel.find(EMPTY_STRING);
         let spinner = Spinner::default();
@@ -65,7 +69,7 @@ impl Television {
             keymap,
             channel,
             remote_control: TelevisionChannel::RemoteControl(
-                RemoteControl::default(),
+                RemoteControl::new(builtin_channels, Some(cable_channels)),
             ),
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
@@ -286,9 +290,6 @@ impl Television {
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
             Action::ToggleRemoteControl => match self.mode {
                 Mode::Channel => {
-                    self.remote_control = TelevisionChannel::RemoteControl(
-                        RemoteControl::default(),
-                    );
                     self.mode = Mode::RemoteControl;
                 }
                 Mode::RemoteControl => {
