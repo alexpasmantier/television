@@ -2,16 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.6.0] - 2024-12-04
 
 ### 🚀 Features
 
 - *(layout)* Allow reversing the layout and placing input bar on top (#76)
+- *(cable)* Add support for custom channels (#75)
 
 ### 🐛 Bug Fixes
 
 - *(output)* Quote output string when it contains spaces and points to an existing path (#77)
 - *(stdin)* Better handling of long running stdin streams (#81)
+- *(preview)* Remove redundant tokio task when generating builtin file previews (#86)
 
 ### 🚜 Refactor
 
@@ -20,14 +22,18 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - *(install)* Update the installation section of the README (#79)
+- *(installation)* Update homebrew installation command (#87)
 
 ### ⚡ Performance
 
 - Remove unnecessary clone() calls (#83)
+- Skip ratatui span when match at end of string (#91)
+- Add cache for icon colors (#89)
 
 ### ⚙️ Miscellaneous Tasks
 
 - *(changelog)* Update changelog (auto) (#74)
+- *(changelog)* Update changelog (auto) (#85)
 
 ## [0.5.3] - 2024-11-24
 
