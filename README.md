@@ -156,7 +156,9 @@ source_command = 'fd -t f . $HOME/.config'
 preview_command = 'bat -n --color=always {0}'
 ```
 
-This would add two new cable channels to `television` available using the remote control mode.
+This would add two new cable channels to `television` available using the remote control mode:
+
+![cable channels](./assets/cable_channels.png "Cable channels")
 
 <details>
 
