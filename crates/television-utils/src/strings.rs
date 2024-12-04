@@ -174,6 +174,13 @@ pub struct ReplaceNonPrintableConfig {
     pub replace_control_characters: bool,
 }
 
+impl ReplaceNonPrintableConfig {
+    pub fn tab_width(&mut self, tab_width: usize) -> &mut Self {
+        self.tab_width = tab_width;
+        self
+    }
+}
+
 impl Default for ReplaceNonPrintableConfig {
     fn default() -> Self {
         Self {
@@ -196,26 +203,26 @@ impl Default for ReplaceNonPrintableConfig {
 ///
 /// # Examples
 /// ```
-/// use television_utils::strings::replace_non_printable;
+/// use television_utils::strings::{replace_non_printable, ReplaceNonPrintableConfig};
 ///
 /// let input = b"Hello, World!";
-/// let (output, offsets) = replace_non_printable(input, 2);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello, World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
 /// let input = b"Hello,\tWorld!";
-/// let (output, offsets) = replace_non_printable(input, 4);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default().tab_width(4));
 /// assert_eq!(output, "Hello,    World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,3,3,3,3,3,3]);
 ///
 /// let input = b"Hello,\nWorld!";
-/// let (output, offsets) = replace_non_printable(input, 2);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello,World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
 /// ```
 pub fn replace_non_printable(
     input: &[u8],
-    config: ReplaceNonPrintableConfig,
+    config: &ReplaceNonPrintableConfig,
 ) -> (String, Vec<i16>) {
     let mut output = String::new();
     let mut offsets = Vec::new();
@@ -328,10 +335,7 @@ const MAX_LINE_LENGTH: usize = 300;
 /// assert_eq!(processed.len(), 300);
 /// assert_eq!(offsets, vec![0; 300]);
 /// ```
-pub fn preprocess_line(
-    line: &str,
-    config: ReplaceNonPrintableConfig,
-) -> (String, Vec<i16>) {
+pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
     replace_non_printable(
         {
             if line.len() > MAX_LINE_LENGTH {
@@ -341,7 +345,7 @@ pub fn preprocess_line(
             }
         }
         .as_bytes(),
-        config,
+        &ReplaceNonPrintableConfig::default(),
     )
 }
 
@@ -409,8 +413,7 @@ pub fn make_matched_string_printable(
     matched_string: &str,
     match_ranges: Option<&[(u32, u32)]>,
 ) -> (String, Vec<(u32, u32)>) {
-    let (printable, transformation_offsets) =
-        preprocess_line(matched_string, ReplaceNonPrintableConfig::default());
+    let (printable, transformation_offsets) = preprocess_line(matched_string);
     let mut match_indices = Vec::new();
 
     if let Some(ranges) = match_ranges {
@@ -542,10 +545,7 @@ mod tests {
     fn test_replace_non_printable(input: &str, expected: &str) {
         let (actual, _offset) = replace_non_printable(
             input.as_bytes(),
-            ReplaceNonPrintableConfig {
-                tab_width: 2,
-                ..Default::default()
-            },
+            &ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(actual, expected);
     }
@@ -593,8 +593,10 @@ mod tests {
     #[test]
     fn test_replace_non_printable_range_tab() {
         let input = b"Hello,\tWorld!";
-        let (output, offsets) =
-            replace_non_printable(input, ReplaceNonPrintableConfig::default());
+        let (output, offsets) = replace_non_printable(
+            input,
+            &ReplaceNonPrintableConfig::default(),
+        );
         assert_eq!(output, "Hello,    World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3]);
     }
@@ -604,10 +606,7 @@ mod tests {
         let input = b"Hello,\nWorld!";
         let (output, offsets) = replace_non_printable(
             input,
-            ReplaceNonPrintableConfig {
-                tab_width: 2,
-                ..Default::default()
-            },
+            &ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1]);
@@ -618,10 +617,7 @@ mod tests {
         let input = b"Hello,\x00World!";
         let (output, offsets) = replace_non_printable(
             input,
-            ReplaceNonPrintableConfig {
-                tab_width: 2,
-                ..Default::default()
-            },
+            &ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -629,10 +625,7 @@ mod tests {
         let input = b"Hello,\x7FWorld!";
         let (output, offsets) = replace_non_printable(
             input,
-            ReplaceNonPrintableConfig {
-                tab_width: 2,
-                ..Default::default()
-            },
+            &ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -661,8 +654,7 @@ mod tests {
     }
 
     fn test_preprocess_line(input: &str, expected: &str) {
-        let (actual, _offset) =
-            preprocess_line(input, ReplaceNonPrintableConfig::default());
+        let (actual, _offset) = preprocess_line(input);
         assert_eq!(actual, expected, "input: {:?}", input);
     }
 

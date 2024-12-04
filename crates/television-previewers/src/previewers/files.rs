@@ -4,8 +4,10 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 use syntect::{
     highlighting::{Theme, ThemeSet},
@@ -16,11 +18,10 @@ use tracing::{debug, warn};
 use super::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
-use television_utils::files::get_file_size;
-use television_utils::files::FileType;
-use television_utils::strings::{preprocess_line, ReplaceNonPrintableConfig};
-use television_utils::syntax::{
-    self, load_highlighting_assets, HighlightingAssetsExt,
+use television_utils::{
+    files::{get_file_size, FileType},
+    strings::preprocess_line,
+    syntax::{self, load_highlighting_assets, HighlightingAssetsExt},
 };
 
 #[derive(Debug, Default)]
@@ -192,10 +193,7 @@ fn compute_highlighted_text_preview(
         .map_while(Result::ok)
         // we need to add a newline here because sublime syntaxes expect one
         // to be present at the end of each line
-        .map(|line| {
-            preprocess_line(&line, ReplaceNonPrintableConfig::default()).0
-                + "\n"
-        })
+        .map(|line| preprocess_line(&line).0 + "\n")
         .collect();
 
     match syntax::compute_highlights_for_path(
@@ -231,9 +229,7 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
     // truncate accordingly (since this is just a temp preview)
     for maybe_line in reader.lines() {
         match maybe_line {
-            Ok(line) => lines.push(
-                preprocess_line(&line, ReplaceNonPrintableConfig::default()).0,
-            ),
+            Ok(line) => lines.push(preprocess_line(&line).0),
             Err(e) => {
                 warn!("Error reading file: {:?}", e);
                 return meta::not_supported(title);

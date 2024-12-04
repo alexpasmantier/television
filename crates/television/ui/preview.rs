@@ -49,7 +49,7 @@ impl Television {
             shrink_with_ellipsis(
                 &replace_non_printable(
                     preview.title.as_bytes(),
-                    ReplaceNonPrintableConfig::default(),
+                    &ReplaceNonPrintableConfig::default(),
                 )
                 .0,
                 rect.width.saturating_sub(4) as usize,
@@ -215,7 +215,7 @@ impl Television {
     ) -> Paragraph {
         let text = replace_non_printable(
             text.as_bytes(),
-            ReplaceNonPrintableConfig {
+            &ReplaceNonPrintableConfig {
                 replace_line_feed: false,
                 replace_control_characters: false,
                 ..Default::default()
