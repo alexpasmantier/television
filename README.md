@@ -136,7 +136,7 @@ The following built-in channels are currently available:
 
 ## Cable channels
 Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.
-You can find a list of available cable channels [here](...) and even contribute your own!
+You can find a list of available cable channels [on the wiki](https://github.com/alexpasmantier/television/wiki) and even contribute your own!
 
 ### Installing cable channels
 Installing cable channels is as simple as creating provider files in your configuration folder.
