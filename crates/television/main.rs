@@ -5,6 +5,7 @@ use clap::Parser;
 use cli::PostProcessedCli;
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
+use television_channels::entry::PreviewType;
 use tracing::{debug, info};
 
 use crate::app::App;
@@ -14,6 +15,7 @@ use television_utils::stdin::is_readable_stdin;
 
 pub mod action;
 pub mod app;
+pub mod cable;
 pub mod cli;
 pub mod config;
 pub mod errors;
@@ -38,7 +40,9 @@ async fn main() -> Result<()> {
         {
             if is_readable_stdin() {
                 debug!("Using stdin channel");
-                TelevisionChannel::Stdin(StdinChannel::default())
+                TelevisionChannel::Stdin(StdinChannel::new(
+                    args.preview_command.map(PreviewType::Command),
+                ))
             } else {
                 debug!("Using {:?} channel", args.channel);
                 args.channel.to_channel()

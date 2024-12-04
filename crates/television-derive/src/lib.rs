@@ -332,19 +332,35 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
         }
     };
 
-    // Generate From<&str> implementation
-    let from_str_impl = quote! {
-        impl From<&str> for UnitChannel {
-            fn from(channel: &str) -> Self {
+    // Generate TryFrom<&str> implementation
+    let try_from_str_impl = quote! {
+        impl std::convert::TryFrom<&str> for UnitChannel {
+            type Error = String;
+
+            fn try_from(channel: &str) -> Result<Self, Self::Error> {
                 match channel {
                     #(
-                        stringify!(#variant_names) => Self::#variant_names,
+                        stringify!(#variant_names) => Ok(Self::#variant_names),
                     )*
-                    _ => panic!("Invalid unit channel name."),
+                    _ => Err(format!("Invalid unit channel name: {}", channel)),
                 }
             }
         }
     };
+
+    // Generate From<&str> implementation
+    //let from_str_impl = quote! {
+    //    impl From<&str> for UnitChannel {
+    //        fn from(channel: &str) -> Self {
+    //            match channel {
+    //                #(
+    //                    stringify!(#variant_names) => Self::#variant_names,
+    //                )*
+    //                _ => panic!("Invalid unit channel name."),
+    //            }
+    //        }
+    //    }
+    //};
 
     // Generate Into<&str> implementation
     let into_str_impl = quote! {
@@ -363,7 +379,8 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
         #unit_enum
         #into_impl
         #from_impl
-        #from_str_impl
+        #try_from_str_impl
+        //#from_str_impl
         #into_str_impl
     };
 

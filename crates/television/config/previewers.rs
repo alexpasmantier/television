@@ -8,8 +8,6 @@ use television_previewers::previewers::PreviewerConfig;
 pub struct PreviewersConfig {
     #[serde(default)]
     pub basic: BasicPreviewerConfig,
-    #[serde(default)]
-    pub directory: DirectoryPreviewerConfig,
     pub file: FilePreviewerConfig,
     #[serde(default)]
     pub env_var: EnvVarPreviewerConfig,
@@ -26,7 +24,6 @@ impl From<PreviewersConfig> for ValueKind {
     fn from(val: PreviewersConfig) -> Self {
         let mut m = HashMap::new();
         m.insert(String::from("basic"), val.basic.into());
-        m.insert(String::from("directory"), val.directory.into());
         m.insert(String::from("file"), val.file.into());
         m.insert(String::from("env_var"), val.env_var.into());
         ValueKind::Table(m)
@@ -38,15 +35,6 @@ pub struct BasicPreviewerConfig {}
 
 impl From<BasicPreviewerConfig> for ValueKind {
     fn from(_val: BasicPreviewerConfig) -> Self {
-        ValueKind::Table(HashMap::new())
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Default)]
-pub struct DirectoryPreviewerConfig {}
-
-impl From<DirectoryPreviewerConfig> for ValueKind {
-    fn from(_val: DirectoryPreviewerConfig) -> Self {
         ValueKind::Table(HashMap::new())
     }
 }

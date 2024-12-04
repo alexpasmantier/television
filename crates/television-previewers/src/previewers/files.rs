@@ -1,12 +1,13 @@
 use color_eyre::Result;
-//use image::{ImageReader, Rgb};
-//use ratatui_image::picker::Picker;
 use parking_lot::Mutex;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU8, Ordering};
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicU8, Ordering},
+    Arc,
+};
 
 use syntect::{
     highlighting::{Theme, ThemeSet},
@@ -17,11 +18,10 @@ use tracing::{debug, warn};
 use super::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
-use television_utils::files::get_file_size;
-use television_utils::files::FileType;
-use television_utils::strings::preprocess_line;
-use television_utils::syntax::{
-    self, load_highlighting_assets, HighlightingAssetsExt,
+use television_utils::{
+    files::{get_file_size, FileType},
+    strings::preprocess_line,
+    syntax::{self, load_highlighting_assets, HighlightingAssetsExt},
 };
 
 #[derive(Debug, Default)]
@@ -31,7 +31,7 @@ pub struct FilePreviewer {
     pub syntax_theme: Arc<Theme>,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
-    //image_picker: Arc<Mutex<Picker>>,
+    in_flight_previews: Arc<Mutex<HashSet<String>>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -49,7 +49,7 @@ impl FilePreviewerConfig {
 /// 4 MB
 const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
-const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 2;
+const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 3;
 
 impl FilePreviewer {
     pub fn new(config: Option<FilePreviewerConfig>) -> Self {
@@ -63,17 +63,16 @@ impl FilePreviewer {
             },
             |c| hl_assets.get_theme_no_output(&c.theme).clone(),
         );
-        //info!("getting image picker");
-        //let image_picker = get_image_picker();
-        //info!("got image picker");
 
         FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
             syntax_set: Arc::new(syntax_set),
             syntax_theme: Arc::new(theme),
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
-            last_previewed: Arc::new(Mutex::new(Arc::new(Preview::default()))),
-            //image_picker: Arc::new(Mutex::new(image_picker)),
+            last_previewed: Arc::new(Mutex::new(Arc::new(
+                Preview::default().stale(),
+            ))),
+            in_flight_previews: Arc::new(Mutex::new(HashSet::new())),
         }
     }
 
@@ -82,35 +81,40 @@ impl FilePreviewer {
     /// # Panics
     /// Panics if seeking to the start of the file fails.
     pub fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
-        let path_buf = PathBuf::from(&entry.name);
-
         // do we have a preview in cache for that entry?
         if let Some(preview) = self.cache.lock().get(&entry.name) {
             return preview;
         }
-        debug!("No preview in cache for {:?}", entry.name);
+        debug!("Preview cache miss for {:?}", entry.name);
+
+        // are we already computing a preview in the background for that entry?
+        if self.in_flight_previews.lock().contains(&entry.name) {
+            debug!("Preview already in flight for {:?}", entry.name);
+            return self.last_previewed.lock().clone();
+        }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
             < MAX_CONCURRENT_PREVIEW_TASKS
         {
+            self.in_flight_previews.lock().insert(entry.name.clone());
             self.concurrent_preview_tasks
                 .fetch_add(1, Ordering::Relaxed);
             let cache = self.cache.clone();
             let entry_c = entry.clone();
             let syntax_set = self.syntax_set.clone();
             let syntax_theme = self.syntax_theme.clone();
-            let path = path_buf;
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
             let last_previewed = self.last_previewed.clone();
+            let in_flight_previews = self.in_flight_previews.clone();
             tokio::spawn(async move {
                 try_preview(
                     &entry_c,
-                    &path,
                     &cache,
                     &syntax_set,
                     &syntax_theme,
                     &concurrent_tasks,
                     &last_previewed,
+                    &in_flight_previews,
                 );
             });
         }
@@ -118,49 +122,28 @@ impl FilePreviewer {
         self.last_previewed.lock().clone()
     }
 
-    //async fn compute_image_preview(&self, entry: &entry::Entry) {
-    //    let cache = self.cache.clone();
-    //    let picker = self.image_picker.clone();
-    //    let entry_c = entry.clone();
-    //    tokio::spawn(async move {
-    //        info!("Loading image: {:?}", entry_c.name);
-    //        if let Ok(dyn_image) =
-    //            ImageReader::open(entry_c.name.clone()).unwrap().decode()
-    //        {
-    //            let image = picker.lock().await.new_resize_protocol(dyn_image);
-    //            let preview = Arc::new(Preview::new(
-    //                entry_c.name.clone(),
-    //                PreviewContent::Image(image),
-    //            ));
-    //            cache
-    //                .lock()
-    //                .await
-    //                .insert(entry_c.name.clone(), preview.clone());
-    //        }
-    //    });
-    //}
-
     #[allow(dead_code)]
     fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
-        self.cache.lock().insert(key, preview);
+        self.cache.lock().insert(key, &preview);
     }
 }
 
 pub fn try_preview(
     entry: &entry::Entry,
-    path: &PathBuf,
     cache: &Arc<Mutex<PreviewCache>>,
     syntax_set: &Arc<SyntaxSet>,
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
     last_previewed: &Arc<Mutex<Arc<Preview>>>,
+    in_flight_previews: &Arc<Mutex<HashSet<String>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
+    let path = PathBuf::from(&entry.name);
     // check file size
-    if get_file_size(path).map_or(false, |s| s > MAX_FILE_SIZE) {
+    if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
         debug!("File too large: {:?}", entry.name);
         let preview = meta::file_too_large(&entry.name);
-        cache.lock().insert(entry.name.clone(), preview);
+        cache.lock().insert(entry.name.clone(), &preview);
     }
 
     if matches!(FileType::from(&path), FileType::Text) {
@@ -176,20 +159,21 @@ pub fn try_preview(
                     syntax_set,
                     syntax_theme,
                 );
-                cache.lock().insert(entry.name.clone(), preview.clone());
+                cache.lock().insert(entry.name.clone(), &preview);
+                in_flight_previews.lock().remove(&entry.name);
                 let mut tp = last_previewed.lock();
-                *tp = preview;
+                *tp = preview.stale().into();
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
                 let p = meta::not_supported(&entry.name);
-                cache.lock().insert(entry.name.clone(), p);
+                cache.lock().insert(entry.name.clone(), &p);
             }
         }
     } else {
         debug!("File isn't text-based: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);
-        cache.lock().insert(entry.name.clone(), preview);
+        cache.lock().insert(entry.name.clone(), &preview);
     }
     concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
 }
@@ -224,6 +208,7 @@ fn compute_highlighted_text_preview(
                 entry.name.clone(),
                 PreviewContent::SyntectHighlightedText(highlighted_lines),
                 entry.icon,
+                false,
             ))
         }
         Err(e) => {
@@ -233,17 +218,7 @@ fn compute_highlighted_text_preview(
     }
 }
 
-//fn get_image_picker() -> Picker {
-//    let mut picker = match Picker::from_termios() {
-//        Ok(p) => p,
-//        Err(_) => Picker::new((7, 14)),
-//    };
-//    picker.guess_protocol();
-//    picker.background_color = Some(Rgb::<u8>([255, 0, 255]));
-//    picker
-//}
-
-/// This should be enough to most standard terminal sizes
+/// This should be enough for most terminal sizes
 const TEMP_PLAIN_TEXT_PREVIEW_HEIGHT: usize = 200;
 
 #[allow(dead_code)]
@@ -268,5 +243,6 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::PlainText(lines),
         None,
+        false,
     ))
 }

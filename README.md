@@ -115,7 +115,7 @@ Default keybindings are as follows:
 
 | Key | Description |
 | :---: | ----------- |
-| <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>n</kbd> / <kbd>p</kbd> | Navigate through the list of entries |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate through the list of entries |
 | <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
 | <kbd>Enter</kbd> | Select the current entry |
 | <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
@@ -123,10 +123,10 @@ Default keybindings are as follows:
 | <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
 | <kbd>Esc</kbd> | Quit the application |
 
-These keybindings can be customized in the configuration file (see [Customization](#customization)).
+These keybindings are all configurable (see [Customization](#customization)).
 
 ## Built-in Channels
-The following channels are currently available:
+The following built-in channels are currently available:
 - `Files`: search through files in a directory tree.
 - `Text`: search through textual content in a directory tree.
 - `GitRepos`: search through git repositories anywhere on the file system.
@@ -134,6 +134,51 @@ The following channels are currently available:
 - `Alias`: search through shell aliases and their values.
 - `Stdin`: search through lines of text from stdin.
 
+## Cable channels
+Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.
+You can find a list of available cable channels [on the wiki](https://github.com/alexpasmantier/television/wiki) and even contribute your own!
+
+### Installing cable channels
+Installing cable channels is as simple as creating provider files in your configuration folder.
+
+A provider file is a `*channels.toml` file that contains cable channel prototypes defined as follows:
+
+**my-custom-channels.toml**
+```toml
+[[cable_channel]]
+name = "Git log"
+source_command = 'git log --oneline --date=short --pretty="format:%h %s %an %cd" "$@"'
+preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+
+[[cable_channel]]
+name = "My dotfiles"
+source_command = 'fd -t f . $HOME/.config'
+preview_command = 'bat -n --color=always {0}'
+```
+
+This would add two new cable channels to `television` available using the remote control mode:
+
+![cable channels](./assets/cable_channels.png "Cable channels")
+
+<details>
+
+  <summary>Deciding which part of the source command output to pass to the previewer:</summary>
+
+  By default, each line of the source command can be passed to the previewer using `{}`. 
+
+  If you wish to pass only a part of the output to the previewer, you may do so by specifying the `preview_delimiter` to use as a separator and refering to the desired part using the corresponding index.
+
+  **Example:**
+  ```toml
+  [[cable_channel]]
+  name = "Disney channel"
+  source_command = 'echo "one:two:three:four" && echo "five:six:seven:eight"'
+  preview_command = 'echo {2}'
+  preview_delimiter = ':'
+  # which will pass "three" and "seven" to the preview command
+  ```
+
+</details>
 
 ## Design (high-level)
 #### Channels
@@ -213,9 +258,11 @@ Here is a list of terminal emulators that have currently been tested with `telev
 
 
 
-## Customization
+## Configuration
 You may wish to customize the behavior of `television` by providing your own configuration file. The configuration file
 is a simple TOML file that allows you to customize the behavior of `television` in a number of ways.
+
+Here are default locations where `television` expect the configuration files to be located for each platform:
 
 |Platform|Value|
 |--------|:-----:|
@@ -228,11 +275,17 @@ television will expect the configuration file to be in `$XDG_CONFIG_HOME/televis
 
 You may also override these default paths by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration **folder**.
 
-Example:
+<details>
+
+<summary>
+    Using a custom configuration file location:
+</summary>
+
 ```bash
 export TELEVISION_CONFIG=$HOME/.config/television
 touch $TELEVISION_CONFIG/config.toml
 ```
+</details>
 
 #### Default Configuration
 The default configuration file can be found in the repository's [./.config/config.toml](./.config/config.toml).

@@ -1,7 +1,7 @@
 use clap::Parser;
 
 use crate::config::{get_config_dir, get_data_dir};
-use television_channels::channels::CliTvChannel;
+use television_channels::{channels::CliTvChannel, entry::PreviewCommand};
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
@@ -9,6 +9,15 @@ pub struct Cli {
     /// Which channel shall we watch?
     #[arg(value_enum, default_value = "files")]
     pub channel: CliTvChannel,
+
+    /// Use a custom preview command (currently only supported by the stdin channel)
+    #[arg(short, long, value_name = "STRING")]
+    pub preview: Option<String>,
+
+    /// The delimiter used to extract fields from the entry to provide to the preview command
+    /// (defaults to ":")
+    #[arg(long, value_name = "STRING", default_value = " ", value_parser = delimiter_parser)]
+    pub delimiter: String,
 
     /// Tick rate, i.e. number of ticks per second
     #[arg(short, long, value_name = "FLOAT", default_value_t = 50.0)]
@@ -21,13 +30,14 @@ pub struct Cli {
     /// Passthrough keybindings (comma separated, e.g. "q,ctrl-w,ctrl-t") These keybindings will
     /// trigger selection of the current entry and be passed through to stdout along with the entry
     /// to be handled by the parent process.
-    #[arg(short, long, value_name = "STRING")]
+    #[arg(long, value_name = "STRING")]
     pub passthrough_keybindings: Option<String>,
 }
 
 #[derive(Debug)]
 pub struct PostProcessedCli {
     pub channel: CliTvChannel,
+    pub preview_command: Option<PreviewCommand>,
     pub tick_rate: f64,
     pub frame_rate: f64,
     pub passthrough_keybindings: Vec<String>,
@@ -42,8 +52,14 @@ impl From<Cli> for PostProcessedCli {
             .map(std::string::ToString::to_string)
             .collect();
 
+        let preview_command = cli.preview.map(|preview| PreviewCommand {
+            command: preview,
+            delimiter: cli.delimiter.clone(),
+        });
+
         Self {
             channel: cli.channel,
+            preview_command,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
@@ -97,9 +113,12 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::float_cmp)]
     fn test_from_cli() {
         let cli = Cli {
             channel: CliTvChannel::Files,
+            preview: Some("bat -n --color=always {}".to_string()),
+            delimiter: ":".to_string(),
             tick_rate: 50.0,
             frame_rate: 60.0,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
@@ -108,6 +127,13 @@ mod tests {
         let post_processed_cli: PostProcessedCli = cli.into();
 
         assert_eq!(post_processed_cli.channel, CliTvChannel::Files);
+        assert_eq!(
+            post_processed_cli.preview_command,
+            Some(PreviewCommand {
+                command: "bat -n --color=always {}".to_string(),
+                delimiter: ":".to_string()
+            })
+        );
         assert_eq!(post_processed_cli.tick_rate, 50.0);
         assert_eq!(post_processed_cli.frame_rate, 60.0);
         assert_eq!(
@@ -115,4 +141,12 @@ mod tests {
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
         );
     }
+}
+
+fn delimiter_parser(s: &str) -> Result<String, String> {
+    Ok(match s {
+        "" => ":".to_string(),
+        "\\t" => "\t".to_string(),
+        _ => s.to_string(),
+    })
 }

@@ -6,6 +6,7 @@ pub fn not_supported(title: &str) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::NotSupported,
         None,
+        false,
     ))
 }
 
@@ -14,6 +15,7 @@ pub fn file_too_large(title: &str) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::FileTooLarge,
         None,
+        false,
     ))
 }
 
@@ -23,5 +25,6 @@ pub fn loading(title: &str) -> Arc<Preview> {
         title.to_string(),
         PreviewContent::Loading,
         None,
+        false,
     ))
 }

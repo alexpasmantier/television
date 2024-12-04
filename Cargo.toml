@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.5.3"
+version = "0.6.0"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -54,11 +54,11 @@ name = "tv"
 
 [dependencies]
 # workspace dependencies
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.7" }
-television-derive = { path = "crates/television-derive", version = "0.0.7" }
-television-channels = { path = "crates/television-channels", version = "0.0.7" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.7" }
-television-utils = { path = "crates/television-utils", version = "0.0.7" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.8" }
+television-derive = { path = "crates/television-derive", version = "0.0.8" }
+television-channels = { path = "crates/television-channels", version = "0.0.8" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.8" }
+television-utils = { path = "crates/television-utils", version = "0.0.8" }
 
 # external dependencies
 better-panic = "0.3.0"
@@ -78,8 +78,8 @@ tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 unicode-width = "0.2.0"
 human-panic = "2.0.2"
-termtree = "0.5.1"
 copypasta = "0.10.1"
+ansi-to-tui = "7.0.0"
 
 
 [build-dependencies]

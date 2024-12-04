@@ -1,6 +1,6 @@
 [package]
 name = "television-previewers"
-version = "0.0.7"
+version = "0.0.8"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -14,12 +14,13 @@ rust-version.workspace = true
 
 [dependencies]
 syntect = "5.2.0"
-television-channels = { path = "../television-channels", version = "0.0.7" }
-television-utils = { path = "../television-utils", version = "0.0.7" }
+television-channels = { path = "../television-channels", version = "0.0.8" }
+television-utils = { path = "../television-utils", version = "0.0.8" }
 tracing = "0.1.40"
 parking_lot = "0.12.3"
 tokio = "1.41.1"
-termtree = "0.5.1"
 devicons = "0.6.11"
 color-eyre = "0.6.3"
+regex = "1.11.1"
+lazy_static = "1.5.0"
 

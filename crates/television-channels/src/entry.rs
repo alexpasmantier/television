@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fmt::Display, path::PathBuf};
 
 use devicons::FileIcon;
 
@@ -117,11 +117,32 @@ pub const ENTRY_PLACEHOLDER: Entry = Entry {
     preview_type: PreviewType::EnvVar,
 };
 
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+pub struct PreviewCommand {
+    pub command: String,
+    pub delimiter: String,
+}
+
+impl PreviewCommand {
+    pub fn new(command: &str, delimiter: &str) -> Self {
+        Self {
+            command: command.to_string(),
+            delimiter: delimiter.to_string(),
+        }
+    }
+}
+
+impl Display for PreviewCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
+    }
+}
+
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub enum PreviewType {
     #[default]
     Basic,
-    Directory,
     EnvVar,
     Files,
+    Command(PreviewCommand),
 }

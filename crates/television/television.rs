@@ -1,17 +1,21 @@
-use crate::app::Keymap;
 use crate::picker::Picker;
-use crate::ui::input::actions::InputActionHandler;
-use crate::ui::layout::{Dimensions, InputPosition, Layout};
-use crate::ui::spinner::Spinner;
-use crate::ui::spinner::SpinnerState;
-use crate::{action::Action, config::Config};
+use crate::ui::{
+    cache::RenderedPreviewCache,
+    input::actions::InputActionHandler,
+    layout::{Dimensions, InputPosition, Layout},
+    spinner::Spinner,
+};
+use crate::{action::Action, config::Config, ui::spinner::SpinnerState};
+use crate::{app::Keymap, cable::load_cable_channels};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use ratatui::{layout::Rect, style::Color, widgets::Paragraph, Frame};
+use ratatui::{layout::Rect, style::Color, Frame};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use television_channels::channels::{
-    remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
+    remote_control::{load_builtin_channels, RemoteControl},
+    OnAir, TelevisionChannel, UnitChannel,
 };
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
@@ -40,14 +44,8 @@ pub struct Television {
     pub preview_scroll: Option<u16>,
     pub preview_pane_height: u16,
     current_preview_total_lines: u16,
-    /// A cache for meta paragraphs (i.e. previews like "Not Supported", etc.).
-    ///
-    /// The key is a tuple of the preview name and the dimensions of the
-    /// preview pane. This is a little extra security to ensure meta previews
-    /// are rendered correctly even when resizing the terminal while still
-    /// benefiting from a cache mechanism.
-    pub meta_paragraph_cache: HashMap<(String, u16, u16), Paragraph<'static>>,
     pub icon_color_cache: HashMap<String, Color>,
+    pub rendered_preview_cache: Arc<Mutex<RenderedPreviewCache<'static>>>,
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
 }
@@ -61,6 +59,8 @@ impl Television {
         };
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
         let keymap = Keymap::from(&config.keybindings);
+        let builtin_channels = load_builtin_channels();
+        let cable_channels = load_cable_channels().unwrap_or_default();
 
         channel.find(EMPTY_STRING);
         let spinner = Spinner::default();
@@ -70,7 +70,7 @@ impl Television {
             keymap,
             channel,
             remote_control: TelevisionChannel::RemoteControl(
-                RemoteControl::default(),
+                RemoteControl::new(builtin_channels, Some(cable_channels)),
             ),
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
@@ -81,8 +81,10 @@ impl Television {
             preview_scroll: None,
             preview_pane_height: 0,
             current_preview_total_lines: 0,
-            meta_paragraph_cache: HashMap::new(),
             icon_color_cache: HashMap::new(),
+            rendered_preview_cache: Arc::new(Mutex::new(
+                RenderedPreviewCache::default(),
+            )),
             spinner,
             spinner_state: SpinnerState::from(&spinner),
         }
@@ -289,9 +291,6 @@ impl Television {
             Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
             Action::ToggleRemoteControl => match self.mode {
                 Mode::Channel => {
-                    self.remote_control = TelevisionChannel::RemoteControl(
-                        RemoteControl::default(),
-                    );
                     self.mode = Mode::RemoteControl;
                 }
                 Mode::RemoteControl => {
@@ -312,8 +311,9 @@ impl Television {
                             .unwrap()
                             .send(Action::SelectAndExit)?,
                         Mode::RemoteControl => {
-                            // FIXME: this is kind of shitty
-                            let new_channel = TelevisionChannel::from(&entry);
+                            let new_channel = self
+                                .remote_control
+                                .zap(entry.name.as_str())?;
                             // this resets the RC picker
                             self.reset_picker_selection();
                             self.reset_picker_input();
@@ -322,9 +322,9 @@ impl Television {
                             self.change_channel(new_channel);
                         }
                         Mode::SendToChannel => {
-                            let new_channel = self
-                                .channel
-                                .transition_to(entry.name.as_str().into());
+                            let new_channel = self.channel.transition_to(
+                                entry.name.as_str().try_into().unwrap(),
+                            );
                             self.reset_picker_selection();
                             self.reset_picker_input();
                             self.remote_control.find(EMPTY_STRING);
@@ -406,9 +406,7 @@ impl Television {
         self.draw_preview_content_block(
             f,
             layout.preview_window,
-            selected_entry
-                .line_number
-                .map(|l| u16::try_from(l).unwrap_or(0)),
+            &selected_entry,
             &preview,
         );
 

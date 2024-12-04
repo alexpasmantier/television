@@ -1,12 +1,13 @@
 use devicons::FileIcon;
 use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
+use lazy_static::lazy_static;
 use std::path::PathBuf;
 use tokio::task::JoinHandle;
 use tracing::debug;
 
 use crate::channels::OnAir;
-use crate::entry::{Entry, PreviewType};
+use crate::entry::{Entry, PreviewCommand, PreviewType};
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 
@@ -38,6 +39,15 @@ impl Default for Channel {
     }
 }
 
+lazy_static! {
+    static ref PREVIEW_COMMAND: PreviewCommand = PreviewCommand {
+        command: String::from(
+            "cd {} && git log --pretty=medium --all --graph --color",
+        ),
+        delimiter: ":".to_string(),
+    };
+}
+
 impl OnAir for Channel {
     fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
@@ -50,9 +60,12 @@ impl OnAir for Channel {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path, PreviewType::Directory)
-                    .with_name_match_ranges(item.match_indices)
-                    .with_icon(self.icon)
+                Entry::new(
+                    path.clone(),
+                    PreviewType::Command(PREVIEW_COMMAND.clone()),
+                )
+                .with_name_match_ranges(item.match_indices)
+                .with_icon(self.icon)
             })
             .collect()
     }
@@ -60,7 +73,11 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path, PreviewType::Directory).with_icon(self.icon)
+            Entry::new(
+                path.clone(),
+                PreviewType::Command(PREVIEW_COMMAND.clone()),
+            )
+            .with_icon(self.icon)
         })
     }
 

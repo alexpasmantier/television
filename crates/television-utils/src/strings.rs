@@ -167,6 +167,31 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
+pub struct ReplaceNonPrintableConfig {
+    pub replace_tab: bool,
+    pub tab_width: usize,
+    pub replace_line_feed: bool,
+    pub replace_control_characters: bool,
+}
+
+impl ReplaceNonPrintableConfig {
+    pub fn tab_width(&mut self, tab_width: usize) -> &mut Self {
+        self.tab_width = tab_width;
+        self
+    }
+}
+
+impl Default for ReplaceNonPrintableConfig {
+    fn default() -> Self {
+        Self {
+            replace_tab: true,
+            tab_width: TAB_WIDTH,
+            replace_line_feed: true,
+            replace_control_characters: true,
+        }
+    }
+}
+
 #[allow(clippy::missing_panics_doc)]
 /// Replaces non-printable characters in the given byte slice with default printable characters.
 ///
@@ -178,26 +203,26 @@ const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 ///
 /// # Examples
 /// ```
-/// use television_utils::strings::replace_non_printable;
+/// use television_utils::strings::{replace_non_printable, ReplaceNonPrintableConfig};
 ///
 /// let input = b"Hello, World!";
-/// let (output, offsets) = replace_non_printable(input, 2);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello, World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
 /// let input = b"Hello,\tWorld!";
-/// let (output, offsets) = replace_non_printable(input, 4);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default().tab_width(4));
 /// assert_eq!(output, "Hello,    World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,3,3,3,3,3,3]);
 ///
 /// let input = b"Hello,\nWorld!";
-/// let (output, offsets) = replace_non_printable(input, 2);
+/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello,World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
 /// ```
 pub fn replace_non_printable(
     input: &[u8],
-    tab_width: usize,
+    config: &ReplaceNonPrintableConfig,
 ) -> (String, Vec<i16>) {
     let mut output = String::new();
     let mut offsets = Vec::new();
@@ -212,12 +237,13 @@ pub fn replace_non_printable(
 
             match chr {
                 // tab
-                TAB_CHARACTER => {
-                    output.push_str(&" ".repeat(tab_width));
-                    cumulative_offset += i16::try_from(tab_width).unwrap() - 1;
+                TAB_CHARACTER if config.replace_tab => {
+                    output.push_str(&" ".repeat(config.tab_width));
+                    cumulative_offset +=
+                        i16::try_from(config.tab_width).unwrap() - 1;
                 }
                 // line feed
-                LINE_FEED_CHARACTER => {
+                LINE_FEED_CHARACTER if config.replace_line_feed => {
                     cumulative_offset -= 1;
                 }
 
@@ -226,7 +252,9 @@ pub fn replace_non_printable(
                 // + BOM
                 NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
                 | DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER
-                | BOM_CHARACTER => {
+                | BOM_CHARACTER
+                    if config.replace_control_characters =>
+                {
                     output.push(*NULL_SYMBOL);
                 }
                 // Unicode characters above 0x0700 seem unstable with ratatui
@@ -317,7 +345,7 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
             }
         }
         .as_bytes(),
-        TAB_WIDTH,
+        &ReplaceNonPrintableConfig::default(),
     )
 }
 
@@ -515,7 +543,10 @@ mod tests {
     }
 
     fn test_replace_non_printable(input: &str, expected: &str) {
-        let (actual, _offset) = replace_non_printable(input.as_bytes(), 2);
+        let (actual, _offset) = replace_non_printable(
+            input.as_bytes(),
+            &ReplaceNonPrintableConfig::default().tab_width(2),
+        );
         assert_eq!(actual, expected);
     }
 
@@ -562,7 +593,10 @@ mod tests {
     #[test]
     fn test_replace_non_printable_range_tab() {
         let input = b"Hello,\tWorld!";
-        let (output, offsets) = replace_non_printable(input, 4);
+        let (output, offsets) = replace_non_printable(
+            input,
+            &ReplaceNonPrintableConfig::default(),
+        );
         assert_eq!(output, "Hello,    World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 3, 3, 3, 3, 3, 3]);
     }
@@ -570,7 +604,10 @@ mod tests {
     #[test]
     fn test_replace_non_printable_range_line_feed() {
         let input = b"Hello,\nWorld!";
-        let (output, offsets) = replace_non_printable(input, 2);
+        let (output, offsets) = replace_non_printable(
+            input,
+            &ReplaceNonPrintableConfig::default().tab_width(2),
+        );
         assert_eq!(output, "Hello,World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1]);
     }
@@ -578,12 +615,18 @@ mod tests {
     #[test]
     fn test_replace_non_printable_no_range_changes() {
         let input = b"Hello,\x00World!";
-        let (output, offsets) = replace_non_printable(input, 2);
+        let (output, offsets) = replace_non_printable(
+            input,
+            &ReplaceNonPrintableConfig::default().tab_width(2),
+        );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
         let input = b"Hello,\x7FWorld!";
-        let (output, offsets) = replace_non_printable(input, 2);
+        let (output, offsets) = replace_non_printable(
+            input,
+            &ReplaceNonPrintableConfig::default().tab_width(2),
+        );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
