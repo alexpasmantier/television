@@ -162,9 +162,9 @@ This would add two new cable channels to `television` available using the remote
 
   <summary>Deciding which part of the source command output to pass to the previewer:</summary>
 
-  By default, the entire output of the source command is passed to the previewer using `{}`. 
+  By default, each line of the source command can be passed to the previewer using `{}`. 
 
-  If you wish to pass only a part of the output to the previewer, you may do so by specifying the `preview_delimiter` to use as a separator. 
+  If you wish to pass only a part of the output to the previewer, you may do so by specifying the `preview_delimiter` to use as a separator and refering to the desired part using the corresponding index.
 
   **Example:**
   ```toml

@@ -10,6 +10,7 @@ use std::sync::Arc;
 use television_channels::entry::{Entry, PreviewCommand};
 use tracing::debug;
 
+#[allow(dead_code)]
 #[derive(Debug, Default)]
 pub struct CommandPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
@@ -19,6 +20,7 @@ pub struct CommandPreviewer {
     in_flight_previews: Arc<Mutex<HashSet<String>>>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct CommandPreviewerConfig {
     delimiter: String,

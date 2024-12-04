@@ -1,20 +1,21 @@
-use crate::app::Keymap;
-use crate::cable::load_cable_channels;
 use crate::picker::Picker;
-use crate::ui::cache::RenderedPreviewCache;
-use crate::ui::input::actions::InputActionHandler;
-use crate::ui::layout::{Dimensions, InputPosition, Layout};
-use crate::ui::spinner::Spinner;
-use crate::ui::spinner::SpinnerState;
-use crate::{action::Action, config::Config};
+use crate::ui::{
+    cache::RenderedPreviewCache,
+    input::actions::InputActionHandler,
+    layout::{Dimensions, InputPosition, Layout},
+    spinner::Spinner,
+};
+use crate::{action::Action, config::Config, ui::spinner::SpinnerState};
+use crate::{app::Keymap, cable::load_cable_channels};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use television_channels::channels::remote_control::load_builtin_channels;
 use television_channels::channels::{
-    remote_control::RemoteControl, OnAir, TelevisionChannel, UnitChannel,
+    remote_control::{load_builtin_channels, RemoteControl},
+    OnAir, TelevisionChannel, UnitChannel,
 };
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;

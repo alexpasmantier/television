@@ -1,4 +1,8 @@
-use std::{collections::HashMap, ops::Deref};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    ops::Deref,
+};
 
 #[derive(Clone, Debug, serde::Deserialize)]
 pub struct CableChannelPrototype {
@@ -15,9 +19,9 @@ fn default_delimiter() -> String {
     DEFAULT_DELIMITER.to_string()
 }
 
-impl ToString for CableChannelPrototype {
-    fn to_string(&self) -> String {
-        self.name.clone()
+impl Display for CableChannelPrototype {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.name)
     }
 }
 

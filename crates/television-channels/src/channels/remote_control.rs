@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::cable::{CableChannelPrototype, CableChannels};
 use crate::channels::{CliTvChannel, OnAir, TelevisionChannel, UnitChannel};
 use crate::entry::{Entry, PreviewType};
@@ -5,7 +7,6 @@ use clap::ValueEnum;
 use color_eyre::Result;
 use devicons::FileIcon;
 use television_fuzzy::matcher::{config::Config, Matcher};
-use tracing::debug;
 
 use super::custom;
 
@@ -20,11 +21,11 @@ pub enum RCButton {
     CableChannel(CableChannelPrototype),
 }
 
-impl ToString for RCButton {
-    fn to_string(&self) -> String {
+impl Display for RCButton {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RCButton::Channel(channel) => channel.to_string(),
-            RCButton::CableChannel(prototype) => prototype.to_string(),
+            RCButton::Channel(channel) => write!(f, "{channel}"),
+            RCButton::CableChannel(prototype) => write!(f, "{prototype}"),
         }
     }
 }

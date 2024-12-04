@@ -6,6 +6,7 @@ use television_fuzzy::{
     Matcher,
 };
 
+#[allow(dead_code)]
 pub struct Channel {
     name: String,
     matcher: Matcher<String>,
