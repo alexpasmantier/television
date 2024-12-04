@@ -3,7 +3,7 @@ use color_eyre::Result;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
-mod custom;
+mod cable;
 mod env;
 mod files;
 mod git_repos;
@@ -144,7 +144,7 @@ pub enum TelevisionChannel {
     /// This channel allows to search through custom data.
     #[exclude_from_unit]
     #[exclude_from_cli]
-    Custom(custom::Channel),
+    Cable(cable::Channel),
 }
 
 impl From<&Entry> for TelevisionChannel {

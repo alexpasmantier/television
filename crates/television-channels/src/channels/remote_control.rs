@@ -8,7 +8,7 @@ use color_eyre::Result;
 use devicons::FileIcon;
 use television_fuzzy::matcher::{config::Config, Matcher};
 
-use super::custom;
+use super::cable;
 
 pub struct RemoteControl {
     matcher: Matcher<RCButton>,
@@ -77,8 +77,8 @@ impl RemoteControl {
                 .as_ref()
                 .and_then(|channels| channels.get(channel_name));
             match maybe_prototype {
-                Some(prototype) => Ok(TelevisionChannel::Custom(
-                    custom::Channel::from(prototype.clone()),
+                Some(prototype) => Ok(TelevisionChannel::Cable(
+                    cable::Channel::from(prototype.clone()),
                 )),
                 None => Err(color_eyre::eyre::eyre!(
                     "No channel or cable channel prototype found for {}",
