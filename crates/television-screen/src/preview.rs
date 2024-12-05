@@ -1,5 +1,10 @@
-use crate::television::Television;
-use crate::ui::BORDER_COLOR;
+use tv::television::Television;
+
+use crate::colors::{
+    BORDER_COLOR, DEFAULT_PREVIEW_CONTENT_FG, DEFAULT_PREVIEW_GUTTER_FG,
+    DEFAULT_PREVIEW_GUTTER_SELECTED_FG, DEFAULT_PREVIEW_TITLE_FG,
+    DEFAULT_SELECTED_PREVIEW_BG,
+};
 use ansi_to_tui::IntoText;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -19,15 +24,8 @@ use television_utils::strings::{
     EMPTY_STRING,
 };
 
-//  preview
-pub const DEFAULT_PREVIEW_TITLE_FG: Color = Color::Blue;
-const DEFAULT_SELECTED_PREVIEW_BG: Color = Color::Rgb(50, 50, 50);
-const DEFAULT_PREVIEW_CONTENT_FG: Color = Color::Rgb(150, 150, 180);
-const DEFAULT_PREVIEW_GUTTER_FG: Color = Color::Rgb(70, 70, 70);
-const DEFAULT_PREVIEW_GUTTER_SELECTED_FG: Color = Color::Rgb(255, 150, 150);
-
 impl Television {
-    pub(crate) fn draw_preview_title_block(
+    pub fn draw_preview_title_block(
         &self,
         f: &mut Frame,
         rect: Rect,
@@ -69,7 +67,7 @@ impl Television {
         Ok(())
     }
 
-    pub(crate) fn draw_preview_content_block(
+    pub fn draw_preview_content_block(
         &mut self,
         f: &mut Frame,
         rect: Rect,

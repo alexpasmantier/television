@@ -1,3 +1,5 @@
+use crate::colors::ACTION_COLOR;
+use crate::mode::{mode_color, Mode};
 use color_eyre::eyre::{OptionExt, Result};
 use ratatui::{
     layout::Constraint,
@@ -6,15 +8,6 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 use std::collections::HashMap;
-
-use crate::ui::mode::mode_color;
-use crate::{
-    action::Action,
-    event::Key,
-    television::{Mode, Television},
-};
-
-const ACTION_COLOR: Color = Color::DarkGray;
 
 impl Television {
     pub fn build_keymap_table<'a>(&self) -> Result<Table<'a>> {

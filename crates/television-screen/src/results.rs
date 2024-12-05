@@ -1,6 +1,5 @@
-use crate::television::Television;
-use crate::ui::layout::InputPosition;
-use crate::ui::BORDER_COLOR;
+use crate::colors::{ResultsListColors, BORDER_COLOR};
+use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
@@ -16,53 +15,7 @@ use television_utils::strings::{
     make_matched_string_printable, next_char_boundary,
     slice_at_char_boundaries,
 };
-
-// Styles
-const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
-const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
-const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
-const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
-
-pub struct ResultsListColors {
-    pub result_name_fg: Color,
-    pub result_preview_fg: Color,
-    pub result_line_number_fg: Color,
-    pub result_selected_bg: Color,
-}
-
-impl Default for ResultsListColors {
-    fn default() -> Self {
-        Self {
-            result_name_fg: DEFAULT_RESULT_NAME_FG,
-            result_preview_fg: DEFAULT_RESULT_PREVIEW_FG,
-            result_line_number_fg: DEFAULT_RESULT_LINE_NUMBER_FG,
-            result_selected_bg: DEFAULT_RESULT_SELECTED_BG,
-        }
-    }
-}
-
-#[allow(dead_code)]
-impl ResultsListColors {
-    pub fn result_name_fg(mut self, color: Color) -> Self {
-        self.result_name_fg = color;
-        self
-    }
-
-    pub fn result_preview_fg(mut self, color: Color) -> Self {
-        self.result_preview_fg = color;
-        self
-    }
-
-    pub fn result_line_number_fg(mut self, color: Color) -> Self {
-        self.result_line_number_fg = color;
-        self
-    }
-
-    pub fn result_selected_bg(mut self, color: Color) -> Self {
-        self.result_selected_bg = color;
-        self
-    }
-}
+use tv::television::Television;
 
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
@@ -183,7 +136,7 @@ where
 }
 
 impl Television {
-    pub(crate) fn draw_results_list(
+    pub fn draw_results_list(
         &mut self,
         f: &mut Frame,
         rect: Rect,

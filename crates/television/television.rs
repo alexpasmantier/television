@@ -1,16 +1,9 @@
 use crate::picker::Picker;
-use crate::ui::{
-    cache::RenderedPreviewCache,
-    input::actions::InputActionHandler,
-    layout::{Dimensions, InputPosition, Layout},
-    spinner::Spinner,
-};
-use crate::{action::Action, config::Config, ui::spinner::SpinnerState};
+use crate::{action::Action, config::Config};
 use crate::{app::Keymap, cable::load_cable_channels};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use television_channels::channels::{
@@ -19,15 +12,13 @@ use television_channels::channels::{
 };
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
+use television_screen::cache::RenderedPreviewCache;
+use television_screen::input::actions::InputActionHandler;
+use television_screen::layout::{Dimensions, InputPosition, Layout};
+use television_screen::mode::Mode;
+use television_screen::spinner::{Spinner, SpinnerState};
 use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
-
-#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
-pub enum Mode {
-    Channel,
-    RemoteControl,
-    SendToChannel,
-}
 
 pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
@@ -208,11 +199,6 @@ impl Television {
         }
     }
 }
-
-// Styles
-//  input
-pub(crate) const DEFAULT_INPUT_FG: Color = Color::LightRed;
-pub(crate) const DEFAULT_RESULTS_COUNT_FG: Color = Color::LightRed;
 
 impl Television {
     /// Register an action handler that can send actions for processing if necessary.

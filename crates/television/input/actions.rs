@@ -1,5 +1,5 @@
-use crate::action::Action;
-use crate::ui::input::{Input, InputRequest, StateChanged};
+use television_screen::input::{Input, InputRequest, StateChanged};
+use tv::action::Action;
 
 /// This makes the `Action` type compatible with the `Input` logic.
 pub trait InputActionHandler {

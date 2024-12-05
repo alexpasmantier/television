@@ -1,12 +1,12 @@
-use crate::television::Television;
-use crate::ui::logo::build_logo_paragraph;
-use crate::ui::mode::mode_color;
+use crate::logo::build_logo_paragraph;
+use crate::mode::mode_color;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, BorderType, Borders, Padding};
 use ratatui::Frame;
+use tv::television::Television;
 
-use super::layout::HelpBarLayout;
+use crate::layout::HelpBarLayout;
 
 pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
@@ -22,7 +22,7 @@ pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
 }
 
 impl Television {
-    pub(crate) fn draw_help_bar(
+    pub fn draw_help_bar(
         &self,
         f: &mut Frame,
         layout: &Option<HelpBarLayout>,

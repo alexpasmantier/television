@@ -2,7 +2,7 @@ use config::ValueKind;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-use crate::ui::layout::InputPosition;
+use television_screen::layout::InputPosition;
 
 const DEFAULT_UI_SCALE: u16 = 90;
 

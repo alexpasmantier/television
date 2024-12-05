@@ -1,8 +1,6 @@
-use ratatui::style::Color;
-
 pub mod cache;
-pub(crate) mod help;
-pub mod input;
+mod colors;
+pub mod help;
 pub mod keymap;
 pub mod layout;
 pub mod logo;
@@ -12,5 +10,3 @@ pub mod preview;
 mod remote_control;
 pub mod results;
 pub mod spinner;
-
-pub const BORDER_COLOR: Color = Color::Blue;

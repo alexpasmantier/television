@@ -7,7 +7,7 @@ use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
 use crate::config::{parse_key, KeyBindings};
-use crate::television::{Mode, Television};
+use crate::television::Television;
 use crate::{
     action::Action,
     config::Config,

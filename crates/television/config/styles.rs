@@ -1,10 +1,10 @@
-use crate::television::Mode;
 use ratatui::prelude::{Color, Modifier, Style};
 use serde::{Deserialize, Deserializer};
 use std::{
     collections::HashMap,
     ops::{Deref, DerefMut},
 };
+use television_screen::mode::Mode;
 
 #[derive(Clone, Debug, Default)]
 pub struct Styles(pub HashMap<Mode, HashMap<String, Style>>);
