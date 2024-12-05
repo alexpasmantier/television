@@ -125,7 +125,7 @@ Default keybindings are as follows:
 
 These keybindings are all configurable (see [Configuration](#configuration)).
 
-## Built-in Channels
+## 📺 Built-in Channels
 The following built-in channels are currently available:
 - `Files`: search through files in a directory tree.
 - `Text`: search through textual content in a directory tree.
@@ -134,8 +134,9 @@ The following built-in channels are currently available:
 - `Alias`: search through shell aliases and their values.
 - `Stdin`: search through lines of text from stdin.
 
-## Cable channels
-Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.
+## 🍿 Cable channels
+*Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
+
 You can find a list of available cable channels [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels) and even contribute your own!
 
 ### Installing cable channels
