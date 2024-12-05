@@ -23,6 +23,8 @@ const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
 
+const DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR: Color = Color::Red;
+
 pub struct ResultsListColors {
     pub result_name_fg: Color,
     pub result_preview_fg: Color,
@@ -118,7 +120,8 @@ where
             // the current match
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, start, end).to_string(),
-                Style::default().fg(Color::Red),
+                Style::default()
+                    .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
             ));
             last_match_end = end;
         }
@@ -160,7 +163,8 @@ where
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, start, end).to_string(),
-                    Style::default().fg(Color::Red),
+                    Style::default()
+                        .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
                 ));
                 last_match_end = end;
             }

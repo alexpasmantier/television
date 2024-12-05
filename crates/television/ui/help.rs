@@ -1,18 +1,18 @@
+use super::layout::HelpBarLayout;
 use crate::television::Television;
 use crate::ui::logo::build_logo_paragraph;
 use crate::ui::mode::mode_color;
+use crate::ui::BORDER_COLOR;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, BorderType, Borders, Padding};
 use ratatui::Frame;
 
-use super::layout::HelpBarLayout;
-
 pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Blue))
+        .border_style(Style::default().fg(BORDER_COLOR))
         .style(Style::default().fg(color))
         .padding(Padding::horizontal(1));
 
@@ -39,7 +39,7 @@ impl Television {
         let metadata_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::Blue))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .padding(Padding::horizontal(1))
             .style(Style::default());
 
@@ -56,7 +56,7 @@ impl Television {
         let keymaps_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(Color::Blue))
+            .border_style(Style::default().fg(BORDER_COLOR))
             .style(Style::default())
             .padding(Padding::horizontal(1));
 
