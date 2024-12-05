@@ -1,12 +1,13 @@
+use crate::layout::HelpBarLayout;
 use crate::logo::build_logo_paragraph;
-use crate::mode::mode_color;
+use crate::metadata::build_metadata_table;
+use crate::mode::{mode_color, Mode};
+use color_eyre::eyre::Result;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Style};
-use ratatui::widgets::{Block, BorderType, Borders, Padding};
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Table};
 use ratatui::Frame;
 use tv::television::Television;
-
-use crate::layout::HelpBarLayout;
 
 pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
@@ -23,19 +24,19 @@ pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
 
 impl Television {
     pub fn draw_help_bar(
-        &self,
+        mode: Mode,
         f: &mut Frame,
         layout: &Option<HelpBarLayout>,
     ) -> color_eyre::Result<()> {
         if let Some(help_bar) = layout {
-            self.draw_metadata_block(f, help_bar.left);
-            self.draw_keymaps_block(f, help_bar.middle)?;
-            draw_logo_block(f, help_bar.right, mode_color(self.mode));
+            draw_metadata_block(f, help_bar.left, mode);
+            draw_keymaps_block(f, help_bar.middle, mode)?;
+            draw_logo_block(f, help_bar.right, mode_color(mode));
         }
         Ok(())
     }
 
-    fn draw_metadata_block(&self, f: &mut Frame, area: Rect) {
+    fn draw_metadata_block(&self, f: &mut Frame, area: Rect, mode: Mode) {
         let metadata_block = Block::default()
             .borders(Borders::ALL)
             .border_type(BorderType::Rounded)
@@ -43,15 +44,17 @@ impl Television {
             .padding(Padding::horizontal(1))
             .style(Style::default());
 
-        let metadata_table = self.build_metadata_table().block(metadata_block);
+        let metadata_table =
+            build_metadata_table(mode, self.current_channel())
+                .block(metadata_block);
 
         f.render_widget(metadata_table, area);
     }
 
     fn draw_keymaps_block(
-        &self,
         f: &mut Frame,
         area: Rect,
+        keymap_table: Result<Table>,
     ) -> color_eyre::Result<()> {
         let keymaps_block = Block::default()
             .borders(Borders::ALL)
