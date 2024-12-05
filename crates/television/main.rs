@@ -26,6 +26,8 @@ pub mod picker;
 pub mod render;
 pub mod television;
 pub mod tui;
+pub mod ui;
+mod ui;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {

@@ -1,4 +1,3 @@
-use crate::colors::ACTION_COLOR;
 use crate::mode::{mode_color, Mode};
 use color_eyre::eyre::{OptionExt, Result};
 use ratatui::{
@@ -8,6 +7,7 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 use std::collections::HashMap;
+use television_screen::colors::ACTION_COLOR;
 
 impl Television {
     pub fn build_keymap_table<'a>(&self) -> Result<Table<'a>> {
