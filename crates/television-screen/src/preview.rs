@@ -14,7 +14,6 @@ use ratatui::Frame;
 use std::str::FromStr;
 use std::sync::Arc;
 use syntect::highlighting::Color as SyntectColor;
-use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,

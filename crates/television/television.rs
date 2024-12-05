@@ -13,6 +13,7 @@ use television_channels::channels::{
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
 use television_screen::cache::RenderedPreviewCache;
+use television_screen::help::draw_help_bar;
 use television_screen::input::actions::InputActionHandler;
 use television_screen::layout::{Dimensions, InputPosition, Layout};
 use television_screen::mode::Mode;
@@ -368,7 +369,12 @@ impl Television {
         );
 
         // help bar (metadata, keymaps, logo)
-        self.draw_help_bar(f, &layout.help_bar)?;
+        draw_help_bar(
+            f,
+            &layout.help_bar,
+            self.current_channel(),
+            self.build_keymap_table(),
+        )?;
 
         self.results_area_height = u32::from(layout.results.height - 2); // 2 for the borders
         self.preview_pane_height = layout.preview_window.height;

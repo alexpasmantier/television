@@ -1,7 +1,6 @@
 pub mod cache;
 mod colors;
 pub mod help;
-pub mod keymap;
 pub mod layout;
 pub mod logo;
 pub mod metadata;
