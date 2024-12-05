@@ -142,7 +142,6 @@ pub enum TelevisionChannel {
     /// A custom channel.
     ///
     /// This channel allows to search through custom data.
-    #[exclude_from_unit]
     #[exclude_from_cli]
     Cable(cable::Channel),
 }
