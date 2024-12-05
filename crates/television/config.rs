@@ -155,7 +155,7 @@ mod tests {
     use super::*;
     use crate::action::Action;
     use crate::config::keybindings::parse_key;
-    use crate::television::Mode;
+    use television_screen::mode::Mode;
 
     #[test]
     fn test_config() -> Result<()> {

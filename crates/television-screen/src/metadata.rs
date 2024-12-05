@@ -7,8 +7,8 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 
-use crate::television::{Mode, Television};
-use crate::ui::mode::mode_color;
+use crate::mode::{mode_color, Mode};
+use tv::television::Television;
 
 const METADATA_FIELD_NAME_COLOR: Color = Color::DarkGray;
 const METADATA_FIELD_VALUE_COLOR: Color = Color::Gray;

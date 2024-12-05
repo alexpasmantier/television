@@ -1,8 +1,9 @@
-use crate::television::Television;
-use crate::ui::logo::build_remote_logo_paragraph;
-use crate::ui::mode::mode_color;
-use crate::ui::results::{build_results_list, ResultsListColors};
-use crate::ui::BORDER_COLOR;
+use crate::logo::build_remote_logo_paragraph;
+use crate::mode::mode_color;
+use crate::results::build_results_list;
+use tv::television::Television;
+
+use crate::colors::{ResultsListColors, BORDER_COLOR, DEFAULT_INPUT_FG};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
@@ -104,9 +105,7 @@ impl Television {
         let prompt_symbol_block = Block::default();
         let arrow = Paragraph::new(Span::styled(
             "> ",
-            Style::default()
-                .fg(crate::television::DEFAULT_INPUT_FG)
-                .bold(),
+            Style::default().fg(DEFAULT_INPUT_FG).bold(),
         ))
         .block(prompt_symbol_block);
         f.render_widget(arrow, inner_input_chunks[0]);
@@ -118,12 +117,7 @@ impl Television {
         let input = Paragraph::new(self.rc_picker.input.value())
             .scroll((0, u16::try_from(scroll)?))
             .block(interactive_input_block)
-            .style(
-                Style::default()
-                    .fg(crate::television::DEFAULT_INPUT_FG)
-                    .bold()
-                    .italic(),
-            )
+            .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
             .alignment(Alignment::Left);
         f.render_widget(input, inner_input_chunks[1]);
 

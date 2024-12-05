@@ -2,10 +2,6 @@ use ratatui::{
     buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget,
 };
 
-//const FRAMES: &[char] = &[
-//    '⠄', '⠆', '⠇', '⠋', '⠙', '⠸', '⠰', '⠠', '⠰', '⠸', '⠙', '⠋', '⠇', '⠆',
-//];
-
 const FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 /// A spinner widget.

@@ -1,5 +1,3 @@
-use crate::television::Television;
-use crate::ui::BORDER_COLOR;
 use color_eyre::eyre::Result;
 use ratatui::layout::{
     Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
@@ -10,6 +8,8 @@ use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph};
 use ratatui::Frame;
 use television_channels::channels::OnAir;
+use tv::television::Television;
+use tv::ui::BORDER_COLOR;
 
 pub mod actions;
 pub mod backend;
@@ -412,11 +412,7 @@ impl std::fmt::Display for Input {
 }
 
 impl Television {
-    pub(crate) fn draw_input_box(
-        &mut self,
-        f: &mut Frame,
-        rect: Rect,
-    ) -> Result<()> {
+    pub fn draw_input_box(&mut self, f: &mut Frame, rect: Rect) -> Result<()> {
         let input_block = Block::default()
             .title_top(Line::from(" Pattern ").alignment(Alignment::Center))
             .borders(Borders::ALL)
@@ -452,9 +448,7 @@ impl Television {
         let arrow_block = Block::default();
         let arrow = Paragraph::new(Span::styled(
             "> ",
-            Style::default()
-                .fg(crate::television::DEFAULT_INPUT_FG)
-                .bold(),
+            Style::default().fg(tv::television::DEFAULT_INPUT_FG).bold(),
         ))
         .block(arrow_block);
         f.render_widget(arrow, inner_input_chunks[0]);
@@ -468,7 +462,7 @@ impl Television {
             .block(interactive_input_block)
             .style(
                 Style::default()
-                    .fg(crate::television::DEFAULT_INPUT_FG)
+                    .fg(tv::television::DEFAULT_INPUT_FG)
                     .bold()
                     .italic(),
             )
@@ -496,7 +490,7 @@ impl Television {
                 result_count,
             ),
             Style::default()
-                .fg(crate::television::DEFAULT_RESULTS_COUNT_FG)
+                .fg(tv::television::DEFAULT_RESULTS_COUNT_FG)
                 .italic(),
         ))
         .block(result_count_block)

@@ -1,4 +1,4 @@
-use crate::ui::input::Input;
+use crate::input::Input;
 use ratatui::widgets::ListState;
 use television_utils::strings::EMPTY_STRING;
 

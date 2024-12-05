@@ -1,10 +1,10 @@
 use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
-use crate::television::Mode;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
 use std::ops::{Deref, DerefMut};
+use television_screen::mode::Mode;
 
 #[derive(Clone, Debug, Default)]
 pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Key>>);

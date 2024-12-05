@@ -1,6 +1,5 @@
-use crate::television::Television;
-use crate::ui::layout::InputPosition;
-use crate::ui::BORDER_COLOR;
+use crate::colors::{ResultsListColors, BORDER_COLOR};
+use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
@@ -187,7 +186,7 @@ where
 }
 
 impl Television {
-    pub(crate) fn draw_results_list(
+    pub fn draw_results_list(
         &mut self,
         f: &mut Frame,
         rect: Rect,
