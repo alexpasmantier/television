@@ -121,6 +121,7 @@ Default keybindings are as follows:
 | <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
 | <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
 | <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
+| <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
 | <kbd>Esc</kbd> | Quit the application |
 
 These keybindings are all configurable (see [Configuration](#configuration)).
