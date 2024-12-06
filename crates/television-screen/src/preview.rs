@@ -230,13 +230,13 @@ pub fn build_meta_preview_paragraph<'a>(
 
 impl Television {
     pub fn draw_preview_title_block(
-        &self,
         f: &mut Frame,
         rect: Rect,
         preview: &Arc<Preview>,
+        use_nerd_font_icons: bool,
     ) -> Result<()> {
         let mut preview_title_spans = Vec::new();
-        if preview.icon.is_some() && self.config.ui.use_nerd_font_icons {
+        if preview.icon.is_some() && use_nerd_font_icons {
             let icon = preview.icon.as_ref().unwrap();
             preview_title_spans.push(Span::styled(
                 {
@@ -281,6 +281,7 @@ impl Television {
                 Some(target_line.unwrap_or(0).saturating_sub(height / 3));
         }
     }
+
     pub fn draw_preview_content_block(
         &mut self,
         f: &mut Frame,

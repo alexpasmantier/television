@@ -1,3 +1,4 @@
+use crate::input::actions::InputActionHandler;
 use crate::picker::Picker;
 use crate::{action::Action, config::Config};
 use crate::{app::Keymap, cable::load_cable_channels};
@@ -14,7 +15,6 @@ use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
 use television_screen::cache::RenderedPreviewCache;
 use television_screen::help::draw_help_bar;
-use television_screen::input::actions::InputActionHandler;
 use television_screen::layout::{Dimensions, InputPosition, Layout};
 use television_screen::mode::Mode;
 use television_screen::spinner::{Spinner, SpinnerState};
@@ -373,8 +373,9 @@ impl Television {
             f,
             &layout.help_bar,
             self.current_channel(),
-            self.build_keymap_table(),
-        )?;
+            self.build_keymap_table()?,
+            self.mode,
+        );
 
         self.results_area_height = u32::from(layout.results.height - 2); // 2 for the borders
         self.preview_pane_height = layout.preview_window.height;
@@ -392,7 +393,12 @@ impl Television {
 
         // preview title
         self.current_preview_total_lines = preview.total_lines();
-        self.draw_preview_title_block(f, layout.preview_title, &preview)?;
+        self.draw_preview_title_block(
+            f,
+            layout.preview_title,
+            &preview,
+            self.config.ui.use_nerd_font_icons,
+        )?;
 
         // preview content
         self.draw_preview_content_block(

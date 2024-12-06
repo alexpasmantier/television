@@ -41,11 +41,7 @@ fn draw_metadata_block(
     f.render_widget(metadata_table, area);
 }
 
-fn draw_keymaps_block(
-    f: &mut Frame,
-    area: Rect,
-    keymap_table: Result<Table>,
-) -> color_eyre::Result<()> {
+fn draw_keymaps_block(f: &mut Frame, area: Rect, keymap_table: Table) {
     let keymaps_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -53,23 +49,21 @@ fn draw_keymaps_block(
         .style(Style::default())
         .padding(Padding::horizontal(1));
 
-    let keymaps_table = keymap_table?.block(keymaps_block);
+    let keymaps_table = keymap_table.block(keymaps_block);
 
     f.render_widget(keymaps_table, area);
-    Ok(())
 }
 
 pub fn draw_help_bar(
     f: &mut Frame,
     layout: &Option<HelpBarLayout>,
     current_channel: UnitChannel,
-    keymap_table: Result<Table>,
+    keymap_table: Table,
     mode: Mode,
-) -> color_eyre::Result<()> {
+) {
     if let Some(help_bar) = layout {
         draw_metadata_block(f, help_bar.left, mode, current_channel);
-        draw_keymaps_block(f, help_bar.middle, keymap_table)?;
+        draw_keymaps_block(f, help_bar.middle, keymap_table);
         draw_logo_block(f, help_bar.right, mode_color(mode));
     }
-    Ok(())
 }

@@ -4,7 +4,7 @@ pub mod help;
 pub mod layout;
 pub mod logo;
 pub mod metadata;
-mod mode;
+pub mod mode;
 pub mod preview;
 mod remote_control;
 pub mod results;
