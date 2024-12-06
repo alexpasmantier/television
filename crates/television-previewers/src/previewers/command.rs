@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use television_channels::entry::{Entry, PreviewCommand};
+use television_utils::command::shell_command;
 use tracing::debug;
 
 #[allow(dead_code)]
@@ -151,8 +152,7 @@ pub fn try_preview(
     let command = format_command(command, entry);
     debug!("Formatted preview command: {:?}", command);
 
-    let output = std::process::Command::new("sh")
-        .arg("-c")
+    let output = shell_command()
         .arg(&command)
         .output()
         .expect("failed to execute process");
