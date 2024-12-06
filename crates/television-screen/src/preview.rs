@@ -1,5 +1,4 @@
-use tv::television::Television;
-
+use crate::cache::RenderedPreviewCache;
 use crate::colors::{
     BORDER_COLOR, DEFAULT_PREVIEW_CONTENT_FG, DEFAULT_PREVIEW_GUTTER_FG,
     DEFAULT_PREVIEW_GUTTER_SELECTED_FG, DEFAULT_PREVIEW_TITLE_FG,
@@ -12,7 +11,7 @@ use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
 use ratatui::Frame;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use syntect::highlighting::Color as SyntectColor;
 use television_channels::entry::Entry;
 use television_previewers::previewers::{
@@ -32,7 +31,7 @@ pub fn build_preview_paragraph(
     inner: Rect,
     preview_content: PreviewContent,
     target_line: Option<u16>,
-    preview_scroll: Option<u16>,
+    preview_scroll: u16,
 ) -> Paragraph {
     match preview_content {
         PreviewContent::AnsiText(text) => {
@@ -85,7 +84,7 @@ pub fn build_preview_paragraph(
 fn build_ansi_text_paragraph(
     text: String,
     preview_block: Block,
-    preview_scroll: Option<u16>,
+    preview_scroll: u16,
 ) -> Paragraph {
     let text = replace_non_printable(
         text.as_bytes(),
@@ -100,14 +99,14 @@ fn build_ansi_text_paragraph(
     .unwrap();
     Paragraph::new(text)
         .block(preview_block)
-        .scroll((preview_scroll.unwrap_or(0), 0))
+        .scroll((preview_scroll, 0))
 }
 
 fn build_plain_text_paragraph(
     text: Vec<String>,
     preview_block: Block,
     target_line: Option<u16>,
-    preview_scroll: Option<u16>,
+    preview_scroll: u16,
 ) -> Paragraph {
     let mut lines = Vec::new();
     for (i, line) in text.iter().enumerate() {
@@ -140,7 +139,7 @@ fn build_plain_text_paragraph(
     let text = Text::from(lines);
     Paragraph::new(text)
         .block(preview_block)
-        .scroll((preview_scroll.unwrap_or(0), 0))
+        .scroll((preview_scroll, 0))
 }
 
 fn build_plain_text_wrapped_paragraph(
@@ -164,7 +163,7 @@ fn build_syntect_highlighted_paragraph(
     highlighted_lines: Vec<Vec<(syntect::highlighting::Style, String)>>,
     preview_block: Block,
     target_line: Option<u16>,
-    preview_scroll: Option<u16>,
+    preview_scroll: u16,
 ) -> Paragraph {
     compute_paragraph_from_highlighted_lines(
         &highlighted_lines,
@@ -172,7 +171,7 @@ fn build_syntect_highlighted_paragraph(
     )
     .block(preview_block)
     .alignment(Alignment::Left)
-    .scroll((preview_scroll.unwrap_or(0), 0))
+    .scroll((preview_scroll, 0))
 }
 
 pub fn build_meta_preview_paragraph<'a>(
@@ -228,124 +227,103 @@ pub fn build_meta_preview_paragraph<'a>(
     Paragraph::new(Text::from(lines))
 }
 
-impl Television {
-    pub fn draw_preview_title_block(
-        f: &mut Frame,
-        rect: Rect,
-        preview: &Arc<Preview>,
-        use_nerd_font_icons: bool,
-    ) -> Result<()> {
-        let mut preview_title_spans = Vec::new();
-        if preview.icon.is_some() && use_nerd_font_icons {
-            let icon = preview.icon.as_ref().unwrap();
-            preview_title_spans.push(Span::styled(
-                {
-                    let mut icon_str = String::from(icon.icon);
-                    icon_str.push(' ');
-                    icon_str
-                },
-                Style::default().fg(Color::from_str(icon.color)?),
-            ));
-        }
+pub fn draw_preview_title_block(
+    f: &mut Frame,
+    rect: Rect,
+    preview: &Arc<Preview>,
+    use_nerd_font_icons: bool,
+) -> Result<()> {
+    let mut preview_title_spans = Vec::new();
+    if preview.icon.is_some() && use_nerd_font_icons {
+        let icon = preview.icon.as_ref().unwrap();
         preview_title_spans.push(Span::styled(
-            shrink_with_ellipsis(
-                &replace_non_printable(
-                    preview.title.as_bytes(),
-                    &ReplaceNonPrintableConfig::default(),
-                )
-                .0,
-                rect.width.saturating_sub(4) as usize,
-            ),
-            Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
+            {
+                let mut icon_str = String::from(icon.icon);
+                icon_str.push(' ');
+                icon_str
+            },
+            Style::default().fg(Color::from_str(icon.color)?),
         ));
-        let preview_title = Paragraph::new(Line::from(preview_title_spans))
-            .block(
-                Block::default()
-                    .padding(Padding::horizontal(1))
-                    .borders(Borders::ALL)
-                    .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(BORDER_COLOR)),
+    }
+    preview_title_spans.push(Span::styled(
+        shrink_with_ellipsis(
+            &replace_non_printable(
+                preview.title.as_bytes(),
+                &ReplaceNonPrintableConfig::default(),
             )
-            .alignment(Alignment::Left);
-        f.render_widget(preview_title, rect);
-        Ok(())
+            .0,
+            rect.width.saturating_sub(4) as usize,
+        ),
+        Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
+    ));
+    let preview_title = Paragraph::new(Line::from(preview_title_spans))
+        .block(
+            Block::default()
+                .padding(Padding::horizontal(1))
+                .borders(Borders::ALL)
+                .border_type(BorderType::Rounded)
+                .border_style(Style::default().fg(BORDER_COLOR)),
+        )
+        .alignment(Alignment::Left);
+    f.render_widget(preview_title, rect);
+    Ok(())
+}
+
+pub fn draw_preview_content_block(
+    f: &mut Frame,
+    rect: Rect,
+    entry: &Entry,
+    preview: &Arc<Preview>,
+    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
+    preview_scroll: u16,
+) {
+    let preview_outer_block = Block::default()
+        .title_top(Line::from(" Preview ").alignment(Alignment::Center))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_COLOR))
+        .style(Style::default())
+        .padding(Padding::right(1));
+
+    let preview_inner_block =
+        Block::default().style(Style::default()).padding(Padding {
+            top: 0,
+            right: 1,
+            bottom: 0,
+            left: 1,
+        });
+    let inner = preview_outer_block.inner(rect);
+    f.render_widget(preview_outer_block, rect);
+
+    let target_line = entry.line_number.map(|l| u16::try_from(l).unwrap_or(0));
+    let cache_key = compute_cache_key(entry);
+
+    // Check if the rendered preview content is already in the cache
+    if let Some(preview_paragraph) =
+        rendered_preview_cache.lock().unwrap().get(&cache_key)
+    {
+        let p = preview_paragraph.as_ref().clone();
+        f.render_widget(p.scroll((preview_scroll, 0)), inner);
+        return;
     }
-
-    pub fn maybe_init_preview_scroll(
-        &mut self,
-        target_line: Option<u16>,
-        height: u16,
-    ) {
-        if self.preview_scroll.is_none() && !self.channel.running() {
-            self.preview_scroll =
-                Some(target_line.unwrap_or(0).saturating_sub(height / 3));
-        }
+    // If not, render the preview content and cache it if not empty
+    let rp = build_preview_paragraph(
+        preview_inner_block,
+        inner,
+        preview.content.clone(),
+        target_line,
+        preview_scroll,
+    );
+    if !preview.stale {
+        rendered_preview_cache
+            .lock()
+            .unwrap()
+            .insert(cache_key, &Arc::new(rp.clone()));
     }
-
-    pub fn draw_preview_content_block(
-        &mut self,
-        f: &mut Frame,
-        rect: Rect,
-        entry: &Entry,
-        preview: &Arc<Preview>,
-    ) {
-        let preview_outer_block = Block::default()
-            .title_top(Line::from(" Preview ").alignment(Alignment::Center))
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(BORDER_COLOR))
-            .style(Style::default())
-            .padding(Padding::right(1));
-
-        let preview_inner_block =
-            Block::default().style(Style::default()).padding(Padding {
-                top: 0,
-                right: 1,
-                bottom: 0,
-                left: 1,
-            });
-        let inner = preview_outer_block.inner(rect);
-        f.render_widget(preview_outer_block, rect);
-
-        let target_line =
-            entry.line_number.map(|l| u16::try_from(l).unwrap_or(0));
-        let cache_key = compute_cache_key(entry);
-
-        self.maybe_init_preview_scroll(target_line, inner.height);
-
-        // Check if the rendered preview content is already in the cache
-        if let Some(preview_paragraph) =
-            self.rendered_preview_cache.lock().unwrap().get(&cache_key)
-        {
-            let p = preview_paragraph.as_ref().clone();
-            f.render_widget(
-                p.scroll((self.preview_scroll.unwrap_or(0), 0)),
-                inner,
-            );
-            return;
-        }
-        // If not, render the preview content and cache it if not empty
-        let rp = build_preview_paragraph(
-            preview_inner_block,
-            inner,
-            preview.content.clone(),
-            target_line,
-            self.preview_scroll,
-        );
-        if !preview.stale {
-            self.rendered_preview_cache
-                .lock()
-                .unwrap()
-                .insert(cache_key, &Arc::new(rp.clone()));
-        }
-        f.render_widget(
-            Arc::new(rp)
-                .as_ref()
-                .clone()
-                .scroll((self.preview_scroll.unwrap_or(0), 0)),
-            inner,
-        );
-    }
+    f.render_widget(
+        Arc::new(rp).as_ref().clone().scroll((preview_scroll, 0)),
+        inner,
+    );
 }
 
 fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {

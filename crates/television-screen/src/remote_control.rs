@@ -1,6 +1,7 @@
 use crate::logo::build_remote_logo_paragraph;
-use crate::mode::mode_color;
+use crate::mode::{mode_color, Mode};
 use crate::results::build_results_list;
+use television_channels::channels::remote_control::RemoteControl;
 use tv::television::Television;
 
 use crate::colors::{ResultsListColors, BORDER_COLOR, DEFAULT_INPUT_FG};
@@ -20,6 +21,7 @@ pub fn draw_remote_control(
     &mut self,
     f: &mut Frame,
     rect: Rect,
+    mode: Mode,
 ) -> Result<()> {
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -34,11 +36,16 @@ pub fn draw_remote_control(
         .split(rect);
     self.draw_rc_channels(f, &layout[0])?;
     self.draw_rc_input(f, &layout[1])?;
-    draw_rc_logo(f, layout[2], mode_color(self.mode));
+    draw_rc_logo(f, layout[2], mode_color(mode));
     Ok(())
 }
 
-fn draw_rc_channels(&mut self, f: &mut Frame, area: &Rect) -> Result<()> {
+fn draw_rc_channels(
+    &mut self,
+    f: &mut Frame,
+    area: &Rect,
+    remote: RemoteControl,
+) -> Result<()> {
     let rc_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
