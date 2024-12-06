@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2024-12-06
+
+### 🐛 Bug Fixes
+
+- *(windows)* Use cmd on windows instead of sh (#102)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#98)
+- Use named constant for colors (#99)
+
 ## [0.6.1] - 2024-12-05
 
 ### 🚀 Features
