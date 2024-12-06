@@ -17,6 +17,7 @@ use television_screen::cache::RenderedPreviewCache;
 use television_screen::help::draw_help_bar;
 use television_screen::layout::{Dimensions, InputPosition, Layout};
 use television_screen::mode::Mode;
+use television_screen::preview::draw_preview_content_block;
 use television_screen::spinner::{Spinner, SpinnerState};
 use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
@@ -401,11 +402,19 @@ impl Television {
         )?;
 
         // preview content
-        self.draw_preview_content_block(
+        // initialize preview scroll
+        self.maybe_init_preview_scroll(
+            entry.line_number.map(|l| u16::try_from(l).unwrap_or(0)),
+            // FIXME: adjust this if necessary
+            layout.preview_window.height,
+        );
+        draw_preview_content_block(
             f,
             layout.preview_window,
             &selected_entry,
             &preview,
+            &self.rendered_preview_cache,
+            self.preview_scroll.unwrap_or(0),
         );
 
         // remote control
@@ -413,5 +422,16 @@ impl Television {
             self.draw_remote_control(f, layout.remote_control.unwrap())?;
         }
         Ok(())
+    }
+
+    pub fn maybe_init_preview_scroll(
+        &mut self,
+        target_line: Option<u16>,
+        height: u16,
+    ) {
+        if self.preview_scroll.is_none() && !self.channel.running() {
+            self.preview_scroll =
+                Some(target_line.unwrap_or(0).saturating_sub(height / 3));
+        }
     }
 }
