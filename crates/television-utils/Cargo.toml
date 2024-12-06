@@ -1,6 +1,6 @@
 [package]
 name = "television-utils"
-version = "0.0.9"
+version = "0.0.10"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
