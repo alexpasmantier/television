@@ -1,9 +1,8 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 use devicons::FileIcon;
 use ratatui::layout::Alignment;
 use ratatui::prelude::{Line, Style};
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
-use std::collections::HashSet;
 use television_channels::entry::{Entry, PreviewType};
 use television_screen::colors::BORDER_COLOR;
 use television_screen::results::build_results_list;
