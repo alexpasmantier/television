@@ -56,7 +56,7 @@ name = "tv"
 # workspace dependencies
 television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.10" }
 television-derive = { path = "crates/television-derive", version = "0.0.10" }
-television-screen = { path = "crates/television-screen", version = "0.0.8" }
+television-screen = { path = "crates/television-screen", version = "0.0.10" }
 television-channels = { path = "crates/television-channels", version = "0.0.10" }
 television-previewers = { path = "crates/television-previewers", version = "0.0.10" }
 television-utils = { path = "crates/television-utils", version = "0.0.10" }

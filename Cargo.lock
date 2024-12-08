@@ -2866,7 +2866,7 @@ dependencies = [
 
 [[package]]
 name = "television-channels"
-version = "0.0.8"
+version = "0.0.10"
 dependencies = [
  "clap",
  "color-eyre",
@@ -2886,29 +2886,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "television-channels"
+name = "television-derive"
 version = "0.0.10"
-dependencies = [
- "clap",
- "color-eyre",
- "devicons",
- "directories",
- "eyre",
- "ignore",
- "lazy_static",
- "serde",
- "strum",
- "television-derive 0.0.10",
- "television-fuzzy 0.0.10",
- "television-utils 0.0.10",
- "tokio",
- "toml",
- "tracing",
-]
-
-[[package]]
-name = "television-fuzzy"
-version = "0.0.8"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2916,10 +2895,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "television-fuzzy"
+version = "0.0.10"
+dependencies = [
+ "nucleo",
+ "parking_lot",
+]
+
+[[package]]
 name = "television-previewers"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8d78a8f01c2870c498bbae953bd039ed2f543485cb8e83406e5bf52bacec4ce"
+version = "0.0.10"
 dependencies = [
  "color-eyre",
  "devicons",
@@ -2935,7 +2920,7 @@ dependencies = [
 
 [[package]]
 name = "television-screen"
-version = "0.0.8"
+version = "0.0.10"
 dependencies = [
  "ansi-to-tui",
  "color-eyre",
@@ -2949,9 +2934,7 @@ dependencies = [
 
 [[package]]
 name = "television-utils"
-version = "0.0.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a3f2594f0a74513b6d7fbdae44df7e0a49e7f16a1ab5debaf8757a034ff2988d"
+version = "0.0.10"
 dependencies = [
  "bat",
  "color-eyre",
