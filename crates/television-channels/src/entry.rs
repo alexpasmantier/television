@@ -65,11 +65,11 @@ impl Entry {
         self.value = Some(value);
         self
     }
-
+    #[allow(clippy::needless_return)]
     pub fn minimal_name_match_ranges(self) -> Option<Vec<(u32, u32)>> {
         // This method takes the existing `name_match_ranges`
         // and merges contiguous ranges into the minimal equivalent
-        // set of ranges. If no ranges exist, it returns `None`.
+        //   set of ranges. If no ranges exist, it returns `None`.
         if let Some(name_match_ranges) = self.name_match_ranges {
             let minimal_name_match_ranges: Vec<(u32, u32)> = name_match_ranges
                 .into_iter()
