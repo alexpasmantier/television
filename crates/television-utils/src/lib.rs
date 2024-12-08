@@ -1,6 +1,8 @@
 pub mod cache;
 pub mod files;
 pub mod indices;
+pub mod input;
+pub mod metadata;
 pub mod stdin;
 pub mod strings;
 pub mod syntax;

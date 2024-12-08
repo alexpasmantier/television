@@ -4,18 +4,16 @@ use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListDirection, Padding,
+    Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
 use ratatui::Frame;
 use std::collections::HashMap;
 use std::str::FromStr;
-use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
 use television_utils::strings::{
     make_matched_string_printable, next_char_boundary,
     slice_at_char_boundaries,
 };
-use tv::television::Television;
 
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
@@ -135,48 +133,35 @@ where
     .block(results_block)
 }
 
-impl Television {
-    pub fn draw_results_list(
-        &mut self,
-        f: &mut Frame,
-        rect: Rect,
-    ) -> Result<()> {
-        let results_block = Block::default()
-            .title_top(Line::from(" Results ").alignment(Alignment::Center))
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(BORDER_COLOR))
-            .style(Style::default())
-            .padding(Padding::right(1));
+pub fn draw_results_list(
+    f: &mut Frame,
+    rect: Rect,
+    entries: &[Entry],
+    relative_picker_state: &mut ListState,
+    input_bar_position: InputPosition,
+    use_nerd_font_icons: bool,
+    icon_color_cache: &mut HashMap<String, Color>,
+) -> Result<()> {
+    let results_block = Block::default()
+        .title_top(Line::from(" Results ").alignment(Alignment::Center))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_COLOR))
+        .style(Style::default())
+        .padding(Padding::right(1));
 
-        let result_count = self.channel.result_count();
-        if result_count > 0 && self.results_picker.selected().is_none() {
-            self.results_picker.select(Some(0));
-            self.results_picker.relative_select(Some(0));
-        }
+    let results_list = build_results_list(
+        results_block,
+        entries,
+        match input_bar_position {
+            InputPosition::Bottom => ListDirection::BottomToTop,
+            InputPosition::Top => ListDirection::TopToBottom,
+        },
+        None,
+        use_nerd_font_icons,
+        icon_color_cache,
+    );
 
-        let entries = self.channel.results(
-            rect.height.saturating_sub(2).into(),
-            u32::try_from(self.results_picker.offset())?,
-        );
-
-        let results_list = build_results_list(
-            results_block,
-            &entries,
-            match self.config.ui.input_bar_position {
-                InputPosition::Bottom => ListDirection::BottomToTop,
-                InputPosition::Top => ListDirection::TopToBottom,
-            },
-            None,
-            self.config.ui.use_nerd_font_icons,
-            &mut self.icon_color_cache,
-        );
-
-        f.render_stateful_widget(
-            results_list,
-            rect,
-            &mut self.results_picker.relative_state,
-        );
-        Ok(())
-    }
+    f.render_stateful_widget(results_list, rect, relative_picker_state);
+    Ok(())
 }
