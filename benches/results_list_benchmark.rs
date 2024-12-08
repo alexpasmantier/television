@@ -446,7 +446,7 @@ pub fn results_list_benchmark(c: &mut Criterion) {
         },
     ];
 
-    c.bench_function("results_list_empty", |b| {
+    c.bench_function("results_list", |b| {
         b.iter(|| {
             build_results_list(
                 Block::default()
