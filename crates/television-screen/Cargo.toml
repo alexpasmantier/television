@@ -16,9 +16,9 @@ readme.workspace = true
 [dependencies]
 ratatui = "0.29.0"
 serde = "1.0.215"
-television-utils = { path = "../television-utils", version="0.0.10" }
-television-channels = { path = "../television-channels", version="0.0.10" }
-television-previewers = { path = "../television-previewers", version="0.0.10" }
+television-utils = { path = "../television-utils", version = "0.0.10" }
+television-channels = { path = "../television-channels", version = "0.0.10" }
+television-previewers = { path = "../television-previewers", version = "0.0.10" }
 color-eyre = "0.6.3"
 ansi-to-tui = "7.0.0"
 syntect = "5.2.0"
