@@ -65,6 +65,31 @@ impl Entry {
         self.value = Some(value);
         self
     }
+    #[allow(clippy::needless_return)]
+    pub fn minimal_name_match_ranges(self) -> Option<Vec<(u32, u32)>> {
+        // This method takes the existing `name_match_ranges`
+        // and merges contiguous ranges into the minimal equivalent
+        //   set of ranges. If no ranges exist, it returns `None`.
+        if let Some(name_match_ranges) = self.name_match_ranges {
+            let minimal_name_match_ranges: Vec<(u32, u32)> = name_match_ranges
+                .into_iter()
+                .fold(Vec::new(), |mut acc, x| {
+                    if let Some(last) = acc.last_mut() {
+                        if last.1 == x.0 {
+                            last.1 = x.1
+                        } else {
+                            acc.push(x);
+                        }
+                    } else {
+                        acc.push(x);
+                    }
+                    return acc;
+                });
+            Some(minimal_name_match_ranges)
+        } else {
+            None
+        }
+    }
 
     pub fn with_name_match_ranges(
         mut self,
@@ -145,4 +170,86 @@ pub enum PreviewType {
     EnvVar,
     Files,
     Command(PreviewCommand),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_minimal_name_match_ranges_none() {
+        let entry = Entry {
+            name: "test".to_string(),
+            value: None,
+            name_match_ranges: None,
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Files,
+        };
+        assert_eq!(entry.minimal_name_match_ranges(), None);
+    }
+    #[test]
+    fn test_minimal_name_match_ranges_empty() {
+        let entry = Entry {
+            name: "test".to_string(),
+            value: None,
+            name_match_ranges: Some(vec![]),
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Files,
+        };
+
+        assert_eq!(entry.minimal_name_match_ranges(), Some(vec![]));
+    }
+    #[test]
+    fn test_minimal_name_match_ranges_non_contiguous() {
+        let entry = Entry {
+            name: "test".to_string(),
+            value: None,
+            name_match_ranges: Some(vec![(0, 1), (2, 4), (6, 9)]),
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Files,
+        };
+        assert_eq!(
+            entry.minimal_name_match_ranges(),
+            Some(vec![(0, 1), (2, 4), (6, 9)])
+        );
+    }
+
+    #[test]
+    fn test_minimal_name_match_ranges_contiguous() {
+        let entry = Entry {
+            name: "test".to_string(),
+            value: None,
+            name_match_ranges: Some(vec![(0, 1), (1, 2), (2, 3), (3, 4)]),
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Files,
+        };
+
+        assert_eq!(entry.minimal_name_match_ranges(), Some(vec![(0, 4)]));
+    }
+
+    #[test]
+    fn test_minimal_name_match_ranges_both_contiguous_and_non_contiguous() {
+        let entry = Entry {
+            name: "test".to_string(),
+            value: None,
+            name_match_ranges: Some(vec![(0, 1), (2, 3), (3, 4)]),
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Files,
+        };
+
+        assert_eq!(
+            entry.minimal_name_match_ranges(),
+            Some(vec![(0, 1), (2, 4)])
+        );
+    }
 }
