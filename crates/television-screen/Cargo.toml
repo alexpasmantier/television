@@ -22,4 +22,3 @@ television-previewers = { path = "../television-previewers", version="0.0.8" }
 color-eyre = "0.6.3"
 ansi-to-tui = "7.0.0"
 syntect = "5.2.0"
-log = "0.4.22"
