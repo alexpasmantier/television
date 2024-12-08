@@ -1,6 +1,5 @@
-use crate::input::Input;
 use ratatui::widgets::ListState;
-use television_utils::strings::EMPTY_STRING;
+use television_utils::{input::Input, strings::EMPTY_STRING};
 
 #[derive(Debug)]
 pub struct Picker {

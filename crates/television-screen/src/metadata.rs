@@ -8,6 +8,7 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 use television_channels::channels::UnitChannel;
+use television_utils::metadata::AppMetadata;
 
 const METADATA_FIELD_NAME_COLOR: Color = Color::DarkGray;
 const METADATA_FIELD_VALUE_COLOR: Color = Color::Gray;
@@ -22,17 +23,18 @@ impl Display for Mode {
     }
 }
 
-pub fn build_metadata_table<'a>(
+pub fn build_metadata_table(
     mode: Mode,
     current_channel: UnitChannel,
-) -> Table<'a> {
+    app_metadata: &AppMetadata,
+) -> Table<'_> {
     let version_row = Row::new(vec![
         Cell::from(Span::styled(
             "version: ",
             Style::default().fg(METADATA_FIELD_NAME_COLOR),
         )),
         Cell::from(Span::styled(
-            env!("CARGO_PKG_VERSION"),
+            &app_metadata.version,
             Style::default().fg(METADATA_FIELD_VALUE_COLOR),
         )),
     ]);
@@ -43,7 +45,7 @@ pub fn build_metadata_table<'a>(
             Style::default().fg(METADATA_FIELD_NAME_COLOR),
         )),
         Cell::from(Span::styled(
-            env!("VERGEN_CARGO_TARGET_TRIPLE"),
+            &app_metadata.build.target_triple,
             Style::default().fg(METADATA_FIELD_VALUE_COLOR),
         )),
     ]);
@@ -54,7 +56,7 @@ pub fn build_metadata_table<'a>(
             Style::default().fg(METADATA_FIELD_NAME_COLOR),
         )),
         Cell::from(Span::styled(
-            env!("VERGEN_RUSTC_SEMVER"),
+            &app_metadata.build.rustc_version,
             Style::default().fg(METADATA_FIELD_VALUE_COLOR),
         )),
         Cell::from(Span::styled(
@@ -62,7 +64,7 @@ pub fn build_metadata_table<'a>(
             Style::default().fg(METADATA_FIELD_NAME_COLOR),
         )),
         Cell::from(Span::styled(
-            env!("VERGEN_BUILD_DATE"),
+            &app_metadata.build.build_date,
             Style::default().fg(METADATA_FIELD_VALUE_COLOR),
         )),
         Cell::from(Span::styled(

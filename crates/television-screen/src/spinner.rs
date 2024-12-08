@@ -65,3 +65,17 @@ impl StatefulWidget for Spinner {
         state.tick();
     }
 }
+impl StatefulWidget for &Spinner {
+    type State = SpinnerState;
+
+    /// Renders the spinner in the given area.
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        buf.set_string(
+            area.left(),
+            area.top(),
+            self.frame(state.current_frame),
+            Style::default(),
+        );
+        state.tick();
+    }
+}
