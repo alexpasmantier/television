@@ -3090,7 +3090,6 @@ version = "0.0.8"
 dependencies = [
  "ansi-to-tui",
  "color-eyre",
- "log",
  "ratatui",
  "serde",
  "syntect",
