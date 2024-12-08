@@ -5,6 +5,7 @@ use television_fuzzy::{
     matcher::{config::Config, injector::Injector},
     Matcher,
 };
+use television_utils::command::shell_command;
 
 #[allow(dead_code)]
 pub struct Channel {
@@ -57,8 +58,7 @@ impl Channel {
 
 #[allow(clippy::unused_async)]
 async fn load_candidates(command: String, injector: Injector<String>) {
-    let output = std::process::Command::new("sh")
-        .arg("-c")
+    let output = shell_command()
         .arg(command)
         .output()
         .expect("failed to execute process");

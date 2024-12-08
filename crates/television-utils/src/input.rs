@@ -29,18 +29,7 @@ pub struct StateChanged {
 #[allow(clippy::module_name_repetitions)]
 pub type InputResponse = Option<StateChanged>;
 
-/// The input buffer with cursor support.
-///
-/// Example:
-///
-/// ```
-/// use tui_input::Input;
-///
-/// let input: Input = "Hello World".into();
-///
-/// assert_eq!(input.cursor(), 11);
-/// assert_eq!(input.to_string(), "Hello World");
-/// ```
+/// An input buffer with cursor support.
 #[derive(Default, Debug, Clone)]
 pub struct Input {
     value: String,

@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.2] - 2024-12-06
+
+### 🐛 Bug Fixes
+
+- *(windows)* Use cmd on windows instead of sh (#102)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#98)
+- Use named constant for colors (#99)
+- Bump workspace to 0.6.2 (#104)
+
+## [0.6.1] - 2024-12-05
+
+### 🚀 Features
+
+- *(remote)* Distinguish cable channels with a separate icon (#94)
+
+### 🐛 Bug Fixes
+
+- *(cable)* Add cable to unit channel variants (#96)
+
+### 🚜 Refactor
+
+- *(helpbar)* Hide the top help panel by default (#97)
+
+### 📚 Documentation
+
+- *(readme)* Update readme with latest version and fix section link (#93)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#92)
+
 ## [0.6.0] - 2024-12-04
 
 ### 🚀 Features

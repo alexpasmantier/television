@@ -46,16 +46,4 @@ impl Keymap {
         }
         Ok(self)
     }
-
-    pub fn for_mode(&self, mode: Mode) -> ModeKeymap {
-        ModeKeymap {
-            mode,
-            keymap: self.0.get(&mode).cloned().unwrap_or_default(),
-        }
-    }
-}
-
-pub struct ModeKeymap {
-    mode: Mode,
-    keymap: HashMap<Key, Action>,
 }

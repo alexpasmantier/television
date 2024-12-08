@@ -19,6 +19,8 @@ pub const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
 pub const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
 pub const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
 
+pub const DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR: Color = Color::Red;
+
 pub struct ResultsListColors {
     pub result_name_fg: Color,
     pub result_preview_fg: Color,

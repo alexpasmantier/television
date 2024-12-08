@@ -46,8 +46,8 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
   </summary>
     
   ```bash
-  curl -LO https://github.com/alexpasmantier/television/releases/download/0.6.0/television_0.6.0-1_amd64.deb
-  sudo dpkg -i television_0.6.0-1_amd64.deb
+  curl -LO https://github.com/alexpasmantier/television/releases/download/0.6.2/television_0.6.2-1_amd64.deb
+  sudo dpkg -i television_0.6.2-1_amd64.deb
   ```
     
 </details>
@@ -121,11 +121,12 @@ Default keybindings are as follows:
 | <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
 | <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
 | <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
+| <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
 | <kbd>Esc</kbd> | Quit the application |
 
 These keybindings are all configurable (see [Configuration](#configuration)).
 
-## Built-in Channels
+## 📺 Built-in Channels
 The following built-in channels are currently available:
 - `Files`: search through files in a directory tree.
 - `Text`: search through textual content in a directory tree.
@@ -134,8 +135,9 @@ The following built-in channels are currently available:
 - `Alias`: search through shell aliases and their values.
 - `Stdin`: search through lines of text from stdin.
 
-## Cable channels
-Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.
+## 🍿 Cable channels
+*Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
+
 You can find a list of available cable channels [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels) and even contribute your own!
 
 ### Installing cable channels

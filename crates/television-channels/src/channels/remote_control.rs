@@ -113,6 +113,11 @@ const TV_ICON: FileIcon = FileIcon {
     color: "#000000",
 };
 
+const CABLE_ICON: FileIcon = FileIcon {
+    icon: '🍿',
+    color: "#000000",
+};
+
 impl OnAir for RemoteControl {
     fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
@@ -127,7 +132,10 @@ impl OnAir for RemoteControl {
                 let path = item.matched_string;
                 Entry::new(path, PreviewType::Basic)
                     .with_name_match_ranges(item.match_indices)
-                    .with_icon(TV_ICON)
+                    .with_icon(match item.inner {
+                        RCButton::Channel(_) => TV_ICON,
+                        RCButton::CableChannel(_) => CABLE_ICON,
+                    })
             })
             .collect()
     }

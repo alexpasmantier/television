@@ -1,4 +1,7 @@
-use crate::colors::{ResultsListColors, BORDER_COLOR};
+use crate::colors::{
+    ResultsListColors, BORDER_COLOR,
+    DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR,
+};
 use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -69,7 +72,8 @@ where
             // the current match
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, start, end).to_string(),
-                Style::default().fg(Color::Red),
+                Style::default()
+                    .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
             ));
             last_match_end = end;
         }
@@ -111,7 +115,8 @@ where
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, start, end).to_string(),
-                    Style::default().fg(Color::Red),
+                    Style::default()
+                        .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
                 ));
                 last_match_end = end;
             }

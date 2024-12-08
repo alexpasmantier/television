@@ -107,6 +107,14 @@ impl Television {
         }
     }
 
+    pub fn init_remote_control(&mut self) {
+        let builtin_channels = load_builtin_channels();
+        let cable_channels = load_cable_channels().unwrap_or_default();
+        self.remote_control = TelevisionChannel::RemoteControl(
+            RemoteControl::new(builtin_channels, Some(cable_channels)),
+        );
+    }
+
     pub fn current_channel(&self) -> UnitChannel {
         UnitChannel::from(&self.channel)
     }
@@ -305,10 +313,12 @@ impl Television {
             Action::ToggleRemoteControl => match self.mode {
                 Mode::Channel => {
                     self.mode = Mode::RemoteControl;
+                    self.init_remote_control();
                 }
                 Mode::RemoteControl => {
                     // this resets the RC picker
                     self.reset_picker_input();
+                    self.init_remote_control();
                     self.remote_control.find(EMPTY_STRING);
                     self.reset_picker_selection();
                     self.mode = Mode::Channel;

@@ -1,4 +1,5 @@
-use crate::layout::HelpBarLayout;
+use super::layout::HelpBarLayout;
+use crate::colors::BORDER_COLOR;
 use crate::logo::build_logo_paragraph;
 use crate::metadata::build_metadata_table;
 use crate::mode::{mode_color, Mode};
@@ -13,7 +14,7 @@ pub fn draw_logo_block(f: &mut Frame, area: Rect, color: Color) {
     let logo_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(Color::Blue))
+        .border_style(Style::default().fg(BORDER_COLOR))
         .style(Style::default().fg(color))
         .padding(Padding::horizontal(1));
 
