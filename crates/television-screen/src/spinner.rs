@@ -2,10 +2,6 @@ use ratatui::{
     buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget,
 };
 
-//const FRAMES: &[char] = &[
-//    '⠄', '⠆', '⠇', '⠋', '⠙', '⠸', '⠰', '⠠', '⠰', '⠸', '⠙', '⠋', '⠇', '⠆',
-//];
-
 const FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 /// A spinner widget.
@@ -56,6 +52,20 @@ impl From<&Spinner> for SpinnerState {
 }
 
 impl StatefulWidget for Spinner {
+    type State = SpinnerState;
+
+    /// Renders the spinner in the given area.
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        buf.set_string(
+            area.left(),
+            area.top(),
+            self.frame(state.current_frame),
+            Style::default(),
+        );
+        state.tick();
+    }
+}
+impl StatefulWidget for &Spinner {
     type State = SpinnerState;
 
     /// Renders the spinner in the given area.

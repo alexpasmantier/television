@@ -1,70 +1,22 @@
-use crate::television::Television;
-use crate::ui::layout::InputPosition;
-use crate::ui::BORDER_COLOR;
+use crate::colors::{
+    ResultsListColors, BORDER_COLOR,
+    DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR,
+};
+use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::widgets::{
-    Block, BorderType, Borders, List, ListDirection, Padding,
+    Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
 use ratatui::Frame;
 use std::collections::HashMap;
 use std::str::FromStr;
-use television_channels::channels::OnAir;
 use television_channels::entry::Entry;
 use television_utils::strings::{
     make_matched_string_printable, next_char_boundary,
     slice_at_char_boundaries,
 };
-
-// Styles
-const DEFAULT_RESULT_NAME_FG: Color = Color::Blue;
-const DEFAULT_RESULT_PREVIEW_FG: Color = Color::Rgb(150, 150, 150);
-const DEFAULT_RESULT_LINE_NUMBER_FG: Color = Color::Yellow;
-const DEFAULT_RESULT_SELECTED_BG: Color = Color::Rgb(50, 50, 50);
-
-const DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR: Color = Color::Red;
-
-pub struct ResultsListColors {
-    pub result_name_fg: Color,
-    pub result_preview_fg: Color,
-    pub result_line_number_fg: Color,
-    pub result_selected_bg: Color,
-}
-
-impl Default for ResultsListColors {
-    fn default() -> Self {
-        Self {
-            result_name_fg: DEFAULT_RESULT_NAME_FG,
-            result_preview_fg: DEFAULT_RESULT_PREVIEW_FG,
-            result_line_number_fg: DEFAULT_RESULT_LINE_NUMBER_FG,
-            result_selected_bg: DEFAULT_RESULT_SELECTED_BG,
-        }
-    }
-}
-
-#[allow(dead_code)]
-impl ResultsListColors {
-    pub fn result_name_fg(mut self, color: Color) -> Self {
-        self.result_name_fg = color;
-        self
-    }
-
-    pub fn result_preview_fg(mut self, color: Color) -> Self {
-        self.result_preview_fg = color;
-        self
-    }
-
-    pub fn result_line_number_fg(mut self, color: Color) -> Self {
-        self.result_line_number_fg = color;
-        self
-    }
-
-    pub fn result_selected_bg(mut self, color: Color) -> Self {
-        self.result_selected_bg = color;
-        self
-    }
-}
 
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
@@ -186,48 +138,35 @@ where
     .block(results_block)
 }
 
-impl Television {
-    pub(crate) fn draw_results_list(
-        &mut self,
-        f: &mut Frame,
-        rect: Rect,
-    ) -> Result<()> {
-        let results_block = Block::default()
-            .title_top(Line::from(" Results ").alignment(Alignment::Center))
-            .borders(Borders::ALL)
-            .border_type(BorderType::Rounded)
-            .border_style(Style::default().fg(BORDER_COLOR))
-            .style(Style::default())
-            .padding(Padding::right(1));
+pub fn draw_results_list(
+    f: &mut Frame,
+    rect: Rect,
+    entries: &[Entry],
+    relative_picker_state: &mut ListState,
+    input_bar_position: InputPosition,
+    use_nerd_font_icons: bool,
+    icon_color_cache: &mut HashMap<String, Color>,
+) -> Result<()> {
+    let results_block = Block::default()
+        .title_top(Line::from(" Results ").alignment(Alignment::Center))
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(BORDER_COLOR))
+        .style(Style::default())
+        .padding(Padding::right(1));
 
-        let result_count = self.channel.result_count();
-        if result_count > 0 && self.results_picker.selected().is_none() {
-            self.results_picker.select(Some(0));
-            self.results_picker.relative_select(Some(0));
-        }
+    let results_list = build_results_list(
+        results_block,
+        entries,
+        match input_bar_position {
+            InputPosition::Bottom => ListDirection::BottomToTop,
+            InputPosition::Top => ListDirection::TopToBottom,
+        },
+        None,
+        use_nerd_font_icons,
+        icon_color_cache,
+    );
 
-        let entries = self.channel.results(
-            rect.height.saturating_sub(2).into(),
-            u32::try_from(self.results_picker.offset())?,
-        );
-
-        let results_list = build_results_list(
-            results_block,
-            &entries,
-            match self.config.ui.input_bar_position {
-                InputPosition::Bottom => ListDirection::BottomToTop,
-                InputPosition::Top => ListDirection::TopToBottom,
-            },
-            None,
-            self.config.ui.use_nerd_font_icons,
-            &mut self.icon_color_cache,
-        );
-
-        f.render_stateful_widget(
-            results_list,
-            rect,
-            &mut self.results_picker.relative_state,
-        );
-        Ok(())
-    }
+    f.render_stateful_widget(results_list, rect, relative_picker_state);
+    Ok(())
 }

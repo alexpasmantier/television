@@ -1,16 +1,11 @@
+use crate::config::KeyBindings;
+use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
-use crate::ui::{
-    cache::RenderedPreviewCache,
-    input::actions::InputActionHandler,
-    layout::{Dimensions, InputPosition, Layout},
-    spinner::Spinner,
-};
-use crate::{action::Action, config::Config, ui::spinner::SpinnerState};
-use crate::{app::Keymap, cable::load_cable_channels};
+use crate::{action::Action, config::Config};
+use crate::{cable::load_cable_channels, keymap::Keymap};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use television_channels::channels::{
@@ -19,15 +14,23 @@ use television_channels::channels::{
 };
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
+use television_screen::cache::RenderedPreviewCache;
+use television_screen::help::draw_help_bar;
+use television_screen::input::draw_input_box;
+use television_screen::keybindings::{
+    build_keybindings_table, DisplayableAction, DisplayableKeybindings,
+};
+use television_screen::layout::{Dimensions, InputPosition, Layout};
+use television_screen::mode::Mode;
+use television_screen::preview::{
+    draw_preview_content_block, draw_preview_title_block,
+};
+use television_screen::remote_control::draw_remote_control;
+use television_screen::results::draw_results_list;
+use television_screen::spinner::{Spinner, SpinnerState};
+use television_utils::metadata::{AppMetadata, BuildMetadata};
 use television_utils::strings::EMPTY_STRING;
 use tokio::sync::mpsc::UnboundedSender;
-
-#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
-pub enum Mode {
-    Channel,
-    RemoteControl,
-    SendToChannel,
-}
 
 pub struct Television {
     action_tx: Option<UnboundedSender<Action>>,
@@ -48,6 +51,7 @@ pub struct Television {
     pub rendered_preview_cache: Arc<Mutex<RenderedPreviewCache<'static>>>,
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
+    pub app_metadata: AppMetadata,
 }
 
 impl Television {
@@ -61,6 +65,18 @@ impl Television {
         let keymap = Keymap::from(&config.keybindings);
         let builtin_channels = load_builtin_channels();
         let cable_channels = load_cable_channels().unwrap_or_default();
+        let app_metadata = AppMetadata::new(
+            env!("CARGO_PKG_VERSION").to_string(),
+            BuildMetadata::new(
+                env!("VERGEN_RUSTC_SEMVER").to_string(),
+                env!("VERGEN_BUILD_DATE").to_string(),
+                env!("VERGEN_CARGO_TARGET_TRIPLE").to_string(),
+            ),
+            std::env::current_dir()
+                .expect("Could not get current directory")
+                .to_string_lossy()
+                .to_string(),
+        );
 
         channel.find(EMPTY_STRING);
         let spinner = Spinner::default();
@@ -87,7 +103,16 @@ impl Television {
             )),
             spinner,
             spinner_state: SpinnerState::from(&spinner),
+            app_metadata,
         }
+    }
+
+    pub fn init_remote_control(&mut self) {
+        let builtin_channels = load_builtin_channels();
+        let cable_channels = load_cable_channels().unwrap_or_default();
+        self.remote_control = TelevisionChannel::RemoteControl(
+            RemoteControl::new(builtin_channels, Some(cable_channels)),
+        );
     }
 
     pub fn current_channel(&self) -> UnitChannel {
@@ -174,7 +199,7 @@ impl Television {
         match self.mode {
             Mode::Channel => self.results_picker.reset_selection(),
             Mode::RemoteControl | Mode::SendToChannel => {
-                self.rc_picker.reset_selection()
+                self.rc_picker.reset_selection();
             }
         }
     }
@@ -183,7 +208,7 @@ impl Television {
         match self.mode {
             Mode::Channel => self.results_picker.reset_input(),
             Mode::RemoteControl | Mode::SendToChannel => {
-                self.rc_picker.reset_input()
+                self.rc_picker.reset_input();
             }
         }
     }
@@ -208,11 +233,6 @@ impl Television {
         }
     }
 }
-
-// Styles
-//  input
-pub(crate) const DEFAULT_INPUT_FG: Color = Color::LightRed;
-pub(crate) const DEFAULT_RESULTS_COUNT_FG: Color = Color::LightRed;
 
 impl Television {
     /// Register an action handler that can send actions for processing if necessary.
@@ -253,7 +273,8 @@ impl Television {
                         &mut self.rc_picker.input
                     }
                 };
-                input.handle_action(&action);
+                input
+                    .handle(convert_action_to_input_request(&action).unwrap());
                 match action {
                     Action::AddInputChar(_)
                     | Action::DeletePrevChar
@@ -292,10 +313,12 @@ impl Television {
             Action::ToggleRemoteControl => match self.mode {
                 Mode::Channel => {
                     self.mode = Mode::RemoteControl;
+                    self.init_remote_control();
                 }
                 Mode::RemoteControl => {
                     // this resets the RC picker
                     self.reset_picker_input();
+                    self.init_remote_control();
                     self.remote_control.find(EMPTY_STRING);
                     self.reset_picker_selection();
                     self.mode = Mode::Channel;
@@ -382,16 +405,54 @@ impl Television {
         );
 
         // help bar (metadata, keymaps, logo)
-        self.draw_help_bar(f, &layout.help_bar)?;
+        draw_help_bar(
+            f,
+            &layout.help_bar,
+            self.current_channel(),
+            build_keybindings_table(
+                &self.config.keybindings.to_displayable(),
+                self.mode,
+            ),
+            self.mode,
+            &self.app_metadata,
+        );
 
-        self.results_area_height = u32::from(layout.results.height - 2); // 2 for the borders
+        self.results_area_height =
+            u32::from(layout.results.height.saturating_sub(2)); // 2 for the borders
         self.preview_pane_height = layout.preview_window.height;
 
         // results list
-        self.draw_results_list(f, layout.results)?;
+        let result_count = self.channel.result_count();
+        if result_count > 0 && self.results_picker.selected().is_none() {
+            self.results_picker.select(Some(0));
+            self.results_picker.relative_select(Some(0));
+        }
+        let entries = self.channel.results(
+            self.results_area_height,
+            u32::try_from(self.results_picker.offset())?,
+        );
+        draw_results_list(
+            f,
+            layout.results,
+            &entries,
+            &mut self.results_picker.relative_state,
+            self.config.ui.input_bar_position,
+            self.config.ui.use_nerd_font_icons,
+            &mut self.icon_color_cache,
+        )?;
 
         // input box
-        self.draw_input_box(f, layout.input)?;
+        draw_input_box(
+            f,
+            layout.input,
+            result_count,
+            self.channel.total_count(),
+            &mut self.results_picker.input,
+            &mut self.results_picker.state,
+            self.channel.running(),
+            &self.spinner,
+            &mut self.spinner_state,
+        )?;
 
         let selected_entry = self
             .get_selected_entry(Some(Mode::Channel))
@@ -400,20 +461,199 @@ impl Television {
 
         // preview title
         self.current_preview_total_lines = preview.total_lines();
-        self.draw_preview_title_block(f, layout.preview_title, &preview)?;
+        draw_preview_title_block(
+            f,
+            layout.preview_title,
+            &preview,
+            self.config.ui.use_nerd_font_icons,
+        )?;
 
         // preview content
-        self.draw_preview_content_block(
+        // initialize preview scroll
+        self.maybe_init_preview_scroll(
+            selected_entry
+                .line_number
+                .map(|l| u16::try_from(l).unwrap_or(0)),
+            layout.preview_window.height,
+        );
+        draw_preview_content_block(
             f,
             layout.preview_window,
             &selected_entry,
             &preview,
+            &self.rendered_preview_cache,
+            self.preview_scroll.unwrap_or(0),
         );
 
         // remote control
         if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {
-            self.draw_remote_control(f, layout.remote_control.unwrap())?;
+            // NOTE: this should be done in the `update` method
+            let result_count = self.remote_control.result_count();
+            if result_count > 0 && self.rc_picker.selected().is_none() {
+                self.rc_picker.select(Some(0));
+                self.rc_picker.relative_select(Some(0));
+            }
+            let entries = self.remote_control.results(
+                area.height.saturating_sub(2).into(),
+                u32::try_from(self.rc_picker.offset())?,
+            );
+            draw_remote_control(
+                f,
+                layout.remote_control.unwrap(),
+                &entries,
+                self.config.ui.use_nerd_font_icons,
+                &mut self.rc_picker.state,
+                &mut self.rc_picker.input,
+                &mut self.icon_color_cache,
+            )?;
         }
         Ok(())
     }
+
+    pub fn maybe_init_preview_scroll(
+        &mut self,
+        target_line: Option<u16>,
+        height: u16,
+    ) {
+        if self.preview_scroll.is_none() && !self.channel.running() {
+            self.preview_scroll =
+                Some(target_line.unwrap_or(0).saturating_sub(height / 3));
+        }
+    }
+}
+
+impl KeyBindings {
+    pub fn to_displayable(&self) -> HashMap<Mode, DisplayableKeybindings> {
+        // channel mode keybindings
+        let channel_bindings: HashMap<DisplayableAction, Vec<String>> =
+            HashMap::from_iter(vec![
+                (
+                    DisplayableAction::ResultsNavigation,
+                    serialized_keys_for_actions(
+                        self,
+                        &[
+                            Action::SelectPrevEntry,
+                            Action::SelectNextEntry,
+                            Action::SelectPrevPage,
+                            Action::SelectNextPage,
+                        ],
+                    ),
+                ),
+                (
+                    DisplayableAction::PreviewNavigation,
+                    serialized_keys_for_actions(
+                        self,
+                        &[
+                            Action::ScrollPreviewHalfPageUp,
+                            Action::ScrollPreviewHalfPageDown,
+                        ],
+                    ),
+                ),
+                (
+                    DisplayableAction::SelectEntry,
+                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                ),
+                (
+                    DisplayableAction::CopyEntryToClipboard,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::CopyEntryToClipboard],
+                    ),
+                ),
+                (
+                    DisplayableAction::SendToChannel,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ToggleSendToChannel],
+                    ),
+                ),
+                (
+                    DisplayableAction::ToggleRemoteControl,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ToggleRemoteControl],
+                    ),
+                ),
+                (
+                    DisplayableAction::Quit,
+                    serialized_keys_for_actions(self, &[Action::Quit]),
+                ),
+            ]);
+
+        // remote control mode keybindings
+        let remote_control_bindings: HashMap<DisplayableAction, Vec<String>> =
+            HashMap::from_iter(vec![
+                (
+                    DisplayableAction::ResultsNavigation,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::SelectPrevEntry, Action::SelectNextEntry],
+                    ),
+                ),
+                (
+                    DisplayableAction::SelectEntry,
+                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                ),
+                (
+                    DisplayableAction::ToggleRemoteControl,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ToggleRemoteControl],
+                    ),
+                ),
+            ]);
+
+        // send to channel mode keybindings
+        let send_to_channel_bindings: HashMap<DisplayableAction, Vec<String>> =
+            HashMap::from_iter(vec![
+                (
+                    DisplayableAction::ResultsNavigation,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::SelectPrevEntry, Action::SelectNextEntry],
+                    ),
+                ),
+                (
+                    DisplayableAction::SelectEntry,
+                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                ),
+                (
+                    DisplayableAction::Cancel,
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ToggleSendToChannel],
+                    ),
+                ),
+            ]);
+
+        HashMap::from_iter(vec![
+            (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
+            (
+                Mode::RemoteControl,
+                DisplayableKeybindings::new(remote_control_bindings),
+            ),
+            (
+                Mode::SendToChannel,
+                DisplayableKeybindings::new(send_to_channel_bindings),
+            ),
+        ])
+    }
+}
+
+fn serialized_keys_for_actions(
+    keybindings: &KeyBindings,
+    actions: &[Action],
+) -> Vec<String> {
+    actions
+        .iter()
+        .map(|a| {
+            keybindings
+                .get(&Mode::Channel)
+                .unwrap()
+                .get(a)
+                .unwrap()
+                .clone()
+                .to_string()
+        })
+        .collect()
 }

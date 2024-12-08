@@ -20,12 +20,13 @@ pub mod cli;
 pub mod config;
 pub mod errors;
 pub mod event;
+pub mod input;
+pub mod keymap;
 pub mod logging;
 pub mod picker;
 pub mod render;
 pub mod television;
 pub mod tui;
-pub mod ui;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
