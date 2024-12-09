@@ -56,7 +56,7 @@ where
         // entry name
         let (entry_name, name_match_ranges) = make_matched_string_printable(
             &entry.name,
-            entry.name_match_ranges.as_deref(),
+            entry.minimal_name_match_ranges().as_deref(),
         );
         let mut last_match_end = 0;
         for (start, end) in name_match_ranges

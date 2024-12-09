@@ -66,22 +66,21 @@ impl Entry {
         self
     }
     #[allow(clippy::needless_return)]
-    pub fn minimal_name_match_ranges(self) -> Option<Vec<(u32, u32)>> {
+    pub fn minimal_name_match_ranges(&self) -> Option<Vec<(u32, u32)>> {
         // This method takes the existing `name_match_ranges`
         // and merges contiguous ranges into the minimal equivalent
         //   set of ranges. If no ranges exist, it returns `None`.
-        if let Some(name_match_ranges) = self.name_match_ranges {
-            let minimal_name_match_ranges: Vec<(u32, u32)> = name_match_ranges
-                .into_iter()
-                .fold(Vec::new(), |mut acc, x| {
+        if let Some(name_match_ranges) = &self.name_match_ranges {
+            let minimal_name_match_ranges: Vec<(u32, u32)> =
+                name_match_ranges.iter().fold(Vec::new(), |mut acc, x| {
                     if let Some(last) = acc.last_mut() {
                         if last.1 == x.0 {
-                            last.1 = x.1
+                            last.1 = x.1;
                         } else {
-                            acc.push(x);
+                            acc.push(*x);
                         }
                     } else {
-                        acc.push(x);
+                        acc.push(*x);
                     }
                     return acc;
                 });
