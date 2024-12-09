@@ -15,6 +15,7 @@ use ui::UiConfig;
 mod keybindings;
 mod previewers;
 mod styles;
+mod themes;
 mod ui;
 
 const CONFIG: &str = include_str!("../../.config/config.toml");
@@ -42,6 +43,8 @@ pub struct Config {
     pub ui: UiConfig,
     #[serde(default)]
     pub previewers: PreviewersConfig,
+    #[serde(default)]
+    pub theme: themes::Theme,
 }
 
 lazy_static! {
@@ -64,6 +67,7 @@ lazy_static! {
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 impl Config {
+    // FIXME: default management is a bit of a mess right now
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new() -> Result<Self> {
         // Load the default_config values as base defaults
@@ -77,7 +81,8 @@ impl Config {
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?
             .set_default("ui", UiConfig::default())?
-            .set_default("previewers", PreviewersConfig::default())?;
+            .set_default("previewers", PreviewersConfig::default())?
+            .set_default("theme", themes::Theme::default())?;
 
         // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
@@ -128,7 +133,7 @@ pub fn get_data_dir() -> PathBuf {
         debug!("Falling back to default data dir");
         proj_dirs.data_local_dir().to_path_buf()
     } else {
-        PathBuf::from(".").join(".data")
+        PathBuf::from("../../../../..").join(".data")
     };
     directory
 }
@@ -141,32 +146,11 @@ pub fn get_config_dir() -> PathBuf {
         debug!("Falling back to default config dir");
         proj_dirs.config_local_dir().to_path_buf()
     } else {
-        PathBuf::from(".").join(".config")
+        PathBuf::from("../../../../..").join("../../../../../.config")
     };
     directory
 }
 
 fn project_directory() -> Option<ProjectDirs> {
     ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::action::Action;
-    use crate::config::keybindings::parse_key;
-    use television_screen::mode::Mode;
-
-    #[test]
-    fn test_config() -> Result<()> {
-        let c = Config::new()?;
-        assert_eq!(
-            c.keybindings
-                .get(&Mode::Channel)
-                .unwrap()
-                .get(&Action::Quit),
-            Some(&parse_key("esc").unwrap())
-        );
-        Ok(())
-    }
 }

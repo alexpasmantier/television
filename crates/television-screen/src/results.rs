@@ -1,7 +1,4 @@
-use crate::colors::{
-    ResultsListColors, BORDER_COLOR,
-    DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR,
-};
+use crate::colors::{Colorscheme, ResultsColorscheme};
 use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -22,14 +19,13 @@ pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
     list_direction: ListDirection,
-    results_list_colors: Option<ResultsListColors>,
     use_icons: bool,
     icon_color_cache: &mut HashMap<String, Color>,
+    results_colorscheme: &ResultsColorscheme,
 ) -> List<'a>
 where
     'b: 'a,
 {
-    let results_list_colors = results_list_colors.unwrap_or_default();
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
         // optional icon
@@ -67,13 +63,13 @@ where
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, last_match_end, start)
                     .to_string(),
-                Style::default().fg(results_list_colors.result_name_fg),
+                Style::default().fg(results_colorscheme.result_name_fg),
             ));
             // the current match
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, start, end).to_string(),
                 Style::default()
-                    .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
+                    .fg(results_colorscheme.match_foreground_color),
             ));
             last_match_end = end;
         }
@@ -84,14 +80,14 @@ where
             let remainder = entry_name[next_boundary..].to_string();
             spans.push(Span::styled(
                 remainder,
-                Style::default().fg(results_list_colors.result_name_fg),
+                Style::default().fg(results_colorscheme.result_name_fg),
             ));
         }
         // optional line number
         if let Some(line_number) = entry.line_number {
             spans.push(Span::styled(
                 format!(":{line_number}"),
-                Style::default().fg(results_list_colors.result_line_number_fg),
+                Style::default().fg(results_colorscheme.result_line_number_fg),
             ));
         }
         // optional preview
@@ -111,12 +107,12 @@ where
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, last_match_end, start)
                         .to_string(),
-                    Style::default().fg(results_list_colors.result_preview_fg),
+                    Style::default().fg(results_colorscheme.result_preview_fg),
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, start, end).to_string(),
                     Style::default()
-                        .fg(DEFAULT_RESULTS_LIST_MATCH_FOREGROUND_COLOR),
+                        .fg(results_colorscheme.match_foreground_color),
                 ));
                 last_match_end = end;
             }
@@ -124,7 +120,7 @@ where
             if next_boundary < preview.len() {
                 spans.push(Span::styled(
                     preview[next_boundary..].to_string(),
-                    Style::default().fg(results_list_colors.result_preview_fg),
+                    Style::default().fg(results_colorscheme.result_preview_fg),
                 ));
             }
         }
@@ -132,12 +128,13 @@ where
     }))
     .direction(list_direction)
     .highlight_style(
-        Style::default().bg(results_list_colors.result_selected_bg),
+        Style::default().bg(results_colorscheme.result_selected_bg),
     )
     .highlight_symbol("> ")
     .block(results_block)
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw_results_list(
     f: &mut Frame,
     rect: Rect,
@@ -146,12 +143,13 @@ pub fn draw_results_list(
     input_bar_position: InputPosition,
     use_nerd_font_icons: bool,
     icon_color_cache: &mut HashMap<String, Color>,
+    colorscheme: &Colorscheme,
 ) -> Result<()> {
     let results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_COLOR))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default())
         .padding(Padding::right(1));
 
@@ -162,9 +160,9 @@ pub fn draw_results_list(
             InputPosition::Bottom => ListDirection::BottomToTop,
             InputPosition::Top => ListDirection::TopToBottom,
         },
-        None,
         use_nerd_font_icons,
         icon_color_cache,
+        &colorscheme.results,
     );
 
     f.render_stateful_widget(results_list, rect, relative_picker_state);

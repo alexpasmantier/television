@@ -5,12 +5,11 @@ use television_screen::mode::Mode;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 
-use crate::config::parse_key;
+use crate::config::{parse_key, Config};
 use crate::keymap::Keymap;
 use crate::television::Television;
 use crate::{
     action::Action,
-    config::Config,
     event::{Event, EventLoop, Key},
     render::{render, RenderingTask},
 };

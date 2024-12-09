@@ -1,7 +1,7 @@
-use crate::config::KeyBindings;
+use crate::action::Action;
+use crate::config::{Config, KeyBindings};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
-use crate::{action::Action, config::Config};
 use crate::{cable::load_cable_channels, keymap::Keymap};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
@@ -415,6 +415,7 @@ impl Television {
             ),
             self.mode,
             &self.app_metadata,
+            &(&self.config.theme).into(),
         );
 
         self.results_area_height =
@@ -439,6 +440,7 @@ impl Television {
             self.config.ui.input_bar_position,
             self.config.ui.use_nerd_font_icons,
             &mut self.icon_color_cache,
+            &(&self.config.theme).into(),
         )?;
 
         // input box

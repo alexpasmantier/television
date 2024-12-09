@@ -6,7 +6,7 @@ use crate::results::build_results_list;
 use television_channels::entry::Entry;
 use television_utils::input::Input;
 
-use crate::colors::{ResultsListColors, BORDER_COLOR, DEFAULT_INPUT_FG};
+use crate::colors::{ResultsColorscheme, BORDER_COLOR, DEFAULT_INPUT_FG};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
@@ -57,6 +57,7 @@ fn draw_rc_channels(
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     icon_color_cache: &mut HashMap<String, Color>,
+    results_colorscheme: &ResultsColorscheme,
 ) {
     let rc_block = Block::default()
         .borders(Borders::ALL)
@@ -69,11 +70,9 @@ fn draw_rc_channels(
         rc_block,
         entries,
         ListDirection::TopToBottom,
-        Some(
-            ResultsListColors::default().result_name_fg(REMOTE_CONTROL_COLOR),
-        ),
         use_nerd_font_icons,
         icon_color_cache,
+        &results_colorscheme,
     );
 
     f.render_stateful_widget(channel_list, area, picker_state);
