@@ -1,5 +1,5 @@
 use crate::action::Action;
-use crate::config::{Config, KeyBindings};
+use crate::config::{Config, KeyBindings, Theme};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
 use crate::{cable::load_cable_channels, keymap::Keymap};
@@ -15,6 +15,7 @@ use television_channels::channels::{
 use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
 use television_screen::cache::RenderedPreviewCache;
+use television_screen::colors::Colorscheme;
 use television_screen::help::draw_help_bar;
 use television_screen::input::draw_input_box;
 use television_screen::keybindings::{
@@ -52,6 +53,7 @@ pub struct Television {
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
     pub app_metadata: AppMetadata,
+    pub colorscheme: Colorscheme,
 }
 
 impl Television {
@@ -77,6 +79,7 @@ impl Television {
                 .to_string_lossy()
                 .to_string(),
         );
+        let colorscheme = (&Theme::from_name(&config.ui.theme)).into();
 
         channel.find(EMPTY_STRING);
         let spinner = Spinner::default();
@@ -104,6 +107,7 @@ impl Television {
             spinner,
             spinner_state: SpinnerState::from(&spinner),
             app_metadata,
+            colorscheme,
         }
     }
 
@@ -412,10 +416,11 @@ impl Television {
             build_keybindings_table(
                 &self.config.keybindings.to_displayable(),
                 self.mode,
+                &self.colorscheme,
             ),
             self.mode,
             &self.app_metadata,
-            &(&self.config.theme).into(),
+            &self.colorscheme,
         );
 
         self.results_area_height =
@@ -440,7 +445,7 @@ impl Television {
             self.config.ui.input_bar_position,
             self.config.ui.use_nerd_font_icons,
             &mut self.icon_color_cache,
-            &(&self.config.theme).into(),
+            &self.colorscheme,
         )?;
 
         // input box
@@ -454,6 +459,7 @@ impl Television {
             self.channel.running(),
             &self.spinner,
             &mut self.spinner_state,
+            &self.colorscheme,
         )?;
 
         let selected_entry = self
@@ -468,6 +474,7 @@ impl Television {
             layout.preview_title,
             &preview,
             self.config.ui.use_nerd_font_icons,
+            &self.colorscheme,
         )?;
 
         // preview content
@@ -485,6 +492,7 @@ impl Television {
             &preview,
             &self.rendered_preview_cache,
             self.preview_scroll.unwrap_or(0),
+            &self.colorscheme,
         );
 
         // remote control
@@ -507,6 +515,8 @@ impl Television {
                 &mut self.rc_picker.state,
                 &mut self.rc_picker.input,
                 &mut self.icon_color_cache,
+                &self.mode,
+                &self.colorscheme,
             )?;
         }
         Ok(())

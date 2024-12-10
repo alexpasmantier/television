@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use crate::{
-    colors::HelpColorscheme,
+    colors::Colorscheme,
     mode::{mode_color, Mode},
 };
 use ratatui::{
@@ -27,86 +27,86 @@ pub fn build_metadata_table<'a>(
     mode: Mode,
     current_channel: UnitChannel,
     app_metadata: &'a AppMetadata,
-    help_colorscheme: &'a HelpColorscheme,
+    colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
     let version_row = Row::new(vec![
         Cell::from(Span::styled(
             "version: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             &app_metadata.version,
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
     ]);
 
     let target_triple_row = Row::new(vec![
         Cell::from(Span::styled(
             "target triple: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             &app_metadata.build.target_triple,
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
     ]);
 
     let build_row = Row::new(vec![
         Cell::from(Span::styled(
             "build: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             &app_metadata.build.rustc_version,
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
         Cell::from(Span::styled(
             " (",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             &app_metadata.build.build_date,
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
         Cell::from(Span::styled(
             ")",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
     ]);
 
     let current_dir_row = Row::new(vec![
         Cell::from(Span::styled(
             "current directory: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             std::env::current_dir()
                 .expect("Could not get current directory")
                 .display()
                 .to_string(),
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
     ]);
 
     let current_channel_row = Row::new(vec![
         Cell::from(Span::styled(
             "current channel: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             current_channel.to_string(),
-            Style::default().fg(help_colorscheme.metadata_field_value_fg),
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
     ]);
 
     let current_mode_row = Row::new(vec![
         Cell::from(Span::styled(
             "current mode: ",
-            Style::default().fg(help_colorscheme.metadata_field_name_fg),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
             mode.to_string(),
-            Style::default().fg(mode_color(mode)),
+            Style::default().fg(mode_color(mode, &colorscheme.mode)),
         )),
     ]);
 

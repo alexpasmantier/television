@@ -1,12 +1,16 @@
-use std::collections::HashMap;
+use color_eyre::Result;
+use std::path::PathBuf;
 
-use config::ValueKind;
 use ratatui::style::Color as RatatuiColor;
 use serde::Deserialize;
 use television_screen::colors::{
     Colorscheme, GeneralColorscheme, HelpColorscheme, InputColorscheme,
-    PreviewColorscheme, ResultsColorscheme,
+    ModeColorscheme, PreviewColorscheme, ResultsColorscheme,
 };
+
+use super::get_config_dir;
+
+pub mod builtin;
 
 #[derive(Clone, Debug, Default)]
 pub struct Color {
@@ -31,51 +35,92 @@ impl Color {
 
 #[derive(Clone, Debug)]
 pub struct Theme {
-    pub background: Color,
-    pub foreground: Color,
-    pub black: Color,
-    pub red: Color,
-    pub green: Color,
-    pub yellow: Color,
-    pub blue: Color,
-    pub magenta: Color,
-    pub cyan: Color,
-    pub white: Color,
-    pub bright_black: Color,
-    pub bright_red: Color,
-    pub bright_green: Color,
-    pub bright_yellow: Color,
-    pub bright_blue: Color,
-    pub bright_magenta: Color,
-    pub bright_cyan: Color,
-    pub bright_white: Color,
+    // general
+    pub border_fg: Color,
+    pub text_fg: Color,
+    pub dimmed_text_fg: Color,
+    // input
+    pub input_text_fg: Color,
+    pub result_count_fg: Color,
+    // results
+    pub result_name_fg: Color,
+    pub result_line_number_fg: Color,
+    pub result_value_fg: Color,
+    pub selection_bg: Color,
+    pub match_fg: Color,
+    // preview
+    pub preview_title_fg: Color,
+    // modes
+    pub channel_mode_fg: Color,
+    pub remote_control_mode_fg: Color,
+    pub send_to_channel_mode_fg: Color,
 }
 
-const DEFAULT_THEME: &str = r##"
-background = "#282c34"
-foreground = "#abb2bf"
-black = "#5c6370"
-red = "#e06c75"
-green = "#98c379"
-yellow = "#e5c07b"
-blue = "#61afef"
-magenta = "#c678dd"
-cyan = "#56b6c2"
-white = "#abb2bf"
-bright_black = "#5c6370"
-bright_red = "#e06c75"
-bright_green = "#98c379"
-bright_yellow = "#e5c07b"
-bright_blue = "#61afef"
-bright_magenta = "#c678dd"
-bright_cyan = "#56b6c2"
-bright_white = "#abb2bf"
-"##;
+impl Theme {
+    pub fn from_name(name: &str) -> Self {
+        Self::from_path(
+            &get_config_dir()
+                .join("themes")
+                .join(name)
+                .with_extension("toml"),
+        )
+        .unwrap_or_else(|_| {
+            Self::from_builtin(name).unwrap_or_else(|_| Self::default())
+        })
+    }
+
+    pub fn from_builtin(
+        name: &str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let theme_content: &str = builtin::BUILTIN_THEMES.get(name).map_or(
+            builtin::BUILTIN_THEMES.get(DEFAULT_THEME).unwrap(),
+            |t| *t,
+        );
+        let theme = toml::from_str(theme_content)?;
+        Ok(theme)
+    }
+
+    pub fn from_path(
+        path: &PathBuf,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let theme = std::fs::read_to_string(path)?;
+        let theme: Theme = toml::from_str(&theme)?;
+        Ok(theme)
+    }
+}
+
+pub const DEFAULT_THEME: &str = "gruvbox-dark";
 
 impl Default for Theme {
     fn default() -> Self {
-        toml::from_str(DEFAULT_THEME).unwrap()
+        let theme_content = include_str!("../../../themes/gruvbox-dark.toml");
+        toml::from_str(theme_content).unwrap()
     }
+}
+
+#[derive(Deserialize)]
+#[serde(rename = "theme")]
+struct Inner {
+    // general
+    border_fg: String,
+    // info
+    text_fg: String,
+    dimmed_text_fg: String,
+    // input
+    input_text_fg: String,
+    result_count_fg: String,
+    //results
+    result_name_fg: String,
+    result_line_number_fg: String,
+    result_value_fg: String,
+    selection_bg: String,
+    match_fg: String,
+    //preview
+    preview_title_fg: String,
+    //modes
+    channel_mode_fg: String,
+    remote_control_mode_fg: String,
+    send_to_channel_mode_fg: String,
 }
 
 impl<'de> Deserialize<'de> for Theme {
@@ -83,221 +128,43 @@ impl<'de> Deserialize<'de> for Theme {
     where
         D: serde::Deserializer<'de>,
     {
-        #[derive(Deserialize)]
-        #[serde(rename = "theme")]
-        struct Inner {
-            background: String,
-            foreground: String,
-            black: String,
-            red: String,
-            green: String,
-            yellow: String,
-            blue: String,
-            magenta: String,
-            cyan: String,
-            white: String,
-            bright_black: String,
-            bright_red: String,
-            bright_green: String,
-            bright_yellow: String,
-            bright_blue: String,
-            bright_magenta: String,
-            bright_cyan: String,
-            bright_white: String,
-        }
-
-        let inner = Inner::deserialize(deserializer)?;
+        let inner = Inner::deserialize(deserializer).unwrap();
         Ok(Self {
-            background: Color::from_str(&inner.background)
+            border_fg: Color::from_str(&inner.border_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            foreground: Color::from_str(&inner.foreground)
+            text_fg: Color::from_str(&inner.text_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            black: Color::from_str(&inner.black)
+            dimmed_text_fg: Color::from_str(&inner.dimmed_text_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            red: Color::from_str(&inner.red)
+            input_text_fg: Color::from_str(&inner.input_text_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            green: Color::from_str(&inner.green)
+            result_count_fg: Color::from_str(&inner.result_count_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            yellow: Color::from_str(&inner.yellow)
+            result_name_fg: Color::from_str(&inner.result_name_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            blue: Color::from_str(&inner.blue)
+            result_line_number_fg: Color::from_str(
+                &inner.result_line_number_fg,
+            )
+            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            result_value_fg: Color::from_str(&inner.result_value_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            magenta: Color::from_str(&inner.magenta)
+            selection_bg: Color::from_str(&inner.selection_bg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            cyan: Color::from_str(&inner.cyan)
+            match_fg: Color::from_str(&inner.match_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            white: Color::from_str(&inner.white)
+            preview_title_fg: Color::from_str(&inner.preview_title_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_black: Color::from_str(&inner.bright_black)
+            channel_mode_fg: Color::from_str(&inner.channel_mode_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_red: Color::from_str(&inner.bright_red)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_green: Color::from_str(&inner.bright_green)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_yellow: Color::from_str(&inner.bright_yellow)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_blue: Color::from_str(&inner.bright_blue)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_magenta: Color::from_str(&inner.bright_magenta)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_cyan: Color::from_str(&inner.bright_cyan)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            bright_white: Color::from_str(&inner.bright_white)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            remote_control_mode_fg: Color::from_str(
+                &inner.remote_control_mode_fg,
+            )
+            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            send_to_channel_mode_fg: Color::from_str(
+                &inner.send_to_channel_mode_fg,
+            )
+            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
         })
-    }
-}
-
-impl From<Theme> for ValueKind {
-    fn from(val: Theme) -> Self {
-        let mut m = HashMap::new();
-        m.insert(
-            String::from("background"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.background.r, val.background.g, val.background.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("foreground"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.foreground.r, val.foreground.g, val.foreground.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("black"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.black.r, val.black.g, val.black.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("red"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.red.r, val.red.g, val.red.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("green"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.green.r, val.green.g, val.green.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("yellow"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.yellow.r, val.yellow.g, val.yellow.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("blue"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.blue.r, val.blue.g, val.blue.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("magenta"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.magenta.r, val.magenta.g, val.magenta.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("cyan"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.cyan.r, val.cyan.g, val.cyan.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("white"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.white.r, val.white.g, val.white.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_black"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_black.r, val.bright_black.g, val.bright_black.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_red"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_red.r, val.bright_red.g, val.bright_red.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_green"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_green.r, val.bright_green.g, val.bright_green.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_yellow"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_yellow.r, val.bright_yellow.g, val.bright_yellow.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_blue"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_blue.r, val.bright_blue.g, val.bright_blue.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_magenta"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_magenta.r,
-                val.bright_magenta.g,
-                val.bright_magenta.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_cyan"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_cyan.r, val.bright_cyan.g, val.bright_cyan.b
-            ))
-            .into(),
-        );
-        m.insert(
-            String::from("bright_white"),
-            ValueKind::String(format!(
-                "#{:02x}{:02x}{:02x}",
-                val.bright_white.r, val.bright_white.g, val.bright_white.b
-            ))
-            .into(),
-        );
-        ValueKind::Table(m)
     }
 }
 
@@ -315,6 +182,7 @@ impl Into<Colorscheme> for &Theme {
             results: self.into(),
             preview: self.into(),
             input: self.into(),
+            mode: self.into(),
         }
     }
 }
@@ -322,8 +190,7 @@ impl Into<Colorscheme> for &Theme {
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
-            background: (&self.background).into(),
-            border_fg: (&self.bright_black).into(),
+            border_fg: (&self.border_fg).into(),
         }
     }
 }
@@ -331,9 +198,8 @@ impl Into<GeneralColorscheme> for &Theme {
 impl Into<HelpColorscheme> for &Theme {
     fn into(self) -> HelpColorscheme {
         HelpColorscheme {
-            action_fg: (&self.bright_black).into(),
-            metadata_field_name_fg: (&self.bright_black).into(),
-            metadata_field_value_fg: (&self.bright_white).into(),
+            metadata_field_name_fg: (&self.dimmed_text_fg).into(),
+            metadata_field_value_fg: (&self.text_fg).into(),
         }
     }
 }
@@ -341,11 +207,11 @@ impl Into<HelpColorscheme> for &Theme {
 impl Into<ResultsColorscheme> for &Theme {
     fn into(self) -> ResultsColorscheme {
         ResultsColorscheme {
-            result_name_fg: (&self.blue).into(),
-            result_preview_fg: (&self.bright_white).into(),
-            result_line_number_fg: (&self.yellow).into(),
-            result_selected_bg: (&self.bright_black).into(),
-            match_foreground_color: (&self.red).into(),
+            result_name_fg: (&self.result_name_fg).into(),
+            result_preview_fg: (&self.result_value_fg).into(),
+            result_line_number_fg: (&self.result_line_number_fg).into(),
+            result_selected_bg: (&self.selection_bg).into(),
+            match_foreground_color: (&self.match_fg).into(),
         }
     }
 }
@@ -353,11 +219,11 @@ impl Into<ResultsColorscheme> for &Theme {
 impl Into<PreviewColorscheme> for &Theme {
     fn into(self) -> PreviewColorscheme {
         PreviewColorscheme {
-            title_fg: (&self.bright_blue).into(),
-            highlight_bg: (&self.bright_black).into(),
-            content_fg: (&self.bright_white).into(),
-            gutter_fg: (&self.bright_black).into(),
-            gutter_selected_fg: (&self.red).into(),
+            title_fg: (&self.preview_title_fg).into(),
+            highlight_bg: (&self.selection_bg).into(),
+            content_fg: (&self.text_fg).into(),
+            gutter_fg: (&self.dimmed_text_fg).into(),
+            gutter_selected_fg: (&self.match_fg).into(),
         }
     }
 }
@@ -365,8 +231,18 @@ impl Into<PreviewColorscheme> for &Theme {
 impl Into<InputColorscheme> for &Theme {
     fn into(self) -> InputColorscheme {
         InputColorscheme {
-            input_fg: (&self.bright_red).into(),
-            results_count_fg: (&self.red).into(),
+            input_fg: (&self.input_text_fg).into(),
+            results_count_fg: (&self.result_count_fg).into(),
+        }
+    }
+}
+
+impl Into<ModeColorscheme> for &Theme {
+    fn into(self) -> ModeColorscheme {
+        ModeColorscheme {
+            channel: (&self.channel_mode_fg).into(),
+            remote_control: (&self.remote_control_mode_fg).into(),
+            send_to_channel: (&self.send_to_channel_mode_fg).into(),
         }
     }
 }

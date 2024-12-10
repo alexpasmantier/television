@@ -9,6 +9,7 @@ use lazy_static::lazy_static;
 use previewers::PreviewersConfig;
 use serde::Deserialize;
 use styles::Styles;
+pub use themes::Theme;
 use tracing::{debug, warn};
 use ui::UiConfig;
 
@@ -43,8 +44,6 @@ pub struct Config {
     pub ui: UiConfig,
     #[serde(default)]
     pub previewers: PreviewersConfig,
-    #[serde(default)]
-    pub theme: themes::Theme,
 }
 
 lazy_static! {
@@ -82,7 +81,7 @@ impl Config {
             .set_default("config_dir", config_dir.to_str().unwrap())?
             .set_default("ui", UiConfig::default())?
             .set_default("previewers", PreviewersConfig::default())?
-            .set_default("theme", themes::Theme::default())?;
+            .set_default("theme", default_config.ui.theme.clone())?;
 
         // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
@@ -92,13 +91,13 @@ impl Config {
 
         if config_dir.join(CONFIG_FILE_NAME).is_file() {
             debug!("Found config file at {:?}", config_dir);
-            let mut cfg: Self =
-                builder.build()?.try_deserialize().with_context(|| {
-                    format!(
-                        "Error parsing config file at {:?}",
-                        config_dir.join(CONFIG_FILE_NAME)
-                    )
-                })?;
+            let mut cfg: Self = builder.build()?.try_deserialize().unwrap();
+            //.with_context(|| {
+            //    format!(
+            //        "Error parsing config file at {:?}",
+            //        config_dir.join(CONFIG_FILE_NAME)
+            //    )
+            //})?;
 
             for (mode, default_bindings) in default_config.keybindings.iter() {
                 let user_bindings = cfg.keybindings.entry(*mode).or_default();
