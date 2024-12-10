@@ -1,5 +1,5 @@
 use super::layout::HelpBarLayout;
-use crate::colors::{Colorscheme, GeneralColorscheme, HelpColorscheme};
+use crate::colors::{Colorscheme, GeneralColorscheme};
 use crate::logo::build_logo_paragraph;
 use crate::metadata::build_metadata_table;
 use crate::mode::{mode_color, Mode};
@@ -34,23 +34,18 @@ fn draw_metadata_block(
     mode: Mode,
     current_channel: UnitChannel,
     app_metadata: &AppMetadata,
-    general_colorscheme: &GeneralColorscheme,
-    help_colorscheme: &HelpColorscheme,
+    colorscheme: &Colorscheme,
 ) {
     let metadata_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(general_colorscheme.border_fg))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .padding(Padding::horizontal(1))
         .style(Style::default());
 
-    let metadata_table = build_metadata_table(
-        mode,
-        current_channel,
-        app_metadata,
-        help_colorscheme,
-    )
-    .block(metadata_block);
+    let metadata_table =
+        build_metadata_table(mode, current_channel, app_metadata, colorscheme)
+            .block(metadata_block);
 
     f.render_widget(metadata_table, area);
 }
@@ -89,8 +84,7 @@ pub fn draw_help_bar(
             mode,
             current_channel,
             app_metadata,
-            &colorscheme.general,
-            &colorscheme.help,
+            colorscheme,
         );
         draw_keymaps_block(
             f,
@@ -101,7 +95,7 @@ pub fn draw_help_bar(
         draw_logo_block(
             f,
             help_bar.right,
-            mode_color(mode),
+            mode_color(mode, &colorscheme.mode),
             &colorscheme.general,
         );
     }

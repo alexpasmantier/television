@@ -1,9 +1,5 @@
 use crate::cache::RenderedPreviewCache;
-use crate::colors::{
-    BORDER_COLOR, DEFAULT_PREVIEW_CONTENT_FG, DEFAULT_PREVIEW_GUTTER_FG,
-    DEFAULT_PREVIEW_GUTTER_SELECTED_FG, DEFAULT_PREVIEW_TITLE_FG,
-    DEFAULT_SELECTED_PREVIEW_BG,
-};
+use crate::colors::{Colorscheme, PreviewColorscheme};
 use ansi_to_tui::IntoText;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
@@ -12,7 +8,6 @@ use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
 use ratatui::Frame;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use syntect::highlighting::Color as SyntectColor;
 use television_channels::entry::Entry;
 use television_previewers::previewers::{
     Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
@@ -27,12 +22,13 @@ const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
 
 pub fn build_preview_paragraph(
-    preview_block: Block,
+    preview_block: Block<'_>,
     inner: Rect,
     preview_content: PreviewContent,
     target_line: Option<u16>,
     preview_scroll: u16,
-) -> Paragraph {
+    colorscheme: Colorscheme,
+) -> Paragraph<'_> {
     match preview_content {
         PreviewContent::AnsiText(text) => {
             build_ansi_text_paragraph(text, preview_block, preview_scroll)
@@ -42,9 +38,14 @@ pub fn build_preview_paragraph(
             preview_block,
             target_line,
             preview_scroll,
+            colorscheme.preview,
         ),
         PreviewContent::PlainTextWrapped(content) => {
-            build_plain_text_wrapped_paragraph(content, preview_block)
+            build_plain_text_wrapped_paragraph(
+                content,
+                preview_block,
+                colorscheme.preview,
+            )
         }
         PreviewContent::SyntectHighlightedText(highlighted_lines) => {
             build_syntect_highlighted_paragraph(
@@ -52,6 +53,7 @@ pub fn build_preview_paragraph(
                 preview_block,
                 target_line,
                 preview_scroll,
+                colorscheme.preview,
             )
         }
         // meta
@@ -104,10 +106,11 @@ fn build_ansi_text_paragraph(
 
 fn build_plain_text_paragraph(
     text: Vec<String>,
-    preview_block: Block,
+    preview_block: Block<'_>,
     target_line: Option<u16>,
     preview_scroll: u16,
-) -> Paragraph {
+    colorscheme: PreviewColorscheme,
+) -> Paragraph<'_> {
     let mut lines = Vec::new();
     for (i, line) in text.iter().enumerate() {
         lines.push(Line::from(vec![
@@ -117,18 +120,18 @@ fn build_plain_text_paragraph(
                         Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
                     )
                 {
-                    DEFAULT_PREVIEW_GUTTER_SELECTED_FG
+                    colorscheme.gutter_selected_fg
                 } else {
-                    DEFAULT_PREVIEW_GUTTER_FG
+                    colorscheme.gutter_fg
                 },
             )),
             Span::styled(" │ ",
-                         Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim()),
+                         Style::default().fg(colorscheme.gutter_fg).dim()),
             Span::styled(
                 line.to_string(),
-                Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG).bg(
+                Style::default().fg(colorscheme.content_fg).bg(
                     if matches!(target_line, Some(l) if l == u16::try_from(i).unwrap() + 1) {
-                        DEFAULT_SELECTED_PREVIEW_BG
+                        colorscheme.highlight_bg
                     } else {
                         Color::Reset
                     },
@@ -144,13 +147,14 @@ fn build_plain_text_paragraph(
 
 fn build_plain_text_wrapped_paragraph(
     text: String,
-    preview_block: Block,
-) -> Paragraph {
+    preview_block: Block<'_>,
+    colorscheme: PreviewColorscheme,
+) -> Paragraph<'_> {
     let mut lines = Vec::new();
     for line in text.lines() {
         lines.push(Line::styled(
             line.to_string(),
-            Style::default().fg(DEFAULT_PREVIEW_CONTENT_FG),
+            Style::default().fg(colorscheme.content_fg),
         ));
     }
     let text = Text::from(lines);
@@ -164,10 +168,12 @@ fn build_syntect_highlighted_paragraph(
     preview_block: Block,
     target_line: Option<u16>,
     preview_scroll: u16,
+    colorscheme: PreviewColorscheme,
 ) -> Paragraph {
     compute_paragraph_from_highlighted_lines(
         &highlighted_lines,
         target_line.map(|l| l as usize),
+        colorscheme,
     )
     .block(preview_block)
     .alignment(Alignment::Left)
@@ -232,6 +238,7 @@ pub fn draw_preview_title_block(
     rect: Rect,
     preview: &Arc<Preview>,
     use_nerd_font_icons: bool,
+    colorscheme: &Colorscheme,
 ) -> Result<()> {
     let mut preview_title_spans = Vec::new();
     if preview.icon.is_some() && use_nerd_font_icons {
@@ -254,7 +261,7 @@ pub fn draw_preview_title_block(
             .0,
             rect.width.saturating_sub(4) as usize,
         ),
-        Style::default().fg(DEFAULT_PREVIEW_TITLE_FG).bold(),
+        Style::default().fg(colorscheme.preview.title_fg).bold(),
     ));
     let preview_title = Paragraph::new(Line::from(preview_title_spans))
         .block(
@@ -262,9 +269,12 @@ pub fn draw_preview_title_block(
                 .padding(Padding::horizontal(1))
                 .borders(Borders::ALL)
                 .border_type(BorderType::Rounded)
-                .border_style(Style::default().fg(BORDER_COLOR)),
+                .border_style(
+                    Style::default().fg(colorscheme.general.border_fg),
+                ),
         )
-        .alignment(Alignment::Left);
+        .alignment(Alignment::Left)
+        .style(Style::default());
     f.render_widget(preview_title, rect);
     Ok(())
 }
@@ -276,12 +286,13 @@ pub fn draw_preview_content_block(
     preview: &Arc<Preview>,
     rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
     preview_scroll: u16,
+    colorscheme: &Colorscheme,
 ) {
     let preview_outer_block = Block::default()
         .title_top(Line::from(" Preview ").alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_COLOR))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default())
         .padding(Padding::right(1));
 
@@ -307,12 +318,14 @@ pub fn draw_preview_content_block(
         return;
     }
     // If not, render the preview content and cache it if not empty
+    let c_scheme = colorscheme.clone();
     let rp = build_preview_paragraph(
         preview_inner_block,
         inner,
         preview.content.clone(),
         target_line,
         preview_scroll,
+        c_scheme,
     );
     if !preview.stale {
         rendered_preview_cache
@@ -333,6 +346,7 @@ fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
 fn compute_paragraph_from_highlighted_lines(
     highlighted_lines: &[Vec<(syntect::highlighting::Style, String)>],
     line_specifier: Option<usize>,
+    colorscheme: PreviewColorscheme,
 ) -> Paragraph<'static> {
     let preview_lines: Vec<Line> = highlighted_lines
         .iter()
@@ -343,16 +357,16 @@ fn compute_paragraph_from_highlighted_lines(
                     if line_specifier.is_some()
                         && i == line_specifier.unwrap().saturating_sub(1)
                     {
-                        DEFAULT_PREVIEW_GUTTER_SELECTED_FG
+                        colorscheme.gutter_selected_fg
                     } else {
-                        DEFAULT_PREVIEW_GUTTER_FG
+                        colorscheme.gutter_fg
                     },
                 ));
             Line::from_iter(
                 std::iter::once(line_number)
                     .chain(std::iter::once(Span::styled(
                         " │ ",
-                        Style::default().fg(DEFAULT_PREVIEW_GUTTER_FG).dim(),
+                        Style::default().fg(colorscheme.gutter_fg).dim(),
                     )))
                     .chain(l.iter().cloned().map(|sr| {
                         convert_syn_region_to_span(
@@ -362,12 +376,7 @@ fn compute_paragraph_from_highlighted_lines(
                                     .unwrap()
                                     .saturating_sub(1)
                             {
-                                Some(SyntectColor {
-                                    r: 50,
-                                    g: 50,
-                                    b: 50,
-                                    a: 255,
-                                })
+                                Some(colorscheme.highlight_bg)
                             } else {
                                 None
                             },
@@ -382,12 +391,12 @@ fn compute_paragraph_from_highlighted_lines(
 
 pub fn convert_syn_region_to_span<'a>(
     syn_region: &(syntect::highlighting::Style, String),
-    background: Option<syntect::highlighting::Color>,
+    background: Option<Color>,
 ) -> Span<'a> {
     let mut style = Style::default()
         .fg(convert_syn_color_to_ratatui_color(syn_region.0.foreground));
     if let Some(background) = background {
-        style = style.bg(convert_syn_color_to_ratatui_color(background));
+        style = style.bg(background);
     }
     style = match syn_region.0.font_style {
         syntect::highlighting::FontStyle::BOLD => style.bold(),

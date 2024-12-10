@@ -1,0 +1,20 @@
+[theme]
+background = '#18191a'
+foreground = '#cdcdcd'
+black = '#282830'   # color0
+red = '#d2788c'     # color1
+green = '#8faf77'   # color2
+yellow = '#d2a374'  # color3
+blue = '#7894ab'    # color4
+magenta = '#8ca0dc' # color5
+cyan = '#deb896'    # color6
+white = '#cdcdcd'   # color7
+bright_black = '#646477'   # color8
+bright_red = '#be8c8c'     # color9
+bright_green = '#8faf77'   # color10
+bright_yellow = '#b4b4ce'  # color11
+bright_blue = '#7894ab'    # color12
+bright_magenta = '#8ca0dc' # color13
+bright_cyan = '#deb896'    # color14
+bright_white = '#cdcdcd'   # color15
+

@@ -1,9 +1,6 @@
 use std::{collections::HashMap, fmt::Display};
 
-use crate::{
-    colors::ACTION_COLOR,
-    mode::{Mode, CHANNEL_COLOR, REMOTE_CONTROL_COLOR, SEND_TO_CHANNEL_COLOR},
-};
+use crate::{colors::Colorscheme, mode::Mode};
 use ratatui::{
     layout::Constraint,
     style::{Color, Style},
@@ -52,28 +49,33 @@ impl Display for DisplayableAction {
     }
 }
 
-pub fn build_keybindings_table(
-    keybindings: &HashMap<Mode, DisplayableKeybindings>,
+pub fn build_keybindings_table<'a>(
+    keybindings: &'a HashMap<Mode, DisplayableKeybindings>,
     mode: Mode,
-) -> Table<'_> {
+    colorscheme: &'a Colorscheme,
+) -> Table<'a> {
     match mode {
-        Mode::Channel => {
-            build_keybindings_table_for_channel(&keybindings[&mode])
-        }
-        Mode::RemoteControl => {
-            build_keybindings_table_for_channel_selection(&keybindings[&mode])
-        }
+        Mode::Channel => build_keybindings_table_for_channel(
+            &keybindings[&mode],
+            &colorscheme,
+        ),
+        Mode::RemoteControl => build_keybindings_table_for_channel_selection(
+            &keybindings[&mode],
+            &colorscheme,
+        ),
         Mode::SendToChannel => {
             build_keybindings_table_for_channel_transitions(
                 &keybindings[&mode],
+                &colorscheme,
             )
         }
     }
 }
 
-fn build_keybindings_table_for_channel(
-    keybindings: &DisplayableKeybindings,
-) -> Table<'_> {
+fn build_keybindings_table_for_channel<'a>(
+    keybindings: &'a DisplayableKeybindings,
+    colorscheme: &'a Colorscheme,
+) -> Table<'a> {
     // Results navigation
     let results_navigation_keys = keybindings
         .bindings
@@ -82,7 +84,8 @@ fn build_keybindings_table_for_channel(
     let results_row = Row::new(build_cells_for_group(
         "Results navigation",
         results_navigation_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // Preview navigation
@@ -93,7 +96,8 @@ fn build_keybindings_table_for_channel(
     let preview_row = Row::new(build_cells_for_group(
         "Preview navigation",
         preview_navigation_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // Select entry
@@ -104,7 +108,8 @@ fn build_keybindings_table_for_channel(
     let select_entry_row = Row::new(build_cells_for_group(
         "Select entry",
         select_entry_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // Copy entry to clipboard
@@ -115,7 +120,8 @@ fn build_keybindings_table_for_channel(
     let copy_entry_row = Row::new(build_cells_for_group(
         "Copy entry to clipboard",
         copy_entry_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // Send to channel
@@ -126,7 +132,8 @@ fn build_keybindings_table_for_channel(
     let send_to_channel_row = Row::new(build_cells_for_group(
         "Send results to",
         send_to_channel_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // Switch channels
@@ -137,15 +144,20 @@ fn build_keybindings_table_for_channel(
     let switch_channels_row = Row::new(build_cells_for_group(
         "Toggle Remote control",
         switch_channels_keys,
-        CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
     ));
 
     // MISC line (quit, help, etc.)
     // Quit ⏼
     let quit_keys =
         keybindings.bindings.get(&DisplayableAction::Quit).unwrap();
-    let quit_row =
-        Row::new(build_cells_for_group("Quit", quit_keys, CHANNEL_COLOR));
+    let quit_row = Row::new(build_cells_for_group(
+        "Quit",
+        quit_keys,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.channel,
+    ));
 
     let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
 
@@ -163,9 +175,10 @@ fn build_keybindings_table_for_channel(
     )
 }
 
-fn build_keybindings_table_for_channel_selection(
-    keybindings: &DisplayableKeybindings,
-) -> Table<'_> {
+fn build_keybindings_table_for_channel_selection<'a>(
+    keybindings: &'a DisplayableKeybindings,
+    colorscheme: &'a Colorscheme,
+) -> Table<'a> {
     // Results navigation
     let navigation_keys = keybindings
         .bindings
@@ -174,7 +187,8 @@ fn build_keybindings_table_for_channel_selection(
     let results_row = Row::new(build_cells_for_group(
         "Browse channels",
         navigation_keys,
-        REMOTE_CONTROL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.remote_control,
     ));
 
     // Select entry
@@ -185,7 +199,8 @@ fn build_keybindings_table_for_channel_selection(
     let select_entry_row = Row::new(build_cells_for_group(
         "Select channel",
         select_entry_keys,
-        REMOTE_CONTROL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.remote_control,
     ));
 
     // Remote control
@@ -196,7 +211,8 @@ fn build_keybindings_table_for_channel_selection(
     let switch_channels_row = Row::new(build_cells_for_group(
         "Toggle Remote control",
         switch_channels_keys,
-        REMOTE_CONTROL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.remote_control,
     ));
 
     Table::new(
@@ -205,9 +221,10 @@ fn build_keybindings_table_for_channel_selection(
     )
 }
 
-fn build_keybindings_table_for_channel_transitions(
-    keybindings: &DisplayableKeybindings,
-) -> Table<'_> {
+fn build_keybindings_table_for_channel_transitions<'a>(
+    keybindings: &'a DisplayableKeybindings,
+    colorscheme: &'a Colorscheme,
+) -> Table<'a> {
     // Results navigation
     let results_navigation_keys = keybindings
         .bindings
@@ -216,7 +233,8 @@ fn build_keybindings_table_for_channel_transitions(
     let results_row = Row::new(build_cells_for_group(
         "Browse channels",
         results_navigation_keys,
-        SEND_TO_CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.send_to_channel,
     ));
 
     // Select entry
@@ -227,7 +245,8 @@ fn build_keybindings_table_for_channel_transitions(
     let select_entry_row = Row::new(build_cells_for_group(
         "Send to channel",
         select_entry_keys,
-        SEND_TO_CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.send_to_channel,
     ));
 
     // Cancel
@@ -238,7 +257,8 @@ fn build_keybindings_table_for_channel_transitions(
     let cancel_row = Row::new(build_cells_for_group(
         "Cancel",
         cancel_keys,
-        SEND_TO_CHANNEL_COLOR,
+        colorscheme.help.metadata_field_name_fg,
+        colorscheme.mode.send_to_channel,
     ));
 
     Table::new(
@@ -251,23 +271,24 @@ fn build_cells_for_group<'a>(
     group_name: &str,
     keys: &'a [String],
     key_color: Color,
+    value_color: Color,
 ) -> Vec<Cell<'a>> {
     // group name
     let mut cells = vec![Cell::from(Span::styled(
         group_name.to_owned() + ": ",
-        Style::default().fg(ACTION_COLOR),
+        Style::default().fg(key_color),
     ))];
 
     let spans = keys.iter().skip(1).fold(
         vec![Span::styled(
             keys[0].clone(),
-            Style::default().fg(key_color),
+            Style::default().fg(value_color),
         )],
         |mut acc, key| {
             acc.push(Span::raw(" / "));
             acc.push(Span::styled(
                 key.to_owned(),
-                Style::default().fg(key_color),
+                Style::default().fg(value_color),
             ));
             acc
         },

@@ -5,7 +5,7 @@ use ratatui::style::Color as RatatuiColor;
 use serde::Deserialize;
 use television_screen::colors::{
     Colorscheme, GeneralColorscheme, HelpColorscheme, InputColorscheme,
-    PreviewColorscheme, ResultsColorscheme,
+    ModeColorscheme, PreviewColorscheme, ResultsColorscheme,
 };
 
 #[derive(Clone, Debug, Default)]
@@ -315,6 +315,7 @@ impl Into<Colorscheme> for &Theme {
             results: self.into(),
             preview: self.into(),
             input: self.into(),
+            mode: self.into(),
         }
     }
 }
@@ -331,9 +332,8 @@ impl Into<GeneralColorscheme> for &Theme {
 impl Into<HelpColorscheme> for &Theme {
     fn into(self) -> HelpColorscheme {
         HelpColorscheme {
-            action_fg: (&self.bright_black).into(),
-            metadata_field_name_fg: (&self.bright_black).into(),
-            metadata_field_value_fg: (&self.bright_white).into(),
+            metadata_field_name_fg: (&self.white).into(),
+            metadata_field_value_fg: (&self.yellow).into(),
         }
     }
 }
@@ -342,10 +342,12 @@ impl Into<ResultsColorscheme> for &Theme {
     fn into(self) -> ResultsColorscheme {
         ResultsColorscheme {
             result_name_fg: (&self.blue).into(),
-            result_preview_fg: (&self.bright_white).into(),
+            result_preview_fg: (&self.white).into(),
             result_line_number_fg: (&self.yellow).into(),
-            result_selected_bg: (&self.bright_black).into(),
-            match_foreground_color: (&self.red).into(),
+            // this doesn't quite work
+            result_selected_bg: (&self.black).into(),
+            result_selected_fg: (&self.magenta).into(),
+            match_foreground_color: (&self.bright_red).into(),
         }
     }
 }
@@ -353,11 +355,11 @@ impl Into<ResultsColorscheme> for &Theme {
 impl Into<PreviewColorscheme> for &Theme {
     fn into(self) -> PreviewColorscheme {
         PreviewColorscheme {
-            title_fg: (&self.bright_blue).into(),
+            title_fg: (&self.magenta).into(),
             highlight_bg: (&self.bright_black).into(),
-            content_fg: (&self.bright_white).into(),
-            gutter_fg: (&self.bright_black).into(),
-            gutter_selected_fg: (&self.red).into(),
+            content_fg: (&self.foreground).into(),
+            gutter_fg: (&self.white).into(),
+            gutter_selected_fg: (&self.bright_red).into(),
         }
     }
 }
@@ -366,7 +368,17 @@ impl Into<InputColorscheme> for &Theme {
     fn into(self) -> InputColorscheme {
         InputColorscheme {
             input_fg: (&self.bright_red).into(),
-            results_count_fg: (&self.red).into(),
+            results_count_fg: (&self.bright_red).into(),
+        }
+    }
+}
+
+impl Into<ModeColorscheme> for &Theme {
+    fn into(self) -> ModeColorscheme {
+        ModeColorscheme {
+            channel: (&self.bright_green).into(),
+            remote_control: (&self.magenta).into(),
+            send_to_channel: (&self.cyan).into(),
         }
     }
 }

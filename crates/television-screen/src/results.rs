@@ -3,6 +3,7 @@ use crate::layout::InputPosition;
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
+use ratatui::style::Stylize;
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
@@ -21,7 +22,7 @@ pub fn build_results_list<'a, 'b>(
     list_direction: ListDirection,
     use_icons: bool,
     icon_color_cache: &mut HashMap<String, Color>,
-    results_colorscheme: &ResultsColorscheme,
+    colorscheme: &ResultsColorscheme,
 ) -> List<'a>
 where
     'b: 'a,
@@ -63,13 +64,12 @@ where
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, last_match_end, start)
                     .to_string(),
-                Style::default().fg(results_colorscheme.result_name_fg),
+                Style::default().fg(colorscheme.result_name_fg),
             ));
             // the current match
             spans.push(Span::styled(
                 slice_at_char_boundaries(&entry_name, start, end).to_string(),
-                Style::default()
-                    .fg(results_colorscheme.match_foreground_color),
+                Style::default().fg(colorscheme.match_foreground_color),
             ));
             last_match_end = end;
         }
@@ -80,14 +80,14 @@ where
             let remainder = entry_name[next_boundary..].to_string();
             spans.push(Span::styled(
                 remainder,
-                Style::default().fg(results_colorscheme.result_name_fg),
+                Style::default().fg(colorscheme.result_name_fg),
             ));
         }
         // optional line number
         if let Some(line_number) = entry.line_number {
             spans.push(Span::styled(
                 format!(":{line_number}"),
-                Style::default().fg(results_colorscheme.result_line_number_fg),
+                Style::default().fg(colorscheme.result_line_number_fg),
             ));
         }
         // optional preview
@@ -107,12 +107,11 @@ where
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, last_match_end, start)
                         .to_string(),
-                    Style::default().fg(results_colorscheme.result_preview_fg),
+                    Style::default().fg(colorscheme.result_preview_fg),
                 ));
                 spans.push(Span::styled(
                     slice_at_char_boundaries(&preview, start, end).to_string(),
-                    Style::default()
-                        .fg(results_colorscheme.match_foreground_color),
+                    Style::default().fg(colorscheme.match_foreground_color),
                 ));
                 last_match_end = end;
             }
@@ -120,7 +119,7 @@ where
             if next_boundary < preview.len() {
                 spans.push(Span::styled(
                     preview[next_boundary..].to_string(),
-                    Style::default().fg(results_colorscheme.result_preview_fg),
+                    Style::default().fg(colorscheme.result_preview_fg),
                 ));
             }
         }
@@ -128,7 +127,7 @@ where
     }))
     .direction(list_direction)
     .highlight_style(
-        Style::default().bg(results_colorscheme.result_selected_bg),
+        Style::default().bg(colorscheme.result_selected_bg).bold(),
     )
     .highlight_symbol("> ")
     .block(results_block)

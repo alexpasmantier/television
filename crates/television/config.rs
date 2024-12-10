@@ -82,7 +82,7 @@ impl Config {
             .set_default("config_dir", config_dir.to_str().unwrap())?
             .set_default("ui", UiConfig::default())?
             .set_default("previewers", PreviewersConfig::default())?
-            .set_default("theme", themes::Theme::default())?;
+            .set_default("theme", default_config.theme.clone())?;
 
         // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))

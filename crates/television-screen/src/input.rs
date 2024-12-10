@@ -11,7 +11,7 @@ use ratatui::{
 use television_utils::input::Input;
 
 use crate::{
-    colors::{BORDER_COLOR, DEFAULT_INPUT_FG, DEFAULT_RESULTS_COUNT_FG},
+    colors::Colorscheme,
     spinner::{Spinner, SpinnerState},
 };
 
@@ -27,12 +27,13 @@ pub fn draw_input_box(
     matcher_running: bool,
     spinner: &Spinner,
     spinner_state: &mut SpinnerState,
+    colorscheme: &Colorscheme,
 ) -> Result<()> {
     let input_block = Block::default()
         .title_top(Line::from(" Pattern ").alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_COLOR))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default());
 
     let input_block_inner = input_block.inner(rect);
@@ -62,7 +63,7 @@ pub fn draw_input_box(
     let arrow_block = Block::default();
     let arrow = Paragraph::new(Span::styled(
         "> ",
-        Style::default().fg(DEFAULT_INPUT_FG).bold(),
+        Style::default().fg(colorscheme.input.input_fg).bold(),
     ))
     .block(arrow_block);
     f.render_widget(arrow, inner_input_chunks[0]);
@@ -74,7 +75,12 @@ pub fn draw_input_box(
     let input = Paragraph::new(input_state.value())
         .scroll((0, u16::try_from(scroll)?))
         .block(interactive_input_block)
-        .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
+        .style(
+            Style::default()
+                .fg(colorscheme.input.input_fg)
+                .bold()
+                .italic(),
+        )
         .alignment(Alignment::Left);
     f.render_widget(input, inner_input_chunks[1]);
 
@@ -97,7 +103,9 @@ pub fn draw_input_box(
             },
             results_count,
         ),
-        Style::default().fg(DEFAULT_RESULTS_COUNT_FG).italic(),
+        Style::default()
+            .fg(colorscheme.input.results_count_fg)
+            .italic(),
     ))
     .block(result_count_block)
     .alignment(Alignment::Right);
