@@ -15,6 +15,27 @@
 
 </div>
 
+## Table of Contents
+- [About](#about)
+- [Installation](#installation)
+  - [MacOS](#macos)
+  - [Debian-based](#debian-based-debian-ubuntu-pop_os-linux-mint-etc)
+  - [Arch Linux](#arch-linux)
+  - [Binary](#binary-latest-release)
+  - [From source using cargo](#from-source-using-cargo)
+- [Usage](#usage)
+- [Matcher behavior](#matcher-behavior)
+- [Keybindings](#keybindings)
+- [Built-in Channels](#built-in-channels)
+- [Design (high-level)](#design-high-level)
+  - [Channels](#channels)
+  - [Transitions](#transitions)
+  - [Previewers](#previewers)
+- [Recipes](#recipes)
+- [Terminal Emulators Compatibility](#terminal-emulators-compatibility)
+- [Customization](#customization)
+- [Contributions](#contributions)
+
 ## About
 `Television` is a blazingly fast general purpose fuzzy finder TUI.
 
