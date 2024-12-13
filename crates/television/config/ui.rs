@@ -4,6 +4,8 @@ use std::collections::HashMap;
 
 use television_screen::layout::InputPosition;
 
+use super::themes::DEFAULT_THEME;
+
 const DEFAULT_UI_SCALE: u16 = 90;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -13,6 +15,7 @@ pub struct UiConfig {
     pub show_help_bar: bool,
     #[serde(default)]
     pub input_bar_position: InputPosition,
+    pub theme: String,
 }
 
 impl Default for UiConfig {
@@ -22,6 +25,7 @@ impl Default for UiConfig {
             ui_scale: DEFAULT_UI_SCALE,
             show_help_bar: true,
             input_bar_position: InputPosition::Bottom,
+            theme: String::from(DEFAULT_THEME),
         }
     }
 }
@@ -45,6 +49,7 @@ impl From<UiConfig> for ValueKind {
             String::from("input_position"),
             ValueKind::String(val.input_bar_position.to_string()).into(),
         );
+        m.insert(String::from("theme"), ValueKind::String(val.theme).into());
         ValueKind::Table(m)
     }
 }

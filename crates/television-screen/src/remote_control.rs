@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
+use crate::colors::Colorscheme;
 use crate::logo::build_remote_logo_paragraph;
-use crate::mode::REMOTE_CONTROL_COLOR;
+use crate::mode::{mode_color, Mode};
 use crate::results::build_results_list;
 use television_channels::entry::Entry;
 use television_utils::input::Input;
 
-use crate::colors::{ResultsListColors, BORDER_COLOR, DEFAULT_INPUT_FG};
 use color_eyre::eyre::Result;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
@@ -17,6 +17,7 @@ use ratatui::widgets::{
 };
 use ratatui::Frame;
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw_remote_control(
     f: &mut Frame,
     rect: Rect,
@@ -25,6 +26,8 @@ pub fn draw_remote_control(
     picker_state: &mut ListState,
     input_state: &mut Input,
     icon_color_cache: &mut HashMap<String, Color>,
+    mode: &Mode,
+    colorscheme: &Colorscheme,
 ) -> Result<()> {
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -44,9 +47,10 @@ pub fn draw_remote_control(
         use_nerd_font_icons,
         picker_state,
         icon_color_cache,
+        colorscheme,
     );
-    draw_rc_input(f, layout[1], input_state)?;
-    draw_rc_logo(f, layout[2]);
+    draw_rc_input(f, layout[1], input_state, colorscheme)?;
+    draw_rc_logo(f, layout[2], mode_color(*mode, &colorscheme.mode));
     Ok(())
 }
 
@@ -57,11 +61,12 @@ fn draw_rc_channels(
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     icon_color_cache: &mut HashMap<String, Color>,
+    colorscheme: &Colorscheme,
 ) {
     let rc_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_COLOR))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default())
         .padding(Padding::right(1));
 
@@ -69,22 +74,25 @@ fn draw_rc_channels(
         rc_block,
         entries,
         ListDirection::TopToBottom,
-        Some(
-            ResultsListColors::default().result_name_fg(REMOTE_CONTROL_COLOR),
-        ),
         use_nerd_font_icons,
         icon_color_cache,
+        &colorscheme.results,
     );
 
     f.render_stateful_widget(channel_list, area, picker_state);
 }
 
-fn draw_rc_input(f: &mut Frame, area: Rect, input: &mut Input) -> Result<()> {
+fn draw_rc_input(
+    f: &mut Frame,
+    area: Rect,
+    input: &mut Input,
+    colorscheme: &Colorscheme,
+) -> Result<()> {
     let input_block = Block::default()
         .title_top(Line::from("Remote Control").alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(BORDER_COLOR))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default());
 
     let input_block_inner = input_block.inner(area);
@@ -105,7 +113,7 @@ fn draw_rc_input(f: &mut Frame, area: Rect, input: &mut Input) -> Result<()> {
     let prompt_symbol_block = Block::default();
     let arrow = Paragraph::new(Span::styled(
         "> ",
-        Style::default().fg(DEFAULT_INPUT_FG).bold(),
+        Style::default().fg(colorscheme.input.input_fg).bold(),
     ))
     .block(prompt_symbol_block);
     f.render_widget(arrow, inner_input_chunks[0]);
@@ -117,7 +125,12 @@ fn draw_rc_input(f: &mut Frame, area: Rect, input: &mut Input) -> Result<()> {
     let input_paragraph = Paragraph::new(input.value())
         .scroll((0, u16::try_from(scroll)?))
         .block(interactive_input_block)
-        .style(Style::default().fg(DEFAULT_INPUT_FG).bold().italic())
+        .style(
+            Style::default()
+                .fg(colorscheme.input.input_fg)
+                .bold()
+                .italic(),
+        )
         .alignment(Alignment::Left);
     f.render_widget(input_paragraph, inner_input_chunks[1]);
 
@@ -132,9 +145,8 @@ fn draw_rc_input(f: &mut Frame, area: Rect, input: &mut Input) -> Result<()> {
     ));
     Ok(())
 }
-fn draw_rc_logo(f: &mut Frame, area: Rect) {
-    let logo_block =
-        Block::default().style(Style::default().fg(REMOTE_CONTROL_COLOR));
+fn draw_rc_logo(f: &mut Frame, area: Rect, mode_color: Color) {
+    let logo_block = Block::default().style(Style::default().fg(mode_color));
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

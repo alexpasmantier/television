@@ -39,10 +39,19 @@ impl From<BasicPreviewerConfig> for ValueKind {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct FilePreviewerConfig {
     //pub max_file_size: u64,
     pub theme: String,
+}
+
+impl Default for FilePreviewerConfig {
+    fn default() -> Self {
+        Self {
+            //max_file_size: 1024 * 1024,
+            theme: String::from("gruvbox-dark"),
+        }
+    }
 }
 
 impl From<FilePreviewerConfig> for ValueKind {

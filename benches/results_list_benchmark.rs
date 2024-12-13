@@ -2,10 +2,11 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use devicons::FileIcon;
 use ratatui::layout::Alignment;
 use ratatui::prelude::{Line, Style};
+use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use television_channels::entry::merge_ranges;
 use television_channels::entry::{Entry, PreviewType};
-use television_screen::colors::BORDER_COLOR;
+use television_screen::colors::ResultsColorscheme;
 use television_screen::results::build_results_list;
 pub fn results_list_benchmark(c: &mut Criterion) {
     let mut icon_color_cache = std::collections::HashMap::default();
@@ -628,6 +629,15 @@ pub fn results_list_benchmark(c: &mut Criterion) {
         },
     ];
 
+    let colorscheme = ResultsColorscheme {
+        result_name_fg: Color::Indexed(222),
+        result_preview_fg: Color::Indexed(222),
+        result_line_number_fg: Color::Indexed(222),
+        result_selected_bg: Color::Indexed(222),
+        match_foreground_color: Color::Indexed(222),
+        pointer_fg: Color::Indexed(222),
+    };
+
     c.bench_function("results_list", |b| {
         b.iter(|| {
             build_results_list(
@@ -637,14 +647,14 @@ pub fn results_list_benchmark(c: &mut Criterion) {
                     )
                     .borders(Borders::ALL)
                     .border_type(BorderType::Rounded)
-                    .border_style(Style::default().fg(BORDER_COLOR))
+                    .border_style(Style::default().fg(Color::Blue))
                     .style(Style::default())
                     .padding(Padding::right(1)),
                 &entries,
                 ListDirection::BottomToTop,
-                None,
                 false,
                 &mut icon_color_cache,
+                &colorscheme,
             );
         })
     });
