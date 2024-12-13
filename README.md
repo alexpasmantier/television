@@ -89,6 +89,12 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 ## Usage
 ```bash
 tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
+
+# piping into tv
+ls -1a | tv
+
+# piping into tv with a custom preview command
+ls -1a | tv --preview-command 'cat {}'
 ```
 By default, `television` will launch with the `files` channel on.
 | <img width="2213" alt="Screenshot 2024-11-10 at 15 04 20" src="https://github.com/user-attachments/assets/a0fd70a9-ea26-452a-b235-cbce8aeed67f"> |
@@ -182,6 +188,32 @@ This would add two new cable channels to `television` available using the remote
 
 </details>
 
+## Configuration
+Default (may be overriden) locations where `television` expect the configuration files to be located for each platform:
+
+|Platform|Value|
+|--------|:-----:|
+|Linux|`$HOME/.config/television/config.toml`|
+|macOS|`$HOME/Library/Application Support/com.television/config.toml`|
+|Windows|`{FOLDERID_LocalAppData}\television\config`|
+
+Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
+`$XDG_CONFIG_HOME/television/config.toml` if the env variable is set.
+
+**Default configuration: [config.toml](./.config/config.toml)**
+
+## Themes
+Builtin themes are available in the [themes](./themes) directory. Feel free to contribute your own themes!
+
+You may provide your own themes by adding files to a `themes` directory in your configuration folder and then
+referring to them by file name through the configuration file.
+```
+config_location/
+├── themes/
+│   └── my_theme.toml
+└── config.toml
+```
+
 ## Design (high-level)
 #### Channels
 **Television**'s design is primarily based on the concept of **Channels**.
@@ -208,35 +240,6 @@ contents of a file, the value of an environment variable, etc. Because entries r
 represent different types of data, **Television** allows for channels to declare the type of previewer that should be
 used. Television comes with a set of built-in previewers that can be used out of the box and will grow over time.
 
-## Recipes
-Here are some examples of how you can use `television` to make your life easier, more productive and fun. You may want to add some of these examples as aliases to your shell configuration file so that you can easily access them.
-
-**NOTE**: *most of the following examples are meant for macOS. Most of the commands should work on Linux as well, but you may need to adjust them slightly.*
-
-#### CDing into git repo
-```bash
-cd `tv git-repos`
-```
-#### Opening file in default editor
-```bash
-open `tv`
-```
-##### VSCode:
-```bash
-code --goto `tv`
-```
-##### Vim
-```bash
-vim `tv`
-```
-at a specific line using the text channel
-```bash
-tv text | xargs -oI {} sh -c 'vim "$(echo {} | cut -d ":" -f 1)" +$(echo {} | cut -d ":" -f 2)'
-```
-#### Inspecting the current directory
-```bash
-ls -1a | tv
-```
 
 ## Terminal Emulators Compatibility
 Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
@@ -259,38 +262,6 @@ Here is a list of terminal emulators that have currently been tested with `telev
 
 
 
-
-## Configuration
-You may wish to customize the behavior of `television` by providing your own configuration file. The configuration file
-is a simple TOML file that allows you to customize the behavior of `television` in a number of ways.
-
-Here are default locations where `television` expect the configuration files to be located for each platform:
-
-|Platform|Value|
-|--------|:-----:|
-|Linux|`$HOME/.config/television/config.toml`|
-|macOS|`$HOME/Library/Application Support/com.television/config.toml`|
-|Windows|`{FOLDERID_LocalAppData}\television\config`|
-
-**NOTE**: on either platform, `XDG_CONFIG_HOME` will always take precedence over default locations if set, in which case
-television will expect the configuration file to be in `$XDG_CONFIG_HOME/television/config.toml`.
-
-You may also override these default paths by setting the `TELEVISION_CONFIG` environment variable to the path of your desired configuration **folder**.
-
-<details>
-
-<summary>
-    Using a custom configuration file location:
-</summary>
-
-```bash
-export TELEVISION_CONFIG=$HOME/.config/television
-touch $TELEVISION_CONFIG/config.toml
-```
-</details>
-
-#### Default Configuration
-The default configuration file can be found in the repository's [./.config/config.toml](./.config/config.toml).
 
 ## Contributions
 

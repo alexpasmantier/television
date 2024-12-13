@@ -1,7 +1,7 @@
 #![allow(clippy::module_name_repetitions)]
 use std::{env, path::PathBuf};
 
-use color_eyre::{eyre::Context, Result};
+use color_eyre::Result;
 use directories::ProjectDirs;
 pub use keybindings::parse_key;
 pub use keybindings::KeyBindings;

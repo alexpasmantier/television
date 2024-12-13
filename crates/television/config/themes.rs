@@ -168,12 +168,14 @@ impl<'de> Deserialize<'de> for Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<RatatuiColor> for &Color {
     fn into(self) -> RatatuiColor {
         RatatuiColor::Rgb(self.r, self.g, self.b)
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<Colorscheme> for &Theme {
     fn into(self) -> Colorscheme {
         Colorscheme {
@@ -187,6 +189,7 @@ impl Into<Colorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
@@ -195,6 +198,7 @@ impl Into<GeneralColorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<HelpColorscheme> for &Theme {
     fn into(self) -> HelpColorscheme {
         HelpColorscheme {
@@ -204,6 +208,7 @@ impl Into<HelpColorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<ResultsColorscheme> for &Theme {
     fn into(self) -> ResultsColorscheme {
         ResultsColorscheme {
@@ -216,6 +221,7 @@ impl Into<ResultsColorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<PreviewColorscheme> for &Theme {
     fn into(self) -> PreviewColorscheme {
         PreviewColorscheme {
@@ -228,6 +234,7 @@ impl Into<PreviewColorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<InputColorscheme> for &Theme {
     fn into(self) -> InputColorscheme {
         InputColorscheme {
@@ -237,6 +244,7 @@ impl Into<InputColorscheme> for &Theme {
     }
 }
 
+#[allow(clippy::from_over_into)]
 impl Into<ModeColorscheme> for &Theme {
     fn into(self) -> ModeColorscheme {
         ModeColorscheme {

@@ -45,7 +45,7 @@ impl Display for DisplayableAction {
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
         };
-        write!(f, "{}", action)
+        write!(f, "{action}")
     }
 }
 
@@ -57,16 +57,16 @@ pub fn build_keybindings_table<'a>(
     match mode {
         Mode::Channel => build_keybindings_table_for_channel(
             &keybindings[&mode],
-            &colorscheme,
+            colorscheme,
         ),
         Mode::RemoteControl => build_keybindings_table_for_channel_selection(
             &keybindings[&mode],
-            &colorscheme,
+            colorscheme,
         ),
         Mode::SendToChannel => {
             build_keybindings_table_for_channel_transitions(
                 &keybindings[&mode],
-                &colorscheme,
+                colorscheme,
             )
         }
     }

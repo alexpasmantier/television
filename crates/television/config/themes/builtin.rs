@@ -14,6 +14,10 @@ lazy_static! {
             include_str!("../../../../themes/catppuccin.toml"),
         );
         m.insert("nord", include_str!("../../../../themes/nord.toml"));
+        m.insert(
+            "solarized-dark",
+            include_str!("../../../../themes/solarized-dark.toml"),
+        );
         m
     };
 }

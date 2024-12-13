@@ -1,3 +1,17 @@
+# CONFIGURATION FILE LOCATION ON YOUR SYSTEM:
+# -------------------------------------------
+# Defaults:
+# ---------
+#  Linux:   `$HOME/.config/television/config.toml`
+#  macOS:   `$HOME/Library/Application Support/television/config.toml`
+#  Windows: `%APPDATA%\television\config.toml`
+#
+# XDG dirs:
+# ---------
+# You may use XDG_CONFIG_HOME if set on your system.
+# In that case, television will expect the configuration file to be in:
+# `$XDG_CONFIG_HOME/television/config.toml`
+#
 [ui]
 # Whether to use nerd font icons in the UI
 # This option requires a font patched with Nerd Font in order to properly
@@ -27,6 +41,9 @@ show_help_bar = false
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "bottom"
 # The theme to use for the UI
+# A list of builtin themes can be found in the `themes` directory of the television
+# repository. You may also create your own theme by creating a new file in a `themes`
+# directory in your configuration directory (see the `config.toml` location above).
 theme = "gruvbox-dark"
 
 # Previewers settings
@@ -35,6 +52,7 @@ theme = "gruvbox-dark"
 # The theme to use for syntax highlighting
 # A list of available themes can be found in the https://github.com/sharkdp/bat
 # repository which uses the same syntax highlighting engine as television
+# You may add your own themes by following the instructions in the bat repository
 theme = "gruvbox-dark"
 
 # Keybindings
