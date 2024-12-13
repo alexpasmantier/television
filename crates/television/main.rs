@@ -2,7 +2,7 @@ use std::io::{stdout, IsTerminal, Write};
 use std::process::exit;
 
 use clap::Parser;
-use cli::PostProcessedCli;
+use cli::{ParsedCliChannel, PostProcessedCli};
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::PreviewType;
@@ -46,7 +46,12 @@ async fn main() -> Result<()> {
                 ))
             } else {
                 debug!("Using {:?} channel", args.channel);
-                args.channel.to_channel()
+                match args.channel {
+                    ParsedCliChannel::Builtin(c) => c.to_channel(),
+                    ParsedCliChannel::Cable(c) => {
+                        TelevisionChannel::Cable(c.into())
+                    }
+                }
             }
         },
         args.tick_rate,

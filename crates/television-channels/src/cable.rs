@@ -4,7 +4,7 @@ use std::{
     ops::Deref,
 };
 
-#[derive(Clone, Debug, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize, PartialEq)]
 pub struct CableChannelPrototype {
     pub name: String,
     pub source_command: String,
