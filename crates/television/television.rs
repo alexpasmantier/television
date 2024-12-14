@@ -587,8 +587,8 @@ impl KeyBindings {
                     ),
                 ),
                 (
-                    DisplayableAction::Quit,
-                    serialized_keys_for_actions(self, &[Action::Quit]),
+                    DisplayableAction::ToggleHelpBar,
+                    serialized_keys_for_actions(self, &[Action::ToggleHelp]),
                 ),
             ]);
 

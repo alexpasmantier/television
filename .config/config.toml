@@ -37,7 +37,7 @@ use_nerd_font_icons = false
 ui_scale = 100
 # Whether to show the top help bar in the UI by default
 # This option can be toggled with the (default) `ctrl-g` keybinding
-show_help_bar = false
+show_help_bar = true
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "bottom"
 # The theme to use for the UI

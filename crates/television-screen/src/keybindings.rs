@@ -29,6 +29,7 @@ pub enum DisplayableAction {
     ToggleRemoteControl,
     Cancel,
     Quit,
+    ToggleHelpBar,
 }
 
 impl Display for DisplayableAction {
@@ -44,6 +45,7 @@ impl Display for DisplayableAction {
             DisplayableAction::ToggleRemoteControl => "Toggle Remote control",
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
+            DisplayableAction::ToggleHelpBar => "Toggle help bar",
         };
         write!(f, "{action}")
     }
@@ -149,12 +151,14 @@ fn build_keybindings_table_for_channel<'a>(
     ));
 
     // MISC line (quit, help, etc.)
-    // Quit ⏼
-    let quit_keys =
-        keybindings.bindings.get(&DisplayableAction::Quit).unwrap();
-    let quit_row = Row::new(build_cells_for_group(
-        "Quit",
-        quit_keys,
+    // Toggle help bar
+    let toggle_help_bar_keys = keybindings
+        .bindings
+        .get(&DisplayableAction::ToggleHelpBar)
+        .unwrap();
+    let toggle_help_bar_row = Row::new(build_cells_for_group(
+        "Toggle help bar",
+        toggle_help_bar_keys,
         colorscheme.help.metadata_field_name_fg,
         colorscheme.mode.channel,
     ));
@@ -169,7 +173,7 @@ fn build_keybindings_table_for_channel<'a>(
             copy_entry_row,
             send_to_channel_row,
             switch_channels_row,
-            quit_row,
+            toggle_help_bar_row,
         ],
         widths,
     )
