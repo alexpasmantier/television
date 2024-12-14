@@ -23,4 +23,14 @@ devicons = "0.6.11"
 color-eyre = "0.6.3"
 regex = "1.11.1"
 lazy_static = "1.5.0"
+nom = "7.1"
+tui = { version = "0.29", default-features = false, package = "ratatui" }
+thiserror = "1.0"
+simdutf8 = { version = "0.1", optional = true }
+smallvec = { version = "1.10.0", features = ["const_generics"] }
+
+[features]
+simd = ["dep:simdutf8"]
+zero-copy = []
+default = ["zero-copy", "simd"]
 

@@ -57,19 +57,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
-name = "ansi-to-tui"
-version = "7.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67555e1f1ece39d737e28c8a017721287753af3f93225e4a445b29ccb0f5912c"
-dependencies = [
- "nom",
- "ratatui",
- "simdutf8",
- "smallvec",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "ansi_colours"
 version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3000,7 +2987,6 @@ dependencies = [
 name = "television"
 version = "0.6.2"
 dependencies = [
- "ansi-to-tui",
  "better-panic",
  "clap",
  "color-eyre",
@@ -3075,11 +3061,16 @@ dependencies = [
  "color-eyre",
  "devicons",
  "lazy_static",
+ "nom",
  "parking_lot",
+ "ratatui",
  "regex",
+ "simdutf8",
+ "smallvec",
  "syntect",
  "television-channels",
  "television-utils",
+ "thiserror 1.0.69",
  "tokio",
  "tracing",
 ]
@@ -3088,7 +3079,6 @@ dependencies = [
 name = "television-screen"
 version = "0.0.10"
 dependencies = [
- "ansi-to-tui",
  "color-eyre",
  "ratatui",
  "serde",

@@ -1,16 +1,22 @@
-use crate::cache::RenderedPreviewCache;
-use crate::colors::{Colorscheme, PreviewColorscheme};
-use ansi_to_tui::IntoText;
+use crate::{
+    cache::RenderedPreviewCache,
+    colors::{Colorscheme, PreviewColorscheme},
+};
 use color_eyre::eyre::Result;
-use ratatui::layout::{Alignment, Rect};
-use ratatui::prelude::{Color, Line, Modifier, Span, Style, Stylize, Text};
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
 use ratatui::Frame;
+use ratatui::{
+    layout::{Alignment, Rect},
+    prelude::{Color, Line, Modifier, Span, Style, Stylize, Text},
+};
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use television_channels::entry::Entry;
-use television_previewers::previewers::{
-    Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
+use television_previewers::{
+    ansi::IntoText,
+    previewers::{
+        Preview, PreviewContent, FILE_TOO_LARGE_MSG, PREVIEW_NOT_SUPPORTED_MSG,
+    },
 };
 use television_utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
