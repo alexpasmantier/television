@@ -45,7 +45,7 @@ fn stream_from_stdin(injector: &Injector<String>) {
         match stdin.read_line(&mut buffer) {
             Ok(c) if c > 0 => {
                 if !buffer.trim().is_empty() {
-                    injector.push(buffer.clone(), |e, cols| {
+                    injector.push(buffer.trim().to_string(), |e, cols| {
                         cols[0] = e.clone().into();
                     });
                 }
