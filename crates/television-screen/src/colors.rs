@@ -13,7 +13,7 @@ pub struct Colorscheme {
 #[derive(Debug, Clone)]
 pub struct GeneralColorscheme {
     pub border_fg: Color,
-    //pub background: Color,
+    pub background: Color,
 }
 
 #[derive(Debug, Clone)]
