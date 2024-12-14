@@ -7,9 +7,9 @@ dimmed_text_fg = '#6c7086'
 input_text_fg = '#f38ba8'
 result_count_fg = '#f38ba8'
 # results
-result_name_fg = '#b4befe'
+result_name_fg = '#89b4fa'
 result_line_number_fg = '#f9e2af'
-result_value_fg = '#a6adc8'
+result_value_fg = '#b4befe'
 selection_bg = '#313244'
 match_fg = '#f38ba8'
 # preview

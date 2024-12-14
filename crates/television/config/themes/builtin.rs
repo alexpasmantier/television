@@ -10,10 +10,13 @@ lazy_static! {
             include_str!("../../../../themes/gruvbox-dark.toml"),
         );
         m.insert(
-            "catppuccin",
-            include_str!("../../../../themes/catppuccin.toml"),
+            "catppuccin-mocha",
+            include_str!("../../../../themes/catppuccin-mocha.toml"),
         );
-        m.insert("nord", include_str!("../../../../themes/nord.toml"));
+        m.insert(
+            "nord-dark",
+            include_str!("../../../../themes/nord-dark.toml"),
+        );
         m.insert(
             "solarized-dark",
             include_str!("../../../../themes/solarized-dark.toml"),
