@@ -1,14 +1,21 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
+use color_eyre::{eyre::eyre, Result};
 
-use crate::config::{get_config_dir, get_data_dir};
-use television_channels::{channels::CliTvChannel, entry::PreviewCommand};
+use crate::{
+    cable,
+    config::{get_config_dir, get_data_dir},
+};
+use television_channels::{
+    cable::CableChannelPrototype, channels::CliTvChannel,
+    entry::PreviewCommand,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version = version(), about)]
 pub struct Cli {
     /// Which channel shall we watch?
-    #[arg(value_enum, default_value = "files")]
-    pub channel: CliTvChannel,
+    #[arg(value_enum, default_value = "files", value_parser = channel_parser)]
+    pub channel: ParsedCliChannel,
 
     /// Use a custom preview command (currently only supported by the stdin channel)
     #[arg(short, long, value_name = "STRING")]
@@ -32,15 +39,25 @@ pub struct Cli {
     /// to be handled by the parent process.
     #[arg(long, value_name = "STRING")]
     pub passthrough_keybindings: Option<String>,
+
+    #[command(subcommand)]
+    command: Option<Command>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Command {
+    /// Lists available channels
+    ListChannels,
 }
 
 #[derive(Debug)]
 pub struct PostProcessedCli {
-    pub channel: CliTvChannel,
+    pub channel: ParsedCliChannel,
     pub preview_command: Option<PreviewCommand>,
     pub tick_rate: f64,
     pub frame_rate: f64,
     pub passthrough_keybindings: Vec<String>,
+    pub command: Option<Command>,
 }
 
 impl From<Cli> for PostProcessedCli {
@@ -63,8 +80,64 @@ impl From<Cli> for PostProcessedCli {
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
+            command: cli.command,
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ParsedCliChannel {
+    Builtin(CliTvChannel),
+    Cable(CableChannelPrototype),
+}
+
+fn channel_parser(channel: &str) -> Result<ParsedCliChannel> {
+    let cable_channels = cable::load_cable_channels()?;
+    CliTvChannel::try_from(channel)
+        .map(ParsedCliChannel::Builtin)
+        .or_else(|_| {
+            cable_channels
+                .iter()
+                .find(|(k, _)| k.to_lowercase() == channel)
+                .map_or_else(
+                    || Err(eyre!("Unknown channel: {}", channel)),
+                    |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
+                )
+        })
+}
+
+pub fn list_cable_channels() -> Vec<String> {
+    cable::load_cable_channels()
+        .unwrap_or_default()
+        .iter()
+        .map(|(k, _)| k.clone())
+        .collect()
+}
+
+pub fn list_builtin_channels() -> Vec<String> {
+    CliTvChannel::all_channels()
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect()
+}
+
+pub fn list_channels() {
+    println!("\x1b[4mBuiltin channels:\x1b[0m");
+    for c in list_builtin_channels() {
+        println!("\t{c}");
+    }
+    println!("\n\x1b[4mCustom channels:\x1b[0m");
+    for c in list_cable_channels().iter().map(|c| c.to_lowercase()) {
+        println!("\t{c}");
+    }
+}
+
+fn delimiter_parser(s: &str) -> Result<String, String> {
+    Ok(match s {
+        "" => ":".to_string(),
+        "\\t" => "\t".to_string(),
+        _ => s.to_string(),
+    })
 }
 
 const VERSION_MESSAGE: &str = concat!(
@@ -116,17 +189,21 @@ mod tests {
     #[allow(clippy::float_cmp)]
     fn test_from_cli() {
         let cli = Cli {
-            channel: CliTvChannel::Files,
+            channel: ParsedCliChannel::Builtin(CliTvChannel::Files),
             preview: Some("bat -n --color=always {}".to_string()),
             delimiter: ":".to_string(),
             tick_rate: 50.0,
             frame_rate: 60.0,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
+            command: None,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        assert_eq!(post_processed_cli.channel, CliTvChannel::Files);
+        assert_eq!(
+            post_processed_cli.channel,
+            ParsedCliChannel::Builtin(CliTvChannel::Files)
+        );
         assert_eq!(
             post_processed_cli.preview_command,
             Some(PreviewCommand {
@@ -141,12 +218,4 @@ mod tests {
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
         );
     }
-}
-
-fn delimiter_parser(s: &str) -> Result<String, String> {
-    Ok(match s {
-        "" => ":".to_string(),
-        "\\t" => "\t".to_string(),
-        _ => s.to_string(),
-    })
 }

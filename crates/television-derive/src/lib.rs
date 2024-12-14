@@ -56,7 +56,7 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     );
 
     // create the CliTvChannel enum
-    let cli_enum_variants = variants
+    let cli_enum_variants: Vec<_> = variants
         .iter()
         .filter(|variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_CLI))
         .map(|variant| {
@@ -64,7 +64,22 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
             quote! {
                 #variant_name
             }
-        });
+        })
+        .collect();
+
+    // Generate lowercase mappings for the TryFrom implementation
+    let lowercase_match_arms: Vec<_> = variants
+        .iter()
+        .filter(|variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_CLI))
+        .map(|variant| {
+            let variant_name = &variant.ident;
+            let lowercase_name = variant_name.to_string().to_lowercase();
+            quote! {
+                #lowercase_name => Ok(Self::#variant_name),
+            }
+        })
+        .collect();
+
     let cli_enum = quote! {
         use clap::ValueEnum;
         use serde::{Deserialize, Serialize};
@@ -75,6 +90,19 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
         pub enum CliTvChannel {
             #[default]
             #(#cli_enum_variants),*
+        }
+
+        impl std::convert::TryFrom<&str> for CliTvChannel {
+            type Error = String;
+
+            fn try_from(channel: &str) -> Result<Self, Self::Error> {
+                match channel {
+                    #(
+                        #lowercase_match_arms
+                    )*
+                    _ => Err(format!("Invalid cli channel name: {}", channel)),
+                }
+            }
         }
     };
 
@@ -109,6 +137,14 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
                 match self {
                     #(#arms),*
                 }
+            }
+
+            pub fn all_channels() -> Vec<String> {
+                vec![
+                    #(
+                        stringify!(#cli_enum_variants).to_lowercase(),
+                    )*
+                ]
             }
         }
     };
