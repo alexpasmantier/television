@@ -97,6 +97,8 @@ impl CommandPreviewer {
                     &last_previewed,
                 );
             });
+        } else {
+            debug!("Too many concurrent preview tasks running");
         }
 
         self.last_previewed.lock().clone()
