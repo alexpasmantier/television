@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::colors::Colorscheme;
+use crate::colors::{Colorscheme, GeneralColorscheme};
 use crate::logo::build_remote_logo_paragraph;
 use crate::mode::{mode_color, Mode};
 use crate::results::build_results_list;
@@ -50,7 +50,12 @@ pub fn draw_remote_control(
         colorscheme,
     );
     draw_rc_input(f, layout[1], input_state, colorscheme)?;
-    draw_rc_logo(f, layout[2], mode_color(*mode, &colorscheme.mode));
+    draw_rc_logo(
+        f,
+        layout[2],
+        mode_color(*mode, &colorscheme.mode),
+        &colorscheme.general,
+    );
     Ok(())
 }
 
@@ -67,7 +72,7 @@ fn draw_rc_channels(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default())
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(Padding::right(1));
 
     let channel_list = build_results_list(
@@ -93,7 +98,7 @@ fn draw_rc_input(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default());
+        .style(Style::default().bg(colorscheme.general.background));
 
     let input_block_inner = input_block.inner(area);
 
@@ -145,8 +150,14 @@ fn draw_rc_input(
     ));
     Ok(())
 }
-fn draw_rc_logo(f: &mut Frame, area: Rect, mode_color: Color) {
-    let logo_block = Block::default().style(Style::default().fg(mode_color));
+fn draw_rc_logo(
+    f: &mut Frame,
+    area: Rect,
+    mode_color: Color,
+    colorscheme: &GeneralColorscheme,
+) {
+    let logo_block = Block::default()
+        .style(Style::default().fg(mode_color).bg(colorscheme.background));
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

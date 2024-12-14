@@ -149,7 +149,7 @@ pub fn draw_results_list(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default())
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(Padding::right(1));
 
     let results_list = build_results_list(

@@ -36,6 +36,7 @@ impl Color {
 #[derive(Clone, Debug)]
 pub struct Theme {
     // general
+    pub background: Color,
     pub border_fg: Color,
     pub text_fg: Color,
     pub dimmed_text_fg: Color,
@@ -102,6 +103,7 @@ impl Default for Theme {
 #[serde(rename = "theme")]
 struct Inner {
     // general
+    background: String,
     border_fg: String,
     // info
     text_fg: String,
@@ -130,6 +132,8 @@ impl<'de> Deserialize<'de> for Theme {
     {
         let inner = Inner::deserialize(deserializer).unwrap();
         Ok(Self {
+            background: Color::from_str(&inner.background)
+                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
             border_fg: Color::from_str(&inner.border_fg)
                 .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
             text_fg: Color::from_str(&inner.text_fg)
@@ -193,6 +197,7 @@ impl Into<Colorscheme> for &Theme {
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
+            background: (&self.background).into(),
             border_fg: (&self.border_fg).into(),
         }
     }

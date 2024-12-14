@@ -280,7 +280,7 @@ pub fn draw_preview_title_block(
                 ),
         )
         .alignment(Alignment::Left)
-        .style(Style::default());
+        .style(Style::default().bg(colorscheme.general.background));
     f.render_widget(preview_title, rect);
     Ok(())
 }
@@ -299,7 +299,7 @@ pub fn draw_preview_content_block(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default())
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(Padding::right(1));
 
     let preview_inner_block =

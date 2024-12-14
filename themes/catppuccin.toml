@@ -1,4 +1,5 @@
 # general
+background = '#1e1e2e'
 border_fg = '#6c7086'
 text_fg = '#cdd6f4'
 dimmed_text_fg = '#6c7086'
