@@ -635,7 +635,6 @@ pub fn results_list_benchmark(c: &mut Criterion) {
         result_line_number_fg: Color::Indexed(222),
         result_selected_bg: Color::Indexed(222),
         match_foreground_color: Color::Indexed(222),
-        pointer_fg: Color::Indexed(222),
     };
 
     c.bench_function("results_list", |b| {

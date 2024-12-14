@@ -41,11 +41,11 @@ pub struct Cli {
     pub passthrough_keybindings: Option<String>,
 
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand, Debug)]
-enum Commands {
+pub enum Command {
     /// Lists available channels
     ListChannels,
 }
@@ -57,6 +57,7 @@ pub struct PostProcessedCli {
     pub tick_rate: f64,
     pub frame_rate: f64,
     pub passthrough_keybindings: Vec<String>,
+    pub command: Option<Command>,
 }
 
 impl From<Cli> for PostProcessedCli {
@@ -79,6 +80,7 @@ impl From<Cli> for PostProcessedCli {
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
+            command: cli.command,
         }
     }
 }
@@ -102,6 +104,32 @@ fn channel_parser(channel: &str) -> Result<ParsedCliChannel> {
                     |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
                 )
         })
+}
+
+pub fn list_cable_channels() -> Vec<String> {
+    cable::load_cable_channels()
+        .unwrap_or_default()
+        .iter()
+        .map(|(k, _)| k.clone())
+        .collect()
+}
+
+pub fn list_builtin_channels() -> Vec<String> {
+    CliTvChannel::all_channels()
+        .iter()
+        .map(std::string::ToString::to_string)
+        .collect()
+}
+
+pub fn list_channels() {
+    println!("\x1b[4mBuiltin channels:\x1b[0m");
+    for c in list_builtin_channels() {
+        println!("\t{c}");
+    }
+    println!("\n\x1b[4mCustom channels:\x1b[0m");
+    for c in list_cable_channels().iter().map(|c| c.to_lowercase()) {
+        println!("\t{c}");
+    }
 }
 
 fn delimiter_parser(s: &str) -> Result<String, String> {
@@ -167,6 +195,7 @@ mod tests {
             tick_rate: 50.0,
             frame_rate: 60.0,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
+            command: None,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();

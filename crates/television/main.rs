@@ -2,7 +2,7 @@ use std::io::{stdout, IsTerminal, Write};
 use std::process::exit;
 
 use clap::Parser;
-use cli::{ParsedCliChannel, PostProcessedCli};
+use cli::{list_channels, ParsedCliChannel, PostProcessedCli};
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::PreviewType;
@@ -34,8 +34,16 @@ async fn main() -> Result<()> {
     logging::init()?;
 
     let args: PostProcessedCli = Cli::parse().into();
-
     debug!("{:?}", args);
+
+    if let Some(command) = args.command {
+        match command {
+            cli::Command::ListChannels => {
+                list_channels();
+                exit(0);
+            }
+        }
+    }
 
     match App::new(
         {

@@ -138,6 +138,14 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
                     #(#arms),*
                 }
             }
+
+            pub fn all_channels() -> Vec<String> {
+                vec![
+                    #(
+                        stringify!(#cli_enum_variants).to_lowercase(),
+                    )*
+                ]
+            }
         }
     };
 
