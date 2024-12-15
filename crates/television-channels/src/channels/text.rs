@@ -149,6 +149,15 @@ impl From<&mut TelevisionChannel> for Channel {
                 let entries = c.results(c.result_count(), 0);
                 Self::from_text_entries(entries)
             }
+            c @ TelevisionChannel::Dirs(_) => {
+                let entries = c.results(c.result_count(), 0);
+                Self::new(
+                    entries
+                        .iter()
+                        .map(|entry| PathBuf::from(&entry.name))
+                        .collect(),
+                )
+            }
             _ => unreachable!(),
         }
     }

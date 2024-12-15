@@ -4,6 +4,7 @@ use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
 mod cable;
+mod dirs;
 mod env;
 mod files;
 mod git_repos;
@@ -120,6 +121,10 @@ pub enum TelevisionChannel {
     ///
     /// This channel allows to search through git repositories.
     GitRepos(git_repos::Channel),
+    /// The dirs channel.
+    ///
+    /// This channel allows to search through directories.
+    Dirs(dirs::Channel),
     /// The text channel.
     ///
     /// This channel allows to search through the contents of text files.
@@ -169,6 +174,9 @@ macro_rules! variant_to_module {
     };
     (Text) => {
         text::Channel
+    };
+    (Dirs) => {
+        dirs::Channel
     };
     (GitRepos) => {
         git_repos::Channel
@@ -279,5 +287,6 @@ macro_rules! define_transitions {
 define_transitions! {
     Text => [Files, Text],
     Files => [Files, Text],
-    GitRepos => [Files, Text],
+    Dirs => [Files, Text, Dirs],
+    GitRepos => [Files, Text, Dirs],
 }
