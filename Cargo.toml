@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.6.2"
+version = "0.7.0"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -18,6 +18,7 @@ categories = [
 include = [
     "LICENSE",
     "README.md",
+    "themes/**/*.toml",
     "crates/television/**/*.rs",
     "build.rs",
     ".config/config.toml",
@@ -55,12 +56,12 @@ name = "tv"
 [dependencies]
 # workspace dependencies
 
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.10" }
-television-derive = { path = "crates/television-derive", version = "0.0.10" }
-television-screen = { path = "crates/television-screen", version = "0.0.10" }
-television-channels = { path = "crates/television-channels", version = "0.0.10" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.10" }
-television-utils = { path = "crates/television-utils", version = "0.0.10" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.11" }
+television-derive = { path = "crates/television-derive", version = "0.0.11" }
+television-screen = { path = "crates/television-screen", version = "0.0.11" }
+television-channels = { path = "crates/television-channels", version = "0.0.11" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.11" }
+television-utils = { path = "crates/television-utils", version = "0.0.11" }
 
 # external dependencies
 better-panic = "0.3.0"

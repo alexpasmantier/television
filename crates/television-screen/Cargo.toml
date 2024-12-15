@@ -1,23 +1,22 @@
 [package]
 name = "television-screen"
-version = "0.0.10"
-edition.workspace = true
+version = "0.0.11"
 description.workspace = true
-license.workspace = true
 authors.workspace = true
 repository.workspace = true
 homepage.workspace = true
 keywords.workspace = true
 categories.workspace = true
-include.workspace = true
-rust-version.workspace = true
 readme.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
 [dependencies]
 ratatui = "0.29.0"
 serde = "1.0.215"
-television-utils = { path = "../television-utils", version = "0.0.10" }
-television-channels = { path = "../television-channels", version = "0.0.10" }
-television-previewers = { path = "../television-previewers", version = "0.0.10" }
+television-utils = { path = "../television-utils", version = "0.0.11" }
+television-channels = { path = "../television-channels", version = "0.0.11" }
+television-previewers = { path = "../television-previewers", version = "0.0.11" }
 color-eyre = "0.6.3"
 syntect = "5.2.0"
