@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2024-12-15
+
+### 🚀 Features
+
+- *(themes)* Add support for ui themes (#114)
+- *(cable)* Support cable channel invocation through the cli (#116)
+- *(themes)* Add support for global themes background colors (#120)
+- *(themes)* More builtin UI themes (#125)
+
+### 🐛 Bug Fixes
+
+- *(previewers)* Handle crlf sequences when parsing ansi into ratatui objects (#119)
+- *(stdin)* Trim entry newlines when streaming from stdin (#121)
+- *(config)* Better handling of default values (#123)
+
+### 🚜 Refactor
+
+- *(screen)* Extract UI related code to separate crate (#106)
+- *(help)* Enable help bar by default and add help keybinding (#122)
+- *(config)* [**breaking**] Use `$HOME/.config/television` by default for macOS (#124)
+
+### 📚 Documentation
+
+- *(readme)* Add theme previews and udpate readme structure (#126)
+
+### ⚡ Performance
+
+- Add bench for build results list (#107)
+- Merge contiguous name match ranges (#108)
+- *(ui)* Improve merging of continuous name match ranges (#109)
+- Optimize entry ranges (#110)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#105)
+- *(version)* Bump workspace to 0.7.0 (#127)
+
 ## [0.6.2] - 2024-12-06
 
 ### 🐛 Bug Fixes
