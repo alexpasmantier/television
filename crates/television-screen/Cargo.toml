@@ -1,6 +1,6 @@
 [package]
 name = "television-screen"
-version = "0.0.11"
+version = "0.0.12"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -15,8 +15,8 @@ rust-version.workspace = true
 [dependencies]
 ratatui = "0.29.0"
 serde = "1.0.215"
-television-utils = { path = "../television-utils", version = "0.0.11" }
-television-channels = { path = "../television-channels", version = "0.0.11" }
-television-previewers = { path = "../television-previewers", version = "0.0.11" }
+television-utils = { path = "../television-utils", version = "0.0.12" }
+television-channels = { path = "../television-channels", version = "0.0.12" }
+television-previewers = { path = "../television-previewers", version = "0.0.12" }
 color-eyre = "0.6.3"
 syntect = "5.2.0"
