@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.1] - 2024-12-15
+
+### 🚀 Features
+
+- *(channels)* New channel for directories and associated transitions (#130)
+
+### 📚 Documentation
+
+- *(contributing)* Update contributing.md with hot topics and link todo (#129)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#128)
+
 ## [0.7.0] - 2024-12-15
 
 ### 🚀 Features
