@@ -92,7 +92,7 @@ pub enum ParsedCliChannel {
 }
 
 fn channel_parser(channel: &str) -> Result<ParsedCliChannel> {
-    let cable_channels = cable::load_cable_channels()?;
+    let cable_channels = cable::load_cable_channels().unwrap_or_default();
     CliTvChannel::try_from(channel)
         .map(ParsedCliChannel::Builtin)
         .or_else(|_| {
