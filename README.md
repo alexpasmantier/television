@@ -90,47 +90,23 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 ```bash
 tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
 
-# piping into tv
-ls -1a | tv
+# e.g. to search through files
+tv files
+
+# e.g. to search through environment variables
+tv env
+
+# piping into tv (e.g. logs)
+my_program | tv
 
 # piping into tv with a custom preview command
-ls -1a | tv --preview-command 'cat {}'
+fd -t f . | tv --preview 'bat -n --color=always {0}'
+
 ```
 By default, `television` will launch with the `files` channel on.
 | <img width="2213" alt="Screenshot 2024-11-10 at 15 04 20" src="https://github.com/user-attachments/assets/a0fd70a9-ea26-452a-b235-cbce8aeed67f"> |
 |:--:|
 | *`tv`'s `files` channel running on the *curl* codebase* |
-
-#### Matcher behavior
-`television` uses a fuzzy matching algorithm to filter the list of entries. The algorithm that is used depends on the
-input pattern that you provide.
-
-| Matcher | Pattern |
-| --- | :---: |
-| Fuzzy | `foo` |
-| Substring | `'foo` / `!foo` to negate |
-| Prefix | `^foo` / `!^foo` to negate |
-| Suffix | `foo$` / `!foo$` to negate |
-| Exact | `^foo$` / `!^foo$` to negate |
-
-For more information on the matcher behavior, see the
-[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
-
-## Keybindings
-Default keybindings are as follows:
-
-| Key | Description |
-| :---: | ----------- |
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate through the list of entries |
-| <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
-| <kbd>Enter</kbd> | Select the current entry |
-| <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
-| <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
-| <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
-| <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
-| <kbd>Esc</kbd> | Quit the application |
-
-These keybindings are all configurable (see [Configuration](#configuration)).
 
 ## 📺 Built-in Channels
 The following built-in channels are currently available:
@@ -144,7 +120,7 @@ The following built-in channels are currently available:
 ## 🍿 Cable channels
 *Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
 
-You can find a list of available cable channels [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels) and even contribute your own!
+You can find a list of cable channels ideas [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels).
 
 ### Installing cable channels
 Installing cable channels is as simple as creating provider files in your configuration folder.
@@ -154,17 +130,19 @@ A provider file is a `*channels.toml` file that contains cable channel prototype
 **my-custom-channels.toml**
 ```toml
 [[cable_channel]]
-name = "Git log"
+name = "git-log"
 source_command = 'git log --oneline --date=short --pretty="format:%h %s %an %cd" "$@"'
 preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
 
 [[cable_channel]]
-name = "My dotfiles"
+name = "my-dotfiles"
 source_command = 'fd -t f . $HOME/.config'
 preview_command = 'bat -n --color=always {0}'
 ```
 
-This would add two new cable channels to `television` available using the remote control mode:
+This would add two new cable channels to `television` available:
+- using the remote control mode
+- through the cli (e.g. `tv git-log`, `tv my-dotfiles`)
 
 ![cable channels](./assets/cable_channels.png "Cable channels")
 
@@ -188,6 +166,24 @@ This would add two new cable channels to `television` available using the remote
 
 </details>
 
+
+## Keybindings
+Default keybindings are as follows:
+
+| Key | Description |
+| :---: | ----------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate through the list of entries |
+| <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
+| <kbd>Enter</kbd> | Select the current entry |
+| <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
+| <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
+| <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
+| <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
+| <kbd>Esc</kbd> | Quit the application |
+
+These keybindings are all configurable (see [Configuration](#configuration)).
+
+
 ## Configuration
 Default (may be overriden) locations where `television` expect the configuration files to be located for each platform:
 
@@ -203,9 +199,14 @@ Or, if you'd rather use the XDG Base Directory Specification, tv will look for t
 **Default configuration: [config.toml](./.config/config.toml)**
 
 ## Themes
-Builtin themes are available in the [themes](./themes) directory. Feel free to contribute your own themes!
+Builtin themes are available in the [themes](./themes) directory. Feel free to contribute your own.
 
-You may provide your own themes by adding files to a `themes` directory in your configuration folder and then
+A few examples:
+| ![catppuccin](./assets/catppuccin.png "catppuccin") catppuccin | ![gruvbox](./assets/gruvbox.png "gruvbox") gruvbox-dark |
+|:--:|:--:|
+| ![solarized-dark](./assets/solarized-dark.png "gruvbox-light") **solarized-dark** | ![nord](./assets/nord.png "nord") **nord** |
+
+You may use your own custom themes by adding files to the `themes` directory in your configuration folder and then
 referring to them by file name through the configuration file.
 ```
 config_location/
@@ -214,6 +215,20 @@ config_location/
 └── config.toml
 ```
 
+## Matcher behavior
+`television` uses a fuzzy matching algorithm to filter the list of entries. The algorithm that is used depends on the
+input pattern that you provide.
+
+| Matcher | Pattern |
+| --- | :---: |
+| Fuzzy | `foo` |
+| Substring | `'foo` / `!foo` to negate |
+| Prefix | `^foo` / `!^foo` to negate |
+| Suffix | `foo$` / `!foo$` to negate |
+| Exact | `^foo$` / `!^foo$` to negate |
+
+For more information on the matcher behavior, see the
+[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
 ## Design (high-level)
 #### Channels
 **Television**'s design is primarily based on the concept of **Channels**.
