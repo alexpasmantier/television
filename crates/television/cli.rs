@@ -40,6 +40,10 @@ pub struct Cli {
     #[arg(long, value_name = "STRING")]
     pub passthrough_keybindings: Option<String>,
 
+    /// The working directory to start in
+    #[arg(short('d'), long, value_name = "PATH")]
+    pub working_directory: Option<String>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
@@ -58,6 +62,7 @@ pub struct PostProcessedCli {
     pub frame_rate: f64,
     pub passthrough_keybindings: Vec<String>,
     pub command: Option<Command>,
+    pub working_directory: Option<String>,
 }
 
 impl From<Cli> for PostProcessedCli {
@@ -81,6 +86,7 @@ impl From<Cli> for PostProcessedCli {
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
             command: cli.command,
+            working_directory: cli.working_directory,
         }
     }
 }
@@ -196,6 +202,7 @@ mod tests {
             frame_rate: 60.0,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
             command: None,
+            working_directory: Some("/home/user".to_string()),
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -216,6 +223,10 @@ mod tests {
         assert_eq!(
             post_processed_cli.passthrough_keybindings,
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
+        );
+        assert_eq!(
+            post_processed_cli.working_directory,
+            Some("/home/user".to_string())
         );
     }
 }

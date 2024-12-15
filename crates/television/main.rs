@@ -1,4 +1,6 @@
+use std::env;
 use std::io::{stdout, IsTerminal, Write};
+use std::path::Path;
 use std::process::exit;
 
 use clap::Parser;
@@ -6,7 +8,7 @@ use cli::{list_channels, ParsedCliChannel, PostProcessedCli};
 use color_eyre::Result;
 use television_channels::channels::TelevisionChannel;
 use television_channels::entry::PreviewType;
-use tracing::{debug, info};
+use tracing::{debug, error, info};
 
 use crate::app::App;
 use crate::cli::Cli;
@@ -43,6 +45,22 @@ async fn main() -> Result<()> {
                 exit(0);
             }
         }
+    }
+
+    if let Some(working_directory) = args.working_directory {
+        let path = Path::new(&working_directory);
+        if !path.exists() {
+            error!(
+                "Working directory \"{}\" does not exist",
+                &working_directory
+            );
+            println!(
+                "Error: Working directory \"{}\" does not exist",
+                &working_directory
+            );
+            exit(1);
+        }
+        env::set_current_dir(path)?;
     }
 
     match App::new(
