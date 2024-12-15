@@ -155,14 +155,21 @@ pub enum TelevisionChannel {
 
 
 ## Hot Topics
-Here are some ideas for contributions that would be very welcome:
+### Current hot topics:
+- shell integration (autocomplete, keybindings)
+- packaging for various linux package managers (apt, dnf, ...)
+- configuring custom actions for each channel
+
+### Other ideas:
+
+See the [todo list](./TODO.md) for ideas.
 
 - `Customization`:
-  - allow users to customize more of the UI (UI colors, layouts, etc.)
-  - allow users to customize the behavior of the application (e.g. the default channel, fuzzy matching constants, channel heuristics, etc.)
+  - allow users to further customize the behavior of the application (e.g. the default channel, fuzzy matching constants, channel heuristics, etc.)
 - `Channels`:
-  - new channel ideas:
+  - new channel ideas (builtin or cable):
     - shell history
+    - directories
     - git (commits, branches, status, diff, ...)
     - remote filesystems (s3, ...)
     - kubernetes resources (jobs, pods, deployments, services, ...)
@@ -176,21 +183,20 @@ Here are some ideas for contributions that would be very welcome:
     - previewing images (actually already implemented but commented out)
     - remote files (s3, ...)
     - etc.
-  - add more tests for existing previewers
+  - more tests for existing previewers
 - `Documentation`:
   - add more technical documentation to the project
     - general design of the TUI application
     - design of channels, previewers, transitions, etc.
     - how to contribute a new channel, previewer, etc.
-  - more docstrings in the code
-- `Performance`:
+  - more docstrings
+- `Performance/Refactoring`:
   - working on reducing coupling between the different crates in the project
   - working on reducing the number of allocations and copies in the code
+  - writing benchmarks for different parts of the application
 - `Project`:
   - polish project configuration:
     - CI/CD
-    - code formatting
-    - linting
 
 
 
