@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
 
@@ -14,8 +16,8 @@ use television_channels::{
 #[command(author, version = version(), about)]
 pub struct Cli {
     /// Which channel shall we watch?
-    #[arg(value_enum, default_value = "files", value_parser = channel_parser)]
-    pub channel: ParsedCliChannel,
+    #[arg(value_enum, default_value = "files", index = 1)]
+    pub channel: String,
 
     /// Use a custom preview command (currently only supported by the stdin channel)
     #[arg(short, long, value_name = "STRING")]
@@ -40,11 +42,15 @@ pub struct Cli {
     #[arg(long, value_name = "STRING")]
     pub passthrough_keybindings: Option<String>,
 
+    /// The working directory to start in
+    #[arg(value_name = "PATH", index = 2)]
+    pub working_directory: Option<String>,
+
     #[command(subcommand)]
     command: Option<Command>,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, PartialEq)]
 pub enum Command {
     /// Lists available channels
     ListChannels,
@@ -58,6 +64,7 @@ pub struct PostProcessedCli {
     pub frame_rate: f64,
     pub passthrough_keybindings: Vec<String>,
     pub command: Option<Command>,
+    pub working_directory: Option<String>,
 }
 
 impl From<Cli> for PostProcessedCli {
@@ -74,15 +81,46 @@ impl From<Cli> for PostProcessedCli {
             delimiter: cli.delimiter.clone(),
         });
 
+        let channel: ParsedCliChannel;
+        let working_directory: Option<String>;
+
+        match channel_parser(&cli.channel) {
+            Ok(p) => {
+                channel = p;
+                working_directory = cli.working_directory;
+            }
+            Err(_) => {
+                // if the path is provided as first argument and it exists, use it as the working
+                // directory and default to the files channel
+                if cli.working_directory.is_none()
+                    && Path::new(&cli.channel).exists()
+                {
+                    channel = ParsedCliChannel::Builtin(CliTvChannel::Files);
+                    working_directory = Some(cli.channel.clone());
+                } else {
+                    unknown_channel_exit(&cli.channel);
+                    unreachable!();
+                }
+            }
+        }
+
         Self {
-            channel: cli.channel,
+            channel,
             preview_command,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
             command: cli.command,
+            working_directory,
         }
     }
+}
+
+fn unknown_channel_exit(channel: &str) {
+    eprintln!("Unknown channel: {channel}\n");
+    // print the list of channels
+    list_channels();
+    std::process::exit(1);
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -189,13 +227,14 @@ mod tests {
     #[allow(clippy::float_cmp)]
     fn test_from_cli() {
         let cli = Cli {
-            channel: ParsedCliChannel::Builtin(CliTvChannel::Files),
+            channel: "files".to_string(),
             preview: Some("bat -n --color=always {}".to_string()),
             delimiter: ":".to_string(),
             tick_rate: 50.0,
             frame_rate: 60.0,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
             command: None,
+            working_directory: Some("/home/user".to_string()),
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -217,5 +256,36 @@ mod tests {
             post_processed_cli.passthrough_keybindings,
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
         );
+        assert_eq!(
+            post_processed_cli.working_directory,
+            Some("/home/user".to_string())
+        );
+    }
+
+    #[test]
+    #[allow(clippy::float_cmp)]
+    fn test_from_cli_no_args() {
+        let cli = Cli {
+            channel: ".".to_string(),
+            preview: None,
+            delimiter: ":".to_string(),
+            tick_rate: 50.0,
+            frame_rate: 60.0,
+            passthrough_keybindings: None,
+            command: None,
+            working_directory: None,
+        };
+
+        let post_processed_cli: PostProcessedCli = cli.into();
+
+        assert_eq!(
+            post_processed_cli.channel,
+            ParsedCliChannel::Builtin(CliTvChannel::Files)
+        );
+        assert_eq!(
+            post_processed_cli.working_directory,
+            Some(".".to_string())
+        );
+        assert_eq!(post_processed_cli.command, None);
     }
 }
