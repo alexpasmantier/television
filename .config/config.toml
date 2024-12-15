@@ -44,16 +44,15 @@ input_bar_position = "bottom"
 # A list of builtin themes can be found in the `themes` directory of the television
 # repository. You may also create your own theme by creating a new file in a `themes`
 # directory in your configuration directory (see the `config.toml` location above).
-theme = "gruvbox-dark"
+theme = "catppuccin-mocha"
 
 # Previewers settings
 # ----------------------------------------------------------------------------
 [previewers.file]
-# The theme to use for syntax highlighting
-# A list of available themes can be found in the https://github.com/sharkdp/bat
-# repository which uses the same syntax highlighting engine as television
-# You may add your own themes by following the instructions in the bat repository
-theme = "gruvbox-dark"
+# The theme to use for syntax highlighting.
+# Bulitin syntax highlighting uses the same syntax highlighting engine as bat.
+# To get a list of your currently available themes, run `bat --list-themes`
+theme = "Coldark-Dark"
 
 # Keybindings
 # ----------------------------------------------------------------------------

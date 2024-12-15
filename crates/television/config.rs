@@ -79,8 +79,8 @@ impl Config {
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?
-            .set_default("ui", UiConfig::default())?
-            .set_default("previewers", PreviewersConfig::default())?
+            .set_default("ui", default_config.ui.clone())?
+            .set_default("previewers", default_config.previewers.clone())?
             .set_default("theme", default_config.ui.theme.clone())?;
 
         // Load the user's config file
