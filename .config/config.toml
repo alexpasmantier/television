@@ -3,7 +3,7 @@
 # Defaults:
 # ---------
 #  Linux:   `$HOME/.config/television/config.toml`
-#  macOS:   `$HOME/Library/Application Support/television/config.toml`
+#  macOS:   `$HOME/.config/television/config.toml`
 #  Windows: `%APPDATA%\television\config.toml`
 #
 # XDG dirs:

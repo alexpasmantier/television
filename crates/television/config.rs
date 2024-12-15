@@ -139,8 +139,18 @@ pub fn get_data_dir() -> PathBuf {
 
 pub fn get_config_dir() -> PathBuf {
     let directory = if let Some(s) = CONFIG_FOLDER.clone() {
-        debug!("Using config directory: {:?}", s);
+        debug!("Config directory: {:?}", s);
         s
+    } else if cfg!(unix) {
+        // default to ~/.config/television for unix systems
+        if let Some(base_dirs) = directories::BaseDirs::new() {
+            let cfg_dir =
+                base_dirs.home_dir().join(".config").join("television");
+            debug!("Config directory: {:?}", cfg_dir);
+            cfg_dir
+        } else {
+            PathBuf::from("../../../../..").join(".config")
+        }
     } else if let Some(proj_dirs) = project_directory() {
         debug!("Falling back to default config dir");
         proj_dirs.config_local_dir().to_path_buf()

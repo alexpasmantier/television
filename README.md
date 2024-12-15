@@ -194,7 +194,7 @@ Default (may be overriden) locations where `television` expect the configuration
 |Platform|Value|
 |--------|:-----:|
 |Linux|`$HOME/.config/television/config.toml`|
-|macOS|`$HOME/Library/Application Support/com.television/config.toml`|
+|macOS|`$HOME/.config/television/config.toml`|
 |Windows|`{FOLDERID_LocalAppData}\television\config`|
 
 Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
