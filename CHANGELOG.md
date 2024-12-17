@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚀 Features
+
+- *(cli)* Add argument to start tv in another working directory (#132)
+
+### 📚 Documentation
+
+- *(readme)* Make channel names consistent everywhere (#138)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#131)
+
 ## [0.7.1] - 2024-12-15
 
 ### 🚀 Features
