@@ -88,7 +88,7 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 ## Usage
 ```bash
-tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
+tv [channel] #[default: files] [possible values: env, files, gitrepos, text, alias]
 
 # e.g. to search through files
 tv files
@@ -110,12 +110,12 @@ By default, `television` will launch with the `files` channel on.
 
 ## 📺 Built-in Channels
 The following built-in channels are currently available:
-- `Files`: search through files in a directory tree.
-- `Text`: search through textual content in a directory tree.
-- `GitRepos`: search through git repositories anywhere on the file system.
-- `Env`: search through environment variables and their values.
-- `Alias`: search through shell aliases and their values.
-- `Stdin`: search through lines of text from stdin.
+- `files`: search through files in a directory tree.
+- `text`: search through textual content in a directory tree.
+- `gitrepos`: search through git repositories anywhere on the file system.
+- `env`: search through environment variables and their values.
+- `alias`: search through shell aliases and their values.
+- `stdin`: search through lines of text from stdin.
 
 ## 🍿 Cable channels
 *Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
