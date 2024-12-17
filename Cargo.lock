@@ -2985,7 +2985,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.7.1"
+version = "0.7.2"
 dependencies = [
  "better-panic",
  "clap",
@@ -3018,7 +3018,7 @@ dependencies = [
 
 [[package]]
 name = "television-channels"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "clap",
  "color-eyre",
@@ -3039,7 +3039,7 @@ dependencies = [
 
 [[package]]
 name = "television-derive"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -3048,7 +3048,7 @@ dependencies = [
 
 [[package]]
 name = "television-fuzzy"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "nucleo",
  "parking_lot",
@@ -3056,7 +3056,7 @@ dependencies = [
 
 [[package]]
 name = "television-previewers"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "color-eyre",
  "devicons",
@@ -3077,7 +3077,7 @@ dependencies = [
 
 [[package]]
 name = "television-screen"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "color-eyre",
  "ratatui",
@@ -3090,7 +3090,7 @@ dependencies = [
 
 [[package]]
 name = "television-utils"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "bat",
  "color-eyre",
