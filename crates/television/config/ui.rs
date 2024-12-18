@@ -2,7 +2,7 @@ use config::ValueKind;
 use serde::Deserialize;
 use std::collections::HashMap;
 
-use television_screen::layout::InputPosition;
+use television_screen::layout::{InputPosition, PreviewTitlePosition};
 
 use super::themes::DEFAULT_THEME;
 
@@ -15,6 +15,7 @@ pub struct UiConfig {
     pub show_help_bar: bool,
     #[serde(default)]
     pub input_bar_position: InputPosition,
+    pub preview_title_position: PreviewTitlePosition,
     pub theme: String,
 }
 
@@ -25,6 +26,7 @@ impl Default for UiConfig {
             ui_scale: DEFAULT_UI_SCALE,
             show_help_bar: true,
             input_bar_position: InputPosition::Bottom,
+            preview_title_position: PreviewTitlePosition::Top,
             theme: String::from(DEFAULT_THEME),
         }
     }
@@ -48,6 +50,10 @@ impl From<UiConfig> for ValueKind {
         m.insert(
             String::from("input_position"),
             ValueKind::String(val.input_bar_position.to_string()).into(),
+        );
+        m.insert(
+            String::from("preview_title_position"),
+            ValueKind::String(val.preview_title_position.to_string()).into(),
         );
         m.insert(String::from("theme"), ValueKind::String(val.theme).into());
         ValueKind::Table(m)

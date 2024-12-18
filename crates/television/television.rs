@@ -406,6 +406,7 @@ impl Television {
             !matches!(self.mode, Mode::Channel),
             self.config.ui.show_help_bar,
             self.config.ui.input_bar_position,
+            self.config.ui.preview_title_position,
         );
 
         // help bar (metadata, keymaps, logo)
