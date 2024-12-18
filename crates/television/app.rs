@@ -78,15 +78,15 @@ impl From<ActionOutcome> for AppOutput {
 impl App {
     pub fn new(
         channel: TelevisionChannel,
-        tick_rate: f64,
-        frame_rate: f64,
+        config: Config,
         passthrough_keybindings: &[String],
     ) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, _) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let config = Config::new()?;
+        let frame_rate = config.config.frame_rate;
+        let tick_rate = config.config.tick_rate;
         let keymap = Keymap::from(&config.keybindings).with_mode_mappings(
             Mode::Channel,
             passthrough_keybindings

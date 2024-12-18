@@ -63,12 +63,14 @@ async fn load_candidates(command: String, injector: Injector<String>) {
         .output()
         .expect("failed to execute process");
 
-    let branches = String::from_utf8(output.stdout).unwrap();
+    let decoded_output = String::from_utf8(output.stdout).unwrap();
 
-    for line in branches.lines() {
-        let () = injector.push(line.to_string(), |e, cols| {
-            cols[0] = e.clone().into();
-        });
+    for line in decoded_output.lines() {
+        if !line.trim().is_empty() {
+            let () = injector.push(line.to_string(), |e, cols| {
+                cols[0] = e.clone().into();
+            });
+        }
     }
 }
 

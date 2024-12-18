@@ -1,0 +1,21 @@
+# GIT
+[[cable_channel]]
+name = "git-reflog"
+source_command = 'git reflog'
+preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+
+[[cable_channel]]
+name = "git-log"
+source_command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
+preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+
+[[cable_channel]]
+name = "git-branch"
+source_command = "git --no-pager branch --all --format=\"%(refname:short)\""
+preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+
+# Docker
+[[cable_channel]]
+name = "docker-images"
+source_command = "docker image list --format \"{{.ID}}\""
+preview_command = "docker image inspect {0} | jq -C"

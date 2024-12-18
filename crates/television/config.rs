@@ -8,6 +8,7 @@ pub use keybindings::KeyBindings;
 use lazy_static::lazy_static;
 use previewers::PreviewersConfig;
 use serde::Deserialize;
+use shell_integration::ShellIntegrationConfig;
 use styles::Styles;
 pub use themes::Theme;
 use tracing::{debug, warn};
@@ -15,6 +16,7 @@ use ui::UiConfig;
 
 mod keybindings;
 mod previewers;
+mod shell_integration;
 mod styles;
 mod themes;
 mod ui;
@@ -28,6 +30,10 @@ pub struct AppConfig {
     pub data_dir: PathBuf,
     #[serde(default)]
     pub config_dir: PathBuf,
+    #[serde(default = "default_frame_rate")]
+    pub frame_rate: f64,
+    #[serde(default = "default_tick_rate")]
+    pub tick_rate: f64,
 }
 
 #[allow(dead_code)]
@@ -44,6 +50,8 @@ pub struct Config {
     pub ui: UiConfig,
     #[serde(default)]
     pub previewers: PreviewersConfig,
+    #[serde(default)]
+    pub shell_integration: ShellIntegrationConfig,
 }
 
 lazy_static! {
@@ -79,9 +87,15 @@ impl Config {
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?
+            .set_default("frame_rate", default_config.config.frame_rate)?
+            .set_default("tick_rate", default_config.config.tick_rate)?
             .set_default("ui", default_config.ui.clone())?
             .set_default("previewers", default_config.previewers.clone())?
-            .set_default("theme", default_config.ui.theme.clone())?;
+            .set_default("theme", default_config.ui.theme.clone())?
+            .set_default(
+                "shell_integration",
+                default_config.shell_integration.clone(),
+            )?;
 
         // Load the user's config file
         let source = config::File::from(config_dir.join(CONFIG_FILE_NAME))
@@ -162,4 +176,12 @@ pub fn get_config_dir() -> PathBuf {
 
 fn project_directory() -> Option<ProjectDirs> {
     ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
+}
+
+fn default_frame_rate() -> f64 {
+    60.0
+}
+
+fn default_tick_rate() -> f64 {
+    50.0
 }

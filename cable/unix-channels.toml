@@ -1,0 +1,44 @@
+# GIT
+[[cable_channel]]
+name = "git-reflog"
+source_command = 'git reflog'
+preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+
+[[cable_channel]]
+name = "git-log"
+source_command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
+preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+
+[[cable_channel]]
+name = "git-branch"
+source_command = "git --no-pager branch --all --format=\"%(refname:short)\""
+preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+
+# Docker
+[[cable_channel]]
+name = "docker-images"
+source_command = "docker image list --format \"{{.ID}}\""
+preview_command = "docker image inspect {0} | jq -C"
+
+# S3
+[[cable_channel]]
+name = "s3-buckets"
+source_command = "aws s3 ls | cut -d \" \" -f 3"
+preview_command = "aws s3 ls s3://{0}"
+
+# Dotfiles
+[[cable_channel]]
+name = "my-dotfiles"
+source_command = "fd -t f . $HOME/.config"
+preview_command = "bat -n --color=always {0}"
+
+# Shell history
+[[cable_channel]]
+name = "zsh-history"
+source_command = "tac $HOME/.zsh_history | cut -d\";\" -f 2-"
+preview_command = "echo '{}'"
+
+[[cable_channel]]
+name = "bash-history"
+source_command = "tac $HOME/.bash_history"
+preview_command = "echo '{}'"
