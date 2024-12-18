@@ -62,6 +62,24 @@ impl Display for InputPosition {
     }
 }
 
+#[derive(Debug, Clone, Copy, Deserialize, Default)]
+pub enum PreviewTitlePosition {
+    #[serde(rename = "top")]
+    #[default]
+    Top,
+    #[serde(rename = "bottom")]
+    Bottom,
+}
+
+impl Display for PreviewTitlePosition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PreviewTitlePosition::Top => write!(f, "top"),
+            PreviewTitlePosition::Bottom => write!(f, "bottom"),
+        }
+    }
+}
+
 pub struct Layout {
     pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
@@ -97,6 +115,7 @@ impl Layout {
         with_remote: bool,
         with_help_bar: bool,
         input_position: InputPosition,
+        preview_title_position: PreviewTitlePosition,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
@@ -172,16 +191,16 @@ impl Layout {
 
         let right_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints(match input_position {
-                InputPosition::Top => {
+            .constraints(match preview_title_position {
+                PreviewTitlePosition::Bottom => {
                     preview_constraints.into_iter().rev().collect()
                 }
-                InputPosition::Bottom => preview_constraints,
+                PreviewTitlePosition::Top => preview_constraints,
             })
             .split(vt_chunks[1]);
-        let (preview_title, preview_window) = match input_position {
-            InputPosition::Bottom => (right_chunks[0], right_chunks[1]),
-            InputPosition::Top => (right_chunks[1], right_chunks[0]),
+        let (preview_title, preview_window) = match preview_title_position {
+            PreviewTitlePosition::Top => (right_chunks[0], right_chunks[1]),
+            PreviewTitlePosition::Bottom => (right_chunks[1], right_chunks[0]),
         };
 
         Self::new(

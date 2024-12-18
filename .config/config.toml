@@ -40,6 +40,8 @@ ui_scale = 100
 show_help_bar = true
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "bottom"
+# Where to place the preview title in the UI (top or bottom)
+preview_title_position = "top"
 # The theme to use for the UI
 # A list of builtin themes can be found in the `themes` directory of the television
 # repository. You may also create your own theme by creating a new file in a `themes`
