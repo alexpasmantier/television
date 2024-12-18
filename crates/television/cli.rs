@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{collections::HashMap, path::Path};
 
 use clap::{Parser, Subcommand};
 use color_eyre::{eyre::eyre, Result};
@@ -29,12 +29,12 @@ pub struct Cli {
     pub delimiter: String,
 
     /// Tick rate, i.e. number of ticks per second
-    #[arg(short, long, value_name = "FLOAT", default_value_t = 50.0)]
-    pub tick_rate: f64,
+    #[arg(short, long, value_name = "FLOAT")]
+    pub tick_rate: Option<f64>,
 
     /// Frame rate, i.e. number of frames per second
-    #[arg(short, long, value_name = "FLOAT", default_value_t = 60.0)]
-    pub frame_rate: f64,
+    #[arg(short, long, value_name = "FLOAT")]
+    pub frame_rate: Option<f64>,
 
     /// Passthrough keybindings (comma separated, e.g. "q,ctrl-w,ctrl-t") These keybindings will
     /// trigger selection of the current entry and be passed through to stdout along with the entry
@@ -45,6 +45,10 @@ pub struct Cli {
     /// The working directory to start in
     #[arg(value_name = "PATH", index = 2)]
     pub working_directory: Option<String>,
+
+    /// Try to guess the channel from the provided input prompt
+    #[arg(long, value_name = "STRING")]
+    pub guess_channel_from_prompt: Option<String>,
 
     #[command(subcommand)]
     command: Option<Command>,
@@ -60,11 +64,12 @@ pub enum Command {
 pub struct PostProcessedCli {
     pub channel: ParsedCliChannel,
     pub preview_command: Option<PreviewCommand>,
-    pub tick_rate: f64,
-    pub frame_rate: f64,
+    pub tick_rate: Option<f64>,
+    pub frame_rate: Option<f64>,
     pub passthrough_keybindings: Vec<String>,
     pub command: Option<Command>,
     pub working_directory: Option<String>,
+    pub guess_channel_from_prompt: Option<String>,
 }
 
 impl From<Cli> for PostProcessedCli {
@@ -84,7 +89,7 @@ impl From<Cli> for PostProcessedCli {
         let channel: ParsedCliChannel;
         let working_directory: Option<String>;
 
-        match channel_parser(&cli.channel) {
+        match parse_channel(&cli.channel) {
             Ok(p) => {
                 channel = p;
                 working_directory = cli.working_directory;
@@ -112,6 +117,7 @@ impl From<Cli> for PostProcessedCli {
             passthrough_keybindings,
             command: cli.command,
             working_directory,
+            guess_channel_from_prompt: cli.guess_channel_from_prompt,
         }
     }
 }
@@ -129,7 +135,7 @@ pub enum ParsedCliChannel {
     Cable(CableChannelPrototype),
 }
 
-fn channel_parser(channel: &str) -> Result<ParsedCliChannel> {
+fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
     let cable_channels = cable::load_cable_channels().unwrap_or_default();
     CliTvChannel::try_from(channel)
         .map(ParsedCliChannel::Builtin)
@@ -168,6 +174,35 @@ pub fn list_channels() {
     for c in list_cable_channels().iter().map(|c| c.to_lowercase()) {
         println!("\t{c}");
     }
+}
+
+/// Backtrack from the end of the prompt and try to match each word to a known command
+/// if a match is found, return the corresponding channel
+/// if no match is found, throw an error
+///
+/// ## Example:
+/// ```
+/// let prompt = "ls -l";
+/// let command_mapping = hashmap! {
+///     "ls".to_string() => "files".to_string(),
+///     "cat".to_string() => "files".to_string(),
+/// };
+/// let channel = guess_channel_from_prompt(prompt, &command_mapping).unwrap();
+///
+/// assert_eq!(channel, ParsedCliChannel::Builtin(CliTvChannel::Files));
+/// ```
+/// FIXME: this won't work if the command is made of multiple words
+pub fn guess_channel_from_prompt(
+    prompt: &str,
+    command_mapping: &HashMap<String, String>,
+) -> Result<ParsedCliChannel> {
+    let words = prompt.split_whitespace().rev();
+    for word in words {
+        if let Some(channel) = command_mapping.get(word) {
+            return parse_channel(channel);
+        }
+    }
+    Err(eyre!("No channel found for prompt: {}", prompt))
 }
 
 fn delimiter_parser(s: &str) -> Result<String, String> {
@@ -230,11 +265,12 @@ mod tests {
             channel: "files".to_string(),
             preview: Some("bat -n --color=always {}".to_string()),
             delimiter: ":".to_string(),
-            tick_rate: 50.0,
-            frame_rate: 60.0,
+            tick_rate: Some(50.0),
+            frame_rate: Some(60.0),
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
             command: None,
             working_directory: Some("/home/user".to_string()),
+            guess_channel_from_prompt: None,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -250,8 +286,8 @@ mod tests {
                 delimiter: ":".to_string()
             })
         );
-        assert_eq!(post_processed_cli.tick_rate, 50.0);
-        assert_eq!(post_processed_cli.frame_rate, 60.0);
+        assert_eq!(post_processed_cli.tick_rate, Some(50.0));
+        assert_eq!(post_processed_cli.frame_rate, Some(60.0));
         assert_eq!(
             post_processed_cli.passthrough_keybindings,
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
@@ -269,11 +305,12 @@ mod tests {
             channel: ".".to_string(),
             preview: None,
             delimiter: ":".to_string(),
-            tick_rate: 50.0,
-            frame_rate: 60.0,
+            tick_rate: Some(50.0),
+            frame_rate: Some(60.0),
             passthrough_keybindings: None,
             command: None,
             working_directory: None,
+            guess_channel_from_prompt: None,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
