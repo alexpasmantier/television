@@ -12,6 +12,12 @@
 # In that case, television will expect the configuration file to be in:
 # `$XDG_CONFIG_HOME/television/config.toml`
 #
+
+# General settings
+# ----------------------------------------------------------------------------
+frame_rate = 60
+tick_rate = 50
+
 [ui]
 # Whether to use nerd font icons in the UI
 # This option requires a font patched with Nerd Font in order to properly
@@ -118,3 +124,55 @@ select_entry = "enter"
 toggle_send_to_channel = "ctrl-s"
 # Toggle the help bar
 toggle_help = "ctrl-g"
+
+
+# Shell integration
+# ----------------------------------------------------------------------------
+#
+# The shell integration feature allows you to use television as a picker for
+# your shell commands. E.g. typing `git checkout <TAB>` will open television
+# with a list of branches to checkout.
+
+[shell_integration.commands]
+# Which commands should trigger which channels
+# The keys are the commands that should trigger the channels, and the values
+# are the channels that should be triggered.
+# Example: `git checkout` should trigger the `git-branches` channel
+#          `ls` should trigger the `dirs` channel
+#          `cat` should trigger the `files` channel
+#
+# Would be written as:
+# ```
+# [shell_integration.commands]
+# "git checkout" = "git-branches"
+# "ls" = "dirs"
+# "cat" = "files"
+# ```
+
+# The following are an example, you can remove/modify them and add your own.
+
+# shell history (according to your shell)
+"" = "zsh-history"
+
+# dirs channel
+"cd" = "dirs"
+"ls" = "dirs"
+"rmdir" = "dirs"
+
+# files channel
+"cat" = "files"
+"less" = "files"
+"head" = "files"
+"tail" = "files"
+"vim" = "files"
+"bat" = "files"
+
+# git-branch channel
+"git checkout" = "git-branch"
+"git branch -d" = "git-branch"
+
+# docker-images channel
+"docker run" = "docker-images"
+
+# gitrepos channel
+"nvim" = "gitrepos"

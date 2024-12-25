@@ -16,6 +16,14 @@ struct ChannelPrototypes {
 const CABLE_FILE_NAME_SUFFIX: &str = "channels";
 const CABLE_FILE_FORMAT: &str = "toml";
 
+#[cfg(unix)]
+const DEFAULT_CABLE_CHANNELS: &str =
+    include_str!("../../cable/unix-channels.toml");
+
+#[cfg(not(unix))]
+const DEFAULT_CABLE_CHANNELS: &str =
+    include_str!("../../cable/windows-channels.toml");
+
 /// Load the cable configuration from the config directory.
 ///
 /// Cable is loaded by compiling all files that match the following
@@ -40,7 +48,7 @@ pub fn load_cable_channels() -> Result<CableChannels> {
         .filter(|p| {
             p.extension()
                 .and_then(|e| e.to_str())
-                .map_or(false, |e| e == CABLE_FILE_FORMAT)
+                .map_or(false, |e| e.to_lowercase() == CABLE_FILE_FORMAT)
         })
         .filter(|p| {
             p.file_stem()
@@ -48,7 +56,7 @@ pub fn load_cable_channels() -> Result<CableChannels> {
                 .map_or(false, |s| s.ends_with(CABLE_FILE_NAME_SUFFIX))
         });
 
-    let all_prototypes = file_paths.fold(Vec::new(), |mut acc, p| {
+    let user_defined_prototypes = file_paths.fold(Vec::new(), |mut acc, p| {
         let r: ChannelPrototypes = toml::from_str(
             &std::fs::read_to_string(p)
                 .expect("Unable to read configuration file"),
@@ -58,10 +66,20 @@ pub fn load_cable_channels() -> Result<CableChannels> {
         acc
     });
 
-    debug!("Loaded cable channels: {:?}", all_prototypes);
+    debug!("Loaded cable channels: {:?}", user_defined_prototypes);
+
+    let default_prototypes: ChannelPrototypes =
+        toml::from_str(DEFAULT_CABLE_CHANNELS)
+            .expect("Unable to parse default cable channels");
 
     let mut cable_channels = HashMap::new();
-    for prototype in all_prototypes {
+    // chaining default with user defined prototypes so that users may override the
+    // default prototypes
+    for prototype in default_prototypes
+        .prototypes
+        .into_iter()
+        .chain(user_defined_prototypes)
+    {
         cable_channels.insert(prototype.name.clone(), prototype);
     }
     Ok(CableChannels(cable_channels))

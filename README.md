@@ -86,6 +86,14 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
   ```
 </details>
 
+### Shell integration (currently only zsh)
+To enable shell integration, run:
+```bash
+echo 'eval "$(tv init zsh)"' >> ~/.zshrc
+```
+And then restart your shell.
+
+
 ## Usage
 ```bash
 tv [channel] #[default: files] [possible values: env, files, gitrepos, text, alias]

@@ -4,16 +4,23 @@ use std::path::Path;
 use std::process::exit;
 
 use clap::Parser;
-use cli::{list_channels, ParsedCliChannel, PostProcessedCli};
 use color_eyre::Result;
-use television_channels::channels::TelevisionChannel;
-use television_channels::entry::PreviewType;
 use tracing::{debug, error, info};
 
 use crate::app::App;
-use crate::cli::Cli;
-use television_channels::channels::stdin::Channel as StdinChannel;
-use television_utils::stdin::is_readable_stdin;
+use crate::cli::{
+    guess_channel_from_prompt, list_channels, Cli, ParsedCliChannel,
+    PostProcessedCli,
+};
+use crate::config::Config;
+use television_channels::{
+    channels::{stdin::Channel as StdinChannel, TelevisionChannel},
+    entry::PreviewType,
+};
+use television_utils::{
+    shell::{completion_script, Shell},
+    stdin::is_readable_stdin,
+};
 
 pub mod action;
 pub mod app;
@@ -44,8 +51,19 @@ async fn main() -> Result<()> {
                 list_channels();
                 exit(0);
             }
+            cli::Command::InitShell { shell } => {
+                let script = completion_script(Shell::from(shell))?;
+                println!("{script}");
+                exit(0);
+            }
         }
     }
+
+    let mut config = Config::new()?;
+    config.config.tick_rate =
+        args.tick_rate.unwrap_or(config.config.tick_rate);
+    config.config.frame_rate =
+        args.frame_rate.unwrap_or(config.config.frame_rate);
 
     if let Some(working_directory) = args.working_directory {
         let path = Path::new(&working_directory);
@@ -70,6 +88,18 @@ async fn main() -> Result<()> {
                 TelevisionChannel::Stdin(StdinChannel::new(
                     args.preview_command.map(PreviewType::Command),
                 ))
+            } else if let Some(prompt) = args.autocomplete_prompt {
+                let channel = guess_channel_from_prompt(
+                    &prompt,
+                    &config.shell_integration.commands,
+                )?;
+                debug!("Using guessed channel: {:?}", channel);
+                match channel {
+                    ParsedCliChannel::Builtin(c) => c.to_channel(),
+                    ParsedCliChannel::Cable(c) => {
+                        TelevisionChannel::Cable(c.into())
+                    }
+                }
             } else {
                 debug!("Using {:?} channel", args.channel);
                 match args.channel {
@@ -80,8 +110,7 @@ async fn main() -> Result<()> {
                 }
             }
         },
-        args.tick_rate,
-        args.frame_rate,
+        config,
         &args.passthrough_keybindings,
     ) {
         Ok(mut app) => {
