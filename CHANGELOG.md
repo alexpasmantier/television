@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 ### 🚀 Features
 
 - *(cli)* Add argument to start tv in another working directory (#132)
+- *(ui)* Decouple preview title position from input bar position and make it configurable (#144)
+- *(shell)* Autocompletion plugin for zsh (#145)
 
 ### 📚 Documentation
 
@@ -15,6 +17,7 @@ All notable changes to this project will be documented in this file.
 ### ⚙️ Miscellaneous Tasks
 
 - *(changelog)* Update changelog (auto) (#131)
+- *(changelog)* Update changelog (auto) (#141)
 
 ## [0.7.1] - 2024-12-15
 
