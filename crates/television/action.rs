@@ -93,6 +93,9 @@ pub enum Action {
     /// Toggle the help bar.
     #[serde(alias = "toggle_help")]
     ToggleHelp,
+    /// Toggle the preview panel.
+    #[serde(alias = "toggle_preview")]
+    TogglePreview,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),

@@ -4,7 +4,7 @@ use ratatui::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
     style::{Style, Stylize},
-    text::{Line, Span},
+    text::Span,
     widgets::{Block, BorderType, Borders, ListState, Paragraph},
     Frame,
 };
@@ -30,7 +30,6 @@ pub fn draw_input_box(
     colorscheme: &Colorscheme,
 ) -> Result<()> {
     let input_block = Block::default()
-        .title_top(Line::from(" Pattern ").alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
