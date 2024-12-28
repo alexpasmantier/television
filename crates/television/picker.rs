@@ -11,17 +11,17 @@ pub struct Picker {
 
 impl Default for Picker {
     fn default() -> Self {
-        Self::new()
+        Self::new(None)
     }
 }
 
 impl Picker {
-    fn new() -> Self {
+    pub fn new(input: Option<String>) -> Self {
         Self {
             state: ListState::default(),
             relative_state: ListState::default(),
             inverted: false,
-            input: Input::new(EMPTY_STRING.to_string()),
+            input: Input::new(input.unwrap_or(EMPTY_STRING.to_string())),
         }
     }
 
