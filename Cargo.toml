@@ -23,7 +23,7 @@ include = [
     "build.rs",
     ".config/config.toml",
 ]
-rust-version = "1.80.0"
+rust-version = "1.81"
 
 [workspace]
 resolver = "2"
@@ -44,7 +44,7 @@ categories = [
     "development-tools",
 ]
 include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
-rust-version = "1.80.0"
+rust-version = "1.81"
 readme = "README.md"
 
 
