@@ -9,6 +9,14 @@ All notable changes to this project will be documented in this file.
 - *(cli)* Add argument to start tv in another working directory (#132)
 - *(ui)* Decouple preview title position from input bar position and make it configurable (#144)
 - *(shell)* Autocompletion plugin for zsh (#145)
+- *(config)* Allow specifying multiple keymaps for the same action + better defaults (#149)
+- *(input)* Bind ctrl-w to delete previous word (#150)
+- *(ux)* Print current query to stdout on Enter if no entry is selected (#151)
+- *(cli)* Allow passing --input <STRING> to prefill input prompt (#153)
+
+### 🚜 Refactor
+
+- *(ui)* More compact general layout and make preview panel optional (#148)
 
 ### 📚 Documentation
 
@@ -18,6 +26,7 @@ All notable changes to this project will be documented in this file.
 
 - *(changelog)* Update changelog (auto) (#131)
 - *(changelog)* Update changelog (auto) (#141)
+- *(changelog)* Update changelog (auto) (#146)
 
 ## [0.7.1] - 2024-12-15
 
