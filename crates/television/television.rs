@@ -264,6 +264,7 @@ impl Television {
             // handle input actions
             Action::AddInputChar(_)
             | Action::DeletePrevChar
+            | Action::DeletePrevWord
             | Action::DeleteNextChar
             | Action::GoToInputEnd
             | Action::GoToInputStart
