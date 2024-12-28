@@ -12,7 +12,7 @@ use television_channels::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
     OnAir, TelevisionChannel, UnitChannel,
 };
-use television_channels::entry::{Entry, ENTRY_PLACEHOLDER};
+use television_channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER};
 use television_previewers::previewers::Previewer;
 use television_screen::cache::RenderedPreviewCache;
 use television_screen::colors::Colorscheme;
@@ -412,12 +412,17 @@ impl Television {
     /// # Returns
     /// * `Result<()>` - An Ok result or an error.
     pub fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+        let selected_entry = self
+            .get_selected_entry(Some(Mode::Channel))
+            .unwrap_or(ENTRY_PLACEHOLDER);
+
         let layout = Layout::build(
             &Dimensions::from(self.config.ui.ui_scale),
             area,
             !matches!(self.mode, Mode::Channel),
             self.config.ui.show_help_bar,
-            self.config.ui.show_preview_panel,
+            self.config.ui.show_preview_panel
+                && !matches!(selected_entry.preview_type, PreviewType::None),
             self.config.ui.input_bar_position,
         );
 
@@ -496,11 +501,9 @@ impl Television {
             &self.colorscheme,
         )?;
 
-        if self.config.ui.show_preview_panel {
-            let selected_entry = self
-                .get_selected_entry(Some(Mode::Channel))
-                .unwrap_or(ENTRY_PLACEHOLDER);
-
+        if self.config.ui.show_preview_panel
+            && !matches!(selected_entry.preview_type, PreviewType::None)
+        {
             // preview content
             let preview = self.previewer.preview(&selected_entry);
             self.current_preview_total_lines = preview.total_lines();

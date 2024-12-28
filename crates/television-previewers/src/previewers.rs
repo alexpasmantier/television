@@ -149,6 +149,7 @@ impl Previewer {
             PreviewType::EnvVar => self.env_var.preview(entry),
             PreviewType::Files => self.file.preview(entry),
             PreviewType::Command(cmd) => self.command.preview(entry, cmd),
+            PreviewType::None => Arc::new(Preview::default()),
         }
     }
 
