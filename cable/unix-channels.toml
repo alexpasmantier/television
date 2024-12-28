@@ -35,8 +35,8 @@ preview_command = ":files:"
 # Shell history
 [[cable_channel]]
 name = "zsh-history"
-source_command = "tac $HOME/.zsh_history | cut -d\";\" -f 2-"
+source_command = "tail -r $HOME/.zsh_history | cut -d\";\" -f 2-"
 
 [[cable_channel]]
 name = "bash-history"
-source_command = "tac $HOME/.bash_history"
+source_command = "tail -r $HOME/.bash_history"
