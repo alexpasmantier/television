@@ -195,6 +195,7 @@ impl App {
                 // text input events
                 match keycode {
                     Key::Backspace => return Action::DeletePrevChar,
+                    Key::Ctrl('w') => return Action::DeletePrevWord,
                     Key::Delete => return Action::DeleteNextChar,
                     Key::Left => return Action::GoToPrevChar,
                     Key::Right => return Action::GoToNextChar,

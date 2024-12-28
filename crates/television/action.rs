@@ -10,6 +10,9 @@ pub enum Action {
     /// Delete the character before the cursor from the input buffer.
     #[serde(skip)]
     DeletePrevChar,
+    /// Delete the previous word from the input buffer.
+    #[serde(skip)]
+    DeletePrevWord,
     /// Delete the character after the cursor from the input buffer.
     #[serde(skip)]
     DeleteNextChar,
