@@ -1,7 +1,7 @@
 <div align="center">
 
 # 📺  television
-**A blazingly fast general purpose fuzzy finder TUI.**
+**Blazing fast general purpose fuzzy finder TUI.**
 
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 [![Crates.io](https://img.shields.io/crates/v/television.svg)](https://crates.io/crates/television)
@@ -16,18 +16,18 @@
 </div>
 
 ## About
-`Television` is a blazing fast general purpose fuzzy finder TUI.
+`Television` is a fast and versatile fuzzy finder TUI.
 
-It lets you search in no time through any kind of data source (files, git repositories, environment variables, docker
-images, you name it!) using a fuzzy matching algorithm and is designed to be easily extensible.
+It lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
+images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible.
 
 
-It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to achieve high performance.
+It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
 
 ## Features
-- ⚡️ **High Speed**: uses async I/O as well as multithreading to keep the UI highly responsive.
+- ⚡️ **High Speed**: utilizes async I/O and multithreading to maintain a smooth and responsive UI.
 
-- 🧠 **Fuzzy Matching**: state of the art fuzzy matching library to filter through lists of entries.
+- 🧠 **Fuzzy Matching**: cutting-edge fuzzy matching library for efficiently filtering through lists of entries
 
 - 🔋 **Batteries Included**: comes with a set of builtin channels and previewers that you can start using out of the box.
 
@@ -35,19 +35,19 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 - 📺 **Channels**: designed around the concept of channels, which are a set of builtin data sources that you can search through (e.g. files, git repositories, environment variables, etc.).
 
-- 📡 **Cable Channels**: users may add their own custom channels to tv using a simple configuration file.
+- 📡 **Cable Channels**: users may add their own custom channels to tv using a simple and centralized configuration file.
 
 - 📜 **Previewers**: allows you to preview the contents of an entry in a separate pane.
 
-- 🖼️ **Builtin Syntax Highlighting**: tv comes with builtin asynchronous syntax highlighting for a variety of file types.
+- 🖼️ **Builtin Syntax Highlighting**: comes with builtin asynchronous syntax highlighting for a wide variety of file types.
 
-- 🎛️ **Keybindings**: tv comes with a set of sensible default keybindings based on vi and other popular terminal shortcuts.
+- 🎛️ **Keybindings**: includes a set of intuitive default keybindings inspired by vi and other popular terminal shortcuts.
 
-- 🌈 **Themes**: tv comes with a variety of themes that you can choose from, and you can easily craft your own.
+- 🌈 **Themes**: offers a variety of themes to choose from, with the flexibility to create your own effortlessly.
 
-- 📦 **Cross-platform**: tv is cross-platform and should work on any platform that supports Rust.
+- 📦 **Cross-platform**: cross-platform and works seamlessly on any system that supports Rust.
 
-- ✅ **Terminal Emulator Compatibility**: tv has been tested with a variety of terminal emulators and should just work on most.
+- ✅ **Terminal Emulator Compatibility**: tested with various terminal emulators and is designed to work smoothly on most of them.
 
 
 ## Installation
