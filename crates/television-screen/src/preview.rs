@@ -239,14 +239,18 @@ pub fn build_meta_preview_paragraph<'a>(
     Paragraph::new(Text::from(lines))
 }
 
-pub fn draw_preview_title_block(
+#[allow(clippy::too_many_arguments)]
+pub fn draw_preview_content_block(
     f: &mut Frame,
     rect: Rect,
+    entry: &Entry,
     preview: &Arc<Preview>,
+    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
+    preview_scroll: u16,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
-    let mut preview_title_spans = Vec::new();
+    let mut preview_title_spans = vec![Span::from(" ")];
     if preview.icon.is_some() && use_nerd_font_icons {
         let icon = preview.icon.as_ref().unwrap();
         preview_title_spans.push(Span::styled(
@@ -269,38 +273,18 @@ pub fn draw_preview_title_block(
         ),
         Style::default().fg(colorscheme.preview.title_fg).bold(),
     ));
-    let preview_title = Paragraph::new(Line::from(preview_title_spans))
-        .block(
-            Block::default()
-                .padding(Padding::horizontal(1))
-                .borders(Borders::ALL)
-                .border_type(BorderType::Rounded)
-                .border_style(
-                    Style::default().fg(colorscheme.general.border_fg),
-                ),
-        )
-        .alignment(Alignment::Left)
-        .style(Style::default().bg(colorscheme.general.background));
-    f.render_widget(preview_title, rect);
-    Ok(())
-}
-
-pub fn draw_preview_content_block(
-    f: &mut Frame,
-    rect: Rect,
-    entry: &Entry,
-    preview: &Arc<Preview>,
-    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
-    preview_scroll: u16,
-    colorscheme: &Colorscheme,
-) {
+    preview_title_spans.push(Span::from(" "));
     let preview_outer_block = Block::default()
-        .title_top(Line::from(" Preview ").alignment(Alignment::Center))
+        .title_top(
+            Line::from(preview_title_spans)
+                .alignment(Alignment::Center)
+                .style(Style::default().fg(colorscheme.preview.title_fg)),
+        )
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(Style::default().bg(colorscheme.general.background))
-        .padding(Padding::right(1));
+        .padding(Padding::new(0, 1, 1, 0));
 
     let preview_inner_block =
         Block::default().style(Style::default()).padding(Padding {
@@ -321,7 +305,7 @@ pub fn draw_preview_content_block(
     {
         let p = preview_paragraph.as_ref().clone();
         f.render_widget(p.scroll((preview_scroll, 0)), inner);
-        return;
+        return Ok(());
     }
     // If not, render the preview content and cache it if not empty
     let c_scheme = colorscheme.clone();
@@ -343,6 +327,7 @@ pub fn draw_preview_content_block(
         Arc::new(rp).as_ref().clone().scroll((preview_scroll, 0)),
         inner,
     );
+    Ok(())
 }
 
 fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {

@@ -23,9 +23,7 @@ use television_screen::keybindings::{
 };
 use television_screen::layout::{Dimensions, InputPosition, Layout};
 use television_screen::mode::Mode;
-use television_screen::preview::{
-    draw_preview_content_block, draw_preview_title_block,
-};
+use television_screen::preview::draw_preview_content_block;
 use television_screen::remote_control::draw_remote_control;
 use television_screen::results::draw_results_list;
 use television_screen::spinner::{Spinner, SpinnerState};
@@ -386,6 +384,10 @@ impl Television {
             Action::ToggleHelp => {
                 self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
             }
+            Action::TogglePreview => {
+                self.config.ui.show_preview_panel =
+                    !self.config.ui.show_preview_panel;
+            }
             _ => {}
         }
         Ok(None)
@@ -405,8 +407,8 @@ impl Television {
             area,
             !matches!(self.mode, Mode::Channel),
             self.config.ui.show_help_bar,
+            self.config.ui.show_preview_panel,
             self.config.ui.input_bar_position,
-            self.config.ui.preview_title_position,
         );
 
         // help bar (metadata, keymaps, logo)
@@ -426,7 +428,10 @@ impl Television {
 
         self.results_area_height =
             u32::from(layout.results.height.saturating_sub(2)); // 2 for the borders
-        self.preview_pane_height = layout.preview_window.height;
+        self.preview_pane_height = match layout.preview_window {
+            Some(preview) => preview.height,
+            None => 0,
+        };
 
         // results list
         let result_count = self.channel.result_count();
@@ -447,6 +452,22 @@ impl Television {
             self.config.ui.use_nerd_font_icons,
             &mut self.icon_color_cache,
             &self.colorscheme,
+            &self
+                .config
+                .keybindings
+                .get(&self.mode)
+                .unwrap()
+                .get(&Action::ToggleHelp)
+                .unwrap()
+                .to_string(),
+            &self
+                .config
+                .keybindings
+                .get(&self.mode)
+                .unwrap()
+                .get(&Action::TogglePreview)
+                .unwrap()
+                .to_string(),
         )?;
 
         // input box
@@ -463,38 +484,32 @@ impl Television {
             &self.colorscheme,
         )?;
 
-        let selected_entry = self
-            .get_selected_entry(Some(Mode::Channel))
-            .unwrap_or(ENTRY_PLACEHOLDER);
-        let preview = self.previewer.preview(&selected_entry);
+        if self.config.ui.show_preview_panel {
+            let selected_entry = self
+                .get_selected_entry(Some(Mode::Channel))
+                .unwrap_or(ENTRY_PLACEHOLDER);
 
-        // preview title
-        self.current_preview_total_lines = preview.total_lines();
-        draw_preview_title_block(
-            f,
-            layout.preview_title,
-            &preview,
-            self.config.ui.use_nerd_font_icons,
-            &self.colorscheme,
-        )?;
-
-        // preview content
-        // initialize preview scroll
-        self.maybe_init_preview_scroll(
-            selected_entry
-                .line_number
-                .map(|l| u16::try_from(l).unwrap_or(0)),
-            layout.preview_window.height,
-        );
-        draw_preview_content_block(
-            f,
-            layout.preview_window,
-            &selected_entry,
-            &preview,
-            &self.rendered_preview_cache,
-            self.preview_scroll.unwrap_or(0),
-            &self.colorscheme,
-        );
+            // preview content
+            let preview = self.previewer.preview(&selected_entry);
+            self.current_preview_total_lines = preview.total_lines();
+            // initialize preview scroll
+            self.maybe_init_preview_scroll(
+                selected_entry
+                    .line_number
+                    .map(|l| u16::try_from(l).unwrap_or(0)),
+                layout.preview_window.unwrap().height,
+            );
+            draw_preview_content_block(
+                f,
+                layout.preview_window.unwrap(),
+                &selected_entry,
+                &preview,
+                &self.rendered_preview_cache,
+                self.preview_scroll.unwrap_or(0),
+                self.config.ui.use_nerd_font_icons,
+                &self.colorscheme,
+            )?;
+        }
 
         // remote control
         if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {

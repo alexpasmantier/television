@@ -43,11 +43,15 @@ use_nerd_font_icons = false
 ui_scale = 100
 # Whether to show the top help bar in the UI by default
 # This option can be toggled with the (default) `ctrl-g` keybinding
-show_help_bar = true
+show_help_bar = false
+# Whether to show the preview panel in the UI by default
+# This option can be toggled with the (default) `ctrl-o` keybinding
+show_preview_panel = true
 # Where to place the input bar in the UI (top or bottom)
-input_bar_position = "bottom"
+input_bar_position = "top"
+# DEPRECATED: title is now always displayed at the top as part of the border
 # Where to place the preview title in the UI (top or bottom)
-preview_title_position = "top"
+# preview_title_position = "top"
 # The theme to use for the UI
 # A list of builtin themes can be found in the `themes` directory of the television
 # repository. You may also create your own theme by creating a new file in a `themes`
@@ -88,6 +92,8 @@ toggle_remote_control = "ctrl-r"
 toggle_send_to_channel = "ctrl-s"
 # Toggle the help bar
 toggle_help = "ctrl-g"
+# Toggle the preview panel
+toggle_preview = "ctrl-o"
 
 
 # Remote control mode
@@ -106,6 +112,8 @@ select_entry = "enter"
 toggle_remote_control = "ctrl-r"
 # Toggle the help bar
 toggle_help = "ctrl-g"
+# Toggle the preview panel
+toggle_preview = "ctrl-o"
 
 
 # Send to channel mode
@@ -124,32 +132,33 @@ select_entry = "enter"
 toggle_send_to_channel = "ctrl-s"
 # Toggle the help bar
 toggle_help = "ctrl-g"
+# Toggle the preview panel
+toggle_preview = "ctrl-o"
 
 
 # Shell integration
 # ----------------------------------------------------------------------------
 #
 # The shell integration feature allows you to use television as a picker for
-# your shell commands. E.g. typing `git checkout <TAB>` will open television
-# with a list of branches to checkout.
+# your shell commands. E.g. typing `git checkout <CTRL-T>` will open television
+# with a list of branches to choose from.
 
 [shell_integration.commands]
-# Which commands should trigger which channels
-# The keys are the commands that should trigger the channels, and the values
-# are the channels that should be triggered.
-# Example: `git checkout` should trigger the `git-branches` channel
-#          `ls` should trigger the `dirs` channel
-#          `cat` should trigger the `files` channel
+# Add your commands here. Each key is a command that will trigger tv with the
+# corresponding channel as value.
+# Example: say you want the following prompts to trigger the following channels
+# when pressing <CTRL-T>:
+#          `git checkout` should trigger the `git-branches` channel
+#          `ls`           should trigger the `dirs` channel
+#          `cat`          should trigger the `files` channel
 #
-# Would be written as:
+# You would add the following to your configuration file:
 # ```
 # [shell_integration.commands]
 # "git checkout" = "git-branches"
 # "ls" = "dirs"
 # "cat" = "files"
 # ```
-
-# The following are an example, you can remove/modify them and add your own.
 
 # shell history (according to your shell)
 "" = "zsh-history"

@@ -143,9 +143,17 @@ pub fn draw_results_list(
     use_nerd_font_icons: bool,
     icon_color_cache: &mut HashMap<String, Color>,
     colorscheme: &Colorscheme,
+    help_keybinding: &str,
+    preview_keybinding: &str,
 ) -> Result<()> {
     let results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
+        .title_bottom(
+            Line::from(format!(
+                " help: <{help_keybinding}>  preview: <{preview_keybinding}> "
+            ))
+            .alignment(Alignment::Center),
+        )
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))

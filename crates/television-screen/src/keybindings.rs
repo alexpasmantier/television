@@ -150,19 +150,6 @@ fn build_keybindings_table_for_channel<'a>(
         colorscheme.mode.channel,
     ));
 
-    // MISC line (quit, help, etc.)
-    // Toggle help bar
-    let toggle_help_bar_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ToggleHelpBar)
-        .unwrap();
-    let toggle_help_bar_row = Row::new(build_cells_for_group(
-        "Toggle help bar",
-        toggle_help_bar_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
-
     let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
 
     Table::new(
@@ -173,7 +160,6 @@ fn build_keybindings_table_for_channel<'a>(
             copy_entry_row,
             send_to_channel_row,
             switch_channels_row,
-            toggle_help_bar_row,
         ],
         widths,
     )

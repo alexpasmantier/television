@@ -84,8 +84,7 @@ pub struct Layout {
     pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
     pub input: Rect,
-    pub preview_title: Rect,
-    pub preview_window: Rect,
+    pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
 }
 
@@ -95,15 +94,13 @@ impl Layout {
         help_bar: Option<HelpBarLayout>,
         results: Rect,
         input: Rect,
-        preview_title: Rect,
-        preview_window: Rect,
+        preview_window: Option<Rect>,
         remote_control: Option<Rect>,
     ) -> Self {
         Self {
             help_bar,
             results,
             input,
-            preview_title,
             preview_window,
             remote_control,
         }
@@ -114,8 +111,8 @@ impl Layout {
         area: Rect,
         with_remote: bool,
         with_help_bar: bool,
+        with_preview: bool,
         input_position: InputPosition,
-        preview_title_position: PreviewTitlePosition,
     ) -> Self {
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
@@ -152,16 +149,16 @@ impl Layout {
             help_bar_layout = None;
         }
 
-        // split the main block into two vertical chunks
-        let constraints = if with_remote {
-            vec![
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-                Constraint::Length(24),
-            ]
-        } else {
-            vec![Constraint::Percentage(50), Constraint::Percentage(50)]
-        };
+        // split the main block into 1, 2, or 3 vertical chunks
+        // (results + preview + remote)
+        let mut constraints = vec![Constraint::Fill(1)];
+        if with_preview {
+            constraints.push(Constraint::Fill(1));
+        }
+        if with_remote {
+            // in order to fit with the help bar logo
+            constraints.push(Constraint::Length(24));
+        }
         let vt_chunks = layout::Layout::default()
             .direction(Direction::Horizontal)
             .constraints(constraints)
@@ -186,34 +183,26 @@ impl Layout {
         };
 
         // right block: preview title + preview
-        let preview_constraints =
-            vec![Constraint::Length(3), Constraint::Min(3)];
+        let mut remote_idx = 1;
+        let preview_window = if with_preview {
+            remote_idx += 1;
+            Some(vt_chunks[1])
+        } else {
+            None
+        };
 
-        let right_chunks = layout::Layout::default()
-            .direction(Direction::Vertical)
-            .constraints(match preview_title_position {
-                PreviewTitlePosition::Bottom => {
-                    preview_constraints.into_iter().rev().collect()
-                }
-                PreviewTitlePosition::Top => preview_constraints,
-            })
-            .split(vt_chunks[1]);
-        let (preview_title, preview_window) = match preview_title_position {
-            PreviewTitlePosition::Top => (right_chunks[0], right_chunks[1]),
-            PreviewTitlePosition::Bottom => (right_chunks[1], right_chunks[0]),
+        let remote_control = if with_remote {
+            Some(vt_chunks[remote_idx])
+        } else {
+            None
         };
 
         Self::new(
             help_bar_layout,
             results,
             input,
-            preview_title,
             preview_window,
-            if with_remote {
-                Some(vt_chunks[2])
-            } else {
-                None
-            },
+            remote_control,
         )
     }
 }
