@@ -163,6 +163,10 @@ toggle_preview = "ctrl-o"
 # shell history (according to your shell)
 "" = "zsh-history"
 
+# environment variables
+"export" = "env"
+"unset" = "env"
+
 # dirs channel
 "cd" = "dirs"
 "ls" = "dirs"
@@ -184,4 +188,4 @@ toggle_preview = "ctrl-o"
 "docker run" = "docker-images"
 
 # gitrepos channel
-"nvim" = "gitrepos"
+"nvim" = "git-repos"

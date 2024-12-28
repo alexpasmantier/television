@@ -67,42 +67,17 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
         })
         .collect();
 
-    // Generate lowercase mappings for the TryFrom implementation
-    let lowercase_match_arms: Vec<_> = variants
-        .iter()
-        .filter(|variant| !has_attribute(&variant.attrs, EXCLUDE_FROM_CLI))
-        .map(|variant| {
-            let variant_name = &variant.ident;
-            let lowercase_name = variant_name.to_string().to_lowercase();
-            quote! {
-                #lowercase_name => Ok(Self::#variant_name),
-            }
-        })
-        .collect();
-
     let cli_enum = quote! {
         use clap::ValueEnum;
         use serde::{Deserialize, Serialize};
-        use strum::Display;
+        use strum::{Display, EnumString};
         use std::default::Default;
 
-        #[derive(Debug, Clone, ValueEnum, Default, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
+        #[derive(Debug, Clone, ValueEnum, EnumString, Default, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
+        #[strum(serialize_all = "kebab_case")]
         pub enum CliTvChannel {
             #[default]
             #(#cli_enum_variants),*
-        }
-
-        impl std::convert::TryFrom<&str> for CliTvChannel {
-            type Error = String;
-
-            fn try_from(channel: &str) -> Result<Self, Self::Error> {
-                match channel {
-                    #(
-                        #lowercase_match_arms
-                    )*
-                    _ => Err(format!("Invalid cli channel name: {}", channel)),
-                }
-            }
         }
     };
 
@@ -331,7 +306,8 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
 
     // Generate a unit enum from the given enum
     let unit_enum = quote! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Display, EnumString)]
+        #[strum(serialize_all = "kebab_case")]
         pub enum UnitChannel {
             #(
                 #variant_names,
@@ -368,56 +344,10 @@ fn impl_unit_channel(ast: &syn::DeriveInput) -> TokenStream {
         }
     };
 
-    // Generate TryFrom<&str> implementation
-    let try_from_str_impl = quote! {
-        impl std::convert::TryFrom<&str> for UnitChannel {
-            type Error = String;
-
-            fn try_from(channel: &str) -> Result<Self, Self::Error> {
-                match channel {
-                    #(
-                        stringify!(#variant_names) => Ok(Self::#variant_names),
-                    )*
-                    _ => Err(format!("Invalid unit channel name: {}", channel)),
-                }
-            }
-        }
-    };
-
-    // Generate From<&str> implementation
-    //let from_str_impl = quote! {
-    //    impl From<&str> for UnitChannel {
-    //        fn from(channel: &str) -> Self {
-    //            match channel {
-    //                #(
-    //                    stringify!(#variant_names) => Self::#variant_names,
-    //                )*
-    //                _ => panic!("Invalid unit channel name."),
-    //            }
-    //        }
-    //    }
-    //};
-
-    // Generate Into<&str> implementation
-    let into_str_impl = quote! {
-        impl Into<&str> for UnitChannel {
-            fn into(self) -> &'static str {
-                match self {
-                    #(
-                        UnitChannel::#variant_names => stringify!(#variant_names),
-                    )*
-                }
-            }
-        }
-    };
-
     let gen = quote! {
         #unit_enum
         #into_impl
         #from_impl
-        #try_from_str_impl
-        //#from_str_impl
-        #into_str_impl
     };
 
     gen.into()
