@@ -458,6 +458,7 @@ impl Television {
                 .get(&self.mode)
                 .unwrap()
                 .get(&Action::ToggleHelp)
+                // just display the first keybinding
                 .unwrap()
                 .to_string(),
             &self
@@ -466,6 +467,7 @@ impl Television {
                 .get(&self.mode)
                 .unwrap()
                 .get(&Action::TogglePreview)
+                // just display the first keybinding
                 .unwrap()
                 .to_string(),
         )?;

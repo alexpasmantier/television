@@ -75,8 +75,8 @@ theme = "Coldark-Dark"
 # Quit the application
 quit = "esc"
 # Scrolling through entries
-select_next_entry = "down"
-select_prev_entry = "up"
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
 select_next_page = "pagedown"
 select_prev_page = "pageup"
 # Scrolling the preview pane
@@ -102,8 +102,8 @@ toggle_preview = "ctrl-o"
 # Quit the application
 quit = "esc"
 # Scrolling through entries
-select_next_entry = "down"
-select_prev_entry = "up"
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
 select_next_page = "pagedown"
 select_prev_page = "pageup"
 # Select an entry
@@ -122,8 +122,8 @@ toggle_preview = "ctrl-o"
 # Quit the application
 quit = "esc"
 # Scrolling through entries
-select_next_entry = "down"
-select_prev_entry = "up"
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
 select_next_page = "pagedown"
 select_prev_page = "pageup"
 # Select an entry
