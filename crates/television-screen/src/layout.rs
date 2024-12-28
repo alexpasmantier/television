@@ -44,7 +44,7 @@ impl HelpBarLayout {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq)]
 pub enum InputPosition {
     #[serde(rename = "top")]
     Top,

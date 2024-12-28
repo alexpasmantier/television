@@ -44,6 +44,10 @@ pub struct Cli {
     #[arg(long, value_name = "STRING")]
     pub passthrough_keybindings: Option<String>,
 
+    /// Input text to pass to the channel to prefill the prompt
+    #[arg(short, long, value_name = "STRING")]
+    pub input: Option<String>,
+
     /// The working directory to start in
     #[arg(value_name = "PATH", index = 2)]
     pub working_directory: Option<String>,
@@ -97,6 +101,7 @@ pub struct PostProcessedCli {
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
     pub passthrough_keybindings: Vec<String>,
+    pub input: Option<String>,
     pub command: Option<Command>,
     pub working_directory: Option<String>,
     pub autocomplete_prompt: Option<String>,
@@ -145,6 +150,7 @@ impl From<Cli> for PostProcessedCli {
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
+            input: cli.input,
             command: cli.command,
             working_directory,
             autocomplete_prompt: cli.autocomplete_prompt,
@@ -332,6 +338,7 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
+            input: None,
             command: None,
             working_directory: Some("/home/user".to_string()),
             autocomplete_prompt: None,
@@ -372,6 +379,7 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             passthrough_keybindings: None,
+            input: None,
             command: None,
             working_directory: None,
             autocomplete_prompt: None,

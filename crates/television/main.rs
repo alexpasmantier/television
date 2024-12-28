@@ -112,6 +112,7 @@ async fn main() -> Result<()> {
         },
         config,
         &args.passthrough_keybindings,
+        args.input,
     ) {
         Ok(mut app) => {
             stdout().flush()?;
