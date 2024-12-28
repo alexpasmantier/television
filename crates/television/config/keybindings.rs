@@ -3,14 +3,34 @@ use crate::event::{convert_raw_event_to_key, Key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use serde::{Deserialize, Deserializer};
 use std::collections::HashMap;
+use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use television_screen::mode::Mode;
 
+#[derive(Clone, Debug, Deserialize)]
+pub enum Binding {
+    SingleKey(Key),
+    MultipleKeys(Vec<Key>),
+}
+
+impl Display for Binding {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Binding::SingleKey(key) => write!(f, "{}", key),
+            Binding::MultipleKeys(keys) => {
+                let keys_str: Vec<String> =
+                    keys.iter().map(|k| k.to_string()).collect();
+                write!(f, "{}", keys_str.join(", "))
+            }
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
-pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Key>>);
+pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Binding>>);
 
 impl Deref for KeyBindings {
-    type Target = config::Map<Mode, config::Map<Action, Key>>;
+    type Target = config::Map<Mode, config::Map<Action, Binding>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -22,13 +42,20 @@ impl DerefMut for KeyBindings {
     }
 }
 
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum SerializedBinding {
+    SingleKey(String),
+    MultipleKeys(Vec<String>),
+}
+
 impl<'de> Deserialize<'de> for KeyBindings {
     fn deserialize<D>(deserializer: D) -> color_eyre::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let parsed_map =
-            HashMap::<Mode, HashMap<Action, String>>::deserialize(
+            HashMap::<Mode, HashMap<Action, SerializedBinding>>::deserialize(
                 deserializer,
             )?;
 
@@ -37,7 +64,28 @@ impl<'de> Deserialize<'de> for KeyBindings {
             .map(|(mode, inner_map)| {
                 let converted_inner_map = inner_map
                     .into_iter()
-                    .map(|(cmd, key_str)| (cmd, parse_key(&key_str).unwrap()))
+                    .map(|(cmd, binding)| {
+                        (
+                            cmd,
+                            match binding {
+                                SerializedBinding::SingleKey(key_str) => {
+                                    Binding::SingleKey(
+                                        parse_key(&key_str).unwrap(),
+                                    )
+                                }
+                                SerializedBinding::MultipleKeys(keys_str) => {
+                                    Binding::MultipleKeys(
+                                        keys_str
+                                            .iter()
+                                            .map(|key_str| {
+                                                parse_key(key_str).unwrap()
+                                            })
+                                            .collect(),
+                                    )
+                                }
+                            },
+                        )
+                    })
                     .collect();
                 (mode, converted_inner_map)
             })

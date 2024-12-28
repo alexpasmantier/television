@@ -3,8 +3,7 @@ use std::{env, path::PathBuf};
 
 use color_eyre::Result;
 use directories::ProjectDirs;
-pub use keybindings::parse_key;
-pub use keybindings::KeyBindings;
+pub use keybindings::{parse_key, Binding, KeyBindings};
 use lazy_static::lazy_static;
 use previewers::PreviewersConfig;
 use serde::Deserialize;
@@ -118,7 +117,7 @@ impl Config {
                 for (command, key) in default_bindings {
                     user_bindings
                         .entry(command.clone())
-                        .or_insert_with(|| *key);
+                        .or_insert_with(|| key.clone());
                 }
             }
 

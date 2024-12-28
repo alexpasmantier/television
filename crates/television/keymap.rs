@@ -5,7 +5,7 @@ use color_eyre::Result;
 use television_screen::mode::Mode;
 
 use crate::action::Action;
-use crate::config::KeyBindings;
+use crate::config::{Binding, KeyBindings};
 use crate::event::Key;
 
 #[derive(Default, Debug)]
@@ -23,8 +23,17 @@ impl From<&KeyBindings> for Keymap {
         let mut keymap = HashMap::new();
         for (mode, bindings) in keybindings.iter() {
             let mut mode_keymap = HashMap::new();
-            for (action, key) in bindings {
-                mode_keymap.insert(*key, action.clone());
+            for (action, binding) in bindings {
+                match binding {
+                    Binding::SingleKey(key) => {
+                        mode_keymap.insert(*key, action.clone());
+                    }
+                    Binding::MultipleKeys(keys) => {
+                        for key in keys {
+                            mode_keymap.insert(*key, action.clone());
+                        }
+                    }
+                }
             }
             keymap.insert(*mode, mode_keymap);
         }
