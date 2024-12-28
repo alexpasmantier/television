@@ -85,6 +85,7 @@ impl App {
         channel: TelevisionChannel,
         config: Config,
         passthrough_keybindings: &[String],
+        input: Option<String>,
     ) -> Result<Self> {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, _) = mpsc::unbounded_channel();
@@ -104,7 +105,7 @@ impl App {
         )?;
         debug!("{:?}", keymap);
         let television =
-            Arc::new(Mutex::new(Television::new(channel, config)));
+            Arc::new(Mutex::new(Television::new(channel, config, input)));
 
         Ok(Self {
             keymap,

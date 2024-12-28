@@ -56,11 +56,15 @@ pub struct Television {
 
 impl Television {
     #[must_use]
-    pub fn new(mut channel: TelevisionChannel, config: Config) -> Self {
-        let results_picker = match config.ui.input_bar_position {
-            InputPosition::Bottom => Picker::default().inverted(),
-            InputPosition::Top => Picker::default(),
-        };
+    pub fn new(
+        mut channel: TelevisionChannel,
+        config: Config,
+        input: Option<String>,
+    ) -> Self {
+        let mut results_picker = Picker::new(input.clone());
+        if config.ui.input_bar_position == InputPosition::Bottom {
+            results_picker = results_picker.inverted();
+        }
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
         let keymap = Keymap::from(&config.keybindings);
         let builtin_channels = load_builtin_channels();
@@ -79,7 +83,7 @@ impl Television {
         );
         let colorscheme = (&Theme::from_name(&config.ui.theme)).into();
 
-        channel.find(EMPTY_STRING);
+        channel.find(&input.unwrap_or(EMPTY_STRING.to_string()));
         let spinner = Spinner::default();
         Self {
             action_tx: None,
