@@ -1,4 +1,6 @@
-use crate::cable::CableChannelPrototype;
+use std::collections::HashSet;
+
+use crate::cable::{CableChannelPrototype, DEFAULT_DELIMITER};
 use crate::channels::OnAir;
 use crate::entry::{Entry, PreviewCommand, PreviewType};
 use television_fuzzy::{
@@ -12,7 +14,7 @@ pub struct Channel {
     name: String,
     matcher: Matcher<String>,
     entries_command: String,
-    preview_command: PreviewCommand,
+    preview_command: Option<PreviewCommand>,
 }
 
 impl Default for Channel {
@@ -20,7 +22,7 @@ impl Default for Channel {
         Self::new(
             "Files",
             "find . -type f",
-            PreviewCommand::new("bat -n --color=always {}", ":"),
+            Some(PreviewCommand::new("bat -n --color=always {}", ":")),
         )
     }
 }
@@ -30,10 +32,15 @@ impl From<CableChannelPrototype> for Channel {
         Self::new(
             &prototype.name,
             &prototype.source_command,
-            PreviewCommand::new(
-                &prototype.preview_command,
-                &prototype.preview_delimiter,
-            ),
+            match prototype.preview_command {
+                Some(command) => Some(PreviewCommand::new(
+                    &command,
+                    &prototype
+                        .preview_delimiter
+                        .unwrap_or(DEFAULT_DELIMITER.to_string()),
+                )),
+                None => None,
+            },
         )
     }
 }
@@ -42,7 +49,7 @@ impl Channel {
     pub fn new(
         name: &str,
         entries_command: &str,
-        preview_command: PreviewCommand,
+        preview_command: Option<PreviewCommand>,
     ) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
@@ -65,7 +72,7 @@ async fn load_candidates(command: String, injector: Injector<String>) {
 
     let decoded_output = String::from_utf8(output.stdout).unwrap();
 
-    for line in decoded_output.lines() {
+    for line in decoded_output.lines().collect::<HashSet<_>>() {
         if !line.trim().is_empty() {
             let () = injector.push(line.to_string(), |e, cols| {
                 cols[0] = e.clone().into();
@@ -88,7 +95,13 @@ impl OnAir for Channel {
                 let path = item.matched_string;
                 Entry::new(
                     path.clone(),
-                    PreviewType::Command(self.preview_command.clone()),
+                    match self.preview_command {
+                        Some(ref preview_command) => {
+                            // custom logic to parse builtins
+                            PreviewType::Command(preview_command.clone())
+                        }
+                        None => PreviewType::None,
+                    },
                 )
                 .with_name_match_ranges(item.match_indices)
             })
@@ -100,7 +113,13 @@ impl OnAir for Channel {
             let path = item.matched_string;
             Entry::new(
                 path.clone(),
-                PreviewType::Command(self.preview_command.clone()),
+                match self.preview_command {
+                    Some(ref preview_command) => {
+                        // custom logic to parse builtins
+                        PreviewType::Command(preview_command.clone())
+                    }
+                    None => PreviewType::None,
+                },
             )
         })
     }
