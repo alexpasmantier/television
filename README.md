@@ -16,9 +16,38 @@
 </div>
 
 ## About
-`Television` is a blazingly fast general purpose fuzzy finder TUI.
+`Television` is a blazing fast general purpose fuzzy finder TUI.
 
-It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and is designed to be fast, efficient, simple to use and easily extensible. It is built on top of [tokio](https://github.com/tokio-rs/tokio), [ratatui](https://github.com/ratatui/ratatui) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor.
+It lets you search in no time through any kind of data source (files, git repositories, environment variables, docker
+images, you name it!) using a fuzzy matching algorithm and is designed to be easily extensible.
+
+
+It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to achieve high performance.
+
+## Features
+- ⚡️ **High Speed**: uses async I/O as well as multithreading to keep the UI highly responsive.
+
+- 🧠 **Fuzzy Matching**: state of the art fuzzy matching library to filter through lists of entries.
+
+- 🔋 **Batteries Included**: comes with a set of builtin channels and previewers that you can start using out of the box.
+
+- 🐚 **Shell Integration**: allows you to easily integrate `television` with your shell to benefit from smart completion anywhere.
+
+- 📺 **Channels**: designed around the concept of channels, which are a set of builtin data sources that you can search through (e.g. files, git repositories, environment variables, etc.).
+
+- 📡 **Cable Channels**: users may add their own custom channels to tv using a simple configuration file.
+
+- 📜 **Previewers**: allows you to preview the contents of an entry in a separate pane.
+
+- 🖼️ **Builtin Syntax Highlighting**: tv comes with builtin asynchronous syntax highlighting for a variety of file types.
+
+- 🎛️ **Keybindings**: tv comes with a set of sensible default keybindings based on vi and other popular terminal shortcuts.
+
+- 🌈 **Themes**: tv comes with a variety of themes that you can choose from, and you can easily craft your own.
+
+- 📦 **Cross-platform**: tv is cross-platform and should work on any platform that supports Rust.
+
+- ✅ **Terminal Emulator Compatibility**: tv has been tested with a variety of terminal emulators and should just work on most.
 
 
 ## Installation
@@ -86,20 +115,21 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
   ```
 </details>
 
-### Shell integration (currently only zsh)
+### Shell integration
+
 To enable shell integration, run:
 ```bash
 echo 'eval "$(tv init zsh)"' >> ~/.zshrc
 ```
-And then restart your shell.
+And then restart your shell. Hitting <kbd>Ctrl-T</kbd> in your shell will now provide you with smart completion powered
+by `television`.
+
+*Support for other shells is coming soon.*
 
 
 ## Usage
 ```bash
-tv [channel] #[default: files] [possible values: env, files, gitrepos, text, alias]
-
-# e.g. to search through files
-tv files
+tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
 
 # e.g. to search through environment variables
 tv env
@@ -116,63 +146,7 @@ By default, `television` will launch with the `files` channel on.
 |:--:|
 | *`tv`'s `files` channel running on the *curl* codebase* |
 
-## 📺 Built-in Channels
-The following built-in channels are currently available:
-- `files`: search through files in a directory tree.
-- `text`: search through textual content in a directory tree.
-- `gitrepos`: search through git repositories anywhere on the file system.
-- `env`: search through environment variables and their values.
-- `alias`: search through shell aliases and their values.
-- `stdin`: search through lines of text from stdin.
-
-## 🍿 Cable channels
-*Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
-
-You can find a list of cable channels ideas [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels).
-
-### Installing cable channels
-Installing cable channels is as simple as creating provider files in your configuration folder.
-
-A provider file is a `*channels.toml` file that contains cable channel prototypes defined as follows:
-
-**my-custom-channels.toml**
-```toml
-[[cable_channel]]
-name = "git-log"
-source_command = 'git log --oneline --date=short --pretty="format:%h %s %an %cd" "$@"'
-preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
-
-[[cable_channel]]
-name = "my-dotfiles"
-source_command = 'fd -t f . $HOME/.config'
-preview_command = 'bat -n --color=always {0}'
-```
-
-This would add two new cable channels to `television` available:
-- using the remote control mode
-- through the cli (e.g. `tv git-log`, `tv my-dotfiles`)
-
-![cable channels](./assets/cable_channels.png "Cable channels")
-
-<details>
-
-  <summary>Deciding which part of the source command output to pass to the previewer:</summary>
-
-  By default, each line of the source command can be passed to the previewer using `{}`. 
-
-  If you wish to pass only a part of the output to the previewer, you may do so by specifying the `preview_delimiter` to use as a separator and refering to the desired part using the corresponding index.
-
-  **Example:**
-  ```toml
-  [[cable_channel]]
-  name = "Disney channel"
-  source_command = 'echo "one:two:three:four" && echo "five:six:seven:eight"'
-  preview_command = 'echo {2}'
-  preview_delimiter = ':'
-  # which will pass "three" and "seven" to the preview command
-  ```
-
-</details>
+*For more information on the different channels, see the [channels](./channels.md) documentation.*
 
 
 ## Keybindings
@@ -193,7 +167,10 @@ These keybindings are all configurable (see [Configuration](#configuration)).
 
 
 ## Configuration
-Default (may be overriden) locations where `television` expect the configuration files to be located for each platform:
+
+**Default configuration: [config.toml](./.config/config.toml)**
+
+Locations where `television` expects the configuration files to be located for each platform:
 
 |Platform|Value|
 |--------|:-----:|
@@ -202,20 +179,16 @@ Default (may be overriden) locations where `television` expect the configuration
 |Windows|`{FOLDERID_LocalAppData}\television\config`|
 
 Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
-`$XDG_CONFIG_HOME/television/config.toml` if the env variable is set.
-
-**Default configuration: [config.toml](./.config/config.toml)**
+`$XDG_CONFIG_HOME/television/config.toml` if the environment variable is set.
 
 ## Themes
-Builtin themes are available in the [themes](./themes) directory. Feel free to contribute your own.
+Builtin themes are available in the [themes](./themes) directory. Feel free to experiment and maybe even contribute your own!
 
-A few examples:
 | ![catppuccin](./assets/catppuccin.png "catppuccin") catppuccin | ![gruvbox](./assets/gruvbox.png "gruvbox") gruvbox-dark |
 |:--:|:--:|
 | ![solarized-dark](./assets/solarized-dark.png "gruvbox-light") **solarized-dark** | ![nord](./assets/nord.png "nord") **nord** |
 
-You may use your own custom themes by adding files to the `themes` directory in your configuration folder and then
-referring to them by file name through the configuration file.
+You may create your own custom themes by adding them to the `themes` directory in your configuration folder and then referring to them by file name (without the extension) in the configuration file.
 ```
 config_location/
 ├── themes/
@@ -223,9 +196,8 @@ config_location/
 └── config.toml
 ```
 
-## Matcher behavior
-`television` uses a fuzzy matching algorithm to filter the list of entries. The algorithm that is used depends on the
-input pattern that you provide.
+## Search Patterns
+`television` uses a fuzzy matching algorithm to filter the list of entries. Its behavior depends on the input pattern you provide.
 
 | Matcher | Pattern |
 | --- | :---: |
@@ -237,32 +209,6 @@ input pattern that you provide.
 
 For more information on the matcher behavior, see the
 [nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
-## Design (high-level)
-#### Channels
-**Television**'s design is primarily based on the concept of **Channels**.
-Channels are just structs that implement the `OnAir` trait. 
-
-As such, channels can virtually be anything that can respond to a user query and return a result under the form of a list of entries. This means channels can be anything from conventional data sources you might want to search through (like files, git repositories, remote filesystems, environment variables etc.) to more exotic implementations that might inclue a REPL, a calculator, a web browser, search through your spotify library, your email, etc.
-
-
-
-**Television** provides a set of built-in **Channels** that can be used out of the box (see [Built-in Channels](#built-in-channels)). The list of available channels
-will grow over time as new channels are implemented to satisfy different use cases. 
-
-
-#### Transitions
-When it makes sense, **Television** allows for transitions between different channels. For example, you might want to
-start searching through git repositories, then refine your search to a specific set of files in that shortlist of
-repositories and then finally search through the textual content of those files.
-
-This can easily be achieved using transitions.
-
-#### Previewers
-Entries returned by different channels can be previewed in a separate pane. This is useful when you want to see the
-contents of a file, the value of an environment variable, etc. Because entries returned by different channels may
-represent different types of data, **Television** allows for channels to declare the type of previewer that should be
-used. Television comes with a set of built-in previewers that can be used out of the box and will grow over time.
-
 
 ## Terminal Emulators Compatibility
 Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
@@ -272,6 +218,7 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | Alacritty | macOS, Linux | ✅ |
 | Kitty | macOS, Linux | ✅ |
 | iTerm2 | macOS | ✅ |
+| Ghostty | macOS | ✅ |
 | Wezterm | macOS, Linux, Windows | ✅ |
 | macOS Terminal | macOS | functional but coloring issues |
 | Konsole | Linux | ✅ |
