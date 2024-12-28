@@ -45,6 +45,7 @@ pub struct App {
 #[derive(Debug)]
 pub enum ActionOutcome {
     Entry(Entry),
+    Input(String),
     Passthrough(Entry, String),
     None,
 }
@@ -62,6 +63,10 @@ impl From<ActionOutcome> for AppOutput {
             ActionOutcome::Entry(entry) => Self {
                 selected_entry: Some(entry),
                 passthrough: None,
+            },
+            ActionOutcome::Input(input) => Self {
+                selected_entry: None,
+                passthrough: Some(input),
             },
             ActionOutcome::Passthrough(entry, key) => Self {
                 selected_entry: Some(entry),
@@ -261,7 +266,9 @@ impl App {
                     {
                         return Ok(ActionOutcome::Entry(entry));
                     }
-                    return Ok(ActionOutcome::None);
+                    return Ok(ActionOutcome::Input(
+                        self.television.lock().await.current_pattern.clone(),
+                    ));
                 }
                 Action::SelectPassthrough(passthrough) => {
                     self.should_quit = true;

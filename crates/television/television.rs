@@ -38,7 +38,7 @@ pub struct Television {
     pub(crate) channel: TelevisionChannel,
     pub(crate) remote_control: TelevisionChannel,
     pub mode: Mode,
-    current_pattern: String,
+    pub current_pattern: String,
     pub(crate) results_picker: Picker,
     pub(crate) rc_picker: Picker,
     results_area_height: u32,
@@ -358,6 +358,11 @@ impl Television {
                             self.change_channel(new_channel);
                         }
                     }
+                } else {
+                    self.action_tx
+                        .as_ref()
+                        .unwrap()
+                        .send(Action::SelectAndExit)?;
                 }
             }
             Action::CopyEntryToClipboard => {
