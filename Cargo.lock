@@ -3027,6 +3027,7 @@ dependencies = [
  "eyre",
  "ignore",
  "lazy_static",
+ "regex",
  "serde",
  "strum",
  "television-derive",
