@@ -164,6 +164,7 @@ pub enum PreviewType {
     EnvVar,
     Files,
     Command(PreviewCommand),
+    None,
 }
 
 #[cfg(test)]

@@ -8,15 +8,15 @@ use std::{
 pub struct CableChannelPrototype {
     pub name: String,
     pub source_command: String,
-    pub preview_command: String,
+    pub preview_command: Option<String>,
     #[serde(default = "default_delimiter")]
-    pub preview_delimiter: String,
+    pub preview_delimiter: Option<String>,
 }
 
-const DEFAULT_DELIMITER: &str = " ";
+pub const DEFAULT_DELIMITER: &str = " ";
 
-fn default_delimiter() -> String {
-    DEFAULT_DELIMITER.to_string()
+fn default_delimiter() -> Option<String> {
+    Some(DEFAULT_DELIMITER.to_string())
 }
 
 impl Display for CableChannelPrototype {
