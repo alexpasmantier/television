@@ -1,6 +1,7 @@
 use std::{fmt::Display, path::PathBuf};
 
 use devicons::FileIcon;
+use strum::EnumString;
 
 // NOTE: having an enum for entry types would be nice since it would allow
 // having a nicer implementation for transitions between channels. This would
@@ -136,7 +137,7 @@ pub const ENTRY_PLACEHOLDER: Entry = Entry {
     preview_type: PreviewType::EnvVar,
 };
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct PreviewCommand {
     pub command: String,
     pub delimiter: String,
@@ -157,12 +158,14 @@ impl Display for PreviewCommand {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, EnumString)]
+#[strum(serialize_all = "snake_case")]
 pub enum PreviewType {
     #[default]
     Basic,
     EnvVar,
     Files,
+    #[strum(disabled)]
     Command(PreviewCommand),
     None,
 }

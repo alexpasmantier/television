@@ -30,15 +30,13 @@ preview_command = "aws s3 ls s3://{0}"
 [[cable_channel]]
 name = "my-dotfiles"
 source_command = "fd -t f . $HOME/.config"
-preview_command = "bat -n --color=always {0}"
+preview_command = ":files:"
 
 # Shell history
 [[cable_channel]]
 name = "zsh-history"
 source_command = "tac $HOME/.zsh_history | cut -d\";\" -f 2-"
-preview_command = "echo '{}'"
 
 [[cable_channel]]
 name = "bash-history"
 source_command = "tac $HOME/.bash_history"
-preview_command = "echo '{}'"

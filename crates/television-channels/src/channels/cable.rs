@@ -1,4 +1,8 @@
+use color_eyre::Result;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::collections::HashSet;
+use tracing::debug;
 
 use crate::cable::{CableChannelPrototype, DEFAULT_DELIMITER};
 use crate::channels::OnAir;
@@ -9,12 +13,19 @@ use television_fuzzy::{
 };
 use television_utils::command::shell_command;
 
+#[derive(Debug, Clone)]
+enum PreviewKind {
+    Command(PreviewCommand),
+    Builtin(PreviewType),
+    None,
+}
+
 #[allow(dead_code)]
 pub struct Channel {
     name: String,
     matcher: Matcher<String>,
     entries_command: String,
-    preview_command: Option<PreviewCommand>,
+    preview_kind: PreviewKind,
 }
 
 impl Default for Channel {
@@ -45,6 +56,20 @@ impl From<CableChannelPrototype> for Channel {
     }
 }
 
+lazy_static! {
+    static ref BUILTIN_PREVIEW_RE: Regex = Regex::new(r"^:(\w+):$").unwrap();
+}
+
+fn parse_preview_kind(command: &PreviewCommand) -> Result<PreviewKind> {
+    debug!("Parsing preview kind for command: {:?}", command);
+    if let Some(captures) = BUILTIN_PREVIEW_RE.captures(&command.command) {
+        let preview_type = PreviewType::try_from(&captures[1])?;
+        Ok(PreviewKind::Builtin(preview_type))
+    } else {
+        Ok(PreviewKind::Command(command.clone()))
+    }
+}
+
 impl Channel {
     pub fn new(
         name: &str,
@@ -54,10 +79,19 @@ impl Channel {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         tokio::spawn(load_candidates(entries_command.to_string(), injector));
+        let preview_kind = match preview_command {
+            Some(command) => {
+                parse_preview_kind(&command).unwrap_or_else(|_| {
+                    panic!("Invalid preview command: {command}")
+                })
+            }
+            None => PreviewKind::None,
+        };
+        debug!("Preview kind: {:?}", preview_kind);
         Self {
             matcher,
             entries_command: entries_command.to_string(),
-            preview_command,
+            preview_kind,
             name: name.to_string(),
         }
     }
@@ -95,12 +129,14 @@ impl OnAir for Channel {
                 let path = item.matched_string;
                 Entry::new(
                     path.clone(),
-                    match self.preview_command {
-                        Some(ref preview_command) => {
-                            // custom logic to parse builtins
+                    match &self.preview_kind {
+                        PreviewKind::Command(ref preview_command) => {
                             PreviewType::Command(preview_command.clone())
                         }
-                        None => PreviewType::None,
+                        PreviewKind::Builtin(preview_type) => {
+                            preview_type.clone()
+                        }
+                        PreviewKind::None => PreviewType::None,
                     },
                 )
                 .with_name_match_ranges(item.match_indices)
@@ -113,12 +149,12 @@ impl OnAir for Channel {
             let path = item.matched_string;
             Entry::new(
                 path.clone(),
-                match self.preview_command {
-                    Some(ref preview_command) => {
-                        // custom logic to parse builtins
+                match &self.preview_kind {
+                    PreviewKind::Command(ref preview_command) => {
                         PreviewType::Command(preview_command.clone())
                     }
-                    None => PreviewType::None,
+                    PreviewKind::Builtin(preview_type) => preview_type.clone(),
+                    PreviewKind::None => PreviewType::None,
                 },
             )
         })
