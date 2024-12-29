@@ -1,6 +1,6 @@
 [package]
 name = "television-utils"
-version = "0.0.12"
+version = "0.0.14"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -17,7 +17,9 @@ ignore = "0.4.23"
 lazy_static = "1.5.0"
 tracing = "0.1.40"
 color-eyre = "0.6.3"
-bat = { version = "0.24.0", default-features = false, features = ["regex-onig"] }
+bat = { version = "0.24.0", default-features = false, features = [
+  "regex-onig",
+] }
 directories = "5.0.1"
 syntect = "5.2.0"
 gag = "1.0.0"

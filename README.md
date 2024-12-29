@@ -74,8 +74,8 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
   </summary>
     
   ```bash
-  curl -LO https://github.com/alexpasmantier/television/releases/download/0.7.0/television_0.7.0-1_amd64.deb
-  sudo dpkg -i television_0.7.0-1_amd64.deb
+  curl -LO https://github.com/alexpasmantier/television/releases/download/0.8.0/television_0.8.0-1_amd64.deb
+  sudo dpkg -i television_0.8.0-1_amd64.deb
   ```
     
 </details>

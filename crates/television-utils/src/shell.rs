@@ -9,7 +9,7 @@ pub enum Shell {
     Cmd,
 }
 
-const COMPLETION_ZSH: &str = include_str!("../../../shell/completion.zsh");
+const COMPLETION_ZSH: &str = include_str!("../shell/completion.zsh");
 
 pub fn completion_script(shell: Shell) -> Result<&'static str> {
     match shell {
