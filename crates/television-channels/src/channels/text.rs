@@ -13,7 +13,7 @@ use television_utils::files::{walk_builder, DEFAULT_NUM_THREADS};
 use television_utils::strings::{
     proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
 };
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 #[derive(Debug, Clone)]
 struct CandidateLine {
@@ -294,15 +294,18 @@ fn try_inject_lines(
             let mut buffer = [0u8; 128];
             match reader.read(&mut buffer) {
                 Ok(bytes_read) => {
-                    if (bytes_read == 0)
-                        || proportion_of_printable_ascii_characters(&buffer)
-                            < PRINTABLE_ASCII_THRESHOLD
+                    if bytes_read == 0
+                        || proportion_of_printable_ascii_characters(
+                            &buffer[..bytes_read],
+                        ) < PRINTABLE_ASCII_THRESHOLD
                     {
+                        debug!("Skipping non-text file {:?}", path);
                         return None;
                     }
                     reader.seek(std::io::SeekFrom::Start(0)).unwrap();
                 }
-                Err(_) => {
+                Err(e) => {
+                    warn!("Error reading file {:?}: {:?}", path, e);
                     return None;
                 }
             }
@@ -314,7 +317,7 @@ fn try_inject_lines(
                     Ok(l) => {
                         line_number += 1;
                         if l.is_empty() {
-                            debug!("Empty line");
+                            trace!("Empty line");
                             continue;
                         }
                         let candidate = CandidateLine::new(
