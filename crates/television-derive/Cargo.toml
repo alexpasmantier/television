@@ -1,6 +1,6 @@
 [package]
 name = "television-derive"
-version = "0.0.14"
+version = "0.0.15"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
