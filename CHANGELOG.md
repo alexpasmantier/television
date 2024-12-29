@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.8.0] - 2024-12-29
 
 ### 🚀 Features
 
@@ -36,6 +36,8 @@ All notable changes to this project will be documented in this file.
 - *(changelog)* Update changelog (auto) (#141)
 - *(changelog)* Update changelog (auto) (#146)
 - *(changelog)* Update changelog (auto) (#154)
+- Bump to 0.8.0 (#165)
+- Include cable channels (#166)
 
 ## [0.7.1] - 2024-12-15
 
