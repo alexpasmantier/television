@@ -71,7 +71,10 @@ fd -t f . | tv --preview 'bat -n --color=always {0}'
 
 Television can also integrate with your shell to provide autocompletion based on the commands you start typing. See [Shell Autocompletion](https://github.com/alexpasmantier/television/wiki/Shell-Autocomletion).
 
-https://github.com/user-attachments/assets/4151ea30-3b42-42e3-9fbd-0a5c5e9ba1c7
+
+
+https://github.com/user-attachments/assets/395f17f6-14b9-4015-a50a-648259d9f253
+
 
 
 ## Keybindings
