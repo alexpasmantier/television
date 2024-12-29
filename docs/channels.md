@@ -34,7 +34,7 @@ This would add two new cable channels to `television` available:
 - using the remote control mode
 - through the cli (e.g. `tv git-log`, `tv my-dotfiles`)
 
-![cable channels](./assets/cable_channels.png "Cable channels")
+![cable channels](../assets/cable_channels.png "Cable channels")
 
 <details>
 
