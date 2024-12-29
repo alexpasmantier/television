@@ -141,9 +141,9 @@ fd -t f . | tv --preview 'bat -n --color=always {0}'
 
 ```
 By default, `television` will launch with the `files` channel on.
-| <img width="2213" alt="Screenshot 2024-11-10 at 15 04 20" src="https://github.com/user-attachments/assets/a0fd70a9-ea26-452a-b235-cbce8aeed67f"> |
-|:--:|
-| *`tv`'s `files` channel running on the *curl* codebase* |
+
+![the files channel](./assets/tv-files-broadcom.png)
+ *`tv`'s `files` channel running on the *linux* codebase* 
 
 *For more information on the different channels, see the [channels](./channels.md) documentation.*
 
