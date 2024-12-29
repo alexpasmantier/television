@@ -24,15 +24,15 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 
 ## Features
-- ⚡️ **High Speed**: utilizes async I/O and multithreading to maintain a smooth and responsive UI.
+- ⚡️ **High Speed**: asynchronous I/O and multithreading to ensure a smooth and responsive UI.
 
-- 🧠 **Fuzzy Matching**: cutting-edge fuzzy matching library for efficiently filtering through lists of entries
+- 🧠 **Fuzzy Matching**: cutting-edge fuzzy matching library for efficiently filtering through lists of entries.
 
 - 🔋 **Batteries Included**: comes with a set of builtin channels and previewers that you can start using out of the box.
 
-- 🐚 **Shell Integration**: allows you to easily integrate `television` with your shell to benefit from smart completion anywhere.
+- 🐚 **Shell Integration**: benefit from smart completion anywhere using `television`'s shell integration.
 
-- 📺 **Channels**: designed around the concept of channels, which are a set of builtin data sources that you can search through (e.g. files, git repositories, environment variables, etc.).
+- 📺 **Channels**: designed around the concept of channels, which are a set of builtin data sources that you can search through (e.g. files, git repositories, environment variables, etc).
 
 - 📡 **Cable Channels**: users may add their own custom channels to tv using a simple and centralized configuration file.
 
@@ -40,13 +40,13 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 - 🖼️ **Builtin Syntax Highlighting**: comes with builtin asynchronous syntax highlighting for a wide variety of file types.
 
-- 🎛️ **Keybindings**: includes a set of intuitive default keybindings inspired by vi and other popular terminal shortcuts.
+- 🎛️ **Keybindings**: includes a set of intuitive default keybindings inspired by vim and other popular terminal shortcuts.
 
-- 🌈 **Themes**: offers a variety of themes to choose from, with the flexibility to create your own effortlessly.
+- 🌈 **Themes**: either use one of the 10 builtin themes or create your own easily.
 
-- 📦 **Cross-platform**: cross-platform and works seamlessly on any system that supports Rust.
+- 📦 **Cross-platform**: works on Linux, MacOS and Windows.
 
-- ✅ **Terminal Emulator Compatibility**: tested with various terminal emulators and is designed to work smoothly on most of them.
+- ✅ **Terminal Emulator Compatibility**: television works flawlessly on all major terminal emulators.
 
 
 ## Installation
