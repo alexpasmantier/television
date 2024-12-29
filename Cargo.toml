@@ -22,6 +22,7 @@ include = [
   "crates/television/**/*.rs",
   "build.rs",
   ".config/config.toml",
+  "cable",
 ]
 rust-version = "1.81"
 
