@@ -50,80 +50,7 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 
 ## Installation
-<details>  
-<summary>Homebrew</summary>
-    
-  ```bash
-  brew install television
-  ```
-
-</details>
-<details>
-  <summary>
-    Arch Linux
-  </summary>
-
-  ```bash
-  pacman -S television
-  ```
-
-</details>
-<details>
-  <summary>
-    Debian-based (Debian, Ubuntu, Pop!_OS, Linux Mint, etc.)
-  </summary>
-    
-  ```bash
-  curl -LO https://github.com/alexpasmantier/television/releases/download/0.8.0/television_0.8.0-1_amd64.deb
-  sudo dpkg -i television_0.8.0-1_amd64.deb
-  ```
-    
-</details>
-<details>
-  <summary>
-    Conda-forge (cross-platform)
-  </summary>
-  
-  ```bash
-  pixi global install television
-  ```
-</details>
-<details>
-  <summary>
-    Binary
-  </summary>
-  
-  From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page:
-  - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
-  - Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
-
-</details>
-<details>
-  <summary>
-    Cargo
-  </summary>
-
-  Setup the latest stable Rust toolchain via rustup:
-  ```bash
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  rustup update
-  ```
-  Install `television`:
-  ```bash
-  cargo install --locked television
-  ```
-</details>
-
-### Shell integration
-
-To enable shell integration, run:
-```bash
-echo 'eval "$(tv init zsh)"' >> ~/.zshrc
-```
-And then restart your shell. Hitting <kbd>Ctrl-T</kbd> in your shell will now provide you with smart completion powered
-by `television`.
-
-*Support for other shells is coming soon.*
+See the [installation docs](https://github.com/alexpasmantier/television/wiki/Installation).
 
 
 ## Usage
@@ -140,12 +67,11 @@ my_program | tv
 fd -t f . | tv --preview 'bat -n --color=always {0}'
 
 ```
-By default, `television` will launch with the `files` channel on.
-
-![the files channel](./assets/tv-files-broadcom.png)
- *`tv`'s `files` channel running on the *linux* codebase* 
-
 *For more information on the different channels, see the [channels](./docs/channels.md) documentation.*
+
+Television can also integrate with your shell to provide autocompletion based on the commands you start typing. See [Shell Autocompletion](https://github.com/alexpasmantier/television/wiki/Shell-Autocomletion).
+
+https://github.com/user-attachments/assets/4151ea30-3b42-42e3-9fbd-0a5c5e9ba1c7
 
 
 ## Keybindings
@@ -153,13 +79,14 @@ Default keybindings are as follows:
 
 | Key | Description |
 | :---: | ----------- |
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate through the list of entries |
+| <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>p</kbd> / <kbd>n</kbd> or <kbd>Ctrl</kbd> + <kbd>k</kbd> / <kbd>j</kbd> | Navigate through the list of entries |
 | <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
 | <kbd>Enter</kbd> | Select the current entry |
 | <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
 | <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
 | <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
 | <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
+| <kbd>Ctrl</kbd> + <kbd>o</kbd> | Toggle the preview panel |
 | <kbd>Esc</kbd> | Quit the application |
 
 These keybindings are all configurable (see [Configuration](#configuration)).
