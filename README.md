@@ -145,7 +145,7 @@ By default, `television` will launch with the `files` channel on.
 ![the files channel](./assets/tv-files-broadcom.png)
  *`tv`'s `files` channel running on the *linux* codebase* 
 
-*For more information on the different channels, see the [channels](./channels.md) documentation.*
+*For more information on the different channels, see the [channels](./docs/channels.md) documentation.*
 
 
 ## Keybindings
