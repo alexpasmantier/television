@@ -285,6 +285,7 @@ impl Television {
                 match action {
                     Action::AddInputChar(_)
                     | Action::DeletePrevChar
+                    | Action::DeletePrevWord
                     | Action::DeleteNextChar => {
                         let new_pattern = input.value().to_string();
                         if new_pattern != self.current_pattern {
