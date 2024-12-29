@@ -9,9 +9,7 @@
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/television)
 
-| ![television.png](https://github.com/user-attachments/assets/cffc3556-c9f3-4704-8303-8bddf661d139) | 
-|:--:| 
-| *The revolution will (not) be televised.* |
+![tv on the linux codebase](./assets/tv-linux-gamepad.png "tv running on the linux codebase")
 
 </div>
 
@@ -23,6 +21,7 @@ images, you name it) using a fuzzy matching algorithm and is designed to be easi
 
 
 It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
+
 
 ## Features
 - ⚡️ **High Speed**: utilizes async I/O and multithreading to maintain a smooth and responsive UI.
