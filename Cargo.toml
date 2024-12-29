@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.7.1"
+version = "0.8.0"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -10,18 +10,18 @@ repository = "https://github.com/alexpasmantier/television"
 homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-    "command-line-utilities",
-    "command-line-interface",
-    "concurrency",
-    "development-tools",
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
 ]
 include = [
-    "LICENSE",
-    "README.md",
-    "themes/**/*.toml",
-    "crates/television/**/*.rs",
-    "build.rs",
-    ".config/config.toml",
+  "LICENSE",
+  "README.md",
+  "themes/**/*.toml",
+  "crates/television/**/*.rs",
+  "build.rs",
+  ".config/config.toml",
 ]
 rust-version = "1.81"
 
@@ -38,12 +38,18 @@ repository = "https://github.com/alexpasmantier/television"
 homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-    "command-line-utilities",
-    "command-line-interface",
-    "concurrency",
-    "development-tools",
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
 ]
-include = ["LICENSE", "README.md", "crates/television/**/*.rs", "build.rs"]
+include = [
+  "LICENSE",
+  "README.md",
+  "crates/television/**/*.rs",
+  "build.rs",
+  "shell/**/*.sh",
+]
 rust-version = "1.81"
 readme = "README.md"
 
@@ -56,12 +62,12 @@ name = "tv"
 [dependencies]
 # workspace dependencies
 
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.12" }
-television-derive = { path = "crates/television-derive", version = "0.0.12" }
-television-screen = { path = "crates/television-screen", version = "0.0.12" }
-television-channels = { path = "crates/television-channels", version = "0.0.12" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.12" }
-television-utils = { path = "crates/television-utils", version = "0.0.12" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.14" }
+television-derive = { path = "crates/television-derive", version = "0.0.14" }
+television-screen = { path = "crates/television-screen", version = "0.0.14" }
+television-channels = { path = "crates/television-channels", version = "0.0.14" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.14" }
+television-utils = { path = "crates/television-utils", version = "0.0.14" }
 
 # external dependencies
 better-panic = "0.3.0"

@@ -13,20 +13,29 @@ All notable changes to this project will be documented in this file.
 - *(input)* Bind ctrl-w to delete previous word (#150)
 - *(ux)* Print current query to stdout on Enter if no entry is selected (#151)
 - *(cli)* Allow passing --input <STRING> to prefill input prompt (#153)
+- *(cable)* Make preview optional for cable channels (#155)
+- *(cable)* Using builtin previewers inside cable channel prototypes (#156)
 
 ### 🚜 Refactor
 
 - *(ui)* More compact general layout and make preview panel optional (#148)
+- Update default configuration and simplify channel enum conversions (#157)
+- *(cable)* Use tail instead of tac for zsh and bash command history channels (#161)
 
 ### 📚 Documentation
 
 - *(readme)* Make channel names consistent everywhere (#138)
+- Rearrange README, add a features section, and move more technical stuff to separate files (#159)
+- Update readme (#160)
+- Replace top image with a screenshot of the application (#163)
+- Update README with more legible screenshot of the files channel (#164)
 
 ### ⚙️ Miscellaneous Tasks
 
 - *(changelog)* Update changelog (auto) (#131)
 - *(changelog)* Update changelog (auto) (#141)
 - *(changelog)* Update changelog (auto) (#146)
+- *(changelog)* Update changelog (auto) (#154)
 
 ## [0.7.1] - 2024-12-15
 
