@@ -10,9 +10,11 @@ pub enum Shell {
 }
 
 const COMPLETION_ZSH: &str = include_str!("../shell/completion.zsh");
+const COMPLETION_BASH: &str = include_str!("../shell/completion.bash");
 
 pub fn completion_script(shell: Shell) -> Result<&'static str> {
     match shell {
+        Shell::Bash => Ok(COMPLETION_BASH),
         Shell::Zsh => Ok(COMPLETION_ZSH),
         _ => color_eyre::eyre::bail!(
             "This shell is not yet supported: {:?}",
