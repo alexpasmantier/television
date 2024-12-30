@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1] - 2024-12-29
+
+### 🐛 Bug Fixes
+
+- *(channels)* Use the number of actual bytes read and not the sample buffer size when calculating the proportion of printable ASCII characters (#174)
+- *(ux)* Make DeletePrevWord trigger channel update (#175)
+
+### 📚 Documentation
+
+- Fix broken link in README (#168)
+- Update README.md (#171)
+- Update readme animations
+- Fix broken image in channels.md
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#167)
+- Update README.md (#172)
+- Bump to 0.8.1 (#176)
+
 ## [0.8.0] - 2024-12-29
 
 ### 🚀 Features
