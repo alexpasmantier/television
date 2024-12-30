@@ -1,4 +1,4 @@
-_tv_search() {
+_tv_smart_autocomplete() {
     emulate -L zsh
     zle -I
 
@@ -9,9 +9,9 @@ _tv_search() {
 
     output=$(tv --autocomplete-prompt "$current_prompt" $*)
 
-    zle reset-prompt
 
     if [[ -n $output ]]; then
+        zle reset-prompt
         RBUFFER=""
         LBUFFER=$current_prompt$output
 
@@ -21,9 +21,34 @@ _tv_search() {
     fi
 }
 
+_tv_shell_history() {
+    emulate -L zsh
+    zle -I
 
-zle -N tv-search _tv_search
+    local current_prompt
+    current_prompt=$LBUFFER
+
+    local output
+
+    output=$(tv zsh-history --input "$current_prompt" $*)
 
 
-bindkey '^T' tv-search
+    if [[ -n $output ]]; then
+        zle reset-prompt
+        RBUFFER=""
+        LBUFFER=$output
+
+        # uncomment this to automatically accept the line 
+        # (i.e. run the command without having to press enter twice)
+        # zle accept-line
+    fi
+}
+
+
+zle -N tv-smart-autocomplete _tv_smart_autocomplete
+zle -N tv-shell-history _tv_shell_history
+
+
+bindkey '^T' tv-smart-autocomplete
+bindkey '^R' tv-shell-history
 
