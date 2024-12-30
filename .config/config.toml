@@ -140,8 +140,9 @@ toggle_preview = "ctrl-o"
 # ----------------------------------------------------------------------------
 #
 # The shell integration feature allows you to use television as a picker for
-# your shell commands. E.g. typing `git checkout <CTRL-T>` will open television
-# with a list of branches to choose from.
+# your shell commands (as well as your shell history with <CTRL-R>).
+# E.g. typing `git checkout <CTRL-T>` will open television with a list of
+# branches to choose from.
 
 [shell_integration.commands]
 # Add your commands here. Each key is a command that will trigger tv with the
@@ -159,9 +160,6 @@ toggle_preview = "ctrl-o"
 # "ls" = "dirs"
 # "cat" = "files"
 # ```
-
-# shell history (according to your shell)
-"" = "zsh-history"
 
 # environment variables
 "export" = "env"
