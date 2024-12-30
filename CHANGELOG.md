@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.3] - 2024-12-30
+
+### 🐛 Bug Fixes
+
+- Bump version to match with the release (#188)
+
+### ⚡ Performance
+
+- *(bin)* Compile binary as a single code unit and use fat LTO (#191)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#187)
+- Bump workspace to 0.0.16 (#189)
+- Bump to 0.8.3 (#192)
+
 ## [0.8.2] - 2024-12-30
 
 ### 🚀 Features
