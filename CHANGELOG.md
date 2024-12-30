@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.2] - 2024-12-30
+
+### 🚀 Features
+
+- *(shell)* Add separate history binding for zsh integration (#183)
+- *(shell)* Add bash support for smart autocomplete and shell history (#184)
+- *(shell)* Shell integration support for fish (#186)
+
+### 📚 Documentation
+
+- Add a credits section to the readme (#178)
+- Move terminal emulator compatibility section to separate docs file (#179)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#177)
+
 ## [0.8.1] - 2024-12-29
 
 ### 🐛 Bug Fixes
@@ -26,7 +43,6 @@ All notable changes to this project will be documented in this file.
 
 ### 🚀 Features
 
-- *(cli)* Add argument to start tv in another working directory (#132)
 - *(ui)* Decouple preview title position from input bar position and make it configurable (#144)
 - *(shell)* Autocompletion plugin for zsh (#145)
 - *(config)* Allow specifying multiple keymaps for the same action + better defaults (#149)
@@ -44,7 +60,6 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
-- *(readme)* Make channel names consistent everywhere (#138)
 - Rearrange README, add a features section, and move more technical stuff to separate files (#159)
 - Update readme (#160)
 - Replace top image with a screenshot of the application (#163)
@@ -52,12 +67,25 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(changelog)* Update changelog (auto) (#131)
 - *(changelog)* Update changelog (auto) (#141)
 - *(changelog)* Update changelog (auto) (#146)
 - *(changelog)* Update changelog (auto) (#154)
 - Bump to 0.8.0 (#165)
 - Include cable channels (#166)
+
+## [0.7.2] - 2024-12-17
+
+### 🚀 Features
+
+- *(cli)* Add argument to start tv in another working directory (#132)
+
+### 📚 Documentation
+
+- *(readme)* Make channel names consistent everywhere (#138)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#131)
 
 ## [0.7.1] - 2024-12-15
 
