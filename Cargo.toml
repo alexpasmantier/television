@@ -117,7 +117,8 @@ debug = true
 
 
 [profile.release]
-lto = "thin"
+codegen-units = 1
+lto = "fat"
 
 [profile.deb]
 inherits = "release"
