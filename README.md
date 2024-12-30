@@ -139,29 +139,6 @@ config_location/
 For more information on the matcher behavior, see the
 [nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
 
-## Terminal Emulators Compatibility
-Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
-
-| Terminal Emulator | Tested Platforms | Compatibility |
-| --- | :---: | :---: |
-| Alacritty | macOS, Linux | ✅ |
-| Kitty | macOS, Linux | ✅ |
-| iTerm2 | macOS | ✅ |
-| Ghostty | macOS | ✅ |
-| Wezterm | macOS, Linux, Windows | ✅ |
-| macOS Terminal | macOS | functional but coloring issues |
-| Konsole | Linux | ✅ |
-| Terminator | Linux | ✅ |
-| Xterm | Linux | ✅ |
-| Cmder | Windows | ✖️ |
-| Foot | Linux | ✅ |
-| Rio | macOS, Linux, Windows | ✅ |
-| Warp | macOS | ✅ |
-| Hyper | macOS | ✅ |
-
-
-
-
 ## Contributions
 
 Contributions, issues and pull requests are welcome.
