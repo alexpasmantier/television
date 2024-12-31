@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.5] - 2024-12-31
+
+### 🚀 Features
+
+- *(ui)* Respect BAT_THEME env var for previewer syntax highlighting theme (#201)
+
+### 🐛 Bug Fixes
+
+- *(shell)* Add space if needed when using smart autocomplete (#200)
+
+### 📚 Documentation
+
+- *(config)* Fix typo in default configuration file comment (#198)
+- Move parts of README to Wiki (#199)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#197)
+- Bump to 0.8.5
+
 ## [0.8.4] - 2024-12-31
 
 ### 🚀 Features
