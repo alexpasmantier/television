@@ -9,10 +9,7 @@ use std::sync::{
     Arc,
 };
 
-use syntect::{
-    highlighting::{Theme, ThemeSet},
-    parsing::SyntaxSet,
-};
+use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use tracing::{debug, warn};
 
 use super::cache::PreviewCache;
@@ -51,18 +48,23 @@ const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
 const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 3;
 
+const BAT_THEME_ENV_VAR: &str = "BAT_THEME";
+
 impl FilePreviewer {
     pub fn new(config: Option<FilePreviewerConfig>) -> Self {
         let hl_assets = load_highlighting_assets();
         let syntax_set = hl_assets.get_syntax_set().unwrap().clone();
 
-        let theme = config.map_or_else(
-            || {
-                let theme_set = ThemeSet::load_defaults();
-                theme_set.themes["base16-ocean.dark"].clone()
+        let theme_name = match std::env::var(BAT_THEME_ENV_VAR) {
+            Ok(t) => t,
+            Err(_) => match config {
+                Some(c) => c.theme,
+                // this will error and default back nicely
+                None => "unknown".to_string(),
             },
-            |c| hl_assets.get_theme_no_output(&c.theme).clone(),
-        );
+        };
+
+        let theme = hl_assets.get_theme_no_output(&theme_name).clone();
 
         FilePreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
