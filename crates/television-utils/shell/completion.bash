@@ -4,6 +4,9 @@ function tv_smart_autocomplete() {
   local output=$(tv --autocomplete-prompt "$current_prompt")
 
   if [[ -n $output ]]; then
+    # add a space if the prompt does not end with one
+    [[ "${current_prompt}" != *" " ]] && current_prompt="${current_prompt} "
+
     READLINE_LINE=$current_prompt$output
     READLINE_POINT=${#READLINE_LINE}
   fi

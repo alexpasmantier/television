@@ -4,6 +4,8 @@ function tv_smart_autocomplete
     set -l output (tv --autocomplete-prompt "$current_prompt")
 
     if test -n "$output"
+        # add a space if the prompt does not end with one
+        string match -q "* " -- "$current_prompt" || set current_prompt "$current_prompt "
         commandline -r "$current_prompt$output"
     end
 end

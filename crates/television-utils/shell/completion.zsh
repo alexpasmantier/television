@@ -13,6 +13,8 @@ _tv_smart_autocomplete() {
     if [[ -n $output ]]; then
         zle reset-prompt
         RBUFFER=""
+        # add a space if the prompt does not end with one
+        [[ "${current_prompt}" != *" " ]] && current_prompt="${current_prompt} "
         LBUFFER=$current_prompt$output
 
         # uncomment this to automatically accept the line 
