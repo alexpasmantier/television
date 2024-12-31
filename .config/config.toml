@@ -156,7 +156,7 @@ toggle_preview = "ctrl-o"
 # You would add the following to your configuration file:
 # ```
 # [shell_integration.commands]
-# "git checkout" = "git-branches"
+# "git checkout" = "git-branch"
 # "ls" = "dirs"
 # "cat" = "files"
 # ```
