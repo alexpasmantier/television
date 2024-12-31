@@ -70,10 +70,10 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
     let cli_enum = quote! {
         use clap::ValueEnum;
         use serde::{Deserialize, Serialize};
-        use strum::{Display, EnumString};
+        use strum::{Display, EnumIter, EnumString};
         use std::default::Default;
 
-        #[derive(Debug, Clone, ValueEnum, EnumString, Default, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
+        #[derive(Debug, Clone, ValueEnum, EnumIter, EnumString, Default, Copy, PartialEq, Eq, Serialize, Deserialize, Display)]
         #[strum(serialize_all = "kebab_case")]
         pub enum CliTvChannel {
             #[default]
@@ -115,11 +115,8 @@ fn impl_cli_channel(ast: &syn::DeriveInput) -> TokenStream {
             }
 
             pub fn all_channels() -> Vec<String> {
-                vec![
-                    #(
-                        stringify!(#cli_enum_variants).to_lowercase(),
-                    )*
-                ]
+                use strum::IntoEnumIterator;
+                Self::iter().map(|v| v.to_string()).collect()
             }
         }
     };
