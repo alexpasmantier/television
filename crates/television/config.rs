@@ -131,7 +131,9 @@ impl Config {
             debug!("Config: {:?}", cfg);
             Ok(cfg)
         } else {
-            warn!("No config file found at {:?}", config_dir);
+            warn!("No config file found at {:?}, creating default configuration file at that location.", config_dir);
+            // create the default configuration file in the user's config directory
+            std::fs::write(config_dir.join(CONFIG_FILE_NAME), CONFIG)?;
             Ok(default_config)
         }
     }
