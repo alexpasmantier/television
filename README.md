@@ -78,37 +78,13 @@ https://github.com/user-attachments/assets/395f17f6-14b9-4015-a50a-648259d9f253
 
 
 ## Keybindings
-Default keybindings are as follows:
 
-| Key | Description |
-| :---: | ----------- |
-| <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>p</kbd> / <kbd>n</kbd> or <kbd>Ctrl</kbd> + <kbd>k</kbd> / <kbd>j</kbd> | Navigate through the list of entries |
-| <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd> | Scroll the preview pane up / down |
-| <kbd>Enter</kbd> | Select the current entry |
-| <kbd>Ctrl</kbd> + <kbd>y</kbd> | Copy the selected entry to the clipboard |
-| <kbd>Ctrl</kbd> + <kbd>r</kbd> | Toggle remote control mode |
-| <kbd>Ctrl</kbd> + <kbd>s</kbd> | Toggle send to channel mode |
-| <kbd>Ctrl</kbd> + <kbd>g</kbd> | Toggle the help panel |
-| <kbd>Ctrl</kbd> + <kbd>o</kbd> | Toggle the preview panel |
-| <kbd>Esc</kbd> | Quit the application |
-
-These keybindings are all configurable (see [Configuration](#configuration)).
+For information about available keybindings, check the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Keybindings)
 
 
 ## Configuration
 
-**Default configuration: [config.toml](./.config/config.toml)**
-
-Locations where `television` expects the configuration files to be located for each platform:
-
-|Platform|Value|
-|--------|:-----:|
-|Linux|`$HOME/.config/television/config.toml`|
-|macOS|`$HOME/.config/television/config.toml`|
-|Windows|`{FOLDERID_LocalAppData}\television\config`|
-
-Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
-`$XDG_CONFIG_HOME/television/config.toml` if the environment variable is set.
+For information about tv's configuration file, check the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Configuration-file)
 
 ## Themes
 Builtin themes are available in the [themes](./themes) directory. Feel free to experiment and maybe even contribute your own!
@@ -126,18 +102,7 @@ config_location/
 ```
 
 ## Search Patterns
-`television` uses a fuzzy matching algorithm to filter the list of entries. Its behavior depends on the input pattern you provide.
-
-| Matcher | Pattern |
-| --- | :---: |
-| Fuzzy | `foo` |
-| Substring | `'foo` / `!foo` to negate |
-| Prefix | `^foo` / `!^foo` to negate |
-| Suffix | `foo$` / `!foo$` to negate |
-| Exact | `^foo$` / `!^foo$` to negate |
-
-For more information on the matcher behavior, see the
-[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
+For information on how to use search patterns with tv, refer to the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Search-patterns)
 
 ## Contributions
 
