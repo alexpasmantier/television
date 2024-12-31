@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.4] - 2024-12-31
+
+### 🚀 Features
+
+- *(ux)* Automatically create default user configuration file if nonexistent (#196)
+
+### 🐛 Bug Fixes
+
+- *(channels)* List-channels in kebab-case (#195)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#193)
+- Bump version to 0.8.4
+
 ## [0.8.3] - 2024-12-30
 
 ### 🐛 Bug Fixes
