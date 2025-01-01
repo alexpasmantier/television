@@ -83,6 +83,8 @@ impl Config {
         // initialize the config builder
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
+        std::fs::create_dir_all(config_dir.clone()).expect("Failed creating configuration directory");
+
         let mut builder = config::Config::builder()
             .set_default("data_dir", data_dir.to_str().unwrap())?
             .set_default("config_dir", config_dir.to_str().unwrap())?
