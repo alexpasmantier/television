@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.6] - 2025-01-01
+
+### 🐛 Bug Fixes
+
+- Automatically create configuration and data directories if they don't exist (#204)
+- Nix build (#203)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#202)
+- Bump to 0.8.6
+
 ## [0.8.5] - 2024-12-31
 
 ### 🚀 Features
