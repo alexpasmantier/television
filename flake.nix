@@ -33,7 +33,7 @@
             pkgs.rustChannelOf
             {
               rustToolchain = ./rust-toolchain.toml;
-              sha256 = "6eN/GKzjVSjEhGO9FhWObkRFaE1Jf+uqMSdQnb8lcB4=";
+              sha256 = "VZZnlyP69+Y3crrLHQyJirqlHrTtGTsyiSnZB8jEvVo=";
             }
           )
           .rust;
@@ -53,7 +53,7 @@
           };
         };
 
-        devShell = pkgs.mkShell {
+        devShells.default = pkgs.mkShell {
           nativeBuildInputs = [toolchain];
           packages = with pkgs; [
             rustfmt
