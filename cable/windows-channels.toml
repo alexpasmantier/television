@@ -19,3 +19,18 @@ preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
 name = "docker-images"
 source_command = "docker image list --format \"{{.ID}}\""
 preview_command = "docker image inspect {0} | jq -C"
+
+# Shell history
+[[cable_channel]]
+name = "zsh-history"
+source_command = "tail -r $HISTFILE | cut -d\";\" -f 2-"
+
+[[cable_channel]]
+name = "bash-history"
+source_command = "tail -r $HISTFILE"
+
+[[cable_channel]]
+name = "fish-history"
+source_command = "fish -c 'history'"
+
+
