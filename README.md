@@ -69,7 +69,7 @@ fd -t f . | tv --preview 'bat -n --color=always {0}'
 ```
 *For more information on the different channels, see the [channels](./docs/channels.md) documentation.*
 
-Television can also integrate with your shell to provide autocompletion based on the commands you start typing. See [Shell Autocompletion](https://github.com/alexpasmantier/television/wiki/Shell-Autocomletion).
+Television can also integrate with your shell to provide autocompletion based on the commands you start typing. See [Shell Autocompletion](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion).
 
 
 
