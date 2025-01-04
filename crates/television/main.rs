@@ -45,6 +45,8 @@ async fn main() -> Result<()> {
     let args: PostProcessedCli = Cli::parse().into();
     debug!("{:?}", args);
 
+    let mut config = Config::new()?;
+
     if let Some(command) = args.command {
         match command {
             cli::Command::ListChannels => {
@@ -59,7 +61,6 @@ async fn main() -> Result<()> {
         }
     }
 
-    let mut config = Config::new()?;
     config.config.tick_rate =
         args.tick_rate.unwrap_or(config.config.tick_rate);
     config.config.frame_rate =
