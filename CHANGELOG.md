@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.7] - 2025-01-04
+
+### 🐛 Bug Fixes
+
+- *(unix)* Use sed instead of tail for bash and zsh default history channels (#216)
+
+### 🚜 Refactor
+
+- *(shell)* Use $HISTFILE for cable history channels (#210)
+- *(cable)* Always create default cable channels in user directory if no cable channels exist (#213)
+- *(config)* Check for config file existence before processing subcommands (#214)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#206)
+- Bump to 0.8.7 (#217)
+
 ## [0.8.6] - 2025-01-01
 
 ### 🐛 Bug Fixes
