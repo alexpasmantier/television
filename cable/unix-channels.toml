@@ -35,13 +35,12 @@ preview_command = ":files:"
 # Shell history
 [[cable_channel]]
 name = "zsh-history"
-source_command = "tail -r $HISTFILE | cut -d\";\" -f 2-"
+source_command = "sed '1!G;h;$!d' $HISTFILE | cut -d\";\" -f 2-"
 
 [[cable_channel]]
 name = "bash-history"
-source_command = "tail -r $HISTFILE"
+source_command = "sed '1!G;h;$!d' $HISTFILE"
 
 [[cable_channel]]
 name = "fish-history"
 source_command = "fish -c 'history'"
-
