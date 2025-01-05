@@ -23,7 +23,7 @@ pub fn draw_logo_block(
         .style(
             Style::default()
                 .fg(mode_color)
-                .bg(general_colorscheme.background),
+                .bg(general_colorscheme.background.unwrap_or_default()),
         )
         .padding(Padding::horizontal(1));
 
@@ -45,7 +45,10 @@ fn draw_metadata_block(
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
         .padding(Padding::horizontal(1))
-        .style(Style::default().bg(colorscheme.general.background));
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        );
 
     let metadata_table =
         build_metadata_table(mode, current_channel, app_metadata, colorscheme)
@@ -64,7 +67,7 @@ fn draw_keymaps_block(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.border_fg))
-        .style(Style::default().bg(colorscheme.background))
+        .style(Style::default().bg(colorscheme.background.unwrap_or_default()))
         .padding(Padding::horizontal(1));
 
     let table = keymap_table.block(keymaps_block);

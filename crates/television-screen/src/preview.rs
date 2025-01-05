@@ -283,7 +283,10 @@ pub fn draw_preview_content_block(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default().bg(colorscheme.general.background))
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        )
         .padding(Padding::new(0, 1, 1, 0));
 
     let preview_inner_block =
