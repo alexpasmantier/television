@@ -6,6 +6,10 @@ lazy_static! {
     pub static ref BUILTIN_THEMES: HashMap<&'static str, &'static str> = {
         let mut m = HashMap::new();
         m.insert(
+            "television",
+            include_str!("../../../../themes/television.toml"),
+        );
+        m.insert(
             "gruvbox-dark",
             include_str!("../../../../themes/gruvbox-dark.toml"),
         );
