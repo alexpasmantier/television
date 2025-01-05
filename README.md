@@ -19,6 +19,8 @@
 It lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
 images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible.
 
+![tv-shell-integration](https://github.com/user-attachments/assets/d11c4d3c-2f1f-457c-9a0f-a56aebfefddd)
+
 
 It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
 
@@ -69,11 +71,10 @@ fd -t f . | tv --preview 'bat -n --color=always {0}'
 ```
 *For more information on the different channels, see the [channels](./docs/channels.md) documentation.*
 
-Television can also integrate with your shell to provide autocompletion based on the commands you start typing. See [Shell Autocompletion](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion).
-
-
-
-https://github.com/user-attachments/assets/395f17f6-14b9-4015-a50a-648259d9f253
+> [!TIP] 
+> 🐚 *Television provides smart autocompletion based on the commands you start typing out of the box.*
+> 
+> *Take a look at [this page](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion) for how to set it up for your shell.*
 
 
 
