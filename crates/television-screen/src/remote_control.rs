@@ -72,7 +72,10 @@ fn draw_rc_channels(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default().bg(colorscheme.general.background))
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        )
         .padding(Padding::right(1));
 
     let channel_list = build_results_list(
@@ -98,7 +101,10 @@ fn draw_rc_input(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default().bg(colorscheme.general.background));
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        );
 
     let input_block_inner = input_block.inner(area);
 
@@ -156,8 +162,11 @@ fn draw_rc_logo(
     mode_color: Color,
     colorscheme: &GeneralColorscheme,
 ) {
-    let logo_block = Block::default()
-        .style(Style::default().fg(mode_color).bg(colorscheme.background));
+    let logo_block = Block::default().style(
+        Style::default()
+            .fg(mode_color)
+            .bg(colorscheme.background.unwrap_or_default()),
+    );
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

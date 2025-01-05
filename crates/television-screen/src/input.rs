@@ -33,7 +33,10 @@ pub fn draw_input_box(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(Style::default().bg(colorscheme.general.background));
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        );
 
     let input_block_inner = input_block.inner(rect);
     if input_block_inner.area() == 0 {
