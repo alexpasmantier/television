@@ -34,3 +34,5 @@ simd = ["dep:simdutf8"]
 zero-copy = []
 default = ["zero-copy", "simd"]
 
+[lints]
+workspace = true

@@ -123,3 +123,28 @@ lto = "fat"
 [profile.deb]
 inherits = "release"
 debug = false
+
+[lints]
+workspace = true
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+
+must_use_candidate = "allow"
+too_many_lines = "allow"
+missing_panics_doc = "allow"
+missing_errors_doc = "allow"
+module_name_repetitions = "allow"
+cast_precision_loss = "allow"
+map_unwrap_or = "allow"
+return_self_not_must_use = "allow"
+uninlined_format_args = "allow"
+similar_names = "allow"
+float_cmp = "allow"
+needless_pass_by_value = "allow"
+implicit_hasher = "allow"
+wildcard_imports = "allow"
+from_iter_instead_of_collect = "allow"
+cast_possible_truncation = "allow"
+cast_sign_loss = "allow"
+
