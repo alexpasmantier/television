@@ -1,7 +1,7 @@
 use color_eyre::Result;
+use indexmap::IndexSet;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::HashSet;
 use tracing::debug;
 
 use crate::cable::{CableChannelPrototype, DEFAULT_DELIMITER};
@@ -108,7 +108,7 @@ async fn load_candidates(command: String, injector: Injector<String>) {
     let decoded_output = String::from_utf8(output.stdout).unwrap();
     debug!("Decoded output: {:?}", decoded_output);
 
-    for line in decoded_output.lines().collect::<HashSet<_>>() {
+    for line in decoded_output.lines().collect::<IndexSet<_>>() {
         if !line.trim().is_empty() {
             let () = injector.push(line.to_string(), |e, cols| {
                 cols[0] = e.clone().into();

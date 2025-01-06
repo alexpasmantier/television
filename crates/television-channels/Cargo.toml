@@ -29,6 +29,7 @@ strum = { version = "0.26.3", features = ["derive"] }
 lazy_static = "1.5.0"
 toml = "0.8.19"
 regex = "1.11.1"
+indexmap = "2.7.0"
 
 [lints]
 workspace = true
