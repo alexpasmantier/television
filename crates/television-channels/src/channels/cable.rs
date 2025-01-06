@@ -99,12 +99,14 @@ impl Channel {
 
 #[allow(clippy::unused_async)]
 async fn load_candidates(command: String, injector: Injector<String>) {
+    debug!("Loading candidates from command: {:?}", command);
     let output = shell_command()
         .arg(command)
         .output()
         .expect("failed to execute process");
 
     let decoded_output = String::from_utf8(output.stdout).unwrap();
+    debug!("Decoded output: {:?}", decoded_output);
 
     for line in decoded_output.lines().collect::<HashSet<_>>() {
         if !line.trim().is_empty() {
