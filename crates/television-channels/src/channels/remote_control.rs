@@ -131,7 +131,7 @@ impl OnAir for RemoteControl {
             .map(|item| {
                 let path = item.matched_string;
                 Entry::new(path, PreviewType::Basic)
-                    .with_name_match_ranges(item.match_indices)
+                    .with_name_match_ranges(&item.match_indices)
                     .with_icon(match item.inner {
                         RCButton::Channel(_) => TV_ICON,
                         RCButton::CableChannel(_) => CABLE_ICON,

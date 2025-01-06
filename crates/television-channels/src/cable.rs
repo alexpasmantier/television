@@ -15,6 +15,7 @@ pub struct CableChannelPrototype {
 
 pub const DEFAULT_DELIMITER: &str = " ";
 
+#[allow(clippy::unnecessary_wraps)]
 fn default_delimiter() -> Option<String> {
     Some(DEFAULT_DELIMITER.to_string())
 }

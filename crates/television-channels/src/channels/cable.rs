@@ -141,7 +141,7 @@ impl OnAir for Channel {
                         PreviewKind::None => PreviewType::None,
                     },
                 )
-                .with_name_match_ranges(item.match_indices)
+                .with_name_match_ranges(&item.match_indices)
             })
             .collect()
     }

@@ -125,8 +125,8 @@ impl FilePreviewer {
     }
 
     #[allow(dead_code)]
-    fn cache_preview(&mut self, key: String, preview: Arc<Preview>) {
-        self.cache.lock().insert(key, &preview);
+    fn cache_preview(&mut self, key: String, preview: &Arc<Preview>) {
+        self.cache.lock().insert(key, preview);
     }
 }
 
