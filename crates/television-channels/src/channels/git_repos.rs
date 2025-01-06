@@ -2,6 +2,7 @@ use devicons::FileIcon;
 use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
 use lazy_static::lazy_static;
+use std::collections::HashSet;
 use std::path::PathBuf;
 use tokio::task::JoinHandle;
 use tracing::debug;
@@ -15,6 +16,7 @@ pub struct Channel {
     matcher: Matcher<String>,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
+    selected_entries: HashSet<Entry>,
 }
 
 impl Channel {
@@ -29,6 +31,7 @@ impl Channel {
             matcher,
             icon: FileIcon::from("git"),
             crawl_handle,
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -79,6 +82,18 @@ impl OnAir for Channel {
             )
             .with_icon(self.icon)
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

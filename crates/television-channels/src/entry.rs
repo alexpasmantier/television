@@ -1,4 +1,8 @@
-use std::{fmt::Display, path::PathBuf};
+use std::{
+    fmt::Display,
+    hash::{Hash, Hasher},
+    path::PathBuf,
+};
 
 use devicons::FileIcon;
 use strum::EnumString;
@@ -9,7 +13,7 @@ use strum::EnumString;
 // channel convertible from any other that yields `EntryType`.
 // This needs pondering since it does bring another level of abstraction and
 // adds a layer of complexity.
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq)]
 pub struct Entry {
     /// The name of the entry.
     pub name: String,
@@ -25,6 +29,31 @@ pub struct Entry {
     pub line_number: Option<usize>,
     /// The type of preview associated with the entry.
     pub preview_type: PreviewType,
+}
+
+impl Hash for Entry {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state);
+        if let Some(line_number) = self.line_number {
+            line_number.hash(state);
+        }
+    }
+}
+
+impl PartialEq<Entry> for &Entry {
+    fn eq(&self, other: &Entry) -> bool {
+        self.name == other.name
+            && (self.line_number.is_none() && other.line_number.is_none()
+                || self.line_number == other.line_number)
+    }
+}
+
+impl PartialEq<Entry> for Entry {
+    fn eq(&self, other: &Entry) -> bool {
+        self.name == other.name
+            && (self.line_number.is_none() && other.line_number.is_none()
+                || self.line_number == other.line_number)
+    }
 }
 
 #[allow(clippy::needless_return)]

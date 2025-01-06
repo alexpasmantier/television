@@ -8,7 +8,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
 use ratatui::Frame;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::str::FromStr;
 use television_channels::entry::Entry;
 use television_utils::strings::{
@@ -16,9 +16,14 @@ use television_utils::strings::{
     slice_at_char_boundaries,
 };
 
+const POINTER_SYMBOL: &str = "> ";
+const SELECTED_SYMBOL: &str = "● ";
+const DESLECTED_SYMBOL: &str = "  ";
+
 pub fn build_results_list<'a, 'b>(
     results_block: Block<'b>,
     entries: &'a [Entry],
+    selected_entries: Option<&HashSet<Entry>>,
     list_direction: ListDirection,
     use_icons: bool,
     icon_color_cache: &mut HashMap<String, Color>,
@@ -29,6 +34,19 @@ where
 {
     List::new(entries.iter().map(|entry| {
         let mut spans = Vec::new();
+        // optional selection symbol
+        if let Some(selected_entries) = selected_entries {
+            if !selected_entries.is_empty() {
+                spans.push(if selected_entries.contains(entry) {
+                    Span::styled(
+                        SELECTED_SYMBOL,
+                        Style::default().fg(colorscheme.result_selected_fg),
+                    )
+                } else {
+                    Span::from(DESLECTED_SYMBOL)
+                });
+            }
+        }
         // optional icon
         if let Some(icon) = entry.icon.as_ref() {
             if use_icons {
@@ -129,7 +147,7 @@ where
     .highlight_style(
         Style::default().bg(colorscheme.result_selected_bg).bold(),
     )
-    .highlight_symbol("> ")
+    .highlight_symbol(POINTER_SYMBOL)
     .block(results_block)
 }
 
@@ -138,6 +156,7 @@ pub fn draw_results_list(
     f: &mut Frame,
     rect: Rect,
     entries: &[Entry],
+    selected_entries: &HashSet<Entry>,
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
     use_nerd_font_icons: bool,
@@ -166,6 +185,7 @@ pub fn draw_results_list(
     let results_list = build_results_list(
         results_block,
         entries,
+        Some(selected_entries),
         match input_bar_position {
             InputPosition::Bottom => ListDirection::BottomToTop,
             InputPosition::Top => ListDirection::TopToBottom,

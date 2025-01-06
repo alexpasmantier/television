@@ -1,4 +1,5 @@
 use std::{
+    collections::HashSet,
     io::{stdin, BufRead},
     thread::spawn,
 };
@@ -12,6 +13,7 @@ use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 pub struct Channel {
     matcher: Matcher<String>,
     preview_type: PreviewType,
+    selected_entries: HashSet<Entry>,
 }
 
 impl Channel {
@@ -24,6 +26,7 @@ impl Channel {
         Self {
             matcher,
             preview_type: preview_type.unwrap_or_default(),
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -88,6 +91,18 @@ impl OnAir for Channel {
         self.matcher.get_result(index).map(|item| {
             Entry::new(item.matched_string.clone(), self.preview_type.clone())
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

@@ -81,6 +81,7 @@ fn draw_rc_channels(
     let channel_list = build_results_list(
         rc_block,
         entries,
+        None,
         ListDirection::TopToBottom,
         use_nerd_font_icons,
         icon_color_cache,

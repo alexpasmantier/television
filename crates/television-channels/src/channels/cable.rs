@@ -26,6 +26,7 @@ pub struct Channel {
     matcher: Matcher<String>,
     entries_command: String,
     preview_kind: PreviewKind,
+    selected_entries: HashSet<Entry>,
 }
 
 impl Default for Channel {
@@ -93,6 +94,7 @@ impl Channel {
             entries_command: entries_command.to_string(),
             preview_kind,
             name: name.to_string(),
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -160,6 +162,18 @@ impl OnAir for Channel {
                 },
             )
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::entry::Entry;
 use color_eyre::Result;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
@@ -64,6 +66,12 @@ pub trait OnAir: Send {
 
     /// Get a specific result by its index.
     fn get_result(&self, index: u32) -> Option<Entry>;
+
+    /// Get the currently selected entries.
+    fn selected_entries(&self) -> &HashSet<Entry>;
+
+    /// Toggles selection for the entry under the cursor.
+    fn toggle_selection(&mut self, entry: &Entry);
 
     /// Get the number of results currently available.
     fn result_count(&self) -> u32;

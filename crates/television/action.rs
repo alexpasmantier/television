@@ -39,9 +39,16 @@ pub enum Action {
     #[serde(skip)]
     ClearScreen,
     // results actions
-    /// Select the entry currently under the cursor.
+    /// Add entry under cursor to the list of selected entries and move the cursor down.
+    #[serde(alias = "toggle_selection_down")]
+    ToggleSelectionDown,
+    /// Add entry under cursor to the list of selected entries and move the cursor up.
+    #[serde(alias = "toggle_selection_up")]
+    ToggleSelectionUp,
+    /// Confirm current selection (multi select or entry under cursor).
     #[serde(alias = "select_entry")]
-    SelectEntry,
+    #[serde(alias = "confirm_selection")]
+    ConfirmSelection,
     /// Select the entry currently under the cursor and pass the key that was pressed
     /// through to be handled the parent process.
     #[serde(alias = "select_passthrough")]

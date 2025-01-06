@@ -11,6 +11,7 @@ pub struct Channel {
     crawl_handle: tokio::task::JoinHandle<()>,
     // PERF: cache results (to make deleting characters smoother) with
     // a shallow stack of sub-patterns as keys (e.g. "a", "ab", "abc")
+    selected_entries: HashSet<Entry>,
 }
 
 impl Channel {
@@ -21,6 +22,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -102,6 +104,18 @@ impl OnAir for Channel {
             )
             .with_icon(FileIcon::from(&path))
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

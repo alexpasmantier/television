@@ -213,6 +213,26 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
                 }
             }
 
+            fn selected_entries(&self) -> &HashSet<Entry> {
+                match self {
+                    #(
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.selected_entries()
+                        }
+                    )*
+                }
+            }
+
+            fn toggle_selection(&mut self, entry: &Entry) {
+                match self {
+                    #(
+                        #enum_name::#variant_names(ref mut channel) => {
+                            channel.toggle_selection(entry)
+                        }
+                    )*
+                }
+            }
+
             fn result_count(&self) -> u32 {
                 match self {
                     #(

@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Display;
 
 use crate::cable::{CableChannelPrototype, CableChannels};
@@ -13,6 +14,7 @@ use super::cable;
 pub struct RemoteControl {
     matcher: Matcher<RCButton>,
     cable_channels: Option<CableChannels>,
+    selected_entries: HashSet<Entry>,
 }
 
 #[derive(Clone)]
@@ -59,6 +61,7 @@ impl RemoteControl {
         RemoteControl {
             matcher,
             cable_channels,
+            selected_entries: HashSet::new(),
         }
     }
 
@@ -139,6 +142,13 @@ impl OnAir for RemoteControl {
             })
             .collect()
     }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    #[allow(unused_variables)]
+    fn toggle_selection(&mut self, entry: &Entry) {}
 
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {

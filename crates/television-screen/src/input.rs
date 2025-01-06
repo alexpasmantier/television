@@ -55,7 +55,9 @@ pub fn draw_input_box(
             Constraint::Fill(1),
             // result count
             Constraint::Length(
-                3 * (u16::try_from((total_count).ilog10()).unwrap() + 1) + 3,
+                3 * (u16::try_from((total_count.max(1)).ilog10()).unwrap()
+                    + 1)
+                    + 3,
             ),
             // spinner
             Constraint::Length(1),

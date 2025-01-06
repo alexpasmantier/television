@@ -6,7 +6,7 @@ use crate::{cable::load_cable_channels, keymap::Keymap};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 use television_channels::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
@@ -148,15 +148,38 @@ impl Television {
     #[must_use]
     pub fn get_selected_entry(&mut self, mode: Option<Mode>) -> Option<Entry> {
         match mode.unwrap_or(self.mode) {
-            Mode::Channel => self.results_picker.selected().and_then(|i| {
-                self.channel.get_result(u32::try_from(i).unwrap())
-            }),
+            Mode::Channel => {
+                if let Some(i) = self.results_picker.selected() {
+                    return self.channel.get_result(i.try_into().unwrap());
+                }
+                None
+            }
             Mode::RemoteControl | Mode::SendToChannel => {
-                self.rc_picker.selected().and_then(|i| {
-                    self.remote_control.get_result(u32::try_from(i).unwrap())
-                })
+                if let Some(i) = self.rc_picker.selected() {
+                    return self
+                        .remote_control
+                        .get_result(i.try_into().unwrap());
+                }
+                None
             }
         }
+    }
+
+    #[must_use]
+    pub fn get_selected_entries(
+        &mut self,
+        mode: Option<Mode>,
+    ) -> Option<HashSet<Entry>> {
+        if self.channel.selected_entries().is_empty()
+            || matches!(mode, Some(Mode::RemoteControl))
+        {
+            return self.get_selected_entry(mode).map(|e| {
+                let mut set = HashSet::new();
+                set.insert(e);
+                set
+            });
+        }
+        Some(self.channel.selected_entries().clone())
     }
 
     pub fn select_prev_entry(&mut self, step: u32) {
@@ -334,15 +357,30 @@ impl Television {
                 }
                 Mode::SendToChannel => {}
             },
-            Action::SelectEntry => {
-                if let Some(entry) = self.get_selected_entry(None) {
-                    match self.mode {
-                        Mode::Channel => self
-                            .action_tx
+            Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
+                if matches!(self.mode, Mode::Channel) {
+                    if let Some(entry) = self.get_selected_entry(None) {
+                        self.channel.toggle_selection(&entry);
+                        if matches!(action, Action::ToggleSelectionDown) {
+                            self.select_next_entry(1);
+                        } else {
+                            self.select_prev_entry(1);
+                        }
+                    }
+                }
+            }
+            Action::ConfirmSelection => {
+                match self.mode {
+                    Mode::Channel => {
+                        self.action_tx
                             .as_ref()
                             .unwrap()
-                            .send(Action::SelectAndExit)?,
-                        Mode::RemoteControl => {
+                            .send(Action::SelectAndExit)?;
+                    }
+                    Mode::RemoteControl => {
+                        if let Some(entry) =
+                            self.get_selected_entry(Some(Mode::RemoteControl))
+                        {
                             let new_channel = self
                                 .remote_control
                                 .zap(entry.name.as_str())?;
@@ -353,7 +391,11 @@ impl Television {
                             self.mode = Mode::Channel;
                             self.change_channel(new_channel);
                         }
-                        Mode::SendToChannel => {
+                    }
+                    Mode::SendToChannel => {
+                        if let Some(entry) =
+                            self.get_selected_entry(Some(Mode::RemoteControl))
+                        {
                             let new_channel = self.channel.transition_to(
                                 entry.name.as_str().try_into().unwrap(),
                             );
@@ -364,18 +406,22 @@ impl Television {
                             self.change_channel(new_channel);
                         }
                     }
-                } else {
-                    self.action_tx
-                        .as_ref()
-                        .unwrap()
-                        .send(Action::SelectAndExit)?;
                 }
             }
             Action::CopyEntryToClipboard => {
                 if self.mode == Mode::Channel {
-                    if let Some(entry) = self.get_selected_entry(None) {
+                    if let Some(entries) = self.get_selected_entries(None) {
                         let mut ctx = ClipboardContext::new().unwrap();
-                        ctx.set_contents(entry.name).unwrap();
+                        ctx.set_contents(
+                            entries
+                                .iter()
+                                .map(|e| e.name.clone())
+                                .collect::<Vec<_>>()
+                                .join(" ")
+                                .to_string()
+                                .to_string(),
+                        )
+                        .unwrap();
                     }
                 }
             }
@@ -464,6 +510,7 @@ impl Television {
             f,
             layout.results,
             &entries,
+            self.channel.selected_entries(),
             &mut self.results_picker.relative_state,
             self.config.ui.input_bar_position,
             self.config.ui.use_nerd_font_icons,
@@ -596,7 +643,10 @@ impl KeyBindings {
                 ),
                 (
                     DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ConfirmSelection],
+                    ),
                 ),
                 (
                     DisplayableAction::CopyEntryToClipboard,
@@ -637,7 +687,10 @@ impl KeyBindings {
                 ),
                 (
                     DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ConfirmSelection],
+                    ),
                 ),
                 (
                     DisplayableAction::ToggleRemoteControl,
@@ -660,7 +713,10 @@ impl KeyBindings {
                 ),
                 (
                     DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(self, &[Action::SelectEntry]),
+                    serialized_keys_for_actions(
+                        self,
+                        &[Action::ConfirmSelection],
+                    ),
                 ),
                 (
                     DisplayableAction::Cancel,

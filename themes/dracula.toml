@@ -10,6 +10,7 @@ result_count_fg = '#FF5555'
 result_name_fg = '#BD93F9'
 result_line_number_fg = '#F1FA8C'
 result_value_fg = '#FF79C6'
+selection_fg = '#50FA7B'
 selection_bg = '#44475A'
 match_fg = '#FF5555'
 # preview

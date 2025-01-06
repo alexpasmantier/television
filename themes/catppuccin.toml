@@ -10,6 +10,7 @@ result_count_fg = '#f38ba8'
 result_name_fg = '#89b4fa'
 result_line_number_fg = '#f9e2af'
 result_value_fg = '#b4befe'
+selection_fg = '#a6e3a1'
 selection_bg = '#313244'
 match_fg = '#f38ba8'
 # preview
