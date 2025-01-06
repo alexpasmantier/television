@@ -108,7 +108,7 @@ where
 {
     fn drop(&mut self) {
         match self.exit() {
-            Ok(_) => debug!("Successfully exited terminal"),
+            Ok(()) => debug!("Successfully exited terminal"),
             Err(e) => debug!("Failed to exit terminal: {:?}", e),
         }
     }

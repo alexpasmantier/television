@@ -1,10 +1,10 @@
 use tui::style::Color;
 
-/// This enum stores most types of ansi escape sequences  
+/// This enum stores most types of ansi escape sequences
 ///
 /// You can turn an escape sequence to this enum variant using
-/// AnsiCode::from(code: u8)
-/// This doesn't support all of them but does support most of them.  
+/// `AnsiCode::from(code: u8)`
+/// This doesn't support all of them but does support most of them.
 
 #[derive(Debug, PartialEq, Clone)]
 #[non_exhaustive]
@@ -124,6 +124,7 @@ impl From<u8> for AnsiCode {
             94 => AnsiCode::ForegroundColor(Color::LightBlue),
             95 => AnsiCode::ForegroundColor(Color::LightMagenta),
             96 => AnsiCode::ForegroundColor(Color::LightCyan),
+            #[allow(clippy::match_same_arms)]
             97 => AnsiCode::ForegroundColor(Color::White),
             100 => AnsiCode::BackgroundColor(Color::DarkGray),
             101 => AnsiCode::BackgroundColor(Color::LightRed),

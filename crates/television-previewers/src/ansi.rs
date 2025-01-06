@@ -10,7 +10,7 @@ pub mod parser;
 pub use error::Error;
 use tui::text::Text;
 
-/// IntoText will convert any type that has a AsRef<[u8]> to a Text.
+/// `IntoText` will convert any type that has a `AsRef<[u8]>` to a Text.
 pub trait IntoText {
     /// Convert the type to a Text.
     #[allow(clippy::wrong_self_convention)]

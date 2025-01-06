@@ -47,7 +47,7 @@ const PATH: &str = "PATH";
 
 fn maybe_add_newline_after_colon(s: &str, name: &str) -> String {
     if name.contains(PATH) {
-        return s.replace(":", "\n");
+        return s.replace(':', "\n");
     }
     s.to_string()
 }

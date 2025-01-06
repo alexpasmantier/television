@@ -27,6 +27,7 @@ use television_utils::strings::{
 const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
 
+#[allow(clippy::needless_pass_by_value)]
 pub fn build_preview_paragraph(
     preview_block: Block<'_>,
     inner: Rect,
@@ -89,6 +90,7 @@ pub fn build_preview_paragraph(
     }
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn build_ansi_text_paragraph(
     text: String,
     preview_block: Block,
@@ -110,6 +112,7 @@ fn build_ansi_text_paragraph(
         .scroll((preview_scroll, 0))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn build_plain_text_paragraph(
     text: Vec<String>,
     preview_block: Block<'_>,
@@ -151,6 +154,7 @@ fn build_plain_text_paragraph(
         .scroll((preview_scroll, 0))
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn build_plain_text_wrapped_paragraph(
     text: String,
     preview_block: Block<'_>,
@@ -169,6 +173,7 @@ fn build_plain_text_wrapped_paragraph(
         .wrap(Wrap { trim: true })
 }
 
+#[allow(clippy::needless_pass_by_value)]
 fn build_syntect_highlighted_paragraph(
     highlighted_lines: Vec<Vec<(syntect::highlighting::Style, String)>>,
     preview_block: Block,
