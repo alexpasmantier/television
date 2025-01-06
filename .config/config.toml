@@ -179,6 +179,9 @@ toggle_preview = "ctrl-o"
 "vim" = "files"
 "bat" = "files"
 
+# git-diff channel
+"git add" = "git-diff"
+
 # git-branch channel
 "git checkout" = "git-branch"
 "git branch -d" = "git-branch"

@@ -1,5 +1,10 @@
 # GIT
 [[cable_channel]]
+name = "git-diff"
+source_command = "git diff --name-only"
+preview_command = "git diff --color=always {0}"
+
+[[cable_channel]]
 name = "git-reflog"
 source_command = 'git reflog'
 preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
