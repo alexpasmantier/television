@@ -160,8 +160,6 @@ impl From<Cli> for PostProcessedCli {
 
 fn unknown_channel_exit(channel: &str) {
     eprintln!("Unknown channel: {channel}\n");
-    // print the list of channels
-    list_channels();
     std::process::exit(1);
 }
 
