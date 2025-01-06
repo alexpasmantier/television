@@ -10,6 +10,7 @@ result_count_fg = '#af3a03'
 result_name_fg = '#076678'
 result_line_number_fg = '#d79921'
 result_value_fg = '#665c54'
+selection_fg = '#98971a'
 selection_bg = '#ebdbb2'
 match_fg = '#af3a03'
 # preview

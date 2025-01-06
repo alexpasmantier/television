@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::entry::PreviewType;
@@ -21,6 +23,7 @@ impl Alias {
 pub struct Channel {
     matcher: Matcher<Alias>,
     file_icon: FileIcon,
+    selected_entries: HashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
@@ -52,6 +55,7 @@ impl Channel {
         Self {
             matcher,
             file_icon: FileIcon::from(FILE_ICON_STR),
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -113,6 +117,18 @@ impl OnAir for Channel {
                 .with_value(item.inner.value)
                 .with_icon(self.file_icon)
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

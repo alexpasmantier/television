@@ -3,6 +3,7 @@ use crate::entry::{Entry, PreviewType};
 use devicons::FileIcon;
 use ignore::WalkState;
 use std::{
+    collections::HashSet,
     fs::File,
     io::{BufRead, Read, Seek},
     path::{Path, PathBuf},
@@ -36,6 +37,7 @@ impl CandidateLine {
 pub struct Channel {
     matcher: Matcher<CandidateLine>,
     crawl_handle: tokio::task::JoinHandle<()>,
+    selected_entries: HashSet<Entry>,
 }
 
 impl Channel {
@@ -49,6 +51,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
+            selected_entries: HashSet::new(),
         }
     }
 
@@ -73,6 +76,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
+            selected_entries: HashSet::new(),
         }
     }
 
@@ -97,6 +101,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle: load_handle,
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -193,6 +198,18 @@ impl OnAir for Channel {
                 .with_icon(FileIcon::from(item.inner.path.as_path()))
                 .with_line_number(item.inner.line_number)
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

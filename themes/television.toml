@@ -11,6 +11,7 @@ result_count_fg = '#d2788c'
 result_name_fg = '#9a9ac7'
 result_line_number_fg = '#d2a374'
 result_value_fg = '#646477'
+selection_fg = '#8faf77'
 selection_bg = '#282830'
 match_fg = '#d2788c'
 # preview

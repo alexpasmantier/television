@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use devicons::FileIcon;
 
 use super::OnAir;
@@ -15,6 +17,7 @@ struct EnvVar {
 pub struct Channel {
     matcher: Matcher<EnvVar>,
     file_icon: FileIcon,
+    selected_entries: HashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
@@ -32,6 +35,7 @@ impl Channel {
         Channel {
             matcher,
             file_icon: FileIcon::from(FILE_ICON_STR),
+            selected_entries: HashSet::new(),
         }
     }
 }
@@ -93,6 +97,18 @@ impl OnAir for Channel {
                 .with_value(item.inner.value)
                 .with_icon(self.file_icon)
         })
+    }
+
+    fn selected_entries(&self) -> &HashSet<Entry> {
+        &self.selected_entries
+    }
+
+    fn toggle_selection(&mut self, entry: &Entry) {
+        if self.selected_entries.contains(entry) {
+            self.selected_entries.remove(entry);
+        } else {
+            self.selected_entries.insert(entry.clone());
+        }
     }
 
     fn result_count(&self) -> u32 {

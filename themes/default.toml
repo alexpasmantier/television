@@ -10,6 +10,7 @@ result_count_fg = 'bright-red'
 result_name_fg = 'bright-blue'
 result_line_number_fg = 'bright-yellow'
 result_value_fg = 'white'
+selection_fg = 'bright-green'
 selection_bg = 'bright-black'
 match_fg = 'bright-red'
 # preview
