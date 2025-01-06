@@ -20,3 +20,6 @@ television-channels = { path = "../television-channels", version = "0.0.18" }
 television-previewers = { path = "../television-previewers", version = "0.0.18" }
 color-eyre = "0.6.3"
 syntect = "5.2.0"
+
+[lints]
+workspace = true

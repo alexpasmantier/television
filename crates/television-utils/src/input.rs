@@ -218,7 +218,7 @@ impl Input {
                     None
                 } else {
                     let cursor = self.cursor;
-                    self.value = "".into();
+                    self.value = String::new();
                     self.cursor = 0;
                     Some(StateChanged {
                         value: true,

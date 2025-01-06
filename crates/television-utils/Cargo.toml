@@ -27,3 +27,6 @@ unicode-width = "0.2.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
+
+[lints]
+workspace = true

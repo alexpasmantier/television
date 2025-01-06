@@ -30,3 +30,5 @@ lazy_static = "1.5.0"
 toml = "0.8.19"
 regex = "1.11.1"
 
+[lints]
+workspace = true

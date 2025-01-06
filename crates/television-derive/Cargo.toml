@@ -21,3 +21,5 @@ syn = "2.0.79"
 [lib]
 proc-macro = true
 
+[lints]
+workspace = true
