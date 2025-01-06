@@ -1,5 +1,5 @@
 use std::env;
-use std::io::{stdout, IsTerminal, Write};
+use std::io::{stdout, BufWriter, IsTerminal, Write};
 use std::path::Path;
 use std::process::exit;
 
@@ -119,12 +119,18 @@ async fn main() -> Result<()> {
             stdout().flush()?;
             let output = app.run(stdout().is_terminal()).await?;
             info!("{:?}", output);
+            // lock stdout
+            let stdout_handle = stdout().lock();
+            let mut bufwriter = BufWriter::new(stdout_handle);
             if let Some(passthrough) = output.passthrough {
-                writeln!(stdout(), "{passthrough}")?;
+                writeln!(bufwriter, "{passthrough}")?;
             }
-            if let Some(entry) = output.selected_entry {
-                writeln!(stdout(), "{}", entry.stdout_repr())?;
+            if let Some(entries) = output.selected_entries {
+                for entry in &entries {
+                    writeln!(bufwriter, "{}", entry.stdout_repr())?;
+                }
             }
+            bufwriter.flush()?;
             exit(0);
         }
         Err(err) => {

@@ -102,6 +102,7 @@ pub struct Theme {
     pub result_line_number_fg: Color,
     pub result_value_fg: Color,
     pub selection_bg: Color,
+    pub selection_fg: Color,
     pub match_fg: Color,
     // preview
     pub preview_title_fg: Color,
@@ -170,6 +171,9 @@ struct Inner {
     result_line_number_fg: String,
     result_value_fg: String,
     selection_bg: String,
+    // this is made optional for theme backwards compatibility
+    // and falls back to match_fg
+    selection_fg: Option<String>,
     match_fg: String,
     //preview
     preview_title_fg: String,
@@ -190,44 +194,129 @@ impl<'de> Deserialize<'de> for Theme {
                 .background
                 .map(|s| {
                     Color::from_str(&s).ok_or_else(|| {
-                        serde::de::Error::custom("invalid color")
+                        serde::de::Error::custom(format!(
+                            "invalid color {}",
+                            s
+                        ))
                     })
                 })
                 .transpose()?,
-            border_fg: Color::from_str(&inner.border_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            text_fg: Color::from_str(&inner.text_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            border_fg: Color::from_str(&inner.border_fg).ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.border_fg
+                ))
+            })?,
+            text_fg: Color::from_str(&inner.text_fg).ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.text_fg
+                ))
+            })?,
             dimmed_text_fg: Color::from_str(&inner.dimmed_text_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            input_text_fg: Color::from_str(&inner.input_text_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.dimmed_text_fg
+                    ))
+                })?,
+            input_text_fg: Color::from_str(&inner.input_text_fg).ok_or_else(
+                || {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.input_text_fg
+                    ))
+                },
+            )?,
             result_count_fg: Color::from_str(&inner.result_count_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.result_count_fg
+                    ))
+                })?,
             result_name_fg: Color::from_str(&inner.result_name_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.result_name_fg
+                    ))
+                })?,
             result_line_number_fg: Color::from_str(
                 &inner.result_line_number_fg,
             )
-            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.result_line_number_fg
+                ))
+            })?,
             result_value_fg: Color::from_str(&inner.result_value_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            selection_bg: Color::from_str(&inner.selection_bg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
-            match_fg: Color::from_str(&inner.match_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.result_value_fg
+                    ))
+                })?,
+            selection_bg: Color::from_str(&inner.selection_bg).ok_or_else(
+                || {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.selection_bg
+                    ))
+                },
+            )?,
+            // this is optional for theme backwards compatibility and falls back to match_fg
+            selection_fg: match inner.selection_fg {
+                Some(s) => Color::from_str(&s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", &s))
+                })?,
+                None => Color::from_str(&inner.match_fg).ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.match_fg
+                    ))
+                })?,
+            },
+
+            match_fg: Color::from_str(&inner.match_fg).ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.match_fg
+                ))
+            })?,
             preview_title_fg: Color::from_str(&inner.preview_title_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.preview_title_fg
+                    ))
+                })?,
             channel_mode_fg: Color::from_str(&inner.channel_mode_fg)
-                .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.channel_mode_fg
+                    ))
+                })?,
             remote_control_mode_fg: Color::from_str(
                 &inner.remote_control_mode_fg,
             )
-            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.remote_control_mode_fg
+                ))
+            })?,
             send_to_channel_mode_fg: Color::from_str(
                 &inner.send_to_channel_mode_fg,
             )
-            .ok_or_else(|| serde::de::Error::custom("invalid color"))?,
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.send_to_channel_mode_fg
+                ))
+            })?,
         })
     }
 }
@@ -315,6 +404,7 @@ impl Into<ResultsColorscheme> for &Theme {
             result_preview_fg: (&self.result_value_fg).into(),
             result_line_number_fg: (&self.result_line_number_fg).into(),
             result_selected_bg: (&self.selection_bg).into(),
+            result_selected_fg: (&self.selection_fg).into(),
             match_foreground_color: (&self.match_fg).into(),
         }
     }
@@ -371,6 +461,7 @@ mod tests {
             result_line_number_fg = "bright-white"
             result_value_fg = "bright-white"
             selection_bg = "bright-white"
+            selection_fg = "bright-white"
             match_fg = "bright-white"
             preview_title_fg = "bright-white"
             channel_mode_fg = "bright-white"
@@ -394,6 +485,7 @@ mod tests {
         );
         assert_eq!(theme.result_value_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.selection_bg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.selection_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(
             theme.preview_title_fg,
@@ -422,6 +514,7 @@ mod tests {
             result_line_number_fg = "#ffffff"
             result_value_fg = "bright-white"
             selection_bg = "bright-white"
+            selection_fg = "bright-white"
             match_fg = "bright-white"
             preview_title_fg = "bright-white"
             channel_mode_fg = "bright-white"
@@ -445,6 +538,7 @@ mod tests {
         );
         assert_eq!(theme.result_value_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.selection_bg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.selection_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(
             theme.preview_title_fg,

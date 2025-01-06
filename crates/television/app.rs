@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use color_eyre::Result;
@@ -44,36 +45,36 @@ pub struct App {
 /// The outcome of an action.
 #[derive(Debug)]
 pub enum ActionOutcome {
-    Entry(Entry),
+    Entries(HashSet<Entry>),
     Input(String),
-    Passthrough(Entry, String),
+    Passthrough(HashSet<Entry>, String),
     None,
 }
 
 /// The result of the application.
 #[derive(Debug)]
 pub struct AppOutput {
-    pub selected_entry: Option<Entry>,
+    pub selected_entries: Option<HashSet<Entry>>,
     pub passthrough: Option<String>,
 }
 
 impl From<ActionOutcome> for AppOutput {
     fn from(outcome: ActionOutcome) -> Self {
         match outcome {
-            ActionOutcome::Entry(entry) => Self {
-                selected_entry: Some(entry),
+            ActionOutcome::Entries(entries) => Self {
+                selected_entries: Some(entries),
                 passthrough: None,
             },
             ActionOutcome::Input(input) => Self {
-                selected_entry: None,
+                selected_entries: None,
                 passthrough: Some(input),
             },
-            ActionOutcome::Passthrough(entry, key) => Self {
-                selected_entry: Some(entry),
+            ActionOutcome::Passthrough(entries, key) => Self {
+                selected_entries: Some(entries),
                 passthrough: Some(key),
             },
             ActionOutcome::None => Self {
-                selected_entry: None,
+                selected_entries: None,
                 passthrough: None,
             },
         }
@@ -262,10 +263,13 @@ impl App {
                 Action::SelectAndExit => {
                     self.should_quit = true;
                     self.render_tx.send(RenderingTask::Quit)?;
-                    if let Some(entry) =
-                        self.television.lock().await.get_selected_entry(None)
+                    if let Some(entries) = self
+                        .television
+                        .lock()
+                        .await
+                        .get_selected_entries(Some(Mode::Channel))
                     {
-                        return Ok(ActionOutcome::Entry(entry));
+                        return Ok(ActionOutcome::Entries(entries));
                     }
                     return Ok(ActionOutcome::Input(
                         self.television.lock().await.current_pattern.clone(),
@@ -274,11 +278,14 @@ impl App {
                 Action::SelectPassthrough(passthrough) => {
                     self.should_quit = true;
                     self.render_tx.send(RenderingTask::Quit)?;
-                    if let Some(entry) =
-                        self.television.lock().await.get_selected_entry(None)
+                    if let Some(entries) = self
+                        .television
+                        .lock()
+                        .await
+                        .get_selected_entries(Some(Mode::Channel))
                     {
                         return Ok(ActionOutcome::Passthrough(
-                            entry,
+                            entries,
                             passthrough,
                         ));
                     }
