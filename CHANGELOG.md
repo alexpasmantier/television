@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.8] - 2025-01-06
+
+### 🚀 Features
+
+- *(ui)* Make background color optional and fallback to terminal default bg color (#219)
+- *(ui)* Add new `television` theme that inherits the terminal bg (#220)
+- *(ui)* Add support for standard ANSI colors theming and update default theme (#221)
+
+### 🐛 Bug Fixes
+
+- *(cable)* Zsh-history and bash-history cable channels now point to default histfiles locations (#224)
+
+### 🚜 Refactor
+
+- *(ux)* Don't print the list of available channels on channel parsing error (#222)
+- *(cable)* More debug information for cable channels (#223)
+
+### 📚 Documentation
+
+- Add shell autocompletion GIF to the README
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#218)
+- Bump to 0.8.8
+
 ## [0.8.7] - 2025-01-04
 
 ### 🐛 Bug Fixes
