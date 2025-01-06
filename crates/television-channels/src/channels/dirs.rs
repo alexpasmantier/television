@@ -37,7 +37,11 @@ impl From<&mut TelevisionChannel> for Channel {
     fn from(value: &mut TelevisionChannel) -> Self {
         match value {
             c @ TelevisionChannel::GitRepos(_) => {
-                let entries = c.results(c.result_count(), 0);
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(c.result_count(), 0)
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::new(
                     entries
                         .iter()
@@ -46,7 +50,11 @@ impl From<&mut TelevisionChannel> for Channel {
                 )
             }
             c @ TelevisionChannel::Dirs(_) => {
-                let entries = c.results(c.result_count(), 0);
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(c.result_count(), 0)
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::new(
                     entries
                         .iter()
