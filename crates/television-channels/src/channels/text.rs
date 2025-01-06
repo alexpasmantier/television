@@ -124,12 +124,16 @@ impl From<&mut TelevisionChannel> for Channel {
     fn from(value: &mut TelevisionChannel) -> Self {
         match value {
             c @ TelevisionChannel::Files(_) => {
-                let entries = c.results(
-                    c.result_count().min(
-                        u32::try_from(MAX_PIPED_FILES).unwrap_or(u32::MAX),
-                    ),
-                    0,
-                );
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(
+                        c.result_count().min(
+                            u32::try_from(MAX_PIPED_FILES).unwrap_or(u32::MAX),
+                        ),
+                        0,
+                    )
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::from_file_paths(
                     entries
                         .iter()
@@ -140,7 +144,11 @@ impl From<&mut TelevisionChannel> for Channel {
                 )
             }
             c @ TelevisionChannel::GitRepos(_) => {
-                let entries = c.results(c.result_count(), 0);
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(c.result_count(), 0)
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::new(
                     entries
                         .iter()
@@ -151,11 +159,19 @@ impl From<&mut TelevisionChannel> for Channel {
                 )
             }
             c @ TelevisionChannel::Text(_) => {
-                let entries = c.results(c.result_count(), 0);
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(c.result_count(), 0)
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::from_text_entries(entries)
             }
             c @ TelevisionChannel::Dirs(_) => {
-                let entries = c.results(c.result_count(), 0);
+                let entries = if c.selected_entries().is_empty() {
+                    c.results(c.result_count(), 0)
+                } else {
+                    c.selected_entries().iter().cloned().collect()
+                };
                 Self::new(
                     entries
                         .iter()
