@@ -12,14 +12,68 @@ use super::get_config_dir;
 
 pub mod builtin;
 
-#[derive(Clone, Debug, Default)]
-pub struct Color {
+#[derive(Clone, Debug, PartialEq)]
+pub enum Color {
+    Ansi(ANSIColor),
+    Rgb(RGBColor),
+}
+
+impl Color {
+    pub fn from_str(s: &str) -> Option<Self> {
+        if s.starts_with('#') {
+            RGBColor::from_str(s).map(Self::Rgb)
+        } else {
+            match s.to_lowercase().as_str() {
+                "black" => Some(Self::Ansi(ANSIColor::Black)),
+                "red" => Some(Self::Ansi(ANSIColor::Red)),
+                "green" => Some(Self::Ansi(ANSIColor::Green)),
+                "yellow" => Some(Self::Ansi(ANSIColor::Yellow)),
+                "blue" => Some(Self::Ansi(ANSIColor::Blue)),
+                "magenta" => Some(Self::Ansi(ANSIColor::Magenta)),
+                "cyan" => Some(Self::Ansi(ANSIColor::Cyan)),
+                "white" => Some(Self::Ansi(ANSIColor::White)),
+                "bright-black" => Some(Self::Ansi(ANSIColor::BrightBlack)),
+                "bright-red" => Some(Self::Ansi(ANSIColor::BrightRed)),
+                "bright-green" => Some(Self::Ansi(ANSIColor::BrightGreen)),
+                "bright-yellow" => Some(Self::Ansi(ANSIColor::BrightYellow)),
+                "bright-blue" => Some(Self::Ansi(ANSIColor::BrightBlue)),
+                "bright-magenta" => Some(Self::Ansi(ANSIColor::BrightMagenta)),
+                "bright-cyan" => Some(Self::Ansi(ANSIColor::BrightCyan)),
+                "bright-white" => Some(Self::Ansi(ANSIColor::BrightWhite)),
+                _ => None,
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ANSIColor {
+    Black,
+    Red,
+    Green,
+    Yellow,
+    Blue,
+    Magenta,
+    Cyan,
+    White,
+    BrightBlack,
+    BrightRed,
+    BrightGreen,
+    BrightYellow,
+    BrightBlue,
+    BrightMagenta,
+    BrightCyan,
+    BrightWhite,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RGBColor {
     pub r: u8,
     pub g: u8,
     pub b: u8,
 }
 
-impl Color {
+impl RGBColor {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
@@ -90,11 +144,11 @@ impl Theme {
     }
 }
 
-pub const DEFAULT_THEME: &str = "gruvbox-dark";
+pub const DEFAULT_THEME: &str = "default";
 
 impl Default for Theme {
     fn default() -> Self {
-        let theme_content = include_str!("../../../themes/gruvbox-dark.toml");
+        let theme_content = include_str!("../../../themes/default.toml");
         toml::from_str(theme_content).unwrap()
     }
 }
@@ -179,9 +233,43 @@ impl<'de> Deserialize<'de> for Theme {
 }
 
 #[allow(clippy::from_over_into)]
-impl Into<RatatuiColor> for &Color {
+impl Into<RatatuiColor> for &RGBColor {
     fn into(self) -> RatatuiColor {
         RatatuiColor::Rgb(self.r, self.g, self.b)
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<RatatuiColor> for &ANSIColor {
+    fn into(self) -> RatatuiColor {
+        match self {
+            ANSIColor::Black => RatatuiColor::Black,
+            ANSIColor::Red => RatatuiColor::Red,
+            ANSIColor::Green => RatatuiColor::Green,
+            ANSIColor::Yellow => RatatuiColor::Yellow,
+            ANSIColor::Blue => RatatuiColor::Blue,
+            ANSIColor::Magenta => RatatuiColor::Magenta,
+            ANSIColor::Cyan => RatatuiColor::Cyan,
+            ANSIColor::White => RatatuiColor::Gray,
+            ANSIColor::BrightBlack => RatatuiColor::DarkGray,
+            ANSIColor::BrightRed => RatatuiColor::LightRed,
+            ANSIColor::BrightGreen => RatatuiColor::LightGreen,
+            ANSIColor::BrightYellow => RatatuiColor::LightYellow,
+            ANSIColor::BrightBlue => RatatuiColor::LightBlue,
+            ANSIColor::BrightMagenta => RatatuiColor::LightMagenta,
+            ANSIColor::BrightCyan => RatatuiColor::LightCyan,
+            ANSIColor::BrightWhite => RatatuiColor::White,
+        }
+    }
+}
+
+#[allow(clippy::from_over_into)]
+impl Into<RatatuiColor> for &Color {
+    fn into(self) -> RatatuiColor {
+        match self {
+            Color::Ansi(ansi) => ansi.into(),
+            Color::Rgb(rgb) => rgb.into(),
+        }
     }
 }
 
@@ -263,5 +351,113 @@ impl Into<ModeColorscheme> for &Theme {
             remote_control: (&self.remote_control_mode_fg).into(),
             send_to_channel: (&self.send_to_channel_mode_fg).into(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_theme_deserialization() {
+        let theme_content = r##"
+            background = "#000000"
+            border_fg = "black"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            remote_control_mode_fg = "bright-white"
+            send_to_channel_mode_fg = "bright-white"
+        "##;
+        let theme: Theme = toml::from_str(theme_content).unwrap();
+        assert_eq!(
+            theme.background,
+            Some(Color::Rgb(RGBColor::from_str("000000").unwrap()))
+        );
+        assert_eq!(theme.border_fg, Color::Ansi(ANSIColor::Black));
+        assert_eq!(theme.text_fg, Color::Ansi(ANSIColor::White));
+        assert_eq!(theme.dimmed_text_fg, Color::Ansi(ANSIColor::BrightBlack));
+        assert_eq!(theme.input_text_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.result_count_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.result_name_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.result_line_number_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(theme.result_value_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.selection_bg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.preview_title_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(theme.channel_mode_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.remote_control_mode_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(
+            theme.send_to_channel_mode_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+    }
+
+    #[test]
+    fn test_theme_deserialization_no_background() {
+        let theme_content = r##"
+            border_fg = "black"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "#ffffff"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "#ffffff"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            remote_control_mode_fg = "bright-white"
+            send_to_channel_mode_fg = "bright-white"
+        "##;
+        let theme: Theme = toml::from_str(theme_content).unwrap();
+        assert_eq!(theme.background, None);
+        assert_eq!(theme.border_fg, Color::Ansi(ANSIColor::Black));
+        assert_eq!(theme.text_fg, Color::Ansi(ANSIColor::White));
+        assert_eq!(theme.dimmed_text_fg, Color::Ansi(ANSIColor::BrightBlack));
+        assert_eq!(theme.input_text_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.result_count_fg,
+            Color::Rgb(RGBColor::from_str("ffffff").unwrap())
+        );
+        assert_eq!(theme.result_name_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.result_line_number_fg,
+            Color::Rgb(RGBColor::from_str("ffffff").unwrap())
+        );
+        assert_eq!(theme.result_value_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.selection_bg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.preview_title_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(theme.channel_mode_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            theme.remote_control_mode_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(
+            theme.send_to_channel_mode_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
     }
 }

@@ -1,0 +1,20 @@
+# general
+# background = 'black'
+border_fg = 'bright-black'
+text_fg = 'bright-blue'
+dimmed_text_fg = 'white'
+# input
+input_text_fg = 'bright-red'
+result_count_fg = 'bright-red'
+# results
+result_name_fg = 'bright-blue'
+result_line_number_fg = 'bright-yellow'
+result_value_fg = 'white'
+selection_bg = 'bright-black'
+match_fg = 'bright-red'
+# preview
+preview_title_fg = 'bright-magenta'
+# modes
+channel_mode_fg = 'green'
+remote_control_mode_fg = 'yellow'
+send_to_channel_mode_fg = 'cyan'

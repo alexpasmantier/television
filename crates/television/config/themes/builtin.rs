@@ -5,6 +5,7 @@ use lazy_static::lazy_static;
 lazy_static! {
     pub static ref BUILTIN_THEMES: HashMap<&'static str, &'static str> = {
         let mut m = HashMap::new();
+        m.insert("default", include_str!("../../../../themes/default.toml"));
         m.insert(
             "television",
             include_str!("../../../../themes/television.toml"),
