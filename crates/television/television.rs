@@ -256,6 +256,7 @@ impl Television {
         Ok(())
     }
 
+    #[allow(clippy::unused_async)]
     /// Update the state of the component based on a received action.
     ///
     /// # Arguments

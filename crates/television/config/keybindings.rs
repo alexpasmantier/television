@@ -16,10 +16,12 @@ pub enum Binding {
 impl Display for Binding {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Binding::SingleKey(key) => write!(f, "{}", key),
+            Binding::SingleKey(key) => write!(f, "{key}"),
             Binding::MultipleKeys(keys) => {
-                let keys_str: Vec<String> =
-                    keys.iter().map(|k| k.to_string()).collect();
+                let keys_str: Vec<String> = keys
+                    .iter()
+                    .map(std::string::ToString::to_string)
+                    .collect();
                 write!(f, "{}", keys_str.join(", "))
             }
         }

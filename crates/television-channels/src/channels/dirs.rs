@@ -84,7 +84,7 @@ impl OnAir for Channel {
                         " ",
                     )),
                 )
-                .with_name_match_ranges(item.match_indices)
+                .with_name_match_ranges(&item.match_indices)
                 .with_icon(FileIcon::from(&path))
             })
             .collect()

@@ -48,32 +48,32 @@ impl From<AnsiStates> for tui::style::Style {
                         .remove_modifier(Modifier::DIM);
                 }
                 AnsiCode::Italic => {
-                    style = style.add_modifier(Modifier::ITALIC)
+                    style = style.add_modifier(Modifier::ITALIC);
                 }
                 AnsiCode::Underline => {
-                    style = style.add_modifier(Modifier::UNDERLINED)
+                    style = style.add_modifier(Modifier::UNDERLINED);
                 }
                 AnsiCode::SlowBlink => {
-                    style = style.add_modifier(Modifier::SLOW_BLINK)
+                    style = style.add_modifier(Modifier::SLOW_BLINK);
                 }
                 AnsiCode::RapidBlink => {
-                    style = style.add_modifier(Modifier::RAPID_BLINK)
+                    style = style.add_modifier(Modifier::RAPID_BLINK);
                 }
                 AnsiCode::Reverse => {
-                    style = style.add_modifier(Modifier::REVERSED)
+                    style = style.add_modifier(Modifier::REVERSED);
                 }
                 AnsiCode::Conceal => {
-                    style = style.add_modifier(Modifier::HIDDEN)
+                    style = style.add_modifier(Modifier::HIDDEN);
                 }
                 AnsiCode::CrossedOut => {
-                    style = style.add_modifier(Modifier::CROSSED_OUT)
+                    style = style.add_modifier(Modifier::CROSSED_OUT);
                 }
                 AnsiCode::DefaultForegroundColor => {
-                    style = style.fg(Color::Reset)
+                    style = style.fg(Color::Reset);
                 }
                 AnsiCode::SetForegroundColor => {
                     if let Some(color) = item.color {
-                        style = style.fg(color)
+                        style = style.fg(color);
                     }
                 }
                 AnsiCode::ForegroundColor(color) => style = style.fg(color),
@@ -84,13 +84,14 @@ impl From<AnsiStates> for tui::style::Style {
     }
 }
 
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn text(mut s: &[u8]) -> IResult<&[u8], Text<'static>> {
     let mut lines = Vec::new();
     let mut last = Style::new();
-    while let Ok((_s, (line, style))) = line(last)(s) {
+    while let Ok((c, (line, style))) = line(last)(s) {
         lines.push(line);
         last = style;
-        s = _s;
+        s = c;
         if s.is_empty() {
             break;
         }
@@ -99,13 +100,14 @@ pub(crate) fn text(mut s: &[u8]) -> IResult<&[u8], Text<'static>> {
 }
 
 #[cfg(feature = "zero-copy")]
+#[allow(clippy::unnecessary_wraps)]
 pub(crate) fn text_fast(mut s: &[u8]) -> IResult<&[u8], Text<'_>> {
     let mut lines = Vec::new();
     let mut last = Style::new();
-    while let Ok((_s, (line, style))) = line_fast(last)(s) {
+    while let Ok((c, (line, style))) = line_fast(last)(s) {
         lines.push(line);
         last = style;
-        s = _s;
+        s = c;
         if s.is_empty() {
             break;
         }

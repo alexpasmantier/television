@@ -273,6 +273,7 @@ pub fn guess_channel_from_prompt(
     Err(eyre!("No channel found for prompt: {}", prompt))
 }
 
+#[allow(clippy::unnecessary_wraps)]
 fn delimiter_parser(s: &str) -> Result<String, String> {
     Ok(match s {
         "" => ":".to_string(),

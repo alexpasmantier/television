@@ -179,7 +179,7 @@ impl OnAir for Channel {
                     item.inner.path.to_string_lossy().to_string();
                 Entry::new(display_path, PreviewType::Files)
                     .with_value(line)
-                    .with_value_match_ranges(item.match_indices)
+                    .with_value_match_ranges(&item.match_indices)
                     .with_icon(FileIcon::from(item.inner.path.as_path()))
                     .with_line_number(item.inner.line_number)
             })

@@ -56,8 +56,8 @@ impl Entry {
     ///
     /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
     ///                 .with_value("value".to_string())
-    ///                 .with_name_match_ranges(vec![(0, 1)])
-    ///                 .with_value_match_ranges(vec![(0, 1)])
+    ///                 .with_name_match_ranges(&vec![(0, 1)])
+    ///                 .with_value_match_ranges(&vec![(0, 1)])
     ///                 .with_icon(FileIcon::default())
     ///                 .with_line_number(0);
     /// ```
@@ -88,17 +88,17 @@ impl Entry {
 
     pub fn with_name_match_ranges(
         mut self,
-        name_match_ranges: Vec<(u32, u32)>,
+        name_match_ranges: &[(u32, u32)],
     ) -> Self {
-        self.name_match_ranges = Some(merge_ranges(&name_match_ranges));
+        self.name_match_ranges = Some(merge_ranges(name_match_ranges));
         self
     }
 
     pub fn with_value_match_ranges(
         mut self,
-        value_match_ranges: Vec<(u32, u32)>,
+        value_match_ranges: &[(u32, u32)],
     ) -> Self {
-        self.value_match_ranges = Some(merge_ranges(&value_match_ranges));
+        self.value_match_ranges = Some(merge_ranges(value_match_ranges));
         self
     }
 
@@ -154,7 +154,7 @@ impl PreviewCommand {
 
 impl Display for PreviewCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self)
+        write!(f, "{self:?}")
     }
 }
 
