@@ -160,11 +160,10 @@ pub fn try_preview(
         .expect("failed to execute process");
 
     if output.status.success() {
-        let content = String::from_utf8(output.stdout)
-            .unwrap_or(String::from("Failed to read output\n"));
+        let content = String::from_utf8_lossy(&output.stdout);
         let preview = Arc::new(Preview::new(
             entry.name.clone(),
-            PreviewContent::AnsiText(content),
+            PreviewContent::AnsiText(content.to_string()),
             None,
             false,
         ));
@@ -173,11 +172,10 @@ pub fn try_preview(
         let mut tp = last_previewed.lock();
         *tp = preview.stale().into();
     } else {
-        let content = String::from_utf8(output.stderr)
-            .unwrap_or(String::from("Failed to read error\n"));
+        let content = String::from_utf8_lossy(&output.stderr);
         let preview = Arc::new(Preview::new(
             entry.name.clone(),
-            PreviewContent::AnsiText(content),
+            PreviewContent::AnsiText(content.to_string()),
             None,
             false,
         ));
