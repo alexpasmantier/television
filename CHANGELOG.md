@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### 🚀 Features
+
+- *(cable)* Add default git diff cable channel (#226)
+- *(channels)* Add support for multi selection (#234)
+- *(channels)* Allow sending currently selected entries to other channels (#235)
+- Add support for CJK unified ideographs (#243)
+
+### 🐛 Bug Fixes
+
+- *(ingestion)* Use lossy conversion when source doesn't produce valid utf8 (#240)
+
+### ⚡ Performance
+
+- Use FxHash instead of SipHash where it makes sense (#237)
+- Only display the first 200 log entries when previewing git-repos (#241)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#225)
+- *(linting)* Add workspace lints (#228)
+- Fix linting warnings (#230)
+
 ## [0.8.8] - 2025-01-06
 
 ### 🚀 Features
