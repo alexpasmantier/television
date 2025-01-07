@@ -21,6 +21,7 @@ ratatui = { workspace = true }
 serde = { workspace = true }
 color-eyre = { workspace = true }
 syntect = { workspace = true }
+rustc-hash = { workspace = true }
 
 [lints]
 workspace = true

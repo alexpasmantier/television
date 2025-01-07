@@ -1,8 +1,9 @@
+use rustc_hash::FxHashSet;
 use std::fmt::Debug;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
-use std::{collections::HashSet, path::PathBuf};
+use std::path::PathBuf;
 
 use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
 use lazy_static::lazy_static;
@@ -99,7 +100,7 @@ where
 }
 
 lazy_static! {
-    static ref KNOWN_TEXT_FILE_EXTENSIONS: HashSet<&'static str> = [
+    static ref KNOWN_TEXT_FILE_EXTENSIONS: FxHashSet<&'static str> = [
         "ada",
         "adb",
         "ads",
@@ -428,5 +429,7 @@ lazy_static! {
         "zsh",
         "zshrc",
     ]
-    .into();
+    .iter()
+    .copied()
+    .collect();
 }

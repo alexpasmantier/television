@@ -1,9 +1,11 @@
-use serde::Deserialize;
 use std::collections::HashMap;
+
+use rustc_hash::FxHashMap;
+use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct ShellIntegrationConfig {
-    pub commands: HashMap<String, String>,
+    pub commands: FxHashMap<String, String>,
 }
 
 impl From<ShellIntegrationConfig> for config::ValueKind {

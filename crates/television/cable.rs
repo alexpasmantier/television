@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use color_eyre::Result;
 use television_channels::cable::{CableChannelPrototype, CableChannels};
@@ -71,7 +71,7 @@ pub fn load_cable_channels() -> Result<CableChannels> {
 
     debug!("Loaded cable channels: {:?}", user_defined_prototypes);
 
-    let mut cable_channels = HashMap::new();
+    let mut cable_channels = FxHashMap::default();
     for prototype in user_defined_prototypes {
         cable_channels.insert(prototype.name.clone(), prototype);
     }

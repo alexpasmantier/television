@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use crate::colors::{Colorscheme, GeneralColorscheme};
 use crate::logo::build_remote_logo_paragraph;
@@ -25,7 +25,7 @@ pub fn draw_remote_control(
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     input_state: &mut Input,
-    icon_color_cache: &mut HashMap<String, Color>,
+    icon_color_cache: &mut FxHashMap<String, Color>,
     mode: &Mode,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
@@ -65,7 +65,7 @@ fn draw_rc_channels(
     entries: &[Entry],
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
-    icon_color_cache: &mut HashMap<String, Color>,
+    icon_color_cache: &mut FxHashMap<String, Color>,
     colorscheme: &Colorscheme,
 ) {
     let rc_block = Block::default()

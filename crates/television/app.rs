@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use std::sync::Arc;
 
 use color_eyre::Result;
@@ -45,16 +45,16 @@ pub struct App {
 /// The outcome of an action.
 #[derive(Debug)]
 pub enum ActionOutcome {
-    Entries(HashSet<Entry>),
+    Entries(FxHashSet<Entry>),
     Input(String),
-    Passthrough(HashSet<Entry>, String),
+    Passthrough(FxHashSet<Entry>, String),
     None,
 }
 
 /// The result of the application.
 #[derive(Debug)]
 pub struct AppOutput {
-    pub selected_entries: Option<HashSet<Entry>>,
+    pub selected_entries: Option<FxHashSet<Entry>>,
     pub passthrough: Option<String>,
 }
 
