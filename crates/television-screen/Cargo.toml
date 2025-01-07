@@ -13,13 +13,14 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-ratatui = "0.29.0"
-serde = "1.0.215"
 television-utils = { path = "../television-utils", version = "0.0.18" }
 television-channels = { path = "../television-channels", version = "0.0.18" }
 television-previewers = { path = "../television-previewers", version = "0.0.18" }
-color-eyre = "0.6.3"
-syntect = "5.2.0"
+
+ratatui = { workspace = true }
+serde = { workspace = true }
+color-eyre = { workspace = true }
+syntect = { workspace = true }
 
 [lints]
 workspace = true
