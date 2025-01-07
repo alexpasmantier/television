@@ -112,7 +112,7 @@ async fn load_candidates(command: String, injector: Injector<String>) {
     let decoded_output = String::from_utf8_lossy(&output.stdout);
     debug!("Decoded output: {:?}", decoded_output);
 
-    for line in decoded_output.lines().collect::<HashSet<_>>() {
+    for line in decoded_output.lines() {
         if !line.trim().is_empty() {
             let () = injector.push(line.to_string(), |e, cols| {
                 cols[0] = e.clone().into();
