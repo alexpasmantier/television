@@ -1,14 +1,18 @@
 use crate::ansi::code::AnsiCode;
 use nom::{
     branch::alt,
-    bytes::complete::*,
-    character::{complete::*, is_alphabetic},
+    bytes::complete::{tag, take, take_till, take_while},
+    character::{
+        complete::{char, i64, not_line_ending, u8},
+        is_alphabetic,
+    },
     combinator::{map_res, opt, recognize, value},
     error::{self, FromExternalError},
-    multi::*,
+    multi::fold_many0,
     sequence::{delimited, preceded, terminated, tuple},
     IResult, Parser,
 };
+use smallvec::{SmallVec, ToSmallVec};
 use std::str::FromStr;
 use tui::{
     style::{Color, Modifier, Style, Stylize},
@@ -77,6 +81,7 @@ impl From<AnsiStates> for tui::style::Style {
                     }
                 }
                 AnsiCode::ForegroundColor(color) => style = style.fg(color),
+                AnsiCode::Reset => style = style.fg(Color::Reset),
                 _ => (),
             }
         }
@@ -87,11 +92,11 @@ impl From<AnsiStates> for tui::style::Style {
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn text(mut s: &[u8]) -> IResult<&[u8], Text<'static>> {
     let mut lines = Vec::new();
-    let mut last = Style::new();
-    while let Ok((c, (line, style))) = line(last)(s) {
+    let mut last_style = Style::new();
+    while let Ok((remaining, (line, style))) = line(last_style)(s) {
         lines.push(line);
-        last = style;
-        s = c;
+        last_style = style;
+        s = remaining;
         if s.is_empty() {
             break;
         }
@@ -120,24 +125,29 @@ fn line(
 ) -> impl Fn(&[u8]) -> IResult<&[u8], (Line<'static>, Style)> {
     // let style_: Style = Default::default();
     move |s: &[u8]| -> IResult<&[u8], (Line<'static>, Style)> {
+        // consume s until a line ending is found
         let (s, mut text) = not_line_ending(s)?;
+        // discard the line ending
         let (s, _) = opt(alt((tag("\r\n"), tag("\n"))))(s)?;
         let mut spans = Vec::new();
-        let mut last = style;
-        while let Ok((s, span)) = span(last)(text) {
-            // Since reset now tracks seperately we can skip the reset check
-            last = last.patch(span.style);
+        // carry over the style from the previous line (passed in as an argument)
+        let mut last_style = style;
+        // parse spans from the given text
+        while let Ok((remaining, span)) = span(last_style)(text) {
+            // Since reset now tracks separately we can skip the reset check
+            last_style = last_style.patch(span.style);
 
             if !span.content.is_empty() {
                 spans.push(span);
             }
-            text = s;
+            text = remaining;
             if text.is_empty() {
                 break;
             }
         }
 
-        Ok((s, (Line::from(spans), last)))
+        // NOTE: what is last_style here
+        Ok((s, (Line::from(spans), last_style)))
     }
 }
 
@@ -174,9 +184,11 @@ fn span(
 ) -> impl Fn(&[u8]) -> IResult<&[u8], Span<'static>, nom::error::Error<&[u8]>>
 {
     move |s: &[u8]| -> IResult<&[u8], Span<'static>> {
-        let mut last = last;
-        let (s, style) = opt(style(last))(s)?;
+        let mut last_style = last;
+        // optionally consume a style
+        let (s, maybe_style) = opt(style(last_style))(s)?;
 
+        // consume until an escape sequence is found
         #[cfg(feature = "simd")]
         let (s, text) = map_res(take_while(|c| c != b'\x1b'), |t| {
             simdutf8::basic::from_utf8(t)
@@ -188,11 +200,12 @@ fn span(
                 s,
             )?;
 
-        if let Some(style) = style.flatten() {
-            last = last.patch(style);
+        // if a style was found, patch the last style with it
+        if let Some(st) = maybe_style.flatten() {
+            last_style = last_style.patch(st);
         }
 
-        Ok((s, Span::styled(text.to_owned(), last)))
+        Ok((s, Span::styled(text.to_owned(), last_style)))
     }
 }
 
@@ -229,7 +242,19 @@ fn style(
 {
     move |s: &[u8]| -> IResult<&[u8], Option<Style>> {
         let (s, r) = match opt(ansi_sgr_code)(s)? {
-            (s, Some(r)) => (s, Some(r)),
+            (s, Some(r)) => {
+                // This would correspond to an implicit reset code (\x1b[m)
+                if r.is_empty() {
+                    let mut sv = SmallVec::<[AnsiItem; 2]>::new();
+                    sv.push(AnsiItem {
+                        code: AnsiCode::Reset,
+                        color: None,
+                    });
+                    (s, Some(sv))
+                } else {
+                    (s, Some(r))
+                }
+            }
             (s, None) => {
                 let (s, _) = any_escape_sequence(s)?;
                 (s, None)
@@ -336,8 +361,42 @@ fn color_test() {
 }
 
 #[test]
+fn test_color_reset() {
+    let t = text(b"\x1b[33msome arbitrary text\x1b[0m\nmore text")
+        .unwrap()
+        .1;
+    assert_eq!(
+        t,
+        Text::from(vec![
+            Line::from(vec![Span::styled(
+                "some arbitrary text",
+                Style::default().fg(Color::Yellow)
+            ),]),
+            Line::from(Span::from("more text").fg(Color::Reset)),
+        ])
+    );
+}
+
+#[test]
+fn test_color_reset_implicit_escape() {
+    let t = text(b"\x1b[33msome arbitrary text\x1b[m\nmore text")
+        .unwrap()
+        .1;
+    assert_eq!(
+        t,
+        Text::from(vec![
+            Line::from(vec![Span::styled(
+                "some arbitrary text",
+                Style::default().fg(Color::Yellow)
+            ),]),
+            Line::from(Span::from("more text").fg(Color::Reset)),
+        ])
+    );
+}
+
+#[test]
 fn ansi_items_test() {
-    let sc = Default::default();
+    let sc = Style::default();
     let t = style(sc)(b"\x1b[38;2;3;3;3m").unwrap().1.unwrap();
     assert_eq!(
         t,

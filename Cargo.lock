@@ -3100,6 +3100,7 @@ dependencies = [
  "television-channels",
  "television-previewers",
  "television-utils",
+ "tracing",
 ]
 
 [[package]]
