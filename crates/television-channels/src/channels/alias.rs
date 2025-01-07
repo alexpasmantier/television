@@ -44,7 +44,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
         .arg("alias")
         .output()
         .expect("failed to execute process");
-    let aliases = String::from_utf8(output.stdout).unwrap();
+    let aliases = String::from_utf8_lossy(&output.stdout);
     aliases.lines().map(ToString::to_string).collect()
 }
 
