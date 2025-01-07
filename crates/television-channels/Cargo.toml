@@ -1,6 +1,6 @@
 [package]
 name = "television-channels"
-version = "0.0.18"
+version = "0.0.19"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -13,9 +13,9 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-television-fuzzy = { path = "../television-fuzzy", version = "0.0.18" }
-television-utils = { path = "../television-utils", version = "0.0.18" }
-television-derive = { path = "../television-derive", version = "0.0.18" }
+television-fuzzy = { path = "../television-fuzzy", version = "0.0.19" }
+television-utils = { path = "../television-utils", version = "0.0.19" }
+television-derive = { path = "../television-derive", version = "0.0.19" }
 
 tracing = { workspace = true }
 tokio = { workspace = true, features = ["rt"] }
