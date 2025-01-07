@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [unreleased]
+## [0.9.0] - 2025-01-07
 
 ### 🚀 Features
 
@@ -14,17 +14,21 @@ All notable changes to this project will be documented in this file.
 ### 🐛 Bug Fixes
 
 - *(ingestion)* Use lossy conversion when source doesn't produce valid utf8 (#240)
+- *(ansi)* Catch implicit reset escape sequences (#245)
 
 ### ⚡ Performance
 
 - Use FxHash instead of SipHash where it makes sense (#237)
 - Only display the first 200 log entries when previewing git-repos (#241)
+- Drop deduplication when loading cable candidate lines (#248)
 
 ### ⚙️ Miscellaneous Tasks
 
 - *(changelog)* Update changelog (auto) (#225)
 - *(linting)* Add workspace lints (#228)
 - Fix linting warnings (#230)
+- *(changelog)* Update changelog (auto) (#244)
+- Bump to 0.9.0 (#249)
 
 ## [0.8.8] - 2025-01-06
 
