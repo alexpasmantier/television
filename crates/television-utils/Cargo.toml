@@ -13,17 +13,18 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+lazy_static = { workspace = true }
+tracing = { workspace = true }
+color-eyre = { workspace = true }
+directories = { workspace = true }
+syntect = { workspace = true }
+unicode-width = { workspace = true }
+
 ignore = "0.4.23"
-lazy_static = "1.5.0"
-tracing = "0.1.40"
-color-eyre = "0.6.3"
 bat = { version = "0.24.0", default-features = false, features = [
   "regex-onig",
 ] }
-directories = "5.0.1"
-syntect = "5.2.0"
 gag = "1.0.0"
-unicode-width = "0.2.0"
 
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
