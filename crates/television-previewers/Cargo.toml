@@ -21,6 +21,7 @@ tracing = { workspace = true }
 tokio = { workspace = true }
 color-eyre = { workspace = true }
 lazy_static = { workspace = true }
+rustc-hash = { workspace = true }
 
 parking_lot = "0.12.3"
 devicons = "0.6.11"

@@ -4,13 +4,14 @@ use ratatui::layout::Alignment;
 use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
+use rustc_hash::FxHashMap;
 use television_channels::entry::merge_ranges;
 use television_channels::entry::{Entry, PreviewType};
 use television_screen::colors::ResultsColorscheme;
 use television_screen::results::build_results_list;
 
 pub fn results_list_benchmark(c: &mut Criterion) {
-    let mut icon_color_cache = std::collections::HashMap::default();
+    let mut icon_color_cache = FxHashMap::default();
     // FIXME: there's  probably a way to have this as a benchmark asset
     // possible as a JSON file and to load it for the benchmark using Serde
     // I don't know how exactly right now just having it here instead
@@ -634,6 +635,7 @@ pub fn results_list_benchmark(c: &mut Criterion) {
         result_name_fg: Color::Indexed(222),
         result_preview_fg: Color::Indexed(222),
         result_line_number_fg: Color::Indexed(222),
+        result_selected_fg: Color::Indexed(222),
         result_selected_bg: Color::Indexed(222),
         match_foreground_color: Color::Indexed(222),
     };
@@ -651,6 +653,7 @@ pub fn results_list_benchmark(c: &mut Criterion) {
                     .style(Style::default())
                     .padding(Padding::right(1)),
                 &entries,
+                None,
                 ListDirection::BottomToTop,
                 false,
                 &mut icon_color_cache,

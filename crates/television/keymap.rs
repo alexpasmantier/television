@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::ops::Deref;
 
 use color_eyre::Result;
@@ -9,10 +9,10 @@ use crate::config::{Binding, KeyBindings};
 use crate::event::Key;
 
 #[derive(Default, Debug)]
-pub struct Keymap(pub HashMap<Mode, HashMap<Key, Action>>);
+pub struct Keymap(pub FxHashMap<Mode, FxHashMap<Key, Action>>);
 
 impl Deref for Keymap {
-    type Target = HashMap<Mode, HashMap<Key, Action>>;
+    type Target = FxHashMap<Mode, FxHashMap<Key, Action>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -20,9 +20,9 @@ impl Deref for Keymap {
 
 impl From<&KeyBindings> for Keymap {
     fn from(keybindings: &KeyBindings) -> Self {
-        let mut keymap = HashMap::new();
+        let mut keymap = FxHashMap::default();
         for (mode, bindings) in keybindings.iter() {
-            let mut mode_keymap = HashMap::new();
+            let mut mode_keymap = FxHashMap::default();
             for (action, binding) in bindings {
                 match binding {
                     Binding::SingleKey(key) => {

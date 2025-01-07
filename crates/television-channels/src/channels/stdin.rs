@@ -4,6 +4,7 @@ use std::{
     thread::spawn,
 };
 
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
 use super::OnAir;
@@ -13,7 +14,7 @@ use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 pub struct Channel {
     matcher: Matcher<String>,
     preview_type: PreviewType,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 impl Channel {
@@ -26,7 +27,7 @@ impl Channel {
         Self {
             matcher,
             preview_type: preview_type.unwrap_or_default(),
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -93,7 +94,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

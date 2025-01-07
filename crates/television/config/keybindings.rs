@@ -1,8 +1,8 @@
 use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer};
-use std::collections::HashMap;
 use std::fmt::Display;
 use std::ops::{Deref, DerefMut};
 use television_screen::mode::Mode;
@@ -56,10 +56,10 @@ impl<'de> Deserialize<'de> for KeyBindings {
     where
         D: Deserializer<'de>,
     {
-        let parsed_map =
-            HashMap::<Mode, HashMap<Action, SerializedBinding>>::deserialize(
-                deserializer,
-            )?;
+        let parsed_map = FxHashMap::<
+            Mode,
+            FxHashMap<Action, SerializedBinding>,
+        >::deserialize(deserializer)?;
 
         let keybindings = parsed_map
             .into_iter()
