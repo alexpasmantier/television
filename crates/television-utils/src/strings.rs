@@ -257,6 +257,10 @@ pub fn replace_non_printable(
                 {
                     output.push(*NULL_SYMBOL);
                 }
+                // CJK Unified Ideographs
+                c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
+                    output.push(c);
+                }
                 // Unicode characters above 0x0700 seem unstable with ratatui
                 c if c > '\u{0700}' => {
                     output.push(*NULL_SYMBOL);
