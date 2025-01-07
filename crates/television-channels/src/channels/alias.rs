@@ -4,6 +4,8 @@ use crate::channels::OnAir;
 use crate::entry::Entry;
 use crate::entry::PreviewType;
 use devicons::FileIcon;
+use rustc_hash::FxBuildHasher;
+use rustc_hash::FxHashSet;
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
 use television_utils::indices::sep_name_and_value_indices;
 use tracing::debug;
@@ -23,7 +25,7 @@ impl Alias {
 pub struct Channel {
     matcher: Matcher<Alias>,
     file_icon: FileIcon,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
@@ -55,7 +57,7 @@ impl Channel {
         Self {
             matcher,
             file_icon: FileIcon::from(FILE_ICON_STR),
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -119,7 +121,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

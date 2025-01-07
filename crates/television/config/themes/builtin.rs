@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 use lazy_static::lazy_static;
 
 lazy_static! {
-    pub static ref BUILTIN_THEMES: HashMap<&'static str, &'static str> = {
-        let mut m = HashMap::new();
+    pub static ref BUILTIN_THEMES: FxHashMap<&'static str, &'static str> = {
+        let mut m = FxHashMap::default();
         m.insert("default", include_str!("../../../../themes/default.toml"));
         m.insert(
             "television",

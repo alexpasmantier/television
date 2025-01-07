@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use devicons::FileIcon;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 
 use super::OnAir;
 use crate::entry::{Entry, PreviewType};
@@ -17,7 +18,7 @@ struct EnvVar {
 pub struct Channel {
     matcher: Matcher<EnvVar>,
     file_icon: FileIcon,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
@@ -35,7 +36,7 @@ impl Channel {
         Channel {
             matcher,
             file_icon: FileIcon::from(FILE_ICON_STR),
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -99,7 +100,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

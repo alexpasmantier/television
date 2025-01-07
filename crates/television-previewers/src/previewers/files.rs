@@ -1,5 +1,6 @@
 use color_eyre::Result;
 use parking_lot::Mutex;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek};
@@ -28,7 +29,7 @@ pub struct FilePreviewer {
     pub syntax_theme: Arc<Theme>,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
-    in_flight_previews: Arc<Mutex<HashSet<String>>>,
+    in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -74,7 +75,9 @@ impl FilePreviewer {
             last_previewed: Arc::new(Mutex::new(Arc::new(
                 Preview::default().stale(),
             ))),
-            in_flight_previews: Arc::new(Mutex::new(HashSet::new())),
+            in_flight_previews: Arc::new(Mutex::new(HashSet::with_hasher(
+                FxBuildHasher,
+            ))),
         }
     }
 
@@ -137,7 +140,7 @@ pub fn try_preview(
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
     last_previewed: &Arc<Mutex<Arc<Preview>>>,
-    in_flight_previews: &Arc<Mutex<HashSet<String>>>,
+    in_flight_previews: &Arc<Mutex<FxHashSet<String>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let path = PathBuf::from(&entry.name);

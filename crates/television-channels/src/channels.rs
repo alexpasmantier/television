@@ -1,7 +1,6 @@
-use std::collections::HashSet;
-
 use crate::entry::Entry;
 use color_eyre::Result;
+use rustc_hash::FxHashSet;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
 mod alias;
@@ -68,7 +67,7 @@ pub trait OnAir: Send {
     fn get_result(&self, index: u32) -> Option<Entry>;
 
     /// Get the currently selected entries.
-    fn selected_entries(&self) -> &HashSet<Entry>;
+    fn selected_entries(&self) -> &FxHashSet<Entry>;
 
     /// Toggles selection for the entry under the cursor.
     fn toggle_selection(&mut self, entry: &Entry);

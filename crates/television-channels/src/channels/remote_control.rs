@@ -7,6 +7,7 @@ use crate::entry::{Entry, PreviewType};
 use clap::ValueEnum;
 use color_eyre::Result;
 use devicons::FileIcon;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use television_fuzzy::matcher::{config::Config, Matcher};
 
 use super::cable;
@@ -14,7 +15,7 @@ use super::cable;
 pub struct RemoteControl {
     matcher: Matcher<RCButton>,
     cable_channels: Option<CableChannels>,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 #[derive(Clone)]
@@ -61,7 +62,7 @@ impl RemoteControl {
         RemoteControl {
             matcher,
             cable_channels,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 
@@ -143,7 +144,7 @@ impl OnAir for RemoteControl {
             .collect()
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

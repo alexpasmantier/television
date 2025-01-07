@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use rustc_hash::FxHashMap;
+use std::sync::Arc;
 
 use crate::previewers::Preview;
 use television_utils::cache::RingSet;
@@ -15,7 +16,7 @@ const DEFAULT_PREVIEW_CACHE_SIZE: usize = 100;
 /// The cache is implemented as an LRU cache with a fixed size.
 #[derive(Debug)]
 pub struct PreviewCache {
-    entries: HashMap<String, Arc<Preview>>,
+    entries: FxHashMap<String, Arc<Preview>>,
     ring_set: RingSet<String>,
 }
 
@@ -23,7 +24,7 @@ impl PreviewCache {
     /// Create a new preview cache with the given capacity.
     pub fn new(capacity: usize) -> Self {
         PreviewCache {
-            entries: HashMap::new(),
+            entries: FxHashMap::default(),
             ring_set: RingSet::with_capacity(capacity),
         }
     }

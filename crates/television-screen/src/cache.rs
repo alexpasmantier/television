@@ -1,4 +1,5 @@
-use std::{collections::HashMap, sync::Arc};
+use rustc_hash::FxHashMap;
+use std::sync::Arc;
 
 use ratatui::widgets::Paragraph;
 use television_utils::cache::RingSet;
@@ -7,14 +8,14 @@ const DEFAULT_RENDERED_PREVIEW_CACHE_SIZE: usize = 25;
 
 #[derive(Debug)]
 pub struct RenderedPreviewCache<'a> {
-    previews: HashMap<String, Arc<Paragraph<'a>>>,
+    previews: FxHashMap<String, Arc<Paragraph<'a>>>,
     ring_set: RingSet<String>,
 }
 
 impl<'a> RenderedPreviewCache<'a> {
     pub fn new(capacity: usize) -> Self {
         RenderedPreviewCache {
-            previews: HashMap::new(),
+            previews: FxHashMap::default(),
             ring_set: RingSet::with_capacity(capacity),
         }
     }

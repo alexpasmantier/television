@@ -213,7 +213,7 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
                 }
             }
 
-            fn selected_entries(&self) -> &HashSet<Entry> {
+            fn selected_entries(&self) -> &FxHashSet<Entry> {
                 match self {
                     #(
                         #enum_name::#variant_names(ref channel) => {

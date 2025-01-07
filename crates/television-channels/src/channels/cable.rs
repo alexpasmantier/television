@@ -1,7 +1,9 @@
+use std::collections::HashSet;
+
 use color_eyre::Result;
 use lazy_static::lazy_static;
 use regex::Regex;
-use std::collections::HashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
 use crate::cable::{CableChannelPrototype, DEFAULT_DELIMITER};
@@ -26,7 +28,7 @@ pub struct Channel {
     matcher: Matcher<String>,
     entries_command: String,
     preview_kind: PreviewKind,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 impl Default for Channel {
@@ -94,7 +96,7 @@ impl Channel {
             entries_command: entries_command.to_string(),
             preview_kind,
             name: name.to_string(),
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -164,7 +166,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

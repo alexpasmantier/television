@@ -2,6 +2,7 @@ use devicons::FileIcon;
 use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
 use lazy_static::lazy_static;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use tokio::task::JoinHandle;
@@ -16,7 +17,7 @@ pub struct Channel {
     matcher: Matcher<String>,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 impl Channel {
@@ -31,7 +32,7 @@ impl Channel {
             matcher,
             icon: FileIcon::from("git"),
             crawl_handle,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -84,7 +85,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

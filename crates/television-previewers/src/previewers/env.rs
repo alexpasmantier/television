@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 use std::sync::Arc;
 
 use crate::previewers::{Preview, PreviewContent};
@@ -6,7 +6,7 @@ use television_channels::entry;
 
 #[derive(Debug, Default)]
 pub struct EnvVarPreviewer {
-    cache: HashMap<entry::Entry, Arc<Preview>>,
+    cache: FxHashMap<entry::Entry, Arc<Preview>>,
     _config: EnvVarPreviewerConfig,
 }
 
@@ -16,7 +16,7 @@ pub struct EnvVarPreviewerConfig {}
 impl EnvVarPreviewer {
     pub fn new(config: Option<EnvVarPreviewerConfig>) -> Self {
         EnvVarPreviewer {
-            cache: HashMap::new(),
+            cache: FxHashMap::default(),
             _config: config.unwrap_or_default(),
         }
     }

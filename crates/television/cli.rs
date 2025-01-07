@@ -1,4 +1,5 @@
-use std::{collections::HashMap, path::Path};
+use rustc_hash::FxHashMap;
+use std::path::Path;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use color_eyre::{eyre::eyre, Result};
@@ -231,7 +232,7 @@ pub fn list_channels() {
 /// - it should be able to handle commands within delimiters (quotes, brackets, etc.)
 pub fn guess_channel_from_prompt(
     prompt: &str,
-    command_mapping: &HashMap<String, String>,
+    command_mapping: &FxHashMap<String, String>,
 ) -> Result<ParsedCliChannel> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf

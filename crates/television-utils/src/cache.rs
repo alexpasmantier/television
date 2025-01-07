@@ -1,3 +1,4 @@
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::{HashSet, VecDeque};
 use tracing::debug;
 
@@ -43,7 +44,7 @@ use tracing::debug;
 #[derive(Debug)]
 pub struct RingSet<T> {
     ring_buffer: VecDeque<T>,
-    known_keys: HashSet<T>,
+    known_keys: FxHashSet<T>,
     capacity: usize,
 }
 
@@ -55,7 +56,10 @@ where
     pub fn with_capacity(capacity: usize) -> Self {
         RingSet {
             ring_buffer: VecDeque::with_capacity(capacity),
-            known_keys: HashSet::with_capacity(capacity),
+            known_keys: HashSet::with_capacity_and_hasher(
+                capacity,
+                FxBuildHasher,
+            ),
             capacity,
         }
     }

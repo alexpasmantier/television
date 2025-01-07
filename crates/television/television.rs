@@ -6,7 +6,8 @@ use crate::{cable::load_cable_channels, keymap::Keymap};
 use color_eyre::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
-use std::collections::{HashMap, HashSet};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex};
 use television_channels::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
@@ -46,7 +47,7 @@ pub struct Television {
     pub preview_scroll: Option<u16>,
     pub preview_pane_height: u16,
     current_preview_total_lines: u16,
-    pub icon_color_cache: HashMap<String, Color>,
+    pub icon_color_cache: FxHashMap<String, Color>,
     pub rendered_preview_cache: Arc<Mutex<RenderedPreviewCache<'static>>>,
     pub(crate) spinner: Spinner,
     pub(crate) spinner_state: SpinnerState,
@@ -102,7 +103,7 @@ impl Television {
             preview_scroll: None,
             preview_pane_height: 0,
             current_preview_total_lines: 0,
-            icon_color_cache: HashMap::new(),
+            icon_color_cache: FxHashMap::default(),
             rendered_preview_cache: Arc::new(Mutex::new(
                 RenderedPreviewCache::default(),
             )),
@@ -169,12 +170,12 @@ impl Television {
     pub fn get_selected_entries(
         &mut self,
         mode: Option<Mode>,
-    ) -> Option<HashSet<Entry>> {
+    ) -> Option<FxHashSet<Entry>> {
         if self.channel.selected_entries().is_empty()
             || matches!(mode, Some(Mode::RemoteControl))
         {
             return self.get_selected_entry(mode).map(|e| {
-                let mut set = HashSet::new();
+                let mut set = HashSet::with_hasher(FxBuildHasher);
                 set.insert(e);
                 set
             });
@@ -615,10 +616,10 @@ impl Television {
 }
 
 impl KeyBindings {
-    pub fn to_displayable(&self) -> HashMap<Mode, DisplayableKeybindings> {
+    pub fn to_displayable(&self) -> FxHashMap<Mode, DisplayableKeybindings> {
         // channel mode keybindings
-        let channel_bindings: HashMap<DisplayableAction, Vec<String>> =
-            HashMap::from_iter(vec![
+        let channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
+            FxHashMap::from_iter(vec![
                 (
                     DisplayableAction::ResultsNavigation,
                     serialized_keys_for_actions(
@@ -676,58 +677,56 @@ impl KeyBindings {
             ]);
 
         // remote control mode keybindings
-        let remote_control_bindings: HashMap<DisplayableAction, Vec<String>> =
-            HashMap::from_iter(vec![
-                (
-                    DisplayableAction::ResultsNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                    ),
+        let remote_control_bindings: FxHashMap<
+            DisplayableAction,
+            Vec<String>,
+        > = FxHashMap::from_iter(vec![
+            (
+                DisplayableAction::ResultsNavigation,
+                serialized_keys_for_actions(
+                    self,
+                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
                 ),
-                (
-                    DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ConfirmSelection],
-                    ),
+            ),
+            (
+                DisplayableAction::SelectEntry,
+                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
+            ),
+            (
+                DisplayableAction::ToggleRemoteControl,
+                serialized_keys_for_actions(
+                    self,
+                    &[Action::ToggleRemoteControl],
                 ),
-                (
-                    DisplayableAction::ToggleRemoteControl,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleRemoteControl],
-                    ),
-                ),
-            ]);
+            ),
+        ]);
 
         // send to channel mode keybindings
-        let send_to_channel_bindings: HashMap<DisplayableAction, Vec<String>> =
-            HashMap::from_iter(vec![
-                (
-                    DisplayableAction::ResultsNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                    ),
+        let send_to_channel_bindings: FxHashMap<
+            DisplayableAction,
+            Vec<String>,
+        > = FxHashMap::from_iter(vec![
+            (
+                DisplayableAction::ResultsNavigation,
+                serialized_keys_for_actions(
+                    self,
+                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
                 ),
-                (
-                    DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ConfirmSelection],
-                    ),
+            ),
+            (
+                DisplayableAction::SelectEntry,
+                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
+            ),
+            (
+                DisplayableAction::Cancel,
+                serialized_keys_for_actions(
+                    self,
+                    &[Action::ToggleSendToChannel],
                 ),
-                (
-                    DisplayableAction::Cancel,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleSendToChannel],
-                    ),
-                ),
-            ]);
+            ),
+        ]);
 
-        HashMap::from_iter(vec![
+        FxHashMap::from_iter(vec![
             (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
             (
                 Mode::RemoteControl,

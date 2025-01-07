@@ -1,5 +1,5 @@
+use rustc_hash::FxHashMap;
 use std::{
-    collections::HashMap,
     fmt::{self, Display, Formatter},
     ops::Deref,
 };
@@ -27,10 +27,10 @@ impl Display for CableChannelPrototype {
 }
 
 #[derive(Debug, serde::Deserialize, Default)]
-pub struct CableChannels(pub HashMap<String, CableChannelPrototype>);
+pub struct CableChannels(pub FxHashMap<String, CableChannelPrototype>);
 
 impl Deref for CableChannels {
-    type Target = HashMap<String, CableChannelPrototype>;
+    type Target = FxHashMap<String, CableChannelPrototype>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

@@ -19,6 +19,7 @@ color-eyre = { workspace = true }
 directories = { workspace = true }
 syntect = { workspace = true }
 unicode-width = { workspace = true }
+rustc-hash = { workspace = true }
 
 ignore = "0.4.23"
 bat = { version = "0.24.0", default-features = false, features = [

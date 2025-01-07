@@ -2,6 +2,7 @@ use super::{OnAir, TelevisionChannel};
 use crate::entry::{Entry, PreviewType};
 use devicons::FileIcon;
 use ignore::WalkState;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::{
     collections::HashSet,
     fs::File,
@@ -37,7 +38,7 @@ impl CandidateLine {
 pub struct Channel {
     matcher: Matcher<CandidateLine>,
     crawl_handle: tokio::task::JoinHandle<()>,
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 impl Channel {
@@ -51,7 +52,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 
@@ -76,7 +77,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 
@@ -101,7 +102,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle: load_handle,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -216,7 +217,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

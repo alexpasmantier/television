@@ -1,6 +1,7 @@
 use crate::channels::{OnAir, TelevisionChannel};
 use crate::entry::{Entry, PreviewType};
 use devicons::FileIcon;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use television_fuzzy::matcher::{config::Config, injector::Injector, Matcher};
@@ -11,7 +12,7 @@ pub struct Channel {
     crawl_handle: tokio::task::JoinHandle<()>,
     // PERF: cache results (to make deleting characters smoother) with
     // a shallow stack of sub-patterns as keys (e.g. "a", "ab", "abc")
-    selected_entries: HashSet<Entry>,
+    selected_entries: FxHashSet<Entry>,
 }
 
 impl Channel {
@@ -22,7 +23,7 @@ impl Channel {
         Channel {
             matcher,
             crawl_handle,
-            selected_entries: HashSet::new(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
 }
@@ -72,7 +73,7 @@ impl From<&mut TelevisionChannel> for Channel {
                     entries
                         .iter()
                         .map(|entry| PathBuf::from(&entry.name))
-                        .collect::<HashSet<_>>()
+                        .collect::<FxHashSet<_>>()
                         .into_iter()
                         .collect(),
                 )
@@ -83,7 +84,7 @@ impl From<&mut TelevisionChannel> for Channel {
                     entries
                         .iter()
                         .map(|entry| PathBuf::from(&entry.name))
-                        .collect::<HashSet<_>>()
+                        .collect::<FxHashSet<_>>()
                         .into_iter()
                         .collect(),
                 )
@@ -120,7 +121,7 @@ impl OnAir for Channel {
         })
     }
 
-    fn selected_entries(&self) -> &HashSet<Entry> {
+    fn selected_entries(&self) -> &FxHashSet<Entry> {
         &self.selected_entries
     }
 

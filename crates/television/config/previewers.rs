@@ -1,6 +1,7 @@
+use std::collections::HashMap;
+
 use config::ValueKind;
 use serde::Deserialize;
-use std::collections::HashMap;
 use television_previewers::previewers;
 use television_previewers::previewers::PreviewerConfig;
 

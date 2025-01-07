@@ -4,7 +4,7 @@ use crate::previewers::{Preview, PreviewContent};
 use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use regex::Regex;
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::Arc;
 use television_channels::entry::{Entry, PreviewCommand};
@@ -18,7 +18,7 @@ pub struct CommandPreviewer {
     config: CommandPreviewerConfig,
     concurrent_preview_tasks: Arc<AtomicU8>,
     last_previewed: Arc<Mutex<Arc<Preview>>>,
-    in_flight_previews: Arc<Mutex<HashSet<String>>>,
+    in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
 }
 
 #[allow(dead_code)]
@@ -57,7 +57,7 @@ impl CommandPreviewer {
             last_previewed: Arc::new(Mutex::new(Arc::new(
                 Preview::default().stale(),
             ))),
-            in_flight_previews: Arc::new(Mutex::new(HashSet::new())),
+            in_flight_previews: Arc::new(Mutex::new(FxHashSet::default())),
         }
     }
 
