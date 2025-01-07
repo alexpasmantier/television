@@ -46,7 +46,7 @@ impl Default for Channel {
 lazy_static! {
     static ref PREVIEW_COMMAND: PreviewCommand = PreviewCommand {
         command: String::from(
-            "cd {} && git log --pretty=medium --all --graph --color",
+            "cd {} && git log -n 200 --pretty=medium --all --graph --color",
         ),
         delimiter: ":".to_string(),
     };
