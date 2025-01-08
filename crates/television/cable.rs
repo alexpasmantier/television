@@ -1,8 +1,10 @@
+use std::path::PathBuf;
+
 use rustc_hash::FxHashMap;
 
 use color_eyre::Result;
 use television_channels::cable::{CableChannelPrototype, CableChannels};
-use tracing::debug;
+use tracing::{debug, error};
 
 use crate::config::get_config_dir;
 
@@ -45,29 +47,42 @@ pub fn load_cable_channels() -> Result<CableChannels> {
     let files = std::fs::read_dir(&config_dir)?;
 
     // filter the files that match the pattern
-    let file_paths = files
+    let mut file_paths: Vec<PathBuf> = files
         .filter_map(|f| f.ok().map(|f| f.path()))
-        .filter(|p| is_cable_file_format(p) && p.is_file());
+        .filter(|p| is_cable_file_format(p) && p.is_file())
+        .collect();
 
-    let user_defined_prototypes = file_paths.fold(Vec::new(), |mut acc, p| {
-        let r: ChannelPrototypes = toml::from_str(
-            &std::fs::read_to_string(p)
-                .expect("Unable to read configuration file"),
-        )
-        .unwrap_or_default();
-        acc.extend(r.prototypes);
-        acc
-    });
+    debug!("Found cable channel files: {:?}", file_paths);
 
-    // If no user defined prototypes are found, write the default prototypes for the current
+    // If no cable provider files are found, write the default provider for the current
     // platform to the config directory
-    if user_defined_prototypes.is_empty() {
+    if file_paths.is_empty() {
         debug!("No user defined cable channels found");
         // write the default cable channels to the config directory
         let default_channels_path =
             config_dir.join(DEFAULT_CABLE_CHANNELS_FILE_NAME);
-        std::fs::write(default_channels_path, DEFAULT_CABLE_CHANNELS)?;
+        std::fs::write(&default_channels_path, DEFAULT_CABLE_CHANNELS)?;
+        file_paths.push(default_channels_path);
     }
+
+    let user_defined_prototypes = file_paths.iter().fold(
+        Vec::<CableChannelPrototype>::new(),
+        |mut acc, p| {
+            match toml::from_str::<ChannelPrototypes>(
+                &std::fs::read_to_string(p)
+                    .expect("Unable to read configuration file"),
+            ) {
+                Ok(prototypes) => acc.extend(prototypes.prototypes),
+                Err(e) => {
+                    error!(
+                        "Failed to parse cable channel file {:?}: {}",
+                        p, e
+                    );
+                }
+            }
+            acc
+        },
+    );
 
     debug!("Loaded cable channels: {:?}", user_defined_prototypes);
 
