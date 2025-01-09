@@ -31,7 +31,7 @@ pub struct Cli {
     pub no_preview: bool,
 
     /// The delimiter used to extract fields from the entry to provide to the preview command
-    /// (defaults to ":")
+    /// (defaults to " ")
     #[arg(long, value_name = "STRING", default_value = " ", value_parser = delimiter_parser)]
     pub delimiter: String,
 
@@ -283,7 +283,7 @@ pub fn guess_channel_from_prompt(
 #[allow(clippy::unnecessary_wraps)]
 fn delimiter_parser(s: &str) -> Result<String, String> {
     Ok(match s {
-        "" => ":".to_string(),
+        "" => " ".to_string(),
         "\\t" => "\t".to_string(),
         _ => s.to_string(),
     })
