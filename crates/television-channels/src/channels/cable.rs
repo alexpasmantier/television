@@ -117,13 +117,15 @@ async fn load_candidates(command: String, injector: Injector<String>) {
         let reader = BufReader::new(out);
         let mut produced_output = false;
 
+        #[allow(clippy::manual_flatten)]
         for line in reader.lines() {
-            let line = line.unwrap();
-            if !line.trim().is_empty() {
-                let () = injector.push(line, |e, cols| {
-                    cols[0] = e.clone().into();
-                });
-                produced_output = true;
+            if let Ok(l) = line {
+                if !l.trim().is_empty() {
+                    let () = injector.push(l, |e, cols| {
+                        cols[0] = e.clone().into();
+                    });
+                    produced_output = true;
+                }
             }
         }
 
