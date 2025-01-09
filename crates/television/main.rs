@@ -65,6 +65,9 @@ async fn main() -> Result<()> {
         args.tick_rate.unwrap_or(config.config.tick_rate);
     config.config.frame_rate =
         args.frame_rate.unwrap_or(config.config.frame_rate);
+    if args.no_preview {
+        config.ui.show_preview_panel = false;
+    }
 
     if let Some(working_directory) = args.working_directory {
         let path = Path::new(&working_directory);
