@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.2] - 2025-01-09
+
+### 🐛 Bug Fixes
+
+- *(cable)* Filter out non-utf8 lines when loading cable candidates (#263)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#261)
+- Bump to 0.9.2
+
 ## [0.9.1] - 2025-01-09
 
 ### 🚀 Features
