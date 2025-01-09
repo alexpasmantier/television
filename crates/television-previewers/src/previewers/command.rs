@@ -1,4 +1,3 @@
-/// git log --oneline --date=short --pretty="format:%C(auto)%h %s %Cblue%an %C(green)%cd" "$@" | ~/code/rust/television/target/release/tv --preview 'git show -p --stat --pretty=fuller --color=always {0}' --delimiter ' '
 use crate::previewers::cache::PreviewCache;
 use crate::previewers::{Preview, PreviewContent};
 use lazy_static::lazy_static;
@@ -27,7 +26,7 @@ pub struct CommandPreviewerConfig {
     delimiter: String,
 }
 
-const DEFAULT_DELIMITER: &str = ":";
+const DEFAULT_DELIMITER: &str = " ";
 
 impl Default for CommandPreviewerConfig {
     fn default() -> Self {
@@ -124,19 +123,21 @@ lazy_static! {
 /// let entry = Entry::new("a:given:entry:to:preview".to_string(), PreviewType::Command(command.clone()));
 /// let formatted_command = format_command(&command, &entry);
 ///
-/// assert_eq!(formatted_command, "something a:given:entry:to:preview entry a");
+/// assert_eq!(formatted_command, "something 'a:given:entry:to:preview' 'entry' 'a'");
 /// ```
 pub fn format_command(command: &PreviewCommand, entry: &Entry) -> String {
     let parts = entry.name.split(&command.delimiter).collect::<Vec<&str>>();
     debug!("Parts: {:?}", parts);
 
-    let mut formatted_command = command.command.replace("{}", &entry.name);
+    let mut formatted_command = command
+        .command
+        .replace("{}", format!("'{}'", entry.name).as_str());
 
     formatted_command = COMMAND_PLACEHOLDER_REGEX
         .replace_all(&formatted_command, |caps: &regex::Captures| {
             let index =
                 caps.get(1).unwrap().as_str().parse::<usize>().unwrap();
-            parts[index].to_string()
+            format!("'{}'", parts[index])
         })
         .to_string();
 
@@ -202,7 +203,10 @@ mod tests {
         );
         let formatted_command = format_command(&command, &entry);
 
-        assert_eq!(formatted_command, "something an:entry:to:preview to an");
+        assert_eq!(
+            formatted_command,
+            "something 'an:entry:to:preview' 'to' 'an'"
+        );
     }
 
     #[test]
@@ -232,7 +236,7 @@ mod tests {
         );
         let formatted_command = format_command(&command, &entry);
 
-        assert_eq!(formatted_command, "something an:entry:to:preview");
+        assert_eq!(formatted_command, "something 'an:entry:to:preview'");
     }
 
     #[test]
@@ -247,6 +251,6 @@ mod tests {
         );
         let formatted_command = format_command(&command, &entry);
 
-        assert_eq!(formatted_command, "something an -t to");
+        assert_eq!(formatted_command, "something 'an' -t 'to'");
     }
 }
