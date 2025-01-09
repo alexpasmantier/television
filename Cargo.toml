@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.9.0"
+version = "0.9.1"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -72,12 +72,12 @@ ratatui = { version = "0.29.0", features = ["serde", "macros"] }
 
 [dependencies]
 # local dependencies
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.19" }
-television-derive = { path = "crates/television-derive", version = "0.0.19" }
-television-screen = { path = "crates/television-screen", version = "0.0.19" }
-television-channels = { path = "crates/television-channels", version = "0.0.19" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.19" }
-television-utils = { path = "crates/television-utils", version = "0.0.19" }
+television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.20" }
+television-derive = { path = "crates/television-derive", version = "0.0.20" }
+television-screen = { path = "crates/television-screen", version = "0.0.20" }
+television-channels = { path = "crates/television-channels", version = "0.0.20" }
+television-previewers = { path = "crates/television-previewers", version = "0.0.20" }
+television-utils = { path = "crates/television-utils", version = "0.0.20" }
 
 # workspace dependencies
 directories = { workspace = true }

@@ -5,7 +5,7 @@ set -euo pipefail
 NEW_VERSION=$(python scripts/get_version.py)
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-cd $SCRIPT_DIR/..
+cd "$SCRIPT_DIR/.."
 
 echo "Bumping version in workspace crates: $NEW_VERSION"
 
