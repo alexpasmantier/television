@@ -26,6 +26,10 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING")]
     pub preview: Option<String>,
 
+    /// Disable the preview pane
+    #[arg(long, default_value = "false")]
+    pub no_preview: bool,
+
     /// The delimiter used to extract fields from the entry to provide to the preview command
     /// (defaults to ":")
     #[arg(long, value_name = "STRING", default_value = " ", value_parser = delimiter_parser)]
@@ -99,6 +103,7 @@ impl From<Shell> for UtilShell {
 pub struct PostProcessedCli {
     pub channel: ParsedCliChannel,
     pub preview_command: Option<PreviewCommand>,
+    pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
     pub passthrough_keybindings: Vec<String>,
@@ -148,6 +153,7 @@ impl From<Cli> for PostProcessedCli {
         Self {
             channel,
             preview_command,
+            no_preview: cli.no_preview,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
             passthrough_keybindings,
@@ -334,6 +340,7 @@ mod tests {
         let cli = Cli {
             channel: "files".to_string(),
             preview: Some("bat -n --color=always {}".to_string()),
+            no_preview: false,
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
@@ -375,6 +382,7 @@ mod tests {
         let cli = Cli {
             channel: ".".to_string(),
             preview: None,
+            no_preview: false,
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
