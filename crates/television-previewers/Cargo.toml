@@ -1,6 +1,6 @@
 [package]
 name = "television-previewers"
-version = "0.0.20"
+version = "0.0.21"
 description.workspace = true
 authors.workspace = true
 repository.workspace = true
@@ -13,8 +13,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-television-channels = { path = "../television-channels", version = "0.0.20" }
-television-utils = { path = "../television-utils", version = "0.0.20" }
+television-channels = { path = "../television-channels", version = "0.0.21" }
+television-utils = { path = "../television-utils", version = "0.0.21" }
 
 syntect = { workspace = true }
 tracing = { workspace = true }
