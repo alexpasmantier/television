@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.1] - 2025-01-09
+
+### 🚀 Features
+
+- *(cli)* Add `no-preview` flag to disable the preview pane (#258)
+- *(cable)* Allow custom cable channels to override builtins (#260)
+
+### 🐛 Bug Fixes
+
+- *(fish)* Don't add extra space to prompt if it's an implicit cd (`\.`) (#259)
+
+### 🚜 Refactor
+
+- *(providers)* Improve cable provider files loading sequence (#254)
+- *(cable)* Stream in cable results + better error logging + default delimiter consistency (#257)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#251)
+- Bump to 0.9.1
+
 ## [0.9.0] - 2025-01-07
 
 ### 🚀 Features
