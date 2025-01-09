@@ -68,8 +68,11 @@ impl Television {
         }
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
         let keymap = Keymap::from(&config.keybindings);
-        let builtin_channels = load_builtin_channels();
         let cable_channels = load_cable_channels().unwrap_or_default();
+        let builtin_channels = load_builtin_channels(Some(
+            &cable_channels.keys().collect::<Vec<_>>(),
+        ));
+
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
             BuildMetadata::new(
@@ -115,8 +118,10 @@ impl Television {
     }
 
     pub fn init_remote_control(&mut self) {
-        let builtin_channels = load_builtin_channels();
         let cable_channels = load_cable_channels().unwrap_or_default();
+        let builtin_channels = load_builtin_channels(Some(
+            &cable_channels.keys().collect::<Vec<_>>(),
+        ));
         self.remote_control = TelevisionChannel::RemoteControl(
             RemoteControl::new(builtin_channels, Some(cable_channels)),
         );

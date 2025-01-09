@@ -73,22 +73,21 @@ impl RemoteControl {
     }
 
     pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
-        if let Ok(channel) = UnitChannel::try_from(channel_name) {
-            Ok(channel.into())
-        } else {
-            let maybe_prototype = self
-                .cable_channels
-                .as_ref()
-                .and_then(|channels| channels.get(channel_name));
-            match maybe_prototype {
-                Some(prototype) => Ok(TelevisionChannel::Cable(
-                    cable::Channel::from(prototype.clone()),
-                )),
-                None => Err(color_eyre::eyre::eyre!(
+        match self
+            .cable_channels
+            .as_ref()
+            .and_then(|channels| channels.get(channel_name).cloned())
+        {
+            Some(prototype) => Ok(TelevisionChannel::Cable(
+                cable::Channel::from(prototype.clone()),
+            )),
+            None => match UnitChannel::try_from(channel_name) {
+                Ok(channel) => Ok(channel.into()),
+                Err(_) => Err(color_eyre::eyre::eyre!(
                     "No channel or cable channel prototype found for {}",
                     channel_name
                 )),
-            }
+            },
         }
     }
 }
@@ -105,10 +104,21 @@ impl Default for RemoteControl {
     }
 }
 
-pub fn load_builtin_channels() -> Vec<UnitChannel> {
-    CliTvChannel::value_variants()
+pub fn load_builtin_channels(
+    filter_out_cable_names: Option<&[&String]>,
+) -> Vec<UnitChannel> {
+    let mut value_variants = CliTvChannel::value_variants()
         .iter()
-        .flat_map(|v| UnitChannel::try_from(v.to_string().as_str()))
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<_>>();
+
+    if let Some(f) = filter_out_cable_names {
+        value_variants.retain(|v| !f.iter().any(|c| *c == v));
+    }
+
+    value_variants
+        .iter()
+        .flat_map(|v| UnitChannel::try_from(v.as_str()))
         .collect()
 }
 
