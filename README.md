@@ -22,7 +22,7 @@ images, you name it) using a fuzzy matching algorithm and is designed to be easi
 ![tv-shell-integration](https://github.com/user-attachments/assets/d11c4d3c-2f1f-457c-9a0f-a56aebfefddd)
 
 
-It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the *nucleo* matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
+It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the [nucleo](https://github.com/helix-editor/nucleo) matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
 
 
 ## Features
