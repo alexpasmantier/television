@@ -560,20 +560,24 @@ impl Television {
             && !matches!(selected_entry.preview_type, PreviewType::None)
         {
             // preview content
-            let preview = self.previewer.preview(&selected_entry);
-            self.current_preview_total_lines = preview.total_lines();
-            // initialize preview scroll
-            self.maybe_init_preview_scroll(
-                selected_entry
-                    .line_number
-                    .map(|l| u16::try_from(l).unwrap_or(0)),
-                layout.preview_window.unwrap().height,
-            );
+            let maybe_preview = self.previewer.preview(&selected_entry);
+
+            if let Some(preview) = &maybe_preview {
+                self.current_preview_total_lines = preview.total_lines();
+                // initialize preview scroll
+                self.maybe_init_preview_scroll(
+                    selected_entry
+                        .line_number
+                        .map(|l| u16::try_from(l).unwrap_or(0)),
+                    layout.preview_window.unwrap().height,
+                );
+            }
+
             draw_preview_content_block(
                 f,
                 layout.preview_window.unwrap(),
                 &selected_entry,
-                &preview,
+                &maybe_preview,
                 &self.rendered_preview_cache,
                 self.preview_scroll.unwrap_or(0),
                 self.config.ui.use_nerd_font_icons,

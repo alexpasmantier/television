@@ -3,6 +3,7 @@ use crate::{
     colors::{Colorscheme, PreviewColorscheme},
 };
 use color_eyre::eyre::Result;
+use devicons::FileIcon;
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
 use ratatui::Frame;
 use ratatui::{
@@ -22,20 +23,28 @@ use television_utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
 };
+use tracing::debug;
 
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
 
 #[allow(clippy::needless_pass_by_value)]
-pub fn build_preview_paragraph(
-    preview_block: Block<'_>,
+pub fn build_preview_paragraph<'a>(
+    //preview_block: Block<'_>,
     inner: Rect,
     preview_content: PreviewContent,
     target_line: Option<u16>,
     preview_scroll: u16,
     colorscheme: Colorscheme,
-) -> Paragraph<'_> {
+) -> Paragraph<'a> {
+    let preview_block =
+        Block::default().style(Style::default()).padding(Padding {
+            top: 0,
+            right: 1,
+            bottom: 0,
+            left: 1,
+        });
     match preview_content {
         PreviewContent::AnsiText(text) => {
             build_ansi_text_paragraph(text, preview_block, preview_scroll)
@@ -244,20 +253,18 @@ pub fn build_meta_preview_paragraph<'a>(
     Paragraph::new(Text::from(lines))
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn draw_preview_content_block(
+fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
-    entry: &Entry,
-    preview: &Arc<Preview>,
-    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
-    preview_scroll: u16,
-    use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
-) -> Result<()> {
+    icon: Option<FileIcon>,
+    title: &str,
+    use_nerd_font_icons: bool,
+) -> Result<Rect> {
     let mut preview_title_spans = vec![Span::from(" ")];
-    if preview.icon.is_some() && use_nerd_font_icons {
-        let icon = preview.icon.as_ref().unwrap();
+    // optional icon
+    if icon.is_some() && use_nerd_font_icons {
+        let icon = icon.as_ref().unwrap();
         preview_title_spans.push(Span::styled(
             {
                 let mut icon_str = String::from(icon.icon);
@@ -267,10 +274,11 @@ pub fn draw_preview_content_block(
             Style::default().fg(Color::from_str(icon.color)?),
         ));
     }
+    // preview title
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable(
-                preview.title.as_bytes(),
+                title.as_bytes(),
                 &ReplaceNonPrintableConfig::default(),
             )
             .0,
@@ -279,6 +287,8 @@ pub fn draw_preview_content_block(
         Style::default().fg(colorscheme.preview.title_fg).bold(),
     ));
     preview_title_spans.push(Span::from(" "));
+
+    // build the preview block
     let preview_outer_block = Block::default()
         .title_top(
             Line::from(preview_title_spans)
@@ -294,47 +304,136 @@ pub fn draw_preview_content_block(
         )
         .padding(Padding::new(0, 1, 1, 0));
 
-    let preview_inner_block =
-        Block::default().style(Style::default()).padding(Padding {
-            top: 0,
-            right: 1,
-            bottom: 0,
-            left: 1,
-        });
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);
+    Ok(inner)
+}
 
-    let target_line = entry.line_number.map(|l| u16::try_from(l).unwrap_or(0));
-    let cache_key = compute_cache_key(entry);
+#[allow(clippy::too_many_arguments)]
+pub fn draw_preview_content_block(
+    f: &mut Frame,
+    rect: Rect,
+    entry: &Entry,
+    preview: &Option<Arc<Preview>>,
+    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
+    preview_scroll: u16,
+    use_nerd_font_icons: bool,
+    colorscheme: &Colorscheme,
+) -> Result<()> {
+    if let Some(preview) = preview {
+        debug!("preview is Some");
+        let inner = draw_content_outer_block(
+            f,
+            rect,
+            colorscheme,
+            preview.icon,
+            &preview.title,
+            use_nerd_font_icons,
+        )?;
 
-    // Check if the rendered preview content is already in the cache
-    if let Some(preview_paragraph) =
-        rendered_preview_cache.lock().unwrap().get(&cache_key)
-    {
-        let p = preview_paragraph.as_ref().clone();
-        f.render_widget(p.scroll((preview_scroll, 0)), inner);
-        return Ok(());
-    }
-    // If not, render the preview content and cache it if not empty
-    let c_scheme = colorscheme.clone();
-    let rp = build_preview_paragraph(
-        preview_inner_block,
-        inner,
-        preview.content.clone(),
-        target_line,
-        preview_scroll,
-        c_scheme,
-    );
-    if !preview.stale {
-        rendered_preview_cache
+        // check if the rendered preview content is already in the cache
+        let cache_key = compute_cache_key(entry);
+        let cached_preview = rendered_preview_cache
             .lock()
             .unwrap()
-            .insert(cache_key, &Arc::new(rp.clone()));
+            .get(&cache_key)
+            .into_iter();
+        if let Some(rp) = cached_preview.clone().next() {
+            debug!("cached preview found");
+            let p = rp.paragraph.as_ref().clone();
+            f.render_widget(p.scroll((preview_scroll, 0)), inner);
+            return Ok(());
+        } else {
+            debug!("cached preview not found");
+            // render the preview content and cache it if not empty
+            let rp = build_preview_paragraph(
+                //preview_inner_block,
+                inner,
+                preview.content.clone(),
+                entry.line_number.map(|l| u16::try_from(l).unwrap_or(0)),
+                preview_scroll,
+                colorscheme.clone(),
+            );
+            debug!("inserting into cache");
+            rendered_preview_cache.lock().unwrap().insert(
+                cache_key,
+                preview.icon,
+                preview.title.clone(),
+                &Arc::new(rp.clone()),
+            );
+            debug!("rendering widget");
+            f.render_widget(rp.scroll((preview_scroll, 0)), inner);
+            return Ok(());
+        }
+    // else if last_preview exists
+    } else {
+        debug!("preview is None");
+        let maybe_last_preview =
+            &rendered_preview_cache.lock().unwrap().last_preview.clone();
+
+        if let Some(last_preview) = maybe_last_preview {
+            let inner = draw_content_outer_block(
+                f,
+                rect,
+                colorscheme,
+                last_preview.icon,
+                &last_preview.title,
+                use_nerd_font_icons,
+            )?;
+
+            // check if the rendered preview content is already in the cache
+            let cache_key = last_preview.key.clone();
+            let maybe_cached_preview =
+                rendered_preview_cache.lock().unwrap().get(&cache_key);
+
+            if let Some(cached_preview) = maybe_cached_preview.clone() {
+                let p = cached_preview.paragraph.as_ref().clone();
+                f.render_widget(p.scroll((preview_scroll, 0)), inner);
+                return Ok(());
+            } else {
+                // render the preview content and cache it if not empty
+                let rp = build_preview_paragraph(
+                    inner,
+                    PreviewContent::Empty,
+                    None,
+                    preview_scroll,
+                    colorscheme.clone(),
+                );
+                rendered_preview_cache.lock().unwrap().insert(
+                    cache_key,
+                    last_preview.icon,
+                    last_preview.title.clone(),
+                    &Arc::new(rp.clone()),
+                );
+                f.render_widget(rp.scroll((preview_scroll, 0)), inner);
+            }
+            return Ok(());
+        }
+        // render empty preview
+        let inner = draw_content_outer_block(
+            f,
+            rect,
+            colorscheme,
+            None,
+            "",
+            use_nerd_font_icons,
+        )?;
+        let preview_outer_block = Block::default()
+            .title_top(Line::from(Span::styled(
+                " ",
+                Style::default().fg(colorscheme.preview.title_fg),
+            )))
+            .borders(Borders::ALL)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().fg(colorscheme.general.border_fg))
+            .style(
+                Style::default()
+                    .bg(colorscheme.general.background.unwrap_or_default()),
+            )
+            .padding(Padding::new(0, 1, 1, 0));
+        f.render_widget(preview_outer_block, inner);
     }
-    f.render_widget(
-        Arc::new(rp).as_ref().clone().scroll((preview_scroll, 0)),
-        inner,
-    );
+
     Ok(())
 }
 

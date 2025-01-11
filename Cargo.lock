@@ -3093,6 +3093,7 @@ name = "television-screen"
 version = "0.0.21"
 dependencies = [
  "color-eyre",
+ "devicons",
  "ratatui",
  "rustc-hash",
  "serde",

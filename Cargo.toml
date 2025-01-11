@@ -56,6 +56,7 @@ readme = "README.md"
 
 [workspace.dependencies]
 directories = "5.0.1"
+devicons = "0.6.11"
 color-eyre = "0.6.3"
 lazy_static = "1.5.0"
 tokio = { version = "1.41.1", features = ["full"] }
@@ -104,7 +105,7 @@ copypasta = "0.10.1"
 
 [dev-dependencies]
 criterion = "0.5.1"
-devicons = "0.6.11"
+devicons = { workspace = true }
 
 [[bin]]
 bench = false

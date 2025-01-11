@@ -16,7 +16,6 @@ pub struct CommandPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     config: CommandPreviewerConfig,
     concurrent_preview_tasks: Arc<AtomicU8>,
-    last_previewed: Arc<Mutex<Arc<Preview>>>,
     in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
 }
 
@@ -53,9 +52,6 @@ impl CommandPreviewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
             config,
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
-            last_previewed: Arc::new(Mutex::new(Arc::new(
-                Preview::default().stale(),
-            ))),
             in_flight_previews: Arc::new(Mutex::new(FxHashSet::default())),
         }
     }
@@ -64,17 +60,17 @@ impl CommandPreviewer {
         &mut self,
         entry: &Entry,
         command: &PreviewCommand,
-    ) -> Arc<Preview> {
+    ) -> Option<Arc<Preview>> {
         // do we have a preview in cache for that entry?
         if let Some(preview) = self.cache.lock().get(&entry.name) {
-            return preview.clone();
+            return Some(preview);
         }
         debug!("Preview cache miss for {:?}", entry.name);
 
         // are we already computing a preview in the background for that entry?
         if self.in_flight_previews.lock().contains(&entry.name) {
             debug!("Preview already in flight for {:?}", entry.name);
-            return self.last_previewed.lock().clone();
+            return None;
         }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
@@ -86,21 +82,14 @@ impl CommandPreviewer {
             let entry_c = entry.clone();
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
             let command = command.clone();
-            let last_previewed = self.last_previewed.clone();
             tokio::spawn(async move {
-                try_preview(
-                    &command,
-                    &entry_c,
-                    &cache,
-                    &concurrent_tasks,
-                    &last_previewed,
-                );
+                try_preview(&command, &entry_c, &cache, &concurrent_tasks);
             });
         } else {
             debug!("Too many concurrent preview tasks running");
         }
 
-        self.last_previewed.lock().clone()
+        None
     }
 }
 
@@ -149,7 +138,6 @@ pub fn try_preview(
     entry: &Entry,
     cache: &Arc<Mutex<PreviewCache>>,
     concurrent_tasks: &Arc<AtomicU8>,
-    last_previewed: &Arc<Mutex<Arc<Preview>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let command = format_command(command, entry);
@@ -170,8 +158,6 @@ pub fn try_preview(
         ));
 
         cache.lock().insert(entry.name.clone(), &preview);
-        let mut tp = last_previewed.lock();
-        *tp = preview.stale().into();
     } else {
         let content = String::from_utf8_lossy(&output.stderr);
         let preview = Arc::new(Preview::new(
