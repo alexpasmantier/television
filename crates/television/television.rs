@@ -561,6 +561,18 @@ impl Television {
         {
             // preview content
             let maybe_preview = self.previewer.preview(&selected_entry);
+            //// preload the next 3 previews
+            //if let Some(i) = self.results_picker.selected() {
+            //    for j in 1..=5 {
+            //        if let Some(entry) =
+            //            self.channel.get_result((i + j).try_into().unwrap())
+            //        {
+            //            let _ = self.previewer.preview(&entry);
+            //        }
+            //    }
+            //}
+
+            let _ = self.previewer.preview(&selected_entry);
 
             if let Some(preview) = &maybe_preview {
                 self.current_preview_total_lines = preview.total_lines();

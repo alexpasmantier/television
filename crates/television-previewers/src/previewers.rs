@@ -156,39 +156,43 @@ impl Previewer {
             debug!("Preview already in cache");
             return Some(preview);
         }
-        // if we've already acknowledged the request
-        if let Some(initial_request) = self.requests.get(entry) {
-            debug!("Request already acknowledged");
-            // and we're past the debounce duration
-            if initial_request.elapsed() > DEBOUNCE_DURATION {
-                debug!("Past debounce duration");
-                // forward the request to the appropriate previewer
-                let preview = match &entry.preview_type {
-                    PreviewType::Basic => Some(self.basic.preview(entry)),
-                    PreviewType::EnvVar => Some(self.env_var.preview(entry)),
-                    PreviewType::Files => self.file.preview(entry),
-                    PreviewType::Command(cmd) => {
-                        self.command.preview(entry, cmd)
-                    }
-                    PreviewType::None => Some(Arc::new(Preview::default())),
-                };
-                // if we got a preview, cache it
-                if let Some(preview) = preview {
-                    self.cache.lock().insert(entry.name.clone(), &preview);
-                    Some(preview)
-                } else {
-                    None
-                }
+        // if we haven't acknowledged the request yet, acknowledge it
+        if !self.requests.contains_key(entry) {
+            self.requests.insert(entry.clone(), Instant::now());
+        }
+
+        let initial_request = self.requests.get(entry).unwrap();
+        // if we're past the debounce duration
+        if initial_request.elapsed() > DEBOUNCE_DURATION {
+            debug!("Past debounce duration");
+            // forward the request to the appropriate previewer
+            let preview = match &entry.preview_type {
+                PreviewType::Basic => Some(self.basic.preview(entry)),
+                PreviewType::EnvVar => Some(self.env_var.preview(entry)),
+                PreviewType::Files => self.file.preview(entry),
+                PreviewType::Command(cmd) => self.command.preview(entry, cmd),
+                PreviewType::None => Some(Arc::new(Preview::default())),
+            };
+            // if we got a preview, cache it
+            if let Some(preview) = preview {
+                self.cache.lock().insert(entry.name.clone(), &preview);
+                Some(preview)
             } else {
-                debug!("Not past debounce duration");
                 None
             }
-        }
-        // if we haven't acknowledged the request yet
-        else {
-            debug!("Request not acknowledged, acknowledging");
-            self.requests.insert(entry.clone(), Instant::now());
-            None
+        } else {
+            debug!("Not past debounce duration");
+            // partial preview
+            let preview = match &entry.preview_type {
+                PreviewType::Basic => Some(self.basic.preview(entry)),
+                PreviewType::EnvVar => Some(self.env_var.preview(entry)),
+                PreviewType::Files => self.file.preview(entry),
+                PreviewType::Command(cmd) => {
+                    self.command.partial_preview(entry, cmd)
+                }
+                PreviewType::None => Some(Arc::new(Preview::default())),
+            };
+            Some(preview)
         }
     }
 

@@ -150,10 +150,11 @@ pub fn try_preview(
             Ok(file) => {
                 // compute the highlighted version in the background
                 let mut reader = BufReader::new(file);
+
                 reader.seek(std::io::SeekFrom::Start(0)).unwrap();
                 let preview = compute_highlighted_text_preview(
                     entry,
-                    reader,
+                    reader.lines().map_while(Result::ok).collect(),
                     syntax_set,
                     syntax_theme,
                 );
@@ -176,7 +177,7 @@ pub fn try_preview(
 
 fn compute_highlighted_text_preview(
     entry: &entry::Entry,
-    reader: BufReader<File>,
+    lines: Vec<&str>,
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
 ) -> Arc<Preview> {
@@ -184,9 +185,8 @@ fn compute_highlighted_text_preview(
         "Computing highlights in the background for {:?}",
         entry.name
     );
-    let lines: Vec<String> = reader
-        .lines()
-        .map_while(Result::ok)
+    let lines: Vec<String> = lines
+        .iter()
         // we need to add a newline here because sublime syntaxes expect one
         // to be present at the end of each line
         .map(|line| preprocess_line(&line).0 + "\n")
