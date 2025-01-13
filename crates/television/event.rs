@@ -14,7 +14,7 @@ use crossterm::event::{
     KeyEvent, KeyEventKind, KeyModifiers,
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::mpsc;
+use tokio::{signal, sync::mpsc};
 use tracing::{debug, warn};
 
 #[derive(Debug, Clone, Copy)]
@@ -160,7 +160,6 @@ impl EventLoop {
             //let mut reader = crossterm::event::EventStream::new();
             tokio::spawn(async move {
                 loop {
-                    //let event = reader.next();
                     let delay = tokio::time::sleep(tick_interval);
                     let event_available = poll_event(tick_interval);
 
@@ -170,6 +169,10 @@ impl EventLoop {
                             tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
                             tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
                             break;
+                        },
+                        _ = signal::ctrl_c() => {
+                            debug!("Received SIGINT");
+                            tx.send(Event::Input(Key::Ctrl('c'))).unwrap_or_else(|_| warn!("Unable to send Ctrl-C event"));
                         },
                         // if `delay` completes, pass to the next event "frame"
                         () = delay => {
