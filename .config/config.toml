@@ -74,7 +74,7 @@ theme = "TwoDark"
 # ------------------------
 [keybindings.Channel]
 # Quit the application
-quit = "esc"
+quit = ["esc", "ctrl-c"]
 # Scrolling through entries
 select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
