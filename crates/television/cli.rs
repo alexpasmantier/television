@@ -178,17 +178,19 @@ pub enum ParsedCliChannel {
 
 fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
     let cable_channels = cable::load_cable_channels().unwrap_or_default();
-    CliTvChannel::try_from(channel)
-        .map(ParsedCliChannel::Builtin)
-        .or_else(|_| {
-            cable_channels
-                .iter()
-                .find(|(k, _)| k.to_lowercase() == channel)
-                .map_or_else(
-                    || Err(eyre!("Unknown channel: {}", channel)),
-                    |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
-                )
-        })
+    // try to parse the channel as a cable channel
+    cable_channels
+        .iter()
+        .find(|(k, _)| k.to_lowercase() == channel)
+        .map_or_else(
+            || {
+                // try to parse the channel as a builtin channel
+                CliTvChannel::try_from(channel)
+                    .map(ParsedCliChannel::Builtin)
+                    .map_err(|_| eyre!("Unknown channel: {}", channel))
+            },
+            |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
+        )
 }
 
 pub fn list_cable_channels() -> Vec<String> {
