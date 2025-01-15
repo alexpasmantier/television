@@ -31,7 +31,6 @@ const FILL_CHAR_EMPTY: char = ' ';
 
 #[allow(clippy::needless_pass_by_value)]
 pub fn build_preview_paragraph<'a>(
-    //preview_block: Block<'_>,
     inner: Rect,
     preview_content: PreviewContent,
     target_line: Option<u16>,

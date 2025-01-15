@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use parking_lot::Mutex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -8,6 +7,10 @@ use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
+};
+use television_utils::files::{read_into_lines_capped, ReadResult};
+use television_utils::strings::{
+    replace_non_printable, ReplaceNonPrintableConfig,
 };
 
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
@@ -127,6 +130,10 @@ impl FilePreviewer {
     }
 }
 
+/// The size of the buffer used to read the file in bytes.
+/// This ends up being the max size of partial previews.
+const PARTIAL_BUFREAD_SIZE: usize = 16 * 1024;
+
 pub fn try_preview(
     entry: &entry::Entry,
     cache: &Arc<Mutex<PreviewCache>>,
@@ -137,29 +144,45 @@ pub fn try_preview(
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let path = PathBuf::from(&entry.name);
-    // check file size
-    if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
-        debug!("File too large: {:?}", entry.name);
-        let preview = meta::file_too_large(&entry.name);
-        cache.lock().insert(entry.name.clone(), &preview);
-    }
 
     if matches!(FileType::from(&path), FileType::Text) {
         debug!("File is text-based: {:?}", entry.name);
         match File::open(path) {
             Ok(file) => {
                 // compute the highlighted version in the background
-                let mut reader = BufReader::new(file);
-
-                reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                let preview = compute_highlighted_text_preview(
-                    entry,
-                    reader.lines().map_while(Result::ok).collect(),
-                    syntax_set,
-                    syntax_theme,
-                );
-                cache.lock().insert(entry.name.clone(), &preview);
-                in_flight_previews.lock().remove(&entry.name);
+                match read_into_lines_capped(file, PARTIAL_BUFREAD_SIZE) {
+                    ReadResult::Full(lines) => {
+                        let preview = compute_highlighted_text_preview(
+                            entry,
+                            &lines
+                                .iter()
+                                .map(|l| preprocess_line(l).0 + "\n")
+                                .collect::<Vec<_>>(),
+                            syntax_set,
+                            syntax_theme,
+                        );
+                        cache.lock().insert(entry.name.clone(), &preview);
+                        in_flight_previews.lock().remove(&entry.name);
+                    }
+                    ReadResult::Partial(p) => {
+                        let preview = compute_highlighted_text_preview(
+                            entry,
+                            &p.lines
+                                .iter()
+                                .map(|l| preprocess_line(l).0 + "\n")
+                                .collect::<Vec<_>>(),
+                            syntax_set,
+                            syntax_theme,
+                        );
+                        cache.lock().insert(entry.name.clone(), &preview);
+                        in_flight_previews.lock().remove(&entry.name);
+                    }
+                    ReadResult::Error(e) => {
+                        warn!("Error reading file: {:?}", e);
+                        let p = meta::not_supported(&entry.name);
+                        cache.lock().insert(entry.name.clone(), &p);
+                    }
+                }
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
@@ -177,7 +200,7 @@ pub fn try_preview(
 
 fn compute_highlighted_text_preview(
     entry: &entry::Entry,
-    lines: Vec<&str>,
+    lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
 ) -> Arc<Preview> {
@@ -185,12 +208,6 @@ fn compute_highlighted_text_preview(
         "Computing highlights in the background for {:?}",
         entry.name
     );
-    let lines: Vec<String> = lines
-        .iter()
-        // we need to add a newline here because sublime syntaxes expect one
-        // to be present at the end of each line
-        .map(|line| preprocess_line(&line).0 + "\n")
-        .collect();
 
     match syntax::compute_highlights_for_path(
         &PathBuf::from(&entry.name),

@@ -23,7 +23,6 @@ impl BasicPreviewer {
             title: entry.name.clone(),
             content: PreviewContent::PlainTextWrapped(entry.name.clone()),
             icon: entry.icon,
-            ..Default::default()
         })
     }
 }

@@ -8,7 +8,7 @@ use tracing::warn;
 
 pub fn compute_highlights_for_path(
     file_path: &Path,
-    lines: Vec<String>,
+    lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
 ) -> color_eyre::Result<Vec<Vec<(Style, String)>>> {
