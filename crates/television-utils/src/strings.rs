@@ -224,7 +224,7 @@ pub fn replace_non_printable(
     input: &[u8],
     config: &ReplaceNonPrintableConfig,
 ) -> (String, Vec<i16>) {
-    let mut output = String::new();
+    let mut output = String::with_capacity(input.len());
     let mut offsets = Vec::new();
     let mut cumulative_offset: i16 = 0;
 

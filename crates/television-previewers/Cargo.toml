@@ -17,6 +17,7 @@ television-channels = { path = "../television-channels", version = "0.0.21" }
 television-utils = { path = "../television-utils", version = "0.0.21" }
 
 syntect = { workspace = true }
+devicons = { workspace = true }
 tracing = { workspace = true }
 tokio = { workspace = true }
 color-eyre = { workspace = true }
@@ -24,7 +25,6 @@ lazy_static = { workspace = true }
 rustc-hash = { workspace = true }
 
 parking_lot = "0.12.3"
-devicons = "0.6.11"
 regex = "1.11.1"
 nom = "7.1"
 tui = { version = "0.29", default-features = false, package = "ratatui" }

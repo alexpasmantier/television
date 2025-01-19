@@ -23,6 +23,7 @@ color-eyre = { workspace = true }
 syntect = { workspace = true }
 rustc-hash = { workspace = true }
 tracing = { workspace = true }
+devicons = { workspace = true }
 
 [lints]
 workspace = true

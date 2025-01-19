@@ -1,31 +1,95 @@
 use bat::assets::HighlightingAssets;
+use color_eyre::Result;
 use gag::Gag;
 use std::path::{Path, PathBuf};
 use syntect::easy::HighlightLines;
-use syntect::highlighting::{Style, Theme};
-use syntect::parsing::SyntaxSet;
+use syntect::highlighting::{
+    HighlightIterator, HighlightState, Highlighter, Style, Theme,
+};
+use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 use tracing::warn;
 
+#[derive(Debug, Clone)]
+pub struct HighlightingState {
+    parse_state: ParseState,
+    highlight_state: HighlightState,
+}
+
+impl HighlightingState {
+    pub fn new(
+        parse_state: ParseState,
+        highlight_state: HighlightState,
+    ) -> Self {
+        Self {
+            parse_state,
+            highlight_state,
+        }
+    }
+}
+
+struct LineHighlighter<'a> {
+    highlighter: Highlighter<'a>,
+    pub parse_state: ParseState,
+    pub highlight_state: HighlightState,
+}
+
+impl<'a> LineHighlighter<'a> {
+    pub fn new(
+        syntax: &SyntaxReference,
+        theme: &'a Theme,
+    ) -> LineHighlighter<'a> {
+        let highlighter = Highlighter::new(theme);
+        let highlight_state =
+            HighlightState::new(&highlighter, ScopeStack::new());
+        Self {
+            highlighter,
+            parse_state: ParseState::new(syntax),
+            highlight_state,
+        }
+    }
+
+    pub fn from_state(
+        state: HighlightingState,
+        theme: &'a Theme,
+    ) -> LineHighlighter<'a> {
+        Self {
+            highlighter: Highlighter::new(theme),
+            parse_state: state.parse_state,
+            highlight_state: state.highlight_state,
+        }
+    }
+
+    /// Highlights a line of a file
+    pub fn highlight_line<'b>(
+        &mut self,
+        line: &'b str,
+        syntax_set: &SyntaxSet,
+    ) -> Result<Vec<(Style, &'b str)>, syntect::Error> {
+        let ops = self.parse_state.parse_line(line, syntax_set)?;
+        let iter = HighlightIterator::new(
+            &mut self.highlight_state,
+            &ops[..],
+            line,
+            &self.highlighter,
+        );
+        Ok(iter.collect())
+    }
+}
+
+#[deprecated(
+    note = "Use `compute_highlights_incremental` instead, which also returns the state"
+)]
 pub fn compute_highlights_for_path(
     file_path: &Path,
-    lines: Vec<String>,
+    lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-) -> color_eyre::Result<Vec<Vec<(Style, String)>>> {
-    let syntax =
-        syntax_set
-            .find_syntax_for_file(file_path)?
-            .unwrap_or_else(|| {
-                warn!(
-                    "No syntax found for {:?}, defaulting to plain text",
-                    file_path
-                );
-                syntax_set.find_syntax_plain_text()
-            });
+) -> Result<Vec<Vec<(Style, String)>>> {
+    let syntax = set_syntax_set(syntax_set, file_path);
     let mut highlighter = HighlightLines::new(syntax, syntax_theme);
     let mut highlighted_lines = Vec::new();
     for line in lines {
-        let hl_regions = highlighter.highlight_line(&line, syntax_set)?;
+        let hl_regions = highlighter.highlight_line(line, syntax_set)?;
         highlighted_lines.push(
             hl_regions
                 .iter()
@@ -36,13 +100,86 @@ pub fn compute_highlights_for_path(
     Ok(highlighted_lines)
 }
 
+fn set_syntax_set<'a>(
+    syntax_set: &'a SyntaxSet,
+    file_path: &Path,
+) -> &'a SyntaxReference {
+    syntax_set
+        .find_syntax_for_file(file_path)
+        .unwrap_or(None)
+        .unwrap_or_else(|| {
+            warn!(
+                "No syntax found for {:?}, defaulting to plain text",
+                file_path
+            );
+            syntax_set.find_syntax_plain_text()
+        })
+}
+
+#[derive(Debug, Clone)]
+pub struct HighlightedLines {
+    pub lines: Vec<Vec<(Style, String)>>,
+    pub state: Option<HighlightingState>,
+}
+
+impl HighlightedLines {
+    pub fn new(
+        lines: Vec<Vec<(Style, String)>>,
+        state: Option<HighlightingState>,
+    ) -> Self {
+        Self { lines, state }
+    }
+}
+
+pub fn compute_highlights_incremental(
+    file_path: &Path,
+    lines: &[String],
+    syntax_set: &SyntaxSet,
+    syntax_theme: &Theme,
+    cached_lines: Option<HighlightedLines>,
+) -> Result<HighlightedLines> {
+    let mut highlighted_lines: Vec<_>;
+    let mut highlighter: LineHighlighter;
+
+    if let Some(HighlightedLines {
+        lines: c_lines,
+        state: Some(s),
+    }) = cached_lines
+    {
+        highlighter = LineHighlighter::from_state(s, syntax_theme);
+        highlighted_lines = c_lines;
+    } else {
+        let syntax = set_syntax_set(syntax_set, file_path);
+        highlighter = LineHighlighter::new(syntax, syntax_theme);
+        highlighted_lines = Vec::new();
+    };
+
+    for line in lines {
+        let hl_regions = highlighter.highlight_line(line, syntax_set)?;
+        highlighted_lines.push(
+            hl_regions
+                .iter()
+                .map(|(style, text)| (*style, (*text).to_string()))
+                .collect(),
+        );
+    }
+
+    Ok(HighlightedLines::new(
+        highlighted_lines,
+        Some(HighlightingState::new(
+            highlighter.parse_state.clone(),
+            highlighter.highlight_state.clone(),
+        )),
+    ))
+}
+
 #[allow(dead_code)]
 pub fn compute_highlights_for_line<'a>(
     line: &'a str,
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
     file_path: &str,
-) -> color_eyre::Result<Vec<(Style, &'a str)>> {
+) -> Result<Vec<(Style, &'a str)>> {
     let syntax = syntax_set.find_syntax_for_file(file_path)?;
     match syntax {
         None => {

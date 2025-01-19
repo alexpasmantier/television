@@ -20,10 +20,11 @@ directories = { workspace = true }
 syntect = { workspace = true }
 unicode-width = { workspace = true }
 rustc-hash = { workspace = true }
+tokio = { workspace = true }
 
 ignore = "0.4.23"
 bat = { version = "0.24.0", default-features = false, features = [
-  "regex-onig",
+  "regex-fancy",
 ] }
 gag = "1.0.0"
 

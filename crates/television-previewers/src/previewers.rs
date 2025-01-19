@@ -19,23 +19,44 @@ pub use env::EnvVarPreviewer;
 pub use env::EnvVarPreviewerConfig;
 pub use files::FilePreviewer;
 pub use files::FilePreviewerConfig;
-use syntect::highlighting::Style;
+use television_utils::cache::RingSet;
+use television_utils::syntax::HighlightedLines;
 
 #[derive(Clone, Debug)]
 pub enum PreviewContent {
     Empty,
     FileTooLarge,
-    SyntectHighlightedText(Vec<Vec<(Style, String)>>),
+    SyntectHighlightedText(HighlightedLines),
     Loading,
+    Timeout,
     NotSupported,
     PlainText(Vec<String>),
     PlainTextWrapped(String),
     AnsiText(String),
 }
 
+impl PreviewContent {
+    pub fn total_lines(&self) -> u16 {
+        match self {
+            PreviewContent::SyntectHighlightedText(hl_lines) => {
+                hl_lines.lines.len().try_into().unwrap_or(u16::MAX)
+            }
+            PreviewContent::PlainText(lines) => {
+                lines.len().try_into().unwrap_or(u16::MAX)
+            }
+            PreviewContent::AnsiText(text) => {
+                text.lines().count().try_into().unwrap_or(u16::MAX)
+            }
+            _ => 0,
+        }
+    }
+}
+
 pub const PREVIEW_NOT_SUPPORTED_MSG: &str =
     "Preview for this file type is not supported";
 pub const FILE_TOO_LARGE_MSG: &str = "File too large";
+pub const LOADING_MSG: &str = "Loading...";
+pub const TIMEOUT_MSG: &str = "Preview timed out";
 
 /// A preview of an entry.
 ///
@@ -47,7 +68,10 @@ pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
     pub icon: Option<FileIcon>,
-    pub stale: bool,
+    /// If the preview is partial, this field contains the byte offset
+    /// up to which the preview holds.
+    pub partial_offset: Option<usize>,
+    pub total_lines: u16,
 }
 
 impl Default for Preview {
@@ -56,7 +80,8 @@ impl Default for Preview {
             title: String::new(),
             content: PreviewContent::Empty,
             icon: None,
-            stale: false,
+            partial_offset: None,
+            total_lines: 0,
         }
     }
 }
@@ -66,27 +91,22 @@ impl Preview {
         title: String,
         content: PreviewContent,
         icon: Option<FileIcon>,
-        stale: bool,
+        partial_offset: Option<usize>,
+        total_lines: u16,
     ) -> Self {
         Preview {
             title,
             content,
             icon,
-            stale,
-        }
-    }
-
-    pub fn stale(&self) -> Self {
-        Preview {
-            stale: true,
-            ..self.clone()
+            partial_offset,
+            total_lines,
         }
     }
 
     pub fn total_lines(&self) -> u16 {
         match &self.content {
-            PreviewContent::SyntectHighlightedText(lines) => {
-                lines.len().try_into().unwrap_or(u16::MAX)
+            PreviewContent::SyntectHighlightedText(hl_lines) => {
+                hl_lines.lines.len().try_into().unwrap_or(u16::MAX)
             }
             PreviewContent::PlainText(lines) => {
                 lines.len().try_into().unwrap_or(u16::MAX)
@@ -105,6 +125,7 @@ pub struct Previewer {
     file: FilePreviewer,
     env_var: EnvVarPreviewer,
     command: CommandPreviewer,
+    requests: RingSet<Entry>,
 }
 
 #[derive(Debug, Default)]
@@ -132,6 +153,8 @@ impl PreviewerConfig {
     }
 }
 
+const REQUEST_STACK_SIZE: usize = 20;
+
 impl Previewer {
     pub fn new(config: Option<PreviewerConfig>) -> Self {
         let config = config.unwrap_or_default();
@@ -140,17 +163,43 @@ impl Previewer {
             file: FilePreviewer::new(Some(config.file)),
             env_var: EnvVarPreviewer::new(Some(config.env_var)),
             command: CommandPreviewer::new(Some(config.command)),
+            requests: RingSet::with_capacity(REQUEST_STACK_SIZE),
         }
     }
 
-    pub fn preview(&mut self, entry: &Entry) -> Arc<Preview> {
+    fn dispatch_request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
         match &entry.preview_type {
-            PreviewType::Basic => self.basic.preview(entry),
-            PreviewType::EnvVar => self.env_var.preview(entry),
+            PreviewType::Basic => Some(self.basic.preview(entry)),
+            PreviewType::EnvVar => Some(self.env_var.preview(entry)),
             PreviewType::Files => self.file.preview(entry),
             PreviewType::Command(cmd) => self.command.preview(entry, cmd),
-            PreviewType::None => Arc::new(Preview::default()),
+            PreviewType::None => Some(Arc::new(Preview::default())),
         }
+    }
+
+    fn cached(&self, entry: &Entry) -> Option<Arc<Preview>> {
+        match &entry.preview_type {
+            PreviewType::Files => self.file.cached(entry),
+            PreviewType::Command(_) => self.command.cached(entry),
+            PreviewType::Basic | PreviewType::EnvVar => None,
+            PreviewType::None => Some(Arc::new(Preview::default())),
+        }
+    }
+
+    pub fn preview(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
+        // if we haven't acknowledged the request yet, acknowledge it
+        self.requests.push(entry.clone());
+
+        if let Some(preview) = self.dispatch_request(entry) {
+            return Some(preview);
+        }
+        // lookup request stack and return the most recent preview available
+        for request in self.requests.back_to_front() {
+            if let Some(preview) = self.cached(&request) {
+                return Some(preview);
+            }
+        }
+        None
     }
 
     pub fn set_config(&mut self, config: PreviewerConfig) {

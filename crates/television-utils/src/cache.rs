@@ -48,6 +48,17 @@ pub struct RingSet<T> {
     capacity: usize,
 }
 
+const DEFAULT_CAPACITY: usize = 20;
+
+impl<T> Default for RingSet<T>
+where
+    T: Eq + std::hash::Hash + Clone + std::fmt::Debug,
+{
+    fn default() -> Self {
+        RingSet::with_capacity(DEFAULT_CAPACITY)
+    }
+}
+
 impl<T> RingSet<T>
 where
     T: Eq + std::hash::Hash + Clone + std::fmt::Debug,
@@ -96,6 +107,11 @@ where
 
     pub fn contains(&self, key: &T) -> bool {
         self.known_keys.contains(key)
+    }
+
+    /// Returns an iterator that goes from the back to the front of the buffer.
+    pub fn back_to_front(&self) -> impl Iterator<Item = T> {
+        self.ring_buffer.clone().into_iter().rev()
     }
 }
 
