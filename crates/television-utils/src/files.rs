@@ -1,6 +1,8 @@
 use rustc_hash::FxHashSet;
 use std::fmt::Debug;
 use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
 use std::io::Read;
 use std::path::Path;
 use std::path::PathBuf;
@@ -13,6 +15,51 @@ use crate::strings::{
     proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
 };
 use crate::threads::default_num_threads;
+
+pub struct PartialReadResult {
+    pub lines: Vec<String>,
+    pub bytes_read: usize,
+}
+
+pub enum ReadResult {
+    Partial(PartialReadResult),
+    Full(Vec<String>),
+    Error(String),
+}
+
+pub fn read_into_lines_capped<R>(r: R, max_bytes: usize) -> ReadResult
+where
+    R: Read,
+{
+    let mut buf_reader = BufReader::new(r);
+    let mut line = String::new();
+    let mut lines = Vec::new();
+    let mut bytes_read = 0;
+
+    loop {
+        line.clear();
+        match buf_reader.read_line(&mut line) {
+            Ok(0) => break,
+            Ok(_) => {
+                if bytes_read > max_bytes {
+                    break;
+                }
+                lines.push(line.trim_end().to_string());
+                bytes_read += line.len();
+            }
+            Err(e) => {
+                warn!("Error reading file: {:?}", e);
+                return ReadResult::Error(format!("{e:?}"));
+            }
+        }
+    }
+
+    if bytes_read > max_bytes {
+        ReadResult::Partial(PartialReadResult { lines, bytes_read })
+    } else {
+        ReadResult::Full(lines)
+    }
+}
 
 lazy_static::lazy_static! {
     pub static ref DEFAULT_NUM_THREADS: usize = default_num_threads().into();

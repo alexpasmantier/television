@@ -1,4 +1,3 @@
-use color_eyre::Result;
 use parking_lot::Mutex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -9,6 +8,8 @@ use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
 };
+use television_utils::files::{read_into_lines_capped, ReadResult};
+use television_utils::syntax::HighlightedLines;
 
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use tracing::{debug, warn};
@@ -17,7 +18,7 @@ use super::cache::PreviewCache;
 use crate::previewers::{meta, Preview, PreviewContent};
 use television_channels::entry;
 use television_utils::{
-    files::{get_file_size, FileType},
+    files::FileType,
     strings::preprocess_line,
     syntax::{self, load_highlighting_assets, HighlightingAssetsExt},
 };
@@ -28,7 +29,6 @@ pub struct FilePreviewer {
     pub syntax_set: Arc<SyntaxSet>,
     pub syntax_theme: Arc<Theme>,
     concurrent_preview_tasks: Arc<AtomicU8>,
-    last_previewed: Arc<Mutex<Arc<Preview>>>,
     in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
 }
 
@@ -42,10 +42,6 @@ impl FilePreviewerConfig {
         FilePreviewerConfig { theme }
     }
 }
-
-/// The maximum file size that we will try to preview.
-/// 4 MB
-const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 
 const MAX_CONCURRENT_PREVIEW_TASKS: u8 = 3;
 
@@ -72,30 +68,41 @@ impl FilePreviewer {
             syntax_set: Arc::new(syntax_set),
             syntax_theme: Arc::new(theme),
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
-            last_previewed: Arc::new(Mutex::new(Arc::new(
-                Preview::default().stale(),
-            ))),
             in_flight_previews: Arc::new(Mutex::new(HashSet::with_hasher(
                 FxBuildHasher,
             ))),
         }
     }
 
-    /// Get a preview for a file entry.
-    ///
-    /// # Panics
-    /// Panics if seeking to the start of the file fails.
-    pub fn preview(&mut self, entry: &entry::Entry) -> Arc<Preview> {
-        // do we have a preview in cache for that entry?
-        if let Some(preview) = self.cache.lock().get(&entry.name) {
-            return preview;
-        }
-        debug!("Preview cache miss for {:?}", entry.name);
+    pub fn cached(&self, entry: &entry::Entry) -> Option<Arc<Preview>> {
+        self.cache.lock().get(&entry.name)
+    }
 
-        // are we already computing a preview in the background for that entry?
+    pub fn preview(&mut self, entry: &entry::Entry) -> Option<Arc<Preview>> {
+        if let Some(preview) = self.cached(entry) {
+            debug!("Preview cache hit for {:?}", entry.name);
+            if preview.partial_offset.is_some() {
+                // preview is partial, spawn a task to compute the next chunk
+                // and return the partial preview
+                debug!("Spawning partial preview task for {:?}", entry.name);
+                self.handle_preview_request(entry, Some(preview.clone()));
+            }
+            Some(preview)
+        } else {
+            // preview is not in cache, spawn a task to compute the preview
+            debug!("Preview cache miss for {:?}", entry.name);
+            self.handle_preview_request(entry, None);
+            None
+        }
+    }
+
+    pub fn handle_preview_request(
+        &mut self,
+        entry: &entry::Entry,
+        partial_preview: Option<Arc<Preview>>,
+    ) {
         if self.in_flight_previews.lock().contains(&entry.name) {
             debug!("Preview already in flight for {:?}", entry.name);
-            return self.last_previewed.lock().clone();
         }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
@@ -109,22 +116,19 @@ impl FilePreviewer {
             let syntax_set = self.syntax_set.clone();
             let syntax_theme = self.syntax_theme.clone();
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
-            let last_previewed = self.last_previewed.clone();
             let in_flight_previews = self.in_flight_previews.clone();
             tokio::spawn(async move {
                 try_preview(
                     &entry_c,
+                    partial_preview,
                     &cache,
                     &syntax_set,
                     &syntax_theme,
                     &concurrent_tasks,
-                    &last_previewed,
                     &in_flight_previews,
                 );
             });
         }
-
-        self.last_previewed.lock().clone()
     }
 
     #[allow(dead_code)]
@@ -133,41 +137,98 @@ impl FilePreviewer {
     }
 }
 
+/// The size of the buffer used to read the file in bytes.
+/// This ends up being the max size of partial previews.
+const PARTIAL_BUFREAD_SIZE: usize = 16 * 1024;
+
 pub fn try_preview(
     entry: &entry::Entry,
+    partial_preview: Option<Arc<Preview>>,
     cache: &Arc<Mutex<PreviewCache>>,
     syntax_set: &Arc<SyntaxSet>,
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
-    last_previewed: &Arc<Mutex<Arc<Preview>>>,
     in_flight_previews: &Arc<Mutex<FxHashSet<String>>>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let path = PathBuf::from(&entry.name);
-    // check file size
-    if get_file_size(&path).map_or(false, |s| s > MAX_FILE_SIZE) {
-        debug!("File too large: {:?}", entry.name);
-        let preview = meta::file_too_large(&entry.name);
-        cache.lock().insert(entry.name.clone(), &preview);
-    }
 
-    if matches!(FileType::from(&path), FileType::Text) {
+    // if we're dealing with a partial preview, no need to re-check for textual content
+    if partial_preview.is_some()
+        || matches!(FileType::from(&path), FileType::Text)
+    {
         debug!("File is text-based: {:?}", entry.name);
         match File::open(path) {
-            Ok(file) => {
+            Ok(mut file) => {
+                // if we're dealing with a partial preview, seek to the provided offset
+                // and use the previous state to compute the next chunk of the preview
+                let cached_lines = if let Some(p) = partial_preview {
+                    if let PreviewContent::SyntectHighlightedText(hl) =
+                        &p.content
+                    {
+                        let _ = file.seek(std::io::SeekFrom::Start(
+                            // this is always Some in this case
+                            p.partial_offset.unwrap() as u64,
+                        ));
+                        Some(hl.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
                 // compute the highlighted version in the background
-                let mut reader = BufReader::new(file);
-                reader.seek(std::io::SeekFrom::Start(0)).unwrap();
-                let preview = compute_highlighted_text_preview(
-                    entry,
-                    reader,
-                    syntax_set,
-                    syntax_theme,
-                );
-                cache.lock().insert(entry.name.clone(), &preview);
-                in_flight_previews.lock().remove(&entry.name);
-                let mut tp = last_previewed.lock();
-                *tp = preview.stale().into();
+                match read_into_lines_capped(file, PARTIAL_BUFREAD_SIZE) {
+                    ReadResult::Full(lines) => {
+                        if let Some(content) = compute_highlighted_text_preview(
+                            entry,
+                            &lines
+                                .iter()
+                                .map(|l| preprocess_line(l).0 + "\n")
+                                .collect::<Vec<_>>(),
+                            syntax_set,
+                            syntax_theme,
+                            cached_lines,
+                        ) {
+                            let total_lines = content.total_lines();
+                            let preview = Arc::new(Preview::new(
+                                entry.name.clone(),
+                                content,
+                                entry.icon,
+                                None,
+                                total_lines,
+                            ));
+                            cache.lock().insert(entry.name.clone(), &preview);
+                        }
+                    }
+                    ReadResult::Partial(p) => {
+                        if let Some(content) = compute_highlighted_text_preview(
+                            entry,
+                            &p.lines
+                                .iter()
+                                .map(|l| preprocess_line(l).0 + "\n")
+                                .collect::<Vec<_>>(),
+                            syntax_set,
+                            syntax_theme,
+                            cached_lines,
+                        ) {
+                            let total_lines = content.total_lines();
+                            let preview = Arc::new(Preview::new(
+                                entry.name.clone(),
+                                content,
+                                entry.icon,
+                                Some(p.bytes_read),
+                                total_lines,
+                            ));
+                            cache.lock().insert(entry.name.clone(), &preview);
+                        }
+                    }
+                    ReadResult::Error(e) => {
+                        warn!("Error reading file: {:?}", e);
+                        let p = meta::not_supported(&entry.name);
+                        cache.lock().insert(entry.name.clone(), &p);
+                    }
+                }
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
@@ -181,44 +242,34 @@ pub fn try_preview(
         cache.lock().insert(entry.name.clone(), &preview);
     }
     concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
+    in_flight_previews.lock().remove(&entry.name);
 }
 
 fn compute_highlighted_text_preview(
     entry: &entry::Entry,
-    reader: BufReader<File>,
+    lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-) -> Arc<Preview> {
+    previous_lines: Option<HighlightedLines>,
+) -> Option<PreviewContent> {
     debug!(
         "Computing highlights in the background for {:?}",
         entry.name
     );
-    let lines: Vec<String> = reader
-        .lines()
-        .map_while(Result::ok)
-        // we need to add a newline here because sublime syntaxes expect one
-        // to be present at the end of each line
-        .map(|line| preprocess_line(&line).0 + "\n")
-        .collect();
 
-    match syntax::compute_highlights_for_path(
+    match syntax::compute_highlights_incremental(
         &PathBuf::from(&entry.name),
         lines,
         syntax_set,
         syntax_theme,
+        previous_lines,
     ) {
         Ok(highlighted_lines) => {
-            debug!("Successfully computed highlights for {:?}", entry.name);
-            Arc::new(Preview::new(
-                entry.name.clone(),
-                PreviewContent::SyntectHighlightedText(highlighted_lines),
-                entry.icon,
-                false,
-            ))
+            Some(PreviewContent::SyntectHighlightedText(highlighted_lines))
         }
         Err(e) => {
             warn!("Error computing highlights: {:?}", e);
-            meta::not_supported(&entry.name)
+            None
         }
     }
 }
@@ -244,10 +295,12 @@ fn plain_text_preview(title: &str, reader: BufReader<&File>) -> Arc<Preview> {
             break;
         }
     }
+    let total_lines = u16::try_from(lines.len()).unwrap_or(u16::MAX);
     Arc::new(Preview::new(
         title.to_string(),
         PreviewContent::PlainText(lines),
         None,
-        false,
+        None,
+        total_lines,
     ))
 }

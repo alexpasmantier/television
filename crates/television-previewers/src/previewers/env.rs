@@ -26,17 +26,22 @@ impl EnvVarPreviewer {
         if let Some(preview) = self.cache.get(entry) {
             return preview.clone();
         }
+        let content = entry.value.as_ref().map(|preview| {
+            maybe_add_newline_after_colon(preview, &entry.name)
+        });
+        let total_lines = content.as_ref().map_or_else(
+            || 1,
+            |c| u16::try_from(c.lines().count()).unwrap_or(u16::MAX),
+        );
         let preview = Arc::new(Preview {
             title: entry.name.clone(),
-            content: if let Some(preview) = &entry.value {
-                PreviewContent::PlainTextWrapped(
-                    maybe_add_newline_after_colon(preview, &entry.name),
-                )
-            } else {
-                PreviewContent::Empty
+            content: match content {
+                Some(content) => PreviewContent::PlainTextWrapped(content),
+                None => PreviewContent::Empty,
             },
             icon: entry.icon,
-            ..Default::default()
+            partial_offset: None,
+            total_lines,
         });
         self.cache.insert(entry.clone(), preview.clone());
         preview
