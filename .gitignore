@@ -20,3 +20,4 @@ Cargo.lock
 
 # Direnv (Nix Shell)
 .direnv/
+.DS_Store
