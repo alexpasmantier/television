@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.3] - 2025-01-19
+
+### 🚀 Features
+
+- *(preview)* Add support for displaying nerd fonts in preview (#286)
+
+### 🐛 Bug Fixes
+
+- *(cable)* Cable channels now take precedence over builtins for the cli / shell integration (#278)
+
+### 🚜 Refactor
+
+- Exit application on SIGINT / C-c (#274)
+
+### 📚 Documentation
+
+- *(readme)* Link to nucleo directly (#266)
+
+### ⚡ Performance
+
+- *(preview)* Add partial preview rendering and buffer preview requests (#285)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#265)
+- Bump workspace to 0.9.3 (#287)
+
 ## [0.9.2] - 2025-01-09
 
 ### 🐛 Bug Fixes
