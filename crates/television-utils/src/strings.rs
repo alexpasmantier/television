@@ -167,6 +167,39 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
+const NF_RANGE_DEVICONS: std::ops::RangeInclusive<char> =
+    '\u{e700}'..='\u{e8ef}';
+const NF_RANGE_SETI: std::ops::RangeInclusive<char> = '\u{e5fa}'..='\u{e6b7}';
+const NF_RANGE_FONT_AWESOME: std::ops::RangeInclusive<char> =
+    '\u{ed00}'..='\u{f2ff}';
+const NF_RANGE_FONT_AWESOME_EXT: std::ops::RangeInclusive<char> =
+    '\u{e200}'..='\u{e2a9}';
+const NF_RANGE_MATERIAL: std::ops::RangeInclusive<char> =
+    '\u{f0001}'..='\u{f1af0}';
+const NF_RANGE_WEATHER: std::ops::RangeInclusive<char> =
+    '\u{e300}'..='\u{e3e3}';
+const NF_RANGE_OCTICONS_1: std::ops::RangeInclusive<char> =
+    '\u{f400}'..='\u{f533}';
+const NF_RANGE_OCTICONS_2: std::ops::RangeInclusive<char> =
+    '\u{2665}'..='\u{26a1}';
+const NF_RANGE_POWERLINE_1: std::ops::RangeInclusive<char> =
+    '\u{e0a0}'..='\u{e0a2}';
+const NF_RANGE_POWERLINE_2: std::ops::RangeInclusive<char> =
+    '\u{e0b0}'..='\u{e0b3}';
+
+const ALL_NF_RANGES: [&std::ops::RangeInclusive<char>; 10] = [
+    &NF_RANGE_DEVICONS,
+    &NF_RANGE_SETI,
+    &NF_RANGE_FONT_AWESOME,
+    &NF_RANGE_FONT_AWESOME_EXT,
+    &NF_RANGE_MATERIAL,
+    &NF_RANGE_WEATHER,
+    &NF_RANGE_OCTICONS_1,
+    &NF_RANGE_OCTICONS_2,
+    &NF_RANGE_POWERLINE_1,
+    &NF_RANGE_POWERLINE_2,
+];
+
 pub struct ReplaceNonPrintableConfig {
     pub replace_tab: bool,
     pub tab_width: usize,
@@ -259,6 +292,10 @@ pub fn replace_non_printable(
                 }
                 // CJK Unified Ideographs
                 c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
+                    output.push(c);
+                }
+                // Nerd fonts
+                c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
                     output.push(c);
                 }
                 // Unicode characters above 0x0700 seem unstable with ratatui
