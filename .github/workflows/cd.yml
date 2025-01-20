@@ -104,6 +104,7 @@ jobs:
           ####### reduce binary size by removing debug symbols #######
 
           BINARY_NAME=${{ matrix.binary-name }}${{ matrix.binary-postfix }}
+          echo "BINARY_NAME=$BINARY_NAME" >> "$GITHUB_ENV"
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
 
             GCC_PREFIX="aarch64-linux-gnu-"
@@ -115,6 +116,7 @@ jobs:
           ########## create tar.gz ##########
 
           RELEASE_NAME=${{ matrix.binary-name }}-${GITHUB_REF/refs\/tags\//}-${{ matrix.os-name }}-${{ matrix.architecture }}
+          echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
           tar czvf $RELEASE_NAME.tar.gz $BINARY_NAME
 
@@ -126,12 +128,20 @@ jobs:
           else
             shasum -a 256 $RELEASE_NAME.tar.gz > $RELEASE_NAME.sha256
           fi
+      - name: Packaging with zip format
+        if: runner.os == 'Windows'
+        working-directory: 'target/${{ matrix.target }}/release'
+        run: |
+          Compress-Archive -Path "$env:BINARY_NAME" -Destination "$($env:RELEASE_NAME).zip"
+          (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
+
       - name: Releasing assets
         uses: softprops/action-gh-release@v1
         with:
           files: |
 
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.tar.gz
+            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.zip
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.sha256
 
         env:
