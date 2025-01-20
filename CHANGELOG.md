@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.4] - 2025-01-20
+
+### 🐛 Bug Fixes
+
+- *(syntect)* Switch back to oniguruma while investigating parsing issues (#292)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#288)
+- Bump workspace to 0.9.4 (#293)
+
 ## [0.9.3] - 2025-01-19
 
 ### 🚀 Features
