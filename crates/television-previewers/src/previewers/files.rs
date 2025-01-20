@@ -139,7 +139,7 @@ impl FilePreviewer {
 
 /// The size of the buffer used to read the file in bytes.
 /// This ends up being the max size of partial previews.
-const PARTIAL_BUFREAD_SIZE: usize = 16 * 1024;
+const PARTIAL_BUFREAD_SIZE: usize = 64 * 1024;
 
 pub fn try_preview(
     entry: &entry::Entry,
@@ -188,7 +188,7 @@ pub fn try_preview(
                                 .collect::<Vec<_>>(),
                             syntax_set,
                             syntax_theme,
-                            cached_lines,
+                            &cached_lines,
                         ) {
                             let total_lines = content.total_lines();
                             let preview = Arc::new(Preview::new(
@@ -210,7 +210,7 @@ pub fn try_preview(
                                 .collect::<Vec<_>>(),
                             syntax_set,
                             syntax_theme,
-                            cached_lines,
+                            &cached_lines,
                         ) {
                             let total_lines = content.total_lines();
                             let preview = Arc::new(Preview::new(
@@ -250,7 +250,7 @@ fn compute_highlighted_text_preview(
     lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-    previous_lines: Option<HighlightedLines>,
+    previous_lines: &Option<HighlightedLines>,
 ) -> Option<PreviewContent> {
     debug!(
         "Computing highlights in the background for {:?}",
