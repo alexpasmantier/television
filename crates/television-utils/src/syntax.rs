@@ -9,6 +9,7 @@ use syntect::highlighting::{
 use syntect::parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet};
 use tracing::warn;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct HighlightingState {
     parse_state: ParseState,
@@ -48,6 +49,7 @@ impl<'a> LineHighlighter<'a> {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_state(
         state: HighlightingState,
         theme: &'a Theme,
@@ -119,15 +121,15 @@ fn set_syntax_set<'a>(
 #[derive(Debug, Clone)]
 pub struct HighlightedLines {
     pub lines: Vec<Vec<(Style, String)>>,
-    pub state: Option<HighlightingState>,
+    //pub state: Option<HighlightingState>,
 }
 
 impl HighlightedLines {
     pub fn new(
         lines: Vec<Vec<(Style, String)>>,
-        state: Option<HighlightingState>,
+        _state: &Option<HighlightingState>,
     ) -> Self {
-        Self { lines, state }
+        Self { lines, /*state*/ }
     }
 }
 
@@ -136,23 +138,26 @@ pub fn compute_highlights_incremental(
     lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-    cached_lines: Option<HighlightedLines>,
+    _cached_lines: &Option<HighlightedLines>,
 ) -> Result<HighlightedLines> {
     let mut highlighted_lines: Vec<_>;
     let mut highlighter: LineHighlighter;
 
-    if let Some(HighlightedLines {
-        lines: c_lines,
-        state: Some(s),
-    }) = cached_lines
-    {
-        highlighter = LineHighlighter::from_state(s, syntax_theme);
-        highlighted_lines = c_lines;
-    } else {
-        let syntax = set_syntax_set(syntax_set, file_path);
-        highlighter = LineHighlighter::new(syntax, syntax_theme);
-        highlighted_lines = Vec::new();
-    };
+    //if let Some(HighlightedLines {
+    //    lines: c_lines,
+    //    state: Some(s),
+    //}) = cached_lines
+    //{
+    //    highlighter = LineHighlighter::from_state(s, syntax_theme);
+    //    highlighted_lines = c_lines;
+    //} else {
+    //    let syntax = set_syntax_set(syntax_set, file_path);
+    //    highlighter = LineHighlighter::new(syntax, syntax_theme);
+    //    highlighted_lines = Vec::new();
+    //};
+    let syntax = set_syntax_set(syntax_set, file_path);
+    highlighter = LineHighlighter::new(syntax, syntax_theme);
+    highlighted_lines = Vec::with_capacity(lines.len());
 
     for line in lines {
         let hl_regions = highlighter.highlight_line(line, syntax_set)?;
@@ -166,7 +171,7 @@ pub fn compute_highlights_incremental(
 
     Ok(HighlightedLines::new(
         highlighted_lines,
-        Some(HighlightingState::new(
+        &Some(HighlightingState::new(
             highlighter.parse_state.clone(),
             highlighter.highlight_state.clone(),
         )),
