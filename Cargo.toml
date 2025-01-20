@@ -63,9 +63,7 @@ tokio = { version = "1.41.1", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
 rustc-hash = "2.1.0"
-syntect = { version = "5.2.0", default-features = false, features = [
-  "default-fancy",
-] }
+syntect = { version = "5.2.0" }
 unicode-width = "0.2.0"
 clap = { version = "4.5.20", features = ["derive", "cargo", "string"] }
 serde = { version = "1.0.214", features = ["derive"] }

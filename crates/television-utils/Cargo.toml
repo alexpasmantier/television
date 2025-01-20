@@ -24,7 +24,7 @@ tokio = { workspace = true }
 
 ignore = "0.4.23"
 bat = { version = "0.24.0", default-features = false, features = [
-  "regex-fancy",
+  "regex-onig",
 ] }
 gag = "1.0.0"
 
