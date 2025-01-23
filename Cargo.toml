@@ -10,106 +10,78 @@ repository = "https://github.com/alexpasmantier/television"
 homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-  "command-line-utilities",
-  "command-line-interface",
-  "concurrency",
-  "development-tools",
+    "command-line-utilities",
+    "command-line-interface",
+    "concurrency",
+    "development-tools",
 ]
 include = [
-  "LICENSE",
-  "README.md",
-  "themes/**/*.toml",
-  "crates/television/**/*.rs",
-  "build.rs",
-  ".config/config.toml",
-  "cable",
+    "LICENSE",
+    "README.md",
+    "themes/**/*.toml",
+    "television/**",
+    "build.rs",
+    ".config/config.toml",
+    "cable",
 ]
 rust-version = "1.81"
 
-[workspace]
-resolver = "2"
-members = ["crates/television-*"]
-
-[workspace.package]
-edition = "2021"
-description = "The revolution will be televised."
-license = "MIT"
-authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
-repository = "https://github.com/alexpasmantier/television"
-homepage = "https://github.com/alexpasmantier/television"
-keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
-categories = [
-  "command-line-utilities",
-  "command-line-interface",
-  "concurrency",
-  "development-tools",
-]
-include = [
-  "LICENSE",
-  "README.md",
-  "crates/television/**/*.rs",
-  "build.rs",
-  "shell/**/*.sh",
-]
-rust-version = "1.81"
-readme = "README.md"
-
-[workspace.dependencies]
-directories = "5.0.1"
-devicons = "0.6.11"
-color-eyre = "0.6.3"
-lazy_static = "1.5.0"
-tokio = { version = "1.41.1", features = ["full"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "serde"] }
-rustc-hash = "2.1.0"
-syntect = { version = "5.2.0" }
-unicode-width = "0.2.0"
-clap = { version = "4.5.20", features = ["derive", "cargo", "string"] }
-serde = { version = "1.0.214", features = ["derive"] }
-toml = "0.8.19"
-ratatui = { version = "0.29.0", features = ["serde", "macros"] }
-
+[lib]
+path = "television/lib.rs"
 
 [dependencies]
-# local dependencies
-television-fuzzy = { path = "crates/television-fuzzy", version = "0.0.23" }
-television-derive = { path = "crates/television-derive", version = "0.0.23" }
-television-screen = { path = "crates/television-screen", version = "0.0.23" }
-television-channels = { path = "crates/television-channels", version = "0.0.23" }
-television-previewers = { path = "crates/television-previewers", version = "0.0.23" }
-television-utils = { path = "crates/television-utils", version = "0.0.23" }
+television-derive = { path = "television-derive", version = "0.0.23" }
 
-# workspace dependencies
-directories = { workspace = true }
-color-eyre = { workspace = true }
-lazy_static = { workspace = true }
-tokio = { workspace = true, features = ["full"] }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true, features = ["env-filter", "serde"] }
-rustc-hash = { workspace = true }
-syntect = { workspace = true }
-unicode-width = { workspace = true }
-clap = { workspace = true, features = ["derive", "cargo", "string"] }
-serde = { workspace = true, features = ["derive"] }
-toml = { workspace = true }
-ratatui = { workspace = true, features = ["serde", "macros"] }
+directories = "5.0"
+devicons = "0.6"
+color-eyre = { version = "0.6" }
+lazy_static = "1.5"
+tokio = { version = "1.43", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+rustc-hash = "2.1"
+syntect = { version = "5.2", default-features = false }
+unicode-width = "0.2"
+clap = { version = "4.5", default-features = false, features = [
+    "std",
+    "derive",
+    "cargo",
+    "string",
+] }
+serde = { version = "1.0", features = ["derive"] }
+ratatui = { version = "0.29", features = ["serde", "macros"] }
+better-panic = "0.3"
+config = "0.14"
+signal-hook = "0.3"
+human-panic = "2.0"
+copypasta = "0.10"
+ignore = "0.4"
+strum = { version = "0.26", features = ["derive"] }
+regex = "1.11"
+parking_lot = "0.12"
+nom = "7.1"
+thiserror = "1.0"
+simdutf8 = { version = "0.1", optional = true }
+smallvec = { version = "1.13", features = ["const_generics"] }
+bat = { version = "0.24", default-features = false, features = ["regex-onig"] }
+gag = "1.0"
+nucleo = "0.5"
+toml = "0.8"
 
-# external dependencies
-better-panic = "0.3.0"
-config = "0.14.0"
-crossterm = { version = "0.28.1", features = ["serde"] }
-signal-hook = "0.3.17"
-human-panic = "2.0.2"
-copypasta = "0.10.1"
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.9"
 
 [dev-dependencies]
 criterion = "0.5.1"
-devicons = { workspace = true }
+
+[features]
+simd = ["dep:simdutf8"]
+zero-copy = []
+default = ["zero-copy", "simd"]
 
 [[bin]]
 bench = false
-path = "crates/television/main.rs"
+path = "television/main.rs"
 name = "tv"
 
 [[bench]]
@@ -117,11 +89,13 @@ name = "results_list_benchmark"
 harness = false
 
 [build-dependencies]
-vergen-gix = { version = "1.0.0", features = ["build", "cargo", "rustc"] }
+vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
 
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+crossterm = { version = "0.28", features = ["serde"] }
 
 [profile.staging]
 inherits = "dev"

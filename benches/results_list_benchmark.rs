@@ -5,10 +5,10 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use rustc_hash::FxHashMap;
-use television_channels::entry::merge_ranges;
-use television_channels::entry::{Entry, PreviewType};
-use television_screen::colors::ResultsColorscheme;
-use television_screen::results::build_results_list;
+use television::channels::entry::merge_ranges;
+use television::channels::entry::{Entry, PreviewType};
+use television::screen::colors::ResultsColorscheme;
+use television::screen::results::build_results_list;
 
 pub fn results_list_benchmark(c: &mut Criterion) {
     let mut icon_color_cache = FxHashMap::default();
