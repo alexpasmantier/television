@@ -3,11 +3,14 @@
 First of all, thanks for considering contributing to this project. All contributions are welcome, whether they are bug
 reports, documentation improvements, feature requests, or pull requests.
 
-Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a positive experience for everyone involved.
+Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to ensure a positive experience for
+everyone involved.
 
-If you're not sure where to start, take a look at the [Hot Topics](#hot-topics) section for some ideas on what you could work on.
+If you're not sure where to start, take a look at the [Hot Topics](#hot-topics) section for some ideas on what you could
+work on.
 
 ## Table of Contents
+
 - [Getting started](#getting-started)
 - [Prerequisites](#prerequisites)
 - [Forking the repository and setting up the project](#forking-the-repository-and-setting-up-the-project)
@@ -17,12 +20,17 @@ If you're not sure where to start, take a look at the [Hot Topics](#hot-topics) 
 - [Hot Topics](#hot-topics)
 
 ## Getting started
+
 ### Prerequisites
-These are pretty much the only things you need to have installed on your machine to get started with contributing to this project:
+
+These are pretty much the only things you need to have installed on your machine to get started with contributing to
+this project:
+
 - the [Rust](https://www.rust-lang.org/tools/install) toolchain installed on your machine
 - any working version of [Git](https://git-scm.com/downloads)
 
 ### Forking the repository and setting up the project
+
 1. Click on the `Fork` button at the top right corner of the repository page to create a copy of the repository to your
    GitHub account.
 2. Clone the forked repository to your local machine by running the following command in your terminal:
@@ -51,15 +59,19 @@ These are pretty much the only things you need to have installed on your machine
    ```shell
    git push origin <branch-name>
    ```
-8. If not done automatically, create a pull request by navigating to the original repository and clicking on the `New pull request` button.
-
+8. If not done automatically, create a pull request by navigating to the original repository and clicking on the
+   `New pull request` button.
 
 ### Building the project
+
 Before anything else:
+
 ```shell
 make setup
 ```
+
 To run the application in debug mode while developing, with the ability to see logs and debug information:
+
 ```shell
 make run
 ```
@@ -75,58 +87,72 @@ configuration:
 | Windows | `{FOLDERID_LocalAppData}\television\television.log` |
 
 To build the project in debug mode, run the following command in the project directory:
+
 ```shell
 make
 ```
+
 or
+
 ```shell
 make build
 ```
 
 To build the project in release mode, run the following command in the project directory:
+
 ```shell
 make release
 ```
+
 Formatting the code
+
 ```shell
 make format
 ```
+
 Linting the code
+
 ```shell
 make lint
 ```
+
 Running the tests
+
 ```shell
 make test
 ```
 
 ### Project structure
-The project is laid out in several rust crates that are organized in the following way:
-- `television`: the main binary crate that contains the CLI application
-- `television_channels`: a library crate that contains the channel implementations
-- `television_derive`: a library crate that contains the derive macros used in the project
-- `television_fuzzy`: a library crate that contains the fuzzy matcher
-- `television_previewers`: a library crate that contains the previewer implementations
-- `television_utils`: a library crate that contains utility functions and types used in the project
 
+The project is laid out in several rust crates that are organized in the following way:
+
+- `television`: the main binary crate that contains the CLI application
+- `television_derive`: a library crate that contains the derive macros used in the project
 
 ### Contributing a new channel
 
 `television` is built around the concept of _channels_.
 
-From a technical standpoint, channels are structs that implement the `OnAir` trait defined in `crates/television-channels/src/channels.rs`.
+From a technical standpoint, channels are structs that implement the `OnAir` trait defined in
+`television/channels/mod.rs`.
 
-They can be anything that can respond to a user query and return a result under the form of a list of entries. This means channels can be anything from conventional data sources you might want to search through (like files, git repositories, remote filesystems, environment variables etc.) to more exotic implementations that might include a REPL, a calculator, a web browser, search through your spotify library, your email, etc.
+They can be anything that can respond to a user query and return a result under the form of a list of entries. This
+means channels can be anything from conventional data sources you might want to search through (like files, git
+repositories, remote filesystems, environment variables etc.) to more exotic implementations that might include a REPL,
+a calculator, a web browser, search through your spotify library, your email, etc.
 
-As mentioned in [Project structure](#project-structure) `television` uses [crates](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html) for its different subcomponents (_previewers_, _channels_, _utils_, etc).
+As mentioned in [Project structure](#project-structure) `television`
+uses [crates](https://doc.rust-lang.org/book/ch07-01-packages-and-crates.html) for its different subcomponents (
+_previewers_, _channels_, _utils_, etc).
 
-When contributing a new channel, you should create a new module in the `television_channels` crate with a new struct for
-your channel and ensure that it implements the `OnAir` trait defined in [crates/television-channels/src/channels.rs](crates/television-channels/src/channels.rs)
+When contributing a new channel, you should create a new module in the `crate::channels` crate with a new struct for
+your channel and ensure that it implements the `OnAir` trait defined
+in [crates/television-channels/src/channels.rs](crates/television-channels/src/channels.rs)
 
 ```rust
 // crates/television-channels/src/channels/my_new_channel.rs
 
-use television_channels::channels::OnAir;
+use crate::channels::OnAir;
 
 pub struct MyNewChannel;
 
@@ -135,12 +161,10 @@ impl OnAir for MyNewChannel {
 }
 ```
 
-You should also add your channel to the `TelevisionChannel` enum in the `television_channels` crate.
+You should also add your channel to the `TelevisionChannel` enum in the `crate::channels` crate.
 
 ```rust
-// crates/television-channels/src/channels.rs
-
-
+// crates/television-channels/src/mod
 
 #[derive(ToUnitChannel, ToCliChannel, Broadcast)]
 pub enum TelevisionChannel {
@@ -149,13 +173,15 @@ pub enum TelevisionChannel {
 }
 ```
 
-☝️ There are built-in channels in `television` that you might want to draw inspiration from if need be, they're located at [crates/television-channels/src/channels](crates/television-channels/src/channels).
+☝️ There are built-in channels in `television` that you might want to draw inspiration from if need be, they're located
+at [crates/television-channels/src/channels](crates/television-channels/src/channels).
 
 **TODO**: document transitions between channels and previewers
 
-
 ## Hot Topics
+
 ### Current hot topics:
+
 - shell integration (autocomplete, keybindings)
 - packaging for various linux package managers (apt, dnf, ...)
 - configuring custom actions for each channel
@@ -165,38 +191,39 @@ pub enum TelevisionChannel {
 See the [todo list](./TODO.md) for ideas.
 
 - `Customization`:
-  - allow users to further customize the behavior of the application (e.g. the default channel, fuzzy matching constants, channel heuristics, etc.)
+    - allow users to further customize the behavior of the application (e.g. the default channel, fuzzy matching
+      constants, channel heuristics, etc.)
 - `Channels`:
-  - new channel ideas (builtin or cable):
-    - shell history
-    - directories
-    - git (commits, branches, status, diff, ...)
-    - remote filesystems (s3, ...)
-    - kubernetes resources (jobs, pods, deployments, services, ...)
-    - recent directories
-    - makefile commands
-    - etc.
-  - add more tests for existing channels
+    - new channel ideas (builtin or cable):
+        - shell history
+        - directories
+        - git (commits, branches, status, diff, ...)
+        - remote filesystems (s3, ...)
+        - kubernetes resources (jobs, pods, deployments, services, ...)
+        - recent directories
+        - makefile commands
+        - etc.
+    - add more tests for existing channels
 - `Previewers`:
-  - new previewer ideas:
-    - previewing text in documents (pdfs, archives, ...)
-    - previewing images (actually already implemented but commented out)
-    - remote files (s3, ...)
-    - etc.
-  - more tests for existing previewers
+    - new previewer ideas:
+        - previewing text in documents (pdfs, archives, ...)
+        - previewing images (actually already implemented but commented out)
+        - remote files (s3, ...)
+        - etc.
+    - more tests for existing previewers
 - `Documentation`:
-  - add more technical documentation to the project
-    - general design of the TUI application
-    - design of channels, previewers, transitions, etc.
-    - how to contribute a new channel, previewer, etc.
-  - more docstrings
+    - add more technical documentation to the project
+        - general design of the TUI application
+        - design of channels, previewers, transitions, etc.
+        - how to contribute a new channel, previewer, etc.
+    - more docstrings
 - `Performance/Refactoring`:
-  - working on reducing coupling between the different crates in the project
-  - working on reducing the number of allocations and copies in the code
-  - writing benchmarks for different parts of the application
+    - working on reducing coupling between the different crates in the project
+    - working on reducing the number of allocations and copies in the code
+    - writing benchmarks for different parts of the application
 - `Project`:
-  - polish project configuration:
-    - CI/CD
+    - polish project configuration:
+        - CI/CD
 
 
 

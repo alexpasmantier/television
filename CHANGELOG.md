@@ -227,7 +227,8 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
-- *(channels)* Use the number of actual bytes read and not the sample buffer size when calculating the proportion of printable ASCII characters (#174)
+- *(channels)* Use the number of actual bytes read and not the sample buffer size when calculating the proportion of
+  printable ASCII characters (#174)
 - *(ux)* Make DeletePrevWord trigger channel update (#175)
 
 ### 📚 Documentation
