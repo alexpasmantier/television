@@ -225,6 +225,23 @@ impl Default for ReplaceNonPrintableConfig {
     }
 }
 
+fn is_emoji(ch: char) -> bool {
+    [
+        // emoticons
+        '\u{1F600}'..='\u{1F64F}',
+        // misc. symbols and pictograms
+        '\u{1F300}'..='\u{1F5FF}',
+        // transports / map
+        '\u{1F680}'..='\u{1F6FF}',
+        // additional symbols and pictograms
+        '\u{1F900}'..='\u{1F9FF}',
+        // flags
+        '\u{1F1E6}'..='\u{1F1FF}',
+    ]
+    .iter()
+    .any(|range| range.contains(&ch))
+}
+
 #[allow(clippy::missing_panics_doc)]
 /// Replaces non-printable characters in the given byte slice with default printable characters.
 ///
@@ -267,7 +284,6 @@ pub fn replace_non_printable(
         offsets.push(cumulative_offset);
         if let Some((chr, skip_ahead)) = try_parse_utf8_char(&input[idx..]) {
             idx += skip_ahead;
-
             match chr {
                 // tab
                 TAB_CHARACTER if config.replace_tab => {
@@ -291,9 +307,30 @@ pub fn replace_non_printable(
                     output.push(*NULL_SYMBOL);
                 }
                 // CJK Unified Ideographs
+                // ex: 解
                 c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
                     output.push(c);
                 }
+                // Korean: Hangul syllables
+                // ex: 가 or 한
+                c if ('\u{AC00}'..='\u{D7AF}').contains(&c) => {
+                    output.push(c);
+                }
+                // some emojis
+                // ex: 😀
+                c if is_emoji(c) => {
+                    output.push(c);
+                }
+                // Japanese (contiguous ranges for katakana and hiragana)
+                // ex: katakana -> ア and hiragana -> あ
+                c if ('\u{3040}'..='\u{30FF}').contains(&c) => {
+                    output.push(c);
+                }
+                // Thai
+                // ex: ส or ดี
+                c if ('\u{0E00}'..='\u{0E7F}').contains(&c) => output.push(c),
+                // Devanagari (most common Indic script)
+                c if ('\u{0900}'..='\u{097F}').contains(&c) => output.push(c),
                 // Nerd fonts
                 c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
                     output.push(c);
@@ -653,6 +690,65 @@ mod tests {
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1]);
     }
 
+    #[test]
+    fn test_cjk_characters() {
+        let input = "你好,世界!".as_bytes();
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "你好,世界!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_thai_characters() {
+        let input = "สวัสดี!".as_bytes(); // สวัสดี is 6 characters + !
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "สวัสดี!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_emoji_characters() {
+        let input = "Hello 🌍!".as_bytes();
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "Hello 🌍!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+    #[test]
+    fn test_devanagari_characters() {
+        let input = "नमस्ते".as_bytes(); // नमस्ते is 6 characters
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "नमस्ते");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
+    }
+    #[test]
+    fn test_hiragana_characters() {
+        let input = "こんにちは".as_bytes();
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "こんにちは");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_katakana_characters() {
+        let input = "コンニチハ".as_bytes();
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "コンニチハ");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0]);
+    }
+    #[test]
+    fn test_korean_characters() {
+        let input = "안녕하세요!".as_bytes();
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable(input, &config);
+        assert_eq!(output, "안녕하세요!");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
+    }
     #[test]
     fn test_replace_non_printable_no_range_changes() {
         let input = b"Hello,\x00World!";
