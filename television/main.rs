@@ -39,15 +39,16 @@ async fn main() -> Result<()> {
                 exit(0);
             }
             television::cli::Command::InitShell { shell } => {
+                let target_shell = Shell::from(shell);
                 // the completion scripts for the various shells are templated
                 // so that it's possible to override the keybindings triggering
                 // shell autocomplete and command history in tv
-                let templated_script = completion_script(Shell::from(shell))?;
+                let templated_script = completion_script(target_shell)?;
                 let script = templated_script
                     .replace(
                         "{tv_smart_autocomplete_keybinding}",
                         &ctrl_keybinding(
-                            Shell::from(shell),
+                            target_shell,
                             config
                                 .shell_integration
                                 .get_shell_autocomplete_keybinding_character(),
@@ -56,7 +57,7 @@ async fn main() -> Result<()> {
                     .replace(
                         "{tv_shell_history_keybinding}",
                         &ctrl_keybinding(
-                            Shell::from(shell),
+                            target_shell,
                             config
                                 .shell_integration
                                 .get_command_history_keybinding_character(),
