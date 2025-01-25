@@ -15,9 +15,10 @@ use television::cli::{
     guess_channel_from_prompt, list_channels, Cli, ParsedCliChannel,
     PostProcessedCli,
 };
+
 use television::config::Config;
 use television::utils::{
-    shell::{completion_script, Shell},
+    shell::{completion_script, ctrl_keybinding, Shell},
     stdin::is_readable_stdin,
 };
 
@@ -38,7 +39,30 @@ async fn main() -> Result<()> {
                 exit(0);
             }
             television::cli::Command::InitShell { shell } => {
-                let script = completion_script(Shell::from(shell))?;
+                // the completion scripts for the various shells are templated
+                // so that it's possible to override the keybindings triggering
+                // shell autocomplete and command history in tv
+                let templated_script = completion_script(Shell::from(shell))?;
+                let script = templated_script
+                    .replace(
+                        "{tv_smart_autocomplete_keybinding}",
+                        &ctrl_keybinding(
+                            Shell::from(shell),
+                            config
+                                .shell_integration
+                                .get_shell_autocomplete_keybinding_character(),
+                        )?,
+                    )
+                    .replace(
+                        "{tv_shell_history_keybinding}",
+                        &ctrl_keybinding(
+                            Shell::from(shell),
+                            config
+                                .shell_integration
+                                .get_command_history_keybinding_character(),
+                        )?,
+                    );
+
                 println!("{script}");
                 exit(0);
             }
