@@ -40,40 +40,6 @@ pub fn build_metadata_table<'a>(
         )),
     ]);
 
-    let target_triple_row = Row::new(vec![
-        Cell::from(Span::styled(
-            "target triple: ",
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
-        )),
-        Cell::from(Span::styled(
-            &app_metadata.build.target_triple,
-            Style::default().fg(colorscheme.help.metadata_field_value_fg),
-        )),
-    ]);
-
-    let build_row = Row::new(vec![
-        Cell::from(Span::styled(
-            "build: ",
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
-        )),
-        Cell::from(Span::styled(
-            &app_metadata.build.rustc_version,
-            Style::default().fg(colorscheme.help.metadata_field_value_fg),
-        )),
-        Cell::from(Span::styled(
-            " (",
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
-        )),
-        Cell::from(Span::styled(
-            &app_metadata.build.build_date,
-            Style::default().fg(colorscheme.help.metadata_field_value_fg),
-        )),
-        Cell::from(Span::styled(
-            ")",
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
-        )),
-    ]);
-
     let current_dir_row = Row::new(vec![
         Cell::from(Span::styled(
             "current directory: ",
@@ -115,8 +81,6 @@ pub fn build_metadata_table<'a>(
     Table::new(
         vec![
             version_row,
-            target_triple_row,
-            build_row,
             current_dir_row,
             current_channel_row,
             current_mode_row,

@@ -29,10 +29,10 @@ impl Display for Binding {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Binding>>);
+pub struct KeyBindings(pub FxHashMap<Mode, FxHashMap<Action, Binding>>);
 
 impl Deref for KeyBindings {
-    type Target = config::Map<Mode, config::Map<Action, Binding>>;
+    type Target = FxHashMap<Mode, FxHashMap<Action, Binding>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -42,6 +42,31 @@ impl DerefMut for KeyBindings {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
     }
+}
+
+pub fn merge_keybindings(
+    mut keybindings: KeyBindings,
+    new_keybindings: &KeyBindings,
+) -> KeyBindings {
+    for (mode, bindings) in new_keybindings.iter() {
+        for (action, binding) in bindings {
+            match keybindings.get_mut(mode) {
+                Some(mode_bindings) => {
+                    mode_bindings.insert(action.clone(), binding.clone());
+                }
+                None => {
+                    keybindings.insert(
+                        *mode,
+                        [(action.clone(), binding.clone())]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                    );
+                }
+            }
+        }
+    }
+    keybindings
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -61,37 +86,38 @@ impl<'de> Deserialize<'de> for KeyBindings {
             FxHashMap<Action, SerializedBinding>,
         >::deserialize(deserializer)?;
 
-        let keybindings = parsed_map
-            .into_iter()
-            .map(|(mode, inner_map)| {
-                let converted_inner_map = inner_map
-                    .into_iter()
-                    .map(|(cmd, binding)| {
-                        (
-                            cmd,
-                            match binding {
-                                SerializedBinding::SingleKey(key_str) => {
-                                    Binding::SingleKey(
-                                        parse_key(&key_str).unwrap(),
-                                    )
-                                }
-                                SerializedBinding::MultipleKeys(keys_str) => {
-                                    Binding::MultipleKeys(
+        let keybindings: FxHashMap<Mode, FxHashMap<Action, Binding>> =
+            parsed_map
+                .into_iter()
+                .map(|(mode, inner_map)| {
+                    let converted_inner_map = inner_map
+                        .into_iter()
+                        .map(|(cmd, binding)| {
+                            (
+                                cmd,
+                                match binding {
+                                    SerializedBinding::SingleKey(key_str) => {
+                                        Binding::SingleKey(
+                                            parse_key(&key_str).unwrap(),
+                                        )
+                                    }
+                                    SerializedBinding::MultipleKeys(
+                                        keys_str,
+                                    ) => Binding::MultipleKeys(
                                         keys_str
                                             .iter()
                                             .map(|key_str| {
                                                 parse_key(key_str).unwrap()
                                             })
                                             .collect(),
-                                    )
-                                }
-                            },
-                        )
-                    })
-                    .collect();
-                (mode, converted_inner_map)
-            })
-            .collect();
+                                    ),
+                                },
+                            )
+                        })
+                        .collect();
+                    (mode, converted_inner_map)
+                })
+                .collect();
 
         Ok(KeyBindings(keybindings))
     }
