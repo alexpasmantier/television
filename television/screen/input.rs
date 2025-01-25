@@ -1,5 +1,5 @@
 use crate::utils::input::Input;
-use color_eyre::Result;
+use anyhow::Result;
 use ratatui::{
     layout::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,

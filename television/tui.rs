@@ -3,7 +3,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-use color_eyre::Result;
+use anyhow::Result;
 use crossterm::{
     cursor, execute,
     terminal::{

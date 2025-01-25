@@ -7,7 +7,7 @@ use crate::screen::mode::{mode_color, Mode};
 use crate::screen::results::build_results_list;
 use crate::utils::input::Input;
 
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
 use ratatui::style::{Color, Stylize};

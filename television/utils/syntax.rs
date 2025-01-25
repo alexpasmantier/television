@@ -1,5 +1,5 @@
+use anyhow::Result;
 use bat::assets::HighlightingAssets;
-use color_eyre::Result;
 use gag::Gag;
 use std::path::{Path, PathBuf};
 use syntect::easy::HighlightLines;

@@ -24,7 +24,7 @@ use crate::screen::spinner::{Spinner, SpinnerState};
 use crate::utils::metadata::AppMetadata;
 use crate::utils::strings::EMPTY_STRING;
 use crate::{cable::load_cable_channels, keymap::Keymap};
-use color_eyre::Result;
+use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
 use ratatui::{layout::Rect, style::Color, Frame};
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};

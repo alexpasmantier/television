@@ -8,7 +8,7 @@ use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 
-use color_eyre::Result;
+use anyhow::Result;
 use lazy_static::lazy_static;
 use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};

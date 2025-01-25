@@ -1,7 +1,7 @@
 #![allow(clippy::module_name_repetitions)]
 use std::{env, path::PathBuf};
 
-use color_eyre::{eyre::Context, Result};
+use anyhow::Result;
 use directories::ProjectDirs;
 use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
@@ -82,7 +82,7 @@ impl Config {
     pub fn new() -> Result<Self> {
         // Load the default_config values as base defaults
         let default_config: Config = toml::from_str(DEFAULT_CONFIG)
-            .wrap_err("Error parsing default config")?;
+            .expect("Error parsing default config");
 
         // initialize the config builder
         let data_dir = get_data_dir();
@@ -99,8 +99,12 @@ impl Config {
             let path = config_dir.join(CONFIG_FILE_NAME);
             let contents = std::fs::read_to_string(&path)?;
 
-            let cfg: Config = toml::from_str(&contents)
-                .wrap_err(format!("error parsing config: {path:?}"))?;
+            let cfg: Config = toml::from_str(&contents).unwrap_or_else(|_| {
+                warn!(
+                    "Error parsing config file, using default configuration"
+                );
+                default_config.clone()
+            });
 
             // merge keybindings with default keybindings
             let keybindings = merge_keybindings(
