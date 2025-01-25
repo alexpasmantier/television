@@ -91,7 +91,7 @@ impl OnAir for Channel {
 
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
-            Entry::new(item.matched_string.clone(), self.preview_type.clone())
+            Entry::new(item.matched_string, self.preview_type.clone())
         })
     }
 
