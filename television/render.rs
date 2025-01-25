@@ -6,15 +6,12 @@ use std::{
 };
 use tracing::{debug, warn};
 
-use tokio::{
-    select,
-    sync::{mpsc, Mutex},
-};
+use tokio::sync::{mpsc, Mutex};
 
 use crate::television::Television;
 use crate::{action::Action, tui::Tui};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub enum RenderingTask {
     ClearScreen,
     Render,
@@ -64,60 +61,62 @@ pub async fn render(
         .await
         .register_action_handler(action_tx.clone())?;
 
-    // Rendering loop
-    loop {
-        select! {
-            () = tokio::time::sleep(tokio::time::Duration::from_secs_f64(1.0 / frame_rate)) => {
-                action_tx.send(Action::Render)?;
-            }
-            maybe_task = render_rx.recv() => {
-                if let Some(task) = maybe_task {
-                    match task {
-                        RenderingTask::ClearScreen => {
-                            tui.terminal.clear()?;
-                        }
-                        RenderingTask::Render => {
-                            let mut television = television.lock().await;
-                            if let Ok(size) = tui.size() {
-                                // Ratatui uses `u16`s to encode terminal dimensions and its
-                                // content for each terminal cell is stored linearly in a
-                                // buffer with a `u16` index which means we can't support
-                                // terminal areas larger than `u16::MAX`.
-                                if size.width.checked_mul(size.height).is_some() {
-                                    tui.terminal.draw(|frame| {
-                                        if let Err(err) = television.draw(frame, frame.area()) {
-                                            warn!("Failed to draw: {:?}", err);
-                                            let _ = action_tx
-                                                .send(Action::Error(format!("Failed to draw: {err:?}")));
-                                        }
-                                    })?;
+    let mut buffer = Vec::with_capacity(128);
 
-                                } else {
-                                    warn!("Terminal area too large");
+    // Rendering loop
+    'rendering: while render_rx.recv_many(&mut buffer, 128).await > 0 {
+        // deduplicate events
+        buffer.sort_unstable();
+        buffer.dedup();
+        for event in buffer.drain(..) {
+            match event {
+                RenderingTask::ClearScreen => {
+                    tui.terminal.clear()?;
+                }
+                RenderingTask::Render => {
+                    if let Ok(size) = tui.size() {
+                        // Ratatui uses `u16`s to encode terminal dimensions and its
+                        // content for each terminal cell is stored linearly in a
+                        // buffer with a `u16` index which means we can't support
+                        // terminal areas larger than `u16::MAX`.
+                        if size.width.checked_mul(size.height).is_some() {
+                            let mut television = television.lock().await;
+                            tui.terminal.draw(|frame| {
+                                if let Err(err) =
+                                    television.draw(frame, frame.area())
+                                {
+                                    warn!("Failed to draw: {:?}", err);
+                                    let _ = action_tx.send(Action::Error(
+                                        format!("Failed to draw: {err:?}"),
+                                    ));
                                 }
-                            }
-                        }
-                        RenderingTask::Resize(w, h) => {
-                            tui.resize(Rect::new(0, 0, w, h))?;
-                            action_tx.send(Action::Render)?;
-                        }
-                        RenderingTask::Suspend => {
-                            tui.suspend()?;
-                            action_tx.send(Action::Resume)?;
-                            action_tx.send(Action::ClearScreen)?;
-                            tui.enter()?;
-                        }
-                        RenderingTask::Resume => {
-                            tui.enter()?;
-                        }
-                        RenderingTask::Quit => {
-                            debug!("Exiting rendering loop");
-                            tui.exit()?;
-                            break Ok(());
+                            })?;
+                        } else {
+                            warn!("Terminal area too large");
                         }
                     }
+                }
+                RenderingTask::Resize(w, h) => {
+                    tui.resize(Rect::new(0, 0, w, h))?;
+                    action_tx.send(Action::Render)?;
+                }
+                RenderingTask::Suspend => {
+                    tui.suspend()?;
+                    action_tx.send(Action::Resume)?;
+                    action_tx.send(Action::ClearScreen)?;
+                    tui.enter()?;
+                }
+                RenderingTask::Resume => {
+                    tui.enter()?;
+                }
+                RenderingTask::Quit => {
+                    debug!("Exiting rendering loop");
+                    tui.exit()?;
+                    break 'rendering;
                 }
             }
         }
     }
+
+    Ok(())
 }

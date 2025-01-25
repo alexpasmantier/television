@@ -1,4 +1,4 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, Criterion};
 use devicons::FileIcon;
 use ratatui::layout::Alignment;
 use ratatui::prelude::{Line, Style};
@@ -664,4 +664,3 @@ pub fn results_list_benchmark(c: &mut Criterion) {
 }
 
 criterion_group!(benches, results_list_benchmark);
-criterion_main!(benches);

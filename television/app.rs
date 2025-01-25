@@ -160,6 +160,7 @@ impl App {
             )
             .await
         });
+        render_tx.send(RenderingTask::Render)?;
 
         // event handling loop
         debug!("Starting event handling loop");
@@ -169,6 +170,9 @@ impl App {
             if let Some(event) = self.event_rx.recv().await {
                 let action = self.convert_event_to_action(event).await;
                 action_tx.send(action)?;
+                // it's fine to send a rendering task here, because the rendering loop
+                // batches and deduplicates rendering tasks
+                render_tx.send(RenderingTask::Render)?;
             }
 
             let action_outcome = self.handle_actions().await?;

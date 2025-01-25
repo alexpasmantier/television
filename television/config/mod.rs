@@ -36,7 +36,7 @@ pub struct AppConfig {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Default)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// General application configuration

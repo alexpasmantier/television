@@ -1,0 +1,54 @@
+use criterion::{black_box, Criterion};
+use ratatui::backend::TestBackend;
+use ratatui::layout::Rect;
+use ratatui::Terminal;
+use std::path::PathBuf;
+use television::channels::OnAir;
+use television::channels::{files::Channel, TelevisionChannel};
+use television::config::Config;
+use television::television::Television;
+use tokio::runtime::Runtime;
+
+fn draw(c: &mut Criterion) {
+    let width = 250;
+    let height = 80;
+
+    let rt = Runtime::new().unwrap();
+
+    c.bench_function("draw", |b| {
+        b.to_async(&rt).iter_batched(
+            // FIXME: this is kind of hacky
+            || {
+                let config = Config::new().unwrap();
+                let backend = TestBackend::new(width, height);
+                let terminal = Terminal::new(backend).unwrap();
+                let mut channel =
+                    TelevisionChannel::Files(Channel::new(vec![
+                        PathBuf::from("."),
+                    ]));
+                channel.find("television");
+                // Wait for the channel to finish loading
+                for _ in 0..5 {
+                    // tick the matcher
+                    let _ = channel.results(10, 0);
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                }
+                let mut tv = Television::new(channel, config, None);
+                tv.select_next_entry(10);
+                (tv, terminal)
+            },
+            // Measurement
+            |(mut tv, mut terminal)| async move {
+                tv.draw(
+                    black_box(&mut terminal.get_frame()),
+                    black_box(Rect::new(0, 0, width, height)),
+                )
+                .unwrap();
+            },
+            criterion::BatchSize::SmallInput,
+        );
+    });
+}
+
+criterion::criterion_group!(benches, draw);
+criterion::criterion_main!(benches);
