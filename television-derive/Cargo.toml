@@ -1,6 +1,6 @@
 [package]
 name = "television-derive"
-version = "0.0.23"
+version = "0.0.24"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -9,10 +9,10 @@ repository = "https://github.com/alexpasmantier/television"
 homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-    "command-line-utilities",
-    "command-line-interface",
-    "concurrency",
-    "development-tools",
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
 ]
 rust-version = "1.81"
 

@@ -1870,7 +1870,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.9.4"
+version = "0.10.0"
 dependencies = [
  "anyhow",
  "bat",
@@ -1909,7 +1909,7 @@ dependencies = [
 
 [[package]]
 name = "television-derive"
-version = "0.0.23"
+version = "0.0.24"
 dependencies = [
  "proc-macro2",
  "quote",
