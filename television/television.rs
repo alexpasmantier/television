@@ -280,6 +280,36 @@ impl Television {
         Ok(())
     }
 
+    fn should_render(&self, action: &Action) -> bool {
+        matches!(
+            action,
+            Action::AddInputChar(_)
+                | Action::DeletePrevChar
+                | Action::DeletePrevWord
+                | Action::DeleteNextChar
+                | Action::GoToPrevChar
+                | Action::GoToNextChar
+                | Action::GoToInputStart
+                | Action::GoToInputEnd
+                | Action::ToggleSelectionDown
+                | Action::ToggleSelectionUp
+                | Action::ConfirmSelection
+                | Action::SelectNextEntry
+                | Action::SelectPrevEntry
+                | Action::SelectNextPage
+                | Action::SelectPrevPage
+                | Action::ScrollPreviewDown
+                | Action::ScrollPreviewUp
+                | Action::ScrollPreviewHalfPageDown
+                | Action::ScrollPreviewHalfPageUp
+                | Action::ToggleRemoteControl
+                | Action::ToggleSendToChannel
+                | Action::ToggleHelp
+                | Action::TogglePreview
+                | Action::CopyEntryToClipboard
+        ) || self.channel.running()
+    }
+
     #[allow(clippy::unused_async)]
     /// Update the state of the component based on a received action.
     ///
@@ -447,7 +477,12 @@ impl Television {
             }
             _ => {}
         }
-        Ok(None)
+
+        Ok(if self.should_render(&action) {
+            Some(Action::Render)
+        } else {
+            None
+        })
     }
 
     /// Render the television on the screen.

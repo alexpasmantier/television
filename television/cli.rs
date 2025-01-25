@@ -38,7 +38,7 @@ pub struct Cli {
     #[arg(short, long, value_name = "FLOAT")]
     pub tick_rate: Option<f64>,
 
-    /// Frame rate, i.e. number of frames per second
+    /// [DEPRECATED] Frame rate, i.e. number of frames per second
     #[arg(short, long, value_name = "FLOAT")]
     pub frame_rate: Option<f64>,
 

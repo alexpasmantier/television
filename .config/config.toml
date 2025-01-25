@@ -15,7 +15,7 @@
 
 # General settings
 # ----------------------------------------------------------------------------
-frame_rate = 60
+frame_rate = 60 # DEPRECATED: this option is no longer used
 tick_rate = 50
 
 [ui]
