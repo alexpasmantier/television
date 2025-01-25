@@ -1,14 +1,14 @@
 use color_eyre::Result;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
-use crate::config;
+use crate::config::get_data_dir;
 
 lazy_static::lazy_static! {
     pub static ref LOG_FILE: String = format!("{}.log", env!("CARGO_PKG_NAME"));
 }
 
 pub fn init() -> Result<()> {
-    let directory = config::get_data_dir();
+    let directory = get_data_dir();
     std::fs::create_dir_all(directory.clone())?;
     let log_path = directory.join(LOG_FILE.clone());
     let log_file = std::fs::File::create(log_path)?;

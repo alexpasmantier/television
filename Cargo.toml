@@ -5,24 +5,22 @@ edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
-build = "build.rs"
 repository = "https://github.com/alexpasmantier/television"
 homepage = "https://github.com/alexpasmantier/television"
 keywords = ["search", "fuzzy", "preview", "tui", "terminal"]
 categories = [
-    "command-line-utilities",
-    "command-line-interface",
-    "concurrency",
-    "development-tools",
+  "command-line-utilities",
+  "command-line-interface",
+  "concurrency",
+  "development-tools",
 ]
 include = [
-    "LICENSE",
-    "README.md",
-    "themes/**/*.toml",
-    "television/**",
-    "build.rs",
-    ".config/config.toml",
-    "cable",
+  "LICENSE",
+  "README.md",
+  "themes/**/*.toml",
+  "television/**",
+  ".config/config.toml",
+  "cable",
 ]
 rust-version = "1.81"
 
@@ -43,15 +41,14 @@ rustc-hash = "2.1"
 syntect = { version = "5.2", default-features = false }
 unicode-width = "0.2"
 clap = { version = "4.5", default-features = false, features = [
-    "std",
-    "derive",
-    "cargo",
-    "string",
+  "std",
+  "derive",
+  "cargo",
+  "string",
 ] }
 serde = { version = "1.0", features = ["derive"] }
 ratatui = { version = "0.29", features = ["serde", "macros"] }
 better-panic = "0.3"
-config = "0.14"
 signal-hook = "0.3"
 human-panic = "2.0"
 copypasta = "0.10"
@@ -87,9 +84,6 @@ name = "tv"
 [[bench]]
 name = "results_list_benchmark"
 harness = false
-
-[build-dependencies]
-vergen-gix = { version = "1.0", features = ["build", "cargo", "rustc"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }

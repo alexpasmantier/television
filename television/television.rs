@@ -21,7 +21,7 @@ use crate::screen::preview::draw_preview_content_block;
 use crate::screen::remote_control::draw_remote_control;
 use crate::screen::results::draw_results_list;
 use crate::screen::spinner::{Spinner, SpinnerState};
-use crate::utils::metadata::{AppMetadata, BuildMetadata};
+use crate::utils::metadata::AppMetadata;
 use crate::utils::strings::EMPTY_STRING;
 use crate::{cable::load_cable_channels, keymap::Keymap};
 use color_eyre::Result;
@@ -75,11 +75,6 @@ impl Television {
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
-            BuildMetadata::new(
-                env!("VERGEN_RUSTC_SEMVER").to_string(),
-                env!("VERGEN_BUILD_DATE").to_string(),
-                env!("VERGEN_CARGO_TARGET_TRIPLE").to_string(),
-            ),
             std::env::current_dir()
                 .expect("Could not get current directory")
                 .to_string_lossy()
