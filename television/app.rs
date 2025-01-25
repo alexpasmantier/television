@@ -271,6 +271,7 @@ impl App {
                     {
                         return Ok(ActionOutcome::Entries(entries));
                     }
+
                     return Ok(ActionOutcome::Input(
                         self.television.lock().await.current_pattern.clone(),
                     ));
