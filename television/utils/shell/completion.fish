@@ -22,5 +22,5 @@ function tv_shell_history
     end
 end
 
-bind \ct tv_smart_autocomplete
-bind \cr tv_shell_history
+bind {tv_smart_autocomplete_keybinding} tv_smart_autocomplete
+bind {tv_shell_history_keybinding} tv_shell_history
