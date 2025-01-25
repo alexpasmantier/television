@@ -69,7 +69,7 @@ toml = "0.8"
 winapi-util = "0.1.9"
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = { version = "0.5", features = ["async_tokio"] }
 
 [features]
 simd = ["dep:simdutf8"]
@@ -82,7 +82,7 @@ path = "television/main.rs"
 name = "tv"
 
 [[bench]]
-name = "results_list_benchmark"
+name = "main"
 harness = false
 
 [target.'cfg(target_os = "macos")'.dependencies]
