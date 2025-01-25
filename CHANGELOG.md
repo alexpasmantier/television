@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2025-01-25
+
+### 🚀 Features
+
+- *(i18n)* Improve support for non-western scripts (#305)
+
+### 🐛 Bug Fixes
+
+- Add repaint command to the fish shell scripts (#303)
+- *(stdout)* Never quote selected entries (#307)
+
+### 🚜 Refactor
+
+- Simplify configuration and build code + leaner crate (#308)
+
+### ⚡ Performance
+
+- *(async)* Make overall UI much smoother and snappier (#311)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#294)
+- Add zip format in a Windows release assets (#298)
+- Flatten workspace into a single crate (#306)
+- Bump to 0.10.0
+
 ## [0.9.4] - 2025-01-20
 
 ### 🐛 Bug Fixes
@@ -227,8 +253,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
-- *(channels)* Use the number of actual bytes read and not the sample buffer size when calculating the proportion of
-  printable ASCII characters (#174)
+- *(channels)* Use the number of actual bytes read and not the sample buffer size when calculating the proportion of printable ASCII characters (#174)
 - *(ux)* Make DeletePrevWord trigger channel update (#175)
 
 ### 📚 Documentation
