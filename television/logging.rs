@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use anyhow::Result;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use crate::config::get_data_dir;

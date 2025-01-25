@@ -77,7 +77,7 @@ pub enum SerializedBinding {
 }
 
 impl<'de> Deserialize<'de> for KeyBindings {
-    fn deserialize<D>(deserializer: D) -> color_eyre::Result<Self, D::Error>
+    fn deserialize<D>(deserializer: D) -> anyhow::Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
@@ -123,7 +123,7 @@ impl<'de> Deserialize<'de> for KeyBindings {
     }
 }
 
-pub fn parse_key_event(raw: &str) -> color_eyre::Result<KeyEvent, String> {
+pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
     let (remaining, modifiers) = extract_modifiers(&raw_lower);
     parse_key_code_with_modifiers(remaining, modifiers)
@@ -157,7 +157,7 @@ fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
 fn parse_key_code_with_modifiers(
     raw: &str,
     mut modifiers: KeyModifiers,
-) -> color_eyre::Result<KeyEvent, String> {
+) -> anyhow::Result<KeyEvent, String> {
     let c = match raw {
         "esc" => KeyCode::Esc,
         "enter" => KeyCode::Enter,
@@ -267,7 +267,7 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     key
 }
 
-pub fn parse_key(raw: &str) -> color_eyre::Result<Key, String> {
+pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
     if raw.chars().filter(|c| *c == '>').count()
         != raw.chars().filter(|c| *c == '<').count()
     {

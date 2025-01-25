@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use rustc_hash::FxHashMap;
 
 use crate::channels::cable::{CableChannelPrototype, CableChannels};
-use color_eyre::Result;
+use anyhow::Result;
 use tracing::{debug, error};
 
 use crate::config::get_config_dir;

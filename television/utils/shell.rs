@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use anyhow::Result;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Shell {
@@ -18,9 +18,6 @@ pub fn completion_script(shell: Shell) -> Result<&'static str> {
         Shell::Bash => Ok(COMPLETION_BASH),
         Shell::Zsh => Ok(COMPLETION_ZSH),
         Shell::Fish => Ok(COMPLETION_FISH),
-        _ => color_eyre::eyre::bail!(
-            "This shell is not yet supported: {:?}",
-            shell
-        ),
+        _ => anyhow::bail!("This shell is not yet supported: {:?}", shell),
     }
 }

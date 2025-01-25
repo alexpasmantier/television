@@ -1,8 +1,8 @@
 use rustc_hash::FxHashMap;
 use std::path::Path;
 
+use anyhow::{anyhow, Result};
 use clap::{Parser, Subcommand, ValueEnum};
-use color_eyre::{eyre::eyre, Result};
 use tracing::debug;
 
 use crate::channels::{
@@ -186,7 +186,7 @@ fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
                 // try to parse the channel as a builtin channel
                 CliTvChannel::try_from(channel)
                     .map(ParsedCliChannel::Builtin)
-                    .map_err(|_| eyre!("Unknown channel: {}", channel))
+                    .map_err(|_| anyhow!("Unknown channel: {}", channel))
             },
             |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
         )
@@ -251,7 +251,7 @@ pub fn guess_channel_from_prompt(
     if prompt.trim().is_empty() {
         return match command_mapping.get("") {
             Some(channel) => parse_channel(channel),
-            None => Err(eyre!("No channel found for prompt: {}", prompt)),
+            None => Err(anyhow!("No channel found for prompt: {}", prompt)),
         };
     }
     let rev_prompt_words = prompt.split_whitespace().rev();
@@ -280,7 +280,7 @@ pub fn guess_channel_from_prompt(
         // reset the stack
         stack.clear();
     }
-    Err(eyre!("No channel found for prompt: {}", prompt))
+    Err(anyhow!("No channel found for prompt: {}", prompt))
 }
 
 #[allow(clippy::unnecessary_wraps)]

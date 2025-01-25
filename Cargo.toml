@@ -30,13 +30,13 @@ path = "television/lib.rs"
 [dependencies]
 television-derive = { path = "television-derive", version = "0.0.23" }
 
+anyhow = "1.0"
 directories = "5.0"
 devicons = "0.6"
-color-eyre = { version = "0.6" }
 lazy_static = "1.5"
 tokio = { version = "1.43", features = ["full"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "serde"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rustc-hash = "2.1"
 syntect = { version = "5.2", default-features = false }
 unicode-width = "0.2"
@@ -69,7 +69,7 @@ toml = "0.8"
 winapi-util = "0.1.9"
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.5"
 
 [features]
 simd = ["dep:simdutf8"]

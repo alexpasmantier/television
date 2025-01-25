@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 use std::sync::Arc;
 
 use crate::screen::mode::Mode;
-use color_eyre::Result;
+use anyhow::Result;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{debug, info};
 

@@ -3,8 +3,8 @@ use std::io::{stdout, BufWriter, IsTerminal, Write};
 use std::path::Path;
 use std::process::exit;
 
+use anyhow::Result;
 use clap::Parser;
-use color_eyre::Result;
 use tracing::{debug, error, info};
 
 use television::app::App;

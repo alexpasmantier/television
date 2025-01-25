@@ -5,8 +5,8 @@ use crate::channels::cable::{CableChannelPrototype, CableChannels};
 use crate::channels::entry::{Entry, PreviewType};
 use crate::channels::{CliTvChannel, OnAir, TelevisionChannel, UnitChannel};
 use crate::matcher::{config::Config, Matcher};
+use anyhow::Result;
 use clap::ValueEnum;
-use color_eyre::Result;
 use devicons::FileIcon;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
@@ -83,7 +83,7 @@ impl RemoteControl {
             }
             None => match UnitChannel::try_from(channel_name) {
                 Ok(channel) => Ok(channel.into()),
-                Err(_) => Err(color_eyre::eyre::eyre!(
+                Err(_) => Err(anyhow::anyhow!(
                     "No channel or cable channel prototype found for {}",
                     channel_name
                 )),

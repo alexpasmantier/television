@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use anyhow::Result;
 use ratatui::layout::Rect;
 use std::{
     io::{stderr, stdout, LineWriter},
