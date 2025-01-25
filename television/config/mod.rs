@@ -15,7 +15,7 @@ use ui::UiConfig;
 
 mod keybindings;
 mod previewers;
-mod shell_integration;
+pub mod shell_integration;
 mod themes;
 mod ui;
 

@@ -23,5 +23,5 @@ function tv_shell_history() {
   fi
 }
 
-bind -x '"\C-t": tv_smart_autocomplete'
-bind -x '"\C-r": tv_shell_history'
+bind -x '"{tv_smart_autocomplete_keybinding}": tv_smart_autocomplete'
+bind -x '"{tv_shell_history_keybinding}": tv_shell_history'

@@ -51,6 +51,6 @@ zle -N tv-smart-autocomplete _tv_smart_autocomplete
 zle -N tv-shell-history _tv_shell_history
 
 
-bindkey '^T' tv-smart-autocomplete
-bindkey '^R' tv-shell-history
+bindkey '{tv_smart_autocomplete_keybinding}' tv-smart-autocomplete
+bindkey '{tv_shell_history_keybinding}' tv-shell-history
 
