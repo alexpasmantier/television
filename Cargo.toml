@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.9.4"
+version = "0.10.0"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -28,7 +28,7 @@ rust-version = "1.81"
 path = "television/lib.rs"
 
 [dependencies]
-television-derive = { path = "television-derive", version = "0.0.23" }
+television-derive = { path = "television-derive", version = "0.0.24" }
 
 anyhow = "1.0"
 directories = "5.0"
