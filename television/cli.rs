@@ -292,16 +292,7 @@ fn delimiter_parser(s: &str) -> Result<String, String> {
     })
 }
 
-const VERSION_MESSAGE: &str = concat!(
-    env!("CARGO_PKG_VERSION"),
-    "\ntarget triple: ",
-    env!("VERGEN_CARGO_TARGET_TRIPLE"),
-    "\nbuild: ",
-    env!("VERGEN_RUSTC_SEMVER"),
-    " (",
-    env!("VERGEN_BUILD_DATE"),
-    ")"
-);
+const VERSION_MESSAGE: &str = env!("CARGO_PKG_VERSION");
 
 pub fn version() -> String {
     let author = clap::crate_authors!();
