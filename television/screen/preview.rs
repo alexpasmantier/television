@@ -11,7 +11,7 @@ use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
 };
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use devicons::FileIcon;
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
 use ratatui::Frame;

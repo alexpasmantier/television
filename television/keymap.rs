@@ -2,7 +2,7 @@ use rustc_hash::FxHashMap;
 use std::ops::Deref;
 
 use crate::screen::mode::Mode;
-use color_eyre::Result;
+use anyhow::Result;
 
 use crate::action::Action;
 use crate::config::{Binding, KeyBindings};
@@ -47,9 +47,10 @@ impl Keymap {
         mode: Mode,
         mappings: Vec<(Key, Action)>,
     ) -> Result<Self> {
-        let mode_keymap = self.0.get_mut(&mode).ok_or_else(|| {
-            color_eyre::eyre::eyre!("Mode {:?} not found", mode)
-        })?;
+        let mode_keymap = self
+            .0
+            .get_mut(&mode)
+            .ok_or_else(|| anyhow::anyhow!("Mode {:?} not found", mode))?;
         for (key, action) in mappings {
             mode_keymap.insert(key, action);
         }

@@ -1,4 +1,4 @@
-use color_eyre::Result;
+use anyhow::Result;
 use std::path::PathBuf;
 
 use crate::screen::colors::{

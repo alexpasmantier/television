@@ -5,7 +5,7 @@ use crate::utils::strings::{
     make_matched_string_printable, next_char_boundary,
     slice_at_char_boundaries,
 };
-use color_eyre::eyre::Result;
+use anyhow::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::style::Stylize;

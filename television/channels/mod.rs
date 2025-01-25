@@ -1,5 +1,5 @@
 use crate::channels::entry::Entry;
-use color_eyre::Result;
+use anyhow::Result;
 use rustc_hash::FxHashSet;
 use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
 
