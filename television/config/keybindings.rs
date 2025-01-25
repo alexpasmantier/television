@@ -28,11 +28,17 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct KeyBindings(pub config::Map<Mode, config::Map<Action, Binding>>);
+#[derive(Clone, Debug)]
+pub struct KeyBindings(pub FxHashMap<Mode, FxHashMap<Action, Binding>>);
+
+impl Default for KeyBindings {
+    fn default() -> Self {
+        todo!()
+    }
+}
 
 impl Deref for KeyBindings {
-    type Target = config::Map<Mode, config::Map<Action, Binding>>;
+    type Target = FxHashMap<Mode, FxHashMap<Action, Binding>>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }

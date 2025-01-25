@@ -1,7 +1,4 @@
-use std::collections::HashMap;
-
 use crate::preview::{previewers, PreviewerConfig};
-use config::ValueKind;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize, Default)]
@@ -20,24 +17,8 @@ impl From<PreviewersConfig> for PreviewerConfig {
     }
 }
 
-impl From<PreviewersConfig> for ValueKind {
-    fn from(val: PreviewersConfig) -> Self {
-        let mut m = HashMap::new();
-        m.insert(String::from("basic"), val.basic.into());
-        m.insert(String::from("file"), val.file.into());
-        m.insert(String::from("env_var"), val.env_var.into());
-        ValueKind::Table(m)
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct BasicPreviewerConfig {}
-
-impl From<BasicPreviewerConfig> for ValueKind {
-    fn from(_val: BasicPreviewerConfig) -> Self {
-        ValueKind::Table(HashMap::new())
-    }
-}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct FilePreviewerConfig {
@@ -54,19 +35,5 @@ impl Default for FilePreviewerConfig {
     }
 }
 
-impl From<FilePreviewerConfig> for ValueKind {
-    fn from(val: FilePreviewerConfig) -> Self {
-        let mut m = HashMap::new();
-        m.insert(String::from("theme"), ValueKind::String(val.theme).into());
-        ValueKind::Table(m)
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Default)]
 pub struct EnvVarPreviewerConfig {}
-
-impl From<EnvVarPreviewerConfig> for ValueKind {
-    fn from(_val: EnvVarPreviewerConfig) -> Self {
-        ValueKind::Table(HashMap::new())
-    }
-}
