@@ -423,9 +423,7 @@ impl Television {
                                 .iter()
                                 .map(|e| e.name.clone())
                                 .collect::<Vec<_>>()
-                                .join(" ")
-                                .to_string()
-                                .to_string(),
+                                .join(" "),
                         )
                         .unwrap();
                     }

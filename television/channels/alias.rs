@@ -170,7 +170,7 @@ async fn load_aliases(injector: Injector<Alias>) {
             None
         })
         .for_each(|alias| {
-            let () = injector.push(alias.clone(), |e, cols| {
+            let () = injector.push(alias, |e, cols| {
                 cols[0] = (e.name.clone() + &e.value).into();
             });
         });

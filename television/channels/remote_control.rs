@@ -78,9 +78,9 @@ impl RemoteControl {
             .as_ref()
             .and_then(|channels| channels.get(channel_name).cloned())
         {
-            Some(prototype) => Ok(TelevisionChannel::Cable(
-                cable::Channel::from(prototype.clone()),
-            )),
+            Some(prototype) => {
+                Ok(TelevisionChannel::Cable(cable::Channel::from(prototype)))
+            }
             None => match UnitChannel::try_from(channel_name) {
                 Ok(channel) => Ok(channel.into()),
                 Err(_) => Err(color_eyre::eyre::eyre!(

@@ -159,7 +159,7 @@ impl OnAir for Channel {
             .map(|item| {
                 let path = item.matched_string;
                 Entry::new(
-                    path.clone(),
+                    path,
                     match &self.preview_kind {
                         PreviewKind::Command(ref preview_command) => {
                             PreviewType::Command(preview_command.clone())
@@ -179,7 +179,7 @@ impl OnAir for Channel {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
             Entry::new(
-                path.clone(),
+                path,
                 match &self.preview_kind {
                     PreviewKind::Command(ref preview_command) => {
                         PreviewType::Command(preview_command.clone())

@@ -1,7 +1,6 @@
 use std::{
     fmt::Display,
     hash::{Hash, Hasher},
-    path::PathBuf,
 };
 
 use devicons::FileIcon;
@@ -143,12 +142,6 @@ impl Entry {
 
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
-        if PathBuf::from(&repr).exists()
-            && repr.contains(|c| char::is_ascii_whitespace(&c))
-        {
-            repr.insert(0, '\'');
-            repr.push('\'');
-        }
         if let Some(line_number) = self.line_number {
             repr.push_str(&format!(":{line_number}"));
         }
@@ -225,5 +218,33 @@ mod tests {
     fn test_non_contiguous_ranges() {
         let ranges = vec![(1, 2), (3, 4), (5, 6)];
         assert_eq!(merge_ranges(&ranges), vec![(1, 2), (3, 4), (5, 6)]);
+    }
+
+    #[test]
+    fn test_leaves_name_intact() {
+        let entry = Entry {
+            name: "test name with spaces".to_string(),
+            value: None,
+            name_match_ranges: None,
+            value_match_ranges: None,
+            icon: None,
+            line_number: None,
+            preview_type: PreviewType::Basic,
+        };
+        assert_eq!(entry.stdout_repr(), "test name with spaces");
+    }
+    #[test]
+    fn test_uses_line_number_information() {
+        let a: usize = 10;
+        let entry = Entry {
+            name: "test_file_name.rs".to_string(),
+            value: None,
+            name_match_ranges: None,
+            value_match_ranges: None,
+            icon: None,
+            line_number: Some(a),
+            preview_type: PreviewType::Basic,
+        };
+        assert_eq!(entry.stdout_repr(), "test_file_name.rs:10");
     }
 }
