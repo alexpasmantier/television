@@ -17,9 +17,9 @@ categories = [
 rust-version = "1.81"
 
 [dependencies]
-proc-macro2 = "1.0.87"
-quote = "1.0.37"
-syn = "2.0.79"
+proc-macro2 = "1.0.93"
+quote = "1.0.38"
+syn = "2.0.96"
 
 
 [lib]
