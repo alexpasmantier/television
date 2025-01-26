@@ -22,7 +22,7 @@ include = [
   ".config/config.toml",
   "cable",
 ]
-rust-version = "1.81"
+rust-version = "1.83"
 
 [lib]
 path = "television/lib.rs"
