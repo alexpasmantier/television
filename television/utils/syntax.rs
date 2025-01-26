@@ -138,7 +138,7 @@ pub fn compute_highlights_incremental(
     lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-    _cached_lines: &Option<HighlightedLines>,
+    _cached_lines: Option<&HighlightedLines>,
 ) -> Result<HighlightedLines> {
     let mut highlighted_lines: Vec<_>;
     let mut highlighter: LineHighlighter;

@@ -14,7 +14,7 @@ categories = [
   "concurrency",
   "development-tools",
 ]
-rust-version = "1.81"
+rust-version = "1.83"
 
 [dependencies]
 proc-macro2 = "1.0.93"

@@ -144,6 +144,7 @@ async fn load_candidates(command: String, injector: Injector<String>) {
             }
         }
     }
+    let _ = child.wait();
 }
 
 impl OnAir for Channel {

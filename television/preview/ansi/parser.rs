@@ -235,6 +235,7 @@ fn span_fast(
     }
 }
 
+#[allow(clippy::type_complexity)]
 fn style(
     style: Style,
 ) -> impl Fn(&[u8]) -> IResult<&[u8], Option<Style>, nom::error::Error<&[u8]>>

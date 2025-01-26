@@ -1,4 +1,4 @@
-#![allow(clippy::module_name_repetitions)]
+#![allow(clippy::module_name_repetitions, clippy::ref_option)]
 use std::{env, path::PathBuf};
 
 use anyhow::Result;

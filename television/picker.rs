@@ -69,11 +69,11 @@ impl Picker {
     ) {
         if self.inverted {
             for _ in 0..step {
-                self._select_prev(total_items, height);
+                self.inner_prev(total_items, height);
             }
         } else {
             for _ in 0..step {
-                self._select_next(total_items, height);
+                self.inner_next(total_items, height);
             }
         }
     }
@@ -86,16 +86,16 @@ impl Picker {
     ) {
         if self.inverted {
             for _ in 0..step {
-                self._select_next(total_items, height);
+                self.inner_next(total_items, height);
             }
         } else {
             for _ in 0..step {
-                self._select_prev(total_items, height);
+                self.inner_prev(total_items, height);
             }
         }
     }
 
-    fn _select_next(&mut self, total_items: usize, height: usize) {
+    fn inner_next(&mut self, total_items: usize, height: usize) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
         self.select(Some(selected.saturating_add(1) % total_items));
@@ -105,7 +105,7 @@ impl Picker {
         }
     }
 
-    fn _select_prev(&mut self, total_items: usize, height: usize) {
+    fn inner_prev(&mut self, total_items: usize, height: usize) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
         self.select(Some((selected + (total_items - 1)) % total_items));
