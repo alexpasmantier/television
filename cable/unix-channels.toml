@@ -25,6 +25,11 @@ name = "docker-images"
 source_command = "docker image list --format=json | jq -r '.[] | .Names[0] // .Id'"
 preview_command = "docker image inspect {0} | jq -C"
 
+[[cable_channel]]
+name = "podman-images"
+source_command = "podman image list --format=json | jq -r '.[] | .Names[0] // .Id'"
+preview_command = "podman image inspect {0} | jq -C"
+
 # S3
 [[cable_channel]]
 name = "s3-buckets"
