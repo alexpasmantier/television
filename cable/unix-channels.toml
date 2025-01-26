@@ -22,7 +22,7 @@ preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
 # Docker
 [[cable_channel]]
 name = "docker-images"
-source_command = "docker image list --format \"{{.ID}}\""
+source_command = "docker image list --format=json | jq -r '.[] | .Names[0] // .Id'"
 preview_command = "docker image inspect {0} | jq -C"
 
 # S3
