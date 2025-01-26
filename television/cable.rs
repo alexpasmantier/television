@@ -18,11 +18,15 @@ struct ChannelPrototypes {
 const CABLE_FILE_NAME_SUFFIX: &str = "channels";
 const CABLE_FILE_FORMAT: &str = "toml";
 
-#[cfg(unix)]
+#[cfg(target_os = "macos")]
+const DEFAULT_CABLE_CHANNELS: &str =
+    include_str!("../cable/macos-channels.toml");
+
+#[cfg(all(unix, not(target_os = "macos")))]
 const DEFAULT_CABLE_CHANNELS: &str =
     include_str!("../cable/unix-channels.toml");
 
-#[cfg(not(unix))]
+#[cfg(windows)]
 const DEFAULT_CABLE_CHANNELS: &str =
     include_str!("../cable/windows-channels.toml");
 
