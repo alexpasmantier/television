@@ -343,8 +343,10 @@ version = "4.5.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96b01801b5fc6a0a232407abc821660c9c6d25a1cafc0d4f85f29fb8d9afc121"
 dependencies = [
+ "anstream",
  "anstyle",
  "clap_lex",
+ "strsim",
 ]
 
 [[package]]
@@ -1870,7 +1872,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "anyhow",
  "bat",
