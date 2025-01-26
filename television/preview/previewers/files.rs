@@ -188,7 +188,7 @@ pub fn try_preview(
                                 .collect::<Vec<_>>(),
                             syntax_set,
                             syntax_theme,
-                            &cached_lines,
+                            cached_lines.as_ref(),
                         ) {
                             let total_lines = content.total_lines();
                             let preview = Arc::new(Preview::new(
@@ -210,7 +210,7 @@ pub fn try_preview(
                                 .collect::<Vec<_>>(),
                             syntax_set,
                             syntax_theme,
-                            &cached_lines,
+                            cached_lines.as_ref(),
                         ) {
                             let total_lines = content.total_lines();
                             let preview = Arc::new(Preview::new(
@@ -250,7 +250,7 @@ fn compute_highlighted_text_preview(
     lines: &[String],
     syntax_set: &SyntaxSet,
     syntax_theme: &Theme,
-    previous_lines: &Option<HighlightedLines>,
+    previous_lines: Option<&HighlightedLines>,
 ) -> Option<PreviewContent> {
     debug!(
         "Computing highlights in the background for {:?}",
