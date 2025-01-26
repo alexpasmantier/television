@@ -118,7 +118,7 @@ fn set_syntax_set<'a>(
         })
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct HighlightedLines {
     pub lines: Vec<Vec<(Style, String)>>,
     //pub state: Option<HighlightingState>,

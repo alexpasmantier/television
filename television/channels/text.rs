@@ -264,8 +264,8 @@ const MAX_FILE_SIZE: u64 = 4 * 1024 * 1024;
 /// This is a soft limit, we might go over it a bit.
 ///
 /// A typical line should take somewhere around 100 bytes in memory (for utf8 english text),
-/// so this should take around 100 x `5_000_000` = 500MB of memory.
-const MAX_LINES_IN_MEM: usize = 5_000_000;
+/// so this should take around 100 x `10_000_000` = 1GB of memory.
+const MAX_LINES_IN_MEM: usize = 10_000_000;
 
 #[allow(clippy::unused_async)]
 async fn crawl_for_candidates(

@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 use std::ops::Deref;
 
-use crate::screen::mode::Mode;
+use crate::television::Mode;
 use anyhow::Result;
 
 use crate::action::Action;

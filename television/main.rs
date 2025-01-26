@@ -57,8 +57,6 @@ async fn main() -> Result<()> {
 
     config.config.tick_rate =
         args.tick_rate.unwrap_or(config.config.tick_rate);
-    config.config.frame_rate =
-        args.frame_rate.unwrap_or(config.config.frame_rate);
     if args.no_preview {
         config.ui.show_preview_panel = false;
     }
