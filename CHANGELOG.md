@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.1] - 2025-01-26
+
+### 🐛 Bug Fixes
+
+- *(cli)* Re-enable clap help feature (#315)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(changelog)* Update changelog (auto) (#312)
+- *(terminal)* Custom shell keybindings (#313)
+
 ## [0.10.0] - 2025-01-25
 
 ### 🚀 Features
