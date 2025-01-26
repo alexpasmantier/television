@@ -4,22 +4,29 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
-## [0.10.1] - 2025-01-26
+## [0.10.2](https://github.com/alexpasmantier/television/releases/tag/0.10.2) - 2025-01-26
 
 ### 🐛 Bug Fixes
 
-- *(cli)* Re-enable clap help feature (#315)
+- [f536156](https://github.com/alexpamantier/television/commit/f536156e7e959fc043dcd972162411bc34b6bc89) *(config)* Add serde default for shell integration configuration by @alexpasmantier in [#319](https://github.com/alexpasmantier/television/pull/319)
+
+### 📚 Documentation
+
+- [4b632f8](https://github.com/alexpamantier/television/commit/4b632f81f8754b59def555099165d0face28e3c1) *(changelog)* Update changelog template by @alexpasmantier in [#317](https://github.com/alexpasmantier/television/pull/317)
 
 ### ⚙️ Miscellaneous Tasks
 
-- *(changelog)* Update changelog (auto) (#312)
-- *(terminal)* Custom shell keybindings (#313)
+- [f9f0277](https://github.com/alexpamantier/television/commit/f9f0277184304f6ddc2d6cb88193273ac8513a5a) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#316](https://github.com/alexpasmantier/television/pull/316)
 
-## [0.10.0] - 2025-01-25
+- [a03da82](https://github.com/alexpamantier/television/commit/a03da82c56bab5e1e6ed644b82ce8a220a3a6847) *(uncategorized)* Bump to 0.10.2 by @alexpasmantier
 
-### 🚀 Features
 
-- *(i18n)* Improve support for non-western scripts (#305)
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.1...0.10.2
+
+
+## [0.10.1](https://github.com/alexpasmantier/television/releases/tag/0.10.1) - 2025-01-26
 
 ### 🐛 Bug Fixes
 
