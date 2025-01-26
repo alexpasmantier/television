@@ -99,9 +99,9 @@ impl Config {
             let path = config_dir.join(CONFIG_FILE_NAME);
             let contents = std::fs::read_to_string(&path)?;
 
-            let cfg: Config = toml::from_str(&contents).unwrap_or_else(|_| {
+            let cfg: Config = toml::from_str(&contents).unwrap_or_else(|e| {
                 warn!(
-                    "Error parsing config file, using default configuration"
+                    "Error parsing config file, using default configuration: {}" , e
                 );
                 default_config.clone()
             });

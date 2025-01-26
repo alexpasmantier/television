@@ -4,6 +4,7 @@ use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize, Default)]
+#[serde(default)]
 pub struct ShellIntegrationConfig {
     pub commands: FxHashMap<String, String>,
     pub keybindings: FxHashMap<String, String>,
