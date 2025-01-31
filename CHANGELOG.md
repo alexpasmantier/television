@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.3](https://github.com/alexpasmantier/television/releases/tag/0.10.3) - 2025-01-31
+
+### 🚜 Refactor
+
+- [5214dd1](https://github.com/alexpamantier/television/commit/5214dd17d0c9b82409dbd81358beb7afc6e28be2) *(app)* Buffering actions and events handling to improve overall UI responsiveness by @alexpasmantier in [#328](https://github.com/alexpasmantier/television/pull/328)
+
+- [be80496](https://github.com/alexpamantier/television/commit/be804965491b65714613ace52419b9fbb821b9b0) *(draw)* Clearing out mut operations from rendering critical path, avoiding mutexes and perf improvements by @alexpasmantier in [#322](https://github.com/alexpasmantier/television/pull/322)
+
+### ⚙️ Miscellaneous Tasks
+
+- [eaab4e9](https://github.com/alexpamantier/television/commit/eaab4e966baf1d5dbe83230e4b145ee64fe1b5be) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#320](https://github.com/alexpasmantier/television/pull/320)
+
+- [6955c5b](https://github.com/alexpamantier/television/commit/6955c5b31357088db4debf202ca99cf303866e7d) *(uncategorized)* Bump to 0.10.3 by @alexpasmantier in [#329](https://github.com/alexpasmantier/television/pull/329)
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.2...0.10.3
+
+
 ## [0.10.2](https://github.com/alexpasmantier/television/releases/tag/0.10.2) - 2025-01-26
 
 ### 🐛 Bug Fixes
