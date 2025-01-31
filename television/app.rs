@@ -78,6 +78,9 @@ impl From<ActionOutcome> for AppOutput {
     }
 }
 
+const EVENT_BUF_SIZE: usize = 4;
+const ACTION_BUF_SIZE: usize = 16;
+
 impl App {
     pub fn new(
         channel: TelevisionChannel,
@@ -151,14 +154,23 @@ impl App {
         // event handling loop
         debug!("Starting event handling loop");
         let action_tx = self.action_tx.clone();
+        let mut event_buf = Vec::with_capacity(EVENT_BUF_SIZE);
+        let mut action_buf = Vec::with_capacity(ACTION_BUF_SIZE);
         loop {
             // handle event and convert to action
-            if let Some(event) = self.event_rx.recv().await {
-                let action = self.convert_event_to_action(event);
-                action_tx.send(action)?;
+            if self
+                .event_rx
+                .recv_many(&mut event_buf, EVENT_BUF_SIZE)
+                .await
+                > 0
+            {
+                for event in event_buf.drain(..) {
+                    let action = self.convert_event_to_action(event);
+                    action_tx.send(action)?;
+                }
             }
 
-            let action_outcome = self.handle_actions()?;
+            let action_outcome = self.handle_action(&mut action_buf).await?;
 
             if self.should_quit {
                 // send a termination signal to the event loop
@@ -229,69 +241,76 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    fn handle_actions(&mut self) -> Result<ActionOutcome> {
-        while let Ok(action) = self.action_rx.try_recv() {
-            if action != Action::Tick {
-                trace!("{action:?}");
-            }
-            match action {
-                Action::Quit => {
-                    self.should_quit = true;
-                    self.render_tx.send(RenderingTask::Quit)?;
+    async fn handle_action(
+        &mut self,
+        buf: &mut Vec<Action>,
+    ) -> Result<ActionOutcome> {
+        if self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0 {
+            buf.sort_unstable();
+            buf.dedup();
+            for action in buf.drain(..) {
+                if action != Action::Tick {
+                    trace!("{action:?}");
                 }
-                Action::Suspend => {
-                    self.should_suspend = true;
-                    self.render_tx.send(RenderingTask::Suspend)?;
-                }
-                Action::Resume => {
-                    self.should_suspend = false;
-                    self.render_tx.send(RenderingTask::Resume)?;
-                }
-                Action::SelectAndExit => {
-                    self.should_quit = true;
-                    self.render_tx.send(RenderingTask::Quit)?;
-                    if let Some(entries) = self
-                        .television
-                        .get_selected_entries(Some(Mode::Channel))
-                    {
-                        return Ok(ActionOutcome::Entries(entries));
+                match action {
+                    Action::Quit => {
+                        self.should_quit = true;
+                        self.render_tx.send(RenderingTask::Quit)?;
                     }
+                    Action::Suspend => {
+                        self.should_suspend = true;
+                        self.render_tx.send(RenderingTask::Suspend)?;
+                    }
+                    Action::Resume => {
+                        self.should_suspend = false;
+                        self.render_tx.send(RenderingTask::Resume)?;
+                    }
+                    Action::SelectAndExit => {
+                        self.should_quit = true;
+                        self.render_tx.send(RenderingTask::Quit)?;
+                        if let Some(entries) = self
+                            .television
+                            .get_selected_entries(Some(Mode::Channel))
+                        {
+                            return Ok(ActionOutcome::Entries(entries));
+                        }
 
-                    return Ok(ActionOutcome::Input(
-                        self.television.current_pattern.clone(),
-                    ));
-                }
-                Action::SelectPassthrough(passthrough) => {
-                    self.should_quit = true;
-                    self.render_tx.send(RenderingTask::Quit)?;
-                    if let Some(entries) = self
-                        .television
-                        .get_selected_entries(Some(Mode::Channel))
-                    {
-                        return Ok(ActionOutcome::Passthrough(
-                            entries,
-                            passthrough,
+                        return Ok(ActionOutcome::Input(
+                            self.television.current_pattern.clone(),
                         ));
                     }
-                    return Ok(ActionOutcome::None);
+                    Action::SelectPassthrough(passthrough) => {
+                        self.should_quit = true;
+                        self.render_tx.send(RenderingTask::Quit)?;
+                        if let Some(entries) = self
+                            .television
+                            .get_selected_entries(Some(Mode::Channel))
+                        {
+                            return Ok(ActionOutcome::Passthrough(
+                                entries,
+                                passthrough,
+                            ));
+                        }
+                        return Ok(ActionOutcome::None);
+                    }
+                    Action::ClearScreen => {
+                        self.render_tx.send(RenderingTask::ClearScreen)?;
+                    }
+                    Action::Resize(w, h) => {
+                        self.render_tx.send(RenderingTask::Resize(w, h))?;
+                    }
+                    Action::Render => {
+                        self.render_tx.send(RenderingTask::Render(
+                            self.television.dump_context(),
+                        ))?;
+                    }
+                    _ => {}
                 }
-                Action::ClearScreen => {
-                    self.render_tx.send(RenderingTask::ClearScreen)?;
-                }
-                Action::Resize(w, h) => {
-                    self.render_tx.send(RenderingTask::Resize(w, h))?;
-                }
-                Action::Render => {
-                    self.render_tx.send(RenderingTask::Render(
-                        self.television.dump_context(),
-                    ))?;
-                }
-                _ => {}
+                // forward action to the television handler
+                if let Some(action) = self.television.update(&action)? {
+                    self.action_tx.send(action)?;
+                };
             }
-            // forward action to the television handler
-            if let Some(action) = self.television.update(&action)? {
-                self.action_tx.send(action)?;
-            };
         }
         Ok(ActionOutcome::None)
     }

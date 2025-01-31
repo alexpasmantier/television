@@ -569,17 +569,17 @@ impl Television {
             self.action_tx.send(Action::Render)?;
         }
 
-        let selected_entry = self
-            .get_selected_entry(Some(Mode::Channel))
-            .unwrap_or(ENTRY_PLACEHOLDER);
-
-        self.update_preview_state(&selected_entry)?;
+        self.handle_action(action)?;
 
         self.update_results_picker_state();
 
         self.update_rc_picker_state();
 
-        self.handle_action(action)?;
+        let selected_entry = self
+            .get_selected_entry(Some(Mode::Channel))
+            .unwrap_or(ENTRY_PLACEHOLDER);
+
+        self.update_preview_state(&selected_entry)?;
 
         self.ticks += 1;
 

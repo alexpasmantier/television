@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 /// The different actions that can be performed by the application.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
+#[derive(
+    Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
+)]
 pub enum Action {
     // input actions
     /// Add a character to the input buffer.
