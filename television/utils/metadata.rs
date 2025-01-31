@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, PartialEq, Hash, Eq)]
 pub struct AppMetadata {
     pub version: String,
     pub current_directory: String,

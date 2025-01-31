@@ -1,22 +1,28 @@
-use ratatui::{
-    buffer::Buffer, layout::Rect, style::Style, widgets::StatefulWidget,
-};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
 const FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 /// A spinner widget.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash)]
 pub struct Spinner {
     frames: &'static [&'static str],
+    state: SpinnerState,
 }
 
 impl Spinner {
     pub fn new(frames: &'static [&str]) -> Spinner {
-        Spinner { frames }
+        Spinner {
+            frames,
+            state: SpinnerState::new(frames.len()),
+        }
     }
 
     pub fn frame(&self, index: usize) -> &str {
         self.frames[index]
+    }
+
+    pub fn tick(&mut self) {
+        self.state.tick();
     }
 }
 
@@ -26,7 +32,7 @@ impl Default for Spinner {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct SpinnerState {
     pub current_frame: usize,
     total_frames: usize,
@@ -51,31 +57,24 @@ impl From<&Spinner> for SpinnerState {
     }
 }
 
-impl StatefulWidget for Spinner {
-    type State = SpinnerState;
-
-    /// Renders the spinner in the given area.
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl Widget for Spinner {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_string(
             area.left(),
             area.top(),
-            self.frame(state.current_frame),
+            self.frame(self.state.current_frame),
             Style::default(),
         );
-        state.tick();
     }
 }
-impl StatefulWidget for &Spinner {
-    type State = SpinnerState;
 
-    /// Renders the spinner in the given area.
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl Widget for &Spinner {
+    fn render(self, area: Rect, buf: &mut Buffer) {
         buf.set_string(
             area.left(),
             area.top(),
-            self.frame(state.current_frame),
+            self.frame(self.state.current_frame),
             Style::default(),
         );
-        state.tick();
     }
 }

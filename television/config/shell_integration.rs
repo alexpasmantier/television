@@ -1,14 +1,24 @@
+use std::hash::Hash;
+
 use crate::config::parse_key;
 use crate::event::Key;
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq)]
 #[serde(default)]
 pub struct ShellIntegrationConfig {
     pub commands: FxHashMap<String, String>,
     pub keybindings: FxHashMap<String, String>,
 }
+
+impl Hash for ShellIntegrationConfig {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // we're not actually using this for hashing, so this really only is a placeholder
+        state.write_u8(0);
+    }
+}
+
 const SMART_AUTOCOMPLETE_CONFIGURATION_KEY: &str = "smart_autocomplete";
 const COMMAND_HISTORY_CONFIGURATION_KEY: &str = "command_history";
 const DEFAULT_SHELL_AUTOCOMPLETE_KEY: char = 'T';
