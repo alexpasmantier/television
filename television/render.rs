@@ -1,20 +1,19 @@
 use anyhow::Result;
+use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
+use crossterm::{execute, queue};
 use ratatui::layout::Rect;
-use std::{
-    io::{stderr, stdout, LineWriter},
-    sync::Arc,
-};
+use std::io::{stderr, stdout, LineWriter};
 use tracing::{debug, warn};
 
-use tokio::sync::{mpsc, Mutex};
+use tokio::sync::mpsc;
 
-use crate::television::Television;
-use crate::{action::Action, tui::Tui};
+use crate::draw::Ctx;
+use crate::{action::Action, draw::draw, tui::Tui};
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub enum RenderingTask {
     ClearScreen,
-    Render,
+    Render(Ctx),
     Resize(u16, u16),
     Resume,
     Suspend,
@@ -39,8 +38,6 @@ impl IoStream {
 pub async fn render(
     mut render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     action_tx: mpsc::UnboundedSender<Action>,
-    television: Arc<Mutex<Television>>,
-    frame_rate: f64,
     is_output_tty: bool,
 ) -> Result<()> {
     let stream = if is_output_tty {
@@ -50,21 +47,15 @@ pub async fn render(
         debug!("Rendering to stderr");
         IoStream::BufferedStderr.to_stream()
     };
-    let mut tui = Tui::new(stream)?.frame_rate(frame_rate);
+    let mut tui = Tui::new(stream)?;
 
     debug!("Entering tui");
     tui.enter()?;
 
-    debug!("Registering action handler");
-    television
-        .lock()
-        .await
-        .register_action_handler(action_tx.clone())?;
-
-    let mut buffer = Vec::with_capacity(128);
+    let mut buffer = Vec::with_capacity(256);
 
     // Rendering loop
-    'rendering: while render_rx.recv_many(&mut buffer, 128).await > 0 {
+    'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
         // deduplicate events
         buffer.sort_unstable();
         buffer.dedup();
@@ -73,17 +64,17 @@ pub async fn render(
                 RenderingTask::ClearScreen => {
                     tui.terminal.clear()?;
                 }
-                RenderingTask::Render => {
+                RenderingTask::Render(context) => {
                     if let Ok(size) = tui.size() {
                         // Ratatui uses `u16`s to encode terminal dimensions and its
                         // content for each terminal cell is stored linearly in a
                         // buffer with a `u16` index which means we can't support
                         // terminal areas larger than `u16::MAX`.
                         if size.width.checked_mul(size.height).is_some() {
-                            let mut television = television.lock().await;
+                            queue!(stderr(), BeginSynchronizedUpdate).ok();
                             tui.terminal.draw(|frame| {
                                 if let Err(err) =
-                                    television.draw(frame, frame.area())
+                                    draw(&context, frame, frame.area())
                                 {
                                     warn!("Failed to draw: {:?}", err);
                                     let _ = action_tx.send(Action::Error(
@@ -91,6 +82,7 @@ pub async fn render(
                                     ));
                                 }
                             })?;
+                            execute!(stderr(), EndSynchronizedUpdate).ok();
                         } else {
                             warn!("Terminal area too large");
                         }

@@ -1,6 +1,6 @@
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::{HashSet, VecDeque};
-use tracing::debug;
+use tracing::{debug, trace};
 
 /// A ring buffer that also keeps track of the keys it contains to avoid duplicates.
 ///
@@ -81,7 +81,7 @@ where
     pub fn push(&mut self, item: T) -> Option<T> {
         // If the key is already in the buffer, do nothing
         if self.contains(&item) {
-            debug!("Key already in ring buffer: {:?}", item);
+            trace!("Key already in ring buffer: {:?}", item);
             return None;
         }
         let mut popped_key = None;

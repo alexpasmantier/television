@@ -13,7 +13,7 @@ use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
 use ratatui::Frame;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use std::str::FromStr;
 
 const POINTER_SYMBOL: &str = "> ";
@@ -26,7 +26,6 @@ pub fn build_results_list<'a, 'b>(
     selected_entries: Option<&FxHashSet<Entry>>,
     list_direction: ListDirection,
     use_icons: bool,
-    icon_color_cache: &mut FxHashMap<String, Color>,
     colorscheme: &ResultsColorscheme,
 ) -> List<'a>
 where
@@ -50,20 +49,10 @@ where
         // optional icon
         if let Some(icon) = entry.icon.as_ref() {
             if use_icons {
-                if let Some(icon_color) = icon_color_cache.get(icon.color) {
-                    spans.push(Span::styled(
-                        icon.to_string(),
-                        Style::default().fg(*icon_color),
-                    ));
-                } else {
-                    let icon_color = Color::from_str(icon.color).unwrap();
-                    icon_color_cache
-                        .insert(icon.color.to_string(), icon_color);
-                    spans.push(Span::styled(
-                        icon.to_string(),
-                        Style::default().fg(icon_color),
-                    ));
-                }
+                spans.push(Span::styled(
+                    icon.to_string(),
+                    Style::default().fg(Color::from_str(icon.color).unwrap()),
+                ));
 
                 spans.push(Span::raw(" "));
             }
@@ -160,7 +149,6 @@ pub fn draw_results_list(
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
     use_nerd_font_icons: bool,
-    icon_color_cache: &mut FxHashMap<String, Color>,
     colorscheme: &Colorscheme,
     help_keybinding: &str,
     preview_keybinding: &str,
@@ -191,7 +179,6 @@ pub fn draw_results_list(
             InputPosition::Top => ListDirection::TopToBottom,
         },
         use_nerd_font_icons,
-        icon_color_cache,
         &colorscheme.results,
     );
 

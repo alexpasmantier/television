@@ -1,7 +1,8 @@
 use rustc_hash::FxHashMap;
 use std::fmt::Display;
 
-use crate::screen::{colors::Colorscheme, mode::Mode};
+use crate::screen::colors::Colorscheme;
+use crate::television::Mode;
 use ratatui::{
     layout::Constraint,
     style::{Color, Style},

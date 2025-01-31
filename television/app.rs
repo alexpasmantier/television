@@ -1,16 +1,14 @@
 use rustc_hash::FxHashSet;
-use std::sync::Arc;
 
-use crate::screen::mode::Mode;
 use anyhow::Result;
-use tokio::sync::{mpsc, Mutex};
-use tracing::{debug, info};
+use tokio::sync::mpsc;
+use tracing::{debug, info, trace};
 
 use crate::channels::entry::Entry;
 use crate::channels::TelevisionChannel;
 use crate::config::{parse_key, Config};
 use crate::keymap::Keymap;
-use crate::television::Television;
+use crate::television::{Mode, Television};
 use crate::{
     action::Action,
     event::{Event, EventLoop, Key},
@@ -23,9 +21,8 @@ pub struct App {
     // maybe move these two into config instead of passing them
     // via the cli?
     tick_rate: f64,
-    frame_rate: f64,
     /// The television instance that handles channels and entries.
-    television: Arc<Mutex<Television>>,
+    television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
     /// A flag that indicates whether the application should suspend during the next frame.
@@ -92,7 +89,6 @@ impl App {
         let (render_tx, _) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let frame_rate = config.config.frame_rate;
         let tick_rate = config.config.tick_rate;
         let keymap = Keymap::from(&config.keybindings).with_mode_mappings(
             Mode::Channel,
@@ -106,12 +102,11 @@ impl App {
         )?;
         debug!("{:?}", keymap);
         let television =
-            Arc::new(Mutex::new(Television::new(channel, config, input)));
+            Television::new(action_tx.clone(), channel, config, input);
 
         Ok(Self {
             keymap,
             tick_rate,
-            frame_rate,
             television,
             should_quit: false,
             should_suspend: false,
@@ -148,19 +143,10 @@ impl App {
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         self.render_tx = render_tx.clone();
         let action_tx_r = self.action_tx.clone();
-        let television_r = self.television.clone();
-        let frame_rate = self.frame_rate;
         let rendering_task = tokio::spawn(async move {
-            render(
-                render_rx,
-                action_tx_r,
-                television_r,
-                frame_rate,
-                is_output_tty,
-            )
-            .await
+            render(render_rx, action_tx_r, is_output_tty).await
         });
-        render_tx.send(RenderingTask::Render)?;
+        self.action_tx.send(Action::Render)?;
 
         // event handling loop
         debug!("Starting event handling loop");
@@ -168,14 +154,11 @@ impl App {
         loop {
             // handle event and convert to action
             if let Some(event) = self.event_rx.recv().await {
-                let action = self.convert_event_to_action(event).await;
+                let action = self.convert_event_to_action(event);
                 action_tx.send(action)?;
-                // it's fine to send a rendering task here, because the rendering loop
-                // batches and deduplicates rendering tasks
-                render_tx.send(RenderingTask::Render)?;
             }
 
-            let action_outcome = self.handle_actions().await?;
+            let action_outcome = self.handle_actions()?;
 
             if self.should_quit {
                 // send a termination signal to the event loop
@@ -199,7 +182,7 @@ impl App {
     ///
     /// # Returns
     /// The action that corresponds to the given event.
-    async fn convert_event_to_action(&self, event: Event<Key>) -> Action {
+    fn convert_event_to_action(&self, event: Event<Key>) -> Action {
         match event {
             Event::Input(keycode) => {
                 info!("{:?}", keycode);
@@ -219,7 +202,7 @@ impl App {
                 }
                 // get action based on keybindings
                 self.keymap
-                    .get(&self.television.lock().await.mode)
+                    .get(&self.television.mode)
                     .and_then(|keymap| keymap.get(&keycode).cloned())
                     .unwrap_or(if let Key::Char(c) = keycode {
                         Action::AddInputChar(c)
@@ -246,10 +229,10 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    async fn handle_actions(&mut self) -> Result<ActionOutcome> {
+    fn handle_actions(&mut self) -> Result<ActionOutcome> {
         while let Ok(action) = self.action_rx.try_recv() {
-            if action != Action::Tick && action != Action::Render {
-                debug!("{action:?}");
+            if action != Action::Tick {
+                trace!("{action:?}");
             }
             match action {
                 Action::Quit => {
@@ -269,15 +252,13 @@ impl App {
                     self.render_tx.send(RenderingTask::Quit)?;
                     if let Some(entries) = self
                         .television
-                        .lock()
-                        .await
                         .get_selected_entries(Some(Mode::Channel))
                     {
                         return Ok(ActionOutcome::Entries(entries));
                     }
 
                     return Ok(ActionOutcome::Input(
-                        self.television.lock().await.current_pattern.clone(),
+                        self.television.current_pattern.clone(),
                     ));
                 }
                 Action::SelectPassthrough(passthrough) => {
@@ -285,8 +266,6 @@ impl App {
                     self.render_tx.send(RenderingTask::Quit)?;
                     if let Some(entries) = self
                         .television
-                        .lock()
-                        .await
                         .get_selected_entries(Some(Mode::Channel))
                     {
                         return Ok(ActionOutcome::Passthrough(
@@ -303,14 +282,14 @@ impl App {
                     self.render_tx.send(RenderingTask::Resize(w, h))?;
                 }
                 Action::Render => {
-                    self.render_tx.send(RenderingTask::Render)?;
+                    self.render_tx.send(RenderingTask::Render(
+                        self.television.dump_context(),
+                    ))?;
                 }
                 _ => {}
             }
             // forward action to the television handler
-            if let Some(action) =
-                self.television.lock().await.update(action.clone()).await?
-            {
+            if let Some(action) = self.television.update(&action)? {
                 self.action_tx.send(action)?;
             };
         }

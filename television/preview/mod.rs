@@ -19,7 +19,7 @@ pub use previewers::env::EnvVarPreviewerConfig;
 pub use previewers::files::FilePreviewer;
 pub use previewers::files::FilePreviewerConfig;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub enum PreviewContent {
     Empty,
     FileTooLarge,
@@ -60,7 +60,7 @@ pub const TIMEOUT_MSG: &str = "Preview timed out";
 /// # Fields
 /// - `title`: The title of the preview.
 /// - `content`: The content of the preview.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Hash)]
 pub struct Preview {
     pub title: String,
     pub content: PreviewContent,
@@ -99,19 +99,58 @@ impl Preview {
             total_lines,
         }
     }
+}
 
-    pub fn total_lines(&self) -> u16 {
-        match &self.content {
-            PreviewContent::SyntectHighlightedText(hl_lines) => {
-                hl_lines.lines.len().try_into().unwrap_or(u16::MAX)
-            }
-            PreviewContent::PlainText(lines) => {
-                lines.len().try_into().unwrap_or(u16::MAX)
-            }
-            PreviewContent::AnsiText(text) => {
-                text.lines().count().try_into().unwrap_or(u16::MAX)
-            }
-            _ => 0,
+#[derive(Debug, Default, Clone, PartialEq, Hash)]
+pub struct PreviewState {
+    pub preview: Arc<Preview>,
+    pub scroll: u16,
+    pub target_line: Option<u16>,
+}
+
+const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
+
+impl PreviewState {
+    pub fn new(
+        preview: Arc<Preview>,
+        scroll: u16,
+        target_line: Option<u16>,
+    ) -> Self {
+        PreviewState {
+            preview,
+            scroll,
+            target_line,
+        }
+    }
+
+    pub fn scroll_down(&mut self, offset: u16) {
+        self.scroll = self.scroll.saturating_add(offset).min(
+            self.preview
+                .total_lines
+                .saturating_sub(PREVIEW_MIN_SCROLL_LINES),
+        );
+    }
+
+    pub fn scroll_up(&mut self, offset: u16) {
+        self.scroll = self.scroll.saturating_sub(offset);
+    }
+
+    pub fn reset(&mut self) {
+        self.preview = Arc::new(Preview::default());
+        self.scroll = 0;
+        self.target_line = None;
+    }
+
+    pub fn update(
+        &mut self,
+        preview: Arc<Preview>,
+        scroll: u16,
+        target_line: Option<u16>,
+    ) {
+        if self.preview.title != preview.title {
+            self.preview = preview;
+            self.scroll = scroll;
+            self.target_line = target_line;
         }
     }
 }
@@ -150,7 +189,7 @@ impl PreviewerConfig {
     }
 }
 
-const REQUEST_STACK_SIZE: usize = 20;
+const REQUEST_STACK_SIZE: usize = 10;
 
 impl Previewer {
     pub fn new(config: Option<PreviewerConfig>) -> Self {
@@ -174,15 +213,10 @@ impl Previewer {
         }
     }
 
-    fn cached(&self, entry: &Entry) -> Option<Arc<Preview>> {
-        match &entry.preview_type {
-            PreviewType::Files => self.file.cached(entry),
-            PreviewType::Command(_) => self.command.cached(entry),
-            PreviewType::Basic | PreviewType::EnvVar => None,
-            PreviewType::None => Some(Arc::new(Preview::default())),
-        }
-    }
-
+    // we could use a target scroll here to make the previewer
+    // faster, but since it's already running in the background and quite
+    // fast for most standard file sizes, plus we're caching the previews,
+    // I'm not sure the extra complexity is worth it.
     pub fn preview(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
         // if we haven't acknowledged the request yet, acknowledge it
         self.requests.push(entry.clone());
@@ -190,9 +224,10 @@ impl Previewer {
         if let Some(preview) = self.dispatch_request(entry) {
             return Some(preview);
         }
+
         // lookup request stack and return the most recent preview available
         for request in self.requests.back_to_front() {
-            if let Some(preview) = self.cached(&request) {
+            if let Some(preview) = self.dispatch_request(&request) {
                 return Some(preview);
             }
         }

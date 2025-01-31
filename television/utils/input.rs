@@ -30,7 +30,7 @@ pub struct StateChanged {
 pub type InputResponse = Option<StateChanged>;
 
 /// An input buffer with cursor support.
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, Hash)]
 pub struct Input {
     value: String,
     cursor: usize,

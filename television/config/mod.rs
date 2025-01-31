@@ -1,5 +1,5 @@
 #![allow(clippy::module_name_repetitions, clippy::ref_option)]
-use std::{env, path::PathBuf};
+use std::{env, hash::Hash, path::PathBuf};
 
 use anyhow::Result;
 use directories::ProjectDirs;
@@ -11,7 +11,7 @@ use serde::Deserialize;
 use shell_integration::ShellIntegrationConfig;
 pub use themes::Theme;
 use tracing::{debug, warn};
-use ui::UiConfig;
+pub use ui::UiConfig;
 
 mod keybindings;
 mod previewers;
@@ -22,7 +22,7 @@ mod ui;
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
 #[allow(dead_code, clippy::module_name_repetitions)]
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq)]
 #[serde(deny_unknown_fields)]
 pub struct AppConfig {
     #[serde(default = "get_data_dir")]
@@ -35,8 +35,17 @@ pub struct AppConfig {
     pub tick_rate: f64,
 }
 
+impl Hash for AppConfig {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.data_dir.hash(state);
+        self.config_dir.hash(state);
+        self.frame_rate.to_bits().hash(state);
+        self.tick_rate.to_bits().hash(state);
+    }
+}
+
 #[allow(dead_code)]
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// General application configuration
@@ -77,7 +86,6 @@ lazy_static! {
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 impl Config {
-    // FIXME: default management is a bit of a mess right now
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new() -> Result<Self> {
         // Load the default_config values as base defaults

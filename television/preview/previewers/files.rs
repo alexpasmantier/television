@@ -12,7 +12,7 @@ use std::sync::{
 };
 
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
@@ -80,7 +80,7 @@ impl FilePreviewer {
 
     pub fn preview(&mut self, entry: &entry::Entry) -> Option<Arc<Preview>> {
         if let Some(preview) = self.cached(entry) {
-            debug!("Preview cache hit for {:?}", entry.name);
+            trace!("Preview cache hit for {:?}", entry.name);
             if preview.partial_offset.is_some() {
                 // preview is partial, spawn a task to compute the next chunk
                 // and return the partial preview
@@ -90,7 +90,7 @@ impl FilePreviewer {
             Some(preview)
         } else {
             // preview is not in cache, spawn a task to compute the preview
-            debug!("Preview cache miss for {:?}", entry.name);
+            trace!("Preview cache miss for {:?}", entry.name);
             self.handle_preview_request(entry, None);
             None
         }
@@ -102,7 +102,7 @@ impl FilePreviewer {
         partial_preview: Option<Arc<Preview>>,
     ) {
         if self.in_flight_previews.lock().contains(&entry.name) {
-            debug!("Preview already in flight for {:?}", entry.name);
+            trace!("Preview already in flight for {:?}", entry.name);
         }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
@@ -139,7 +139,7 @@ impl FilePreviewer {
 
 /// The size of the buffer used to read the file in bytes.
 /// This ends up being the max size of partial previews.
-const PARTIAL_BUFREAD_SIZE: usize = 64 * 1024;
+const PARTIAL_BUFREAD_SIZE: usize = 5 * 1024 * 1024;
 
 pub fn try_preview(
     entry: &entry::Entry,

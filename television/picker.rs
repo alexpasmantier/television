@@ -1,12 +1,17 @@
-use crate::utils::{input::Input, strings::EMPTY_STRING};
+use crate::{
+    channels::entry::Entry,
+    utils::{input::Input, strings::EMPTY_STRING},
+};
 use ratatui::widgets::ListState;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Picker {
     pub(crate) state: ListState,
     pub(crate) relative_state: ListState,
     inverted: bool,
     pub(crate) input: Input,
+    pub entries: Vec<Entry>,
+    pub total_items: u32,
 }
 
 impl Default for Picker {
@@ -22,6 +27,8 @@ impl Picker {
             relative_state: ListState::default(),
             inverted: false,
             input: Input::new(input.unwrap_or(EMPTY_STRING.to_string())),
+            entries: Vec::new(),
+            total_items: 0,
         }
     }
 
@@ -99,7 +106,7 @@ impl Picker {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
         self.select(Some(selected.saturating_add(1) % total_items));
-        self.relative_select(Some((relative_selected + 1).min(height)));
+        self.relative_select(Some((relative_selected + 1).min(height - 1)));
         if self.selected().unwrap() == 0 {
             self.relative_select(Some(0));
         }
@@ -111,7 +118,7 @@ impl Picker {
         self.select(Some((selected + (total_items - 1)) % total_items));
         self.relative_select(Some(relative_selected.saturating_sub(1)));
         if self.selected().unwrap() == total_items - 1 {
-            self.relative_select(Some(height));
+            self.relative_select(Some((height - 1).min(total_items - 1)));
         }
     }
 }
@@ -129,7 +136,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(0));
         picker.relative_select(Some(0));
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 3);
         assert_eq!(picker.selected(), Some(1), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }
@@ -143,7 +150,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(1));
         picker.relative_select(Some(1));
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 3);
         assert_eq!(picker.selected(), Some(2), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -157,7 +164,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 3);
         assert_eq!(picker.selected(), Some(3), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -171,7 +178,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(3));
         picker.relative_select(Some(2));
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 3);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -185,7 +192,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_next(1, 3, 2);
+        picker.select_next(1, 3, 4);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -199,7 +206,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(1));
         picker.relative_select(Some(1));
-        picker.select_prev(1, 4, 2);
+        picker.select_prev(1, 4, 3);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -213,7 +220,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(0));
         picker.relative_select(Some(0));
-        picker.select_prev(1, 4, 2);
+        picker.select_prev(1, 4, 3);
         assert_eq!(picker.selected(), Some(3), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -227,7 +234,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(3));
         picker.relative_select(Some(2));
-        picker.select_prev(1, 4, 2);
+        picker.select_prev(1, 4, 3);
         assert_eq!(picker.selected(), Some(2), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }
@@ -241,7 +248,7 @@ mod tests {
         let mut picker = Picker::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_prev(1, 4, 2);
+        picker.select_prev(1, 4, 3);
         assert_eq!(picker.selected(), Some(1), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }

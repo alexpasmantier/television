@@ -1,10 +1,9 @@
-use rustc_hash::FxHashMap;
-
 use crate::channels::entry::Entry;
 use crate::screen::colors::{Colorscheme, GeneralColorscheme};
 use crate::screen::logo::build_remote_logo_paragraph;
-use crate::screen::mode::{mode_color, Mode};
+use crate::screen::mode::mode_color;
 use crate::screen::results::build_results_list;
+use crate::television::Mode;
 use crate::utils::input::Input;
 
 use anyhow::Result;
@@ -25,7 +24,6 @@ pub fn draw_remote_control(
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     input_state: &mut Input,
-    icon_color_cache: &mut FxHashMap<String, Color>,
     mode: &Mode,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
@@ -46,7 +44,6 @@ pub fn draw_remote_control(
         entries,
         use_nerd_font_icons,
         picker_state,
-        icon_color_cache,
         colorscheme,
     );
     draw_rc_input(f, layout[1], input_state, colorscheme)?;
@@ -65,7 +62,6 @@ fn draw_rc_channels(
     entries: &[Entry],
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
-    icon_color_cache: &mut FxHashMap<String, Color>,
     colorscheme: &Colorscheme,
 ) {
     let rc_block = Block::default()
@@ -84,7 +80,6 @@ fn draw_rc_channels(
         None,
         ListDirection::TopToBottom,
         use_nerd_font_icons,
-        icon_color_cache,
         &colorscheme.results,
     );
 

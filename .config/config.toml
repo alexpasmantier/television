@@ -203,3 +203,4 @@ toggle_preview = "ctrl-o"
 # controls which keybinding should trigger tv
 # for command history
 "command_history" = "ctrl-r"
+
