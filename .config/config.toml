@@ -193,6 +193,9 @@ toggle_preview = "ctrl-o"
 # docker-images channel
 "docker run" = "docker-images"
 
+# podman-images channel
+"podman run" = "podman-images"
+
 # gitrepos channel
 "nvim" = "git-repos"
 
