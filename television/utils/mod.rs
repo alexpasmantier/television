@@ -9,3 +9,4 @@ pub mod stdin;
 pub mod strings;
 pub mod syntax;
 pub mod threads;
+pub mod image;

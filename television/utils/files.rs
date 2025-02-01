@@ -104,6 +104,7 @@ pub fn get_file_size(path: &Path) -> Option<u64> {
 #[derive(Debug)]
 pub enum FileType {
     Text,
+    Image,
     Other,
     Unknown,
 }
@@ -117,6 +118,9 @@ where
         let p = path.as_ref();
         if is_known_text_extension(p) {
             return FileType::Text;
+        }
+        if is_accepted_image_extension(p){
+            return FileType::Image;
         }
         if let Ok(mut f) = File::open(p) {
             let mut buffer = [0u8; 256];
@@ -475,6 +479,41 @@ lazy_static! {
         "yml",
         "zsh",
         "zshrc",
+    ]
+    .iter()
+    .copied()
+    .collect();
+}
+
+pub fn is_accepted_image_extension<P>(path: P) -> bool
+where
+    P: AsRef<Path>,
+{
+    path.as_ref()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| KNOWN_IMAGE_FILE_EXTENSIONS.contains(ext))
+}
+
+lazy_static! {
+    static ref KNOWN_IMAGE_FILE_EXTENSIONS: FxHashSet<&'static str> = [
+        //"avif",
+        //"bmp",
+        //"dds",
+        //"farbfeld",
+        "gif",
+        //"hdr",
+        //"ico",
+        "jpeg",
+        "jpg",
+        //"exr",
+        "png",
+        //"pnm",
+        //"qoi",
+        //"tga",
+        //"tiff",
+        "webp",
+
     ]
     .iter()
     .copied()

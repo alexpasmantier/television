@@ -587,10 +587,11 @@ impl Television {
         if self.config.ui.show_preview_panel
             && !matches!(selected_entry.preview_type, PreviewType::None)
         {
-            // preview content
-            let maybe_preview = self.previewer.preview(&selected_entry);
 
-            let _ = self.previewer.preview(&selected_entry);
+            // preview content
+            let maybe_preview = self.previewer.preview(&selected_entry, layout.preview_window);
+
+            let _ = self.previewer.preview(&selected_entry, layout.preview_window);
 
             if let Some(preview) = &maybe_preview {
                 self.current_preview_total_lines = preview.total_lines;
