@@ -7,6 +7,7 @@ use crate::screen::{
     cache::RenderedPreviewCache,
     colors::{Colorscheme, PreviewColorscheme},
 };
+use crate::utils::image::{Image, ImageColor, PIXEL};
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
@@ -21,7 +22,6 @@ use ratatui::{
 };
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
-use crate::utils::image::{Image, ImageColor, PIXEL};
 
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
@@ -70,7 +70,7 @@ pub fn build_preview_paragraph<'a>(
             )
         }
         PreviewContent::Image(image) => {
-            build_image_paragraph(image, preview_block,colorscheme.preview)
+            build_image_paragraph(image, preview_block, colorscheme.preview)
         }
 
         // meta
@@ -226,16 +226,25 @@ fn build_image_paragraph(
     preview_block: Block<'_>,
     colorscheme: PreviewColorscheme,
 ) -> Paragraph<'_> {
-    let lines = image.pixel_grid.iter().map(|double_pixel_line|
-        Line::from_iter(
-            double_pixel_line.iter().map(|(color_up, color_down)|
-                convert_pixel_to_span(*color_up, *color_down, Some(colorscheme.highlight_bg)))
-        )
-    ).collect::<Vec<Line>>();
+    let lines = image
+        .pixel_grid
+        .into_iter()
+        .map(|double_pixel_line| {
+            Line::from_iter(double_pixel_line.iter().map(
+                |(color_up, color_down)| {
+                    convert_pixel_to_span(
+                        *color_up,
+                        *color_down,
+                        Some(colorscheme.highlight_bg),
+                    )
+                },
+            ))
+        })
+        .collect::<Vec<Line>>();
     let text = Text::from(lines);
     Paragraph::new(text)
         .block(preview_block)
-        .wrap(Wrap { trim: true })
+        .wrap(Wrap { trim: false })
 }
 
 pub fn build_meta_preview_paragraph<'a>(
@@ -538,8 +547,8 @@ pub fn convert_pixel_to_span<'a>(
     background: Option<Color>,
 ) -> Span<'a> {
     let bg_color = match background {
-        Some(Color::Rgb(r, g, b)) => Some((r,g,b)),
-        _ => {None}
+        Some(Color::Rgb(r, g, b)) => Some((r, g, b)),
+        _ => None,
     };
     let (color_up, color_down) = if let Some(bg_color) = bg_color {
         let color_up_with_alpha = Color::Rgb(
@@ -548,25 +557,26 @@ pub fn convert_pixel_to_span<'a>(
             (color_up.b * color_up.a + bg_color.2 * 255 - color_up.a) / 255,
         );
         let color_down_with_alpha = Color::Rgb(
-            (color_down.r * color_down.a + bg_color.0 * 255 - color_down.a) / 255,
-            (color_down.b * color_down.a + bg_color.1 * 255 - color_down.a) / 255,
-            (color_down.b * color_down.a + bg_color.2 * 255 - color_down.a) / 255,
+            (color_down.r * color_down.a + bg_color.0 * 255 - color_down.a)
+                / 255,
+            (color_down.b * color_down.a + bg_color.1 * 255 - color_down.a)
+                / 255,
+            (color_down.b * color_down.a + bg_color.2 * 255 - color_down.a)
+                / 255,
         );
 
-        (color_up_with_alpha,color_down_with_alpha)
-    }else{
-        (convert_image_color_to_ratatui_color(color_up),
-         convert_image_color_to_ratatui_color(color_down))
+        (color_up_with_alpha, color_down_with_alpha)
+    } else {
+        (
+            convert_image_color_to_ratatui_color(color_up),
+            convert_image_color_to_ratatui_color(color_down),
+        )
     };
-    let style = Style::default()
-        .fg(color_up)
-        .bg(color_down);
+    let style = Style::default().fg(color_up).bg(color_down);
 
     Span::styled(String::from(PIXEL), style)
 }
 
-fn convert_image_color_to_ratatui_color(
-    color: ImageColor,
-) -> Color {
+fn convert_image_color_to_ratatui_color(color: ImageColor) -> Color {
     Color::Rgb(color.r, color.g, color.b)
 }

@@ -1,6 +1,8 @@
 use crate::utils::files::{read_into_lines_capped, ReadResult};
 use crate::utils::syntax::HighlightedLines;
+use image::ImageReader;
 use parking_lot::Mutex;
+use ratatui::layout::Rect;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::fs::File;
@@ -10,17 +12,15 @@ use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
 };
-use ratatui::layout::Rect;
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use tracing::{debug, warn};
-use image::ImageReader;
 
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
 use crate::preview::{previewers::meta, Preview, PreviewContent};
 use crate::utils::{
-    image::Image,
     files::FileType,
+    image::Image,
     strings::preprocess_line,
     syntax::{self, load_highlighting_assets, HighlightingAssetsExt},
 };
@@ -80,14 +80,22 @@ impl FilePreviewer {
         self.cache.lock().get(&entry.name)
     }
 
-    pub fn preview(&mut self, entry: &entry::Entry, preview_window: Option<Rect>) -> Option<Arc<Preview>> {
+    pub fn preview(
+        &mut self,
+        entry: &entry::Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         if let Some(preview) = self.cached(entry) {
             debug!("Preview cache hit for {:?}", entry.name);
             if preview.partial_offset.is_some() {
                 // preview is partial, spawn a task to compute the next chunk
                 // and return the partial preview
                 debug!("Spawning partial preview task for {:?}", entry.name);
-                self.handle_preview_request(entry, Some(preview.clone()), preview_window);
+                self.handle_preview_request(
+                    entry,
+                    Some(preview.clone()),
+                    preview_window,
+                );
             }
             Some(preview)
         } else {
@@ -241,15 +249,18 @@ pub fn try_preview(
                 cache.lock().insert(entry.name.clone(), &p);
             }
         }
-
-    } else if matches!(FileType::from(&path), FileType::Image)
-    {
+    } else if matches!(FileType::from(&path), FileType::Image) {
         debug!("File is an image: {:?}", entry.name);
-        let (window_height, window_width) = if let Some(preview_window) = preview_window{
+        let (window_height, window_width) = if let Some(preview_window) =
+            preview_window
+        {
             // it should be a better way to know the size of the border to remove than this magic number
             let padding = 5;
-            ((preview_window.height - padding /2 ) * 2, preview_window.width - padding)
-        }else{
+            (
+                (preview_window.height - padding / 2) * 2,
+                preview_window.width - padding,
+            )
+        } else {
             warn!("Error opening image, impossible to display without information about the size of the preview window");
             let p = meta::not_supported(&entry.name);
             cache.lock().insert(entry.name.clone(), &p);
@@ -259,8 +270,13 @@ pub fn try_preview(
             Ok(image) => {
                 debug!("Width: {:}", window_width);
 
-                let image = Image::from_dynamic_image(image, window_height as u32, window_width as u32);
-                let total_lines = image.pixel_grid.len().try_into().unwrap_or(u16::MAX);
+                let image = Image::from_dynamic_image(
+                    image,
+                    u32::from(window_height),
+                    u32::from(window_width),
+                );
+                let total_lines =
+                    image.pixel_grid.len().try_into().unwrap_or(u16::MAX);
                 let content = PreviewContent::Image(image);
                 let preview = Arc::new(Preview::new(
                     entry.name.clone(),
@@ -277,7 +293,6 @@ pub fn try_preview(
                 cache.lock().insert(entry.name.clone(), &p);
             }
         }
-
     } else {
         debug!("File isn't text-based: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);

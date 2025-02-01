@@ -10,8 +10,8 @@ pub mod previewers;
 
 // previewer types
 use crate::utils::cache::RingSet;
-use crate::utils::syntax::HighlightedLines;
 use crate::utils::image::Image;
+use crate::utils::syntax::HighlightedLines;
 pub use previewers::basic::BasicPreviewer;
 pub use previewers::basic::BasicPreviewerConfig;
 pub use previewers::command::CommandPreviewer;
@@ -32,7 +32,7 @@ pub enum PreviewContent {
     PlainText(Vec<String>),
     PlainTextWrapped(String),
     AnsiText(String),
-    Image(Image)
+    Image(Image),
 }
 
 impl PreviewContent {
@@ -170,7 +170,11 @@ impl Previewer {
         }
     }
 
-    fn dispatch_request(&mut self, entry: &Entry, preview_window: Option<Rect>) -> Option<Arc<Preview>> {
+    fn dispatch_request(
+        &mut self,
+        entry: &Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         match &entry.preview_type {
             PreviewType::Basic => Some(self.basic.preview(entry)),
             PreviewType::EnvVar => Some(self.env_var.preview(entry)),
@@ -189,7 +193,11 @@ impl Previewer {
         }
     }
 
-    pub fn preview(&mut self, entry: &Entry, preview_window: Option<Rect>) -> Option<Arc<Preview>> {
+    pub fn preview(
+        &mut self,
+        entry: &Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         // if we haven't acknowledged the request yet, acknowledge it
         self.requests.push(entry.clone());
 

@@ -119,7 +119,7 @@ where
         if is_known_text_extension(p) {
             return FileType::Text;
         }
-        if is_accepted_image_extension(p){
+        if is_accepted_image_extension(p) {
             return FileType::Image;
         }
         if let Ok(mut f) = File::open(p) {
@@ -503,7 +503,7 @@ lazy_static! {
         //"farbfeld",
         "gif",
         //"hdr",
-        //"ico",
+        "ico",
         "jpeg",
         "jpg",
         //"exr",
