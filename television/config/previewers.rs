@@ -31,7 +31,7 @@ impl Default for FilePreviewerConfig {
     fn default() -> Self {
         Self {
             //max_file_size: 1024 * 1024,
-            theme: String::from("gruvbox-dark"),
+            theme: String::from("TwoDark"),
         }
     }
 }
