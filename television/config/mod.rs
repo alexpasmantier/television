@@ -89,7 +89,7 @@ impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new() -> Result<Self> {
         // Load the default_config values as base defaults
-        let default_config: Config = toml::from_str(DEFAULT_CONFIG)
+        let mut default_config: Config = toml::from_str(DEFAULT_CONFIG)
             .expect("Error parsing default config");
 
         // initialize the config builder
@@ -107,22 +107,35 @@ impl Config {
             let path = config_dir.join(CONFIG_FILE_NAME);
             let contents = std::fs::read_to_string(&path)?;
 
-            let cfg: Config = toml::from_str(&contents).unwrap_or_else(|e| {
+            let mut user_cfg: Config = toml::from_str(&contents).unwrap_or_else(|e| {
                 warn!(
                     "Error parsing config file, using default configuration: {}" , e
                 );
                 default_config.clone()
             });
 
+            // merge shell integration triggers with commands
+            default_config.shell_integration.merge_triggers();
+            user_cfg.shell_integration.merge_triggers();
+            // merge shell integration commands with default commands
+            let mut merged_commands =
+                default_config.shell_integration.commands.clone();
+            merged_commands
+                .extend(user_cfg.shell_integration.commands.clone());
+            user_cfg.shell_integration.commands = merged_commands;
+
             // merge keybindings with default keybindings
             let keybindings = merge_keybindings(
                 default_config.keybindings,
-                &cfg.keybindings,
+                &user_cfg.keybindings,
             );
-            let cfg = Config { keybindings, ..cfg };
+            let final_cfg = Config {
+                keybindings,
+                ..user_cfg
+            };
 
-            debug!("Config: {:?}", cfg);
-            Ok(cfg)
+            debug!("Config: {:?}", final_cfg);
+            Ok(final_cfg)
         } else {
             warn!("No config file found at {:?}, creating default configuration file at that location.", config_dir);
             // create the default configuration file in the user's config directory
