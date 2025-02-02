@@ -1928,6 +1928,7 @@ dependencies = [
  "strum",
  "syntect",
  "television-derive",
+ "tempfile",
  "thiserror 2.0.11",
  "tokio",
  "toml",

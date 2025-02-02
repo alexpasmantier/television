@@ -1,6 +1,7 @@
 pub mod cache;
 pub mod command;
 pub mod files;
+pub mod hashmaps;
 pub mod indices;
 pub mod input;
 pub mod metadata;

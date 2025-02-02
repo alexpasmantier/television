@@ -1,7 +1,11 @@
 #![allow(clippy::module_name_repetitions, clippy::ref_option)]
-use std::{env, hash::Hash, path::PathBuf};
+use std::{
+    env,
+    hash::Hash,
+    path::{Path, PathBuf},
+};
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
@@ -85,49 +89,96 @@ lazy_static! {
 
 const CONFIG_FILE_NAME: &str = "config.toml";
 
-impl Config {
-    #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
-    pub fn new() -> Result<Self> {
-        // Load the default_config values as base defaults
-        let default_config: Config = toml::from_str(DEFAULT_CONFIG)
-            .expect("Error parsing default config");
+pub struct ConfigEnv {
+    _data_dir: PathBuf,
+    config_dir: PathBuf,
+}
 
-        // initialize the config builder
+impl ConfigEnv {
+    pub fn init() -> Result<Self> {
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
 
         std::fs::create_dir_all(&config_dir)
-            .expect("Failed creating configuration directory");
+            .context("Failed creating configuration directory")?;
         std::fs::create_dir_all(&data_dir)
-            .expect("Failed creating data directory");
+            .context("Failed creating data directory")?;
 
-        if config_dir.join(CONFIG_FILE_NAME).is_file() {
-            debug!("Found config file at {:?}", config_dir);
+        Ok(Self {
+            _data_dir: data_dir,
+            config_dir,
+        })
+    }
+}
 
-            let path = config_dir.join(CONFIG_FILE_NAME);
-            let contents = std::fs::read_to_string(&path)?;
+impl Config {
+    #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
+    pub fn new(config_env: &ConfigEnv) -> Result<Self> {
+        // Load the default_config values as base defaults
+        let default_config: Config = toml::from_str(DEFAULT_CONFIG)
+            .expect("Error parsing default config");
 
-            let cfg: Config = toml::from_str(&contents).unwrap_or_else(|e| {
-                warn!(
-                    "Error parsing config file, using default configuration: {}" , e
-                );
-                default_config.clone()
-            });
+        // if a config file exists, load it and merge it with the default configuration
+        if config_env.config_dir.join(CONFIG_FILE_NAME).is_file() {
+            debug!("Found config file at {:?}", config_env.config_dir);
 
-            // merge keybindings with default keybindings
-            let keybindings = merge_keybindings(
-                default_config.keybindings,
-                &cfg.keybindings,
-            );
-            let cfg = Config { keybindings, ..cfg };
+            let user_cfg: Config =
+                Self::load_user_config(&config_env.config_dir)?;
 
-            debug!("Config: {:?}", cfg);
-            Ok(cfg)
+            // merge the user configuration with the default configuration
+            let final_cfg =
+                Self::merge_user_with_default(default_config, user_cfg);
+
+            debug!("Config: {:?}", final_cfg);
+            Ok(final_cfg)
         } else {
-            warn!("No config file found at {:?}, creating default configuration file at that location.", config_dir);
+            // otherwise, create the default configuration file
+            warn!("No config file found at {:?}, creating default configuration file at that location.", config_env.config_dir);
             // create the default configuration file in the user's config directory
-            std::fs::write(config_dir.join(CONFIG_FILE_NAME), DEFAULT_CONFIG)?;
+            std::fs::write(
+                config_env.config_dir.join(CONFIG_FILE_NAME),
+                DEFAULT_CONFIG,
+            )?;
             Ok(default_config)
+        }
+    }
+
+    fn load_user_config(config_dir: &Path) -> Result<Self> {
+        let path = config_dir.join(CONFIG_FILE_NAME);
+        let contents = std::fs::read_to_string(&path)?;
+        let user_cfg: Config = toml::from_str(&contents)
+            .context("Error parsing configuration file.")?;
+        Ok(user_cfg)
+    }
+
+    fn merge_user_with_default(
+        mut default: Config,
+        mut user: Config,
+    ) -> Config {
+        // merge shell integration triggers with commands
+        default.shell_integration.merge_triggers();
+        user.shell_integration.merge_triggers();
+        // merge shell integration commands with default commands
+        let mut merged_commands = default.shell_integration.commands.clone();
+        merged_commands.extend(user.shell_integration.commands.clone());
+        user.shell_integration.commands = merged_commands;
+        // merge shell integration keybindings with default keybindings
+        let mut merged_keybindings =
+            default.shell_integration.keybindings.clone();
+        merged_keybindings.extend(user.shell_integration.keybindings.clone());
+        user.shell_integration.keybindings = merged_keybindings;
+
+        // merge keybindings with default keybindings
+        let keybindings =
+            merge_keybindings(default.keybindings.clone(), &user.keybindings);
+        user.keybindings = keybindings;
+
+        Config {
+            config: user.config,
+            keybindings: user.keybindings,
+            ui: user.ui,
+            previewers: user.previewers,
+            shell_integration: user.shell_integration,
         }
     }
 }
@@ -178,4 +229,176 @@ fn default_frame_rate() -> f64 {
 
 fn default_tick_rate() -> f64 {
     50.0
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::action::Action;
+    use crate::event::Key;
+    use crate::television::Mode;
+
+    use super::*;
+    use rustc_hash::FxHashMap;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn test_get_data_dir() {
+        let data_dir = get_data_dir();
+        assert!(data_dir.is_absolute());
+    }
+
+    #[test]
+    fn test_get_config_dir() {
+        let config_dir = get_config_dir();
+        assert!(config_dir.is_absolute());
+    }
+
+    #[test]
+    fn test_load_user_config() {
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let mut file = File::create(&config_file).unwrap();
+        file.write_all(DEFAULT_CONFIG.as_bytes()).unwrap();
+
+        let config = Config::load_user_config(config_dir).unwrap();
+        assert_eq!(config.config.data_dir, get_data_dir());
+        assert_eq!(config.config.config_dir, get_config_dir());
+        assert_eq!(config, toml::from_str(DEFAULT_CONFIG).unwrap());
+    }
+
+    #[test]
+    fn test_config_new_empty_user_cfg() {
+        // write user config to a file
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let _ = File::create(&config_file).unwrap();
+
+        let config_env = ConfigEnv {
+            _data_dir: get_data_dir(),
+            config_dir: config_dir.to_path_buf(),
+        };
+        let config = Config::new(&config_env).unwrap();
+        let mut default_config: Config =
+            toml::from_str(DEFAULT_CONFIG).unwrap();
+        default_config.shell_integration.merge_triggers();
+
+        assert_eq!(config.config, default_config.config);
+        assert_eq!(config.keybindings, default_config.keybindings);
+        assert_eq!(config.ui, default_config.ui);
+        assert_eq!(config.previewers, default_config.previewers);
+        // backwards compatibility
+        assert_eq!(
+            config.shell_integration.commands,
+            default_config.shell_integration.commands
+        );
+        assert_eq!(
+            config.shell_integration.keybindings,
+            default_config.shell_integration.keybindings
+        );
+    }
+
+    const USER_CONFIG_1: &str = r#"
+        frame_rate = 30.0
+        
+        [ui]
+        ui_scale = 40
+        theme = "television"
+
+        [previewers.file]
+        theme = "Visual Studio Dark"
+
+        [keybindings.Channel]
+        toggle_help = ["ctrl-a", "ctrl-b"]
+
+        [keybindings.RemoteControl]
+        toggle_help = ["ctrl-c", "ctrl-d"]
+
+        [shell_integration.commands]
+        "git add" = "git-diff"
+
+        [shell_integration.keybindings]
+        "command_history" = "ctrl-h"
+
+    "#;
+
+    #[test]
+    fn test_config_new_with_user_cfg() {
+        // write user config to a file
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let mut file = File::create(&config_file).unwrap();
+        file.write_all(USER_CONFIG_1.as_bytes()).unwrap();
+
+        let config_env = ConfigEnv {
+            _data_dir: get_data_dir(),
+            config_dir: config_dir.to_path_buf(),
+        };
+        let config = Config::new(&config_env).unwrap();
+
+        let mut default_config: Config =
+            toml::from_str(DEFAULT_CONFIG).unwrap();
+        default_config.config.frame_rate = 30.0;
+        default_config.ui.ui_scale = 40;
+        default_config.ui.theme = "television".to_string();
+        default_config.previewers.file.theme =
+            "Visual Studio Dark".to_string();
+        default_config
+            .keybindings
+            .get_mut(&Mode::Channel)
+            .unwrap()
+            .extend({
+                let mut map = FxHashMap::default();
+                map.insert(
+                    Action::ToggleHelp,
+                    Binding::MultipleKeys(vec![
+                        Key::Ctrl('a'),
+                        Key::Ctrl('b'),
+                    ]),
+                );
+                map
+            });
+        default_config
+            .keybindings
+            .get_mut(&Mode::RemoteControl)
+            .unwrap()
+            .extend({
+                let mut map = FxHashMap::default();
+                map.insert(
+                    Action::ToggleHelp,
+                    Binding::MultipleKeys(vec![
+                        Key::Ctrl('c'),
+                        Key::Ctrl('d'),
+                    ]),
+                );
+                map
+            });
+
+        default_config
+            .shell_integration
+            .commands
+            .extend(vec![("git add".to_string(), "git-diff".to_string())]);
+        default_config
+            .shell_integration
+            .keybindings
+            .insert("command_history".to_string(), "ctrl-h".to_string());
+        default_config.shell_integration.merge_triggers();
+
+        assert_eq!(config.config, default_config.config);
+        assert_eq!(config.keybindings, default_config.keybindings);
+        assert_eq!(config.ui, default_config.ui);
+        assert_eq!(config.previewers, default_config.previewers);
+        assert_eq!(
+            config.shell_integration.commands,
+            default_config.shell_integration.commands
+        );
+        assert_eq!(
+            config.shell_integration.keybindings,
+            default_config.shell_integration.keybindings
+        );
+    }
 }

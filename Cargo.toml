@@ -65,6 +65,7 @@ winapi-util = "0.1.9"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
+tempfile = "3.16.0"
 
 [features]
 simd = ["dep:simdutf8"]
