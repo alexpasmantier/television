@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use television::action::Action;
 use television::channels::OnAir;
 use television::channels::{files::Channel, TelevisionChannel};
-use television::config::Config;
+use television::config::{Config, ConfigEnv};
 use television::television::Television;
 use tokio::runtime::Runtime;
 
@@ -20,7 +20,7 @@ fn draw(c: &mut Criterion) {
         b.to_async(&rt).iter_batched(
             // FIXME: this is kind of hacky
             || {
-                let config = Config::new().unwrap();
+                let config = Config::new(&ConfigEnv::init().unwrap()).unwrap();
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();

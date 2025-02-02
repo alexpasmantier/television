@@ -49,9 +49,9 @@ impl HelpBarLayout {
 #[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Hash)]
 pub enum InputPosition {
     #[serde(rename = "top")]
+    #[default]
     Top,
     #[serde(rename = "bottom")]
-    #[default]
     Bottom,
 }
 
