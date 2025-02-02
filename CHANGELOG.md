@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.4](https://github.com/alexpasmantier/television/releases/tag/0.10.4) - 2025-02-02
+
+### 🚜 Refactor
+
+- [8881842](https://github.com/alexpamantier/television/commit/888184235891313cbc3114344d6935e43cb66725) *(shell)* More default shell integration triggers by @alexpasmantier in [#335](https://github.com/alexpasmantier/television/pull/335)
+
+- [a6a73c5](https://github.com/alexpamantier/television/commit/a6a73c5bb3b23339dfb96538a10f728bb61e1c2d) *(shell)* Improve shell integration configuration syntax by @alexpasmantier in [#334](https://github.com/alexpasmantier/television/pull/334)
+
+### ⚙️ Miscellaneous Tasks
+
+- [c74b47d](https://github.com/alexpamantier/television/commit/c74b47d07caf12efaf073c16f2177607171c573e) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#330](https://github.com/alexpasmantier/television/pull/330)
+
+- [eaafe40](https://github.com/alexpamantier/television/commit/eaafe40cfbb7dbf906dad24756a7b2070be33a32) *(uncategorized)* Bump to 0.10.4 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.3...0.10.4
+
+
 ## [0.10.3](https://github.com/alexpasmantier/television/releases/tag/0.10.3) - 2025-01-31
 
 ### 🚜 Refactor
