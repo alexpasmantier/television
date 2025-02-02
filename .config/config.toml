@@ -165,13 +165,42 @@ toggle_preview = "ctrl-o"
 # "dirs" = ["ls"]
 # "files" = ["cat", "cp"]
 # ```
+"alias" = ["alias", "unalias"]
 "env" = ["export", "unset"]
 "dirs" = ["cd", "ls", "rmdir"]
-"files" = ["cat", "less", "head", "tail", "vim", "bat"]
-"git-diff" = ["git add"]
-"git-branch" = ["git checkout", "git branch -d"]
+"files" = [
+  "cat",
+  "less",
+  "head",
+  "tail",
+  "vim",
+  "nano",
+  "bat",
+  "cp",
+  "mv",
+  "rm",
+  "touch",
+  "chmod",
+  "chown",
+  "ln",
+  "tar",
+  "zip",
+  "unzip",
+  "gzip",
+  "gunzip",
+  "xz",
+]
+"git-diff" = ["git add", "git restore"]
+"git-branch" = [
+  "git checkout",
+  "git branch",
+  "git merge",
+  "git rebase",
+  "git pull",
+  "git push",
+]
 "docker-images" = ["docker run"]
-"git-repos" = ["nvim"]
+"git-repos" = ["nvim", "code", "hx", "git clone"]
 
 
 [shell_integration.keybindings]
