@@ -12,9 +12,7 @@ jobs:
   publish:
     runs-on: windows-latest
     steps:
-      # Avoid using commit hash specifiers until dependabot/renovatebot is introduced.
-      # See the background: https://github.com/vedantmgoyal9/winget-releaser/blob/4ffc7888bffd451b357355dc214d43bb9f23917e/README.md?plain=1#L36-L37
-      - uses: vedantmgoyal9/winget-releaser@v2
+      - uses: vedantmgoyal9/winget-releaser@4ffc7888bffd451b357355dc214d43bb9f23917e # v2
         with:
           identifier: 'alexpasmantier.television'
           installers-regex: '-windows-x86_64\.zip$'
