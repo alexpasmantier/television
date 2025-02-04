@@ -162,7 +162,7 @@ jobs:
           (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
 
       - name: Releasing assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
 
