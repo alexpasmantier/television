@@ -153,6 +153,7 @@ impl FilePreviewer {
 /// This ends up being the max size of partial previews.
 const PARTIAL_BUFREAD_SIZE: usize = 64 * 1024;
 
+#[allow(clippy::too_many_arguments)]
 pub fn try_preview(
     entry: &entry::Entry,
     partial_preview: Option<Arc<Preview>>,
