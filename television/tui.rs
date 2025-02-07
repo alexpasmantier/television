@@ -44,7 +44,9 @@ where
         let mut buffered_stderr = LineWriter::new(stderr());
         execute!(buffered_stderr, EnterAlternateScreen)?;
         self.terminal.clear()?;
-        execute!(buffered_stderr, DisableMouseCapture)?;
+        if cfg!(not(windows)) {
+            execute!(buffered_stderr, DisableMouseCapture)?;
+        }
         Ok(())
     }
 
