@@ -1,7 +1,7 @@
 <div align="center">
 
 # 📺  television
-**Blazing fast general purpose fuzzy finder TUI.**
+**A cross-platform, fast and extensible general purpose fuzzy finder TUI.**
 
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 [![Crates.io](https://img.shields.io/crates/v/television.svg)](https://crates.io/crates/television)
@@ -14,7 +14,7 @@
 </div>
 
 ## About
-`Television` is a fast and versatile fuzzy finder TUI.
+`Television` is a cross-platform, fast and extensible fuzzy finder TUI.
 
 It lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
 images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible.
