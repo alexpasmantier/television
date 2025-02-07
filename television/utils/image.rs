@@ -19,7 +19,12 @@ impl Image {
         let image = if dynamic_image.height() > height
             || dynamic_image.width() > width
         {
-            dynamic_image.resize(width, height, FILTER)
+            if dynamic_image.height() <= height*2 && dynamic_image.width() <= width*2 {
+                dynamic_image.resize(width, height, FILTER)
+            }else{
+                dynamic_image.resize(width*2, height*2, FilterType::Nearest).resize(width, height, FILTER)
+            }
+
         } else {
             dynamic_image
         };
