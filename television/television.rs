@@ -22,6 +22,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
+use tracing::error;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -480,15 +481,20 @@ impl Television {
     pub fn handle_copy_entry_to_clipboard(&mut self) {
         if self.mode == Mode::Channel {
             if let Some(entries) = self.get_selected_entries(None) {
-                let mut ctx = ClipboardContext::new().unwrap();
-                ctx.set_contents(
-                    entries
-                        .iter()
-                        .map(|e| e.name.clone())
-                        .collect::<Vec<_>>()
-                        .join(" "),
-                )
-                .unwrap();
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    ctx.set_contents(
+                        entries
+                            .iter()
+                            .map(|e| e.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                    )
+                    .unwrap_or_else(|_| {
+                        error!("Could not copy to clipboard");
+                    });
+                } else {
+                    error!("Could not copy to clipboard");
+                }
             }
         }
     }
