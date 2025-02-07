@@ -511,7 +511,8 @@ lazy_static! {
         //"pnm",
         //"qoi",
         //"tga",
-        //"tiff",
+        "tif",
+        "tiff",
         "webp",
 
     ]
