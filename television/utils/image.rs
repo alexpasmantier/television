@@ -62,3 +62,26 @@ pub struct ImageColor {
     pub b: u8,
     pub a: u8,
 }
+impl ImageColor {
+    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
+        ImageColor { r, g, b, a }
+    }
+    pub const BLACK: ImageColor = ImageColor {
+        r: 0,
+        g: 0,
+        b: 0,
+        a: 255,
+    };
+    pub const WHITE: ImageColor = ImageColor {
+        r: 255,
+        g: 255,
+        b: 255,
+        a: 255,
+    };
+    pub const GRAY: ImageColor = ImageColor {
+        r: 242,
+        g: 242,
+        b: 242,
+        a: 255,
+    };
+}

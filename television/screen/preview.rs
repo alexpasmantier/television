@@ -229,13 +229,15 @@ fn build_image_paragraph(
     let lines = image
         .pixel_grid
         .into_iter()
-        .map(|double_pixel_line| {
-            Line::from_iter(double_pixel_line.iter().map(
-                |(color_up, color_down)| {
+        .enumerate()
+        .map(|(y, double_pixel_line)| {
+            Line::from_iter(double_pixel_line.iter().enumerate().map(
+                |(x, (color_up, color_down))| {
                     convert_pixel_to_span(
                         *color_up,
                         *color_down,
                         Some(colorscheme.highlight_bg),
+                        (x, y),
                     )
                 },
             ))
@@ -545,11 +547,13 @@ pub fn convert_pixel_to_span<'a>(
     color_up: ImageColor,
     color_down: ImageColor,
     background: Option<Color>,
+    position: (usize, usize),
 ) -> Span<'a> {
     let bg_color = match background {
         Some(Color::Rgb(r, g, b)) => Some((r, g, b)),
         _ => None,
     };
+    // mean of background and picture
     let (color_up, color_down) = if let Some(bg_color) = bg_color {
         let color_up_with_alpha = Color::Rgb(
             (color_up.r * color_up.a + bg_color.0 * 255 - color_up.a) / 255,
@@ -567,6 +571,25 @@ pub fn convert_pixel_to_span<'a>(
 
         (color_up_with_alpha, color_down_with_alpha)
     } else {
+        let alpha_threshold = 30;
+        let color_up = if color_up.a <= alpha_threshold {
+            if (position.0 + position.1 * 2) % 2 == 0 {
+                ImageColor::WHITE
+            } else {
+                ImageColor::GRAY
+            }
+        } else {
+            color_up
+        };
+        let color_down = if color_down.a <= alpha_threshold {
+            if (position.0 + position.1 * 2 + 1) % 2 == 0 {
+                ImageColor::WHITE
+            } else {
+                ImageColor::GRAY
+            }
+        } else {
+            color_down
+        };
         (
             convert_image_color_to_ratatui_color(color_up),
             convert_image_color_to_ratatui_color(color_down),
