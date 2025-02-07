@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.5](https://github.com/alexpasmantier/television/releases/tag/0.10.5) - 2025-02-07
+
+### 🐛 Bug Fixes
+
+- [4eead98](https://github.com/alexpamantier/television/commit/4eead98fae18cfc4146def7a776fe4497e1cbc59) *(windows)* Bypass mouse capture disabling on windows by @alexpasmantier in [#348](https://github.com/alexpasmantier/television/pull/348)
+
+### ⚙️ Miscellaneous Tasks
+
+- [fd8bf61](https://github.com/alexpamantier/television/commit/fd8bf6100963baaf6967cbf983a9ee620effbd4f) *(cd)* Automatically bump winget-pkgs registered version by @kachick in [#340](https://github.com/alexpasmantier/television/pull/340)
+
+- [0d5f394](https://github.com/alexpamantier/television/commit/0d5f39408279539431f79af3fccc5414e958e50d) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#336](https://github.com/alexpasmantier/television/pull/336)
+
+- [5d552d1](https://github.com/alexpamantier/television/commit/5d552d1655de46255e6ab62cc8c446bf37ba717d) *(uncategorized)* Bump to 0.10.5 by @alexpasmantier
+
+
+
+### New Contributors
+* @dependabot[bot] made their first contribution in [#345](https://github.com/alexpasmantier/television/pull/345)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.4...0.10.5
+
+
 ## [0.10.4](https://github.com/alexpasmantier/television/releases/tag/0.10.4) - 2025-02-02
 
 ### 🚜 Refactor
