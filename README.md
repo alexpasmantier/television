@@ -3,8 +3,9 @@
 # 📺  television
 **A cross-platform, fast and extensible general purpose fuzzy finder TUI.**
 
+![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
+![Crates.io Size](https://img.shields.io/crates/size/television)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
-[![Crates.io](https://img.shields.io/crates/v/television.svg)](https://crates.io/crates/television)
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/television)
