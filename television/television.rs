@@ -5,20 +5,19 @@ use crate::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
     OnAir, TelevisionChannel, UnitChannel,
 };
-use crate::config::{Config, KeyBindings, Theme};
+use crate::config::{Config, Theme};
 use crate::draw::{ChannelState, Ctx, TvState};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
 use crate::preview::{PreviewState, Previewer};
 use crate::screen::colors::Colorscheme;
-use crate::screen::keybindings::{DisplayableAction, DisplayableKeybindings};
 use crate::screen::layout::InputPosition;
 use crate::screen::spinner::{Spinner, SpinnerState};
 use crate::utils::metadata::AppMetadata;
 use crate::utils::strings::EMPTY_STRING;
 use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
@@ -600,147 +599,4 @@ impl Television {
             None
         })
     }
-}
-
-impl KeyBindings {
-    pub fn to_displayable(&self) -> FxHashMap<Mode, DisplayableKeybindings> {
-        // channel mode keybindings
-        let channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
-            FxHashMap::from_iter(vec![
-                (
-                    DisplayableAction::ResultsNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::SelectPrevEntry,
-                            Action::SelectNextEntry,
-                            Action::SelectPrevPage,
-                            Action::SelectNextPage,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::PreviewNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::ScrollPreviewHalfPageUp,
-                            Action::ScrollPreviewHalfPageDown,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ConfirmSelection],
-                    ),
-                ),
-                (
-                    DisplayableAction::CopyEntryToClipboard,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::CopyEntryToClipboard],
-                    ),
-                ),
-                (
-                    DisplayableAction::SendToChannel,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleSendToChannel],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleRemoteControl,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleRemoteControl],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleHelpBar,
-                    serialized_keys_for_actions(self, &[Action::ToggleHelp]),
-                ),
-            ]);
-
-        // remote control mode keybindings
-        let remote_control_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::ToggleRemoteControl,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleRemoteControl],
-                ),
-            ),
-        ]);
-
-        // send to channel mode keybindings
-        let send_to_channel_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::Cancel,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleSendToChannel],
-                ),
-            ),
-        ]);
-
-        FxHashMap::from_iter(vec![
-            (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
-            (
-                Mode::RemoteControl,
-                DisplayableKeybindings::new(remote_control_bindings),
-            ),
-            (
-                Mode::SendToChannel,
-                DisplayableKeybindings::new(send_to_channel_bindings),
-            ),
-        ])
-    }
-}
-
-fn serialized_keys_for_actions(
-    keybindings: &KeyBindings,
-    actions: &[Action],
-) -> Vec<String> {
-    actions
-        .iter()
-        .map(|a| {
-            keybindings
-                .get(&Mode::Channel)
-                .unwrap()
-                .get(a)
-                .unwrap()
-                .clone()
-                .to_string()
-        })
-        .collect()
 }
