@@ -1,5 +1,4 @@
 use super::layout::HelpBarLayout;
-use crate::channels::UnitChannel;
 use crate::screen::colors::{Colorscheme, GeneralColorscheme};
 use crate::screen::logo::build_logo_paragraph;
 use crate::screen::metadata::build_metadata_table;
@@ -37,7 +36,7 @@ fn draw_metadata_block(
     f: &mut Frame,
     area: Rect,
     mode: Mode,
-    current_channel: UnitChannel,
+    current_channel_name: &str,
     app_metadata: &AppMetadata,
     colorscheme: &Colorscheme,
 ) {
@@ -51,9 +50,13 @@ fn draw_metadata_block(
                 .bg(colorscheme.general.background.unwrap_or_default()),
         );
 
-    let metadata_table =
-        build_metadata_table(mode, current_channel, app_metadata, colorscheme)
-            .block(metadata_block);
+    let metadata_table = build_metadata_table(
+        mode,
+        current_channel_name,
+        app_metadata,
+        colorscheme,
+    )
+    .block(metadata_block);
 
     f.render_widget(metadata_table, area);
 }
@@ -79,7 +82,7 @@ fn draw_keymaps_block(
 pub fn draw_help_bar(
     f: &mut Frame,
     layout: &Option<HelpBarLayout>,
-    current_channel: UnitChannel,
+    current_channel_name: &str,
     keymap_table: Table,
     mode: Mode,
     app_metadata: &AppMetadata,
@@ -90,7 +93,7 @@ pub fn draw_help_bar(
             f,
             help_bar.left,
             mode,
-            current_channel,
+            current_channel_name,
             app_metadata,
             colorscheme,
         );
