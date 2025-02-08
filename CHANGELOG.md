@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.6](https://github.com/alexpasmantier/television/releases/tag/0.10.6) - 2025-02-08
+
+### 🐛 Bug Fixes
+
+- [8e38ffc](https://github.com/alexpamantier/television/commit/8e38ffc3ab52414df29d8310e3f7a5b66bb2be6c) *(clipboard)* Gracefully fail if clipboard isn't available by @alexpasmantier in [#350](https://github.com/alexpasmantier/television/pull/350)
+
+- [df2592f](https://github.com/alexpamantier/television/commit/df2592f2c8aa6edbea0e46a319435e27b8998859) *(events)* Remove sorting and deduplicating incoming actions by @alexpasmantier in [#356](https://github.com/alexpasmantier/television/pull/356)
+
+### 🚜 Refactor
+
+- [7f87b2f](https://github.com/alexpamantier/television/commit/7f87b2fb31db239b4e534e29989b4286f6a7d052) *(cable)* Use HISTFILE for bash and zsh history channels by @alexpasmantier in [#357](https://github.com/alexpasmantier/television/pull/357)
+
+- [b706dcb](https://github.com/alexpamantier/television/commit/b706dcb8ddef8b93dca8de21b5e605360b9b8f07) *(help)* Add multiselect keybindings to help panel by @alexpasmantier in [#353](https://github.com/alexpasmantier/television/pull/353)
+
+- [86c100e](https://github.com/alexpamantier/television/commit/86c100e381b00033f4ae57c53e2070be367333d7) *(ui)* Display current channel in input bar border by @alexpasmantier in [#354](https://github.com/alexpasmantier/television/pull/354)
+
+### 📚 Documentation
+
+- [ade69d7](https://github.com/alexpamantier/television/commit/ade69d7bfff109141ab0709b4feabc66973c582f) *(uncategorized)* Update readme by @alexpasmantier
+
+- [d40a86d](https://github.com/alexpamantier/television/commit/d40a86daa281aaa16ef61017f3dad6d899105ed8) *(uncategorized)* Update readme by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [1e44478](https://github.com/alexpamantier/television/commit/1e44478147e6d0aa8f320f0b15cd8e4ff4d2f0f9) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#349](https://github.com/alexpasmantier/television/pull/349)
+
+- [11e440c](https://github.com/alexpamantier/television/commit/11e440c151ef02abc9aed52059c1b648d161ffb5) *(deb)* Add arm64 deb packaging to cd by @alexpasmantier in [#351](https://github.com/alexpasmantier/television/pull/351)
+
+- [bb727bd](https://github.com/alexpamantier/television/commit/bb727bd070597c60f2750678e9d2cf589ff6f754) *(glibc)* Packaging for older linux distros by @alexpasmantier
+
+- [56be4dc](https://github.com/alexpamantier/television/commit/56be4dca4f71a21ead8dc50a97e0036ab3ce7b0b) *(winget)* Update winget release configuration by @alexpasmantier
+
+- [28f62f1](https://github.com/alexpamantier/television/commit/28f62f138dd47c9f0ef3ca33f2daa17a8e9eb909) *(uncategorized)* Bump to 0.10.6 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.5...0.10.6
+
+
 ## [0.10.5](https://github.com/alexpasmantier/television/releases/tag/0.10.5) - 2025-02-07
 
 ### 🐛 Bug Fixes
