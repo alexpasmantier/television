@@ -10,7 +10,7 @@
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 ![Crates.io Total Downloads](https://img.shields.io/crates/d/television)
 
-![tv on the linux codebase](./assets/tv-linux-gamepad.png "tv running on the linux codebase")
+![tv on the curl codebase](https://github.com/user-attachments/assets/7d329ef3-4efe-4908-bbf8-e02744508eaf)
 
 </div>
 
