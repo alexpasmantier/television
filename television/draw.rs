@@ -7,10 +7,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
     action::Action,
-    channels::{
-        entry::{Entry, PreviewType, ENTRY_PLACEHOLDER},
-        UnitChannel,
-    },
+    channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER},
     config::Config,
     picker::Picker,
     preview::PreviewState,
@@ -27,7 +24,7 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChannelState {
-    pub current_channel: UnitChannel,
+    pub current_channel_name: String,
     pub selected_entries: FxHashSet<Entry>,
     pub total_count: u32,
     pub running: bool,
@@ -35,13 +32,13 @@ pub struct ChannelState {
 
 impl ChannelState {
     pub fn new(
-        current_channel: UnitChannel,
+        current_channel_name: String,
         selected_entries: FxHashSet<Entry>,
         total_count: u32,
         running: bool,
     ) -> Self {
         Self {
-            current_channel,
+            current_channel_name,
             selected_entries,
             total_count,
             running,
@@ -51,7 +48,7 @@ impl ChannelState {
 
 impl Hash for ChannelState {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        self.current_channel.hash(state);
+        self.current_channel_name.hash(state);
         self.selected_entries
             .iter()
             .for_each(|entry| entry.hash(state));
@@ -177,7 +174,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<()> {
     draw_help_bar(
         f,
         &layout.help_bar,
-        ctx.tv_state.channel_state.current_channel,
+        &ctx.tv_state.channel_state.current_channel_name,
         build_keybindings_table(
             &ctx.config.keybindings.to_displayable(),
             ctx.tv_state.mode,
@@ -233,6 +230,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         &ctx.tv_state.results_picker.input,
         &ctx.tv_state.results_picker.state,
         ctx.tv_state.channel_state.running,
+        &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
     )?;
