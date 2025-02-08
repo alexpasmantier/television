@@ -79,7 +79,7 @@ impl From<ActionOutcome> for AppOutput {
 }
 
 const EVENT_BUF_SIZE: usize = 4;
-const ACTION_BUF_SIZE: usize = 16;
+const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
@@ -246,8 +246,6 @@ impl App {
         buf: &mut Vec<Action>,
     ) -> Result<ActionOutcome> {
         if self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0 {
-            buf.sort_unstable();
-            buf.dedup();
             for action in buf.drain(..) {
                 if action != Action::Tick {
                     trace!("{action:?}");
