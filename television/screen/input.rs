@@ -5,14 +5,13 @@ use ratatui::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
     style::{Style, Stylize},
-    text::Span,
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders, ListState, Paragraph},
     Frame,
 };
 
 use crate::screen::{colors::Colorscheme, spinner::Spinner};
 
-// TODO: refactor arguments (e.g. use a struct for the spinner+state, same
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
     f: &mut Frame,
@@ -22,6 +21,7 @@ pub fn draw_input_box(
     input_state: &Input,
     results_picker_state: &ListState,
     matcher_running: bool,
+    channel_name: &str,
     spinner: &Spinner,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
@@ -29,6 +29,11 @@ pub fn draw_input_box(
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .title_top(
+            Line::from(String::from(" ") + channel_name + " ")
+                .style(Style::default().fg(colorscheme.mode.channel).bold())
+                .centered(),
+        )
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),

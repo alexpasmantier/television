@@ -127,7 +127,7 @@ impl Television {
 
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
-            self.current_channel(),
+            self.channel.name(),
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),

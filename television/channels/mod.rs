@@ -174,6 +174,14 @@ impl TelevisionChannel {
             _ => unreachable!(),
         }
     }
+
+    pub fn name(&self) -> String {
+        match self {
+            TelevisionChannel::Cable(channel) => channel.name.clone(),
+            TelevisionChannel::Stdin(_) => String::from("Stdin"),
+            _ => UnitChannel::from(self).to_string(),
+        }
+    }
 }
 
 macro_rules! variant_to_module {

@@ -29,7 +29,7 @@ enum PreviewKind {
 
 #[allow(dead_code)]
 pub struct Channel {
-    name: String,
+    pub name: String,
     matcher: Matcher<String>,
     entries_command: String,
     preview_kind: PreviewKind,
