@@ -243,10 +243,10 @@ fn build_image_paragraph(
             ))
         })
         .collect::<Vec<Line>>();
-    let text = Text::from(lines);
-    Paragraph::new(text)
+    let text_image = Text::from(lines);
+    Paragraph::new(text_image)
         .block(preview_block)
-        .wrap(Wrap { trim: false })
+        .alignment(Alignment::Center)
 }
 
 pub fn build_meta_preview_paragraph<'a>(
