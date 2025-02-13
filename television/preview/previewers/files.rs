@@ -269,8 +269,10 @@ pub fn try_preview(
         };
         match ImageReader::open(path).unwrap().decode() {
             Ok(image) => {
-                debug!("Width: {:}", window_width);
-
+                cache.lock().insert(
+                    entry.name.clone(),
+                    &meta::loading(&format!("Loading {}", entry.name)),
+                );
                 let image = Image::from_dynamic_image(
                     image,
                     u32::from(window_height),
