@@ -256,10 +256,11 @@ pub fn try_preview(
             preview_window
         {
             // it should be a better way to know the size of the border to remove than this magic number
-            let padding = 5;
+            let padding_width = 5;
+            let padding_height = 3;
             (
-                (preview_window.height - padding / 2) * 2,
-                preview_window.width - padding,
+                (preview_window.height - padding_height) * 2,
+                preview_window.width - padding_width,
             )
         } else {
             warn!("Error opening image, impossible to display without information about the size of the preview window");
