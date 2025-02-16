@@ -1,10 +1,7 @@
 use std::fmt::Display;
 
-use crate::channels::UnitChannel;
-use crate::screen::{
-    colors::Colorscheme,
-    mode::{mode_color, Mode},
-};
+use crate::screen::{colors::Colorscheme, mode::mode_color};
+use crate::television::Mode;
 use crate::utils::metadata::AppMetadata;
 use ratatui::{
     layout::Constraint,
@@ -25,7 +22,7 @@ impl Display for Mode {
 
 pub fn build_metadata_table<'a>(
     mode: Mode,
-    current_channel: UnitChannel,
+    current_channel_name: &'a str,
     app_metadata: &'a AppMetadata,
     colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
@@ -60,7 +57,7 @@ pub fn build_metadata_table<'a>(
             Style::default().fg(colorscheme.help.metadata_field_name_fg),
         )),
         Cell::from(Span::styled(
-            current_channel.to_string(),
+            current_channel_name,
             Style::default().fg(colorscheme.help.metadata_field_value_fg),
         )),
     ]);

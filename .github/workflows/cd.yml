@@ -43,6 +43,7 @@ jobs:
     strategy:
       matrix:
         include:
+          # macos x86_64
           - os: macos-latest
             os-name: macos
             target: x86_64-apple-darwin
@@ -50,6 +51,7 @@ jobs:
             binary-postfix: ""
             binary-name: tv
             use-cross: false
+          # macos arm64
           - os: macos-latest
             os-name: macos
             target: aarch64-apple-darwin
@@ -57,13 +59,7 @@ jobs:
             binary-postfix: ""
             use-cross: false
             binary-name: tv
-          - os: ubuntu-latest
-            os-name: linux
-            target: x86_64-unknown-linux-gnu
-            architecture: x86_64
-            binary-postfix: ""
-            use-cross: false
-            binary-name: tv
+          # windows x86_64
           - os: windows-latest
             os-name: windows
             target: x86_64-pc-windows-msvc
@@ -71,6 +67,7 @@ jobs:
             binary-postfix: ".exe"
             use-cross: false
             binary-name: tv
+          # linux aaarch64
           - os: ubuntu-latest
             os-name: linux
             target: aarch64-unknown-linux-gnu
@@ -78,12 +75,21 @@ jobs:
             binary-postfix: ""
             use-cross: true
             binary-name: tv
+          # linux i686
           - os: ubuntu-latest
             os-name: linux
             target: i686-unknown-linux-gnu
             architecture: i686
             binary-postfix: ""
             use-cross: true
+            binary-name: tv
+          # linux x86_64
+          - os: ubuntu-latest
+            os-name: linux
+            target: x86_64-unknown-linux-gnu
+            architecture: x86_64
+            binary-postfix: ""
+            use-cross: false
             binary-name: tv
 
     steps:
@@ -93,46 +99,36 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-
           target: ${{ matrix.target }}
-
           profile: minimal
           override: true
+
       - uses: Swatinem/rust-cache@v2
       - name: Cargo build
         uses: actions-rs/cargo@v1
         with:
           command: build
-
           use-cross: ${{ matrix.use-cross }}
-
           toolchain: stable
-
           args: --release --target ${{ matrix.target }}
-
 
       - name: install strip command
         shell: bash
         run: |
-
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
-
               sudo apt update
               sudo apt-get install -y binutils-aarch64-linux-gnu
           fi
       - name: Packaging final binary
         shell: bash
         run: |
-
           cd target/${{ matrix.target }}/release
-
 
           ####### reduce binary size by removing debug symbols #######
 
           BINARY_NAME=${{ matrix.binary-name }}${{ matrix.binary-postfix }}
           echo "BINARY_NAME=$BINARY_NAME" >> "$GITHUB_ENV"
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
-
             GCC_PREFIX="aarch64-linux-gnu-"
           else
             GCC_PREFIX=""
@@ -149,7 +145,6 @@ jobs:
           ########## create sha256 ##########
 
           if [[ ${{ runner.os }} == 'Windows' ]]; then
-
             certutil -hashfile $RELEASE_NAME.tar.gz sha256 | grep -E [A-Fa-f0-9]{64} > $RELEASE_NAME.sha256
           else
             shasum -a 256 $RELEASE_NAME.tar.gz > $RELEASE_NAME.sha256
@@ -162,7 +157,7 @@ jobs:
           (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
 
       - name: Releasing assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: |
 
@@ -174,11 +169,59 @@ jobs:
 
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  publish-release-deb:
-    name: publish-release-deb
+  # (for older glibc compatibility: https://github.com/alexpasmantier/television/issues/339)
+  publish-release-legacy-linux:
+    name: Publishing for Legacy Linux
     runs-on: ubuntu-latest
+    container: centos:7
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          yum -y update
+          yum -y groupinstall "Development Tools"
+          yum -y install gcc-c++ glibc-devel glibc-static
+
+      - name: Install Rust toolchain
+        run: |
+          curl https://sh.rustup.rs -sSf | sh -s -- -y
+          source $HOME/.cargo/env
+          rustup target add x86_64-unknown-linux-gnu
+
+      - name: Cargo build
+        run: |
+          cargo build --release --target x86_64-unknown-linux-gnu
+
+      - name: Packaging final binary
+        run: |
+          cd target/x86_64-unknown-linux-gnu/release
+          tar czvf tv-legacy-linux.tar.gz tv
+
+      - name: Releasing assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            target/x86_64-unknown-linux-gnu/release/tv-legacy-linux.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  publish-release-deb:
+    name: publish-release-deb for ${{ matrix.target }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+          - target: armv7-unknown-linux-musleabihf
+
+
     env:
-      TARGET: x86_64-unknown-linux-musl
+      TARGET: ${{ matrix.target }}
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
       # Since we're distributing the dpkg, we don't know whether the user will
@@ -205,18 +248,12 @@ jobs:
       with:
         toolchain: nightly
         target: ${{ env.TARGET }}
-        
-    # for some reason, the above action doesn't seem to set the target correctly
-    - name: Add rustup target
-      shell: bash
-      run: |
-        rustup target add x86_64-unknown-linux-musl
 
     # for some reason, the above action doesn't seem to set the target correctly
     - name: Add rustup target
       shell: bash
       run: |
-        rustup target add x86_64-unknown-linux-musl
+        rustup target add ${{ env.TARGET }}
 
     - name: Install cargo-deb
       shell: bash
@@ -236,7 +273,7 @@ jobs:
         cargo deb --profile deb --target ${{ env.TARGET }}
         version="${{ github.ref_name }}"
         echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
-        echo "DEB_NAME=television_$version-1_amd64.deb" >> $GITHUB_ENV
+        echo "DEB_NAME=television_$version-1_${{ env.TARGET }}.deb" >> $GITHUB_ENV
 
     - name: Create sha256 sum of deb file
       shell: bash

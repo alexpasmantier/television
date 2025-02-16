@@ -1,7 +1,7 @@
 use crate::preview::{previewers, PreviewerConfig};
 use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
 pub struct PreviewersConfig {
     #[serde(default)]
     pub basic: BasicPreviewerConfig,
@@ -17,10 +17,10 @@ impl From<PreviewersConfig> for PreviewerConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
 pub struct BasicPreviewerConfig {}
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct FilePreviewerConfig {
     //pub max_file_size: u64,
@@ -31,10 +31,10 @@ impl Default for FilePreviewerConfig {
     fn default() -> Self {
         Self {
             //max_file_size: 1024 * 1024,
-            theme: String::from("gruvbox-dark"),
+            theme: String::from("TwoDark"),
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
 pub struct EnvVarPreviewerConfig {}

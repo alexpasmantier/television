@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.10.2"
+version = "0.10.6"
 edition = "2021"
 description = "The revolution will be televised."
 license = "MIT"
@@ -28,10 +28,10 @@ rust-version = "1.83"
 path = "television/lib.rs"
 
 [dependencies]
-television-derive = { path = "television-derive", version = "0.0.24" }
+television-derive = { path = "television-derive", version = "0.0.25" }
 
 anyhow = "1.0"
-directories = "5.0"
+directories = "6.0"
 devicons = "0.6"
 lazy_static = "1.5"
 tokio = { version = "1.43", features = ["full"] }
@@ -52,10 +52,10 @@ strum = { version = "0.26", features = ["derive"] }
 regex = "1.11"
 parking_lot = "0.12"
 nom = "7.1"
-thiserror = "1.0"
+thiserror = "2.0"
 simdutf8 = { version = "0.1", optional = true }
 smallvec = { version = "1.13", features = ["const_generics"] }
-bat = { version = "0.24", default-features = false, features = ["regex-onig"] }
+bat = { version = "0.25", default-features = false, features = ["regex-onig"] }
 gag = "1.0"
 nucleo = "0.5"
 toml = "0.8"
@@ -66,6 +66,7 @@ winapi-util = "0.1.9"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
+tempfile = "3.16.0"
 
 [features]
 simd = ["dep:simdutf8"]

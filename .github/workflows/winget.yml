@@ -1,0 +1,28 @@
+name: Publish to WinGet
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Specific tag name'
+        required: true
+        type: string
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - name: Get version
+        id: get-version
+        run: |
+          # Finding the version from release name
+          $VERSION="${{ github.event.release.name }}" -replace '^.*/ '
+          "version=$VERSION" >> $env:GITHUB_OUTPUT
+        shell: pwsh
+      - uses: vedantmgoyal9/winget-releaser@main
+        with:
+          identifier: 'alexpasmantier.television'
+          installers-regex: '-windows-x86_64\.zip$'
+          max-versions-to-keep: 5
+          token: ${{ secrets.PAT_FOR_WINGET_RELEASER }}
+          version: ${{ steps.get-version.outputs.version }}

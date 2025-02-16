@@ -1,13 +1,12 @@
-use crate::channels::entry::Entry;
+use crate::preview::PreviewState;
 use crate::preview::{
-    ansi::IntoText, Preview, PreviewContent, FILE_TOO_LARGE_MSG, LOADING_MSG,
+    ansi::IntoText, PreviewContent, FILE_TOO_LARGE_MSG, LOADING_MSG,
     PREVIEW_NOT_SUPPORTED_MSG, TIMEOUT_MSG,
 };
 use crate::screen::{
     cache::RenderedPreviewCache,
     colors::{Colorscheme, PreviewColorscheme},
 };
-use crate::utils::image::{Image, ImageColor, PIXEL};
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
@@ -22,18 +21,47 @@ use ratatui::{
 };
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
+use crate::utils::image::{Image, ImageColor, PIXEL};
 
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
 
-#[allow(clippy::needless_pass_by_value)]
+#[allow(clippy::too_many_arguments)]
+pub fn draw_preview_content_block(
+    f: &mut Frame,
+    rect: Rect,
+    preview_state: &PreviewState,
+    use_nerd_font_icons: bool,
+    colorscheme: &Colorscheme,
+) -> Result<()> {
+    let inner = draw_content_outer_block(
+        f,
+        rect,
+        colorscheme,
+        preview_state.preview.icon,
+        &preview_state.preview.title,
+        use_nerd_font_icons,
+    )?;
+
+    // render the preview content
+    let rp = build_preview_paragraph(
+        inner,
+        &preview_state.preview.content,
+        preview_state.target_line,
+        preview_state.scroll,
+        colorscheme,
+    );
+    f.render_widget(rp, inner);
+    Ok(())
+}
+
 pub fn build_preview_paragraph<'a>(
     inner: Rect,
-    preview_content: PreviewContent,
+    preview_content: &'a PreviewContent,
     target_line: Option<u16>,
     preview_scroll: u16,
-    colorscheme: Colorscheme,
+    colorscheme: &'a Colorscheme,
 ) -> Paragraph<'a> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
@@ -59,14 +87,16 @@ pub fn build_preview_paragraph<'a>(
                 preview_block,
                 colorscheme.preview,
             )
+            .scroll((preview_scroll, 0))
         }
         PreviewContent::SyntectHighlightedText(highlighted_lines) => {
             build_syntect_highlighted_paragraph(
-                highlighted_lines.lines,
+                &highlighted_lines.lines,
                 preview_block,
                 target_line,
                 preview_scroll,
                 colorscheme.preview,
+                inner.height,
             )
         }
         PreviewContent::Image(image) => {
@@ -109,12 +139,11 @@ pub fn build_preview_paragraph<'a>(
 const ANSI_BEFORE_CONTEXT_SIZE: u16 = 10;
 const ANSI_CONTEXT_SIZE: usize = 150;
 
-#[allow(clippy::needless_pass_by_value)]
-fn build_ansi_text_paragraph(
-    text: String,
-    preview_block: Block,
+fn build_ansi_text_paragraph<'a>(
+    text: &'a str,
+    preview_block: Block<'a>,
     preview_scroll: u16,
-) -> Paragraph {
+) -> Paragraph<'a> {
     let lines = text.lines();
     let skip =
         preview_scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE) as usize;
@@ -142,14 +171,13 @@ fn build_ansi_text_paragraph(
         .scroll((preview_scroll, 0))
 }
 
-#[allow(clippy::needless_pass_by_value)]
-fn build_plain_text_paragraph(
-    text: Vec<String>,
-    preview_block: Block<'_>,
+fn build_plain_text_paragraph<'a>(
+    text: &'a [String],
+    preview_block: Block<'a>,
     target_line: Option<u16>,
     preview_scroll: u16,
     colorscheme: PreviewColorscheme,
-) -> Paragraph<'_> {
+) -> Paragraph<'a> {
     let mut lines = Vec::new();
     for (i, line) in text.iter().enumerate() {
         lines.push(Line::from(vec![
@@ -184,12 +212,11 @@ fn build_plain_text_paragraph(
         .scroll((preview_scroll, 0))
 }
 
-#[allow(clippy::needless_pass_by_value)]
-fn build_plain_text_wrapped_paragraph(
-    text: String,
-    preview_block: Block<'_>,
+fn build_plain_text_wrapped_paragraph<'a>(
+    text: &'a str,
+    preview_block: Block<'a>,
     colorscheme: PreviewColorscheme,
-) -> Paragraph<'_> {
+) -> Paragraph<'a> {
     let mut lines = Vec::new();
     for line in text.lines() {
         lines.push(Line::styled(
@@ -203,32 +230,34 @@ fn build_plain_text_wrapped_paragraph(
         .wrap(Wrap { trim: true })
 }
 
-#[allow(clippy::needless_pass_by_value)]
-fn build_syntect_highlighted_paragraph(
-    highlighted_lines: Vec<Vec<(syntect::highlighting::Style, String)>>,
-    preview_block: Block,
+fn build_syntect_highlighted_paragraph<'a>(
+    highlighted_lines: &'a [Vec<(syntect::highlighting::Style, String)>],
+    preview_block: Block<'a>,
     target_line: Option<u16>,
     preview_scroll: u16,
     colorscheme: PreviewColorscheme,
-) -> Paragraph {
+    height: u16,
+) -> Paragraph<'a> {
     compute_paragraph_from_highlighted_lines(
-        &highlighted_lines,
+        highlighted_lines,
         target_line.map(|l| l as usize),
+        preview_scroll,
         colorscheme,
+        height,
     )
     .block(preview_block)
     .alignment(Alignment::Left)
-    .scroll((preview_scroll, 0))
+    //.scroll((preview_scroll, 0))
 }
 
 fn build_image_paragraph(
-    image: Image,
+    image: &Image,
     preview_block: Block<'_>,
     colorscheme: PreviewColorscheme,
 ) -> Paragraph<'_> {
     let lines = image
         .pixel_grid
-        .into_iter()
+        .iter()
         .enumerate()
         .map(|(y, double_pixel_line)| {
             Line::from_iter(double_pixel_line.iter().enumerate().map(
@@ -358,109 +387,6 @@ fn draw_content_outer_block(
     Ok(inner)
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn draw_preview_content_block(
-    f: &mut Frame,
-    rect: Rect,
-    entry: &Entry,
-    preview: &Option<Arc<Preview>>,
-    rendered_preview_cache: &Arc<Mutex<RenderedPreviewCache<'static>>>,
-    preview_scroll: u16,
-    use_nerd_font_icons: bool,
-    colorscheme: &Colorscheme,
-) -> Result<()> {
-    if let Some(preview) = preview {
-        let inner = draw_content_outer_block(
-            f,
-            rect,
-            colorscheme,
-            preview.icon,
-            &preview.title,
-            use_nerd_font_icons,
-        )?;
-
-        // check if the rendered preview content is already in the cache
-        let cache_key = compute_cache_key(entry);
-        if let Some(rp) =
-            rendered_preview_cache.lock().unwrap().get(&cache_key)
-        {
-            // we got a hit, render the cached preview content
-            let p = rp.paragraph.as_ref().clone();
-            f.render_widget(p.scroll((preview_scroll, 0)), inner);
-            return Ok(());
-        }
-        // render the preview content and cache it
-        let rp = build_preview_paragraph(
-            //preview_inner_block,
-            inner,
-            preview.content.clone(),
-            entry.line_number.map(|l| u16::try_from(l).unwrap_or(0)),
-            preview_scroll,
-            colorscheme.clone(),
-        );
-        // only cache the preview content if it's not a partial preview
-        // and the preview title matches the entry name
-        if preview.partial_offset.is_none() && preview.title == entry.name {
-            rendered_preview_cache.lock().unwrap().insert(
-                cache_key,
-                preview.icon,
-                &preview.title,
-                &Arc::new(rp.clone()),
-            );
-        }
-        f.render_widget(rp.scroll((preview_scroll, 0)), inner);
-        return Ok(());
-    }
-    // else if last_preview exists
-    if let Some(last_preview) =
-        &rendered_preview_cache.lock().unwrap().last_preview
-    {
-        let inner = draw_content_outer_block(
-            f,
-            rect,
-            colorscheme,
-            last_preview.icon,
-            &last_preview.title,
-            use_nerd_font_icons,
-        )?;
-
-        f.render_widget(
-            last_preview
-                .paragraph
-                .as_ref()
-                .clone()
-                .scroll((preview_scroll, 0)),
-            inner,
-        );
-        return Ok(());
-    }
-    // otherwise render empty preview
-    let inner = draw_content_outer_block(
-        f,
-        rect,
-        colorscheme,
-        None,
-        "",
-        use_nerd_font_icons,
-    )?;
-    let preview_outer_block = Block::default()
-        .title_top(Line::from(Span::styled(
-            " Preview ",
-            Style::default().fg(colorscheme.preview.title_fg),
-        )))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
-        .padding(Padding::new(0, 1, 1, 0));
-    f.render_widget(preview_outer_block, inner);
-
-    Ok(())
-}
-
 fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
     Span::from(format!("{line_number:5} "))
 }
@@ -468,11 +394,15 @@ fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
 fn compute_paragraph_from_highlighted_lines(
     highlighted_lines: &[Vec<(syntect::highlighting::Style, String)>],
     line_specifier: Option<usize>,
+    preview_scroll: u16,
     colorscheme: PreviewColorscheme,
+    height: u16,
 ) -> Paragraph<'static> {
     let preview_lines: Vec<Line> = highlighted_lines
         .iter()
         .enumerate()
+        .skip(preview_scroll.saturating_sub(1).into())
+        .take(height.into())
         .map(|(i, l)| {
             let line_number =
                 build_line_number_span(i + 1).style(Style::default().fg(
@@ -533,14 +463,6 @@ fn convert_syn_color_to_ratatui_color(
     color: syntect::highlighting::Color,
 ) -> Color {
     Color::Rgb(color.r, color.g, color.b)
-}
-
-fn compute_cache_key(entry: &Entry) -> String {
-    let mut cache_key = entry.name.clone();
-    if let Some(line_number) = entry.line_number {
-        cache_key.push_str(&line_number.to_string());
-    }
-    cache_key
 }
 
 pub fn convert_pixel_to_span<'a>(

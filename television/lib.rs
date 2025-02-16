@@ -4,6 +4,7 @@ pub mod cable;
 pub mod channels;
 pub mod cli;
 pub mod config;
+pub mod draw;
 pub mod errors;
 pub mod event;
 pub mod input;

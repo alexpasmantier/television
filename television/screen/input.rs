@@ -5,34 +5,35 @@ use ratatui::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
     style::{Style, Stylize},
-    text::Span,
+    text::{Line, Span},
     widgets::{Block, BorderType, Borders, ListState, Paragraph},
     Frame,
 };
 
-use crate::screen::{
-    colors::Colorscheme,
-    spinner::{Spinner, SpinnerState},
-};
+use crate::screen::{colors::Colorscheme, spinner::Spinner};
 
-// TODO: refactor arguments (e.g. use a struct for the spinner+state, same
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
     f: &mut Frame,
     rect: Rect,
     results_count: u32,
     total_count: u32,
-    input_state: &mut Input,
-    results_picker_state: &mut ListState,
+    input_state: &Input,
+    results_picker_state: &ListState,
     matcher_running: bool,
+    channel_name: &str,
     spinner: &Spinner,
-    spinner_state: &mut SpinnerState,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
     let input_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .title_top(
+            Line::from(String::from(" ") + channel_name + " ")
+                .style(Style::default().fg(colorscheme.mode.channel).bold())
+                .centered(),
+        )
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
@@ -89,11 +90,7 @@ pub fn draw_input_box(
     f.render_widget(input, inner_input_chunks[1]);
 
     if matcher_running {
-        f.render_stateful_widget(
-            spinner,
-            inner_input_chunks[3],
-            spinner_state,
-        );
+        f.render_widget(spinner, inner_input_chunks[3]);
     }
 
     let result_count_block = Block::default();
@@ -119,8 +116,9 @@ pub fn draw_input_box(
     // specified coordinates after rendering
     f.set_cursor_position((
         // Put cursor past the end of the input text
-        inner_input_chunks[1].x
-            + u16::try_from(input_state.visual_cursor().max(scroll) - scroll)?,
+        inner_input_chunks[1].x.saturating_add(u16::try_from(
+            input_state.visual_cursor().max(scroll) - scroll,
+        )?),
         // Move one line down, from the border to the input line
         inner_input_chunks[1].y,
     ));

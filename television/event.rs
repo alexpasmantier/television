@@ -195,7 +195,8 @@ impl EventLoop {
                                     tx.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
                                 },
                                 Ok(crossterm::event::Event::Resize(x, y)) => {
-                                    tx.send(Event::Resize(x, y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
+                                    let (_, (new_x, new_y)) = flush_resize_events((x, y));
+                                    tx.send(Event::Resize(new_x, new_y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
                                 },
                                 _ => {}
                             }
@@ -212,6 +213,22 @@ impl EventLoop {
             abort_tx: abort,
         }
     }
+}
+
+// Resize events can occur in batches.
+// With a simple loop they can be flushed.
+// This function will keep the first and last resize event.
+fn flush_resize_events(first_resize: (u16, u16)) -> ((u16, u16), (u16, u16)) {
+    let mut last_resize = first_resize;
+    while let Ok(true) = crossterm::event::poll(Duration::from_millis(50)) {
+        if let Ok(crossterm::event::Event::Resize(x, y)) =
+            crossterm::event::read()
+        {
+            last_resize = (x, y);
+        }
+    }
+
+    (first_resize, last_resize)
 }
 
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {

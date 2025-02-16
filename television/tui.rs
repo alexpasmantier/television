@@ -5,14 +5,15 @@ use std::{
 
 use anyhow::Result;
 use crossterm::{
-    cursor, execute,
+    cursor,
+    event::DisableMouseCapture,
+    execute,
     terminal::{
         disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
         EnterAlternateScreen, LeaveAlternateScreen,
     },
 };
 use ratatui::{backend::CrosstermBackend, layout::Size};
-use tokio::task::JoinHandle;
 use tracing::debug;
 
 #[allow(dead_code)]
@@ -20,8 +21,6 @@ pub struct Tui<W>
 where
     W: Write,
 {
-    pub task: JoinHandle<()>,
-    pub frame_rate: f64,
     pub terminal: ratatui::Terminal<CrosstermBackend<W>>,
 }
 
@@ -32,15 +31,8 @@ where
 {
     pub fn new(writer: W) -> Result<Self> {
         Ok(Self {
-            task: tokio::spawn(async {}),
-            frame_rate: 60.0,
             terminal: ratatui::Terminal::new(CrosstermBackend::new(writer))?,
         })
-    }
-
-    pub fn frame_rate(mut self, frame_rate: f64) -> Self {
-        self.frame_rate = frame_rate;
-        self
     }
 
     pub fn size(&self) -> Result<Size> {
@@ -52,7 +44,9 @@ where
         let mut buffered_stderr = LineWriter::new(stderr());
         execute!(buffered_stderr, EnterAlternateScreen)?;
         self.terminal.clear()?;
-        execute!(buffered_stderr, cursor::Hide)?;
+        if cfg!(not(windows)) {
+            execute!(buffered_stderr, DisableMouseCapture)?;
+        }
         Ok(())
     }
 

@@ -4,6 +4,8 @@ use ratatui::layout;
 use ratatui::layout::{Constraint, Direction, Rect};
 use serde::Deserialize;
 
+use crate::config::UiConfig;
+
 pub struct Dimensions {
     pub x: u16,
     pub y: u16,
@@ -44,12 +46,12 @@ impl HelpBarLayout {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Hash)]
 pub enum InputPosition {
     #[serde(rename = "top")]
+    #[default]
     Top,
     #[serde(rename = "bottom")]
-    #[default]
     Bottom,
 }
 
@@ -62,7 +64,7 @@ impl Display for InputPosition {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Hash)]
 pub enum PreviewTitlePosition {
     #[serde(rename = "top")]
     #[default]
@@ -107,19 +109,20 @@ impl Layout {
     }
 
     pub fn build(
-        dimensions: &Dimensions,
         area: Rect,
-        with_remote: bool,
-        with_help_bar: bool,
-        with_preview: bool,
-        input_position: InputPosition,
+        ui_config: &UiConfig,
+        show_remote: bool,
+        show_preview: bool,
+        //
     ) -> Self {
+        let show_preview = show_preview && ui_config.show_preview_panel;
+        let dimensions = Dimensions::from(ui_config.ui_scale);
         let main_block = centered_rect(dimensions.x, dimensions.y, area);
         // split the main block into two vertical chunks (help bar + rest)
         let main_rect: Rect;
         let help_bar_layout: Option<HelpBarLayout>;
 
-        if with_help_bar {
+        if ui_config.show_help_bar {
             let hz_chunks = layout::Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Max(9), Constraint::Fill(1)])
@@ -152,10 +155,10 @@ impl Layout {
         // split the main block into 1, 2, or 3 vertical chunks
         // (results + preview + remote)
         let mut constraints = vec![Constraint::Fill(1)];
-        if with_preview {
+        if show_preview {
             constraints.push(Constraint::Fill(1));
         }
-        if with_remote {
+        if show_remote {
             // in order to fit with the help bar logo
             constraints.push(Constraint::Length(24));
         }
@@ -170,28 +173,28 @@ impl Layout {
 
         let left_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
-            .constraints(match input_position {
+            .constraints(match ui_config.input_bar_position {
                 InputPosition::Top => {
                     results_constraints.into_iter().rev().collect()
                 }
                 InputPosition::Bottom => results_constraints,
             })
             .split(vt_chunks[0]);
-        let (input, results) = match input_position {
+        let (input, results) = match ui_config.input_bar_position {
             InputPosition::Bottom => (left_chunks[1], left_chunks[0]),
             InputPosition::Top => (left_chunks[0], left_chunks[1]),
         };
 
         // right block: preview title + preview
         let mut remote_idx = 1;
-        let preview_window = if with_preview {
+        let preview_window = if show_preview {
             remote_idx += 1;
             Some(vt_chunks[1])
         } else {
             None
         };
 
-        let remote_control = if with_remote {
+        let remote_control = if show_remote {
             Some(vt_chunks[remote_idx])
         } else {
             None

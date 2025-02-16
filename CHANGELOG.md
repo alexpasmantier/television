@@ -4,6 +4,108 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.6](https://github.com/alexpasmantier/television/releases/tag/0.10.6) - 2025-02-08
+
+### 🐛 Bug Fixes
+
+- [8e38ffc](https://github.com/alexpamantier/television/commit/8e38ffc3ab52414df29d8310e3f7a5b66bb2be6c) *(clipboard)* Gracefully fail if clipboard isn't available by @alexpasmantier in [#350](https://github.com/alexpasmantier/television/pull/350)
+
+- [df2592f](https://github.com/alexpamantier/television/commit/df2592f2c8aa6edbea0e46a319435e27b8998859) *(events)* Remove sorting and deduplicating incoming actions by @alexpasmantier in [#356](https://github.com/alexpasmantier/television/pull/356)
+
+### 🚜 Refactor
+
+- [7f87b2f](https://github.com/alexpamantier/television/commit/7f87b2fb31db239b4e534e29989b4286f6a7d052) *(cable)* Use HISTFILE for bash and zsh history channels by @alexpasmantier in [#357](https://github.com/alexpasmantier/television/pull/357)
+
+- [b706dcb](https://github.com/alexpamantier/television/commit/b706dcb8ddef8b93dca8de21b5e605360b9b8f07) *(help)* Add multiselect keybindings to help panel by @alexpasmantier in [#353](https://github.com/alexpasmantier/television/pull/353)
+
+- [86c100e](https://github.com/alexpamantier/television/commit/86c100e381b00033f4ae57c53e2070be367333d7) *(ui)* Display current channel in input bar border by @alexpasmantier in [#354](https://github.com/alexpasmantier/television/pull/354)
+
+### 📚 Documentation
+
+- [ade69d7](https://github.com/alexpamantier/television/commit/ade69d7bfff109141ab0709b4feabc66973c582f) *(uncategorized)* Update readme by @alexpasmantier
+
+- [d40a86d](https://github.com/alexpamantier/television/commit/d40a86daa281aaa16ef61017f3dad6d899105ed8) *(uncategorized)* Update readme by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [1e44478](https://github.com/alexpamantier/television/commit/1e44478147e6d0aa8f320f0b15cd8e4ff4d2f0f9) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#349](https://github.com/alexpasmantier/television/pull/349)
+
+- [11e440c](https://github.com/alexpamantier/television/commit/11e440c151ef02abc9aed52059c1b648d161ffb5) *(deb)* Add arm64 deb packaging to cd by @alexpasmantier in [#351](https://github.com/alexpasmantier/television/pull/351)
+
+- [bb727bd](https://github.com/alexpamantier/television/commit/bb727bd070597c60f2750678e9d2cf589ff6f754) *(glibc)* Packaging for older linux distros by @alexpasmantier
+
+- [56be4dc](https://github.com/alexpamantier/television/commit/56be4dca4f71a21ead8dc50a97e0036ab3ce7b0b) *(winget)* Update winget release configuration by @alexpasmantier
+
+- [28f62f1](https://github.com/alexpamantier/television/commit/28f62f138dd47c9f0ef3ca33f2daa17a8e9eb909) *(uncategorized)* Bump to 0.10.6 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.5...0.10.6
+
+
+## [0.10.5](https://github.com/alexpasmantier/television/releases/tag/0.10.5) - 2025-02-07
+
+### 🐛 Bug Fixes
+
+- [4eead98](https://github.com/alexpamantier/television/commit/4eead98fae18cfc4146def7a776fe4497e1cbc59) *(windows)* Bypass mouse capture disabling on windows by @alexpasmantier in [#348](https://github.com/alexpasmantier/television/pull/348)
+
+### ⚙️ Miscellaneous Tasks
+
+- [fd8bf61](https://github.com/alexpamantier/television/commit/fd8bf6100963baaf6967cbf983a9ee620effbd4f) *(cd)* Automatically bump winget-pkgs registered version by @kachick in [#340](https://github.com/alexpasmantier/television/pull/340)
+
+- [0d5f394](https://github.com/alexpamantier/television/commit/0d5f39408279539431f79af3fccc5414e958e50d) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#336](https://github.com/alexpasmantier/television/pull/336)
+
+- [5d552d1](https://github.com/alexpamantier/television/commit/5d552d1655de46255e6ab62cc8c446bf37ba717d) *(uncategorized)* Bump to 0.10.5 by @alexpasmantier
+
+
+
+### New Contributors
+* @dependabot[bot] made their first contribution in [#345](https://github.com/alexpasmantier/television/pull/345)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.4...0.10.5
+
+
+## [0.10.4](https://github.com/alexpasmantier/television/releases/tag/0.10.4) - 2025-02-02
+
+### 🚜 Refactor
+
+- [8881842](https://github.com/alexpamantier/television/commit/888184235891313cbc3114344d6935e43cb66725) *(shell)* More default shell integration triggers by @alexpasmantier in [#335](https://github.com/alexpasmantier/television/pull/335)
+
+- [a6a73c5](https://github.com/alexpamantier/television/commit/a6a73c5bb3b23339dfb96538a10f728bb61e1c2d) *(shell)* Improve shell integration configuration syntax by @alexpasmantier in [#334](https://github.com/alexpasmantier/television/pull/334)
+
+### ⚙️ Miscellaneous Tasks
+
+- [c74b47d](https://github.com/alexpamantier/television/commit/c74b47d07caf12efaf073c16f2177607171c573e) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#330](https://github.com/alexpasmantier/television/pull/330)
+
+- [eaafe40](https://github.com/alexpamantier/television/commit/eaafe40cfbb7dbf906dad24756a7b2070be33a32) *(uncategorized)* Bump to 0.10.4 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.3...0.10.4
+
+
+## [0.10.3](https://github.com/alexpasmantier/television/releases/tag/0.10.3) - 2025-01-31
+
+### 🚜 Refactor
+
+- [5214dd1](https://github.com/alexpamantier/television/commit/5214dd17d0c9b82409dbd81358beb7afc6e28be2) *(app)* Buffering actions and events handling to improve overall UI responsiveness by @alexpasmantier in [#328](https://github.com/alexpasmantier/television/pull/328)
+
+- [be80496](https://github.com/alexpamantier/television/commit/be804965491b65714613ace52419b9fbb821b9b0) *(draw)* Clearing out mut operations from rendering critical path, avoiding mutexes and perf improvements by @alexpasmantier in [#322](https://github.com/alexpasmantier/television/pull/322)
+
+### ⚙️ Miscellaneous Tasks
+
+- [eaab4e9](https://github.com/alexpamantier/television/commit/eaab4e966baf1d5dbe83230e4b145ee64fe1b5be) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#320](https://github.com/alexpasmantier/television/pull/320)
+
+- [6955c5b](https://github.com/alexpamantier/television/commit/6955c5b31357088db4debf202ca99cf303866e7d) *(uncategorized)* Bump to 0.10.3 by @alexpasmantier in [#329](https://github.com/alexpasmantier/television/pull/329)
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.2...0.10.3
+
+
 ## [0.10.2](https://github.com/alexpasmantier/television/releases/tag/0.10.2) - 2025-01-26
 
 ### 🐛 Bug Fixes

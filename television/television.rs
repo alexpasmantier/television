@@ -1,63 +1,68 @@
 use crate::action::Action;
+use crate::cable::load_cable_channels;
 use crate::channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER};
 use crate::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
     OnAir, TelevisionChannel, UnitChannel,
 };
-use crate::config::{Config, KeyBindings, Theme};
+use crate::config::{Config, Theme};
+use crate::draw::{ChannelState, Ctx, TvState};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
-use crate::preview::Previewer;
-use crate::screen::cache::RenderedPreviewCache;
+use crate::preview::{PreviewState, Previewer};
 use crate::screen::colors::Colorscheme;
-use crate::screen::help::draw_help_bar;
-use crate::screen::input::draw_input_box;
-use crate::screen::keybindings::{
-    build_keybindings_table, DisplayableAction, DisplayableKeybindings,
-};
-use crate::screen::layout::{Dimensions, InputPosition, Layout};
-use crate::screen::mode::Mode;
-use crate::screen::preview::draw_preview_content_block;
-use crate::screen::remote_control::draw_remote_control;
-use crate::screen::results::draw_results_list;
+use crate::screen::layout::InputPosition;
 use crate::screen::spinner::{Spinner, SpinnerState};
 use crate::utils::metadata::AppMetadata;
 use crate::utils::strings::EMPTY_STRING;
-use crate::{cable::load_cable_channels, keymap::Keymap};
 use anyhow::Result;
 use copypasta::{ClipboardContext, ClipboardProvider};
-use ratatui::{layout::Rect, style::Color, Frame};
-use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashSet};
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
+use tracing::error;
+
+#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
+pub enum Mode {
+    Channel,
+    RemoteControl,
+    SendToChannel,
+}
 
 pub struct Television {
-    action_tx: Option<UnboundedSender<Action>>,
+    action_tx: UnboundedSender<Action>,
     pub config: Config,
-    pub keymap: Keymap,
-    pub(crate) channel: TelevisionChannel,
-    pub(crate) remote_control: TelevisionChannel,
+    pub channel: TelevisionChannel,
+    pub remote_control: TelevisionChannel,
     pub mode: Mode,
     pub current_pattern: String,
-    pub(crate) results_picker: Picker,
-    pub(crate) rc_picker: Picker,
-    results_area_height: u32,
+    pub results_picker: Picker,
+    pub rc_picker: Picker,
+    results_area_height: u16,
     pub previewer: Previewer,
-    pub preview_scroll: Option<u16>,
-    pub preview_pane_height: u16,
-    current_preview_total_lines: u16,
-    pub icon_color_cache: FxHashMap<String, Color>,
-    pub rendered_preview_cache: Arc<Mutex<RenderedPreviewCache<'static>>>,
-    pub(crate) spinner: Spinner,
-    pub(crate) spinner_state: SpinnerState,
+    pub preview_state: PreviewState,
+    pub spinner: Spinner,
+    pub spinner_state: SpinnerState,
     pub app_metadata: AppMetadata,
     pub colorscheme: Colorscheme,
+    pub ticks: u64,
+    // these are really here as a means to communicate between the render thread
+    // and the main thread to update `Television`'s state without needing to pass
+    // a mutable reference to `draw`
+    pub inner_rx: Receiver<Message>,
+    pub inner_tx: Sender<Message>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Message {
+    ResultListHeightChanged(u16),
 }
 
 impl Television {
     #[must_use]
     pub fn new(
+        action_tx: UnboundedSender<Action>,
         mut channel: TelevisionChannel,
         config: Config,
         input: Option<String>,
@@ -67,7 +72,6 @@ impl Television {
             results_picker = results_picker.inverted();
         }
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
-        let keymap = Keymap::from(&config.keybindings);
         let cable_channels = load_cable_channels().unwrap_or_default();
         let builtin_channels = load_builtin_channels(Some(
             &cable_channels.keys().collect::<Vec<_>>(),
@@ -84,10 +88,12 @@ impl Television {
 
         channel.find(&input.unwrap_or(EMPTY_STRING.to_string()));
         let spinner = Spinner::default();
+        // capacity is quite arbitrary here, we can adjust it later
+        let (inner_tx, inner_rx) = tokio::sync::mpsc::channel(10);
+
         Self {
-            action_tx: None,
+            action_tx,
             config,
-            keymap,
             channel,
             remote_control: TelevisionChannel::RemoteControl(
                 RemoteControl::new(builtin_channels, Some(cable_channels)),
@@ -98,17 +104,14 @@ impl Television {
             rc_picker: Picker::default(),
             results_area_height: 0,
             previewer,
-            preview_scroll: None,
-            preview_pane_height: 0,
-            current_preview_total_lines: 0,
-            icon_color_cache: FxHashMap::default(),
-            rendered_preview_cache: Arc::new(Mutex::new(
-                RenderedPreviewCache::default(),
-            )),
+            preview_state: PreviewState::default(),
             spinner,
             spinner_state: SpinnerState::from(&spinner),
             app_metadata,
             colorscheme,
+            ticks: 0,
+            inner_rx,
+            inner_tx,
         }
     }
 
@@ -122,12 +125,41 @@ impl Television {
         );
     }
 
+    pub fn dump_context(&self) -> Ctx {
+        let channel_state = ChannelState::new(
+            self.channel.name(),
+            self.channel.selected_entries().clone(),
+            self.channel.total_count(),
+            self.channel.running(),
+        );
+        let tv_state = TvState::new(
+            self.mode,
+            self.get_selected_entry(Some(Mode::Channel)),
+            self.results_area_height,
+            self.results_picker.clone(),
+            self.rc_picker.clone(),
+            channel_state,
+            self.spinner,
+            self.preview_state.clone(),
+        );
+
+        Ctx::new(
+            tv_state,
+            self.config.clone(),
+            self.colorscheme.clone(),
+            self.app_metadata.clone(),
+            self.inner_tx.clone(),
+            // now timestamp
+            std::time::Instant::now(),
+        )
+    }
+
     pub fn current_channel(&self) -> UnitChannel {
         UnitChannel::from(&self.channel)
     }
 
     pub fn change_channel(&mut self, channel: TelevisionChannel) {
-        self.reset_preview_scroll();
+        self.preview_state.reset();
         self.reset_picker_selection();
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -147,7 +179,7 @@ impl Television {
     }
 
     #[must_use]
-    pub fn get_selected_entry(&mut self, mode: Option<Mode>) -> Option<Entry> {
+    pub fn get_selected_entry(&self, mode: Option<Mode>) -> Option<Entry> {
         match mode.unwrap_or(self.mode) {
             Mode::Channel => {
                 if let Some(i) = self.results_picker.selected() {
@@ -168,7 +200,7 @@ impl Television {
 
     #[must_use]
     pub fn get_selected_entries(
-        &mut self,
+        &self,
         mode: Option<Mode>,
     ) -> Option<FxHashSet<Entry>> {
         if self.channel.selected_entries().is_empty()
@@ -221,10 +253,6 @@ impl Television {
         );
     }
 
-    fn reset_preview_scroll(&mut self) {
-        self.preview_scroll = None;
-    }
-
     fn reset_picker_selection(&mut self) {
         match self.mode {
             Mode::Channel => self.results_picker.reset_selection(),
@@ -242,85 +270,237 @@ impl Television {
             }
         }
     }
-
-    pub fn scroll_preview_down(&mut self, offset: u16) {
-        if self.preview_scroll.is_none() {
-            self.preview_scroll = Some(0);
-        }
-        if let Some(scroll) = self.preview_scroll {
-            self.preview_scroll = Some(
-                (scroll + offset).min(
-                    self.current_preview_total_lines
-                        .saturating_sub(2 * self.preview_pane_height / 3),
-                ),
-            );
-        }
-    }
-
-    pub fn scroll_preview_up(&mut self, offset: u16) {
-        if let Some(scroll) = self.preview_scroll {
-            self.preview_scroll = Some(scroll.saturating_sub(offset));
-        }
-    }
 }
 
+const RENDER_EVERY_N_TICKS: u64 = 10;
+
 impl Television {
-    /// Register an action handler that can send actions for processing if necessary.
-    ///
-    /// # Arguments
-    /// * `tx` - An unbounded sender that can send actions.
-    ///
-    /// # Returns
-    /// * `Result<()>` - An Ok result or an error.
-    pub fn register_action_handler(
+    fn should_render(&self, action: &Action) -> bool {
+        self.ticks == RENDER_EVERY_N_TICKS
+            || matches!(
+                action,
+                Action::AddInputChar(_)
+                    | Action::DeletePrevChar
+                    | Action::DeletePrevWord
+                    | Action::DeleteNextChar
+                    | Action::GoToPrevChar
+                    | Action::GoToNextChar
+                    | Action::GoToInputStart
+                    | Action::GoToInputEnd
+                    | Action::ToggleSelectionDown
+                    | Action::ToggleSelectionUp
+                    | Action::ConfirmSelection
+                    | Action::SelectNextEntry
+                    | Action::SelectPrevEntry
+                    | Action::SelectNextPage
+                    | Action::SelectPrevPage
+                    | Action::ScrollPreviewDown
+                    | Action::ScrollPreviewUp
+                    | Action::ScrollPreviewHalfPageDown
+                    | Action::ScrollPreviewHalfPageUp
+                    | Action::ToggleRemoteControl
+                    | Action::ToggleSendToChannel
+                    | Action::ToggleHelp
+                    | Action::TogglePreview
+                    | Action::CopyEntryToClipboard
+            )
+            || self.channel.running()
+    }
+
+    pub fn update_preview_state(
         &mut self,
-        tx: UnboundedSender<Action>,
+        selected_entry: &Entry,
     ) -> Result<()> {
-        self.action_tx = Some(tx);
+        if self.config.ui.show_preview_panel
+            && !matches!(selected_entry.preview_type, PreviewType::None)
+        {
+            // preview content
+            if let Some(preview) = self.previewer.preview(selected_entry, ) {
+                if self.preview_state.preview.title != preview.title {
+                    self.preview_state.update(
+                        preview,
+                        // scroll to center the selected entry
+                        selected_entry
+                            .line_number
+                            .unwrap_or(0)
+                            .saturating_sub(
+                                (self.results_area_height / 2).into(),
+                            )
+                            .try_into()?,
+                        selected_entry
+                            .line_number
+                            .and_then(|l| l.try_into().ok()),
+                    );
+                    self.action_tx.send(Action::Render)?;
+                }
+            }
+        } else {
+            self.preview_state.reset();
+        }
         Ok(())
     }
 
-    fn should_render(&self, action: &Action) -> bool {
-        matches!(
-            action,
-            Action::AddInputChar(_)
-                | Action::DeletePrevChar
-                | Action::DeletePrevWord
-                | Action::DeleteNextChar
-                | Action::GoToPrevChar
-                | Action::GoToNextChar
-                | Action::GoToInputStart
-                | Action::GoToInputEnd
-                | Action::ToggleSelectionDown
-                | Action::ToggleSelectionUp
-                | Action::ConfirmSelection
-                | Action::SelectNextEntry
-                | Action::SelectPrevEntry
-                | Action::SelectNextPage
-                | Action::SelectPrevPage
-                | Action::ScrollPreviewDown
-                | Action::ScrollPreviewUp
-                | Action::ScrollPreviewHalfPageDown
-                | Action::ScrollPreviewHalfPageUp
-                | Action::ToggleRemoteControl
-                | Action::ToggleSendToChannel
-                | Action::ToggleHelp
-                | Action::TogglePreview
-                | Action::CopyEntryToClipboard
-        ) || self.channel.running()
+    pub fn update_results_picker_state(&mut self) {
+        if self.results_picker.selected().is_none()
+            && self.channel.result_count() > 0
+        {
+            self.results_picker.select(Some(0));
+            self.results_picker.relative_select(Some(0));
+        }
+
+        self.results_picker.entries = self.channel.results(
+            self.results_area_height.into(),
+            u32::try_from(self.results_picker.offset()).unwrap(),
+        );
+        self.results_picker.total_items = self.channel.result_count();
     }
 
-    #[allow(clippy::unused_async)]
-    /// Update the state of the component based on a received action.
-    ///
-    /// # Arguments
-    /// * `action` - An action that may modify the state of the television.
-    ///
-    /// # Returns
-    /// * `Result<Option<Action>>` - An action to be processed or none.
-    pub async fn update(&mut self, action: Action) -> Result<Option<Action>> {
+    pub fn update_rc_picker_state(&mut self) {
+        if self.rc_picker.selected().is_none()
+            && self.remote_control.result_count() > 0
+        {
+            self.rc_picker.select(Some(0));
+            self.rc_picker.relative_select(Some(0));
+        }
+
+        self.rc_picker.entries = self.remote_control.results(
+            // this'll be more than the actual rc height but it's fine
+            self.results_area_height.into(),
+            u32::try_from(self.rc_picker.offset()).unwrap(),
+        );
+        self.rc_picker.total_items = self.remote_control.total_count();
+    }
+
+    pub fn handle_input_action(&mut self, action: &Action) {
+        let input = match self.mode {
+            Mode::Channel => &mut self.results_picker.input,
+            Mode::RemoteControl | Mode::SendToChannel => {
+                &mut self.rc_picker.input
+            }
+        };
+        input.handle(convert_action_to_input_request(action).unwrap());
         match action {
-            // handle input actions
+            Action::AddInputChar(_)
+            | Action::DeletePrevChar
+            | Action::DeletePrevWord
+            | Action::DeleteNextChar => {
+                let new_pattern = input.value().to_string();
+                if new_pattern != self.current_pattern {
+                    self.current_pattern.clone_from(&new_pattern);
+                    self.find(&new_pattern);
+                    self.reset_picker_selection();
+                    self.preview_state.reset();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    pub fn handle_toggle_rc(&mut self) {
+        match self.mode {
+            Mode::Channel => {
+                self.mode = Mode::RemoteControl;
+                self.init_remote_control();
+            }
+            Mode::RemoteControl => {
+                // this resets the RC picker
+                self.reset_picker_input();
+                self.init_remote_control();
+                self.remote_control.find(EMPTY_STRING);
+                self.reset_picker_selection();
+                self.mode = Mode::Channel;
+            }
+            Mode::SendToChannel => {}
+        }
+    }
+
+    pub fn handle_toggle_send_to_channel(&mut self) {
+        match self.mode {
+            Mode::Channel | Mode::RemoteControl => {
+                self.mode = Mode::SendToChannel;
+                self.remote_control = TelevisionChannel::RemoteControl(
+                    RemoteControl::with_transitions_from(&self.channel),
+                );
+            }
+            Mode::SendToChannel => {
+                self.reset_picker_input();
+                self.remote_control.find(EMPTY_STRING);
+                self.reset_picker_selection();
+                self.mode = Mode::Channel;
+            }
+        }
+    }
+
+    pub fn handle_toggle_selection(&mut self, action: &Action) {
+        if matches!(self.mode, Mode::Channel) {
+            if let Some(entry) = self.get_selected_entry(None) {
+                self.channel.toggle_selection(&entry);
+                if matches!(action, Action::ToggleSelectionDown) {
+                    self.select_next_entry(1);
+                } else {
+                    self.select_prev_entry(1);
+                }
+            }
+        }
+    }
+
+    pub fn handle_confirm_selection(&mut self) -> Result<()> {
+        match self.mode {
+            Mode::Channel => {
+                self.action_tx.send(Action::SelectAndExit)?;
+            }
+            Mode::RemoteControl => {
+                if let Some(entry) = self.get_selected_entry(None) {
+                    let new_channel =
+                        self.remote_control.zap(entry.name.as_str())?;
+                    // this resets the RC picker
+                    self.reset_picker_selection();
+                    self.reset_picker_input();
+                    self.remote_control.find(EMPTY_STRING);
+                    self.mode = Mode::Channel;
+                    self.change_channel(new_channel);
+                }
+            }
+            Mode::SendToChannel => {
+                if let Some(entry) = self.get_selected_entry(None) {
+                    let new_channel = self
+                        .channel
+                        .transition_to(entry.name.as_str().try_into()?);
+                    self.reset_picker_selection();
+                    self.reset_picker_input();
+                    self.remote_control.find(EMPTY_STRING);
+                    self.mode = Mode::Channel;
+                    self.change_channel(new_channel);
+                }
+            }
+        }
+        Ok(())
+    }
+
+    pub fn handle_copy_entry_to_clipboard(&mut self) {
+        if self.mode == Mode::Channel {
+            if let Some(entries) = self.get_selected_entries(None) {
+                if let Ok(mut ctx) = ClipboardContext::new() {
+                    ctx.set_contents(
+                        entries
+                            .iter()
+                            .map(|e| e.name.clone())
+                            .collect::<Vec<_>>()
+                            .join(" "),
+                    )
+                    .unwrap_or_else(|_| {
+                        error!("Could not copy to clipboard");
+                    });
+                } else {
+                    error!("Could not copy to clipboard");
+                }
+            }
+        }
+    }
+
+    pub fn handle_action(&mut self, action: &Action) -> Result<()> {
+        // handle actions
+        match action {
             Action::AddInputChar(_)
             | Action::DeletePrevChar
             | Action::DeletePrevWord
@@ -329,145 +509,47 @@ impl Television {
             | Action::GoToInputStart
             | Action::GoToNextChar
             | Action::GoToPrevChar => {
-                let input = match self.mode {
-                    Mode::Channel => &mut self.results_picker.input,
-                    Mode::RemoteControl | Mode::SendToChannel => {
-                        &mut self.rc_picker.input
-                    }
-                };
-                input
-                    .handle(convert_action_to_input_request(&action).unwrap());
-                match action {
-                    Action::AddInputChar(_)
-                    | Action::DeletePrevChar
-                    | Action::DeletePrevWord
-                    | Action::DeleteNextChar => {
-                        let new_pattern = input.value().to_string();
-                        if new_pattern != self.current_pattern {
-                            self.current_pattern.clone_from(&new_pattern);
-                            self.find(&new_pattern);
-                            self.reset_picker_selection();
-                            self.reset_preview_scroll();
-                        }
-                    }
-                    _ => {}
-                }
+                self.handle_input_action(action);
             }
             Action::SelectNextEntry => {
-                self.reset_preview_scroll();
+                self.preview_state.reset();
                 self.select_next_entry(1);
             }
             Action::SelectPrevEntry => {
-                self.reset_preview_scroll();
+                self.preview_state.reset();
                 self.select_prev_entry(1);
             }
             Action::SelectNextPage => {
-                self.reset_preview_scroll();
-                self.select_next_entry(self.results_area_height);
+                self.preview_state.reset();
+                self.select_next_entry(self.results_area_height.into());
             }
             Action::SelectPrevPage => {
-                self.reset_preview_scroll();
-                self.select_prev_entry(self.results_area_height);
+                self.preview_state.reset();
+                self.select_prev_entry(self.results_area_height.into());
             }
-            Action::ScrollPreviewDown => self.scroll_preview_down(1),
-            Action::ScrollPreviewUp => self.scroll_preview_up(1),
-            Action::ScrollPreviewHalfPageDown => self.scroll_preview_down(20),
-            Action::ScrollPreviewHalfPageUp => self.scroll_preview_up(20),
-            Action::ToggleRemoteControl => match self.mode {
-                Mode::Channel => {
-                    self.mode = Mode::RemoteControl;
-                    self.init_remote_control();
-                }
-                Mode::RemoteControl => {
-                    // this resets the RC picker
-                    self.reset_picker_input();
-                    self.init_remote_control();
-                    self.remote_control.find(EMPTY_STRING);
-                    self.reset_picker_selection();
-                    self.mode = Mode::Channel;
-                }
-                Mode::SendToChannel => {}
-            },
+            Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
+            Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
+            Action::ScrollPreviewHalfPageDown => {
+                self.preview_state.scroll_down(20);
+            }
+            Action::ScrollPreviewHalfPageUp => {
+                self.preview_state.scroll_up(20);
+            }
+            Action::ToggleRemoteControl => {
+                self.handle_toggle_rc();
+            }
             Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
-                if matches!(self.mode, Mode::Channel) {
-                    if let Some(entry) = self.get_selected_entry(None) {
-                        self.channel.toggle_selection(&entry);
-                        if matches!(action, Action::ToggleSelectionDown) {
-                            self.select_next_entry(1);
-                        } else {
-                            self.select_prev_entry(1);
-                        }
-                    }
-                }
+                self.handle_toggle_selection(action);
             }
             Action::ConfirmSelection => {
-                match self.mode {
-                    Mode::Channel => {
-                        self.action_tx
-                            .as_ref()
-                            .unwrap()
-                            .send(Action::SelectAndExit)?;
-                    }
-                    Mode::RemoteControl => {
-                        if let Some(entry) =
-                            self.get_selected_entry(Some(Mode::RemoteControl))
-                        {
-                            let new_channel = self
-                                .remote_control
-                                .zap(entry.name.as_str())?;
-                            // this resets the RC picker
-                            self.reset_picker_selection();
-                            self.reset_picker_input();
-                            self.remote_control.find(EMPTY_STRING);
-                            self.mode = Mode::Channel;
-                            self.change_channel(new_channel);
-                        }
-                    }
-                    Mode::SendToChannel => {
-                        if let Some(entry) =
-                            self.get_selected_entry(Some(Mode::RemoteControl))
-                        {
-                            let new_channel = self.channel.transition_to(
-                                entry.name.as_str().try_into().unwrap(),
-                            );
-                            self.reset_picker_selection();
-                            self.reset_picker_input();
-                            self.remote_control.find(EMPTY_STRING);
-                            self.mode = Mode::Channel;
-                            self.change_channel(new_channel);
-                        }
-                    }
-                }
+                self.handle_confirm_selection()?;
             }
             Action::CopyEntryToClipboard => {
-                if self.mode == Mode::Channel {
-                    if let Some(entries) = self.get_selected_entries(None) {
-                        let mut ctx = ClipboardContext::new().unwrap();
-                        ctx.set_contents(
-                            entries
-                                .iter()
-                                .map(|e| e.name.clone())
-                                .collect::<Vec<_>>()
-                                .join(" "),
-                        )
-                        .unwrap();
-                    }
-                }
+                self.handle_copy_entry_to_clipboard();
             }
-            Action::ToggleSendToChannel => match self.mode {
-                Mode::Channel | Mode::RemoteControl => {
-                    self.mode = Mode::SendToChannel;
-                    self.remote_control = TelevisionChannel::RemoteControl(
-                        RemoteControl::with_transitions_from(&self.channel),
-                    );
-                }
-                Mode::SendToChannel => {
-                    self.reset_picker_input();
-                    self.remote_control.find(EMPTY_STRING);
-                    self.reset_picker_selection();
-                    self.mode = Mode::Channel;
-                }
-            },
+            Action::ToggleSendToChannel => {
+                self.handle_toggle_send_to_channel();
+            }
             Action::ToggleHelp => {
                 self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
             }
@@ -477,326 +559,44 @@ impl Television {
             }
             _ => {}
         }
+        Ok(())
+    }
 
-        Ok(if self.should_render(&action) {
+    #[allow(clippy::unused_async)]
+    /// Update the television state based on the action provided.
+    ///
+    /// This function may return an Action that'll be processed by the parent `App`.
+    pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
+        if let Ok(Message::ResultListHeightChanged(height)) =
+            self.inner_rx.try_recv()
+        {
+            self.results_area_height = height;
+            self.action_tx.send(Action::Render)?;
+        }
+
+        self.handle_action(action)?;
+
+        self.update_results_picker_state();
+
+        self.update_rc_picker_state();
+
+        let selected_entry = self
+            .get_selected_entry(Some(Mode::Channel))
+            .unwrap_or(ENTRY_PLACEHOLDER);
+        ;
+        self.update_preview_state(&selected_entry)?;
+
+        self.ticks += 1;
+
+        Ok(if self.should_render(action) {
+            if self.channel.running() {
+                self.spinner.tick();
+            }
+            self.ticks = 0;
+
             Some(Action::Render)
         } else {
             None
         })
     }
-
-    /// Render the television on the screen.
-    ///
-    /// # Arguments
-    /// * `f` - A frame used for rendering.
-    /// * `area` - The area in which the television should be drawn.
-    ///
-    /// # Returns
-    /// * `Result<()>` - An Ok result or an error.
-    pub fn draw(&mut self, f: &mut Frame<'_>, area: Rect) -> Result<()> {
-        let selected_entry = self
-            .get_selected_entry(Some(Mode::Channel))
-            .unwrap_or(ENTRY_PLACEHOLDER);
-
-        let layout = Layout::build(
-            &Dimensions::from(self.config.ui.ui_scale),
-            area,
-            !matches!(self.mode, Mode::Channel),
-            self.config.ui.show_help_bar,
-            self.config.ui.show_preview_panel
-                && !matches!(selected_entry.preview_type, PreviewType::None),
-            self.config.ui.input_bar_position,
-        );
-
-        // help bar (metadata, keymaps, logo)
-        draw_help_bar(
-            f,
-            &layout.help_bar,
-            self.current_channel(),
-            build_keybindings_table(
-                &self.config.keybindings.to_displayable(),
-                self.mode,
-                &self.colorscheme,
-            ),
-            self.mode,
-            &self.app_metadata,
-            &self.colorscheme,
-        );
-
-        self.results_area_height =
-            u32::from(layout.results.height.saturating_sub(2)); // 2 for the borders
-        self.preview_pane_height = match layout.preview_window {
-            Some(preview) => preview.height,
-            None => 0,
-        };
-
-        // results list
-        let result_count = self.channel.result_count();
-        if result_count > 0 && self.results_picker.selected().is_none() {
-            self.results_picker.select(Some(0));
-            self.results_picker.relative_select(Some(0));
-        }
-        let entries = self.channel.results(
-            self.results_area_height,
-            u32::try_from(self.results_picker.offset())?,
-        );
-        draw_results_list(
-            f,
-            layout.results,
-            &entries,
-            self.channel.selected_entries(),
-            &mut self.results_picker.relative_state,
-            self.config.ui.input_bar_position,
-            self.config.ui.use_nerd_font_icons,
-            &mut self.icon_color_cache,
-            &self.colorscheme,
-            &self
-                .config
-                .keybindings
-                .get(&self.mode)
-                .unwrap()
-                .get(&Action::ToggleHelp)
-                // just display the first keybinding
-                .unwrap()
-                .to_string(),
-            &self
-                .config
-                .keybindings
-                .get(&self.mode)
-                .unwrap()
-                .get(&Action::TogglePreview)
-                // just display the first keybinding
-                .unwrap()
-                .to_string(),
-        )?;
-
-        // input box
-        draw_input_box(
-            f,
-            layout.input,
-            result_count,
-            self.channel.total_count(),
-            &mut self.results_picker.input,
-            &mut self.results_picker.state,
-            self.channel.running(),
-            &self.spinner,
-            &mut self.spinner_state,
-            &self.colorscheme,
-        )?;
-
-        if self.config.ui.show_preview_panel
-            && !matches!(selected_entry.preview_type, PreviewType::None)
-        {
-            // preview content
-            let maybe_preview = self
-                .previewer
-                .preview(&selected_entry, layout.preview_window);
-
-            let _ = self
-                .previewer
-                .preview(&selected_entry, layout.preview_window);
-
-            if let Some(preview) = &maybe_preview {
-                self.current_preview_total_lines = preview.total_lines;
-                // initialize preview scroll
-                self.maybe_init_preview_scroll(
-                    selected_entry
-                        .line_number
-                        .map(|l| u16::try_from(l).unwrap_or(0)),
-                    layout.preview_window.unwrap().height,
-                );
-            }
-
-            draw_preview_content_block(
-                f,
-                layout.preview_window.unwrap(),
-                &selected_entry,
-                &maybe_preview,
-                &self.rendered_preview_cache,
-                self.preview_scroll.unwrap_or(0),
-                self.config.ui.use_nerd_font_icons,
-                &self.colorscheme,
-            )?;
-        }
-
-        // remote control
-        if matches!(self.mode, Mode::RemoteControl | Mode::SendToChannel) {
-            // NOTE: this should be done in the `update` method
-            let result_count = self.remote_control.result_count();
-            if result_count > 0 && self.rc_picker.selected().is_none() {
-                self.rc_picker.select(Some(0));
-                self.rc_picker.relative_select(Some(0));
-            }
-            let entries = self.remote_control.results(
-                area.height.saturating_sub(2).into(),
-                u32::try_from(self.rc_picker.offset())?,
-            );
-            draw_remote_control(
-                f,
-                layout.remote_control.unwrap(),
-                &entries,
-                self.config.ui.use_nerd_font_icons,
-                &mut self.rc_picker.state,
-                &mut self.rc_picker.input,
-                &mut self.icon_color_cache,
-                &self.mode,
-                &self.colorscheme,
-            )?;
-        }
-        Ok(())
-    }
-
-    pub fn maybe_init_preview_scroll(
-        &mut self,
-        target_line: Option<u16>,
-        height: u16,
-    ) {
-        if self.preview_scroll.is_none() && !self.channel.running() {
-            self.preview_scroll =
-                Some(target_line.unwrap_or(0).saturating_sub(height / 3));
-        }
-    }
-}
-
-impl KeyBindings {
-    pub fn to_displayable(&self) -> FxHashMap<Mode, DisplayableKeybindings> {
-        // channel mode keybindings
-        let channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
-            FxHashMap::from_iter(vec![
-                (
-                    DisplayableAction::ResultsNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::SelectPrevEntry,
-                            Action::SelectNextEntry,
-                            Action::SelectPrevPage,
-                            Action::SelectNextPage,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::PreviewNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::ScrollPreviewHalfPageUp,
-                            Action::ScrollPreviewHalfPageDown,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ConfirmSelection],
-                    ),
-                ),
-                (
-                    DisplayableAction::CopyEntryToClipboard,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::CopyEntryToClipboard],
-                    ),
-                ),
-                (
-                    DisplayableAction::SendToChannel,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleSendToChannel],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleRemoteControl,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleRemoteControl],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleHelpBar,
-                    serialized_keys_for_actions(self, &[Action::ToggleHelp]),
-                ),
-            ]);
-
-        // remote control mode keybindings
-        let remote_control_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::ToggleRemoteControl,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleRemoteControl],
-                ),
-            ),
-        ]);
-
-        // send to channel mode keybindings
-        let send_to_channel_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::Cancel,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleSendToChannel],
-                ),
-            ),
-        ]);
-
-        FxHashMap::from_iter(vec![
-            (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
-            (
-                Mode::RemoteControl,
-                DisplayableKeybindings::new(remote_control_bindings),
-            ),
-            (
-                Mode::SendToChannel,
-                DisplayableKeybindings::new(send_to_channel_bindings),
-            ),
-        ])
-    }
-}
-
-fn serialized_keys_for_actions(
-    keybindings: &KeyBindings,
-    actions: &[Action],
-) -> Vec<String> {
-    actions
-        .iter()
-        .map(|a| {
-            keybindings
-                .get(&Mode::Channel)
-                .unwrap()
-                .get(a)
-                .unwrap()
-                .clone()
-                .to_string()
-        })
-        .collect()
 }

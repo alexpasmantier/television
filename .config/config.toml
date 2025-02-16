@@ -149,52 +149,59 @@ toggle_preview = "ctrl-o"
 # E.g. typing `git checkout <CTRL-T>` will open television with a list of
 # branches to choose from.
 
-[shell_integration.commands]
-# Add your commands here. Each key is a command that will trigger tv with the
-# corresponding channel as value.
-# Example: say you want the following prompts to trigger the following channels
+[shell_integration.channel_triggers]
+# Add your channel triggers here. Each key is a channel that will be triggered
+# by the corresponding commands.
+# Example: say you want the following commands to trigger the following channels
 # when pressing <CTRL-T>:
-#          `git checkout` should trigger the `git-branches` channel
-#          `ls`           should trigger the `dirs` channel
-#          `cat`          should trigger the `files` channel
+#          `git checkout`  should trigger the `git-branches` channel
+#          `ls`            should trigger the `dirs` channel
+#          `cat` and `cp`  should trigger the `files` channel
 #
 # You would add the following to your configuration file:
 # ```
-# [shell_integration.commands]
-# "git checkout" = "git-branch"
-# "ls" = "dirs"
-# "cat" = "files"
+# [shell_integration.channel_triggers]
+# "git-branches" = ["git checkout"]
+# "dirs" = ["ls"]
+# "files" = ["cat", "cp"]
 # ```
+"alias" = ["alias", "unalias"]
+"env" = ["export", "unset"]
+"dirs" = ["cd", "ls", "rmdir"]
+"files" = [
+  "cat",
+  "less",
+  "head",
+  "tail",
+  "vim",
+  "nano",
+  "bat",
+  "cp",
+  "mv",
+  "rm",
+  "touch",
+  "chmod",
+  "chown",
+  "ln",
+  "tar",
+  "zip",
+  "unzip",
+  "gzip",
+  "gunzip",
+  "xz",
+]
+"git-diff" = ["git add", "git restore"]
+"git-branch" = [
+  "git checkout",
+  "git branch",
+  "git merge",
+  "git rebase",
+  "git pull",
+  "git push",
+]
+"docker-images" = ["docker run"]
+"git-repos" = ["nvim", "code", "hx", "git clone"]
 
-# environment variables
-"export" = "env"
-"unset" = "env"
-
-# dirs channel
-"cd" = "dirs"
-"ls" = "dirs"
-"rmdir" = "dirs"
-
-# files channel
-"cat" = "files"
-"less" = "files"
-"head" = "files"
-"tail" = "files"
-"vim" = "files"
-"bat" = "files"
-
-# git-diff channel
-"git add" = "git-diff"
-
-# git-branch channel
-"git checkout" = "git-branch"
-"git branch -d" = "git-branch"
-
-# docker-images channel
-"docker run" = "docker-images"
-
-# gitrepos channel
-"nvim" = "git-repos"
 
 [shell_integration.keybindings]
 # controls which key binding should trigger tv

@@ -1,13 +1,14 @@
 use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
-use crate::screen::mode::Mode;
+use crate::television::Mode;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer};
 use std::fmt::Display;
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Hash)]
 pub enum Binding {
     SingleKey(Key),
     MultipleKeys(Vec<Key>),
@@ -28,8 +29,15 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct KeyBindings(pub FxHashMap<Mode, FxHashMap<Action, Binding>>);
+
+impl Hash for KeyBindings {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // we're not actually using this for hashing, so this really only is a placeholder
+        state.write_u8(0);
+    }
+}
 
 impl Deref for KeyBindings {
     type Target = FxHashMap<Mode, FxHashMap<Action, Binding>>;

@@ -16,7 +16,7 @@ use television::cli::{
     PostProcessedCli,
 };
 
-use television::config::Config;
+use television::config::{Config, ConfigEnv};
 use television::utils::shell::render_autocomplete_script_template;
 use television::utils::{
     shell::{completion_script, Shell},
@@ -31,7 +31,7 @@ async fn main() -> Result<()> {
     let args: PostProcessedCli = Cli::parse().into();
     debug!("{:?}", args);
 
-    let mut config = Config::new()?;
+    let mut config = Config::new(&ConfigEnv::init()?)?;
 
     if let Some(command) = args.command {
         match command {
@@ -57,8 +57,6 @@ async fn main() -> Result<()> {
 
     config.config.tick_rate =
         args.tick_rate.unwrap_or(config.config.tick_rate);
-    config.config.frame_rate =
-        args.frame_rate.unwrap_or(config.config.frame_rate);
     if args.no_preview {
         config.ui.show_preview_panel = false;
     }
