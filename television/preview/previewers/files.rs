@@ -162,6 +162,7 @@ pub fn try_preview(
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
     in_flight_previews: &Arc<Mutex<FxHashSet<String>>>,
+    preview_window: Option<Rect>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let path = PathBuf::from(&entry.name);
@@ -242,6 +243,53 @@ pub fn try_preview(
                         cache.lock().insert(entry.name.clone(), &p);
                     }
                 }
+            }
+            Err(e) => {
+                warn!("Error opening file: {:?}", e);
+                let p = meta::not_supported(&entry.name);
+                cache.lock().insert(entry.name.clone(), &p);
+            }
+        }
+    } else if matches!(FileType::from(&path), FileType::Image) {
+        debug!("File is an image: {:?}", entry.name);
+        let (window_height, window_width) = if let Some(preview_window) =
+            preview_window
+        {
+            // it should be a better way to know the size of the border to remove than this magic number
+            let padding_width = 5;
+            let padding_height = 3;
+            (
+                (preview_window.height - padding_height) * 2,
+                preview_window.width - padding_width * 2,
+            )
+        } else {
+            warn!("Error opening image, impossible to display without information about the size of the preview window");
+            let p = meta::not_supported(&entry.name);
+            cache.lock().insert(entry.name.clone(), &p);
+            return;
+        };
+        match ImageReader::open(path).unwrap().decode() {
+            Ok(image) => {
+                cache.lock().insert(
+                    entry.name.clone(),
+                    &meta::loading(&format!("Loading {}", entry.name)),
+                );
+                let image = Image::from_dynamic_image(
+                    image,
+                    u32::from(window_height),
+                    u32::from(window_width),
+                );
+                let total_lines =
+                    image.pixel_grid.len().try_into().unwrap_or(u16::MAX);
+                let content = PreviewContent::Image(image);
+                let preview = Arc::new(Preview::new(
+                    entry.name.clone(),
+                    content,
+                    entry.icon,
+                    None,
+                    total_lines,
+                ));
+                cache.lock().insert(entry.name.clone(), &preview);
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);

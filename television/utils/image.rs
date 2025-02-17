@@ -3,7 +3,7 @@ use image::DynamicImage;
 
 pub const PIXEL: char = '▀';
 const FILTER: FilterType = FilterType::Triangle;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Hash, PartialEq)]
 pub struct Image {
     pub pixel_grid: Vec<Vec<(ImageColor, ImageColor)>>,
 }
@@ -63,7 +63,7 @@ impl Image {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq)]
 pub struct ImageColor {
     pub r: u8,
     pub g: u8,

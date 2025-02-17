@@ -241,7 +241,7 @@ impl Previewer {
 
         // lookup request stack and return the most recent preview available
         for request in self.requests.back_to_front() {
-            if let Some(preview) = self.dispatch_request(&request) {
+            if let Some(preview) = self.dispatch_request(&request, preview_window) {
                 return Some(preview);
             }
         }

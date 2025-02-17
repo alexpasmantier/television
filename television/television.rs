@@ -20,6 +20,7 @@ use copypasta::{ClipboardContext, ClipboardProvider};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use ratatui::layout::Rect;
 use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
 use tracing::error;
 
@@ -315,7 +316,7 @@ impl Television {
             && !matches!(selected_entry.preview_type, PreviewType::None)
         {
             // preview content
-            if let Some(preview) = self.previewer.preview(selected_entry, ) {
+            if let Some(preview) = self.previewer.preview(selected_entry, Some(Rect::new(0,0,50,50))) {
                 if self.preview_state.preview.title != preview.title {
                     self.preview_state.update(
                         preview,
@@ -583,7 +584,7 @@ impl Television {
         let selected_entry = self
             .get_selected_entry(Some(Mode::Channel))
             .unwrap_or(ENTRY_PLACEHOLDER);
-        ;
+
         self.update_preview_state(&selected_entry)?;
 
         self.ticks += 1;

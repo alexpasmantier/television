@@ -4,7 +4,6 @@ use crate::preview::{
     PREVIEW_NOT_SUPPORTED_MSG, TIMEOUT_MSG,
 };
 use crate::screen::{
-    cache::RenderedPreviewCache,
     colors::{Colorscheme, PreviewColorscheme},
 };
 use crate::utils::strings::{
@@ -20,7 +19,6 @@ use ratatui::{
     prelude::{Color, Line, Modifier, Span, Style, Stylize, Text},
 };
 use std::str::FromStr;
-use std::sync::{Arc, Mutex};
 use crate::utils::image::{Image, ImageColor, PIXEL};
 
 #[allow(dead_code)]
@@ -250,11 +248,11 @@ fn build_syntect_highlighted_paragraph<'a>(
     //.scroll((preview_scroll, 0))
 }
 
-fn build_image_paragraph(
-    image: &Image,
-    preview_block: Block<'_>,
+fn build_image_paragraph<'a>(
+    image: &'a Image,
+    preview_block: Block<'a>,
     colorscheme: PreviewColorscheme,
-) -> Paragraph<'_> {
+) -> Paragraph<'a> {
     let lines = image
         .pixel_grid
         .iter()
