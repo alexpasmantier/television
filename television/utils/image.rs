@@ -12,8 +12,8 @@ const PIXEL: char = '▀';
 const FILTER_TYPE: FilterType = FilterType::Lanczos3;
 
 // use to reduce the size of the image before storing it
-const CACHED_WIDTH: u32 = 256;
-const CACHED_HEIGHT: u32 = 256;
+const CACHED_WIDTH: u32 = 128;
+const CACHED_HEIGHT: u32 = 128;
 
 const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
