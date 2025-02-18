@@ -19,7 +19,7 @@ use ratatui::{
     prelude::{Color, Line, Modifier, Span, Style, Stylize, Text},
 };
 use std::str::FromStr;
-use crate::utils::image::{Image, ImageColor, PIXEL};
+use crate::utils::image::{PIXEL, CachedImageData};
 
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
@@ -98,7 +98,7 @@ pub fn build_preview_paragraph<'a>(
             )
         }
         PreviewContent::Image(image) => {
-            build_image_paragraph(image, preview_block, colorscheme.preview)
+            image.paragraph(inner, preview_block)
         }
 
         // meta
@@ -248,33 +248,6 @@ fn build_syntect_highlighted_paragraph<'a>(
     //.scroll((preview_scroll, 0))
 }
 
-fn build_image_paragraph<'a>(
-    image: &'a Image,
-    preview_block: Block<'a>,
-    colorscheme: PreviewColorscheme,
-) -> Paragraph<'a> {
-    let lines = image
-        .pixel_grid
-        .iter()
-        .enumerate()
-        .map(|(y, double_pixel_line)| {
-            Line::from_iter(double_pixel_line.iter().enumerate().map(
-                |(x, (color_up, color_down))| {
-                    convert_pixel_to_span(
-                        *color_up,
-                        *color_down,
-                        Some(colorscheme.highlight_bg),
-                        (x, y),
-                    )
-                },
-            ))
-        })
-        .collect::<Vec<Line>>();
-    let text_image = Text::from(lines);
-    Paragraph::new(text_image)
-        .block(preview_block)
-        .alignment(Alignment::Center)
-}
 
 pub fn build_meta_preview_paragraph<'a>(
     inner: Rect,
@@ -463,63 +436,4 @@ fn convert_syn_color_to_ratatui_color(
     Color::Rgb(color.r, color.g, color.b)
 }
 
-pub fn convert_pixel_to_span<'a>(
-    color_up: ImageColor,
-    color_down: ImageColor,
-    background: Option<Color>,
-    position: (usize, usize),
-) -> Span<'a> {
-    let bg_color = match background {
-        Some(Color::Rgb(r, g, b)) => Some((r, g, b)),
-        _ => None,
-    };
-    // mean of background and picture
-    let (color_up, color_down) = if let Some(bg_color) = bg_color {
-        let color_up_with_alpha = Color::Rgb(
-            (color_up.r * color_up.a + bg_color.0 * 255 - color_up.a) / 255,
-            (color_up.b * color_up.a + bg_color.1 * 255 - color_up.a) / 255,
-            (color_up.b * color_up.a + bg_color.2 * 255 - color_up.a) / 255,
-        );
-        let color_down_with_alpha = Color::Rgb(
-            (color_down.r * color_down.a + bg_color.0 * 255 - color_down.a)
-                / 255,
-            (color_down.b * color_down.a + bg_color.1 * 255 - color_down.a)
-                / 255,
-            (color_down.b * color_down.a + bg_color.2 * 255 - color_down.a)
-                / 255,
-        );
 
-        (color_up_with_alpha, color_down_with_alpha)
-    } else {
-        let alpha_threshold = 30;
-        let color_up = if color_up.a <= alpha_threshold {
-            if (position.0 + position.1 * 2) % 2 == 0 {
-                ImageColor::WHITE
-            } else {
-                ImageColor::GRAY
-            }
-        } else {
-            color_up
-        };
-        let color_down = if color_down.a <= alpha_threshold {
-            if (position.0 + position.1 * 2 + 1) % 2 == 0 {
-                ImageColor::WHITE
-            } else {
-                ImageColor::GRAY
-            }
-        } else {
-            color_down
-        };
-        (
-            convert_image_color_to_ratatui_color(color_up),
-            convert_image_color_to_ratatui_color(color_down),
-        )
-    };
-    let style = Style::default().fg(color_up).bg(color_down);
-
-    Span::styled(String::from(PIXEL), style)
-}
-
-fn convert_image_color_to_ratatui_color(color: ImageColor) -> Color {
-    Color::Rgb(color.r, color.g, color.b)
-}

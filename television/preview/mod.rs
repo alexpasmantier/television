@@ -10,7 +10,7 @@ pub mod previewers;
 
 // previewer types
 use crate::utils::cache::RingSet;
-use crate::utils::image::Image;
+use crate::utils::image::{CachedImageData};
 use crate::utils::syntax::HighlightedLines;
 pub use previewers::basic::BasicPreviewer;
 pub use previewers::basic::BasicPreviewerConfig;
@@ -32,7 +32,7 @@ pub enum PreviewContent {
     PlainText(Vec<String>),
     PlainTextWrapped(String),
     AnsiText(String),
-    Image(Image),
+    Image(CachedImageData),
 }
 
 impl PreviewContent {
@@ -48,7 +48,7 @@ impl PreviewContent {
                 text.lines().count().try_into().unwrap_or(u16::MAX)
             }
             PreviewContent::Image(image) => {
-                image.pixel_grid.len().try_into().unwrap_or(u16::MAX)
+                image.height().try_into().unwrap_or(u16::MAX)
             }
             _ => 0,
         }
