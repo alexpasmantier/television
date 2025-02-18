@@ -1,6 +1,6 @@
 use std::hash::{Hash, Hasher};
 
-use image::{DynamicImage, Rgba};
+use image::{DynamicImage, Pixel, Rgba};
 
 use image::imageops::FilterType;
 use ratatui::layout::{Alignment, Rect};
@@ -108,23 +108,29 @@ pub fn convert_pixel_to_span<'a>(
     let color_up = color_up.0;
     let color_down = color_down.0;
 
-    // there is no in between, ether it is transparent, either it use the color
-    let alpha_threshold = 30;
-    let color_up = if color_up[3] <= alpha_threshold {
+    let color_up = if color_up[3] != 255 {
         // choose the good color for the background if transparent
         if (position.0 + position.1 * 2) % 2 == 0 {
-            WHITE
+            let mut white = WHITE.clone();
+            white.blend(&Rgba::from(color_up));
+            white
         } else {
-            GRAY
+            let mut gray  = GRAY.clone();
+            gray.blend(&Rgba::from(color_up));
+            gray
         }
     } else {
         Rgba::from(color_up)
     };
-    let color_down = if color_down[3] <= alpha_threshold {
+    let color_down = if color_down[3] != 255 {
         if (position.0 + position.1 * 2 + 1) % 2 == 0 {
-            WHITE
+            let mut white = WHITE.clone();
+            white.blend(&Rgba::from(color_down));
+            white
         } else {
-            GRAY
+            let mut gray  = GRAY.clone();
+            gray.blend(&Rgba::from(color_down));
+            gray
         }
     } else {
         Rgba::from(color_down)
