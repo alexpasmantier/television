@@ -1,6 +1,6 @@
 use crate::utils::files::{read_into_lines_capped, ReadResult};
 use crate::utils::syntax::HighlightedLines;
-use image::{ImageReader};
+use image::ImageReader;
 use parking_lot::Mutex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -18,12 +18,12 @@ use tracing::{debug, trace, warn};
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
 use crate::preview::{previewers::meta, Preview, PreviewContent};
+use crate::utils::image::CachedImageData;
 use crate::utils::{
     files::FileType,
     strings::preprocess_line,
     syntax::{self, load_highlighting_assets, HighlightingAssetsExt},
 };
-use crate::utils::image::CachedImageData;
 
 #[derive(Debug, Default)]
 pub struct FilePreviewer {
@@ -80,20 +80,14 @@ impl FilePreviewer {
         self.cache.lock().get(&entry.name)
     }
 
-    pub fn preview(
-        &mut self,
-        entry: &entry::Entry,
-    ) -> Option<Arc<Preview>> {
+    pub fn preview(&mut self, entry: &entry::Entry) -> Option<Arc<Preview>> {
         if let Some(preview) = self.cached(entry) {
             trace!("Preview cache hit for {:?}", entry.name);
             if preview.partial_offset.is_some() {
                 // preview is partial, spawn a task to compute the next chunk
                 // and return the partial preview
                 debug!("Spawning partial preview task for {:?}", entry.name);
-                self.handle_preview_request(
-                    entry,
-                    Some(preview.clone())
-                );
+                self.handle_preview_request(entry, Some(preview.clone()));
             }
             Some(preview)
         } else {
@@ -107,7 +101,7 @@ impl FilePreviewer {
     pub fn handle_preview_request(
         &mut self,
         entry: &entry::Entry,
-        partial_preview: Option<Arc<Preview>>
+        partial_preview: Option<Arc<Preview>>,
     ) {
         if self.in_flight_previews.lock().contains(&entry.name) {
             trace!("Preview already in flight for {:?}", entry.name);
@@ -252,7 +246,8 @@ pub fn try_preview(
         debug!("File {:?} is an image", entry.name);
         match ImageReader::open(path).unwrap().decode() {
             Ok(image) => {
-                let cached_image_data = CachedImageData::from_dynamic_image(image);
+                let cached_image_data =
+                    CachedImageData::from_dynamic_image(image);
                 let total_lines =
                     cached_image_data.height().try_into().unwrap_or(u16::MAX);
                 let content = PreviewContent::Image(cached_image_data);
@@ -271,7 +266,6 @@ pub fn try_preview(
                 cache.lock().insert(entry.name.clone(), &p);
             }
         }
-
     } else {
         debug!("File isn't text-based: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);

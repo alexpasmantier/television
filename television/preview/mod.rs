@@ -9,7 +9,7 @@ pub mod previewers;
 
 // previewer types
 use crate::utils::cache::RingSet;
-use crate::utils::image::{CachedImageData};
+use crate::utils::image::CachedImageData;
 use crate::utils::syntax::HighlightedLines;
 pub use previewers::basic::BasicPreviewer;
 pub use previewers::basic::BasicPreviewerConfig;
@@ -208,10 +208,7 @@ impl Previewer {
         }
     }
 
-    fn dispatch_request(
-        &mut self,
-        entry: &Entry,
-    ) -> Option<Arc<Preview>> {
+    fn dispatch_request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
         match &entry.preview_type {
             PreviewType::Basic => Some(self.basic.preview(entry)),
             PreviewType::EnvVar => Some(self.env_var.preview(entry)),
@@ -225,10 +222,7 @@ impl Previewer {
     // faster, but since it's already running in the background and quite
     // fast for most standard file sizes, plus we're caching the previews,
     // I'm not sure the extra complexity is worth it.
-    pub fn preview(
-        &mut self,
-        entry: &Entry,
-    ) -> Option<Arc<Preview>> {
+    pub fn preview(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
         // if we haven't acknowledged the request yet, acknowledge it
         self.requests.push(entry.clone());
 

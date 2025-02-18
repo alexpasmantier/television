@@ -3,9 +3,7 @@ use crate::preview::{
     ansi::IntoText, PreviewContent, FILE_TOO_LARGE_MSG, LOADING_MSG,
     PREVIEW_NOT_SUPPORTED_MSG, TIMEOUT_MSG,
 };
-use crate::screen::{
-    colors::{Colorscheme, PreviewColorscheme},
-};
+use crate::screen::colors::{Colorscheme, PreviewColorscheme};
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
@@ -96,9 +94,7 @@ pub fn build_preview_paragraph<'a>(
                 inner.height,
             )
         }
-        PreviewContent::Image(image) => {
-            image.paragraph(inner, preview_block)
-        }
+        PreviewContent::Image(image) => image.paragraph(inner, preview_block),
 
         // meta
         PreviewContent::Loading => {
@@ -246,7 +242,6 @@ fn build_syntect_highlighted_paragraph<'a>(
     .alignment(Alignment::Left)
     //.scroll((preview_scroll, 0))
 }
-
 
 pub fn build_meta_preview_paragraph<'a>(
     inner: Rect,
@@ -434,5 +429,3 @@ fn convert_syn_color_to_ratatui_color(
 ) -> Color {
     Color::Rgb(color.r, color.g, color.b)
 }
-
-
