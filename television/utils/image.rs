@@ -108,33 +108,8 @@ pub fn convert_pixel_to_span<'a>(
     let color_up = color_up.0;
     let color_down = color_down.0;
 
-    let color_up = if color_up[3] != 255 {
-        // choose the good color for the background if transparent
-        if (position.0 + position.1 * 2) % 2 == 0 {
-            let mut white = WHITE.clone();
-            white.blend(&Rgba::from(color_up));
-            white
-        } else {
-            let mut gray  = GRAY.clone();
-            gray.blend(&Rgba::from(color_up));
-            gray
-        }
-    } else {
-        Rgba::from(color_up)
-    };
-    let color_down = if color_down[3] != 255 {
-        if (position.0 + position.1 * 2 + 1) % 2 == 0 {
-            let mut white = WHITE.clone();
-            white.blend(&Rgba::from(color_down));
-            white
-        } else {
-            let mut gray  = GRAY.clone();
-            gray.blend(&Rgba::from(color_down));
-            gray
-        }
-    } else {
-        Rgba::from(color_down)
-    };
+    let color_up = blend_with_background(color_up, position, 0);
+    let color_down = blend_with_background(color_down, position, 1);
 
     let color_up = convert_image_color_to_ratatui_color(color_up);
     let color_down = convert_image_color_to_ratatui_color(color_down);
@@ -143,6 +118,21 @@ pub fn convert_pixel_to_span<'a>(
     Span::styled(String::from(PIXEL), style)
 }
 
+fn blend_with_background(
+    color: impl Into<Rgba<u8>>,
+    position: (usize, usize),
+    offset: usize,
+) -> Rgba<u8> {
+    let color = color.into();
+    if color[3] == 255 {
+        color
+    } else {
+        let is_white = (position.0 + position.1 * 2 + offset) % 2 == 0;
+        let mut base = if is_white { WHITE } else { GRAY };
+        base.blend(&color);
+        base
+    }
+}
 fn convert_image_color_to_ratatui_color(color: Rgba<u8>) -> Color {
     Color::Rgb(color[0], color[1], color[2])
 }
