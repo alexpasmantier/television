@@ -8,7 +8,7 @@ use ratatui::prelude::{Color, Span, Style, Text};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph};
 
-pub const PIXEL: char = '▀';
+const PIXEL: char = '▀';
 const FILTER_TYPE: FilterType = FilterType::Lanczos3;
 
 // use to reduce the size of the image before storing it
@@ -23,13 +23,17 @@ pub struct CachedImageData {
 }
 impl Hash for CachedImageData {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.image.to_rgb8().hash(state);
+        self.image.as_rgb8().expect("to be rgba image").hash(state);
     }
 }
 
 impl CachedImageData {
-    pub fn new(rgba_image: DynamicImage) -> Self {
-        CachedImageData { image: rgba_image }
+    pub fn new(image: DynamicImage) -> Self {
+        //convert the buffer pixels into rgba8
+        let rgba_image = image.into_rgba8();
+        CachedImageData {
+            image: DynamicImage::from(rgba_image),
+        }
     }
 
     pub fn height(&self) -> u32 {
@@ -51,10 +55,7 @@ impl CachedImageData {
         } else {
             dynamic_image
         };
-
-        //convert the buffer pixels into rgba8
-        let rgba_image = resized_image.into_rgba8();
-        CachedImageData::new(DynamicImage::from(rgba_image))
+        CachedImageData::new(resized_image)
     }
     pub fn paragraph<'a>(
         &self,
@@ -71,7 +72,7 @@ impl CachedImageData {
                 .resize(preview_width, preview_height, FILTER_TYPE)
                 .into_rgba8()
         } else {
-            self.image.as_rgba8().expect("to be rgba8 image") // converted into rgba8 before being put into the cache, so it should never enter the expect
+            self.image.as_rgba8().expect("to be rgba image") // converted into rgba8 before being put into the cache, so it should never enter the expect
         };
         // transform it into text
         let lines = image_rgba
@@ -81,17 +82,15 @@ impl CachedImageData {
             .zip(image_rgba.rows().skip(1).step_by(2))
             .enumerate()
             .map(|(double_row_y, (row_1, row_2))| {
-                Line::from_iter(
-                    row_1.into_iter().zip(row_2).enumerate().map(
-                        |(x, (color_up, color_down))| {
-                            convert_pixel_to_span(
-                                color_up,
-                                color_down,
-                                (x, double_row_y),
-                            )
-                        },
-                    ),
-                )
+                Line::from_iter(row_1.into_iter().zip(row_2).enumerate().map(
+                    |(x, (color_up, color_down))| {
+                        convert_pixel_to_span(
+                            color_up,
+                            color_down,
+                            (x, double_row_y),
+                        )
+                    },
+                ))
             })
             .collect::<Vec<Line>>();
         let text_image = Text::from(lines);
