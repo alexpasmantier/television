@@ -19,7 +19,6 @@ use ratatui::{
     prelude::{Color, Line, Modifier, Span, Style, Stylize, Text},
 };
 use std::str::FromStr;
-use crate::utils::image::{PIXEL, CachedImageData};
 
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';

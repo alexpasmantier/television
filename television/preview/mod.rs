@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use crate::channels::entry::{Entry, PreviewType};
 use devicons::FileIcon;
-use ratatui::layout::Rect;
 
 pub mod ansi;
 pub mod cache;
@@ -212,12 +211,11 @@ impl Previewer {
     fn dispatch_request(
         &mut self,
         entry: &Entry,
-        preview_window: Option<Rect>,
     ) -> Option<Arc<Preview>> {
         match &entry.preview_type {
             PreviewType::Basic => Some(self.basic.preview(entry)),
             PreviewType::EnvVar => Some(self.env_var.preview(entry)),
-            PreviewType::Files => self.file.preview(entry, preview_window),
+            PreviewType::Files => self.file.preview(entry),
             PreviewType::Command(cmd) => self.command.preview(entry, cmd),
             PreviewType::None => Some(Arc::new(Preview::default())),
         }
@@ -230,18 +228,17 @@ impl Previewer {
     pub fn preview(
         &mut self,
         entry: &Entry,
-        preview_window: Option<Rect>,
     ) -> Option<Arc<Preview>> {
         // if we haven't acknowledged the request yet, acknowledge it
         self.requests.push(entry.clone());
 
-        if let Some(preview) = self.dispatch_request(entry, preview_window) {
+        if let Some(preview) = self.dispatch_request(entry) {
             return Some(preview);
         }
 
         // lookup request stack and return the most recent preview available
         for request in self.requests.back_to_front() {
-            if let Some(preview) = self.dispatch_request(&request, preview_window) {
+            if let Some(preview) = self.dispatch_request(&request) {
                 return Some(preview);
             }
         }

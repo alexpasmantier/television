@@ -59,8 +59,7 @@ bat = { version = "0.25", default-features = false, features = ["regex-onig"] }
 gag = "1.0"
 nucleo = "0.5"
 toml = "0.8"
-image = "0.25.5"
-fast_image_resize = { version = "5.1.2", features = ["image"]}
+image = "0.25"
 
 
 [target.'cfg(windows)'.dependencies]

@@ -1,24 +1,17 @@
-use std::cmp;
-use std::cmp::max;
 use std::hash::{Hash, Hasher};
 
 
-use image::{DynamicImage, GenericImageView, ImageBuffer, ImageReader, Luma, Rgb, RgbImage, Rgba, RgbaImage};
+use image::{DynamicImage, Rgba };
 
-use fast_image_resize::{ ImageBufferError, ImageView, IntoImageView, PixelType, ResizeAlg, ResizeOptions, Resizer};
-use fast_image_resize::images::Image;
-use fast_image_resize::pixels::{Pixel, U8x3};
-use image::buffer::ConvertBuffer;
-use image::imageops;
+
 use image::imageops::FilterType;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Span, Style, Text};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph};
-use tracing::{debug, trace, warn};
+
 pub const PIXEL: char = '▀';
-pub const PIXEL_TYPE: PixelType = PixelType::U8x4;
-const RESIZE_ALGORITHM: ResizeAlg = ResizeAlg::Convolution(fast_image_resize::FilterType::Lanczos3);
+const FILTER_TYPE: FilterType = FilterType::Lanczos3;
 
 // use to reduce the size of the image before storing it
 const CACHED_WIDTH: u32 = 256;
@@ -51,87 +44,28 @@ impl CachedImageData {
     pub fn from_dynamic_image(
         dynamic_image: DynamicImage,
     ) -> Self {
-        /*
-        let (new_width, new_height) = calculate_fit_dimensions(dynamic_image.width(), dynamic_image.height(), CACHED_WIDTH,CACHED_HEIGHT);
-
-        // fixme resize even if useless and should just change the type
-        let mut dst_image = Image::new(
-                new_width,
-                new_height,
-                dynamic_image.pixel_type()?,
-        );
-
-        let resize_option = ResizeOptions::new().resize_alg(ResizeAlg::Nearest);
-        let mut resizer = Resizer::new();
-        resizer.resize(&dynamic_image, &mut dst_image, Some(&resize_option)).unwrap();
-
-
-        // convert the resized image into rgba
-        let rgba_image: RgbaImage = match dst_image.pixel_type() {
-            PixelType::U8x3 => {
-                let rgb_image: RgbImage = RgbImage::from_raw(new_width, new_height, dst_image.into_vec()).unwrap();
-                rgb_image.convert()
-            }
-            PixelType::U16 => {
-                // Convert `Luma<u16>` to `Rgba<u8>` (downscaling 16-bit to 8-bit)
-                let rgba_pixels: Vec<u8> =  dst_image.into_vec().chunks_exact(2).flat_map(|b| {
-                    let luma16 = u16::from_le_bytes([b[0], b[1]]);
-                    let luma8 = (luma16 >> 8) as u8; // Downscale 16-bit to 8-bit
-                    vec![luma8, luma8, luma8, 255]
-                }).collect();
-                ImageBuffer::from_raw(new_width, new_height, rgba_pixels)
-                    .expect("Failed to create Rgba8 ImageBuffer from Luma16")
-            }
-            PixelType::U8x4 => {
-                // Directly use the buffer since it's already RGBA8
-                ImageBuffer::from_raw(new_width, new_height, dst_image.into_vec())
-                    .expect("Failed to create Rgba8 ImageBuffer from U8x4")
-            }
-            _ => panic!("Unsupported pixel type"),
-        };
-         */
+        // if the image is smaller than the preview window, keep it small
         let resized_image = if dynamic_image.width() > CACHED_WIDTH || dynamic_image.height() > CACHED_HEIGHT {
             dynamic_image.resize(CACHED_WIDTH, CACHED_HEIGHT , FilterType::Nearest)
         } else {
             dynamic_image
         };
+
+        //convert the buffer pixels into rgba8
         let rgba_image = resized_image.into_rgba8();
         CachedImageData::new(DynamicImage::from(rgba_image))
     }
     pub fn paragraph<'a>(&self, inner: Rect, preview_block: Block<'a>) -> Paragraph<'a> {
-        // resize it for the preview window
-        //let mut data = self.image.clone().into_raw();
-        //let src_image = DynamicImage::from(self.image.clone());
-        /*
-        let src_image = if let Some(src_image) = Image::from_slice_u8(self.image.width(), self.image.height(), &mut data, PixelType::U8x4)
-            .map_err(|error| warn!("Failed to resize cached image: {error}"))
-            .ok(){
-            src_image
-        } else {
-            return Paragraph::new(Text::raw("Failed to resize cached image"));
-        };
-
-        let (new_width, new_height) = calculate_fit_dimensions(self.image.width(), self.image.height(), u32::from(inner.width), u32::from(inner.height*2));
-        let mut dst_image = Image::new(
-            new_width,
-            new_height,
-            PixelType::U8x4,
-        );
-        let resize_option = ResizeOptions::new().resize_alg(RESIZE_ALGORITHM);
-        let mut resizer = Resizer::new();
-        resizer.resize(&src_image, &mut dst_image, &Some(resize_option)).unwrap();
-
-        let image_rgba: RgbaImage = ImageBuffer::from_raw( dst_image.width(), dst_image.height(), dst_image.into_vec()).unwrap();
-        */
         let preview_width = u32::from(inner.width);
-        let preview_height = u32::from(inner.height) * 2;
+        let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
         let image_rgba = if self.image.width() > preview_width || self.image.height() > preview_height {
-            self.image.resize(preview_width, preview_height, FilterType::Triangle).to_rgba8()
+            &self.image.resize(preview_width, preview_height, FILTER_TYPE).into_rgba8()
         } else{
-            self.image.to_rgba8()
+            self.image.as_rgba8().expect("to be rgba8 image") // converted into rgba8 before being put into the cache, so it should never enter the expect
         };
         // transform it into text
         let lines = image_rgba
+            // iter over pair of rows
             .rows()
             .step_by(2)
             .zip(image_rgba.rows().skip(1).step_by(2)).enumerate()
@@ -152,119 +86,9 @@ impl CachedImageData {
             .alignment(Alignment::Center)
     }
 
-
 }
 
-/*
-#[derive(Clone, Debug, Hash, PartialEq)]
-pub struct ImageDoublePixel {
-    pub pixel_grid: Vec<Vec<(ImageColor, ImageColor)>>,
-}
-impl ImageDoublePixel {
-    pub fn new(pixel_grid: Vec<Vec<(ImageColor, ImageColor)>>) -> Self {
-        ImageDoublePixel { pixel_grid }
-    }
-    pub fn  from_cached_image(cached_image_data: &CachedImageData,
-                               new_width: u32,
-                               new_height: u32) -> Option<Self>{
-        let mut binding = cached_image_data.data.clone();
-        let src_image = Image::from_slice_u8(cached_image_data.width, cached_image_data.height, &mut binding, cached_image_data.pixel_type)
-            .map_err(|error| warn!("Failed to resize cached image: {error}"))
-            .ok()?;
-        let (new_width, new_height) = calculate_fit_dimensions(cached_image_data.width, cached_image_data.height, new_width, new_height);
-        let mut dst_image = Image::new(
-            new_width,
-            new_height,
-            cached_image_data.pixel_type,
-        );
-        let resize_option = ResizeOptions::new().resize_alg(RESIZE_ALGORITHM);
-        let mut resizer = Resizer::new();
-        resizer.resize(&src_image, &mut dst_image, &Some(resize_option)).unwrap();
-
-
-        match cached_image_data.pixel_type {
-            PixelType::U8x4  => {
-                let rgba_image = ImageBuffer::from_raw(new_width, new_height, dst_image.into_vec())?;
-                Some(Self::from_rgba_image(rgba_image))
-            },
-            _ => {
-                warn!("Unsupported pixel type: {:?}", cached_image_data.pixel_type);
-                println!("Unsupported pixel type: {:?}", cached_image_data.pixel_type);
-                None
-            }
-        }
-
-    }
-
-    pub fn from_rgba_image(
-        image: RgbaImage
-    ) -> Self {
-        let pixel_grid = image
-            .rows()
-            .step_by(2)
-            .zip(image.rows().skip(1).step_by(2))
-            .map(|(row_1, row_2)| {
-                row_1
-                    .zip(row_2)
-                    .map(|(pixel_1, pixel_2)| {
-                        (
-                            ImageColor {
-                                r: pixel_1.0[0],
-                                g: pixel_1.0[1],
-                                b: pixel_1.0[2],
-                                a: pixel_1.0[3],
-                            },
-                            ImageColor {
-                                r: pixel_2.0[0],
-                                g: pixel_2.0[1],
-                                b: pixel_2.0[2],
-                                a: pixel_1.0[3],
-                            },
-                        )
-                    })
-                    .collect::<Vec<(ImageColor, ImageColor)>>()
-            })
-            .collect::<Vec<Vec<(ImageColor, ImageColor)>>>();
-        ImageDoublePixel::new(pixel_grid)
-    }
-
-
-}
- */
-/*
-#[derive(Clone, Copy, Debug, Hash, PartialEq)]
-pub struct ImageColor {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
-}
-impl ImageColor {
-    pub fn new(r: u8, g: u8, b: u8, a: u8) -> Self {
-        ImageColor { r, g, b, a }
-    }
-    pub const BLACK: ImageColor = ImageColor {
-        r: 0,
-        g: 0,
-        b: 0,
-        a: 255,
-    };
-    pub const WHITE: ImageColor = ImageColor {
-        r: 255,
-        g: 255,
-        b: 255,
-        a: 255,
-    };
-    pub const GRAY: ImageColor = ImageColor {
-        r: 242,
-        g: 242,
-        b: 242,
-        a: 255,
-    };
-}
-*/
-
-
+#[allow(dead_code)]
 fn calculate_fit_dimensions(original_width: u32, original_height: u32, max_width: u32, max_height: u32) -> (u32, u32) {
     if original_width <= max_width && original_height <= max_height {
         return (original_width, original_height);
@@ -292,8 +116,10 @@ pub fn convert_pixel_to_span<'a>(
     let color_up = color_up.0;
     let color_down = color_down.0;
 
+    // there is no in between, ether it is transparent, either it use the color
     let alpha_threshold = 30;
     let color_up = if color_up[3] <= alpha_threshold {
+        // choose the good color for the background if transparent
         if (position.0 + position.1 * 2) % 2 == 0 {
             WHITE
         } else {
@@ -312,7 +138,7 @@ pub fn convert_pixel_to_span<'a>(
         Rgba::from(color_down)
     };
 
-    let color_up =     convert_image_color_to_ratatui_color(color_up);
+    let color_up = convert_image_color_to_ratatui_color(color_up);
     let color_down = convert_image_color_to_ratatui_color(color_down);
 
 
@@ -323,5 +149,3 @@ pub fn convert_pixel_to_span<'a>(
 fn convert_image_color_to_ratatui_color(color: Rgba<u8>) -> Color {
     Color::Rgb(color[0], color[1], color[2])
 }
-
-
