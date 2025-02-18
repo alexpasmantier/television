@@ -194,7 +194,7 @@ impl PreviewerConfig {
     }
 }
 
-const REQUEST_STACK_SIZE: usize = 20;
+const REQUEST_STACK_SIZE: usize = 10;
 
 impl Previewer {
     pub fn new(config: Option<PreviewerConfig>) -> Self {

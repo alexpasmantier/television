@@ -141,7 +141,7 @@ impl FilePreviewer {
 
 /// The size of the buffer used to read the file in bytes.
 /// This ends up being the max size of partial previews.
-const PARTIAL_BUFREAD_SIZE: usize = 64 * 1024;
+const PARTIAL_BUFREAD_SIZE: usize = 5 * 1024 * 1024;
 
 pub fn try_preview(
     entry: &entry::Entry,
