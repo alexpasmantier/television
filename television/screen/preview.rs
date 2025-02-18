@@ -94,6 +94,8 @@ pub fn build_preview_paragraph<'a>(
                 inner.height,
             )
         }
+        PreviewContent::Image(image) => image.paragraph(inner, preview_block),
+
         // meta
         PreviewContent::Loading => {
             build_meta_preview_paragraph(inner, LOADING_MSG, FILL_CHAR_EMPTY)
