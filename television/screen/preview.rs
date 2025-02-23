@@ -4,13 +4,17 @@ use crate::preview::{
     PREVIEW_NOT_SUPPORTED_MSG, TIMEOUT_MSG,
 };
 use crate::screen::colors::{Colorscheme, PreviewColorscheme};
+use crate::utils::image::ImagePreviewWidget;
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
 };
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
+use ratatui::buffer::Buffer;
+use ratatui::widgets::{
+    Block, BorderType, Borders, Padding, Paragraph, Widget, Wrap,
+};
 use ratatui::Frame;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -21,6 +25,22 @@ use std::str::FromStr;
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
+
+pub enum PreviewWidget<'a> {
+    Paragraph(Paragraph<'a>),
+    Image(ImagePreviewWidget<'a>),
+}
+impl Widget for PreviewWidget<'_> {
+    fn render(self, area: Rect, buf: &mut Buffer)
+    where
+        Self: Sized,
+    {
+        match self {
+            PreviewWidget::Paragraph(p) => p.render(area, buf),
+            PreviewWidget::Image(image) => image.render(area, buf),
+        }
+    }
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_preview_content_block(
@@ -40,7 +60,7 @@ pub fn draw_preview_content_block(
     )?;
 
     // render the preview content
-    let rp = build_preview_paragraph(
+    let rp = build_preview_widget(
         inner,
         &preview_state.preview.content,
         preview_state.target_line,
@@ -51,13 +71,13 @@ pub fn draw_preview_content_block(
     Ok(())
 }
 
-pub fn build_preview_paragraph<'a>(
+pub fn build_preview_widget<'a>(
     inner: Rect,
     preview_content: &'a PreviewContent,
     target_line: Option<u16>,
     preview_scroll: u16,
     colorscheme: &'a Colorscheme,
-) -> Paragraph<'a> {
+) -> PreviewWidget<'a> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -65,67 +85,79 @@ pub fn build_preview_paragraph<'a>(
             bottom: 0,
             left: 1,
         });
+
     match preview_content {
-        PreviewContent::AnsiText(text) => {
-            build_ansi_text_paragraph(text, preview_block, preview_scroll)
-        }
-        PreviewContent::PlainText(content) => build_plain_text_paragraph(
-            content,
-            preview_block,
-            target_line,
-            preview_scroll,
-            colorscheme.preview,
+        PreviewContent::AnsiText(text) => PreviewWidget::Paragraph(
+            build_ansi_text_paragraph(text, preview_block, preview_scroll),
         ),
-        PreviewContent::PlainTextWrapped(content) => {
+        PreviewContent::PlainText(content) => {
+            PreviewWidget::Paragraph(build_plain_text_paragraph(
+                content,
+                preview_block,
+                target_line,
+                preview_scroll,
+                colorscheme.preview,
+            ))
+        }
+        PreviewContent::PlainTextWrapped(content) => PreviewWidget::Paragraph(
             build_plain_text_wrapped_paragraph(
                 content,
                 preview_block,
                 colorscheme.preview,
             )
-            .scroll((preview_scroll, 0))
-        }
+            .scroll((preview_scroll, 0)),
+        ),
         PreviewContent::SyntectHighlightedText(highlighted_lines) => {
-            build_syntect_highlighted_paragraph(
+            PreviewWidget::Paragraph(build_syntect_highlighted_paragraph(
                 &highlighted_lines.lines,
                 preview_block,
                 target_line,
                 preview_scroll,
                 colorscheme.preview,
                 inner.height,
-            )
+            ))
         }
-        PreviewContent::Image(image) => image.paragraph(inner, preview_block),
+        PreviewContent::Image(image) => PreviewWidget::Image(
+            image.image_preview_widget(inner, preview_block),
+        ),
 
         // meta
-        PreviewContent::Loading => {
+        PreviewContent::Loading => PreviewWidget::Paragraph(
             build_meta_preview_paragraph(inner, LOADING_MSG, FILL_CHAR_EMPTY)
                 .block(preview_block)
                 .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC))
-        }
-        PreviewContent::NotSupported => build_meta_preview_paragraph(
-            inner,
-            PREVIEW_NOT_SUPPORTED_MSG,
-            FILL_CHAR_EMPTY,
-        )
-        .block(preview_block)
-        .alignment(Alignment::Left)
-        .style(Style::default().add_modifier(Modifier::ITALIC)),
-        PreviewContent::FileTooLarge => build_meta_preview_paragraph(
-            inner,
-            FILE_TOO_LARGE_MSG,
-            FILL_CHAR_EMPTY,
-        )
-        .block(preview_block)
-        .alignment(Alignment::Left)
-        .style(Style::default().add_modifier(Modifier::ITALIC)),
-        PreviewContent::Timeout => {
+                .style(Style::default().add_modifier(Modifier::ITALIC)),
+        ),
+        PreviewContent::NotSupported => PreviewWidget::Paragraph(
+            build_meta_preview_paragraph(
+                inner,
+                PREVIEW_NOT_SUPPORTED_MSG,
+                FILL_CHAR_EMPTY,
+            )
+            .block(preview_block)
+            .alignment(Alignment::Left)
+            .style(Style::default().add_modifier(Modifier::ITALIC)),
+        ),
+        PreviewContent::FileTooLarge => PreviewWidget::Paragraph(
+            build_meta_preview_paragraph(
+                inner,
+                FILE_TOO_LARGE_MSG,
+                FILL_CHAR_EMPTY,
+            )
+            .block(preview_block)
+            .alignment(Alignment::Left)
+            .style(Style::default().add_modifier(Modifier::ITALIC)),
+        ),
+
+        PreviewContent::Timeout => PreviewWidget::Paragraph(
             build_meta_preview_paragraph(inner, TIMEOUT_MSG, FILL_CHAR_EMPTY)
+                .block(preview_block)
+                .alignment(Alignment::Left)
+                .style(Style::default().add_modifier(Modifier::ITALIC)),
+        ),
+        PreviewContent::Empty => {
+            PreviewWidget::Paragraph(Paragraph::new(Text::raw(EMPTY_STRING)))
         }
-        .block(preview_block)
-        .alignment(Alignment::Left)
-        .style(Style::default().add_modifier(Modifier::ITALIC)),
-        PreviewContent::Empty => Paragraph::new(Text::raw(EMPTY_STRING)),
     }
 }
 
