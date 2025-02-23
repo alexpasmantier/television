@@ -1,10 +1,12 @@
 pub mod cache;
+pub mod clipboard;
 pub mod command;
 pub mod files;
 pub mod hashmaps;
 pub mod indices;
 pub mod input;
 pub mod metadata;
+pub mod rocell;
 pub mod shell;
 pub mod stdin;
 pub mod strings;
