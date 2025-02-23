@@ -125,7 +125,7 @@ impl Clipboard {
             }
             drop(stdin);
 
-            if child.wait().await.map(|s| s.success()).unwrap_or_default() {
+            if child.wait().await.is_ok_and(|s| s.success()) {
                 break;
             }
         }
