@@ -1,12 +1,12 @@
-use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
-use std::sync::{Arc, Mutex};
-use image::{DynamicImage, GenericImageView, Pixel, Rgba, RgbaImage};
 use image::imageops::FilterType;
+use image::{DynamicImage, GenericImageView, Pixel, Rgba, RgbaImage};
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Span, Style, Text};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Paragraph};
+use std::fmt::Debug;
+use std::hash::{Hash, Hasher};
+use std::sync::{Arc, Mutex};
 
 const PIXEL: char = '▀';
 const FILTER_TYPE: FilterType = FilterType::Lanczos3;
@@ -17,7 +17,6 @@ const CACHED_HEIGHT: u32 = 128;
 
 const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
-
 
 struct Cache {
     area: Rect,
@@ -36,7 +35,8 @@ impl Hash for CachedImageData {
 impl Debug for CachedImageData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CachedImageData")
-            .field("image", &self.image.dimensions())  // Show dimensions instead of full image
+            .field("dimensions", &self.image.dimensions()) // Show dimensions instead of full image
+            .field("inner_cache", &self.inner_cache.lock().unwrap().is_some()) // Indicate if cache exists
             .finish()
     }
 }
@@ -75,7 +75,6 @@ impl CachedImageData {
         } else {
             *mutex_cache = Some(Cache { area, image });
         };
-
     }
     pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Self {
         // if the image is smaller than the preview window, keep it small
@@ -92,7 +91,7 @@ impl CachedImageData {
         };
         CachedImageData::new(resized_image)
     }
-    fn text_from_rgba_image_ref(image_rgba: &RgbaImage) -> Text<'static>{
+    fn text_from_rgba_image_ref(image_rgba: &RgbaImage) -> Text<'static> {
         let lines = image_rgba
             // iter over pair of rows
             .rows()
@@ -113,8 +112,6 @@ impl CachedImageData {
             .collect::<Vec<Line>>();
 
         Text::from(lines).centered()
-
-
     }
     pub fn paragraph<'a>(
         &self,
@@ -123,13 +120,14 @@ impl CachedImageData {
     ) -> Paragraph<'a> {
         let preview_width = u32::from(inner.width);
         let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
-        let text_image = if self.cache().lock().unwrap().is_none() || self.cache().lock().unwrap().as_ref().unwrap().area != inner {
+        let text_image = if self.cache().lock().unwrap().is_none()
+            || self.cache().lock().unwrap().as_ref().unwrap().area != inner
+        {
             let image_rgba = if self.image.width() > preview_width
                 || self.image.height() > preview_height
             {
                 //warn!("===========================");
-                self
-                    .image
+                self.image
                     .resize(preview_width, preview_height, FILTER_TYPE)
                     .into_rgba8()
             } else {
@@ -141,7 +139,6 @@ impl CachedImageData {
             // cached resized image
             self.set_cache(inner, image_rgba);
             text
-
         } else {
             let cache = self.cache().lock().unwrap();
             let image = &cache.as_ref().unwrap().image;
