@@ -1,7 +1,7 @@
+use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-
-use image::{DynamicImage, Pixel, Rgba};
-
+use std::sync::{Arc, Mutex};
+use image::{DynamicImage, GenericImageView, Pixel, Rgba, RgbaImage};
 use image::imageops::FilterType;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Span, Style, Text};
@@ -17,13 +17,33 @@ const CACHED_HEIGHT: u32 = 128;
 
 const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
-#[derive(Clone, Debug, PartialEq)]
+
+
+struct Cache {
+    area: Rect,
+    image: RgbaImage,
+}
+#[derive(Clone)]
 pub struct CachedImageData {
     image: DynamicImage,
+    inner_cache: Arc<Mutex<Option<Cache>>>,
 }
 impl Hash for CachedImageData {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.image.as_rgb8().expect("to be rgba image").hash(state);
+    }
+}
+impl Debug for CachedImageData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CachedImageData")
+            .field("image", &self.image.dimensions())  // Show dimensions instead of full image
+            .finish()
+    }
+}
+
+impl PartialEq for CachedImageData {
+    fn eq(&self, other: &Self) -> bool {
+        self.image.eq(&other.image)
     }
 }
 
@@ -33,6 +53,7 @@ impl CachedImageData {
         let rgba_image = image.into_rgba8();
         CachedImageData {
             image: DynamicImage::from(rgba_image),
+            inner_cache: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -41,6 +62,20 @@ impl CachedImageData {
     }
     pub fn width(&self) -> u32 {
         self.image.width()
+    }
+
+    fn cache(&self) -> &Arc<Mutex<Option<Cache>>> {
+        &self.inner_cache
+    }
+    pub fn set_cache(&self, area: Rect, image: RgbaImage) {
+        let mut mutex_cache = self.cache().lock().unwrap();
+        if let Some(cache) = mutex_cache.as_mut() {
+            cache.area = area;
+            cache.image = image;
+        } else {
+            *mutex_cache = Some(Cache { area, image });
+        };
+
     }
     pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Self {
         // if the image is smaller than the preview window, keep it small
@@ -57,24 +92,7 @@ impl CachedImageData {
         };
         CachedImageData::new(resized_image)
     }
-    pub fn paragraph<'a>(
-        &self,
-        inner: Rect,
-        preview_block: Block<'a>,
-    ) -> Paragraph<'a> {
-        let preview_width = u32::from(inner.width);
-        let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
-        let image_rgba = if self.image.width() > preview_width
-            || self.image.height() > preview_height
-        {
-            &self
-                .image
-                .resize(preview_width, preview_height, FILTER_TYPE)
-                .into_rgba8()
-        } else {
-            self.image.as_rgba8().expect("to be rgba image") // converted into rgba8 before being put into the cache, so it should never enter the expect
-        };
-        // transform it into text
+    fn text_from_rgba_image_ref(image_rgba: &RgbaImage) -> Text<'static>{
         let lines = image_rgba
             // iter over pair of rows
             .rows()
@@ -93,7 +111,42 @@ impl CachedImageData {
                 ))
             })
             .collect::<Vec<Line>>();
-        let text_image = Text::from(lines);
+
+        Text::from(lines).centered()
+
+
+    }
+    pub fn paragraph<'a>(
+        &self,
+        inner: Rect,
+        preview_block: Block<'a>,
+    ) -> Paragraph<'a> {
+        let preview_width = u32::from(inner.width);
+        let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
+        let text_image = if self.cache().lock().unwrap().is_none() || self.cache().lock().unwrap().as_ref().unwrap().area != inner {
+            let image_rgba = if self.image.width() > preview_width
+                || self.image.height() > preview_height
+            {
+                //warn!("===========================");
+                self
+                    .image
+                    .resize(preview_width, preview_height, FILTER_TYPE)
+                    .into_rgba8()
+            } else {
+                self.image.to_rgba8()
+            };
+
+            // transform it into text
+            let text = Self::text_from_rgba_image_ref(&image_rgba);
+            // cached resized image
+            self.set_cache(inner, image_rgba);
+            text
+
+        } else {
+            let cache = self.cache().lock().unwrap();
+            let image = &cache.as_ref().unwrap().image;
+            Self::text_from_rgba_image_ref(image)
+        };
         Paragraph::new(text_image)
             .block(preview_block)
             .alignment(Alignment::Center)
