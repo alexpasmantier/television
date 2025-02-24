@@ -5,34 +5,27 @@ use ratatui::layout::{Position, Rect};
 use ratatui::prelude::Color;
 use ratatui::widgets::Widget;
 use std::fmt::Debug;
-use std::hash::{Hash, Hasher};
+use std::hash::Hash;
 
 static PIXEL_STRING: &str = "▀";
-const FILTER_TYPE: FilterType = FilterType::Triangle;
+const FILTER_TYPE: FilterType = FilterType::Lanczos3;
 
 // use to reduce the size of the image before storing it
-const CACHED_WIDTH: u32 = 128;
-const CACHED_HEIGHT: u32 = 128;
+const CACHED_WIDTH: u32 = 50;
+const CACHED_HEIGHT: u32 = 100;
 
 const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
 
+#[derive(Clone, Debug, Hash, PartialEq)]
 pub struct ImagePreviewWidget {
     cells: Vec<Vec<Cell>>,
-}
-impl ImagePreviewWidget {
-    pub fn new(cells: Vec<Vec<Cell>>) -> ImagePreviewWidget {
-        ImagePreviewWidget { cells }
-    }
 }
 
 impl Widget for &ImagePreviewWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let height = self.cells.len();
-        if height == 0 {
-            return;
-        }
-        let width = self.cells[0].len();
+        let height = self.height();
+        let width = self.width();
         // offset of the left top corner where the image is centered
         let total_width = usize::from(area.width) + 2 * usize::from(area.x);
         let x_offset = total_width.saturating_sub(width) / 2;
@@ -45,11 +38,11 @@ impl Widget for &ImagePreviewWidget {
             (area.x, area.x + area.width);
         for (y, row) in self.cells.iter().enumerate() {
             let pos_y = u16::try_from(y_offset + y).unwrap_or(u16::MAX);
-            if pos_y >= area_border_up && pos_y < area_border_down{
+            if pos_y >= area_border_up && pos_y < area_border_down {
                 for (x, cell) in row.iter().enumerate() {
-                    let pos_x = u16::try_from(x_offset + x).unwrap_or(u16::MAX);
-                    if pos_x >= area_border_left && pos_x < area_border_right
-                    {
+                    let pos_x =
+                        u16::try_from(x_offset + x).unwrap_or(u16::MAX);
+                    if pos_x >= area_border_left && pos_x < area_border_right {
                         if let Some(buf_cell) =
                             buf.cell_mut(Position::new(pos_x, pos_y))
                         {
@@ -61,63 +54,51 @@ impl Widget for &ImagePreviewWidget {
         }
     }
 }
-#[derive(Clone, PartialEq, Debug)]
-pub struct CachedImageData {
-    image: DynamicImage,
-}
-impl Hash for CachedImageData {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.image.as_rgb8().expect("to be rgba image").hash(state);
+impl ImagePreviewWidget {
+    pub fn new(cells: Vec<Vec<Cell>>) -> ImagePreviewWidget {
+        ImagePreviewWidget { cells }
     }
-}
 
-impl CachedImageData {
-    pub fn new(image: DynamicImage) -> Self {
-        //convert the buffer pixels into rgba8
-        let rgba_image = image.into_rgba8();
-        CachedImageData {
-            image: DynamicImage::from(rgba_image),
+    pub fn height(&self) -> usize {
+        self.cells.len()
+    }
+    pub fn width(&self) -> usize {
+        if self.height() > 0 {
+            self.cells[0].len()
+        } else {
+            0
         }
     }
 
-    pub fn height(&self) -> u32 {
-        self.image.height()
-    }
-    pub fn width(&self) -> u32 {
-        self.image.width()
-    }
     pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Self {
-        // if the image is smaller than the preview window, keep it small
-        let resized_image = if dynamic_image.width() > CACHED_WIDTH
-            || dynamic_image.height() > CACHED_HEIGHT
+        // first quick resize
+        let big_resized_image = if dynamic_image.width() > CACHED_WIDTH * 4
+            || dynamic_image.height() > CACHED_HEIGHT * 4
         {
             dynamic_image.resize(
-                CACHED_WIDTH,
-                CACHED_HEIGHT,
+                CACHED_WIDTH * 4,
+                CACHED_HEIGHT * 4,
                 FilterType::Nearest,
             )
         } else {
             dynamic_image
         };
-        CachedImageData::new(resized_image)
-    }
-    pub fn image_preview_widget(&self, inner: Rect) -> ImagePreviewWidget {
-        ImagePreviewWidget::new(self.cells_for_area(inner))
-    }
-    pub fn cells_for_area(&self, inner: Rect) -> Vec<Vec<Cell>> {
-        // size of the available area
-        let preview_width = u32::from(inner.width);
-        let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
-                                                          // resize if it doesn't fit in
-        let image_rgba = if self.image.width() > preview_width
-            || self.image.height() > preview_height
+        // this time resize with the filter
+        let resized_image = if big_resized_image.width() > CACHED_WIDTH
+            || big_resized_image.height() > CACHED_HEIGHT
         {
-            self.image
-                .resize(preview_width, preview_height, FILTER_TYPE)
-                .into_rgba8()
+            big_resized_image.resize(CACHED_WIDTH, CACHED_HEIGHT, FILTER_TYPE)
         } else {
-            self.image.to_rgba8()
+            big_resized_image
         };
+
+        let cells = Self::cells_from_dynamic_image(resized_image);
+        ImagePreviewWidget::new(cells)
+    }
+
+    fn cells_from_dynamic_image(image: DynamicImage) -> Vec<Vec<Cell>> {
+        let image_rgba = image.into_rgba8();
+
         //creation of the grid of cell
         image_rgba
             // iter over pair of rows

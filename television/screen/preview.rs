@@ -67,6 +67,7 @@ pub fn draw_preview_content_block(
         colorscheme,
     );
     f.render_widget(rp, inner);
+
     Ok(())
 }
 
@@ -116,9 +117,7 @@ pub fn build_preview_widget<'a>(
                 inner.height,
             ))
         }
-        PreviewContent::Image(image) => {
-            PreviewWidget::Image(image.image_preview_widget(inner))
-        }
+        PreviewContent::Image(image) => PreviewWidget::Image(image.clone()),
 
         // meta
         PreviewContent::Loading => PreviewWidget::Paragraph(

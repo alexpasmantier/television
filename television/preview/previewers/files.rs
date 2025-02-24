@@ -18,7 +18,7 @@ use tracing::{debug, trace, warn};
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
 use crate::preview::{previewers::meta, Preview, PreviewContent};
-use crate::utils::image::CachedImageData;
+use crate::utils::image::ImagePreviewWidget;
 use crate::utils::{
     files::FileType,
     strings::preprocess_line,
@@ -246,11 +246,13 @@ pub fn try_preview(
         debug!("File {:?} is an image", entry.name);
         match ImageReader::open(path).unwrap().decode() {
             Ok(image) => {
-                let cached_image_data =
-                    CachedImageData::from_dynamic_image(image);
-                let total_lines =
-                    cached_image_data.height().try_into().unwrap_or(u16::MAX);
-                let content = PreviewContent::Image(cached_image_data);
+                let image_preview_widget =
+                    ImagePreviewWidget::from_dynamic_image(image);
+                let total_lines = image_preview_widget
+                    .height()
+                    .try_into()
+                    .unwrap_or(u16::MAX);
+                let content = PreviewContent::Image(image_preview_widget);
                 let preview = Arc::new(Preview::new(
                     entry.name.clone(),
                     content,
