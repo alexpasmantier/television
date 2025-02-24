@@ -28,7 +28,7 @@ const FILL_CHAR_EMPTY: char = ' ';
 
 pub enum PreviewWidget<'a> {
     Paragraph(Paragraph<'a>),
-    Image(ImagePreviewWidget<'a>),
+    Image(ImagePreviewWidget),
 }
 impl Widget for PreviewWidget<'_> {
     fn render(self, area: Rect, buf: &mut Buffer)
@@ -58,7 +58,6 @@ pub fn draw_preview_content_block(
         &preview_state.preview.title,
         use_nerd_font_icons,
     )?;
-
     // render the preview content
     let rp = build_preview_widget(
         inner,
@@ -117,9 +116,9 @@ pub fn build_preview_widget<'a>(
                 inner.height,
             ))
         }
-        PreviewContent::Image(image) => PreviewWidget::Image(
-            image.image_preview_widget(inner, preview_block),
-        ),
+        PreviewContent::Image(image) => {
+            PreviewWidget::Image(image.image_preview_widget(inner))
+        }
 
         // meta
         PreviewContent::Loading => PreviewWidget::Paragraph(

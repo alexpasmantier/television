@@ -3,7 +3,7 @@ use image::{DynamicImage, GenericImageView, Pixel, Rgba};
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::{Position, Rect};
 use ratatui::prelude::Color;
-use ratatui::widgets::{Block, Widget};
+use ratatui::widgets::Widget;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::{Arc, Mutex};
@@ -18,35 +18,27 @@ const CACHED_HEIGHT: u32 = 128;
 const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
 
-pub struct ImagePreviewWidget<'a> {
-    block: Block<'a>,
+pub struct ImagePreviewWidget {
     displayed_image: Arc<Mutex<Option<DisplayedImage>>>,
 }
-impl<'a> ImagePreviewWidget<'a> {
+impl ImagePreviewWidget {
     pub fn new(
         displayed_image: Arc<Mutex<Option<DisplayedImage>>>,
-        block: ratatui::widgets::Block<'a>,
-    ) -> ImagePreviewWidget<'a> {
-        ImagePreviewWidget {
-            block,
-            displayed_image,
-        }
+    ) -> ImagePreviewWidget {
+        ImagePreviewWidget { displayed_image }
     }
 }
-impl Widget for ImagePreviewWidget<'_> {
+impl Widget for ImagePreviewWidget {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
-        // I also put the render of the block to be similar has the preview paragraph, but I believe they are both useless since the block is already rendered
-        let inner = self.block.inner(area);
-        self.block.render(area, buf);
         self.displayed_image
             .lock()
             .unwrap()
             .as_ref()
             .unwrap()
-            .render(inner, buf);
+            .render(area, buf);
     }
 }
 
@@ -64,16 +56,27 @@ impl Widget for &DisplayedImage {
         }
         let width = self.cells[0].len();
         // offset of the left top corner where the image is centered
-        let x_offset = (usize::from(area.width + 2 * area.x) - width) / 2;
-        let y_offset = (usize::from(area.height + 2 * area.y) - height) / 2;
+        let total_width = usize::from(area.width) + 2 * usize::from(area.x);
+        let x_offset = total_width.saturating_sub(width) / 2;
+        let total_height = usize::from(area.height) + 2 * usize::from(area.y);
+        let y_offset = total_height.saturating_sub(height) / 2;
 
+        let (area_border_up, area_border_down) =
+            (area.y, area.y + area.height);
+        let (area_border_left, area_border_right) =
+            (area.x, area.x + area.width);
         for (y, row) in self.cells.iter().enumerate() {
             for (x, cell) in row.iter().enumerate() {
-                if let Some(buf_cell) = buf.cell_mut(Position::new(
-                    u16::try_from(x_offset + x).unwrap_or(u16::MAX),
-                    u16::try_from(y_offset + y).unwrap_or(u16::MAX),
-                )) {
-                    *buf_cell = cell.clone();
+                let pos_x = u16::try_from(x_offset + x).unwrap_or(u16::MAX);
+                let pos_y = u16::try_from(y_offset + y).unwrap_or(u16::MAX);
+                if (pos_y >= area_border_up && pos_y < area_border_down)
+                    && (pos_x >= area_border_left && pos_x < area_border_right)
+                {
+                    if let Some(buf_cell) =
+                        buf.cell_mut(Position::new(pos_x, pos_y))
+                    {
+                        *buf_cell = cell.clone();
+                    }
                 }
             }
         }
@@ -148,11 +151,7 @@ impl CachedImageData {
         };
         CachedImageData::new(resized_image)
     }
-    pub fn image_preview_widget<'a>(
-        &self,
-        inner: Rect,
-        preview_block: Block<'a>,
-    ) -> ImagePreviewWidget<'a> {
+    pub fn image_preview_widget(&self, inner: Rect) -> ImagePreviewWidget {
         // inner has to be the inner of the preview_block given
 
         // if nothing in the cache of the image, or the area has changed, generate a new image to be displayed and cache it
@@ -161,14 +160,13 @@ impl CachedImageData {
         {
             self.set_cache(inner, self.cells_for_area(inner));
         }
-        ImagePreviewWidget::new(self.inner_cache.clone(), preview_block)
+        ImagePreviewWidget::new(self.inner_cache.clone())
     }
     pub fn cells_for_area(&self, inner: Rect) -> Vec<Vec<Cell>> {
         // size of the available area
         let preview_width = u32::from(inner.width);
         let preview_height = u32::from(inner.height) * 2; // *2 because 2 pixels per character
-
-        // resize if it doesn't fit in
+                                                          // resize if it doesn't fit in
         let image_rgba = if self.image.width() > preview_width
             || self.image.height() > preview_height
         {
