@@ -13,15 +13,14 @@ use crate::preview::{PreviewState, Previewer};
 use crate::screen::colors::Colorscheme;
 use crate::screen::layout::InputPosition;
 use crate::screen::spinner::{Spinner, SpinnerState};
+use crate::utils::clipboard::CLIPBOARD;
 use crate::utils::metadata::AppMetadata;
 use crate::utils::strings::EMPTY_STRING;
 use anyhow::Result;
-use copypasta::{ClipboardContext, ClipboardProvider};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
-use tracing::error;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -480,20 +479,13 @@ impl Television {
     pub fn handle_copy_entry_to_clipboard(&mut self) {
         if self.mode == Mode::Channel {
             if let Some(entries) = self.get_selected_entries(None) {
-                if let Ok(mut ctx) = ClipboardContext::new() {
-                    ctx.set_contents(
-                        entries
-                            .iter()
-                            .map(|e| e.name.clone())
-                            .collect::<Vec<_>>()
-                            .join(" "),
-                    )
-                    .unwrap_or_else(|_| {
-                        error!("Could not copy to clipboard");
-                    });
-                } else {
-                    error!("Could not copy to clipboard");
-                }
+                let copied_string = entries
+                    .iter()
+                    .map(|e| e.name.clone())
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                tokio::spawn(CLIPBOARD.set(copied_string));
             }
         }
     }

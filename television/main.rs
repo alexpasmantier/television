@@ -5,6 +5,7 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
 use television::app::App;
@@ -76,6 +77,8 @@ async fn main() -> Result<()> {
         }
         env::set_current_dir(path)?;
     }
+
+    CLIPBOARD.with(<_>::default);
 
     match App::new(
         {
