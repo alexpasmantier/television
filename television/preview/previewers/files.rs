@@ -1,5 +1,6 @@
 use crate::utils::files::{read_into_lines_capped, ReadResult};
 use crate::utils::syntax::HighlightedLines;
+use image::ImageReader;
 use parking_lot::Mutex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -17,6 +18,7 @@ use tracing::{debug, trace, warn};
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
 use crate::preview::{previewers::meta, Preview, PreviewContent};
+use crate::utils::image::ImagePreviewWidget;
 use crate::utils::{
     files::FileType,
     strings::preprocess_line,
@@ -229,6 +231,36 @@ pub fn try_preview(
                         cache.lock().insert(entry.name.clone(), &p);
                     }
                 }
+            }
+            Err(e) => {
+                warn!("Error opening file: {:?}", e);
+                let p = meta::not_supported(&entry.name);
+                cache.lock().insert(entry.name.clone(), &p);
+            }
+        }
+    } else if matches!(FileType::from(&path), FileType::Image) {
+        cache.lock().insert(
+            entry.name.clone(),
+            &meta::loading(&format!("Loading {}", entry.name)),
+        );
+        debug!("File {:?} is an image", entry.name);
+        match ImageReader::open(path).unwrap().decode() {
+            Ok(image) => {
+                let image_preview_widget =
+                    ImagePreviewWidget::from_dynamic_image(image);
+                let total_lines = image_preview_widget
+                    .height()
+                    .try_into()
+                    .unwrap_or(u16::MAX);
+                let content = PreviewContent::Image(image_preview_widget);
+                let preview = Arc::new(Preview::new(
+                    entry.name.clone(),
+                    content,
+                    entry.icon,
+                    None,
+                    total_lines,
+                ));
+                cache.lock().insert(entry.name.clone(), &preview);
             }
             Err(e) => {
                 warn!("Error opening file: {:?}", e);
