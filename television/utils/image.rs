@@ -152,8 +152,6 @@ impl CachedImageData {
         CachedImageData::new(resized_image)
     }
     pub fn image_preview_widget(&self, inner: Rect) -> ImagePreviewWidget {
-        // inner has to be the inner of the preview_block given
-
         // if nothing in the cache of the image, or the area has changed, generate a new image to be displayed and cache it
         if self.cache().lock().unwrap().is_none()
             || self.cache().lock().unwrap().as_ref().unwrap().area != inner
