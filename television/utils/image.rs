@@ -1,15 +1,14 @@
 use image::imageops::FilterType;
-use image::{DynamicImage, GenericImageView, Pixel, Rgba};
+use image::{DynamicImage, Pixel, Rgba};
 use ratatui::buffer::{Buffer, Cell};
 use ratatui::layout::{Position, Rect};
 use ratatui::prelude::Color;
 use ratatui::widgets::Widget;
 use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
-use std::sync::{Arc, Mutex};
 
 static PIXEL_STRING: &str = "▀";
-const FILTER_TYPE: FilterType = FilterType::Lanczos3;
+const FILTER_TYPE: FilterType = FilterType::Triangle;
 
 // use to reduce the size of the image before storing it
 const CACHED_WIDTH: u32 = 128;
@@ -19,36 +18,15 @@ const GRAY: Rgba<u8> = Rgba([242, 242, 242, 255]);
 const WHITE: Rgba<u8> = Rgba([255, 255, 255, 255]);
 
 pub struct ImagePreviewWidget {
-    displayed_image: Arc<Mutex<Option<DisplayedImage>>>,
-}
-impl ImagePreviewWidget {
-    pub fn new(
-        displayed_image: Arc<Mutex<Option<DisplayedImage>>>,
-    ) -> ImagePreviewWidget {
-        ImagePreviewWidget { displayed_image }
-    }
-}
-impl Widget for ImagePreviewWidget {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        self.displayed_image
-            .lock()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .render(area, buf);
-    }
-}
-
-#[derive(Default)]
-pub struct DisplayedImage {
-    pub area: Rect,
     cells: Vec<Vec<Cell>>,
 }
+impl ImagePreviewWidget {
+    pub fn new(cells: Vec<Vec<Cell>>) -> ImagePreviewWidget {
+        ImagePreviewWidget { cells }
+    }
+}
 
-impl Widget for &DisplayedImage {
+impl Widget for &ImagePreviewWidget {
     fn render(self, area: Rect, buf: &mut Buffer) {
         let height = self.cells.len();
         if height == 0 {
@@ -66,44 +44,30 @@ impl Widget for &DisplayedImage {
         let (area_border_left, area_border_right) =
             (area.x, area.x + area.width);
         for (y, row) in self.cells.iter().enumerate() {
-            for (x, cell) in row.iter().enumerate() {
-                let pos_x = u16::try_from(x_offset + x).unwrap_or(u16::MAX);
-                let pos_y = u16::try_from(y_offset + y).unwrap_or(u16::MAX);
-                if (pos_y >= area_border_up && pos_y < area_border_down)
-                    && (pos_x >= area_border_left && pos_x < area_border_right)
-                {
-                    if let Some(buf_cell) =
-                        buf.cell_mut(Position::new(pos_x, pos_y))
+            let pos_y = u16::try_from(y_offset + y).unwrap_or(u16::MAX);
+            if pos_y >= area_border_up && pos_y < area_border_down{
+                for (x, cell) in row.iter().enumerate() {
+                    let pos_x = u16::try_from(x_offset + x).unwrap_or(u16::MAX);
+                    if pos_x >= area_border_left && pos_x < area_border_right
                     {
-                        *buf_cell = cell.clone();
+                        if let Some(buf_cell) =
+                            buf.cell_mut(Position::new(pos_x, pos_y))
+                        {
+                            *buf_cell = cell.clone();
+                        }
                     }
                 }
             }
         }
     }
 }
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct CachedImageData {
     image: DynamicImage,
-    inner_cache: Arc<Mutex<Option<DisplayedImage>>>,
 }
 impl Hash for CachedImageData {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.image.as_rgb8().expect("to be rgba image").hash(state);
-    }
-}
-impl Debug for CachedImageData {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("CachedImageData")
-            .field("dimensions", &self.image.dimensions()) // Show dimensions instead of full image
-            .field("inner_cache", &self.inner_cache.lock().unwrap().is_some()) // Indicate if cache exists
-            .finish()
-    }
-}
-
-impl PartialEq for CachedImageData {
-    fn eq(&self, other: &Self) -> bool {
-        self.image.eq(&other.image)
     }
 }
 
@@ -113,7 +77,6 @@ impl CachedImageData {
         let rgba_image = image.into_rgba8();
         CachedImageData {
             image: DynamicImage::from(rgba_image),
-            inner_cache: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -122,19 +85,6 @@ impl CachedImageData {
     }
     pub fn width(&self) -> u32 {
         self.image.width()
-    }
-
-    fn cache(&self) -> &Arc<Mutex<Option<DisplayedImage>>> {
-        &self.inner_cache
-    }
-    pub fn set_cache(&self, area: Rect, cells: Vec<Vec<Cell>>) {
-        let mut mutex_cache = self.cache().lock().unwrap();
-        if let Some(cache) = mutex_cache.as_mut() {
-            cache.area = area;
-            cache.cells = cells;
-        } else {
-            *mutex_cache = Some(DisplayedImage { area, cells });
-        };
     }
     pub fn from_dynamic_image(dynamic_image: DynamicImage) -> Self {
         // if the image is smaller than the preview window, keep it small
@@ -152,13 +102,7 @@ impl CachedImageData {
         CachedImageData::new(resized_image)
     }
     pub fn image_preview_widget(&self, inner: Rect) -> ImagePreviewWidget {
-        // if nothing in the cache of the image, or the area has changed, generate a new image to be displayed and cache it
-        if self.cache().lock().unwrap().is_none()
-            || self.cache().lock().unwrap().as_ref().unwrap().area != inner
-        {
-            self.set_cache(inner, self.cells_for_area(inner));
-        }
-        ImagePreviewWidget::new(self.inner_cache.clone())
+        ImagePreviewWidget::new(self.cells_for_area(inner))
     }
     pub fn cells_for_area(&self, inner: Rect) -> Vec<Vec<Cell>> {
         // size of the available area
