@@ -8,6 +8,7 @@ use crate::channels::entry::Entry;
 use crate::channels::TelevisionChannel;
 use crate::config::{parse_key, Config};
 use crate::keymap::Keymap;
+use crate::render::UiState;
 use crate::television::{Mode, Television};
 use crate::{
     action::Action,
@@ -37,6 +38,9 @@ pub struct App {
     event_abort_tx: mpsc::UnboundedSender<()>,
     /// A sender channel for rendering tasks.
     render_tx: mpsc::UnboundedSender<RenderingTask>,
+    /// A channel that listens to UI updates.
+    ui_state_rx: mpsc::UnboundedReceiver<UiState>,
+    ui_state_tx: mpsc::UnboundedSender<UiState>,
 }
 
 /// The outcome of an action.
@@ -104,6 +108,7 @@ impl App {
                 .collect(),
         )?;
         debug!("{:?}", keymap);
+        let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television =
             Television::new(action_tx.clone(), channel, config, input);
 
@@ -118,6 +123,8 @@ impl App {
             event_rx,
             event_abort_tx,
             render_tx,
+            ui_state_rx,
+            ui_state_tx,
         })
     }
 
@@ -145,9 +152,10 @@ impl App {
         debug!("Starting rendering loop");
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         self.render_tx = render_tx.clone();
+        let ui_state_tx = self.ui_state_tx.clone();
         let action_tx_r = self.action_tx.clone();
         let rendering_task = tokio::spawn(async move {
-            render(render_rx, action_tx_r, is_output_tty).await
+            render(render_rx, action_tx_r, ui_state_tx, is_output_tty).await
         });
         self.action_tx.send(Action::Render)?;
 
@@ -298,9 +306,14 @@ impl App {
                         self.render_tx.send(RenderingTask::Resize(w, h))?;
                     }
                     Action::Render => {
+                        // forward to the rendering task
                         self.render_tx.send(RenderingTask::Render(
-                            self.television.dump_context(),
+                            Box::new(self.television.dump_context()),
                         ))?;
+                        // update the television UI state with the previous frame
+                        if let Ok(ui_state) = self.ui_state_rx.try_recv() {
+                            self.television.update_ui_state(ui_state);
+                        }
                     }
                     _ => {}
                 }

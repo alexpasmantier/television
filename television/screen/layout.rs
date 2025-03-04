@@ -29,7 +29,7 @@ impl Default for Dimensions {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HelpBarLayout {
     pub left: Rect,
     pub middle: Rect,
@@ -82,12 +82,24 @@ impl Display for PreviewTitlePosition {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
     pub input: Rect,
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
+}
+
+impl Default for Layout {
+    /// Having a default layout with a non-zero height for the results area
+    /// is important for the initial rendering of the application. For the first
+    /// frame, this avoids not rendering any results at all since the picker's contents
+    /// depend on the height of the results area which is not known until the first
+    /// frame is rendered.
+    fn default() -> Self {
+        Self::new(None, Rect::new(0, 0, 0, 100), Rect::default(), None, None)
+    }
 }
 
 impl Layout {

@@ -1,7 +1,6 @@
 use devicons::FileIcon;
 use directories::BaseDirs;
 use ignore::overrides::OverrideBuilder;
-use lazy_static::lazy_static;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -11,13 +10,14 @@ use tracing::debug;
 use crate::channels::entry::{Entry, PreviewCommand, PreviewType};
 use crate::channels::OnAir;
 use crate::matcher::{config::Config, injector::Injector, Matcher};
-use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use crate::utils::files::{get_default_num_threads, walk_builder};
 
 pub struct Channel {
     matcher: Matcher<String>,
     icon: FileIcon,
     crawl_handle: JoinHandle<()>,
     selected_entries: FxHashSet<Entry>,
+    preview_command: PreviewCommand,
 }
 
 impl Channel {
@@ -28,11 +28,20 @@ impl Channel {
             base_dirs.home_dir().to_path_buf(),
             matcher.injector(),
         ));
+
+        let preview_command = PreviewCommand {
+            command: String::from(
+                "cd {} && git log -n 200 --pretty=medium --all --graph --color",
+            ),
+            delimiter: ":".to_string(),
+        };
+
         Channel {
             matcher,
             icon: FileIcon::from("git"),
             crawl_handle,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
+            preview_command,
         }
     }
 }
@@ -41,15 +50,6 @@ impl Default for Channel {
     fn default() -> Self {
         Self::new()
     }
-}
-
-lazy_static! {
-    static ref PREVIEW_COMMAND: PreviewCommand = PreviewCommand {
-        command: String::from(
-            "cd {} && git log -n 200 --pretty=medium --all --graph --color",
-        ),
-        delimiter: ":".to_string(),
-    };
 }
 
 impl OnAir for Channel {
@@ -64,9 +64,12 @@ impl OnAir for Channel {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path, PreviewType::Command(PREVIEW_COMMAND.clone()))
-                    .with_name_match_ranges(&item.match_indices)
-                    .with_icon(self.icon)
+                Entry::new(
+                    path,
+                    PreviewType::Command(self.preview_command.clone()),
+                )
+                .with_name_match_ranges(&item.match_indices)
+                .with_icon(self.icon)
             })
             .collect()
     }
@@ -74,8 +77,11 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path, PreviewType::Command(PREVIEW_COMMAND.clone()))
-                .with_icon(self.icon)
+            Entry::new(
+                path,
+                PreviewType::Command(self.preview_command.clone()),
+            )
+            .with_icon(self.icon)
         })
     }
 
@@ -162,7 +168,7 @@ async fn crawl_for_repos(starting_point: PathBuf, injector: Injector<String>) {
     walker_overrides_builder.add(".git").unwrap();
     let walker = walk_builder(
         &starting_point,
-        *DEFAULT_NUM_THREADS,
+        get_default_num_threads(),
         Some(walker_overrides_builder.build().unwrap()),
         Some(get_ignored_paths()),
     )

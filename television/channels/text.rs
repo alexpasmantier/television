@@ -1,7 +1,7 @@
 use super::{OnAir, TelevisionChannel};
 use crate::channels::entry::{Entry, PreviewType};
 use crate::matcher::{config::Config, injector::Injector, Matcher};
-use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use crate::utils::files::{get_default_num_threads, walk_builder};
 use crate::utils::strings::{
     proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
 };
@@ -277,7 +277,7 @@ async fn crawl_for_candidates(
     }
     let current_dir = std::env::current_dir().unwrap();
     let mut walker =
-        walk_builder(&directories[0], *DEFAULT_NUM_THREADS, None, None);
+        walk_builder(&directories[0], get_default_num_threads(), None, None);
     directories[1..].iter().for_each(|path| {
         walker.add(path);
     });
