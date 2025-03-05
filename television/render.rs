@@ -8,12 +8,13 @@ use tracing::{debug, warn};
 use tokio::sync::mpsc;
 
 use crate::draw::Ctx;
+use crate::screen::layout::Layout;
 use crate::{action::Action, draw::draw, tui::Tui};
 
 #[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
 pub enum RenderingTask {
     ClearScreen,
-    Render(Ctx),
+    Render(Box<Ctx>),
     Resize(u16, u16),
     Resume,
     Suspend,
@@ -35,9 +36,21 @@ impl IoStream {
     }
 }
 
+#[derive(Default)]
+pub struct UiState {
+    pub layout: Layout,
+}
+
+impl UiState {
+    pub fn new(layout: Layout) -> Self {
+        Self { layout }
+    }
+}
+
 pub async fn render(
     mut render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     action_tx: mpsc::UnboundedSender<Action>,
+    ui_state_tx: mpsc::UnboundedSender<UiState>,
     is_output_tty: bool,
 ) -> Result<()> {
     let stream = if is_output_tty {
@@ -73,13 +86,19 @@ pub async fn render(
                         if size.width.checked_mul(size.height).is_some() {
                             queue!(stderr(), BeginSynchronizedUpdate).ok();
                             tui.terminal.draw(|frame| {
-                                if let Err(err) =
-                                    draw(&context, frame, frame.area())
-                                {
-                                    warn!("Failed to draw: {:?}", err);
-                                    let _ = action_tx.send(Action::Error(
-                                        format!("Failed to draw: {err:?}"),
-                                    ));
+                                match draw(&context, frame, frame.area()) {
+                                    Ok(layout) => {
+                                        if layout != context.layout {
+                                            let _ = ui_state_tx
+                                                .send(UiState::new(layout));
+                                        }
+                                    }
+                                    Err(err) => {
+                                        warn!("Failed to draw: {:?}", err);
+                                        let _ = action_tx.send(Action::Error(
+                                            format!("Failed to draw: {err:?}"),
+                                        ));
+                                    }
                                 }
                             })?;
                             execute!(stderr(), EndSynchronizedUpdate).ok();

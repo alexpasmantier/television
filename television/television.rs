@@ -10,6 +10,7 @@ use crate::draw::{ChannelState, Ctx, TvState};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
 use crate::preview::{PreviewState, Previewer};
+use crate::render::UiState;
 use crate::screen::colors::Colorscheme;
 use crate::screen::layout::InputPosition;
 use crate::screen::spinner::{Spinner, SpinnerState};
@@ -20,7 +21,7 @@ use anyhow::Result;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use tokio::sync::mpsc::{Receiver, Sender, UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -38,7 +39,6 @@ pub struct Television {
     pub current_pattern: String,
     pub results_picker: Picker,
     pub rc_picker: Picker,
-    results_area_height: u16,
     pub previewer: Previewer,
     pub preview_state: PreviewState,
     pub spinner: Spinner,
@@ -46,16 +46,7 @@ pub struct Television {
     pub app_metadata: AppMetadata,
     pub colorscheme: Colorscheme,
     pub ticks: u64,
-    // these are really here as a means to communicate between the render thread
-    // and the main thread to update `Television`'s state without needing to pass
-    // a mutable reference to `draw`
-    pub inner_rx: Receiver<Message>,
-    pub inner_tx: Sender<Message>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum Message {
-    ResultListHeightChanged(u16),
+    pub ui_state: UiState,
 }
 
 impl Television {
@@ -87,8 +78,6 @@ impl Television {
 
         channel.find(&input.unwrap_or(EMPTY_STRING.to_string()));
         let spinner = Spinner::default();
-        // capacity is quite arbitrary here, we can adjust it later
-        let (inner_tx, inner_rx) = tokio::sync::mpsc::channel(10);
 
         Self {
             action_tx,
@@ -101,7 +90,6 @@ impl Television {
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
             rc_picker: Picker::default(),
-            results_area_height: 0,
             previewer,
             preview_state: PreviewState::default(),
             spinner,
@@ -109,9 +97,12 @@ impl Television {
             app_metadata,
             colorscheme,
             ticks: 0,
-            inner_rx,
-            inner_tx,
+            ui_state: UiState::default(),
         }
+    }
+
+    pub fn update_ui_state(&mut self, ui_state: UiState) {
+        self.ui_state = ui_state;
     }
 
     pub fn init_remote_control(&mut self) {
@@ -134,7 +125,6 @@ impl Television {
         let tv_state = TvState::new(
             self.mode,
             self.get_selected_entry(Some(Mode::Channel)),
-            self.results_area_height,
             self.results_picker.clone(),
             self.rc_picker.clone(),
             channel_state,
@@ -147,9 +137,9 @@ impl Television {
             self.config.clone(),
             self.colorscheme.clone(),
             self.app_metadata.clone(),
-            self.inner_tx.clone(),
             // now timestamp
             std::time::Instant::now(),
+            self.ui_state.layout,
         )
     }
 
@@ -229,7 +219,7 @@ impl Television {
         picker.select_prev(
             step,
             result_count as usize,
-            self.results_area_height as usize,
+            self.ui_state.layout.results.height.saturating_sub(2) as usize,
         );
     }
 
@@ -248,7 +238,7 @@ impl Television {
         picker.select_next(
             step,
             result_count as usize,
-            self.results_area_height as usize,
+            self.ui_state.layout.results.height.saturating_sub(2) as usize,
         );
     }
 
@@ -315,6 +305,7 @@ impl Television {
         {
             // preview content
             if let Some(preview) = self.previewer.preview(selected_entry) {
+                // only update if the preview content has changed
                 if self.preview_state.preview.title != preview.title {
                     self.preview_state.update(
                         preview,
@@ -323,7 +314,13 @@ impl Television {
                             .line_number
                             .unwrap_or(0)
                             .saturating_sub(
-                                (self.results_area_height / 2).into(),
+                                (self
+                                    .ui_state
+                                    .layout
+                                    .preview_window
+                                    .map_or(0, |w| w.height)
+                                    / 2)
+                                .into(),
                             )
                             .try_into()?,
                         selected_entry
@@ -348,7 +345,7 @@ impl Television {
         }
 
         self.results_picker.entries = self.channel.results(
-            self.results_area_height.into(),
+            self.ui_state.layout.results.height.into(),
             u32::try_from(self.results_picker.offset()).unwrap(),
         );
         self.results_picker.total_items = self.channel.result_count();
@@ -364,7 +361,7 @@ impl Television {
 
         self.rc_picker.entries = self.remote_control.results(
             // this'll be more than the actual rc height but it's fine
-            self.results_area_height.into(),
+            self.ui_state.layout.results.height.into(),
             u32::try_from(self.rc_picker.offset()).unwrap(),
         );
         self.rc_picker.total_items = self.remote_control.total_count();
@@ -513,11 +510,25 @@ impl Television {
             }
             Action::SelectNextPage => {
                 self.preview_state.reset();
-                self.select_next_entry(self.results_area_height.into());
+                self.select_next_entry(
+                    self.ui_state
+                        .layout
+                        .results
+                        .height
+                        .saturating_sub(2)
+                        .into(),
+                );
             }
             Action::SelectPrevPage => {
                 self.preview_state.reset();
-                self.select_prev_entry(self.results_area_height.into());
+                self.select_prev_entry(
+                    self.ui_state
+                        .layout
+                        .results
+                        .height
+                        .saturating_sub(2)
+                        .into(),
+                );
             }
             Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
             Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
@@ -559,13 +570,6 @@ impl Television {
     ///
     /// This function may return an Action that'll be processed by the parent `App`.
     pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
-        if let Ok(Message::ResultListHeightChanged(height)) =
-            self.inner_rx.try_recv()
-        {
-            self.results_area_height = height;
-            self.action_tx.send(Action::Render)?;
-        }
-
         self.handle_action(action)?;
 
         self.update_results_picker_state();

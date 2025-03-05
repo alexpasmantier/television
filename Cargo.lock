@@ -1696,7 +1696,6 @@ dependencies = [
  "gag",
  "human-panic",
  "ignore",
- "lazy_static",
  "nom",
  "nucleo",
  "parking_lot",

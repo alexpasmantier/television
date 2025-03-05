@@ -224,7 +224,6 @@ pub fn compute_highlights_for_line<'a>(
 // SOFTWARE.
 
 use directories::BaseDirs;
-use lazy_static::lazy_static;
 
 #[cfg(target_os = "macos")]
 use std::env;
@@ -258,13 +257,11 @@ impl BatProjectDirs {
     }
 }
 
-lazy_static! {
-    pub static ref PROJECT_DIRS: BatProjectDirs = BatProjectDirs::new()
-        .unwrap_or_else(|| panic!("Could not get home directory"));
-}
-
 pub fn load_highlighting_assets() -> HighlightingAssets {
-    HighlightingAssets::from_cache(PROJECT_DIRS.cache_dir())
+    let project_dirs = BatProjectDirs::new()
+        .unwrap_or_else(|| panic!("Could not get home directory"));
+
+    HighlightingAssets::from_cache(project_dirs.cache_dir())
         .unwrap_or_else(|_| HighlightingAssets::from_binary())
 }
 

@@ -2,7 +2,6 @@ use crate::channels::entry::{Entry, PreviewCommand};
 use crate::preview::cache::PreviewCache;
 use crate::preview::{Preview, PreviewContent};
 use crate::utils::command::shell_command;
-use lazy_static::lazy_static;
 use parking_lot::Mutex;
 use regex::Regex;
 use rustc_hash::FxHashSet;
@@ -11,12 +10,19 @@ use std::sync::Arc;
 use tracing::debug;
 
 #[allow(dead_code)]
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct CommandPreviewer {
     cache: Arc<Mutex<PreviewCache>>,
     config: CommandPreviewerConfig,
     concurrent_preview_tasks: Arc<AtomicU8>,
     in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
+    command_re: Regex,
+}
+
+impl Default for CommandPreviewer {
+    fn default() -> Self {
+        CommandPreviewer::new(None)
+    }
 }
 
 #[allow(dead_code)]
@@ -53,6 +59,7 @@ impl CommandPreviewer {
             config,
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
             in_flight_previews: Arc::new(Mutex::new(FxHashSet::default())),
+            command_re: Regex::new(r"\{(\d+)\}").unwrap(),
         }
     }
 
@@ -96,6 +103,7 @@ impl CommandPreviewer {
             let concurrent_tasks = self.concurrent_preview_tasks.clone();
             let command = command.clone();
             let in_flight_previews = self.in_flight_previews.clone();
+            let command_re = self.command_re.clone();
             tokio::spawn(async move {
                 try_preview(
                     &command,
@@ -103,6 +111,7 @@ impl CommandPreviewer {
                     &cache,
                     &concurrent_tasks,
                     &in_flight_previews,
+                    &command_re,
                 );
             });
         } else {
@@ -112,11 +121,6 @@ impl CommandPreviewer {
             );
         }
     }
-}
-
-lazy_static! {
-    static ref COMMAND_PLACEHOLDER_REGEX: Regex =
-        Regex::new(r"\{(\d+)\}").unwrap();
 }
 
 /// Format the command with the entry name and provided placeholders
@@ -131,11 +135,15 @@ lazy_static! {
 ///     delimiter: ":".to_string(),
 /// };
 /// let entry = Entry::new("a:given:entry:to:preview".to_string(), PreviewType::Command(command.clone()));
-/// let formatted_command = format_command(&command, &entry);
+/// let formatted_command = format_command(&command, &entry, &regex::Regex::new(r"\{(\d+)\}").unwrap());
 ///
 /// assert_eq!(formatted_command, "something 'a:given:entry:to:preview' 'entry' 'a'");
 /// ```
-pub fn format_command(command: &PreviewCommand, entry: &Entry) -> String {
+pub fn format_command(
+    command: &PreviewCommand,
+    entry: &Entry,
+    command_re: &Regex,
+) -> String {
     let parts = entry.name.split(&command.delimiter).collect::<Vec<&str>>();
     debug!("Parts: {:?}", parts);
 
@@ -143,7 +151,7 @@ pub fn format_command(command: &PreviewCommand, entry: &Entry) -> String {
         .command
         .replace("{}", format!("'{}'", entry.name).as_str());
 
-    formatted_command = COMMAND_PLACEHOLDER_REGEX
+    formatted_command = command_re
         .replace_all(&formatted_command, |caps: &regex::Captures| {
             let index =
                 caps.get(1).unwrap().as_str().parse::<usize>().unwrap();
@@ -160,9 +168,10 @@ pub fn try_preview(
     cache: &Arc<Mutex<PreviewCache>>,
     concurrent_tasks: &Arc<AtomicU8>,
     in_flight_previews: &Arc<Mutex<FxHashSet<String>>>,
+    command_re: &Regex,
 ) {
     debug!("Computing preview for {:?}", entry.name);
-    let command = format_command(command, entry);
+    let command = format_command(command, entry, command_re);
     debug!("Formatted preview command: {:?}", command);
 
     let child = shell_command()
@@ -212,7 +221,11 @@ mod tests {
             "an:entry:to:preview".to_string(),
             PreviewType::Command(command.clone()),
         );
-        let formatted_command = format_command(&command, &entry);
+        let formatted_command = format_command(
+            &command,
+            &entry,
+            &Regex::new(r"\{(\d+)\}").unwrap(),
+        );
 
         assert_eq!(
             formatted_command,
@@ -230,7 +243,11 @@ mod tests {
             "an:entry:to:preview".to_string(),
             PreviewType::Command(command.clone()),
         );
-        let formatted_command = format_command(&command, &entry);
+        let formatted_command = format_command(
+            &command,
+            &entry,
+            &Regex::new(r"\{(\d+)\}").unwrap(),
+        );
 
         assert_eq!(formatted_command, "something");
     }
@@ -245,7 +262,11 @@ mod tests {
             "an:entry:to:preview".to_string(),
             PreviewType::Command(command.clone()),
         );
-        let formatted_command = format_command(&command, &entry);
+        let formatted_command = format_command(
+            &command,
+            &entry,
+            &Regex::new(r"\{(\d+)\}").unwrap(),
+        );
 
         assert_eq!(formatted_command, "something 'an:entry:to:preview'");
     }
@@ -260,7 +281,11 @@ mod tests {
             "an:entry:to:preview".to_string(),
             PreviewType::Command(command.clone()),
         );
-        let formatted_command = format_command(&command, &entry);
+        let formatted_command = format_command(
+            &command,
+            &entry,
+            &Regex::new(r"\{(\d+)\}").unwrap(),
+        );
 
         assert_eq!(formatted_command, "something 'an' -t 'to'");
     }

@@ -1,5 +1,3 @@
-use lazy_static::lazy_static;
-
 /// Returns the index of the next character boundary in the given string.
 ///
 /// If the given index is already a character boundary, it is returned as is.
@@ -151,14 +149,11 @@ pub fn try_parse_utf8_char(input: &[u8]) -> Option<(char, usize)> {
     decoded.map(|(seq, n)| (seq.chars().next().unwrap(), n))
 }
 
-lazy_static! {
-    /// The Unicode symbol to use for non-printable characters.
-    static ref NULL_SYMBOL: char = char::from_u32(0x2400).unwrap();
-}
-
 pub const EMPTY_STRING: &str = "";
 pub const TAB_WIDTH: usize = 4;
 
+/// The Unicode symbol to use for non-printable characters.
+const NULL_SYMBOL: char = '\u{2400}';
 const TAB_CHARACTER: char = '\t';
 const LINE_FEED_CHARACTER: char = '\x0A';
 const DELETE_CHARACTER: char = '\x7F';
@@ -304,7 +299,7 @@ pub fn replace_non_printable(
                 | BOM_CHARACTER
                     if config.replace_control_characters =>
                 {
-                    output.push(*NULL_SYMBOL);
+                    output.push(NULL_SYMBOL);
                 }
                 // CJK Unified Ideographs
                 // ex: 解
@@ -337,13 +332,13 @@ pub fn replace_non_printable(
                 }
                 // Unicode characters above 0x0700 seem unstable with ratatui
                 c if c > '\u{0700}' => {
-                    output.push(*NULL_SYMBOL);
+                    output.push(NULL_SYMBOL);
                 }
                 // everything else
                 c => output.push(c),
             }
         } else {
-            output.push(*NULL_SYMBOL);
+            output.push(NULL_SYMBOL);
             idx += 1;
         }
     }
