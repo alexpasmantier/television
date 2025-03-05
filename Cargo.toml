@@ -58,6 +58,8 @@ bat = { version = "0.25", default-features = false, features = ["regex-onig"] }
 gag = "1.0"
 nucleo = "0.5"
 toml = "0.8"
+image = "0.25"
+
 
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"

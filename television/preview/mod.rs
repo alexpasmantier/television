@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::channels::entry::{Entry, PreviewType};
 use devicons::FileIcon;
+use ratatui::layout::Rect;
 
 pub mod ansi;
 pub mod cache;
@@ -9,6 +10,7 @@ pub mod previewers;
 
 // previewer types
 use crate::utils::cache::RingSet;
+use crate::utils::image::ImagePreviewWidget;
 use crate::utils::syntax::HighlightedLines;
 pub use previewers::basic::BasicPreviewer;
 pub use previewers::basic::BasicPreviewerConfig;
@@ -30,6 +32,7 @@ pub enum PreviewContent {
     PlainText(Vec<String>),
     PlainTextWrapped(String),
     AnsiText(String),
+    Image(ImagePreviewWidget),
 }
 
 impl PreviewContent {
@@ -43,6 +46,9 @@ impl PreviewContent {
             }
             PreviewContent::AnsiText(text) => {
                 text.lines().count().try_into().unwrap_or(u16::MAX)
+            }
+            PreviewContent::Image(image) => {
+                image.height().try_into().unwrap_or(u16::MAX)
             }
             _ => 0,
         }
@@ -203,11 +209,15 @@ impl Previewer {
         }
     }
 
-    fn dispatch_request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
+    fn dispatch_request(
+        &mut self,
+        entry: &Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         match &entry.preview_type {
             PreviewType::Basic => Some(self.basic.preview(entry)),
             PreviewType::EnvVar => Some(self.env_var.preview(entry)),
-            PreviewType::Files => self.file.preview(entry),
+            PreviewType::Files => self.file.preview(entry, preview_window),
             PreviewType::Command(cmd) => self.command.preview(entry, cmd),
             PreviewType::None => Some(Arc::new(Preview::default())),
         }
@@ -217,17 +227,23 @@ impl Previewer {
     // faster, but since it's already running in the background and quite
     // fast for most standard file sizes, plus we're caching the previews,
     // I'm not sure the extra complexity is worth it.
-    pub fn preview(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
+    pub fn preview(
+        &mut self,
+        entry: &Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         // if we haven't acknowledged the request yet, acknowledge it
         self.requests.push(entry.clone());
 
-        if let Some(preview) = self.dispatch_request(entry) {
+        if let Some(preview) = self.dispatch_request(entry, preview_window) {
             return Some(preview);
         }
 
         // lookup request stack and return the most recent preview available
         for request in self.requests.back_to_front() {
-            if let Some(preview) = self.dispatch_request(&request) {
+            if let Some(preview) =
+                self.dispatch_request(&request, preview_window)
+            {
                 return Some(preview);
             }
         }
