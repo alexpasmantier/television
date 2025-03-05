@@ -9,7 +9,6 @@ use anyhow::{Context, Result};
 use directories::ProjectDirs;
 use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
-use lazy_static::lazy_static;
 use previewers::PreviewersConfig;
 use serde::Deserialize;
 use shell_integration::ShellIntegrationConfig;
@@ -70,23 +69,7 @@ pub struct Config {
     pub shell_integration: ShellIntegrationConfig,
 }
 
-lazy_static! {
-    pub static ref PROJECT_NAME: String = String::from("television");
-    pub static ref PROJECT_NAME_UPPER: String = PROJECT_NAME.to_uppercase();
-    pub static ref DATA_FOLDER: Option<PathBuf> =
-        // if `TELEVISION_DATA` is set, use that as the data directory
-        env::var_os(format!("{}_DATA", PROJECT_NAME_UPPER.clone())).map(PathBuf::from).or_else(|| {
-            // otherwise, use the XDG data directory
-            env::var_os("XDG_DATA_HOME").map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute())
-        });
-    pub static ref CONFIG_FOLDER: Option<PathBuf> =
-        // if `TELEVISION_CONFIG` is set, use that as the television config directory
-        env::var_os(format!("{}_CONFIG", PROJECT_NAME_UPPER.clone())).map(PathBuf::from).or_else(|| {
-            // otherwise, use the XDG config directory + 'television'
-            env::var_os("XDG_CONFIG_HOME").map(PathBuf::from).map(|p| p.join(PROJECT_NAME.as_str())).filter(|p| p.is_absolute())
-        });
-}
-
+const PROJECT_NAME: &str = "television";
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 pub struct ConfigEnv {
@@ -184,7 +167,19 @@ impl Config {
 }
 
 pub fn get_data_dir() -> PathBuf {
-    let directory = if let Some(s) = DATA_FOLDER.clone() {
+    // if `TELEVISION_DATA` is set, use that as the data directory
+    let data_folder =
+        env::var_os(format!("{}_DATA", PROJECT_NAME.to_uppercase()))
+            .map(PathBuf::from)
+            .or_else(|| {
+                // otherwise, use the XDG data directory
+                env::var_os("XDG_DATA_HOME")
+                    .map(PathBuf::from)
+                    .map(|p| p.join(PROJECT_NAME))
+                    .filter(|p| p.is_absolute())
+            });
+
+    let directory = if let Some(s) = data_folder {
         debug!("Using data directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
@@ -197,7 +192,18 @@ pub fn get_data_dir() -> PathBuf {
 }
 
 pub fn get_config_dir() -> PathBuf {
-    let directory = if let Some(s) = CONFIG_FOLDER.clone() {
+    // if `TELEVISION_CONFIG` is set, use that as the television config directory
+    let config_dir =
+        env::var_os(format!("{}_CONFIG", PROJECT_NAME.to_uppercase()))
+            .map(PathBuf::from)
+            .or_else(|| {
+                // otherwise, use the XDG config directory + 'television'
+                env::var_os("XDG_CONFIG_HOME")
+                    .map(PathBuf::from)
+                    .map(|p| p.join(PROJECT_NAME))
+                    .filter(|p| p.is_absolute())
+            });
+    let directory = if let Some(s) = config_dir {
         debug!("Config directory: {:?}", s);
         s
     } else if cfg!(unix) {

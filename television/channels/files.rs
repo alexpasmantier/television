@@ -1,7 +1,7 @@
 use crate::channels::entry::{Entry, PreviewType};
 use crate::channels::{OnAir, TelevisionChannel};
 use crate::matcher::{config::Config, injector::Injector, Matcher};
-use crate::utils::files::{walk_builder, DEFAULT_NUM_THREADS};
+use crate::utils::files::{get_default_num_threads, walk_builder};
 use devicons::FileIcon;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -157,7 +157,7 @@ async fn load_files(paths: Vec<PathBuf>, injector: Injector<String>) {
     }
     let current_dir = std::env::current_dir().unwrap();
     let mut builder =
-        walk_builder(&paths[0], *DEFAULT_NUM_THREADS, None, None);
+        walk_builder(&paths[0], get_default_num_threads(), None, None);
     paths[1..].iter().for_each(|path| {
         builder.add(path);
     });

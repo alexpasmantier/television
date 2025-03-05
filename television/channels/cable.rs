@@ -9,7 +9,6 @@ use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 
 use anyhow::Result;
-use lazy_static::lazy_static;
 use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
@@ -64,13 +63,10 @@ impl From<CableChannelPrototype> for Channel {
     }
 }
 
-lazy_static! {
-    static ref BUILTIN_PREVIEW_RE: Regex = Regex::new(r"^:(\w+):$").unwrap();
-}
-
 fn parse_preview_kind(command: &PreviewCommand) -> Result<PreviewKind> {
     debug!("Parsing preview kind for command: {:?}", command);
-    if let Some(captures) = BUILTIN_PREVIEW_RE.captures(&command.command) {
+    let re = Regex::new(r"^\:(\w+)\:$").unwrap();
+    if let Some(captures) = re.captures(&command.command) {
         let preview_type = PreviewType::try_from(&captures[1])?;
         Ok(PreviewKind::Builtin(preview_type))
     } else {
