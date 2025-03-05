@@ -3,7 +3,6 @@ use std::{hash::Hash, time::Instant};
 use anyhow::Result;
 use ratatui::{layout::Rect, Frame};
 use rustc_hash::FxHashSet;
-use tokio::sync::mpsc::Sender;
 
 use crate::{
     action::Action,
@@ -18,7 +17,7 @@ use crate::{
         remote_control::draw_remote_control, results::draw_results_list,
         spinner::Spinner,
     },
-    television::{Message, Mode},
+    television::Mode,
     utils::metadata::AppMetadata,
 };
 
@@ -61,7 +60,6 @@ impl Hash for ChannelState {
 pub struct TvState {
     pub mode: Mode,
     pub selected_entry: Option<Entry>,
-    pub results_area_height: u16,
     pub results_picker: Picker,
     pub rc_picker: Picker,
     pub channel_state: ChannelState,
@@ -74,7 +72,6 @@ impl TvState {
     pub fn new(
         mode: Mode,
         selected_entry: Option<Entry>,
-        results_area_height: u16,
         results_picker: Picker,
         rc_picker: Picker,
         channel_state: ChannelState,
@@ -84,7 +81,6 @@ impl TvState {
         Self {
             mode,
             selected_entry,
-            results_area_height,
             results_picker,
             rc_picker,
             channel_state,
@@ -100,8 +96,8 @@ pub struct Ctx {
     pub config: Config,
     pub colorscheme: Colorscheme,
     pub app_metadata: AppMetadata,
-    pub tv_tx_handle: Sender<Message>,
     pub instant: Instant,
+    pub layout: Layout,
 }
 
 impl Ctx {
@@ -110,16 +106,16 @@ impl Ctx {
         config: Config,
         colorscheme: Colorscheme,
         app_metadata: AppMetadata,
-        tv_tx_handle: Sender<Message>,
         instant: Instant,
+        layout: Layout,
     ) -> Self {
         Self {
             tv_state,
             config,
             colorscheme,
             app_metadata,
-            tv_tx_handle,
             instant,
+            layout,
         }
     }
 }
@@ -156,7 +152,7 @@ impl Ord for Ctx {
     }
 }
 
-pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<()> {
+pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let selected_entry = ctx
         .tv_state
         .selected_entry
@@ -184,14 +180,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         &ctx.app_metadata,
         &ctx.colorscheme,
     );
-
-    if layout.results.height.saturating_sub(2)
-        != ctx.tv_state.results_area_height
-    {
-        ctx.tv_tx_handle.try_send(Message::ResultListHeightChanged(
-            layout.results.height.saturating_sub(2),
-        ))?;
-    }
 
     // results list
     draw_results_list(
@@ -259,5 +247,5 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<()> {
         )?;
     }
 
-    Ok(())
+    Ok(layout)
 }

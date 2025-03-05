@@ -128,10 +128,10 @@ impl Theme {
     pub fn from_builtin(
         name: &str,
     ) -> Result<Self, Box<dyn std::error::Error>> {
-        let theme_content: &str = builtin::BUILTIN_THEMES.get(name).map_or(
-            builtin::BUILTIN_THEMES.get(DEFAULT_THEME).unwrap(),
-            |t| *t,
-        );
+        let builtin_themes = builtin::builtin_themes();
+        let theme_content: &str = builtin_themes
+            .get(name)
+            .map_or(builtin_themes.get(DEFAULT_THEME).unwrap(), |t| *t);
         let theme = toml::from_str(theme_content)?;
         Ok(theme)
     }
