@@ -255,39 +255,58 @@ pub fn try_preview(
             entry.name.clone(),
             &meta::loading(&format!("Loading {}", entry.name)),
         );
+
         debug!("File {:?} is an image", entry.name);
-        match ImageReader::open(path).unwrap().decode() {
-            Ok(image) => {
-                let preview_window_dimension = preview_window.map(|rect| {
-                    (u32::from(rect.width), u32::from(rect.height))
-                });
-                let image_preview_widget =
-                    ImagePreviewWidget::from_dynamic_image(
-                        image,
-                        preview_window_dimension,
+        let option_image = match ImageReader::open(path) {
+            Ok(reader) => match reader.with_guessed_format() {
+                Ok(reader) => match reader.decode() {
+                    Ok(image) => Some(image),
+                    Err(e) => {
+                        warn!(
+                            "Error impossible to decode {}: {:?}",
+                            entry.name, e
+                        );
+                        None
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        "Error impossible to guess the format of {}: {:?}",
+                        entry.name, e
                     );
-                let total_lines = image_preview_widget
-                    .height()
-                    .try_into()
-                    .unwrap_or(u16::MAX);
-                let content = PreviewContent::Image(image_preview_widget);
-                let preview = Arc::new(Preview::new(
-                    entry.name.clone(),
-                    content,
-                    entry.icon,
-                    None,
-                    total_lines,
-                ));
-                cache.lock().insert(entry.name.clone(), &preview);
-            }
+                    None
+                }
+            },
             Err(e) => {
-                warn!("Error opening file: {:?}", e);
-                let p = meta::not_supported(&entry.name);
-                cache.lock().insert(entry.name.clone(), &p);
+                warn!("Error opening image {}: {:?}", entry.name, e);
+                None
             }
+        };
+        if let Some(image) = option_image {
+            let preview_window_dimension = preview_window.map(|rect| {
+                (u32::from(rect.width - 2), u32::from(rect.height - 2)) // - 2 for the marge
+            });
+            let image_preview_widget = ImagePreviewWidget::from_dynamic_image(
+                image,
+                preview_window_dimension,
+            );
+            let total_lines =
+                image_preview_widget.height().try_into().unwrap_or(u16::MAX);
+            let content = PreviewContent::Image(image_preview_widget);
+            let preview = Arc::new(Preview::new(
+                entry.name.clone(),
+                content,
+                entry.icon,
+                None,
+                total_lines,
+            ));
+            cache.lock().insert(entry.name.clone(), &preview);
+        } else {
+            let p = meta::not_supported(&entry.name);
+            cache.lock().insert(entry.name.clone(), &p);
         }
     } else {
-        debug!("File isn't text-based: {:?}", entry.name);
+        debug!("File format isn't supported for preview: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);
         cache.lock().insert(entry.name.clone(), &preview);
     }

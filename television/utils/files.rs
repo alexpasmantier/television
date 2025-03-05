@@ -118,11 +118,11 @@ where
     fn from(path: P) -> Self {
         debug!("Getting file type for {:?}", path);
         let p = path.as_ref();
-        if is_known_text_extension(p) {
-            return FileType::Text;
-        }
         if is_accepted_image_extension(p) {
             return FileType::Image;
+        }
+        if is_known_text_extension(p) {
+            return FileType::Text;
         }
         if let Ok(mut f) = File::open(p) {
             let mut buffer = [0u8; 256];
@@ -506,16 +506,10 @@ pub static KNOWN_IMAGE_FILE_EXTENSIONS: OnceLock<FxHashSet<&'static str>> =
 pub fn get_known_image_file_extensions() -> &'static FxHashSet<&'static str> {
     KNOWN_IMAGE_FILE_EXTENSIONS.get_or_init(|| {
         [
-            //"avif",
-            //"bmp",
-            //"dds",
-            //"farbfeld",
-            "gif", //"hdr",
-            "ico", "jpeg", "jpg", //"exr",
-            "png", //"pnm",
-            //"qoi",
-            //"tga",
-            "tif", "tiff", "webp",
+            // "avif", requires the avif-native feature, uses the libdav1d C library.
+            // dds, dosen't work for some reason
+            "bmp", "ff", "gif", "hdr", "ico", "jpeg", "jpg", "exr", "png",
+            "pnm", "qoi", "tga", "tif", "webp",
         ]
         .iter()
         .copied()

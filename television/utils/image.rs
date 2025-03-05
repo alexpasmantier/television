@@ -8,7 +8,7 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 static PIXEL_STRING: &str = "▀";
-const FILTER_TYPE: FilterType = FilterType::Triangle;
+const FILTER_TYPE: FilterType = FilterType::Lanczos3;
 
 // use to reduce the size of the image before storing it
 const DEFAULT_CACHED_WIDTH: u32 = 50;
@@ -28,7 +28,7 @@ impl Widget for &ImagePreviewWidget {
         let width = self.width();
         // offset of the left top corner where the image is centered
         let total_width = usize::from(area.width) + 2 * usize::from(area.x);
-        let x_offset = total_width.saturating_sub(width) / 2;
+        let x_offset = total_width.saturating_sub(width) / 2 + 1;
         let total_height = usize::from(area.height) + 2 * usize::from(area.y);
         let y_offset = total_height.saturating_sub(height) / 2;
 
@@ -42,7 +42,8 @@ impl Widget for &ImagePreviewWidget {
                 for (x, cell) in row.iter().enumerate() {
                     let pos_x =
                         u16::try_from(x_offset + x).unwrap_or(u16::MAX);
-                    if pos_x >= area_border_left && pos_x < area_border_right {
+                    if pos_x >= area_border_left && pos_x <= area_border_right
+                    {
                         if let Some(buf_cell) =
                             buf.cell_mut(Position::new(pos_x, pos_y))
                         {
@@ -74,29 +75,28 @@ impl ImagePreviewWidget {
         dynamic_image: DynamicImage,
         dimension: Option<(u32, u32)>,
     ) -> Self {
-        // first quick resize
         let (window_width, window_height) =
             dimension.unwrap_or((DEFAULT_CACHED_WIDTH, DEFAULT_CACHED_HEIGHT));
-        let big_resized_image = if dynamic_image.width() > window_width * 4
-            || dynamic_image.height() > window_height * 4
+        let (max_width, max_height) = (window_width, window_height * 2 - 2); // -2 to have some space with the title
+
+        // first quick resize
+        let big_resized_image = if dynamic_image.width() > max_width * 4
+            || dynamic_image.height() > max_height * 4
         {
             dynamic_image.resize(
-                window_width * 4,
-                window_height * 4,
+                max_width * 4,
+                max_height * 4,
                 FilterType::Nearest,
             )
         } else {
             dynamic_image
         };
+
         // this time resize with the filter
-        let resized_image = if big_resized_image.width() > window_width
-            || big_resized_image.height() > window_height
+        let resized_image = if big_resized_image.width() > max_width
+            || big_resized_image.height() > max_height
         {
-            big_resized_image.resize(
-                window_width,
-                DEFAULT_CACHED_HEIGHT,
-                FILTER_TYPE,
-            )
+            big_resized_image.resize(max_width, max_height, FILTER_TYPE)
         } else {
             big_resized_image
         };
