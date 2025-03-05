@@ -106,6 +106,7 @@ pub fn get_file_size(path: &Path) -> Option<u64> {
 #[derive(Debug)]
 pub enum FileType {
     Text,
+    Image,
     Other,
     Unknown,
 }
@@ -117,6 +118,9 @@ where
     fn from(path: P) -> Self {
         debug!("Getting file type for {:?}", path);
         let p = path.as_ref();
+        if is_accepted_image_extension(p) {
+            return FileType::Image;
+        }
         if is_known_text_extension(p) {
             return FileType::Text;
         }
@@ -481,6 +485,31 @@ pub fn get_known_text_file_extensions() -> &'static FxHashSet<&'static str> {
             "yml",
             "zsh",
             "zshrc",
+        ]
+        .iter()
+        .copied()
+        .collect()
+    })
+}
+
+pub fn is_accepted_image_extension<P>(path: P) -> bool
+where
+    P: AsRef<Path>,
+{
+    path.as_ref()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .is_some_and(|ext| get_known_image_file_extensions().contains(ext))
+}
+pub static KNOWN_IMAGE_FILE_EXTENSIONS: OnceLock<FxHashSet<&'static str>> =
+    OnceLock::new();
+pub fn get_known_image_file_extensions() -> &'static FxHashSet<&'static str> {
+    KNOWN_IMAGE_FILE_EXTENSIONS.get_or_init(|| {
+        [
+            // "avif", requires the avif-native feature, uses the libdav1d C library.
+            // dds, dosen't work for some reason
+            "bmp", "ff", "gif", "hdr", "ico", "jpeg", "jpg", "exr", "png",
+            "pnm", "qoi", "tga", "tif", "webp",
         ]
         .iter()
         .copied()

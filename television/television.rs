@@ -304,7 +304,10 @@ impl Television {
             && !matches!(selected_entry.preview_type, PreviewType::None)
         {
             // preview content
-            if let Some(preview) = self.previewer.preview(selected_entry) {
+            if let Some(preview) = self
+                .previewer
+                .preview(selected_entry, self.ui_state.layout.preview_window)
+            {
                 // only update if the preview content has changed
                 if self.preview_state.preview.title != preview.title {
                     self.preview_state.update(
