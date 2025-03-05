@@ -52,6 +52,7 @@ impl ShellIntegrationConfig {
         match self.keybindings.get(SMART_AUTOCOMPLETE_CONFIGURATION_KEY) {
             Some(s) => match parse_key(s) {
                 Ok(Key::Ctrl(c)) => c.to_uppercase().next().unwrap(),
+                Ok(Key::CtrlSpace) => ' ',
                 _ => DEFAULT_SHELL_AUTOCOMPLETE_KEY,
             },
             None => DEFAULT_SHELL_AUTOCOMPLETE_KEY,
@@ -64,6 +65,7 @@ impl ShellIntegrationConfig {
         match self.keybindings.get(COMMAND_HISTORY_CONFIGURATION_KEY) {
             Some(s) => match parse_key(s) {
                 Ok(Key::Ctrl(c)) => c.to_uppercase().next().unwrap(),
+                Ok(Key::CtrlSpace) => ' ',
                 _ => DEFAULT_COMMAND_HISTORY_KEY,
             },
             None => DEFAULT_COMMAND_HISTORY_KEY,
