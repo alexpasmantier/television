@@ -196,7 +196,7 @@ fn parse_key_code_with_modifiers(
         "f10" => KeyCode::F(10),
         "f11" => KeyCode::F(11),
         "f12" => KeyCode::F(12),
-        "space" => KeyCode::Char(' '),
+        "space" | " " => KeyCode::Char(' '),
         "hyphen" | "minus" => KeyCode::Char('-'),
         "tab" => KeyCode::Tab,
         c if c.len() == 1 => {
