@@ -1,6 +1,8 @@
 use crate::utils::files::{read_into_lines_capped, ReadResult};
 use crate::utils::syntax::HighlightedLines;
+use image::ImageReader;
 use parking_lot::Mutex;
+use ratatui::layout::Rect;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::fs::File;
@@ -10,13 +12,13 @@ use std::sync::{
     atomic::{AtomicU8, Ordering},
     Arc,
 };
-
 use syntect::{highlighting::Theme, parsing::SyntaxSet};
 use tracing::{debug, trace, warn};
 
 use crate::channels::entry;
 use crate::preview::cache::PreviewCache;
 use crate::preview::{previewers::meta, Preview, PreviewContent};
+use crate::utils::image::ImagePreviewWidget;
 use crate::utils::{
     files::FileType,
     strings::preprocess_line,
@@ -78,20 +80,28 @@ impl FilePreviewer {
         self.cache.lock().get(&entry.name)
     }
 
-    pub fn preview(&mut self, entry: &entry::Entry) -> Option<Arc<Preview>> {
+    pub fn preview(
+        &mut self,
+        entry: &entry::Entry,
+        preview_window: Option<Rect>,
+    ) -> Option<Arc<Preview>> {
         if let Some(preview) = self.cached(entry) {
             trace!("Preview cache hit for {:?}", entry.name);
             if preview.partial_offset.is_some() {
                 // preview is partial, spawn a task to compute the next chunk
                 // and return the partial preview
                 debug!("Spawning partial preview task for {:?}", entry.name);
-                self.handle_preview_request(entry, Some(preview.clone()));
+                self.handle_preview_request(
+                    entry,
+                    Some(preview.clone()),
+                    preview_window,
+                );
             }
             Some(preview)
         } else {
             // preview is not in cache, spawn a task to compute the preview
             trace!("Preview cache miss for {:?}", entry.name);
-            self.handle_preview_request(entry, None);
+            self.handle_preview_request(entry, None, preview_window);
             None
         }
     }
@@ -100,6 +110,7 @@ impl FilePreviewer {
         &mut self,
         entry: &entry::Entry,
         partial_preview: Option<Arc<Preview>>,
+        preview_window: Option<Rect>,
     ) {
         if self.in_flight_previews.lock().contains(&entry.name) {
             trace!("Preview already in flight for {:?}", entry.name);
@@ -126,6 +137,7 @@ impl FilePreviewer {
                     &syntax_theme,
                     &concurrent_tasks,
                     &in_flight_previews,
+                    preview_window,
                 );
             });
         }
@@ -141,6 +153,7 @@ impl FilePreviewer {
 /// This ends up being the max size of partial previews.
 const PARTIAL_BUFREAD_SIZE: usize = 5 * 1024 * 1024;
 
+#[allow(clippy::too_many_arguments)]
 pub fn try_preview(
     entry: &entry::Entry,
     partial_preview: Option<Arc<Preview>>,
@@ -149,6 +162,7 @@ pub fn try_preview(
     syntax_theme: &Arc<Theme>,
     concurrent_tasks: &Arc<AtomicU8>,
     in_flight_previews: &Arc<Mutex<FxHashSet<String>>>,
+    preview_window: Option<Rect>,
 ) {
     debug!("Computing preview for {:?}", entry.name);
     let path = PathBuf::from(&entry.name);
@@ -236,8 +250,66 @@ pub fn try_preview(
                 cache.lock().insert(entry.name.clone(), &p);
             }
         }
+    } else if matches!(FileType::from(&path), FileType::Image) {
+        cache.lock().insert(
+            entry.name.clone(),
+            &meta::loading(&format!("Loading {}", entry.name)),
+        );
+
+        debug!("File {:?} is an image", entry.name);
+        let option_image = match ImageReader::open(path) {
+            Ok(reader) => match reader.with_guessed_format() {
+                Ok(reader) => match reader.decode() {
+                    Ok(image) => Some(image),
+                    Err(e) => {
+                        warn!(
+                            "Error impossible to decode {}: {:?}",
+                            entry.name, e
+                        );
+                        None
+                    }
+                },
+                Err(e) => {
+                    warn!(
+                        "Error impossible to guess the format of {}: {:?}",
+                        entry.name, e
+                    );
+                    None
+                }
+            },
+            Err(e) => {
+                warn!("Error opening image {}: {:?}", entry.name, e);
+                None
+            }
+        };
+        if let Some(image) = option_image {
+            let preview_window_dimension = preview_window.map(|rect| {
+                (
+                    u32::from(rect.width.saturating_sub(2)),
+                    u32::from(rect.height.saturating_sub(2)),
+                ) // - 2 for the margin
+            });
+            let image_preview_widget = ImagePreviewWidget::from_dynamic_image(
+                image,
+                preview_window_dimension,
+            );
+            let total_lines =
+                image_preview_widget.height().try_into().unwrap_or(u16::MAX);
+            let content = PreviewContent::Image(image_preview_widget);
+            let preview = Arc::new(Preview::new(
+                entry.name.clone(),
+                content,
+                entry.icon,
+                None,
+                total_lines,
+            ));
+            cache.lock().insert(entry.name.clone(), &preview);
+        } else {
+            let p = meta::not_supported(&entry.name);
+            cache.lock().insert(entry.name.clone(), &p);
+        }
     } else {
-        debug!("File isn't text-based: {:?}", entry.name);
+        debug!("File format isn't supported for preview: {:?}", entry.name);
         let preview = meta::not_supported(&entry.name);
         cache.lock().insert(entry.name.clone(), &preview);
     }
