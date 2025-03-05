@@ -4,11 +4,9 @@
 **A cross-platform, fast and extensible general purpose fuzzy finder TUI.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
-![Crates.io Size](https://img.shields.io/crates/size/television)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
-![Crates.io Total Downloads](https://img.shields.io/crates/d/television)
 
 ![tv on the curl codebase](https://github.com/user-attachments/assets/7d329ef3-4efe-4908-bbf8-e02744508eaf)
 
@@ -17,7 +15,7 @@
 ## About
 `Television` is a cross-platform, fast and extensible fuzzy finder TUI.
 
-It lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
+It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
 images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible.
 
 ![tv-shell-integration](https://github.com/user-attachments/assets/d11c4d3c-2f1f-457c-9a0f-a56aebfefddd)
