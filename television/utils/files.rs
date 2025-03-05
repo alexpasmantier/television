@@ -499,31 +499,26 @@ where
     path.as_ref()
         .extension()
         .and_then(|ext| ext.to_str())
-        .is_some_and(|ext| KNOWN_IMAGE_FILE_EXTENSIONS.contains(ext))
+        .is_some_and(|ext| get_known_image_file_extensions().contains(ext))
 }
-
-lazy_static! {
-    static ref KNOWN_IMAGE_FILE_EXTENSIONS: FxHashSet<&'static str> = [
-        //"avif",
-        //"bmp",
-        //"dds",
-        //"farbfeld",
-        "gif",
-        //"hdr",
-        "ico",
-        "jpeg",
-        "jpg",
-        //"exr",
-        "png",
-        //"pnm",
-        //"qoi",
-        //"tga",
-        "tif",
-        "tiff",
-        "webp",
-
-    ]
-    .iter()
-    .copied()
-    .collect();
+pub static KNOWN_IMAGE_FILE_EXTENSIONS: OnceLock<FxHashSet<&'static str>> =
+    OnceLock::new();
+pub fn get_known_image_file_extensions() -> &'static FxHashSet<&'static str> {
+    KNOWN_IMAGE_FILE_EXTENSIONS.get_or_init(|| {
+        [
+            //"avif",
+            //"bmp",
+            //"dds",
+            //"farbfeld",
+            "gif", //"hdr",
+            "ico", "jpeg", "jpg", //"exr",
+            "png", //"pnm",
+            //"qoi",
+            //"tga",
+            "tif", "tiff", "webp",
+        ]
+        .iter()
+        .copied()
+        .collect()
+    })
 }
