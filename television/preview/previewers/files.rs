@@ -284,7 +284,10 @@ pub fn try_preview(
         };
         if let Some(image) = option_image {
             let preview_window_dimension = preview_window.map(|rect| {
-                (u32::from(rect.width.saturating_sub(2)), u32::from(rect.height.saturating_sub(2))) // - 2 for the margin
+                (
+                    u32::from(rect.width.saturating_sub(2)),
+                    u32::from(rect.height.saturating_sub(2)),
+                ) // - 2 for the margin
             });
             let image_preview_widget = ImagePreviewWidget::from_dynamic_image(
                 image,
