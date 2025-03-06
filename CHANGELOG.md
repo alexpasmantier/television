@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.7](https://github.com/alexpasmantier/television/releases/tag/0.10.7) - 2025-03-06
+
+### ⛰️  Features
+
+- [3441587](https://github.com/alexpamantier/television/commit/3441587d57879c309e7818ca89375fa2aaced710) *(preview)* Add support for image previews by @I-Azy-I
+
+- [46f5d20](https://github.com/alexpamantier/television/commit/46f5d20b2c90219b26a17b4803cf9c691c03a461) *(shell)* Allow mapping ctrl-space for builtin shell autocomplete integration by @alexpasmantier
+
+### 🐛 Bug Fixes
+
+- [e2a0fb2](https://github.com/alexpamantier/television/commit/e2a0fb204724c5b6fc12554a35355a6a419ad198) *(clipboard)* Fix issue where clipboard wouldn't work on X11-based environments by @alexpasmantier in [#364](https://github.com/alexpasmantier/television/pull/364)
+
+### 🚜 Refactor
+
+- [63cb976](https://github.com/alexpamantier/television/commit/63cb9760272067ab8787085b37690255e20ecbb9) *(ui)* Communicate ui state to tv using channels by @alexpasmantier in [#369](https://github.com/alexpasmantier/television/pull/369)
+
+### 📚 Documentation
+
+- [d47d6f7](https://github.com/alexpamantier/television/commit/d47d6f7850a92b197f2046d81cf56dd2a1322010) *(uncategorized)* Docs(readme): Update README.md by @alexpasmantier
+
+- [f14c910](https://github.com/alexpamantier/television/commit/f14c910fb458040fe1f1133ae59be0676d80b374) *(uncategorized)* Update README by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [4ccb85b](https://github.com/alexpamantier/television/commit/4ccb85ba5b64b693cb132490365cfb5b339689b1) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#358](https://github.com/alexpasmantier/television/pull/358)
+
+- [5a4c9d3](https://github.com/alexpamantier/television/commit/5a4c9d329693dcd14c06038cd88f84c72a795744) *(uncategorized)* Bump to 0.10.7 by @alexpasmantier
+
+
+
+### New Contributors
+* @I-Azy-I made their first contribution
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.6...0.10.7
+
+
 ## [0.10.6](https://github.com/alexpasmantier/television/releases/tag/0.10.6) - 2025-02-08
 
 ### 🐛 Bug Fixes
