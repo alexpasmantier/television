@@ -62,8 +62,8 @@ async fn main() -> Result<()> {
         config.ui.show_preview_panel = false;
     }
 
-    if let Some(working_directory) = args.working_directory {
-        let path = Path::new(&working_directory);
+    if let Some(working_directory) = &args.working_directory {
+        let path = Path::new(working_directory);
         if !path.exists() {
             error!(
                 "Working directory \"{}\" does not exist",
@@ -80,39 +80,11 @@ async fn main() -> Result<()> {
 
     CLIPBOARD.with(<_>::default);
 
-    match App::new(
-        {
-            if is_readable_stdin() {
-                debug!("Using stdin channel");
-                TelevisionChannel::Stdin(StdinChannel::new(
-                    args.preview_command.map(PreviewType::Command),
-                ))
-            } else if let Some(prompt) = args.autocomplete_prompt {
-                let channel = guess_channel_from_prompt(
-                    &prompt,
-                    &config.shell_integration.commands,
-                )?;
-                debug!("Using guessed channel: {:?}", channel);
-                match channel {
-                    ParsedCliChannel::Builtin(c) => c.to_channel(),
-                    ParsedCliChannel::Cable(c) => {
-                        TelevisionChannel::Cable(c.into())
-                    }
-                }
-            } else {
-                debug!("Using {:?} channel", args.channel);
-                match args.channel {
-                    ParsedCliChannel::Builtin(c) => c.to_channel(),
-                    ParsedCliChannel::Cable(c) => {
-                        TelevisionChannel::Cable(c.into())
-                    }
-                }
-            }
-        },
-        config,
-        &args.passthrough_keybindings,
-        args.input,
-    ) {
+    let channel =
+        determine_channel(args.clone(), &config, is_readable_stdin())?;
+
+    match App::new(channel, config, &args.passthrough_keybindings, args.input)
+    {
         Ok(mut app) => {
             stdout().flush()?;
             let output = app.run(stdout().is_terminal()).await?;
@@ -135,5 +107,128 @@ async fn main() -> Result<()> {
             println!("{err:?}");
             exit(1);
         }
+    }
+}
+
+pub fn determine_channel(
+    args: PostProcessedCli,
+    config: &Config,
+    readable_stdin: bool,
+) -> Result<TelevisionChannel> {
+    if readable_stdin {
+        debug!("Using stdin channel");
+        Ok(TelevisionChannel::Stdin(StdinChannel::new(
+            args.preview_command.map(PreviewType::Command),
+        )))
+    } else if let Some(prompt) = args.autocomplete_prompt {
+        let channel = guess_channel_from_prompt(
+            &prompt,
+            &config.shell_integration.commands,
+        )?;
+        debug!("Using guessed channel: {:?}", channel);
+        match channel {
+            ParsedCliChannel::Builtin(c) => Ok(c.to_channel()),
+            ParsedCliChannel::Cable(c) => {
+                Ok(TelevisionChannel::Cable(c.into()))
+            }
+        }
+    } else {
+        debug!("Using {:?} channel", args.channel);
+        match args.channel {
+            ParsedCliChannel::Builtin(c) => Ok(c.to_channel()),
+            ParsedCliChannel::Cable(c) => {
+                Ok(TelevisionChannel::Cable(c.into()))
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rustc_hash::FxHashMap;
+
+    use super::*;
+
+    fn assert_is_correct_channel(
+        args: &PostProcessedCli,
+        config: &Config,
+        readable_stdin: bool,
+        expected_channel: &TelevisionChannel,
+    ) {
+        let channel =
+            determine_channel(args.clone(), config, readable_stdin).unwrap();
+
+        assert!(
+            channel.name() == expected_channel.name(),
+            "Expected {:?} but got {:?}",
+            expected_channel.name(),
+            channel.name()
+        );
+    }
+
+    #[tokio::test]
+    async fn test_determine_channel_readable_stdin() {
+        let channel = television::cli::ParsedCliChannel::Builtin(
+            television::channels::CliTvChannel::Env,
+        );
+        let args = PostProcessedCli {
+            channel,
+            ..Default::default()
+        };
+        let config = Config::default();
+        assert_is_correct_channel(
+            &args,
+            &config,
+            true,
+            &TelevisionChannel::Stdin(StdinChannel::new(None)),
+        );
+    }
+
+    #[tokio::test]
+    async fn test_determine_channel_autocomplete_prompt() {
+        let autocomplete_prompt = Some("cd".to_string());
+        let expected_channel = television::channels::TelevisionChannel::Dirs(
+            television::channels::dirs::Channel::default(),
+        );
+        let args = PostProcessedCli {
+            autocomplete_prompt,
+            ..Default::default()
+        };
+        let mut config = Config {
+            shell_integration:
+                television::config::shell_integration::ShellIntegrationConfig {
+                    commands: FxHashMap::default(),
+                    channel_triggers: {
+                        let mut m = FxHashMap::default();
+                        m.insert("dirs".to_string(), vec!["cd".to_string()]);
+                        m
+                    },
+                    keybindings: FxHashMap::default(),
+                },
+            ..Default::default()
+        };
+        config.shell_integration.merge_triggers();
+
+        assert_is_correct_channel(&args, &config, false, &expected_channel);
+    }
+
+    #[tokio::test]
+    async fn test_determine_channel_standard_case() {
+        let channel = television::cli::ParsedCliChannel::Builtin(
+            television::channels::CliTvChannel::Dirs,
+        );
+        let args = PostProcessedCli {
+            channel,
+            ..Default::default()
+        };
+        let config = Config::default();
+        assert_is_correct_channel(
+            &args,
+            &config,
+            false,
+            &TelevisionChannel::Dirs(
+                television::channels::dirs::Channel::default(),
+            ),
+        );
     }
 }

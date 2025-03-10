@@ -326,3 +326,26 @@ impl App {
         Ok(ActionOutcome::None)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_app_does_quit() {
+        let channel =
+            TelevisionChannel::Env(crate::channels::env::Channel::new());
+        let config = Config::default();
+        let passthrough_keybindings = Vec::new();
+        let input = None;
+
+        let mut app =
+            App::new(channel, config, &passthrough_keybindings, input)
+                .unwrap();
+
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        let res = rt.block_on(app.run(false));
+        assert!(res.is_ok());
+        assert!(app.should_quit);
+    }
+}
