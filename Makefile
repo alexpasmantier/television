@@ -6,10 +6,6 @@ setup:
 	@mkdir -p .git/hooks
 	@echo "make fix" > .git/hooks/pre-commit
 	@chmod +x .git/hooks/pre-commit
-	@echo "installing convco..."
-	@cargo install convco
-	@echo "make check-commits" > .git/hooks/pre-push
-	@chmod +x .git/hooks/pre-push
 	@echo "Done"
 
 clean:
@@ -62,7 +58,3 @@ publish:
 update-changelog:
 	@echo "Updating changelog"
 	@git cliff -o CHANGELOG.md
-
-check-commits:
-	@echo "Checking commits (see https://www.conventionalcommits.org/)"
-	@convco check origin/main..HEAD
