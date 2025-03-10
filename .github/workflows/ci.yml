@@ -46,3 +46,10 @@ jobs:
           components: clippy
       - name: Clippy Check
         run: cargo clippy -- -D warnings
+
+  conventional-commits:
+    name: Conventional Commits
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: webiny/action-conventional-commits@v1.3.0
