@@ -2,13 +2,27 @@ use rustc_hash::FxHashMap;
 use std::ops::Deref;
 
 use crate::television::Mode;
-use anyhow::Result;
 
 use crate::action::Action;
 use crate::config::{Binding, KeyBindings};
 use crate::event::Key;
 
 #[derive(Default, Debug)]
+/// A keymap is a set of mappings of keys to actions for every mode.
+///
+/// # Example:
+/// ```ignore
+///     Keymap {
+///         Mode::Channel => {
+///             Key::Char('j') => Action::MoveDown,
+///             Key::Char('k') => Action::MoveUp,
+///             Key::Char('q') => Action::Quit,
+///         },
+///         Mode::Insert => {
+///             Key::Ctrl('a') => Action::MoveToStart,
+///         },
+///     }
+/// ```
 pub struct Keymap(pub FxHashMap<Mode, FxHashMap<Key, Action>>);
 
 impl Deref for Keymap {
@@ -19,6 +33,11 @@ impl Deref for Keymap {
 }
 
 impl From<&KeyBindings> for Keymap {
+    /// Convert a `KeyBindings` into a `Keymap`.
+    ///
+    /// This essentially "reverses" the inner `KeyBindings` structure, so that each mode keymap is
+    /// indexed by its keys instead of the actions so as to be used as a routing table for incoming
+    /// key events.
     fn from(keybindings: &KeyBindings) -> Self {
         let mut keymap = FxHashMap::default();
         for (mode, bindings) in keybindings.iter() {
@@ -42,18 +61,17 @@ impl From<&KeyBindings> for Keymap {
 }
 
 impl Keymap {
+    /// For a provided `Mode`, merge the given `mappings` into the keymap.
     pub fn with_mode_mappings(
         mut self,
         mode: Mode,
         mappings: Vec<(Key, Action)>,
-    ) -> Result<Self> {
-        let mode_keymap = self
-            .0
-            .get_mut(&mode)
-            .ok_or_else(|| anyhow::anyhow!("Mode {:?} not found", mode))?;
+    ) -> Self {
+        let mode_keymap = self.0.entry(mode).or_default();
+
         for (key, action) in mappings {
             mode_keymap.insert(key, action);
         }
-        Ok(self)
+        self
     }
 }

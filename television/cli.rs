@@ -64,7 +64,7 @@ pub struct Cli {
     command: Option<Command>,
 }
 
-#[derive(Subcommand, Debug, PartialEq)]
+#[derive(Subcommand, Debug, PartialEq, Clone)]
 pub enum Command {
     /// Lists available channels
     ListChannels,
@@ -98,7 +98,7 @@ impl From<Shell> for UtilShell {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: ParsedCliChannel,
     pub preview_command: Option<PreviewCommand>,
@@ -110,6 +110,23 @@ pub struct PostProcessedCli {
     pub command: Option<Command>,
     pub working_directory: Option<String>,
     pub autocomplete_prompt: Option<String>,
+}
+
+impl Default for PostProcessedCli {
+    fn default() -> Self {
+        Self {
+            channel: ParsedCliChannel::Builtin(CliTvChannel::Files),
+            preview_command: None,
+            no_preview: false,
+            tick_rate: None,
+            frame_rate: None,
+            passthrough_keybindings: Vec::new(),
+            input: None,
+            command: None,
+            working_directory: None,
+            autocomplete_prompt: None,
+        }
+    }
 }
 
 impl From<Cli> for PostProcessedCli {
