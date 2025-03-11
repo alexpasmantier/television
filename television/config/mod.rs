@@ -94,12 +94,17 @@ impl ConfigEnv {
     }
 }
 
+pub fn default_config_from_file() -> Result<Config> {
+    let default_config: Config = toml::from_str(DEFAULT_CONFIG)
+        .context("Error parsing default config")?;
+    Ok(default_config)
+}
+
 impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new(config_env: &ConfigEnv) -> Result<Self> {
         // Load the default_config values as base defaults
-        let default_config: Config = toml::from_str(DEFAULT_CONFIG)
-            .expect("Error parsing default config");
+        let default_config: Config = default_config_from_file()?;
 
         // if a config file exists, load it and merge it with the default configuration
         if config_env.config_dir.join(CONFIG_FILE_NAME).is_file() {

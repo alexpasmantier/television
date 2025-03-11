@@ -276,8 +276,8 @@ impl HighlightingAssetsExt for HighlightingAssets {
     /// to stderr when a theme is not found which might mess up the TUI. This function
     /// suppresses that warning by temporarily redirecting stderr and stdout.
     fn get_theme_no_output(&self, theme_name: &str) -> &Theme {
-        let _e = Gag::stderr().unwrap();
-        let _o = Gag::stdout().unwrap();
+        let _e = Gag::stderr();
+        let _o = Gag::stdout();
         let theme = self.get_theme(theme_name);
         theme
     }

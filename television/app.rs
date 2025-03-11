@@ -29,7 +29,9 @@ pub struct App {
     /// A flag that indicates whether the application should suspend during the next frame.
     should_suspend: bool,
     /// A sender channel for actions.
-    action_tx: mpsc::UnboundedSender<Action>,
+    ///
+    /// This is made public so that tests for instance can send actions to a running application.
+    pub action_tx: mpsc::UnboundedSender<Action>,
     /// The receiver channel for actions.
     action_rx: mpsc::UnboundedReceiver<Action>,
     /// The receiver channel for events.
@@ -38,9 +40,19 @@ pub struct App {
     event_abort_tx: mpsc::UnboundedSender<()>,
     /// A sender channel for rendering tasks.
     render_tx: mpsc::UnboundedSender<RenderingTask>,
+    /// The receiver channel for rendering tasks.
+    ///
+    /// This will most of the time get replaced by the rendering task handle once the rendering
+    /// task is started but is needed for tests, where we start the app in "headless" mode and
+    /// need to keep a fake rendering channel alive so that the rest of the application can run
+    /// without any further modifications.
+    #[allow(dead_code)]
+    render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     /// A channel that listens to UI updates.
     ui_state_rx: mpsc::UnboundedReceiver<UiState>,
     ui_state_tx: mpsc::UnboundedSender<UiState>,
+    /// Render task handle
+    render_task: Option<tokio::task::JoinHandle<Result<()>>>,
 }
 
 /// The outcome of an action.
@@ -91,9 +103,9 @@ impl App {
         config: Config,
         passthrough_keybindings: &[String],
         input: Option<String>,
-    ) -> Result<Self> {
+    ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
-        let (render_tx, _) = mpsc::unbounded_channel();
+        let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
         let tick_rate = config.config.tick_rate;
@@ -106,13 +118,13 @@ impl App {
                     Err(e) => Err(e),
                 })
                 .collect(),
-        )?;
+        );
         debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television =
             Television::new(action_tx.clone(), channel, config, input);
 
-        Ok(Self {
+        Self {
             keymap,
             tick_rate,
             television,
@@ -123,9 +135,11 @@ impl App {
             event_rx,
             event_abort_tx,
             render_tx,
+            render_rx,
             ui_state_rx,
             ui_state_tx,
-        })
+            render_task: None,
+        }
     }
 
     /// Run the application main loop.
@@ -142,22 +156,33 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    pub async fn run(&mut self, is_output_tty: bool) -> Result<AppOutput> {
-        debug!("Starting backend event loop");
-        let event_loop = EventLoop::new(self.tick_rate, true);
-        self.event_rx = event_loop.rx;
-        self.event_abort_tx = event_loop.abort_tx;
+    pub async fn run(
+        &mut self,
+        is_output_tty: bool,
+        headless: bool,
+    ) -> Result<AppOutput> {
+        if !headless {
+            debug!("Starting backend event loop");
+            let event_loop = EventLoop::new(self.tick_rate, true);
+            self.event_rx = event_loop.rx;
+            self.event_abort_tx = event_loop.abort_tx;
+        }
 
         // Rendering loop
-        debug!("Starting rendering loop");
-        let (render_tx, render_rx) = mpsc::unbounded_channel();
-        self.render_tx = render_tx.clone();
-        let ui_state_tx = self.ui_state_tx.clone();
-        let action_tx_r = self.action_tx.clone();
-        let rendering_task = tokio::spawn(async move {
-            render(render_rx, action_tx_r, ui_state_tx, is_output_tty).await
-        });
-        self.action_tx.send(Action::Render)?;
+        if !headless {
+            debug!("Starting rendering loop");
+            let (render_tx, render_rx) = mpsc::unbounded_channel();
+            self.render_tx = render_tx.clone();
+            let ui_state_tx = self.ui_state_tx.clone();
+            let action_tx_r = self.action_tx.clone();
+            self.render_task = Some(tokio::spawn(async move {
+                render(render_rx, action_tx_r, ui_state_tx, is_output_tty)
+                    .await
+            }));
+            self.action_tx
+                .send(Action::Render)
+                .expect("Unable to send init render action.");
+        }
 
         // event handling loop
         debug!("Starting event handling loop");
@@ -177,19 +202,31 @@ impl App {
                     action_tx.send(action)?;
                 }
             }
-
-            let action_outcome = self.handle_action(&mut action_buf).await?;
+            let action_outcome = self.handle_actions(&mut action_buf).await?;
 
             if self.should_quit {
                 // send a termination signal to the event loop
-                self.event_abort_tx.send(())?;
+                if !headless {
+                    self.event_abort_tx.send(())?;
+                }
 
                 // wait for the rendering task to finish
-                rendering_task.await??;
+                if let Some(rendering_task) = self.render_task.take() {
+                    rendering_task.await??;
+                }
 
                 return Ok(AppOutput::from(action_outcome));
             }
         }
+    }
+
+    /// Run the application in headless mode.
+    ///
+    /// This function will start the event loop and handle all actions that are sent to the
+    /// application but will never start the rendering loop. This is mostly used in tests as
+    /// a means to run the application and control it via the actions channel.
+    pub async fn run_headless(&mut self) -> Result<AppOutput> {
+        self.run(false, true).await
     }
 
     /// Convert an event to an action.
@@ -249,7 +286,7 @@ impl App {
     ///
     /// # Errors
     /// If an error occurs during the execution of the application.
-    async fn handle_action(
+    async fn handle_actions(
         &mut self,
         buf: &mut Vec<Action>,
     ) -> Result<ActionOutcome> {
@@ -273,7 +310,9 @@ impl App {
                     }
                     Action::SelectAndExit => {
                         self.should_quit = true;
-                        self.render_tx.send(RenderingTask::Quit)?;
+                        if !self.render_tx.is_closed() {
+                            self.render_tx.send(RenderingTask::Quit)?;
+                        }
                         if let Some(entries) = self
                             .television
                             .get_selected_entries(Some(Mode::Channel))
