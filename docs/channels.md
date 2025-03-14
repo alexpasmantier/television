@@ -2,7 +2,7 @@
 The following built-in channels are currently available:
 - `files`: search through files in a directory tree.
 - `text`: search through textual content in a directory tree.
-- `gitrepos`: search through git repositories anywhere on the file system.
+- `git-repos`: search through git repositories anywhere on the file system.
 - `env`: search through environment variables and their values.
 - `alias`: search through shell aliases and their values.
 - `stdin`: search through lines of text from stdin.
