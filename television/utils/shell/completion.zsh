@@ -32,8 +32,7 @@ _tv_shell_history() {
 
     local output
 
-    output=$(tv zsh-history --input "$current_prompt" $*)
-
+    output=$(history -n -1 0 | tv --input "$current_prompt" $*)
 
     if [[ -n $output ]]; then
         zle reset-prompt
