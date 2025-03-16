@@ -6,6 +6,11 @@ on:
     tags:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        default: '0.0.0'
 jobs:
   create-release:
     name: Create a release
@@ -158,6 +163,7 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
+          - target: armv7-unknown-linux-musleabihf
     env:
       TARGET: ${{ matrix.target }}
       # Emit backtraces on panics.
@@ -185,18 +191,13 @@ jobs:
         shell: bash
         run: |
           cargo install cargo-deb
-      - name: Create deployment directory
-        shell: bash
-        run: |
-          dir=deployment/deb
-          mkdir -p "$dir"
-          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
       - name: Build release binary
         shell: bash
+        # cargo deb creates its debian package in target/debian/<project_name>_<version>-1_<arch>.deb
         run: |
           cargo deb --profile deb --target ${{ env.TARGET }}
           version="${{ github.ref_name }}"
-          echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
+          echo "DEB_DIR=target/debian" >> $GITHUB_ENV
           echo "DEB_NAME=television_$version-1_${{ env.TARGET }}.deb" >> $GITHUB_ENV
       - name: Create sha256 sum of deb file
         shell: bash
