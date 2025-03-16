@@ -16,13 +16,11 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
-- [b537e2e](https://github.com/alexpasmantier/television/commit/b537e2e77c69f71d08a87c4306c9156b81ec7fb5) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#386](https://github.com/alexpasmantier/television/pull/386)
+- [d601eb2](https://github.com/alexpasmantier/television/commit/d601eb2c0224018d46c35a0ab0a79803d77ecf4e) *(changelog)* Update changelog (auto) by @github-actions[bot]
 
 - [ed28da3](https://github.com/alexpasmantier/television/commit/ed28da325f09ecb7e9288785fa0dd004f39cfe21) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#371](https://github.com/alexpasmantier/television/pull/371)
 
-- [92b16e1](https://github.com/alexpasmantier/television/commit/92b16e1ba13bd6fe356210c812faaee66832ea22) *(deb)* Temporarily disable old compatibility builds by @alexpasmantier in [#385](https://github.com/alexpasmantier/television/pull/385)
-
-- [e3b73e3](https://github.com/alexpasmantier/television/commit/e3b73e36e2a2114233adfe499499cc3a6fa8b50d) *(uncategorized)* Bump to 0.10.8 by @alexpasmantier
+- [e26bd59](https://github.com/alexpasmantier/television/commit/e26bd5919f1a81c9ea1564751c2a871f3b628aaa) *(deb)* Temporarily disable old compatibility builds by @alexpasmantier
 
 - [fcf4b35](https://github.com/alexpasmantier/television/commit/fcf4b35272f10488697fb74e493c399e489c6c50) *(uncategorized)* Replace manual convco check and git hook by a dedicated ci step by @alexpasmantier in [#376](https://github.com/alexpasmantier/television/pull/376)
 
