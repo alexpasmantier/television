@@ -147,7 +147,7 @@ jobs:
       - name: Releasing assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |2
+          files: |
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.tar.gz
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.zip
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.sha256
@@ -198,7 +198,6 @@ jobs:
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
-          - target: armv7-unknown-linux-musleabihf
     env:
       TARGET: ${{ matrix.target }}
       # Emit backtraces on panics.
