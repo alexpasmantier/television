@@ -1,11 +1,18 @@
 name: CD # Continuous Deployment
 permissions:
   contents: write
+
 on:
   push:
     tags:
       - '[v]?[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        default: '0.0.0'
+
 jobs:
   create-release:
     name: Create a release
@@ -17,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Generate a changelog
         uses: orhun/git-cliff-action@v4
         with:
@@ -24,14 +32,19 @@ jobs:
           args: --latest --strip header
         env:
           OUTPUT: BODY.md
+
       - name: Publish on GitHub
         uses: ncipollo/release-action@v1
         with:
           prerelease: false
           bodyFile: BODY.md
+
+
   publish-release:
+
     name: Publishing for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
         include:
@@ -77,6 +90,7 @@ jobs:
             binary-postfix: ""
             use-cross: true
             binary-name: tv
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,7 +98,9 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+
           target: ${{ matrix.target }}
+
           profile: minimal
           override: true
       - uses: Swatinem/rust-cache@v2
@@ -92,12 +108,18 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
+
           use-cross: ${{ matrix.use-cross }}
+
           toolchain: stable
+
           args: --release --target ${{ matrix.target }}
+
+
       - name: install strip command
         shell: bash
-        run: |2
+        run: |
+
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
 
               sudo apt update
@@ -105,7 +127,8 @@ jobs:
           fi
       - name: Packaging final binary
         shell: bash
-        run: |2
+        run: |
+
           cd target/${{ matrix.target }}/release
 
 
@@ -142,74 +165,97 @@ jobs:
         run: |
           Compress-Archive -Path "$env:BINARY_NAME" -Destination "$($env:RELEASE_NAME).zip"
           (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
+
       - name: Releasing assets
         uses: softprops/action-gh-release@v2
         with:
           files: |
+
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.tar.gz
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.zip
             target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.sha256
+
         env:
+
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   publish-release-deb:
-    name: publish-release-deb for ${{ matrix.target }}
+    name: publish-release-deb
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - target: x86_64-unknown-linux-musl
     env:
-      TARGET: ${{ matrix.target }}
+      TARGET: x86_64-unknown-linux-musl
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
       # Since we're distributing the dpkg, we don't know whether the user will
       # have PCRE2 installed, so just do a static build.
       PCRE2_SYS_STATIC: 1
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Install packages (Ubuntu)
-        shell: bash
-        run: "if ! command -V sudo; then\n apt-get update\n apt-get install -y --no-install-recommends sudo\nfi\nsudo apt-get update\nsudo apt-get install -y --no-install-recommends \\\n zsh xz-utils liblz4-tool musl-tools brotli zstd \n"
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: nightly
-          target: ${{ env.TARGET }}
-      # for some reason, the above action doesn't seem to set the target correctly
-      - name: Add rustup target
-        shell: bash
-        run: |
-          rustup target add ${{ env.TARGET }}
-      - name: Install cargo-deb
-        shell: bash
-        run: |
-          cargo install cargo-deb
-      - name: Create deployment directory
-        shell: bash
-        run: |
-          dir=deployment/deb
-          mkdir -p "$dir"
-          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
-      - name: Build release binary
-        shell: bash
-        run: |
-          cargo deb --profile deb --target ${{ env.TARGET }}
-          version="${{ github.ref_name }}"
-          echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
-          echo "DEB_NAME=television_$version-1_${{ env.TARGET }}.deb" >> $GITHUB_ENV
-      - name: Create sha256 sum of deb file
-        shell: bash
-        run: |
-          cd "$DEB_DIR"
-          sum="$DEB_NAME.sha256"
-          shasum -a 256 "$DEB_NAME" > "$sum"
-          echo "SUM=$sum" >> $GITHUB_ENV
-      - name: Upload release archive
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          cd "$DEB_DIR"
-          version="${{ github.ref_name }}"
-          gh release upload "$version" "$DEB_NAME" "$SUM"
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install packages (Ubuntu)
+      shell: bash
+      run: |
+       if ! command -V sudo; then
+        apt-get update
+        apt-get install -y --no-install-recommends sudo
+       fi
+       sudo apt-get update
+       sudo apt-get install -y --no-install-recommends \
+        zsh xz-utils liblz4-tool musl-tools brotli zstd 
+
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly
+        target: ${{ env.TARGET }}
+        
+    # for some reason, the above action doesn't seem to set the target correctly
+    - name: Add rustup target
+      shell: bash
+      run: |
+        rustup target add x86_64-unknown-linux-musl
+
+    # for some reason, the above action doesn't seem to set the target correctly
+    - name: Add rustup target
+      shell: bash
+      run: |
+        rustup target add x86_64-unknown-linux-musl
+
+    - name: Install cargo-deb
+      shell: bash
+      run: |
+        cargo install cargo-deb
+
+    - name: Create deployment directory
+      shell: bash
+      run: |
+        dir=deployment/deb
+        mkdir -p "$dir"
+        echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+    - name: Build release binary
+      shell: bash
+      run: |
+        cargo deb --profile deb --target ${{ env.TARGET }}
+        version="${{ github.ref_name }}"
+        echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
+        echo "DEB_NAME=television_$version-1_amd64.deb" >> $GITHUB_ENV
+
+    - name: Create sha256 sum of deb file
+      shell: bash
+      run: |
+        cd "$DEB_DIR"
+        sum="$DEB_NAME.sha256"
+        shasum -a 256 "$DEB_NAME" > "$sum"
+        echo "SUM=$sum" >> $GITHUB_ENV
+
+    - name: Upload release archive
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
+      run: |
+        cd "$DEB_DIR"
+        version="${{ github.ref_name }}"
+        gh release upload "$version" "$DEB_NAME" "$SUM"
