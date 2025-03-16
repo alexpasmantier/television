@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.8](https://github.com/alexpasmantier/television/releases/tag/0.10.8) - 2025-03-16
+
+### 🐛 Bug Fixes
+
+- [8df4a7a](https://github.com/alexpasmantier/television/commit/8df4a7a2291ab455a6d36dd7018f956da015abf0) *(changelog)* Fix broken links in CHANGELOG.md by @murlakatamenka in [#377](https://github.com/alexpasmantier/television/pull/377)
+
+### 🧪 Testing
+
+- [64b2f73](https://github.com/alexpasmantier/television/commit/64b2f730b3841c32f5d30ae2ae1847db297e8bca) *(uncategorized)* More tests for cli, app, and main by @alexpasmantier in [#375](https://github.com/alexpasmantier/television/pull/375)
+
+### ⚙️ Miscellaneous Tasks
+
+- [b537e2e](https://github.com/alexpasmantier/television/commit/b537e2e77c69f71d08a87c4306c9156b81ec7fb5) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#386](https://github.com/alexpasmantier/television/pull/386)
+
+- [ed28da3](https://github.com/alexpasmantier/television/commit/ed28da325f09ecb7e9288785fa0dd004f39cfe21) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#371](https://github.com/alexpasmantier/television/pull/371)
+
+- [92b16e1](https://github.com/alexpasmantier/television/commit/92b16e1ba13bd6fe356210c812faaee66832ea22) *(deb)* Temporarily disable old compatibility builds by @alexpasmantier in [#385](https://github.com/alexpasmantier/television/pull/385)
+
+- [e3b73e3](https://github.com/alexpasmantier/television/commit/e3b73e36e2a2114233adfe499499cc3a6fa8b50d) *(uncategorized)* Bump to 0.10.8 by @alexpasmantier
+
+- [fcf4b35](https://github.com/alexpasmantier/television/commit/fcf4b35272f10488697fb74e493c399e489c6c50) *(uncategorized)* Replace manual convco check and git hook by a dedicated ci step by @alexpasmantier in [#376](https://github.com/alexpasmantier/television/pull/376)
+
+
+
+### New Contributors
+* @bpairet made their first contribution in [#383](https://github.com/alexpasmantier/television/pull/383)
+* @murlakatamenka made their first contribution in [#377](https://github.com/alexpasmantier/television/pull/377)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.7...0.10.8
+
+
 ## [0.10.7](https://github.com/alexpasmantier/television/releases/tag/0.10.7) - 2025-03-06
 
 ### ⛰️  Features
