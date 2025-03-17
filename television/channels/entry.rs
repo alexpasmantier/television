@@ -183,12 +183,12 @@ impl Display for PreviewCommand {
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum PreviewType {
-    #[default]
     Basic,
     EnvVar,
     Files,
     #[strum(disabled)]
     Command(PreviewCommand),
+    #[default]
     None,
 }
 
