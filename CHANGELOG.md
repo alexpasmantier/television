@@ -22,9 +22,13 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
+- [011d004](https://github.com/alexpasmantier/television/commit/011d004b4bb83a4fa44d73cd9cf3a6977d71a454) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#399](https://github.com/alexpasmantier/television/pull/399)
+
 - [60ea4a7](https://github.com/alexpasmantier/television/commit/60ea4a7e15bc077bff474a45a572dd523745aa5c) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#391](https://github.com/alexpasmantier/television/pull/391)
 
 - [35be377](https://github.com/alexpasmantier/television/commit/35be37797bb1f0f3fe5eae2758d52a9f0a167aec) *(man)* Add man pages to ci releases by @alexpasmantier in [#398](https://github.com/alexpasmantier/television/pull/398)
+
+- [005f454](https://github.com/alexpasmantier/television/commit/005f4540ba00de84553c1f3b29240511505a507f) *(uncategorized)* Bump to 0.10.10 by @alexpasmantier
 
 - [deecbbe](https://github.com/alexpasmantier/television/commit/deecbbed0693fa427d0ef08030dfcdcfbb57276f) *(uncategorized)* Bump to 0.10.10 by @alexpasmantier
 
