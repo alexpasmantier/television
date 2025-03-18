@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.10.10](https://github.com/alexpasmantier/television/releases/tag/0.10.10) - 2025-03-18
+
+### 🐛 Bug Fixes
+
+- [55705c0](https://github.com/alexpasmantier/television/commit/55705c0855238e2683bf6b4d43f7c7094ddf5126) *(zsh)* Use history command to include recent entries by @keturn in [#379](https://github.com/alexpasmantier/television/pull/379)
+
+### 🚜 Refactor
+
+- [ee89b36](https://github.com/alexpasmantier/television/commit/ee89b36b420e2ddc3776afea8658f4930938ebc8) *(stdin)* Disable preview by default and enable when passing `--preview` by @alexpasmantier in [#394](https://github.com/alexpasmantier/television/pull/394)
+
+### 📚 Documentation
+
+- [4f35cc6](https://github.com/alexpasmantier/television/commit/4f35cc6dbdc79925783404a729df24cbd004f954) *(cli)* Improve cli documentation by @alexpasmantier in [#395](https://github.com/alexpasmantier/television/pull/395)
+
+- [0edf224](https://github.com/alexpasmantier/television/commit/0edf224502cc843500ae48e5290a264247930efa) *(man)* Add man pages for tv by @alexpasmantier in [#397](https://github.com/alexpasmantier/television/pull/397)
+
+### ⚙️ Miscellaneous Tasks
+
+- [60ea4a7](https://github.com/alexpasmantier/television/commit/60ea4a7e15bc077bff474a45a572dd523745aa5c) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#391](https://github.com/alexpasmantier/television/pull/391)
+
+- [35be377](https://github.com/alexpasmantier/television/commit/35be37797bb1f0f3fe5eae2758d52a9f0a167aec) *(man)* Add man pages to ci releases by @alexpasmantier in [#398](https://github.com/alexpasmantier/television/pull/398)
+
+- [deecbbe](https://github.com/alexpasmantier/television/commit/deecbbed0693fa427d0ef08030dfcdcfbb57276f) *(uncategorized)* Bump to 0.10.10 by @alexpasmantier
+
+
+
+### New Contributors
+* @keturn made their first contribution in [#379](https://github.com/alexpasmantier/television/pull/379)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.9...0.10.10
+
+
 ## [0.10.9](https://github.com/alexpasmantier/television/releases/tag/0.10.9) - 2025-03-17
 
 ### ⚙️ Miscellaneous Tasks
