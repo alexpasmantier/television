@@ -144,7 +144,8 @@ jobs:
           mkdir -p "$RELEASE_NAME"/doc
           cp $BIN "$RELEASE_NAME"/
           cp {README.md,LICENSE} "$RELEASE_NAME"/
-          cp {CHANGELOG.md,docs/*,man/*} "$RELEASE_NAME"/doc/
+          cp {CHANGELOG.md,docs/*} "$RELEASE_NAME"/doc/
+          cp target/assets/tv.1 "$RELEASE_NAME"/doc/
 
           tar czvf "$RELEASE_NAME".tar.gz "$RELEASE_NAME"
 
@@ -206,7 +207,7 @@ jobs:
       with:
         toolchain: nightly
         target: ${{ env.TARGET }}
-        
+
     # for some reason, the above action doesn't seem to set the target correctly
     - name: Add rustup target
       shell: bash
@@ -234,7 +235,7 @@ jobs:
     - name: Copy man page
       shell: bash
       run: |
-        cp man/tv.1 "$DEPLOY_DIR/"
+        cp target/assets/tv.1 "$DEPLOY_DIR/"
 
     - name: Build release binary
       shell: bash
