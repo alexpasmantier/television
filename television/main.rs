@@ -13,7 +13,8 @@ use television::channels::{
     entry::PreviewType, stdin::Channel as StdinChannel, TelevisionChannel,
 };
 use television::cli::{
-    guess_channel_from_prompt, list_channels, Cli, ParsedCliChannel,
+    args::{Cli, Command},
+    guess_channel_from_prompt, list_channels, ParsedCliChannel,
     PostProcessedCli,
 };
 
@@ -36,11 +37,11 @@ async fn main() -> Result<()> {
 
     if let Some(command) = args.command {
         match command {
-            television::cli::Command::ListChannels => {
+            Command::ListChannels => {
                 list_channels();
                 exit(0);
             }
-            television::cli::Command::InitShell { shell } => {
+            Command::InitShell { shell } => {
                 let target_shell = Shell::from(shell);
                 // the completion scripts for the various shells are templated
                 // so that it's possible to override the keybindings triggering
