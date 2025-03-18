@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.10.9"
+version = "0.10.10"
 edition = "2021"
 description = "A cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
@@ -21,6 +21,7 @@ include = [
   "television/**",
   ".config/config.toml",
   "cable",
+  "build.rs"
 ]
 rust-version = "1.83"
 build = "build.rs"
