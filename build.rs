@@ -23,7 +23,5 @@ fn build_man_page() -> std::io::Result<()> {
 }
 
 fn main() {
-    println!("cargo::rerun-if-changed=television/cli/args.rs");
-    println!("cargo::rerun-if-changed=build.rs");
     build_man_page().expect("Failed to generate man page.");
 }
