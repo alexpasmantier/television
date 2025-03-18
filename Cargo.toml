@@ -23,6 +23,7 @@ include = [
   "cable",
 ]
 rust-version = "1.83"
+build = "build.rs"
 
 [lib]
 path = "television/lib.rs"
@@ -73,6 +74,12 @@ tempfile = "3.16.0"
 simd = ["dep:simdutf8"]
 zero-copy = []
 default = ["zero-copy", "simd"]
+
+
+[build-dependencies]
+clap = { version = "4.5", features = ["derive", "cargo"] }
+clap_mangen = "0.2.26"
+
 
 [[bin]]
 bench = false

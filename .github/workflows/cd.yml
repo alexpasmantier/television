@@ -53,7 +53,6 @@ jobs:
             target: x86_64-apple-darwin
             architecture: x86_64
             binary-postfix: ""
-            binary-name: tv
             use-cross: false
           - os: macos-latest
             os-name: macos
@@ -61,35 +60,30 @@ jobs:
             architecture: arm64
             binary-postfix: ""
             use-cross: false
-            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: x86_64-unknown-linux-gnu
             architecture: x86_64
             binary-postfix: ""
             use-cross: false
-            binary-name: tv
           - os: windows-latest
             os-name: windows
             target: x86_64-pc-windows-msvc
             architecture: x86_64
             binary-postfix: ".exe"
             use-cross: false
-            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: aarch64-unknown-linux-gnu
             architecture: arm64
             binary-postfix: ""
             use-cross: true
-            binary-name: tv
           - os: ubuntu-latest
             os-name: linux
             target: i686-unknown-linux-gnu
             architecture: i686
             binary-postfix: ""
             use-cross: true
-            binary-name: tv
 
     steps:
       - name: Checkout repository
@@ -129,27 +123,30 @@ jobs:
         shell: bash
         run: |
 
-          cd target/${{ matrix.target }}/release
-
-
           ####### reduce binary size by removing debug symbols #######
 
-          BINARY_NAME=${{ matrix.binary-name }}${{ matrix.binary-postfix }}
-          echo "BINARY_NAME=$BINARY_NAME" >> "$GITHUB_ENV"
+          BIN=target/${{ matrix.target }}/release/tv${{ matrix.binary-postfix }}
+          echo "BIN=$BIN" >> "$GITHUB_ENV"
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
 
             GCC_PREFIX="aarch64-linux-gnu-"
           else
             GCC_PREFIX=""
           fi
-          "$GCC_PREFIX"strip $BINARY_NAME
+          "$GCC_PREFIX"strip $BIN
 
           ########## create tar.gz ##########
 
-          RELEASE_NAME=${{ matrix.binary-name }}-${GITHUB_REF/refs\/tags\//}-${{ matrix.os-name }}-${{ matrix.architecture }}
+          RELEASE_NAME=tv-${GITHUB_REF/refs\/tags\//}-${{ matrix.os-name }}-${{ matrix.architecture }}
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
-          tar czvf $RELEASE_NAME.tar.gz $BINARY_NAME
+          # create the directory for the archive
+          mkdir -p "$RELEASE_NAME"/doc
+          cp $BIN "$RELEASE_NAME"/
+          cp {README.md,LICENSE} "$RELEASE_NAME"/
+          cp {CHANGELOG.md,docs/*,man/*} "$RELEASE_NAME"/doc/
+
+          tar czvf "$RELEASE_NAME".tar.gz "$RELEASE_NAME"
 
           ########## create sha256 ##########
 
@@ -161,9 +158,8 @@ jobs:
           fi
       - name: Packaging with zip format
         if: runner.os == 'Windows'
-        working-directory: 'target/${{ matrix.target }}/release'
         run: |
-          Compress-Archive -Path "$env:BINARY_NAME" -Destination "$($env:RELEASE_NAME).zip"
+          Compress-Archive -Path "$env:BIN" -Destination "$($env:RELEASE_NAME).zip"
           (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
 
       - name: Releasing assets
@@ -171,9 +167,9 @@ jobs:
         with:
           files: |
 
-            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.tar.gz
-            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.zip
-            target/${{ matrix.target }}/release/${{ matrix.binary-name }}-*.sha256
+            tv-*.tar.gz
+            tv-*.zip
+            tv-*.sha256
 
         env:
 
@@ -234,6 +230,11 @@ jobs:
         dir=deployment/deb
         mkdir -p "$dir"
         echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+
+    - name: Copy man page
+      shell: bash
+      run: |
+        cp man/tv.1 "$DEPLOY_DIR/"
 
     - name: Build release binary
       shell: bash

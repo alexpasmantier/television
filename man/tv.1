@@ -1,0 +1,100 @@
+.ie \n(.g .ds Aq \(aq
+.el .ds Aq '
+.TH television 1  "television 0.10.9" 
+.SH NAME
+television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
+.SH SYNOPSIS
+\fBtelevision\fR [\fB\-p\fR|\fB\-\-preview\fR] [\fB\-\-no\-preview\fR] [\fB\-\-delimiter\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-\-passthrough\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+.SH DESCRIPTION
+A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
+.SH OPTIONS
+.TP
+\fB\-p\fR, \fB\-\-preview\fR=\fISTRING\fR
+A preview command to use with the stdin channel.
+
+If provided, the preview command will be executed and formatted using
+the entry.
+Example: "bat \-n \-\-color=always {}" (where {} will be replaced with
+the entry)
+
+Parts of the entry can be extracted positionally using the `delimiter`
+option.
+Example: "echo {0} {1}" will split the entry by the delimiter and pass
+the first two fields to the command.
+.TP
+\fB\-\-no\-preview\fR
+Disable the preview panel entirely on startup.
+.TP
+\fB\-\-delimiter\fR=\fISTRING\fR [default:  ]
+The delimiter used to extract fields from the entry to provide to the
+preview command.
+
+See the `preview` option for more information.
+.TP
+\fB\-t\fR, \fB\-\-tick\-rate\fR=\fIFLOAT\fR
+The application\*(Aqs tick rate.
+
+The tick rate is the number of times the application will update per
+second. This can be used to control responsiveness and CPU usage on
+very slow machines or very fast ones but the default should be a good
+compromise for most users.
+.TP
+\fB\-f\fR, \fB\-\-frame\-rate\fR=\fIFLOAT\fR
+[DEPRECATED] Frame rate, i.e. number of frames to render per second.
+
+This option is deprecated and will be removed in a future release.
+.TP
+\fB\-\-passthrough\-keybindings\fR=\fISTRING\fR
+Passthrough keybindings (comma separated, e.g. "q,ctrl\-w,ctrl\-t")
+
+These keybindings will trigger selection of the current entry and be
+passed through to stdout along with the entry to be handled by the
+parent process.
+.TP
+\fB\-i\fR, \fB\-\-input\fR=\fISTRING\fR
+Input text to pass to the channel to prefill the prompt.
+
+This can be used to provide a default value for the prompt upon
+startup.
+.TP
+\fB\-\-autocomplete\-prompt\fR=\fISTRING\fR
+Try to guess the channel from the provided input prompt.
+
+This can be used to automatically select a channel based on the input
+prompt by using the `shell_integration` mapping in the configuration
+file.
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
+[\fICHANNEL\fR] [default: files]
+Which channel shall we watch?
+
+A list of the available channels can be displayed using the
+`list\-channels` command. The channel can also be changed from within
+the application.
+.TP
+[\fIPATH\fR]
+The working directory to start the application in.
+
+This can be used to specify a different working directory for the
+application to start in. This is useful when the application is
+started from a different directory than the one the user wants to
+interact with.
+.SH SUBCOMMANDS
+.TP
+television\-list\-channels(1)
+Lists the available channels
+.TP
+television\-init(1)
+Initializes shell completion ("tv init zsh")
+.TP
+television\-help(1)
+Print this message or the help of the given subcommand(s)
+.SH VERSION
+v0.10.9
+.SH AUTHORS
+Alexandre Pasmantier <alex.pasmant@gmail.com>
