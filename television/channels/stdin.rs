@@ -18,7 +18,7 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(preview_type: Option<PreviewType>) -> Self {
+    pub fn new(preview_type: PreviewType) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
 
@@ -26,7 +26,7 @@ impl Channel {
 
         Self {
             matcher,
-            preview_type: preview_type.unwrap_or_default(),
+            preview_type,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
         }
     }
@@ -34,7 +34,7 @@ impl Channel {
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new(None)
+        Self::new(PreviewType::default())
     }
 }
 

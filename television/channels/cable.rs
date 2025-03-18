@@ -19,8 +19,8 @@ use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
-#[derive(Debug, Clone)]
-enum PreviewKind {
+#[derive(Debug, Clone, PartialEq)]
+pub enum PreviewKind {
     Command(PreviewCommand),
     Builtin(PreviewType),
     None,
@@ -63,7 +63,7 @@ impl From<CableChannelPrototype> for Channel {
     }
 }
 
-fn parse_preview_kind(command: &PreviewCommand) -> Result<PreviewKind> {
+pub fn parse_preview_kind(command: &PreviewCommand) -> Result<PreviewKind> {
     debug!("Parsing preview kind for command: {:?}", command);
     let re = Regex::new(r"^\:(\w+)\:$").unwrap();
     if let Some(captures) = re.captures(&command.command) {

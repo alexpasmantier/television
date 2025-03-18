@@ -5,6 +5,7 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use television::channels::cable::PreviewKind;
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -30,67 +31,37 @@ async fn main() -> Result<()> {
     television::errors::init()?;
     television::logging::init()?;
 
+    // post-process the CLI arguments
     let args: PostProcessedCli = Cli::parse().into();
     debug!("{:?}", args);
 
+    // load the configuration file
     let mut config = Config::new(&ConfigEnv::init()?)?;
 
-    if let Some(command) = args.command {
-        match command {
-            Command::ListChannels => {
-                list_channels();
-                exit(0);
-            }
-            Command::InitShell { shell } => {
-                let target_shell = Shell::from(shell);
-                // the completion scripts for the various shells are templated
-                // so that it's possible to override the keybindings triggering
-                // shell autocomplete and command history in tv
-                let script = render_autocomplete_script_template(
-                    target_shell,
-                    completion_script(target_shell)?,
-                    &config.shell_integration,
-                )?;
-                println!("{script}");
-                exit(0);
-            }
-        }
-    }
+    // optionally handle subcommands
+    args.command.as_ref().map(handle_subcommands);
 
+    // optionally change the working directory
+    args.working_directory.as_ref().map(set_current_dir);
+
+    // optionally override configuration values with CLI arguments
     config.config.tick_rate =
         args.tick_rate.unwrap_or(config.config.tick_rate);
     if args.no_preview {
         config.ui.show_preview_panel = false;
     }
 
-    if let Some(working_directory) = &args.working_directory {
-        let path = Path::new(working_directory);
-        if !path.exists() {
-            error!(
-                "Working directory \"{}\" does not exist",
-                &working_directory
-            );
-            println!(
-                "Error: Working directory \"{}\" does not exist",
-                &working_directory
-            );
-            exit(1);
-        }
-        env::set_current_dir(path)?;
-    }
-
-    CLIPBOARD.with(<_>::default);
-
+    // determine the channel to use based on the CLI arguments and configuration
     let channel =
         determine_channel(args.clone(), &config, is_readable_stdin())?;
 
+    CLIPBOARD.with(<_>::default);
+
     let mut app =
         App::new(channel, config, &args.passthrough_keybindings, args.input);
-
     stdout().flush()?;
     let output = app.run(stdout().is_terminal(), false).await?;
     info!("{:?}", output);
-    // lock stdout
     let stdout_handle = stdout().lock();
     let mut bufwriter = BufWriter::new(stdout_handle);
     if let Some(passthrough) = output.passthrough {
@@ -105,6 +76,42 @@ async fn main() -> Result<()> {
     exit(0);
 }
 
+pub fn set_current_dir(path: &String) -> Result<()> {
+    let path = Path::new(path);
+    if !path.exists() {
+        error!("Working directory \"{}\" does not exist", path.display());
+        println!(
+            "Error: Working directory \"{}\" does not exist",
+            path.display()
+        );
+        exit(1);
+    }
+    env::set_current_dir(path)?;
+    Ok(())
+}
+
+pub fn handle_subcommands(command: &Command) -> Result<()> {
+    match command {
+        Command::ListChannels => {
+            list_channels();
+            exit(0);
+        }
+        Command::InitShell { shell } => {
+            let target_shell = Shell::from(shell);
+            // the completion scripts for the various shells are templated
+            // so that it's possible to override the keybindings triggering
+            // shell autocomplete and command history in tv
+            let script = render_autocomplete_script_template(
+                target_shell,
+                completion_script(target_shell)?,
+                &Config::default().shell_integration,
+            )?;
+            println!("{script}");
+            exit(0);
+        }
+    }
+}
+
 pub fn determine_channel(
     args: PostProcessedCli,
     config: &Config,
@@ -113,7 +120,13 @@ pub fn determine_channel(
     if readable_stdin {
         debug!("Using stdin channel");
         Ok(TelevisionChannel::Stdin(StdinChannel::new(
-            args.preview_command.map(PreviewType::Command),
+            match &args.preview_kind {
+                PreviewKind::Command(ref preview_command) => {
+                    PreviewType::Command(preview_command.clone())
+                }
+                PreviewKind::Builtin(preview_type) => preview_type.clone(),
+                PreviewKind::None => PreviewType::None,
+            },
         )))
     } else if let Some(prompt) = args.autocomplete_prompt {
         let channel = guess_channel_from_prompt(
@@ -175,7 +188,7 @@ mod tests {
             &args,
             &config,
             true,
-            &TelevisionChannel::Stdin(StdinChannel::new(None)),
+            &TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
         );
     }
 

@@ -1,5 +1,7 @@
+use crate::cli::args::Shell as CliShell;
 use crate::config::shell_integration::ShellIntegrationConfig;
 use anyhow::Result;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Shell {
     Bash,
@@ -7,6 +9,30 @@ pub enum Shell {
     Fish,
     PowerShell,
     Cmd,
+}
+
+impl From<CliShell> for Shell {
+    fn from(val: CliShell) -> Self {
+        match val {
+            CliShell::Bash => Shell::Bash,
+            CliShell::Zsh => Shell::Zsh,
+            CliShell::Fish => Shell::Fish,
+            CliShell::PowerShell => Shell::PowerShell,
+            CliShell::Cmd => Shell::Cmd,
+        }
+    }
+}
+
+impl From<&CliShell> for Shell {
+    fn from(val: &CliShell) -> Self {
+        match val {
+            CliShell::Bash => Shell::Bash,
+            CliShell::Zsh => Shell::Zsh,
+            CliShell::Fish => Shell::Fish,
+            CliShell::PowerShell => Shell::PowerShell,
+            CliShell::Cmd => Shell::Cmd,
+        }
+    }
 }
 
 const COMPLETION_ZSH: &str = include_str!("shell/completion.zsh");
