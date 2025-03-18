@@ -4,11 +4,11 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use tracing::debug;
 
+use crate::channels::cable::{parse_preview_kind, PreviewKind};
 use crate::channels::{
     cable::CableChannelPrototype, entry::PreviewCommand, CliTvChannel,
 };
-use crate::cli::args::{Cli, Command, Shell};
-use crate::utils::shell::Shell as UtilShell;
+use crate::cli::args::{Cli, Command};
 use crate::{
     cable,
     config::{get_config_dir, get_data_dir},
@@ -16,22 +16,10 @@ use crate::{
 
 pub mod args;
 
-impl From<Shell> for UtilShell {
-    fn from(val: Shell) -> Self {
-        match val {
-            Shell::Bash => UtilShell::Bash,
-            Shell::Zsh => UtilShell::Zsh,
-            Shell::Fish => UtilShell::Fish,
-            Shell::PowerShell => UtilShell::PowerShell,
-            Shell::Cmd => UtilShell::Cmd,
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: ParsedCliChannel,
-    pub preview_command: Option<PreviewCommand>,
+    pub preview_kind: PreviewKind,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
@@ -46,7 +34,7 @@ impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
             channel: ParsedCliChannel::Builtin(CliTvChannel::Files),
-            preview_command: None,
+            preview_kind: PreviewKind::None,
             no_preview: false,
             tick_rate: None,
             frame_rate: None,
@@ -68,10 +56,17 @@ impl From<Cli> for PostProcessedCli {
             .map(std::string::ToString::to_string)
             .collect();
 
-        let preview_command = cli.preview.map(|preview| PreviewCommand {
-            command: preview,
-            delimiter: cli.delimiter.clone(),
-        });
+        let preview_kind = cli
+            .preview
+            .map(|preview| PreviewCommand {
+                command: preview,
+                delimiter: cli.delimiter.clone(),
+            })
+            .map(|preview_command| {
+                parse_preview_kind(&preview_command)
+                    .expect("Error parsing preview command")
+            })
+            .unwrap_or(PreviewKind::None);
 
         let channel: ParsedCliChannel;
         let working_directory: Option<String>;
@@ -98,7 +93,7 @@ impl From<Cli> for PostProcessedCli {
 
         Self {
             channel,
-            preview_command,
+            preview_kind,
             no_preview: cli.no_preview,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
@@ -264,6 +259,8 @@ Data directory: {data_dir_path}"
 
 #[cfg(test)]
 mod tests {
+    use crate::channels::entry::PreviewType;
+
     use super::*;
 
     #[test]
@@ -290,8 +287,8 @@ mod tests {
             ParsedCliChannel::Builtin(CliTvChannel::Files)
         );
         assert_eq!(
-            post_processed_cli.preview_command,
-            Some(PreviewCommand {
+            post_processed_cli.preview_kind,
+            PreviewKind::Command(PreviewCommand {
                 command: "bat -n --color=always {}".to_string(),
                 delimiter: ":".to_string()
             })
@@ -336,5 +333,53 @@ mod tests {
             Some(".".to_string())
         );
         assert_eq!(post_processed_cli.command, None);
+    }
+
+    #[test]
+    fn test_builtin_previewer_files() {
+        let cli = Cli {
+            channel: "files".to_string(),
+            preview: Some(":files:".to_string()),
+            no_preview: false,
+            delimiter: ":".to_string(),
+            tick_rate: Some(50.0),
+            frame_rate: Some(60.0),
+            passthrough_keybindings: None,
+            input: None,
+            command: None,
+            working_directory: None,
+            autocomplete_prompt: None,
+        };
+
+        let post_processed_cli: PostProcessedCli = cli.into();
+
+        assert_eq!(
+            post_processed_cli.preview_kind,
+            PreviewKind::Builtin(PreviewType::Files)
+        );
+    }
+
+    #[test]
+    fn test_builtin_previewer_env() {
+        let cli = Cli {
+            channel: "files".to_string(),
+            preview: Some(":env_var:".to_string()),
+            no_preview: false,
+            delimiter: ":".to_string(),
+            tick_rate: Some(50.0),
+            frame_rate: Some(60.0),
+            passthrough_keybindings: None,
+            input: None,
+            command: None,
+            working_directory: None,
+            autocomplete_prompt: None,
+        };
+
+        let post_processed_cli: PostProcessedCli = cli.into();
+
+        assert_eq!(
+            post_processed_cli.preview_kind,
+            PreviewKind::Builtin(PreviewType::EnvVar)
+        );
     }
 }
