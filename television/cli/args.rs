@@ -56,6 +56,16 @@ pub struct Cli {
     #[arg(short, long, value_name = "FLOAT", verbatim_doc_comment)]
     pub frame_rate: Option<f64>,
 
+    /// Keybindings to override the default keybindings.
+    ///
+    /// This can be used to override the default keybindings with a custom subset
+    /// The keybindings are specified as a semicolon separated list of keybinding
+    /// expressions using the configuration file formalism.
+    ///
+    /// Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
+    #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
+    pub keybindings: Option<String>,
+
     /// Passthrough keybindings (comma separated, e.g. "q,ctrl-w,ctrl-t")
     ///
     /// These keybindings will trigger selection of the current entry and be

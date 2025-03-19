@@ -54,7 +54,7 @@ pub struct Config {
     /// General application configuration
     #[allow(clippy::struct_field_names)]
     #[serde(default, flatten)]
-    pub config: AppConfig,
+    pub application: AppConfig,
     /// Keybindings configuration
     #[serde(default)]
     pub keybindings: KeyBindings,
@@ -176,7 +176,7 @@ impl Config {
         user.keybindings = keybindings;
 
         Config {
-            config: user.config,
+            application: user.application,
             keybindings: user.keybindings,
             ui: user.ui,
             previewers: user.previewers,
@@ -288,8 +288,8 @@ mod tests {
         file.write_all(DEFAULT_CONFIG.as_bytes()).unwrap();
 
         let config = Config::load_user_config(config_dir).unwrap();
-        assert_eq!(config.config.data_dir, get_data_dir());
-        assert_eq!(config.config.config_dir, get_config_dir());
+        assert_eq!(config.application.data_dir, get_data_dir());
+        assert_eq!(config.application.config_dir, get_config_dir());
         assert_eq!(config, toml::from_str(DEFAULT_CONFIG).unwrap());
     }
 
@@ -310,7 +310,7 @@ mod tests {
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.shell_integration.merge_triggers();
 
-        assert_eq!(config.config, default_config.config);
+        assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
         assert_eq!(config.ui, default_config.ui);
         assert_eq!(config.previewers, default_config.previewers);
@@ -364,7 +364,7 @@ mod tests {
 
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
-        default_config.config.frame_rate = 30.0;
+        default_config.application.frame_rate = 30.0;
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
         default_config.previewers.file.theme =
@@ -392,7 +392,7 @@ mod tests {
             .insert("command_history".to_string(), "ctrl-h".to_string());
         default_config.shell_integration.merge_triggers();
 
-        assert_eq!(config.config, default_config.config);
+        assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
         assert_eq!(config.ui, default_config.ui);
         assert_eq!(config.previewers, default_config.previewers);
