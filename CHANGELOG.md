@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+
+## [unreleased]
+
+### ⛰️  Features
+
+- [47ea5a2](https://github.com/alexpasmantier/television/commit/47ea5a2b683f40ece608c4b80da56d37831ce581) *(cli)* Allow passing builtin previewers through the cli (e.g. `--preview ':files:'`) by @alexpasmantier in [#403](https://github.com/alexpasmantier/television/pull/403)
+
+### 🚜 Refactor
+
+- [7a85728](https://github.com/alexpasmantier/television/commit/7a85728da6adc9b57006902f6e132220da12cddb) *(config)* Simplify keybindings configuration syntax by @alexpasmantier in [#404](https://github.com/alexpasmantier/television/pull/404) [**breaking**]
+
+### ⚙️ Miscellaneous Tasks
+
+- [1e4c34f](https://github.com/alexpasmantier/television/commit/1e4c34fecdf2778b06c41ab0e799e890d2185df2) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#402](https://github.com/alexpasmantier/television/pull/402)
+
+
+
+
+
 ## [0.10.10](https://github.com/alexpasmantier/television/releases/tag/0.10.10) - 2025-03-18
 
 ### 🐛 Bug Fixes
