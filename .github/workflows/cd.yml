@@ -178,8 +178,21 @@ jobs:
   publish-release-deb:
     name: publish-release-deb
     runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            os: linux
+            arch: x86_64
+          - target: x86_64-unknown-linux-gnu
+            os: linux
+            arch: x86_64
+          - target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: arm64
+
     env:
-      TARGET: x86_64-unknown-linux-musl
       # Emit backtraces on panics.
       RUST_BACKTRACE: 1
       # Since we're distributing the dpkg, we don't know whether the user will
@@ -205,7 +218,7 @@ jobs:
       uses: dtolnay/rust-toolchain@master
       with:
         toolchain: nightly
-        target: ${{ env.TARGET }}
+        target: ${{ matrix.target }}
         
     # for some reason, the above action doesn't seem to set the target correctly
     - name: Add rustup target
@@ -239,10 +252,10 @@ jobs:
     - name: Build release binary
       shell: bash
       run: |
-        cargo deb --profile deb --target ${{ env.TARGET }}
+        cargo deb --profile deb --target ${{ matrix.target }}
         version="${{ github.ref_name }}"
-        echo "DEB_DIR=target/${{ env.TARGET }}/debian" >> $GITHUB_ENV
-        echo "DEB_NAME=television_$version-1_amd64.deb" >> $GITHUB_ENV
+        echo "DEB_DIR=target/${{ matrix.target }}/debian" >> $GITHUB_ENV
+        echo "DEB_NAME=tv-$version-${{ matrix.os }}-${{ matrix.arch }}.deb" >> $GITHUB_ENV
 
     - name: Create sha256 sum of deb file
       shell: bash
