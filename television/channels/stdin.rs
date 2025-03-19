@@ -120,4 +120,8 @@ impl OnAir for Channel {
     }
 
     fn shutdown(&self) {}
+
+    fn supports_preview(&self) -> bool {
+        self.preview_type != PreviewType::None
+    }
 }

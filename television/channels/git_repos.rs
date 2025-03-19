@@ -113,6 +113,10 @@ impl OnAir for Channel {
         debug!("Shutting down git repos channel");
         self.crawl_handle.abort();
     }
+
+    fn supports_preview(&self) -> bool {
+        true
+    }
 }
 
 fn get_ignored_paths() -> Vec<PathBuf> {

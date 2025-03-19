@@ -272,6 +272,16 @@ fn impl_tv_channel(ast: &syn::DeriveInput) -> TokenStream {
                     )*
                 }
             }
+
+            fn supports_preview(&self) -> bool {
+                match self {
+                    #(
+                        #enum_name::#variant_names(ref channel) => {
+                            channel.supports_preview()
+                        }
+                    )*
+                }
+            }
         }
     };
 

@@ -84,6 +84,9 @@ pub trait OnAir: Send {
 
     /// Turn off
     fn shutdown(&self);
+
+    /// Whether this channel supports previewing entries.
+    fn supports_preview(&self) -> bool;
 }
 
 /// The available television channels.

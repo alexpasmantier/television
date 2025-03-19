@@ -181,4 +181,8 @@ impl OnAir for RemoteControl {
     }
 
     fn shutdown(&self) {}
+
+    fn supports_preview(&self) -> bool {
+        false
+    }
 }

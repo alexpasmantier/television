@@ -131,4 +131,8 @@ impl OnAir for Channel {
     }
 
     fn shutdown(&self) {}
+
+    fn supports_preview(&self) -> bool {
+        true
+    }
 }

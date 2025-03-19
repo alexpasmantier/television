@@ -109,6 +109,7 @@ impl Preview {
 
 #[derive(Debug, Default, Clone, PartialEq, Hash)]
 pub struct PreviewState {
+    pub enabled: bool,
     pub preview: Arc<Preview>,
     pub scroll: u16,
     pub target_line: Option<u16>,
@@ -118,11 +119,13 @@ const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
 
 impl PreviewState {
     pub fn new(
+        enabled: bool,
         preview: Arc<Preview>,
         scroll: u16,
         target_line: Option<u16>,
     ) -> Self {
         PreviewState {
+            enabled,
             preview,
             scroll,
             target_line,

@@ -1,6 +1,6 @@
 use crate::action::Action;
 use crate::cable::load_cable_channels;
-use crate::channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER};
+use crate::channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use crate::channels::{
     remote_control::{load_builtin_channels, RemoteControl},
     OnAir, TelevisionChannel, UnitChannel,
@@ -9,7 +9,7 @@ use crate::config::{Config, Theme};
 use crate::draw::{ChannelState, Ctx, TvState};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
-use crate::preview::{PreviewState, Previewer};
+use crate::preview::{Preview, PreviewState, Previewer};
 use crate::render::UiState;
 use crate::screen::colors::Colorscheme;
 use crate::screen::layout::InputPosition;
@@ -21,6 +21,7 @@ use anyhow::Result;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
+use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
@@ -79,6 +80,13 @@ impl Television {
         channel.find(&input.unwrap_or(EMPTY_STRING.to_string()));
         let spinner = Spinner::default();
 
+        let preview_state = PreviewState::new(
+            channel.supports_preview(),
+            Arc::new(Preview::default()),
+            0,
+            None,
+        );
+
         Self {
             action_tx,
             config,
@@ -91,7 +99,7 @@ impl Television {
             results_picker,
             rc_picker: Picker::default(),
             previewer,
-            preview_state: PreviewState::default(),
+            preview_state,
             spinner,
             spinner_state: SpinnerState::from(&spinner),
             app_metadata,
@@ -261,11 +269,13 @@ impl Television {
     }
 }
 
+const RENDER_FIRST_N_TICKS: u64 = 20;
 const RENDER_EVERY_N_TICKS: u64 = 10;
 
 impl Television {
     fn should_render(&self, action: &Action) -> bool {
-        self.ticks == RENDER_EVERY_N_TICKS
+        self.ticks < RENDER_FIRST_N_TICKS
+            || self.ticks % RENDER_EVERY_N_TICKS == 0
             || matches!(
                 action,
                 Action::AddInputChar(_)
@@ -300,8 +310,7 @@ impl Television {
         &mut self,
         selected_entry: &Entry,
     ) -> Result<()> {
-        if self.config.ui.show_preview_panel
-            && !matches!(selected_entry.preview_type, PreviewType::None)
+        if self.config.ui.show_preview_panel && self.channel.supports_preview()
         {
             // preview content
             if let Some(preview) = self
@@ -591,7 +600,6 @@ impl Television {
             if self.channel.running() {
                 self.spinner.tick();
             }
-            self.ticks = 0;
 
             Some(Action::Render)
         } else {
