@@ -142,6 +142,10 @@ impl OnAir for Channel {
     fn shutdown(&self) {
         self.crawl_handle.abort();
     }
+
+    fn supports_preview(&self) -> bool {
+        true
+    }
 }
 
 #[allow(clippy::unused_async)]

@@ -1,4 +1,5 @@
 #[derive(Debug, Clone, PartialEq, Hash, Eq)]
+/// Global application metadata like version and current directory.
 pub struct AppMetadata {
     pub version: String,
     pub current_directory: String,

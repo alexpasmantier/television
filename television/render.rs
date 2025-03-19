@@ -37,6 +37,11 @@ impl IoStream {
 }
 
 #[derive(Default)]
+/// The state of the UI after rendering.
+///
+/// This struct is returned by the UI thread to the main thread after each rendering cycle.
+/// It contains information that the main thread might be able to exploit to make certain
+/// decisions and optimizations.
 pub struct UiState {
     pub layout: Layout,
 }
@@ -47,6 +52,18 @@ impl UiState {
     }
 }
 
+/// The main UI rendering task loop.
+///
+/// This function is responsible for rendering the UI based on the rendering tasks it receives from
+/// the main thread via `render_rx`.
+///
+/// This has a handle to the main action queue `action_tx` (for things like self-triggering
+/// subsequent rendering instructions) and the UI state queue `ui_state_tx` to send back the layout
+/// of the UI after each rendering cycle to the main thread to help make decisions and
+/// optimizations.
+///
+/// When starting the rendering loop, a choice is made to either render to stdout or stderr based
+/// on if the output is believed to be a TTY or not.
 pub async fn render(
     mut render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     action_tx: mpsc::UnboundedSender<Action>,
