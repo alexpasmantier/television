@@ -245,6 +245,10 @@ impl OnAir for Channel {
     fn shutdown(&self) {
         self.crawl_handle.abort();
     }
+
+    fn supports_preview(&self) -> bool {
+        true
+    }
 }
 
 /// The maximum file size we're willing to search in.
