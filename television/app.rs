@@ -206,8 +206,9 @@ impl App {
                 > 0
             {
                 for event in event_buf.drain(..) {
-                    let action = self.convert_event_to_action(event);
-                    action_tx.send(action)?;
+                    if let Some(action) = self.convert_event_to_action(event) {
+                        action_tx.send(action)?;
+                    }
                 }
             }
             let action_outcome = self.handle_actions(&mut action_buf).await?;
@@ -247,32 +248,27 @@ impl App {
     ///
     /// # Returns
     /// The action that corresponds to the given event.
-    fn convert_event_to_action(&self, event: Event<Key>) -> Action {
-        match event {
+    fn convert_event_to_action(&self, event: Event<Key>) -> Option<Action> {
+        let action = match event {
             Event::Input(keycode) => {
                 info!("{:?}", keycode);
-                // text input events
-                match keycode {
-                    Key::Backspace => return Action::DeletePrevChar,
-                    Key::Ctrl('w') => return Action::DeletePrevWord,
-                    Key::Delete => return Action::DeleteNextChar,
-                    Key::Left => return Action::GoToPrevChar,
-                    Key::Right => return Action::GoToNextChar,
-                    Key::Home | Key::Ctrl('a') => {
-                        return Action::GoToInputStart
-                    }
-                    Key::End | Key::Ctrl('e') => return Action::GoToInputEnd,
-                    Key::Char(c) => return Action::AddInputChar(c),
-                    _ => {}
-                }
                 // get action based on keybindings
-                self.keymap.get(&keycode).cloned().unwrap_or(
-                    if let Key::Char(c) = keycode {
-                        Action::AddInputChar(c)
-                    } else {
-                        Action::NoOp
-                    },
-                )
+                if let Some(action) = self.keymap.get(&keycode) {
+                    action.clone()
+                } else {
+                    // text input events
+                    match keycode {
+                        Key::Backspace => Action::DeletePrevChar,
+                        Key::Ctrl('w') => Action::DeletePrevWord,
+                        Key::Delete => Action::DeleteNextChar,
+                        Key::Left => Action::GoToPrevChar,
+                        Key::Right => Action::GoToNextChar,
+                        Key::Home | Key::Ctrl('a') => Action::GoToInputStart,
+                        Key::End | Key::Ctrl('e') => Action::GoToInputEnd,
+                        Key::Char(c) => Action::AddInputChar(c),
+                        _ => Action::NoOp,
+                    }
+                }
             }
             // terminal events
             Event::Tick => Action::Tick,
@@ -280,6 +276,12 @@ impl App {
             Event::FocusGained => Action::Resume,
             Event::FocusLost => Action::Suspend,
             Event::Closed => Action::NoOp,
+        };
+
+        if action == Action::NoOp {
+            None
+        } else {
+            Some(action)
         }
     }
 
