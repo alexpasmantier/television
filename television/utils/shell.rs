@@ -11,6 +11,7 @@ pub enum Shell {
     Fish,
     PowerShell,
     Cmd,
+    Nu,
 }
 
 impl Default for Shell {
@@ -77,6 +78,7 @@ impl From<CliShell> for Shell {
             CliShell::Fish => Shell::Fish,
             CliShell::PowerShell => Shell::PowerShell,
             CliShell::Cmd => Shell::Cmd,
+            CliShell::Nu => Shell::Nu,
         }
     }
 }
@@ -89,6 +91,7 @@ impl From<&CliShell> for Shell {
             CliShell::Fish => Shell::Fish,
             CliShell::PowerShell => Shell::PowerShell,
             CliShell::Cmd => Shell::Cmd,
+            CliShell::Nu => Shell::Nu,
         }
     }
 }
@@ -96,6 +99,7 @@ impl From<&CliShell> for Shell {
 const COMPLETION_ZSH: &str = include_str!("shell/completion.zsh");
 const COMPLETION_BASH: &str = include_str!("shell/completion.bash");
 const COMPLETION_FISH: &str = include_str!("shell/completion.fish");
+const COMPLETION_NU: &str = include_str!("shell/completion.nu");
 
 // create the appropriate key binding for each supported shell
 pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
@@ -103,6 +107,7 @@ pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
         Shell::Bash => Ok(format!(r"\C-{character}")),
         Shell::Zsh => Ok(format!(r"^{character}")),
         Shell::Fish => Ok(format!(r"\c{character}")),
+        Shell::Nu => Ok(format!(r"Ctrl-{character}")),
         _ => anyhow::bail!("This shell is not yet supported: {:?}", shell),
     }
 }
@@ -112,6 +117,7 @@ pub fn completion_script(shell: Shell) -> Result<&'static str> {
         Shell::Bash => Ok(COMPLETION_BASH),
         Shell::Zsh => Ok(COMPLETION_ZSH),
         Shell::Fish => Ok(COMPLETION_FISH),
+        Shell::Nu => Ok(COMPLETION_NU),
         _ => anyhow::bail!("This shell is not yet supported: {:?}", shell),
     }
 }
@@ -176,5 +182,14 @@ mod tests {
         let shell = Shell::PowerShell;
         let result = ctrl_keybinding(shell, character);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_nushell_ctrl_keybinding() {
+        let character = 's';
+        let shell = Shell::Nu;
+        let result = ctrl_keybinding(shell, character);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Ctrl-s");
     }
 }
