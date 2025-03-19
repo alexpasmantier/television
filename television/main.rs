@@ -19,7 +19,7 @@ use television::cli::{
     PostProcessedCli,
 };
 
-use television::config::{Config, ConfigEnv};
+use television::config::{merge_keybindings, Config, ConfigEnv};
 use television::utils::shell::render_autocomplete_script_template;
 use television::utils::{
     shell::{completion_script, Shell},
@@ -45,11 +45,7 @@ async fn main() -> Result<()> {
     args.working_directory.as_ref().map(set_current_dir);
 
     // optionally override configuration values with CLI arguments
-    config.config.tick_rate =
-        args.tick_rate.unwrap_or(config.config.tick_rate);
-    if args.no_preview {
-        config.ui.show_preview_panel = false;
-    }
+    apply_cli_overrides(&args, &mut config);
 
     // determine the channel to use based on the CLI arguments and configuration
     let channel =
@@ -74,6 +70,22 @@ async fn main() -> Result<()> {
     }
     bufwriter.flush()?;
     exit(0);
+}
+
+/// Apply overrides from the CLI arguments to the configuration.
+///
+/// This function mutates the configuration in place.
+fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
+    if let Some(tick_rate) = args.tick_rate {
+        config.application.tick_rate = tick_rate;
+    }
+    if args.no_preview {
+        config.ui.show_preview_panel = false;
+    }
+    if let Some(keybindings) = &args.keybindings {
+        config.keybindings =
+            merge_keybindings(config.keybindings.clone(), keybindings);
+    }
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
@@ -238,5 +250,19 @@ mod tests {
                 television::channels::dirs::Channel::default(),
             ),
         );
+    }
+
+    #[test]
+    fn test_apply_cli_overrides() {
+        let mut config = Config::default();
+        let args = PostProcessedCli {
+            tick_rate: Some(100_f64),
+            no_preview: true,
+            ..Default::default()
+        };
+        apply_cli_overrides(&args, &mut config);
+
+        assert_eq!(config.application.tick_rate, 100_f64);
+        assert!(!config.ui.show_preview_panel);
     }
 }
