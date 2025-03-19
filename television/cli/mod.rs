@@ -17,12 +17,18 @@ use crate::{
 pub mod args;
 
 #[derive(Debug, Clone)]
+/// Hold the post-processed CLI arguments.
 pub struct PostProcessedCli {
+    /// The channel that was parsed from the `channel` CLI argument.
+    ///
+    /// This can be either a builtin channel or a cable channel.
     pub channel: ParsedCliChannel,
+    /// The preview kind that was parsed from the `preview` and `delimiter` CLI arguments.
     pub preview_kind: PreviewKind,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
-    pub frame_rate: Option<f64>,
+    // TODO: we could have these already parsed as KeyBindings at this point to clear up the
+    // conversion happening in the app constructor.
     pub passthrough_keybindings: Vec<String>,
     pub input: Option<String>,
     pub command: Option<Command>,
@@ -37,7 +43,6 @@ impl Default for PostProcessedCli {
             preview_kind: PreviewKind::None,
             no_preview: false,
             tick_rate: None,
-            frame_rate: None,
             passthrough_keybindings: Vec::new(),
             input: None,
             command: None,
@@ -47,6 +52,12 @@ impl Default for PostProcessedCli {
     }
 }
 
+/// Parse the CLI arguments into a `PostProcessedCli` struct.
+///
+/// This mainly involves:
+/// - parsing the `String` channel argument into a `ParsedCliChannel`
+/// - parsing the `String` preview and delimiter arguments into a `PreviewKind`
+/// - splitting the passthrough keybindings into a `Vec<String>`
 impl From<Cli> for PostProcessedCli {
     fn from(cli: Cli) -> Self {
         let passthrough_keybindings = cli
@@ -62,11 +73,10 @@ impl From<Cli> for PostProcessedCli {
                 command: preview,
                 delimiter: cli.delimiter.clone(),
             })
-            .map(|preview_command| {
+            .map_or(PreviewKind::None, |preview_command| {
                 parse_preview_kind(&preview_command)
                     .expect("Error parsing preview command")
-            })
-            .unwrap_or(PreviewKind::None);
+            });
 
         let channel: ParsedCliChannel;
         let working_directory: Option<String>;
@@ -96,7 +106,6 @@ impl From<Cli> for PostProcessedCli {
             preview_kind,
             no_preview: cli.no_preview,
             tick_rate: cli.tick_rate,
-            frame_rate: cli.frame_rate,
             passthrough_keybindings,
             input: cli.input,
             command: cli.command,
@@ -106,17 +115,23 @@ impl From<Cli> for PostProcessedCli {
     }
 }
 
+/// Exit the program with an error message if the channel is unknown.
 fn unknown_channel_exit(channel: &str) {
     eprintln!("Unknown channel: {channel}\n");
     std::process::exit(1);
 }
 
 #[derive(Debug, Clone, PartialEq)]
+/// The result of parsing a channel from the CLI `String` channel argument.
+///
+/// The channel passed in by the user may be a builtin channel or a cable channel
+/// (for which we need to load the prototype from the cable channels file).
 pub enum ParsedCliChannel {
     Builtin(CliTvChannel),
     Cable(CableChannelPrototype),
 }
 
+/// TODO: THIS IS WHERE I LEFT OFF DOCUMENTING
 fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
     let cable_channels = cable::load_cable_channels().unwrap_or_default();
     // try to parse the channel as a cable channel
@@ -294,7 +309,6 @@ mod tests {
             })
         );
         assert_eq!(post_processed_cli.tick_rate, Some(50.0));
-        assert_eq!(post_processed_cli.frame_rate, Some(60.0));
         assert_eq!(
             post_processed_cli.passthrough_keybindings,
             vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]

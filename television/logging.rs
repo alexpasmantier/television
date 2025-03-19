@@ -3,6 +3,23 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use crate::config::get_data_dir;
 
+/// Initializes the logging system.
+///
+/// This function sets up the logging system with a file subscriber that writes
+/// logs to a file in the data directory.
+///
+/// The data directory is determined in `television::config::get_data_dir` and
+/// is created if it does not exist.
+///
+/// The log file can be found at: `<data_dir>/television.log`.
+///
+/// Log messages are filtered based on the `RUST_LOG` environment variable which
+/// can be set to one of the following values:
+/// - `error`
+/// - `warn`
+/// - `info`
+/// - `debug`
+/// - `trace`
 pub fn init() -> Result<()> {
     let directory = get_data_dir();
     std::fs::create_dir_all(directory.clone())?;

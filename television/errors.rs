@@ -3,6 +3,19 @@ use std::panic;
 use anyhow::Result;
 use tracing::error;
 
+/// Sets up a panic hook to provide consistent error handling.
+///
+/// The hook will:
+/// - Clean up the terminal before exiting to avoid leaving it in an
+///     inconsistent state for the user.
+///
+/// - In release builds, use human-panic to generate a friendly crash report.
+///     More information can be found at <https://crates.io/crates/human-panic>
+///
+/// - In debug builds, use better-panic for a more detailed dev stacktrace.
+///     More information can be found at <https://crates.io/crates/better-panic>
+///
+/// - Finally, exit the process with a status code of 1.
 pub fn init() -> Result<()> {
     panic::set_hook(Box::new(move |panic_info| {
         // Clean up the terminal
