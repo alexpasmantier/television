@@ -110,7 +110,7 @@ impl App {
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let tick_rate = config.config.tick_rate;
+        let tick_rate = config.application.tick_rate;
         let keybindings = merge_keybindings(config.keybindings.clone(), {
             &KeyBindings::from(passthrough_keybindings.iter().filter_map(
                 |s| match parse_key(s) {

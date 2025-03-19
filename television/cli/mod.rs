@@ -9,6 +9,7 @@ use crate::channels::{
     cable::CableChannelPrototype, entry::PreviewCommand, CliTvChannel,
 };
 use crate::cli::args::{Cli, Command};
+use crate::config::KeyBindings;
 use crate::{
     cable,
     config::{get_config_dir, get_data_dir},
@@ -28,6 +29,7 @@ pub struct PostProcessedCli {
     pub command: Option<Command>,
     pub working_directory: Option<String>,
     pub autocomplete_prompt: Option<String>,
+    pub keybindings: Option<KeyBindings>,
 }
 
 impl Default for PostProcessedCli {
@@ -43,12 +45,21 @@ impl Default for PostProcessedCli {
             command: None,
             working_directory: None,
             autocomplete_prompt: None,
+            keybindings: None,
         }
     }
 }
 
 impl From<Cli> for PostProcessedCli {
     fn from(cli: Cli) -> Self {
+        let keybindings: Option<KeyBindings> = cli.keybindings.map(|kb| {
+            parse_keybindings(&kb)
+                .map_err(|e| {
+                    cli_parsing_error_exit(&e.to_string());
+                })
+                .unwrap()
+        });
+
         let passthrough_keybindings = cli
             .passthrough_keybindings
             .unwrap_or_default()
@@ -62,11 +73,13 @@ impl From<Cli> for PostProcessedCli {
                 command: preview,
                 delimiter: cli.delimiter.clone(),
             })
-            .map(|preview_command| {
+            .map_or(PreviewKind::None, |preview_command| {
                 parse_preview_kind(&preview_command)
-                    .expect("Error parsing preview command")
-            })
-            .unwrap_or(PreviewKind::None);
+                    .map_err(|e| {
+                        cli_parsing_error_exit(&e.to_string());
+                    })
+                    .unwrap()
+            });
 
         let channel: ParsedCliChannel;
         let working_directory: Option<String>;
@@ -102,8 +115,14 @@ impl From<Cli> for PostProcessedCli {
             command: cli.command,
             working_directory,
             autocomplete_prompt: cli.autocomplete_prompt,
+            keybindings,
         }
     }
+}
+
+fn cli_parsing_error_exit(message: &str) {
+    eprintln!("Error parsing CLI arguments: {message}\n");
+    std::process::exit(1);
 }
 
 fn unknown_channel_exit(channel: &str) {
@@ -115,6 +134,24 @@ fn unknown_channel_exit(channel: &str) {
 pub enum ParsedCliChannel {
     Builtin(CliTvChannel),
     Cable(CableChannelPrototype),
+}
+
+const CLI_KEYBINDINGS_DELIMITER: char = ';';
+
+/// Parse the keybindings string into a hashmap of key -> action.
+///
+/// The formalism used is the same as the one used in the configuration file:
+/// ```ignore
+///     quit="esc";select_next_entry=["down","ctrl-j"]
+/// ```
+/// Parsing it globally consists of splitting by the delimiter, reconstructing toml key-value pairs
+/// and parsing that using logic already implemented in the configuration module.
+fn parse_keybindings(cli_keybindings: &str) -> Result<KeyBindings> {
+    let toml_definition = cli_keybindings
+        .split(CLI_KEYBINDINGS_DELIMITER)
+        .fold(String::new(), |acc, kb| acc + kb + "\n");
+
+    toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
 fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
@@ -259,7 +296,10 @@ Data directory: {data_dir_path}"
 
 #[cfg(test)]
 mod tests {
-    use crate::channels::entry::PreviewType;
+    use crate::{
+        action::Action, channels::entry::PreviewType, config::Binding,
+        event::Key,
+    };
 
     use super::*;
 
@@ -273,6 +313,7 @@ mod tests {
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
+            keybindings: None,
             passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
             input: None,
             command: None,
@@ -315,6 +356,7 @@ mod tests {
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
+            keybindings: None,
             passthrough_keybindings: None,
             input: None,
             command: None,
@@ -344,6 +386,7 @@ mod tests {
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
+            keybindings: None,
             passthrough_keybindings: None,
             input: None,
             command: None,
@@ -368,6 +411,7 @@ mod tests {
             delimiter: ":".to_string(),
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
+            keybindings: None,
             passthrough_keybindings: None,
             input: None,
             command: None,
@@ -381,5 +425,37 @@ mod tests {
             post_processed_cli.preview_kind,
             PreviewKind::Builtin(PreviewType::EnvVar)
         );
+    }
+
+    #[test]
+    fn test_custom_keybindings() {
+        let cli = Cli {
+            channel: "files".to_string(),
+            preview: Some(":env_var:".to_string()),
+            no_preview: false,
+            delimiter: ":".to_string(),
+            tick_rate: Some(50.0),
+            frame_rate: Some(60.0),
+            keybindings: Some(
+                "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
+                    .to_string(),
+            ),
+            passthrough_keybindings: None,
+            input: None,
+            command: None,
+            working_directory: None,
+            autocomplete_prompt: None,
+        };
+
+        let post_processed_cli: PostProcessedCli = cli.into();
+
+        let mut expected = KeyBindings::default();
+        expected.insert(Action::Quit, Binding::SingleKey(Key::Esc));
+        expected.insert(
+            Action::SelectNextEntry,
+            Binding::MultipleKeys(vec![Key::Down, Key::Ctrl('j')]),
+        );
+
+        assert_eq!(post_processed_cli.keybindings, Some(expected));
     }
 }
