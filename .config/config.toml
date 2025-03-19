@@ -72,7 +72,7 @@ theme = "TwoDark"
 #
 # Channel mode
 # ------------------------
-[keybindings.Channel]
+[keybindings]
 # Quit the application
 quit = ["esc", "ctrl-c"]
 # Scrolling through entries
@@ -93,46 +93,6 @@ confirm_selection = "enter"
 copy_entry_to_clipboard = "ctrl-y"
 # Toggle the remote control mode
 toggle_remote_control = "ctrl-r"
-# Toggle the send to channel mode
-toggle_send_to_channel = "ctrl-s"
-# Toggle the help bar
-toggle_help = "ctrl-g"
-# Toggle the preview panel
-toggle_preview = "ctrl-o"
-
-
-# Remote control mode
-# -------------------------------
-[keybindings.RemoteControl]
-# Quit the application
-quit = "esc"
-# Scrolling through entries
-select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-select_next_page = "pagedown"
-select_prev_page = "pageup"
-# Select an entry
-select_entry = "enter"
-# Toggle the remote control mode
-toggle_remote_control = "ctrl-r"
-# Toggle the help bar
-toggle_help = "ctrl-g"
-# Toggle the preview panel
-toggle_preview = "ctrl-o"
-
-
-# Send to channel mode
-# --------------------------------
-[keybindings.SendToChannel]
-# Quit the application
-quit = "esc"
-# Scrolling through entries
-select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-select_next_page = "pagedown"
-select_prev_page = "pageup"
-# Select an entry
-select_entry = "enter"
 # Toggle the send to channel mode
 toggle_send_to_channel = "ctrl-s"
 # Toggle the help bar
