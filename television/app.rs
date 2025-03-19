@@ -6,7 +6,9 @@ use tracing::{debug, info, trace};
 
 use crate::channels::entry::Entry;
 use crate::channels::TelevisionChannel;
-use crate::config::{parse_key, Config};
+use crate::config::{
+    merge_keybindings, parse_key, Binding, Config, KeyBindings,
+};
 use crate::keymap::Keymap;
 use crate::render::UiState;
 use crate::television::{Mode, Television};
@@ -109,16 +111,22 @@ impl App {
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
         let tick_rate = config.config.tick_rate;
-        let keymap = Keymap::from(&config.keybindings).with_mode_mappings(
-            Mode::Channel,
-            passthrough_keybindings
-                .iter()
-                .flat_map(|s| match parse_key(s) {
-                    Ok(key) => Ok((key, Action::SelectPassthrough(s.clone()))),
-                    Err(e) => Err(e),
-                })
-                .collect(),
-        );
+        let keybindings = merge_keybindings(config.keybindings.clone(), {
+            &KeyBindings::from(passthrough_keybindings.iter().filter_map(
+                |s| match parse_key(s) {
+                    Ok(key) => Some((
+                        Action::SelectPassthrough(s.to_string()),
+                        Binding::SingleKey(key),
+                    )),
+                    Err(e) => {
+                        debug!("Failed to parse keybinding: {}", e);
+                        None
+                    }
+                },
+            ))
+        });
+        let keymap = Keymap::from(&keybindings);
+
         debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television =
@@ -258,14 +266,13 @@ impl App {
                     _ => {}
                 }
                 // get action based on keybindings
-                self.keymap
-                    .get(&self.television.mode)
-                    .and_then(|keymap| keymap.get(&keycode).cloned())
-                    .unwrap_or(if let Key::Char(c) = keycode {
+                self.keymap.get(&keycode).cloned().unwrap_or(
+                    if let Key::Char(c) = keycode {
                         Action::AddInputChar(c)
                     } else {
                         Action::NoOp
-                    })
+                    },
+                )
             }
             // terminal events
             Event::Tick => Action::Tick,

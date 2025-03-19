@@ -7,7 +7,7 @@ use std::{
 
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
-use keybindings::merge_keybindings;
+pub use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
 use previewers::PreviewersConfig;
 use serde::Deserialize;
@@ -100,6 +100,17 @@ pub fn default_config_from_file() -> Result<Config> {
     Ok(default_config)
 }
 
+const USER_CONFIG_ERROR_MSG: &str = "
+╔══════════════════════════════════════════════════════════════════════════════╗
+║                                                                              ║
+║  If this follows a recent update, it is likely due to a breaking change in   ║
+║  the configuration format.                                                   ║
+║                                                                              ║
+║  Check https://github.com/alexpasmantier/television/releases/latest for the  ║
+║  latest release notes.                                                       ║
+║                                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝";
+
 impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
     pub fn new(config_env: &ConfigEnv) -> Result<Self> {
@@ -134,8 +145,11 @@ impl Config {
     fn load_user_config(config_dir: &Path) -> Result<Self> {
         let path = config_dir.join(CONFIG_FILE_NAME);
         let contents = std::fs::read_to_string(&path)?;
-        let user_cfg: Config = toml::from_str(&contents)
-            .context("Error parsing configuration file.")?;
+        let user_cfg: Config = toml::from_str(&contents).context(format!(
+            "Error parsing configuration file: {}\n{}",
+            path.display(),
+            USER_CONFIG_ERROR_MSG,
+        ))?;
         Ok(user_cfg)
     }
 
@@ -246,7 +260,6 @@ fn default_tick_rate() -> f64 {
 mod tests {
     use crate::action::Action;
     use crate::event::Key;
-    use crate::television::Mode;
 
     use super::*;
     use rustc_hash::FxHashMap;
@@ -322,11 +335,9 @@ mod tests {
         [previewers.file]
         theme = "Visual Studio Dark"
 
-        [keybindings.Channel]
+        [keybindings]
         toggle_help = ["ctrl-a", "ctrl-b"]
-
-        [keybindings.RemoteControl]
-        toggle_help = ["ctrl-c", "ctrl-d"]
+        confirm_selection = "ctrl-enter"
 
         [shell_integration.commands]
         "git add" = "git-diff"
@@ -358,36 +369,18 @@ mod tests {
         default_config.ui.theme = "television".to_string();
         default_config.previewers.file.theme =
             "Visual Studio Dark".to_string();
-        default_config
-            .keybindings
-            .get_mut(&Mode::Channel)
-            .unwrap()
-            .extend({
-                let mut map = FxHashMap::default();
-                map.insert(
-                    Action::ToggleHelp,
-                    Binding::MultipleKeys(vec![
-                        Key::Ctrl('a'),
-                        Key::Ctrl('b'),
-                    ]),
-                );
-                map
-            });
-        default_config
-            .keybindings
-            .get_mut(&Mode::RemoteControl)
-            .unwrap()
-            .extend({
-                let mut map = FxHashMap::default();
-                map.insert(
-                    Action::ToggleHelp,
-                    Binding::MultipleKeys(vec![
-                        Key::Ctrl('c'),
-                        Key::Ctrl('d'),
-                    ]),
-                );
-                map
-            });
+        default_config.keybindings.extend({
+            let mut map = FxHashMap::default();
+            map.insert(
+                Action::ToggleHelp,
+                Binding::MultipleKeys(vec![Key::Ctrl('a'), Key::Ctrl('b')]),
+            );
+            map.insert(
+                Action::ConfirmSelection,
+                Binding::SingleKey(Key::CtrlEnter),
+            );
+            map
+        });
 
         default_config
             .shell_integration

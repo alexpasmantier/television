@@ -1,6 +1,5 @@
 use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
-use crate::television::Mode;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer};
@@ -30,7 +29,16 @@ impl Display for Binding {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct KeyBindings(pub FxHashMap<Mode, FxHashMap<Action, Binding>>);
+pub struct KeyBindings(pub FxHashMap<Action, Binding>);
+
+impl<I> From<I> for KeyBindings
+where
+    I: IntoIterator<Item = (Action, Binding)>,
+{
+    fn from(iter: I) -> Self {
+        KeyBindings(iter.into_iter().collect())
+    }
+}
 
 impl Hash for KeyBindings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
@@ -40,7 +48,7 @@ impl Hash for KeyBindings {
 }
 
 impl Deref for KeyBindings {
-    type Target = FxHashMap<Mode, FxHashMap<Action, Binding>>;
+    type Target = FxHashMap<Action, Binding>;
     fn deref(&self) -> &Self::Target {
         &self.0
     }
@@ -52,27 +60,20 @@ impl DerefMut for KeyBindings {
     }
 }
 
+/// Merge two sets of keybindings together.
+///
+/// Note that this function won't "meld", for a given action, the bindings from the first set
+/// with the bindings from the second set. Instead, it will simply overwrite them with the second
+/// set's keys.
+/// This is because it is assumed that the second set will be the user's custom keybindings, and
+/// they should take precedence over the default ones, effectively replacing them to avoid
+/// conflicts.
 pub fn merge_keybindings(
     mut keybindings: KeyBindings,
     new_keybindings: &KeyBindings,
 ) -> KeyBindings {
-    for (mode, bindings) in new_keybindings.iter() {
-        for (action, binding) in bindings {
-            match keybindings.get_mut(mode) {
-                Some(mode_bindings) => {
-                    mode_bindings.insert(action.clone(), binding.clone());
-                }
-                None => {
-                    keybindings.insert(
-                        *mode,
-                        [(action.clone(), binding.clone())]
-                            .iter()
-                            .cloned()
-                            .collect(),
-                    );
-                }
-            }
-        }
+    for (action, binding) in new_keybindings.iter() {
+        keybindings.insert(action.clone(), binding.clone());
     }
     keybindings
 }
@@ -89,43 +90,30 @@ impl<'de> Deserialize<'de> for KeyBindings {
     where
         D: Deserializer<'de>,
     {
-        let parsed_map = FxHashMap::<
-            Mode,
-            FxHashMap<Action, SerializedBinding>,
-        >::deserialize(deserializer)?;
+        let parsed_map =
+            FxHashMap::<Action, SerializedBinding>::deserialize(deserializer)?;
 
-        let keybindings: FxHashMap<Mode, FxHashMap<Action, Binding>> =
-            parsed_map
-                .into_iter()
-                .map(|(mode, inner_map)| {
-                    let converted_inner_map = inner_map
-                        .into_iter()
-                        .map(|(cmd, binding)| {
-                            (
-                                cmd,
-                                match binding {
-                                    SerializedBinding::SingleKey(key_str) => {
-                                        Binding::SingleKey(
-                                            parse_key(&key_str).unwrap(),
-                                        )
-                                    }
-                                    SerializedBinding::MultipleKeys(
-                                        keys_str,
-                                    ) => Binding::MultipleKeys(
-                                        keys_str
-                                            .iter()
-                                            .map(|key_str| {
-                                                parse_key(key_str).unwrap()
-                                            })
-                                            .collect(),
-                                    ),
-                                },
+        let keybindings: FxHashMap<Action, Binding> = parsed_map
+            .into_iter()
+            .map(|(cmd, binding)| {
+                (
+                    cmd,
+                    match binding {
+                        SerializedBinding::SingleKey(key_str) => {
+                            Binding::SingleKey(parse_key(&key_str).unwrap())
+                        }
+                        SerializedBinding::MultipleKeys(keys_str) => {
+                            Binding::MultipleKeys(
+                                keys_str
+                                    .iter()
+                                    .map(|key_str| parse_key(key_str).unwrap())
+                                    .collect(),
                             )
-                        })
-                        .collect();
-                    (mode, converted_inner_map)
-                })
-                .collect();
+                        }
+                    },
+                )
+            })
+            .collect();
 
         Ok(KeyBindings(keybindings))
     }
@@ -378,6 +366,129 @@ mod tests {
         assert_eq!(
             parse_key_event("AlT-eNtEr").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
+        );
+    }
+
+    #[test]
+    fn test_deserialize_keybindings() {
+        let keybindings: KeyBindings = toml::from_str(
+            r#"
+                # Quit the application
+                quit = ["esc", "ctrl-c"]
+                # Scrolling through entries
+                select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+                select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
+                select_next_page = "pagedown"
+                select_prev_page = "pageup"
+                # Scrolling the preview pane
+                scroll_preview_half_page_down = "ctrl-d"
+                scroll_preview_half_page_up = "ctrl-u"
+                # Add entry to selection and move to the next entry
+                toggle_selection_down = "tab"
+                # Add entry to selection and move to the previous entry
+                toggle_selection_up = "backtab"
+                # Confirm selection
+                confirm_selection = "enter"
+                # Copy the selected entry to the clipboard
+                copy_entry_to_clipboard = "ctrl-y"
+                # Toggle the remote control mode
+                toggle_remote_control = "ctrl-r"
+                # Toggle the send to channel mode
+                toggle_send_to_channel = "ctrl-s"
+                # Toggle the help bar
+                toggle_help = "ctrl-g"
+                # Toggle the preview panel
+                toggle_preview = "ctrl-o"
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            keybindings,
+            KeyBindings::from(vec![
+                (
+                    Action::Quit,
+                    Binding::MultipleKeys(vec![Key::Esc, Key::Ctrl('c'),])
+                ),
+                (
+                    Action::SelectNextEntry,
+                    Binding::MultipleKeys(vec![
+                        Key::Down,
+                        Key::Ctrl('n'),
+                        Key::Ctrl('j'),
+                    ])
+                ),
+                (
+                    Action::SelectPrevEntry,
+                    Binding::MultipleKeys(vec![
+                        Key::Up,
+                        Key::Ctrl('p'),
+                        Key::Ctrl('k'),
+                    ])
+                ),
+                (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
+                (Action::SelectPrevPage, Binding::SingleKey(Key::PageUp)),
+                (
+                    Action::ScrollPreviewHalfPageDown,
+                    Binding::SingleKey(Key::Ctrl('d'))
+                ),
+                (
+                    Action::ScrollPreviewHalfPageUp,
+                    Binding::SingleKey(Key::Ctrl('u'))
+                ),
+                (Action::ToggleSelectionDown, Binding::SingleKey(Key::Tab)),
+                (Action::ToggleSelectionUp, Binding::SingleKey(Key::BackTab)),
+                (Action::ConfirmSelection, Binding::SingleKey(Key::Enter)),
+                (
+                    Action::CopyEntryToClipboard,
+                    Binding::SingleKey(Key::Ctrl('y'))
+                ),
+                (
+                    Action::ToggleRemoteControl,
+                    Binding::SingleKey(Key::Ctrl('r'))
+                ),
+                (
+                    Action::ToggleSendToChannel,
+                    Binding::SingleKey(Key::Ctrl('s'))
+                ),
+                (Action::ToggleHelp, Binding::SingleKey(Key::Ctrl('g'))),
+                (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
+            ])
+        );
+    }
+
+    #[test]
+    fn test_merge_keybindings() {
+        let base_keybindings = KeyBindings::from(vec![
+            (Action::Quit, Binding::SingleKey(Key::Esc)),
+            (
+                Action::SelectNextEntry,
+                Binding::MultipleKeys(vec![Key::Down, Key::Ctrl('n')]),
+            ),
+            (Action::SelectPrevEntry, Binding::SingleKey(Key::Up)),
+        ]);
+        let custom_keybindings = KeyBindings::from(vec![
+            (Action::SelectNextEntry, Binding::SingleKey(Key::Ctrl('j'))),
+            (
+                Action::SelectPrevEntry,
+                Binding::MultipleKeys(vec![Key::Up, Key::Ctrl('k')]),
+            ),
+            (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
+        ]);
+
+        let merged = merge_keybindings(base_keybindings, &custom_keybindings);
+
+        assert_eq!(
+            merged,
+            KeyBindings::from(vec![
+                (Action::Quit, Binding::SingleKey(Key::Esc)),
+                (Action::SelectNextEntry, Binding::SingleKey(Key::Ctrl('j'))),
+                (
+                    Action::SelectPrevEntry,
+                    Binding::MultipleKeys(vec![Key::Up, Key::Ctrl('k')]),
+                ),
+                (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
+            ])
         );
     }
 }

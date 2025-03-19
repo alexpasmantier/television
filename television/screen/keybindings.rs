@@ -146,15 +146,7 @@ fn serialized_keys_for_actions(
 ) -> Vec<String> {
     actions
         .iter()
-        .map(|a| {
-            keybindings
-                .get(&Mode::Channel)
-                .unwrap()
-                .get(a)
-                .unwrap()
-                .clone()
-                .to_string()
-        })
+        .map(|a| keybindings.get(a).unwrap().clone().to_string())
         .collect()
 }
 

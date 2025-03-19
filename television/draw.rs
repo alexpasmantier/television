@@ -193,16 +193,12 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.colorscheme,
         &ctx.config
             .keybindings
-            .get(&ctx.tv_state.mode)
-            .unwrap()
             .get(&Action::ToggleHelp)
             // just display the first keybinding
             .unwrap()
             .to_string(),
         &ctx.config
             .keybindings
-            .get(&ctx.tv_state.mode)
-            .unwrap()
             .get(&Action::TogglePreview)
             // just display the first keybinding
             .unwrap()
