@@ -4,23 +4,46 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
-
-## [unreleased]
+## [0.11.0](https://github.com/alexpasmantier/television/releases/tag/0.11.0) - 2025-03-20
 
 ### ⛰️  Features
 
+- [3222037](https://github.com/alexpasmantier/television/commit/3222037a02f229d206af79098e9f9e0e6ab60f00) *(cli)* Allow passing custom keybindings through the cli by @alexpasmantier in [#409](https://github.com/alexpasmantier/television/pull/409)
+
 - [47ea5a2](https://github.com/alexpasmantier/television/commit/47ea5a2b683f40ece608c4b80da56d37831ce581) *(cli)* Allow passing builtin previewers through the cli (e.g. `--preview ':files:'`) by @alexpasmantier in [#403](https://github.com/alexpasmantier/television/pull/403)
+
+- [8eb6ada](https://github.com/alexpasmantier/television/commit/8eb6adafb9272a96fb40eeb3b4a897fd95fec5dd) *(config)* Allow remapping input builtin keybindings (ctrl-e, ctrl-a, etc.) by @alexpasmantier in [#411](https://github.com/alexpasmantier/television/pull/411)
+
+- [d09f670](https://github.com/alexpasmantier/television/commit/d09f6708bc873bf130cabed08958949444f185d8) *(shell)* Add fallback channel to the config for smart autocomplete by @alexpasmantier in [#413](https://github.com/alexpasmantier/television/pull/413)
+
+### 🐛 Bug Fixes
+
+- [731bc7e](https://github.com/alexpasmantier/television/commit/731bc7ee80cd6c98b7461eb6028e31a9936687d9) *(config)* Make user shell integration trigger configuration override defaults entirely by @alexpasmantier in [#417](https://github.com/alexpasmantier/television/pull/417)
+
+- [05bd64a](https://github.com/alexpasmantier/television/commit/05bd64afe9973288ebae07bae326ef3dec2c154a) *(scheduling)* Don't block the main thread when no actions are available to process by @alexpasmantier in [#416](https://github.com/alexpasmantier/television/pull/416)
 
 ### 🚜 Refactor
 
 - [7a85728](https://github.com/alexpasmantier/television/commit/7a85728da6adc9b57006902f6e132220da12cddb) *(config)* Simplify keybindings configuration syntax by @alexpasmantier in [#404](https://github.com/alexpasmantier/television/pull/404) [**breaking**]
 
+- [fc2f6cd](https://github.com/alexpasmantier/television/commit/fc2f6cde4624575d08b5b6957bcb81ec6c93e3f0) *(preview)* Improve overall previewer scheduling logic by @alexpasmantier in [#415](https://github.com/alexpasmantier/television/pull/415)
+
+- [3a5b5ec](https://github.com/alexpasmantier/television/commit/3a5b5ec0cca14b8f0c5cddec88e038f90b8ef384) *(startup)* Improve overall startup time and remove first frames artifacts by @alexpasmantier in [#408](https://github.com/alexpasmantier/television/pull/408)
+
 ### ⚙️ Miscellaneous Tasks
+
+- [5ee8912](https://github.com/alexpasmantier/television/commit/5ee891230c66119c8544d595b117cef3a5fb7025) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#405](https://github.com/alexpasmantier/television/pull/405)
 
 - [1e4c34f](https://github.com/alexpasmantier/television/commit/1e4c34fecdf2778b06c41ab0e799e890d2185df2) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#402](https://github.com/alexpasmantier/television/pull/402)
 
+- [409d951](https://github.com/alexpasmantier/television/commit/409d951d3c2eeb4afd5d34ee4abbca69e5634241) *(uncategorized)* Bump to 0.11.0 by @alexpasmantier
+
+- [97314d6](https://github.com/alexpasmantier/television/commit/97314d629a03ed1e892c6ea9d8ba0a621019cfe0) *(uncategorized)* Add support for arm64 deb releases by @alexpasmantier in [#412](https://github.com/alexpasmantier/television/pull/412)
 
 
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.10.10...0.11.0
 
 
 ## [0.10.10](https://github.com/alexpasmantier/television/releases/tag/0.10.10) - 2025-03-18
