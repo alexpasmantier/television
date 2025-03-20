@@ -214,6 +214,7 @@ impl App {
                     }
                 }
             }
+            // It's important that this shouldn't block if no actions are available
             let action_outcome = self.handle_actions(&mut action_buf).await?;
 
             if self.should_quit {
@@ -254,9 +255,9 @@ impl App {
     fn convert_event_to_action(&self, event: Event<Key>) -> Option<Action> {
         let action = match event {
             Event::Input(keycode) => {
-                debug!("Converting {:?} to action", keycode);
                 // get action based on keybindings
                 if let Some(action) = self.keymap.get(&keycode) {
+                    debug!("Keybinding found: {action:?}");
                     action.clone()
                 } else {
                     // text input events
@@ -281,6 +282,10 @@ impl App {
             Event::Closed => Action::NoOp,
         };
 
+        if action != Action::Tick {
+            trace!("Converted event to action: {action:?}");
+        }
+
         if action == Action::NoOp {
             None
         } else {
@@ -293,6 +298,8 @@ impl App {
     /// This function will handle all actions that are sent to the application.
     /// The function will return the selected entry if the application is exited.
     ///
+    /// Note that this function will not block if no actions are available.
+    ///
     /// # Returns
     /// The selected entry (if any) if the application is exited.
     ///
@@ -302,6 +309,9 @@ impl App {
         &mut self,
         buf: &mut Vec<Action>,
     ) -> Result<ActionOutcome> {
+        if self.action_rx.is_empty() {
+            return Ok(ActionOutcome::None);
+        }
         if self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0 {
             for action in buf.drain(..) {
                 if action != Action::Tick {
