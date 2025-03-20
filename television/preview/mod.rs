@@ -226,6 +226,16 @@ impl Previewer {
         }
     }
 
+    fn cached(&self, entry: &Entry) -> Option<Arc<Preview>> {
+        match &entry.preview_type {
+            PreviewType::Basic => Some(self.basic.preview(entry)),
+            PreviewType::EnvVar => Some(self.env_var.preview(entry)),
+            PreviewType::Files => self.file.cached(entry),
+            PreviewType::Command(_) => self.command.cached(entry),
+            PreviewType::None => None,
+        }
+    }
+
     // we could use a target scroll here to make the previewer
     // faster, but since it's already running in the background and quite
     // fast for most standard file sizes, plus we're caching the previews,
@@ -235,12 +245,13 @@ impl Previewer {
         entry: &Entry,
         preview_window: Option<Rect>,
     ) -> Option<Arc<Preview>> {
-        // if we haven't acknowledged the request yet, acknowledge it
-        self.requests.push(entry.clone());
-
-        if let Some(preview) = self.dispatch_request(entry, preview_window) {
+        // check if we have a preview for the current request
+        if let Some(preview) = self.cached(entry) {
             return Some(preview);
         }
+
+        // otherwise, if we haven't acknowledged the request yet, acknowledge it
+        self.requests.push(entry.clone());
 
         // lookup request stack and return the most recent preview available
         for request in self.requests.back_to_front() {
