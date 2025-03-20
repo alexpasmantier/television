@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.1](https://github.com/alexpasmantier/television/releases/tag/0.11.1) - 2025-03-20
+
+### 🐛 Bug Fixes
+
+- [4e900d9](https://github.com/alexpasmantier/television/commit/4e900d92c3efa5aa4115dbcc582f96612b26ebd9) *(ci)* Use `fancy-regex` when compiling on arm64 instead of `oniguruma` by @alexpasmantier in [#422](https://github.com/alexpasmantier/television/pull/422)
+
+### ⚙️ Miscellaneous Tasks
+
+- [7069421](https://github.com/alexpasmantier/television/commit/706942183c382df1e8ccb3ab8f50120748dc73b7) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#420](https://github.com/alexpasmantier/television/pull/420)
+
+- [b48127b](https://github.com/alexpasmantier/television/commit/b48127bbba207387bf042f7447de5b5e9e9f11f2) *(uncategorized)* Bump to 0.11.1 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.0...0.11.1
+
+
 ## [0.11.0](https://github.com/alexpasmantier/television/releases/tag/0.11.0) - 2025-03-20
 
 ### ⛰️  Features
