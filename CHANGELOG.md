@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.2](https://github.com/alexpasmantier/television/releases/tag/0.11.2) - 2025-03-20
+
+### 🐛 Bug Fixes
+
+- [05e3ba3](https://github.com/alexpasmantier/television/commit/05e3ba3b75a94c903d095522e98f8d09250667f0) *(ci)* Fix aarch64 debian builds by @alexpasmantier in [#426](https://github.com/alexpasmantier/television/pull/426)
+
+- [ea6deef](https://github.com/alexpasmantier/television/commit/ea6deef11b68fc3b928d03f20d0ee7fcf0dd15da) *(ci)* More tweaking to the deb releases configuration by @alexpasmantier in [#424](https://github.com/alexpasmantier/television/pull/424)
+
+- [2d74a34](https://github.com/alexpasmantier/television/commit/2d74a3465a506b065e195cae837d743976a67afc) *(ui)* Show preview toggle hint conditionally by @alexpasmantier in [#425](https://github.com/alexpasmantier/television/pull/425)
+
+### ⚙️ Miscellaneous Tasks
+
+- [8ad4a99](https://github.com/alexpasmantier/television/commit/8ad4a9953d7203ae8154f437b6bbd60d86a6c13a) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#423](https://github.com/alexpasmantier/television/pull/423)
+
+- [3835667](https://github.com/alexpasmantier/television/commit/3835667ee940592c5bf03eea5b590dea510eb508) *(uncategorized)* Bump to 0.11.2 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.1...0.11.2
+
+
 ## [0.11.1](https://github.com/alexpasmantier/television/releases/tag/0.11.1) - 2025-03-20
 
 ### 🐛 Bug Fixes
