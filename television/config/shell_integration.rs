@@ -15,6 +15,7 @@ pub struct ShellIntegrationConfig {
     pub commands: FxHashMap<String, String>,
     /// {channel: [commands]}
     pub channel_triggers: FxHashMap<String, Vec<String>>,
+    pub fallback_channel: String,
     pub keybindings: FxHashMap<String, String>,
 }
 

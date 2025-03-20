@@ -157,6 +157,12 @@ impl Config {
         mut default: Config,
         mut user: Config,
     ) -> Config {
+        // merge shell integration fallback channel with default fallback channel
+        if user.shell_integration.fallback_channel.is_empty() {
+            user.shell_integration
+                .fallback_channel
+                .clone_from(&default.shell_integration.fallback_channel);
+        }
         // merge shell integration triggers with commands
         default.shell_integration.merge_triggers();
         user.shell_integration.merge_triggers();
