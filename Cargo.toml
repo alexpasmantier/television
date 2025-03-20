@@ -64,9 +64,17 @@ syntect = { package = "syntect", version = "5.2", default-features = false }
 bat = { package = "bat", version = "0.25", default-features = false }
 
 
+# target specific dependencies
+[target.'cfg(target_os = "macos")'.dependencies]
+crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
+
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+crossterm = { version = "0.28", features = ["serde"] }
+
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
 clipboard-win = "5.4.0"
+
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
@@ -75,16 +83,11 @@ tempfile = "3.16.0"
 [features]
 simd = ["dep:simdutf8"]
 zero-copy = []
-default = ["zero-copy", "simd", "onig"]
 # Use fancy-regex for aarch64 Linux
 fancy = ["syntect/regex-fancy", "bat/regex-fancy"]
 # Use oniguruma for other platforms
 onig = ["syntect/regex-onig", "bat/regex-onig"]
-
-
-# Use `fancy-regex` instead of `oniguruma` on aarch64 Linux (build problems)
-[target.'cfg(all(target_arch = "aarch64", target_os = "linux"))'.features]
-default = ["fancy"]
+default = ["zero-copy", "simd", "onig"]
 
 
 [build-dependencies]
@@ -101,11 +104,6 @@ name = "tv"
 name = "main"
 harness = false
 
-[target.'cfg(target_os = "macos")'.dependencies]
-crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
-
-[target.'cfg(not(target_os = "macos"))'.dependencies]
-crossterm = { version = "0.28", features = ["serde"] }
 
 [profile.staging]
 inherits = "dev"
