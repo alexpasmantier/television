@@ -152,15 +152,22 @@ pub fn draw_results_list(
     colorscheme: &Colorscheme,
     help_keybinding: &str,
     preview_keybinding: &str,
+    preview_togglable: bool,
 ) -> Result<()> {
+    let mut toggle_hints = format!(
+        " help: <{help_keybinding}> ",
+        help_keybinding = help_keybinding,
+    );
+    if preview_togglable {
+        toggle_hints.push_str(&format!(
+            " preview: <{preview_keybinding}> ",
+            preview_keybinding = preview_keybinding,
+        ));
+    }
+
     let results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
-        .title_bottom(
-            Line::from(format!(
-                " help: <{help_keybinding}>  preview: <{preview_keybinding}> "
-            ))
-            .alignment(Alignment::Center),
-        )
+        .title_bottom(Line::from(toggle_hints).alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
