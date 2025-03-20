@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.11.0"
+version = "0.11.1"
 edition = "2021"
 description = "A cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
@@ -41,7 +41,6 @@ tokio = { version = "1.43", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 rustc-hash = "2.1"
-syntect = { version = "5.2", default-features = false }
 unicode-width = "0.2"
 clap = { version = "4.5", features = ["derive", "cargo", "string"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -57,23 +56,17 @@ nom = "7.1"
 thiserror = "2.0"
 simdutf8 = { version = "0.1", optional = true }
 smallvec = { version = "1.13", features = ["const_generics"] }
-bat = { version = "0.25", default-features = false, features = ["regex-onig"] }
 gag = "1.0"
 nucleo = "0.5"
 toml = "0.8"
 image = "0.25"
+syntect = { package = "syntect", version = "5.2", default-features = false }
+bat = { package = "bat", version = "0.25", default-features = false }
 
 
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
 clipboard-win = "5.4.0"
-
-# on arm64, use `syntect` with `fancy-regex` instead of `oniguruma` (build issues)
-[target.'cfg(target_arch = "aarch64")'.dependencies]
-syntect = { version = "5.2", default-features = false, features = [
-  "default-fancy",
-] }
-bat = { version = "0.25", default-features = false, features = ["regex-fancy"] }
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
@@ -82,7 +75,16 @@ tempfile = "3.16.0"
 [features]
 simd = ["dep:simdutf8"]
 zero-copy = []
-default = ["zero-copy", "simd"]
+default = ["zero-copy", "simd", "onig"]
+# Use fancy-regex for aarch64 Linux
+fancy = ["syntect/regex-fancy", "bat/regex-fancy"]
+# Use oniguruma for other platforms
+onig = ["syntect/regex-onig", "bat/regex-onig"]
+
+
+# Use `fancy-regex` instead of `oniguruma` on aarch64 Linux (build problems)
+[target.'cfg(all(target_arch = "aarch64", target_os = "linux"))'.features]
+default = ["fancy"]
 
 
 [build-dependencies]
