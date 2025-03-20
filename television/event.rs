@@ -149,12 +149,27 @@ async fn poll_event(timeout: Duration) -> bool {
     PollFuture { timeout }.await
 }
 
+fn flush_existing_events() {
+    let mut counter = 0;
+    while let Ok(true) = crossterm::event::poll(Duration::from_millis(0)) {
+        if let Ok(crossterm::event::Event::Key(_)) = crossterm::event::read() {
+            counter += 1;
+        }
+    }
+    if counter > 0 {
+        debug!("Flushed {} existing events", counter);
+    }
+}
+
 impl EventLoop {
+    // FIXME: this init parameter doesn't seem to be used anymore
     pub fn new(tick_rate: f64, init: bool) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let tick_interval = Duration::from_secs_f64(1.0 / tick_rate);
 
         let (abort, mut abort_recv) = mpsc::unbounded_channel();
+
+        flush_existing_events();
 
         if init {
             //let mut reader = crossterm::event::EventStream::new();

@@ -6,6 +6,7 @@ use std::process::exit;
 use anyhow::Result;
 use clap::Parser;
 use television::channels::cable::PreviewKind;
+use television::cli::parse_channel;
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -31,28 +32,37 @@ async fn main() -> Result<()> {
     television::errors::init()?;
     television::logging::init()?;
 
-    // post-process the CLI arguments
-    let args: PostProcessedCli = Cli::parse().into();
-    debug!("{:?}", args);
+    debug!("\n\n====  NEW SESSION  =====\n");
+
+    // process the CLI arguments
+    let cli = Cli::parse();
+    debug!("CLI: {:?}", cli);
+    let args: PostProcessedCli = cli.into();
+    debug!("PostProcessedCli: {:?}", args);
 
     // load the configuration file
+    debug!("Loading configuration...");
     let mut config = Config::new(&ConfigEnv::init()?)?;
 
     // optionally handle subcommands
+    debug!("Handling subcommands...");
     args.command.as_ref().map(handle_subcommands);
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
 
     // optionally override configuration values with CLI arguments
+    debug!("Applying CLI overrides...");
     apply_cli_overrides(&args, &mut config);
 
     // determine the channel to use based on the CLI arguments and configuration
+    debug!("Determining channel...");
     let channel =
         determine_channel(args.clone(), &config, is_readable_stdin())?;
 
     CLIPBOARD.with(<_>::default);
 
+    debug!("Creating application...");
     let mut app =
         App::new(channel, config, &args.passthrough_keybindings, args.input);
     stdout().flush()?;
@@ -141,9 +151,11 @@ pub fn determine_channel(
             },
         )))
     } else if let Some(prompt) = args.autocomplete_prompt {
+        debug!("Using autocomplete prompt: {:?}", prompt);
         let channel = guess_channel_from_prompt(
             &prompt,
             &config.shell_integration.commands,
+            parse_channel(&config.shell_integration.fallback_channel)?,
         )?;
         debug!("Using guessed channel: {:?}", channel);
         match channel {
@@ -217,6 +229,7 @@ mod tests {
         let mut config = Config {
             shell_integration:
                 television::config::shell_integration::ShellIntegrationConfig {
+                    fallback_channel: "files".to_string(),
                     commands: FxHashMap::default(),
                     channel_triggers: {
                         let mut m = FxHashMap::default();

@@ -136,6 +136,15 @@ pub enum ParsedCliChannel {
     Cable(CableChannelPrototype),
 }
 
+impl ParsedCliChannel {
+    pub fn name(&self) -> String {
+        match self {
+            Self::Builtin(c) => c.to_string(),
+            Self::Cable(c) => c.name.clone(),
+        }
+    }
+}
+
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
 
 /// Parse the keybindings string into a hashmap of key -> action.
@@ -154,7 +163,7 @@ fn parse_keybindings(cli_keybindings: &str) -> Result<KeyBindings> {
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
+pub fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
     let cable_channels = cable::load_cable_channels().unwrap_or_default();
     // try to parse the channel as a cable channel
     cable_channels
@@ -165,7 +174,7 @@ fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
                 // try to parse the channel as a builtin channel
                 CliTvChannel::try_from(channel)
                     .map(ParsedCliChannel::Builtin)
-                    .map_err(|_| anyhow!("Unknown channel: {}", channel))
+                    .map_err(|_| anyhow!("Unknown channel: '{}'", channel))
             },
             |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
         )
@@ -223,15 +232,13 @@ pub fn list_channels() {
 pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
+    fallback_channel: ParsedCliChannel,
 ) -> Result<ParsedCliChannel> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
     if prompt.trim().is_empty() {
-        return match command_mapping.get("") {
-            Some(channel) => parse_channel(channel),
-            None => Err(anyhow!("No channel found for prompt: {}", prompt)),
-        };
+        return Ok(fallback_channel);
     }
     let rev_prompt_words = prompt.split_whitespace().rev();
     let mut stack = Vec::new();
@@ -259,7 +266,9 @@ pub fn guess_channel_from_prompt(
         // reset the stack
         stack.clear();
     }
-    Err(anyhow!("No channel found for prompt: {}", prompt))
+
+    debug!("No match found, falling back to default channel");
+    Ok(fallback_channel)
 }
 
 const VERSION_MESSAGE: &str = env!("CARGO_PKG_VERSION");
@@ -457,5 +466,62 @@ mod tests {
         );
 
         assert_eq!(post_processed_cli.keybindings, Some(expected));
+    }
+
+    fn guess_channel_from_prompt_setup(
+    ) -> (FxHashMap<String, String>, ParsedCliChannel) {
+        let mut command_mapping = FxHashMap::default();
+        command_mapping.insert("vim".to_string(), "files".to_string());
+        command_mapping.insert("export".to_string(), "env".to_string());
+
+        (
+            command_mapping,
+            ParsedCliChannel::Builtin(CliTvChannel::Env),
+        )
+    }
+
+    #[test]
+    fn test_guess_channel_from_prompt_present() {
+        let prompt = "vim -d file1";
+
+        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+
+        let channel =
+            guess_channel_from_prompt(prompt, &command_mapping, fallback)
+                .unwrap();
+
+        assert_eq!(channel.name(), "files");
+    }
+
+    #[test]
+    fn test_guess_channel_from_prompt_fallback() {
+        let prompt = "git checkout ";
+
+        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+
+        let channel = guess_channel_from_prompt(
+            prompt,
+            &command_mapping,
+            fallback.clone(),
+        )
+        .unwrap();
+
+        assert_eq!(channel, fallback);
+    }
+
+    #[test]
+    fn test_guess_channel_from_prompt_empty() {
+        let prompt = "";
+
+        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+
+        let channel = guess_channel_from_prompt(
+            prompt,
+            &command_mapping,
+            fallback.clone(),
+        )
+        .unwrap();
+
+        assert_eq!(channel, fallback);
     }
 }
