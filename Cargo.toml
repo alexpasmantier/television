@@ -68,6 +68,13 @@ image = "0.25"
 winapi-util = "0.1.9"
 clipboard-win = "5.4.0"
 
+# on arm64, use `syntect` with `fancy-regex` instead of `oniguruma` (build issues)
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+syntect = { version = "5.2", default-features = false, features = [
+  "default-fancy",
+] }
+bat = { version = "0.25", default-features = false, features = ["regex-fancy"] }
+
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
 tempfile = "3.16.0"
