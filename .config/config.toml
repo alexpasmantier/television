@@ -109,6 +109,10 @@ toggle_preview = "ctrl-o"
 # E.g. typing `git checkout <CTRL-T>` will open television with a list of
 # branches to choose from.
 
+[shell_integration]
+# This specifies the default fallback channel if no other channel is matched.
+fallback_channel = "files"
+
 [shell_integration.channel_triggers]
 # Add your channel triggers here. Each key is a channel that will be triggered
 # by the corresponding commands.
