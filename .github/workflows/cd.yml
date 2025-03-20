@@ -224,13 +224,7 @@ jobs:
     - name: Add rustup target
       shell: bash
       run: |
-        rustup target add x86_64-unknown-linux-musl
-
-    # for some reason, the above action doesn't seem to set the target correctly
-    - name: Add rustup target
-      shell: bash
-      run: |
-        rustup target add x86_64-unknown-linux-musl
+        rustup target add ${{ matrix.target }}
 
     - name: Install cargo-deb
       shell: bash

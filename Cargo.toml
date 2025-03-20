@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.10.10"
+version = "0.11.0"
 edition = "2021"
 description = "A cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
@@ -31,7 +31,7 @@ build = "build.rs"
 path = "television/lib.rs"
 
 [dependencies]
-television-derive = { path = "television-derive", version = "0.0.25" }
+television-derive = { path = "television-derive", version = "0.0.26" }
 
 anyhow = "1.0"
 base64 = "0.22.1"
