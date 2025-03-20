@@ -157,19 +157,23 @@ impl Config {
         mut default: Config,
         mut user: Config,
     ) -> Config {
-        // merge shell integration fallback channel with default fallback channel
+        // use default fallback channel as a fallback if user hasn't specified one
         if user.shell_integration.fallback_channel.is_empty() {
             user.shell_integration
                 .fallback_channel
                 .clone_from(&default.shell_integration.fallback_channel);
         }
+
         // merge shell integration triggers with commands
         default.shell_integration.merge_triggers();
         user.shell_integration.merge_triggers();
         // merge shell integration commands with default commands
-        let mut merged_commands = default.shell_integration.commands.clone();
-        merged_commands.extend(user.shell_integration.commands.clone());
-        user.shell_integration.commands = merged_commands;
+        if user.shell_integration.commands.is_empty() {
+            user.shell_integration
+                .commands
+                .clone_from(&default.shell_integration.commands);
+        }
+
         // merge shell integration keybindings with default keybindings
         let mut merged_keybindings =
             default.shell_integration.keybindings.clone();
@@ -390,10 +394,6 @@ mod tests {
 
         default_config
             .shell_integration
-            .commands
-            .extend(vec![("git add".to_string(), "git-diff".to_string())]);
-        default_config
-            .shell_integration
             .keybindings
             .insert("command_history".to_string(), "ctrl-h".to_string());
         default_config.shell_integration.merge_triggers();
@@ -404,11 +404,40 @@ mod tests {
         assert_eq!(config.previewers, default_config.previewers);
         assert_eq!(
             config.shell_integration.commands,
-            default_config.shell_integration.commands
+            [(&String::from("git add"), &String::from("git-diff"))]
+                .iter()
+                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .collect()
         );
         assert_eq!(
             config.shell_integration.keybindings,
             default_config.shell_integration.keybindings
+        );
+    }
+
+    #[test]
+    fn test_setting_user_shell_integration_triggers_overrides_default() {
+        let user_config = r#"
+            [shell_integration.channel_triggers]
+            "files" = ["some command"]
+        "#;
+
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let mut file = File::create(&config_file).unwrap();
+        file.write_all(user_config.as_bytes()).unwrap();
+
+        let config_env = ConfigEnv {
+            _data_dir: get_data_dir(),
+            config_dir: config_dir.to_path_buf(),
+        };
+
+        let config = Config::new(&config_env).unwrap();
+
+        assert_eq!(
+            config.shell_integration.commands.iter().collect::<Vec<_>>(),
+            vec![(&String::from("some command"), &String::from("files"))]
         );
     }
 }
