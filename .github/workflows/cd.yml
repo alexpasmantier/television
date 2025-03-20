@@ -46,6 +46,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: macos-latest
@@ -180,6 +181,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - target: x86_64-unknown-linux-musl
@@ -224,13 +226,7 @@ jobs:
     - name: Add rustup target
       shell: bash
       run: |
-        rustup target add x86_64-unknown-linux-musl
-
-    # for some reason, the above action doesn't seem to set the target correctly
-    - name: Add rustup target
-      shell: bash
-      run: |
-        rustup target add x86_64-unknown-linux-musl
+        rustup target add ${{ matrix.target }}
 
     - name: Install cargo-deb
       shell: bash
@@ -252,6 +248,10 @@ jobs:
     - name: Build release binary
       shell: bash
       run: |
+        # if aarch64-unknown-linux-gnu, we need to install the cross compiler
+        if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
+          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+        fi
         cargo deb --profile deb --target ${{ matrix.target }}
         version="${{ github.ref_name }}"
         echo "DEB_DIR=target/${{ matrix.target }}/debian" >> $GITHUB_ENV
