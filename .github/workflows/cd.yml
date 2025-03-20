@@ -255,7 +255,7 @@ jobs:
         cargo deb --profile deb --target ${{ matrix.target }}
         version="${{ github.ref_name }}"
         echo "DEB_DIR=target/${{ matrix.target }}/debian" >> $GITHUB_ENV
-        echo "DEB_NAME=tv-$version-${{ matrix.os }}-${{ matrix.arch }}.deb" >> $GITHUB_ENV
+        echo "DEB_NAME=tv-$version-1_${{ matrix.arch }}.deb" >> $GITHUB_ENV
 
     - name: Create sha256 sum of deb file
       shell: bash
