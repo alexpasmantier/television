@@ -2,7 +2,7 @@ use rustc_hash::FxHashSet;
 
 use anyhow::Result;
 use tokio::sync::mpsc;
-use tracing::{debug, info, trace};
+use tracing::{debug, trace};
 
 use crate::channels::entry::Entry;
 use crate::channels::TelevisionChannel;
@@ -207,6 +207,9 @@ impl App {
             {
                 for event in event_buf.drain(..) {
                     if let Some(action) = self.convert_event_to_action(event) {
+                        if action != Action::Tick {
+                            debug!("Queuing new action: {action:?}");
+                        }
                         action_tx.send(action)?;
                     }
                 }
@@ -251,7 +254,7 @@ impl App {
     fn convert_event_to_action(&self, event: Event<Key>) -> Option<Action> {
         let action = match event {
             Event::Input(keycode) => {
-                info!("{:?}", keycode);
+                debug!("Converting {:?} to action", keycode);
                 // get action based on keybindings
                 if let Some(action) = self.keymap.get(&keycode) {
                     action.clone()

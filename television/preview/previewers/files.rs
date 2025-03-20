@@ -114,6 +114,7 @@ impl FilePreviewer {
     ) {
         if self.in_flight_previews.lock().contains(&entry.name) {
             trace!("Preview already in flight for {:?}", entry.name);
+            return;
         }
 
         if self.concurrent_preview_tasks.load(Ordering::Relaxed)
