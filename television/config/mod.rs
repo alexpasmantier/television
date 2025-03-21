@@ -440,4 +440,37 @@ mod tests {
             vec![(&String::from("some command"), &String::from("files"))]
         );
     }
+
+    #[test]
+    fn test_shell_integration_keybindings_are_overwritten_by_user() {
+        let user_config = r#"
+            [shell_integration.keybindings]
+            "smart_autocomplete" = "ctrl-t"
+            "command_history" = "ctrl-["
+        "#;
+
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let mut file = File::create(&config_file).unwrap();
+        file.write_all(user_config.as_bytes()).unwrap();
+
+        let config_env = ConfigEnv {
+            _data_dir: get_data_dir(),
+            config_dir: config_dir.to_path_buf(),
+        };
+
+        let config = Config::new(&config_env).unwrap();
+
+        assert_eq!(
+            config.shell_integration.keybindings,
+            [
+                (&String::from("command_history"), &String::from("ctrl-[")),
+                (&String::from("smart_autocomplete"), &String::from("ctrl-t"))
+            ]
+            .iter()
+            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+            .collect()
+        );
+    }
 }

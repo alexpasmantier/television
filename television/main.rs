@@ -46,7 +46,9 @@ async fn main() -> Result<()> {
 
     // optionally handle subcommands
     debug!("Handling subcommands...");
-    args.command.as_ref().map(handle_subcommands);
+    args.command
+        .as_ref()
+        .map(|x| handle_subcommands(x, &config));
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
@@ -112,7 +114,7 @@ pub fn set_current_dir(path: &String) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_subcommands(command: &Command) -> Result<()> {
+pub fn handle_subcommands(command: &Command, config: &Config) -> Result<()> {
     match command {
         Command::ListChannels => {
             list_channels();
@@ -126,7 +128,7 @@ pub fn handle_subcommands(command: &Command) -> Result<()> {
             let script = render_autocomplete_script_template(
                 target_shell,
                 completion_script(target_shell)?,
-                &Config::default().shell_integration,
+                &config.shell_integration,
             )?;
             println!("{script}");
             exit(0);
