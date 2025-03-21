@@ -104,6 +104,14 @@ jobs:
 
           profile: minimal
           override: true
+
+      - name: Install musl for musl target
+        if: ${{ matrix.target }} == x86_64-unknown-linux-musl
+        shell: bash
+        run: |
+          sudo apt update
+          sudo apt-get install -y musl musl-tools
+
       - uses: Swatinem/rust-cache@v2
       - name: Cargo build
         uses: actions-rs/cargo@v1
@@ -144,7 +152,7 @@ jobs:
 
           ########## create tar.gz ##########
 
-          RELEASE_NAME=tv-${GITHUB_REF/refs\/tags\//}-${{ matrix.os-name }}-${{ matrix.architecture }}
+          RELEASE_NAME=tv-${GITHUB_REF/refs\/tags\//}-${{ matrix.target }}
           echo "RELEASE_NAME=$RELEASE_NAME" >> "$GITHUB_ENV"
 
           # create the directory for the archive
@@ -196,9 +204,9 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: linux
             arch: x86_64
-          - target: aarch64-unknown-linux-gnu
-            os: linux
-            arch: arm64
+          # - target: aarch64-unknown-linux-gnu
+          #   os: linux
+          #   arch: arm64
 
     env:
       # Emit backtraces on panics.
