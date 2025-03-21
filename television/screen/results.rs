@@ -27,6 +27,7 @@ pub fn build_results_list<'a, 'b>(
     list_direction: ListDirection,
     use_icons: bool,
     colorscheme: &ResultsColorscheme,
+    area_width: u16,
 ) -> List<'a>
 where
     'b: 'a,
@@ -130,7 +131,14 @@ where
                 ));
             }
         }
-        Line::from(spans)
+        let line = Line::from(spans);
+        // TODO: we actually need another variable to keep track of the max match offset
+        // (counting the icon, selection symbol, name, line number, and preview)
+        if last_match_end > area_width as usize {
+            line
+        } else {
+            line
+        }
     }))
     .direction(list_direction)
     .highlight_style(
@@ -154,15 +162,9 @@ pub fn draw_results_list(
     preview_keybinding: &str,
     preview_togglable: bool,
 ) -> Result<()> {
-    let mut toggle_hints = format!(
-        " help: <{help_keybinding}> ",
-        help_keybinding = help_keybinding,
-    );
+    let mut toggle_hints = format!(" help: <{help_keybinding}> ",);
     if preview_togglable {
-        toggle_hints.push_str(&format!(
-            " preview: <{preview_keybinding}> ",
-            preview_keybinding = preview_keybinding,
-        ));
+        toggle_hints.push_str(&format!(" preview: <{preview_keybinding}> ",));
     }
 
     let results_block = Block::default()
@@ -187,6 +189,7 @@ pub fn draw_results_list(
         },
         use_nerd_font_icons,
         &colorscheme.results,
+        rect.width,
     );
 
     f.render_stateful_widget(results_list, rect, relative_picker_state);
