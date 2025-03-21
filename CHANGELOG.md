@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.3](https://github.com/alexpasmantier/television/releases/tag/0.11.3) - 2025-03-21
+
+### 🐛 Bug Fixes
+
+- [c573503](https://github.com/alexpasmantier/television/commit/c573503cbfe434ad5927a40e4dcf9be6873bdc72) *(config)* Fix shell integration keybindings not overwriting defaults by @alexpasmantier in [#431](https://github.com/alexpasmantier/television/pull/431)
+
+### ⚙️ Miscellaneous Tasks
+
+- [5752402](https://github.com/alexpasmantier/television/commit/5752402237c23d70d1708add4b3ed523939d4493) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#428](https://github.com/alexpasmantier/television/pull/428)
+
+- [f8bd6c2](https://github.com/alexpasmantier/television/commit/f8bd6c2dd58da37fdda10c61fdb8903f65ec5bce) *(x86)* Add statically linked musl build for x86_64 by @alexpasmantier in [#429](https://github.com/alexpasmantier/television/pull/429)
+
+- [dae6a88](https://github.com/alexpasmantier/television/commit/dae6a8816a73233b26d7f552e0fc3030428ee0d4) *(uncategorized)* Bump to 0.11.3 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.2...0.11.3
+
+
 ## [0.11.2](https://github.com/alexpasmantier/television/releases/tag/0.11.2) - 2025-03-21
 
 ### 🐛 Bug Fixes
