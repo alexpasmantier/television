@@ -334,7 +334,10 @@ impl Television {
                                     / 2)
                                 .into(),
                             )
-                            .try_into()?,
+                            .try_into()
+                            // if the scroll doesn't fit in a u16, just scroll to the top
+                            // this is a current limitation of ratatui
+                            .unwrap_or(0),
                         selected_entry
                             .line_number
                             .and_then(|l| l.try_into().ok()),

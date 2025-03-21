@@ -81,6 +81,7 @@ fn draw_rc_channels(
         ListDirection::TopToBottom,
         use_nerd_font_icons,
         &colorscheme.results,
+        area.width,
     );
 
     f.render_stateful_widget(channel_list, area, picker_state);
