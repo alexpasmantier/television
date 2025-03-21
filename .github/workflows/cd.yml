@@ -67,6 +67,12 @@ jobs:
             architecture: x86_64
             binary-postfix: ""
             use-cross: false
+          - os: ubuntu-latest
+            os-name: linux
+            target: x86_64-unknown-linux-musl
+            architecture: x86_64
+            binary-postfix: ""
+            use-cross: false
           - os: windows-latest
             os-name: windows
             target: x86_64-pc-windows-msvc
