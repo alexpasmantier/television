@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.4](https://github.com/alexpasmantier/television/releases/tag/0.11.4) - 2025-03-23
+
+### 🚜 Refactor
+
+- [8e17ef6](https://github.com/alexpasmantier/television/commit/8e17ef694e11251faba44069f321b6e5810bd273) *(uncategorized)* Nicer results alignment to improve discoverability of matched patterns by @alexpasmantier in [#435](https://github.com/alexpasmantier/television/pull/435)
+
+### ⚙️ Miscellaneous Tasks
+
+- [b81e0df](https://github.com/alexpasmantier/television/commit/b81e0df791a986990367a6286df4c8798fa7ee11) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#433](https://github.com/alexpasmantier/television/pull/433)
+
+- [5f8b240](https://github.com/alexpasmantier/television/commit/5f8b240c8bd499961c036e58c7d8547e03b6749c) *(uncategorized)* Bump to 0.11.4 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.3...0.11.4
+
+
 ## [0.11.3](https://github.com/alexpasmantier/television/releases/tag/0.11.3) - 2025-03-21
 
 ### 🐛 Bug Fixes
