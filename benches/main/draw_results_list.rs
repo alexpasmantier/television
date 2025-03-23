@@ -655,6 +655,7 @@ pub fn draw_results_list(c: &mut Criterion) {
                 ListDirection::BottomToTop,
                 false,
                 &colorscheme,
+                100,
             );
         });
     });
