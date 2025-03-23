@@ -75,6 +75,9 @@ pub fn walk_builder(
 ) -> WalkBuilder {
     let mut builder = WalkBuilder::new(path);
 
+    // Include hidden files
+    builder.hidden(false);
+
     // ft-based filtering
     let mut types_builder = TypesBuilder::new();
     types_builder.add_defaults();
