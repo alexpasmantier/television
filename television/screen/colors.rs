@@ -22,7 +22,7 @@ pub struct HelpColorscheme {
     pub metadata_field_value_fg: Color,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct ResultsColorscheme {
     pub result_name_fg: Color,
     pub result_preview_fg: Color,

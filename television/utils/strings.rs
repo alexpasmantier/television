@@ -477,6 +477,13 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
 /// let (printable, match_indices) = make_matched_string_printable(&matched_string, match_ranges);
 /// assert_eq!(printable.len(), 480);
 /// assert_eq!(match_indices, vec![(0, 1)]);
+///
+/// let matched_string = "ジェ abc";
+/// let match_ranges = vec![(0, 1), (2, 3)];
+/// let match_ranges = Some(match_ranges.as_slice());
+/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// assert_eq!(printable, "ジェ abc");
+/// assert_eq!(match_indices, vec![(0, 1), (2, 3)]);
 /// ```
 ///
 /// # Panics

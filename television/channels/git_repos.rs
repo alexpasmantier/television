@@ -68,7 +68,7 @@ impl OnAir for Channel {
                     path,
                     PreviewType::Command(self.preview_command.clone()),
                 )
-                .with_name_match_ranges(&item.match_indices)
+                .with_name_match_indices(&item.match_indices)
                 .with_icon(self.icon)
             })
             .collect()

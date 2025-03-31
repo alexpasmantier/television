@@ -85,7 +85,7 @@ impl OnAir for Channel {
                     should_add_name_indices,
                     should_add_value_indices,
                 ) = sep_name_and_value_indices(
-                    &mut item.match_indices.iter().map(|i| i.0).collect(),
+                    item.match_indices,
                     u32::try_from(item.inner.name.len()).unwrap(),
                 );
 
@@ -95,17 +95,11 @@ impl OnAir for Channel {
                         .with_icon(self.file_icon);
 
                 if should_add_name_indices {
-                    let name_indices: Vec<(u32, u32)> =
-                        name_indices.into_iter().map(|i| (i, i + 1)).collect();
-                    entry = entry.with_name_match_ranges(&name_indices);
+                    entry = entry.with_name_match_indices(&name_indices);
                 }
 
                 if should_add_value_indices {
-                    let value_indices: Vec<(u32, u32)> = value_indices
-                        .into_iter()
-                        .map(|i| (i, i + 1))
-                        .collect();
-                    entry = entry.with_value_match_ranges(&value_indices);
+                    entry = entry.with_value_match_indices(&value_indices);
                 }
 
                 entry

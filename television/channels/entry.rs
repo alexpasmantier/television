@@ -56,22 +56,30 @@ impl PartialEq<Entry> for Entry {
 }
 
 #[allow(clippy::needless_return)]
-pub fn merge_ranges(ranges: &[(u32, u32)]) -> Vec<(u32, u32)> {
-    ranges.iter().fold(
-        Vec::new(),
-        |mut acc: Vec<(u32, u32)>, x: &(u32, u32)| {
+/// Convert a list of indices into a list of ranges, merging contiguous ranges.
+///
+/// # Example
+/// ```
+/// use television::channels::entry::into_ranges;
+/// let indices = vec![1, 2, 7, 8];
+/// let ranges = into_ranges(&indices);
+/// assert_eq!(ranges, vec![(1, 3), (7, 9)]);
+/// ```
+pub fn into_ranges(indices: &[u32]) -> Vec<(u32, u32)> {
+    indices
+        .iter()
+        .fold(Vec::new(), |mut acc: Vec<(u32, u32)>, x| {
             if let Some(last) = acc.last_mut() {
-                if last.1 == x.0 {
-                    last.1 = x.1;
+                if last.1 == *x {
+                    last.1 = *x + 1;
                 } else {
-                    acc.push(*x);
+                    acc.push((*x, *x + 1));
                 }
             } else {
-                acc.push(*x);
+                acc.push((*x, *x + 1));
             }
             return acc;
-        },
-    )
+        })
 }
 
 impl Entry {
@@ -84,8 +92,8 @@ impl Entry {
     ///
     /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
     ///                 .with_value("value".to_string())
-    ///                 .with_name_match_ranges(&vec![(0, 1)])
-    ///                 .with_value_match_ranges(&vec![(0, 1)])
+    ///                 .with_name_match_indices(&vec![0])
+    ///                 .with_value_match_indices(&vec![0])
     ///                 .with_icon(FileIcon::default())
     ///                 .with_line_number(0);
     /// ```
@@ -114,19 +122,13 @@ impl Entry {
         self
     }
 
-    pub fn with_name_match_ranges(
-        mut self,
-        name_match_ranges: &[(u32, u32)],
-    ) -> Self {
-        self.name_match_ranges = Some(merge_ranges(name_match_ranges));
+    pub fn with_name_match_indices(mut self, indices: &[u32]) -> Self {
+        self.name_match_ranges = Some(into_ranges(indices));
         self
     }
 
-    pub fn with_value_match_ranges(
-        mut self,
-        value_match_ranges: &[(u32, u32)],
-    ) -> Self {
-        self.value_match_ranges = Some(merge_ranges(value_match_ranges));
+    pub fn with_value_match_indices(mut self, indices: &[u32]) -> Self {
+        self.value_match_ranges = Some(into_ranges(indices));
         self
     }
 
@@ -198,26 +200,26 @@ mod tests {
 
     #[test]
     fn test_empty_input() {
-        let ranges: Vec<(u32, u32)> = vec![];
-        assert_eq!(merge_ranges(&ranges), Vec::<(u32, u32)>::new());
+        let ranges: Vec<u32> = vec![];
+        assert_eq!(into_ranges(&ranges), Vec::<(u32, u32)>::new());
     }
 
     #[test]
     fn test_single_range() {
-        let ranges = vec![(1, 3)];
-        assert_eq!(merge_ranges(&ranges), vec![(1, 3)]);
+        let ranges = vec![1, 2];
+        assert_eq!(into_ranges(&ranges), vec![(1, 3)]);
     }
 
     #[test]
     fn test_contiguous_ranges() {
-        let ranges = vec![(1, 2), (2, 3), (3, 4), (4, 5)];
-        assert_eq!(merge_ranges(&ranges), vec![(1, 5)]);
+        let ranges = vec![1, 2, 3, 4];
+        assert_eq!(into_ranges(&ranges), vec![(1, 5)]);
     }
 
     #[test]
     fn test_non_contiguous_ranges() {
-        let ranges = vec![(1, 2), (3, 4), (5, 6)];
-        assert_eq!(merge_ranges(&ranges), vec![(1, 2), (3, 4), (5, 6)]);
+        let ranges = vec![1, 3, 5];
+        assert_eq!(into_ranges(&ranges), vec![(1, 2), (3, 4), (5, 6)]);
     }
 
     #[test]
