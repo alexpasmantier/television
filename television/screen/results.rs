@@ -2,10 +2,7 @@ use crate::channels::entry::Entry;
 use crate::screen::colors::{Colorscheme, ResultsColorscheme};
 use crate::screen::layout::InputPosition;
 use crate::utils::indices::truncate_highlighted_string;
-use crate::utils::strings::{
-    make_matched_string_printable, next_char_boundary,
-    slice_at_char_boundaries,
-};
+use crate::utils::strings::make_matched_string_printable;
 use anyhow::Result;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
@@ -16,15 +13,13 @@ use ratatui::widgets::{
 use ratatui::Frame;
 use rustc_hash::FxHashSet;
 use std::str::FromStr;
+use unicode_width::UnicodeWidthStr;
 
 const POINTER_SYMBOL: &str = "> ";
 const SELECTED_SYMBOL: &str = "● ";
 const DESELECTED_SYMBOL: &str = "  ";
 
 /// The max width for each part of the entry (name and value) depending on various factors.
-///
-/// - name only: `available_width - 2 * (use_icons as u16) - 2 * (is_selected as u16) - line_number_width`
-/// - name and value: `(available_width - 2 * (use_icons as u16) - 2 * (is_selected as u16) - line_number_width) / 2`
 fn max_widths(
     entry: &Entry,
     available_width: u16,
@@ -35,6 +30,7 @@ fn max_widths(
         2 // pointer and space
             + 2 * (u16::from(use_icons))
             + 2 * (u16::from(is_selected))
+            + 2 // borders
             + entry
                 .line_number
                 // ":{line_number}: "
@@ -54,14 +50,17 @@ fn max_widths(
         .map_or(0, |v| u16::try_from(v.chars().count()).unwrap_or(u16::MAX));
 
     if name_len < available_width / 2 {
-        (name_len, available_width - name_len - 2)
+        (name_len, available_width - name_len)
     } else if value_len < available_width / 2 {
-        (available_width - value_len, value_len - 2)
+        (available_width - value_len, value_len)
     } else {
-        (available_width / 2, available_width / 2 - 2)
+        (available_width / 2, available_width / 2)
     }
 }
 
+// TODO: could we not just iterate on chars here instead of using the indices?
+// that would avoid quite some computation during the rendering and might fix multibyte char
+// issues (nucleo's indices are actually char-based)
 fn build_result_line<'a>(
     entry: &'a Entry,
     selected_entries: Option<&FxHashSet<Entry>>,
@@ -101,42 +100,52 @@ fn build_result_line<'a>(
         }
     }
     // entry name
-    let (mut entry_name, mut value_match_ranges) =
+    let (mut entry_name, mut name_match_ranges) =
         make_matched_string_printable(
             &entry.name,
             entry.name_match_ranges.as_deref(),
         );
     // if the name is too long, we need to truncate it and add an ellipsis
-    if entry_name.len() > name_max_width as usize {
-        (entry_name, value_match_ranges) = truncate_highlighted_string(
+    if entry_name.as_str().width() > name_max_width as usize {
+        (entry_name, name_match_ranges) = truncate_highlighted_string(
             &entry_name,
-            &value_match_ranges,
+            &name_match_ranges,
             name_max_width,
         );
     }
+
     let mut last_match_end = 0;
-    for (start, end) in value_match_ranges
+    let name_chars = entry_name.chars();
+    let name_len = entry_name.as_str().width();
+    for (start, end) in name_match_ranges
         .iter()
         .map(|(s, e)| (*s as usize, *e as usize))
     {
         // from the end of the last match to the start of the current one
         spans.push(Span::styled(
-            slice_at_char_boundaries(&entry_name, last_match_end, start)
-                .to_string(),
+            name_chars
+                .clone()
+                .skip(last_match_end)
+                .take(start - last_match_end)
+                .collect::<String>(),
+            //entry_name[last_match_end..start].to_string(),
             Style::default().fg(colorscheme.result_name_fg),
         ));
         // the current match
         spans.push(Span::styled(
-            slice_at_char_boundaries(&entry_name, start, end).to_string(),
+            name_chars
+                .clone()
+                .skip(start)
+                .take(end - start)
+                .collect::<String>(),
             Style::default().fg(colorscheme.match_foreground_color),
         ));
         last_match_end = end;
     }
     // we need to push a span for the remainder of the entry name
     // but only if there's something left
-    let next_boundary = next_char_boundary(&entry_name, last_match_end);
-    if next_boundary < entry_name.len() {
-        let remainder = entry_name[next_boundary..].to_string();
+    if last_match_end < name_len {
+        let remainder = name_chars.skip(last_match_end).collect::<String>();
         spans.push(Span::styled(
             remainder,
             Style::default().fg(colorscheme.result_name_fg),
@@ -159,7 +168,7 @@ fn build_result_line<'a>(
                 entry.value_match_ranges.as_deref(),
             );
         // if the value is too long, we need to truncate it and add an ellipsis
-        if value.len() > value_max_width as usize {
+        if value.as_str().width() > value_max_width as usize {
             (value, value_match_ranges) = truncate_highlighted_string(
                 &value,
                 &value_match_ranges,
@@ -168,25 +177,33 @@ fn build_result_line<'a>(
         }
 
         let mut last_match_end = 0;
+        let value_chars = value.chars();
+        let value_len = value.chars().count();
         for (start, end) in value_match_ranges
             .iter()
             .map(|(s, e)| (*s as usize, *e as usize))
         {
             spans.push(Span::styled(
-                slice_at_char_boundaries(&value, last_match_end, start)
-                    .to_string(),
+                value_chars
+                    .clone()
+                    .skip(last_match_end)
+                    .take(start - last_match_end)
+                    .collect::<String>(),
                 Style::default().fg(colorscheme.result_preview_fg),
             ));
             spans.push(Span::styled(
-                slice_at_char_boundaries(&value, start, end).to_string(),
+                value_chars
+                    .clone()
+                    .skip(start)
+                    .take(end - start)
+                    .collect::<String>(),
                 Style::default().fg(colorscheme.match_foreground_color),
             ));
             last_match_end = end;
         }
-        let next_boundary = next_char_boundary(&value, last_match_end);
-        if next_boundary < value.len() {
+        if last_match_end < value_len {
             spans.push(Span::styled(
-                value[next_boundary..].to_string(),
+                value_chars.skip(last_match_end).collect::<String>(),
                 Style::default().fg(colorscheme.result_preview_fg),
             ));
         }
@@ -269,4 +286,64 @@ pub fn draw_results_list(
 
     f.render_stateful_widget(results_list, rect, relative_picker_state);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::channels::entry::PreviewType;
+
+    use super::*;
+
+    #[test]
+    fn test_build_result_line() {
+        let entry =
+            Entry::new(String::from("something nice"), PreviewType::None)
+                .with_name_match_indices(
+                    // something nice
+                    // 012345678901234
+                    //  om       ni
+                    &[1, 2, 10, 11],
+                );
+        let result_line = build_result_line(
+            &entry,
+            None,
+            false,
+            &ResultsColorscheme::default(),
+            200,
+        );
+
+        let expected_line = Line::from(vec![
+            Span::raw("s").fg(Color::Reset),
+            Span::raw("om").fg(Color::Reset),
+            Span::raw("ething ").fg(Color::Reset),
+            Span::raw("ni").fg(Color::Reset),
+            Span::raw("ce").fg(Color::Reset),
+        ]);
+
+        assert_eq!(result_line, expected_line);
+    }
+
+    #[test]
+    fn test_build_result_line_multibyte_chars() {
+        let entry =
+            // See https://github.com/alexpasmantier/television/issues/439
+            Entry::new(String::from("ジェイムス下地 - REDLINE Original Soundtrack - 06 - ROBOWORLD TV.mp3"), PreviewType::None)
+                .with_name_match_indices(&[27, 28, 29, 30, 31]);
+        let result_line = build_result_line(
+            &entry,
+            None,
+            false,
+            &ResultsColorscheme::default(),
+            // 16 + (borders + (pointer & space))
+            16 + 2 + 2,
+        );
+
+        let expected_line = Line::from(vec![
+            Span::raw("…Original ").fg(Color::Reset),
+            Span::raw("Sound").fg(Color::Reset),
+            Span::raw("…").fg(Color::Reset),
+        ]);
+
+        assert_eq!(result_line, expected_line);
+    }
 }

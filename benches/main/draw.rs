@@ -40,7 +40,7 @@ fn draw(c: &mut Criterion) {
                 let _ = tv.update_preview_state(
                     &tv.get_selected_entry(None).unwrap(),
                 );
-                tv.update(&Action::Tick).unwrap();
+                let _ = tv.update(&Action::Tick);
                 (tv, terminal)
             },
             // Measurement

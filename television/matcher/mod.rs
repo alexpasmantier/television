@@ -181,7 +181,7 @@ where
                 matched_item::MatchedItem {
                     inner: item.data.clone(),
                     matched_string,
-                    match_indices: indices.map(|i| (i, i + 1)).collect(),
+                    match_indices: indices.collect(),
                 }
             })
             .collect()

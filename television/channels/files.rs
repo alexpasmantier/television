@@ -107,7 +107,7 @@ impl OnAir for Channel {
             .map(|item| {
                 let path = item.matched_string;
                 Entry::new(path.clone(), PreviewType::Files)
-                    .with_name_match_ranges(&item.match_indices)
+                    .with_name_match_indices(&item.match_indices)
                     .with_icon(FileIcon::from(&path))
             })
             .collect()

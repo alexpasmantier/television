@@ -16,5 +16,5 @@ where
     /// The dimension against which the item was matched (as a string).
     pub matched_string: String,
     /// The indices of the matched characters.
-    pub match_indices: Vec<(u32, u32)>,
+    pub match_indices: Vec<u32>,
 }
