@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.5](https://github.com/alexpasmantier/television/releases/tag/0.11.5) - 2025-03-31
+
+### 🐛 Bug Fixes
+
+- [6ba235f](https://github.com/alexpasmantier/television/commit/6ba235fa1193323846f1a956dbcdbe7b98baaa8a) *(results)* Fix alignment for non unit width unicode characters by @alexpasmantier in [#442](https://github.com/alexpasmantier/television/pull/442)
+
+### ⚙️ Miscellaneous Tasks
+
+- [f9a49ac](https://github.com/alexpasmantier/television/commit/f9a49acccf2a667b66081778f851d660b6bb6981) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#436](https://github.com/alexpasmantier/television/pull/436)
+
+- [875b63d](https://github.com/alexpasmantier/television/commit/875b63defee9696335e8d5841092096b44efb5da) *(uncategorized)* Bump to 0.11.5 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.4...0.11.5
+
+
 ## [0.11.4](https://github.com/alexpasmantier/television/releases/tag/0.11.4) - 2025-03-23
 
 ### 🚜 Refactor
