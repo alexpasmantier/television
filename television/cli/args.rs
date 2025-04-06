@@ -66,14 +66,6 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub keybindings: Option<String>,
 
-    /// Passthrough keybindings (comma separated, e.g. "q,ctrl-w,ctrl-t")
-    ///
-    /// These keybindings will trigger selection of the current entry and be
-    /// passed through to stdout along with the entry to be handled by the
-    /// parent process.
-    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
-    pub passthrough_keybindings: Option<String>,
-
     /// Input text to pass to the channel to prefill the prompt.
     ///
     /// This can be used to provide a default value for the prompt upon
