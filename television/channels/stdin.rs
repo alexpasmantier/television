@@ -15,6 +15,7 @@ pub struct Channel {
     matcher: Matcher<String>,
     preview_type: PreviewType,
     selected_entries: FxHashSet<Entry>,
+    instream_handle: std::thread::JoinHandle<()>,
 }
 
 impl Channel {
@@ -22,12 +23,13 @@ impl Channel {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
 
-        spawn(move || stream_from_stdin(&injector));
+        let instream_handle = spawn(move || stream_from_stdin(&injector));
 
         Self {
             matcher,
             preview_type,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
+            instream_handle,
         }
     }
 }
@@ -35,6 +37,33 @@ impl Channel {
 impl Default for Channel {
     fn default() -> Self {
         Self::new(PreviewType::default())
+    }
+}
+
+impl<E> From<E> for Channel
+where
+    E: AsRef<Vec<String>>,
+{
+    fn from(entries: E) -> Self {
+        let matcher = Matcher::new(Config::default());
+        let injector = matcher.injector();
+
+        let entries = entries.as_ref().clone();
+
+        let instream_handle = spawn(move || {
+            for entry in entries {
+                injector.push(entry.clone(), |e, cols| {
+                    cols[0] = e.to_string().into();
+                });
+            }
+        });
+
+        Self {
+            matcher,
+            preview_type: PreviewType::default(),
+            selected_entries: HashSet::with_hasher(FxBuildHasher),
+            instream_handle,
+        }
     }
 }
 
@@ -116,7 +145,7 @@ impl OnAir for Channel {
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.status.running || !self.instream_handle.is_finished()
     }
 
     fn shutdown(&self) {}

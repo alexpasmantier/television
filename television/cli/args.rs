@@ -90,6 +90,18 @@ pub struct Cli {
     #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub autocomplete_prompt: Option<String>,
 
+    /// Automatically select and output the first entry if there is only one
+    /// entry.
+    ///
+    /// Note that most channels stream entries asynchronously which means that
+    /// knowing if there's only one entry will require waiting for the channel
+    /// to finish loading first.
+    ///
+    /// For most channels and workloads this shouldn't be a problem since the
+    /// loading times are usually very short and will go unnoticed by the user.
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub select_1: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

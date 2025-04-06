@@ -29,6 +29,7 @@ pub struct PostProcessedCli {
     pub working_directory: Option<String>,
     pub autocomplete_prompt: Option<String>,
     pub keybindings: Option<KeyBindings>,
+    pub select_1: bool,
 }
 
 impl Default for PostProcessedCli {
@@ -44,6 +45,7 @@ impl Default for PostProcessedCli {
             working_directory: None,
             autocomplete_prompt: None,
             keybindings: None,
+            select_1: false,
         }
     }
 }
@@ -108,6 +110,7 @@ impl From<Cli> for PostProcessedCli {
             working_directory,
             autocomplete_prompt: cli.autocomplete_prompt,
             keybindings,
+            select_1: cli.select_1,
         }
     }
 }
@@ -322,6 +325,7 @@ mod tests {
             command: None,
             working_directory: Some("/home/user".to_string()),
             autocomplete_prompt: None,
+            select_1: false,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -360,6 +364,7 @@ mod tests {
             command: None,
             working_directory: None,
             autocomplete_prompt: None,
+            select_1: false,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -389,6 +394,7 @@ mod tests {
             command: None,
             working_directory: None,
             autocomplete_prompt: None,
+            select_1: false,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -413,6 +419,7 @@ mod tests {
             command: None,
             working_directory: None,
             autocomplete_prompt: None,
+            select_1: false,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -440,6 +447,7 @@ mod tests {
             command: None,
             working_directory: None,
             autocomplete_prompt: None,
+            select_1: false,
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();

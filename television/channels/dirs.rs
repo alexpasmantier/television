@@ -136,7 +136,7 @@ impl OnAir for Channel {
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.status.running || !self.crawl_handle.is_finished()
     }
 
     fn shutdown(&self) {
