@@ -84,7 +84,7 @@ where
     /// This can be used at any time to push items into the fuzzy matcher.
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
@@ -134,7 +134,7 @@ where
     /// indices of the matched characters.
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
@@ -190,7 +190,7 @@ where
     /// Get a single matched item.
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();

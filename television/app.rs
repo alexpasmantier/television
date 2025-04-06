@@ -5,7 +5,7 @@ use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
 use crate::channels::entry::{Entry, PreviewType};
-use crate::channels::TelevisionChannel;
+use crate::channels::{OnAir, TelevisionChannel};
 use crate::config::Config;
 use crate::keymap::Keymap;
 use crate::render::UiState;
@@ -53,10 +53,13 @@ pub struct App {
     ui_state_tx: mpsc::UnboundedSender<UiState>,
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
+    /// Whether the application should automatically select the first entry if there is only one
+    /// entry available.
+    select_1: bool,
 }
 
 /// The outcome of an action.
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ActionOutcome {
     Entries(FxHashSet<Entry>),
     Input(String),
@@ -96,6 +99,7 @@ impl App {
         channel: TelevisionChannel,
         config: Config,
         input: Option<String>,
+        select_1: bool,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -124,6 +128,7 @@ impl App {
             ui_state_rx,
             ui_state_tx,
             render_task: None,
+            select_1,
         }
     }
 
@@ -146,6 +151,7 @@ impl App {
         is_output_tty: bool,
         headless: bool,
     ) -> Result<AppOutput> {
+        // Event loop
         if !headless {
             debug!("Starting backend event loop");
             let event_loop = EventLoop::new(self.tick_rate, true);
@@ -169,11 +175,13 @@ impl App {
                 .expect("Unable to send init render action.");
         }
 
-        // event handling loop
+        // Main loop
         debug!("Starting event handling loop");
         let action_tx = self.action_tx.clone();
         let mut event_buf = Vec::with_capacity(EVENT_BUF_SIZE);
         let mut action_buf = Vec::with_capacity(ACTION_BUF_SIZE);
+        let mut action_outcome;
+
         loop {
             // handle event and convert to action
             if self
@@ -192,7 +200,18 @@ impl App {
                 }
             }
             // It's important that this shouldn't block if no actions are available
-            let action_outcome = self.handle_actions(&mut action_buf).await?;
+            action_outcome = self.handle_actions(&mut action_buf).await?;
+
+            // If `self.select_1` is true, the channel is not running, and there is
+            // only one entry available, automatically select the first entry.
+            if self.select_1
+                && !self.television.channel.running()
+                && self.television.channel.total_count() == 1
+            {
+                if let Some(outcome) = self.maybe_select_1() {
+                    action_outcome = outcome;
+                }
+            }
 
             if self.should_quit {
                 // send a termination signal to the event loop
@@ -348,5 +367,53 @@ impl App {
             }
         }
         Ok(ActionOutcome::None)
+    }
+
+    /// Maybe select the first entry if there is only one entry available.
+    fn maybe_select_1(&mut self) -> Option<ActionOutcome> {
+        debug!("Automatically selecting the first entry");
+        if let Some(unique_entry) =
+            self.television.results_picker.entries.first()
+        {
+            self.should_quit = true;
+
+            if !self.render_tx.is_closed() {
+                let _ = self.render_tx.send(RenderingTask::Quit);
+            }
+
+            return Some(ActionOutcome::Entries(FxHashSet::from_iter([
+                unique_entry.clone(),
+            ])));
+        }
+        None
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::channels::stdin::Channel as StdinChannel;
+
+    #[test]
+    fn test_maybe_select_1() {
+        let mut app = App::new(
+            TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
+            Config::default(),
+            None,
+            true,
+        );
+        app.television
+            .results_picker
+            .entries
+            .push(Entry::new("test".to_string(), PreviewType::None));
+        let outcome = app.maybe_select_1();
+        assert!(outcome.is_some());
+        assert_eq!(
+            outcome.unwrap(),
+            ActionOutcome::Entries(FxHashSet::from_iter([Entry::new(
+                "test".to_string(),
+                PreviewType::None
+            )]))
+        );
     }
 }
