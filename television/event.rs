@@ -15,7 +15,7 @@ use crossterm::event::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::{signal, sync::mpsc};
-use tracing::{debug, warn};
+use tracing::{debug, trace, warn};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Event<I> {
@@ -247,7 +247,7 @@ fn flush_resize_events(first_resize: (u16, u16)) -> ((u16, u16), (u16, u16)) {
 }
 
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
-    debug!("Raw event: {:?}", event);
+    trace!("Raw event: {:?}", event);
     if event.kind == KeyEventKind::Release {
         return Key::Null;
     }
