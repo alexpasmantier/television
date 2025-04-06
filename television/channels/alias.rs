@@ -26,6 +26,7 @@ pub struct Channel {
     matcher: Matcher<Alias>,
     file_icon: FileIcon,
     selected_entries: FxHashSet<Entry>,
+    crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 const NUM_THREADS: usize = 1;
@@ -44,6 +45,7 @@ fn get_raw_aliases(shell: &str) -> Vec<String> {
         .arg("alias")
         .output()
         .expect("failed to execute process");
+
     let aliases = String::from_utf8_lossy(&output.stdout);
     aliases.lines().map(ToString::to_string).collect()
 }
@@ -52,12 +54,13 @@ impl Channel {
     pub fn new() -> Self {
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
-        tokio::spawn(load_aliases(injector));
+        let crawl_handle = tokio::spawn(load_aliases(injector));
 
         Self {
             matcher,
             file_icon: FileIcon::from(FILE_ICON_STR),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
+            crawl_handle,
         }
     }
 }
@@ -136,7 +139,7 @@ impl OnAir for Channel {
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.status.running || !self.crawl_handle.is_finished()
     }
 
     fn shutdown(&self) {}

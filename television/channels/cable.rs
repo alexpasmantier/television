@@ -33,6 +33,7 @@ pub struct Channel {
     entries_command: String,
     preview_kind: PreviewKind,
     selected_entries: FxHashSet<Entry>,
+    crawl_handle: tokio::task::JoinHandle<()>,
 }
 
 impl Default for Channel {
@@ -82,7 +83,10 @@ impl Channel {
     ) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
-        tokio::spawn(load_candidates(entries_command.to_string(), injector));
+        let crawl_handle = tokio::spawn(load_candidates(
+            entries_command.to_string(),
+            injector,
+        ));
         let preview_kind = match preview_command {
             Some(command) => {
                 parse_preview_kind(&command).unwrap_or_else(|_| {
@@ -98,6 +102,7 @@ impl Channel {
             preview_kind,
             name: name.to_string(),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
+            crawl_handle,
         }
     }
 }
@@ -209,7 +214,7 @@ impl OnAir for Channel {
     }
 
     fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.status.running || !self.crawl_handle.is_finished()
     }
 
     fn shutdown(&self) {}

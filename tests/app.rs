@@ -9,7 +9,7 @@ use tokio::{task::JoinHandle, time::timeout};
 /// Default timeout for tests.
 ///
 /// This is kept quite high to avoid flakiness in CI.
-const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
+const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
 
 /// Sets up an app with a file channel and default config.
 ///
@@ -18,21 +18,28 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_millis(500);
 ///
 /// The app is started in a separate task and can be interacted with by sending
 /// actions to the action channel.
-fn setup_app() -> (
+fn setup_app(
+    channel: Option<TelevisionChannel>,
+    select_1: bool,
+) -> (
     JoinHandle<television::app::AppOutput>,
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
-    let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("target_dir");
-    std::env::set_current_dir(&target_dir).unwrap();
-    let channel = TelevisionChannel::Files(
-        television::channels::files::Channel::new(vec![target_dir]),
-    );
-    let config = default_config_from_file().unwrap();
+    let chan: TelevisionChannel = channel.unwrap_or_else(|| {
+        let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("tests")
+            .join("target_dir");
+        std::env::set_current_dir(&target_dir).unwrap();
+        TelevisionChannel::Files(television::channels::files::Channel::new(
+            vec![target_dir],
+        ))
+    });
+    let mut config = default_config_from_file().unwrap();
+    // this speeds up the tests
+    config.application.tick_rate = 100.0;
     let input = None;
 
-    let mut app = App::new(channel, config, input);
+    let mut app = App::new(chan, config, input, select_1);
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();
@@ -41,29 +48,29 @@ fn setup_app() -> (
     let f = tokio::spawn(async move { app.run_headless().await.unwrap() });
 
     // let the app spin up
-    std::thread::sleep(Duration::from_millis(200));
+    std::thread::sleep(Duration::from_millis(100));
 
     (f, tx)
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_does_quit() {
-    let (f, tx) = setup_app();
+    let (f, tx) = setup_app(None, false);
 
     // send a quit action to the app
     tx.send(Action::Quit).unwrap();
 
     // assert that the app quits within a default timeout
-    std::thread::sleep(DEFAULT_TIMEOUT / 4);
+    std::thread::sleep(DEFAULT_TIMEOUT);
     assert!(f.is_finished());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_starts_normally() {
-    let (f, _) = setup_app();
+    let (f, _) = setup_app(None, false);
 
     // assert that the app is still running after the default timeout
-    std::thread::sleep(DEFAULT_TIMEOUT / 4);
+    std::thread::sleep(DEFAULT_TIMEOUT);
     assert!(!f.is_finished());
 
     f.abort();
@@ -71,7 +78,7 @@ async fn test_app_starts_normally() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_basic_search() {
-    let (f, tx) = setup_app();
+    let (f, tx) = setup_app(None, false);
 
     // send actions to the app
     for c in "file1".chars() {
@@ -100,7 +107,7 @@ async fn test_app_basic_search() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_basic_search_multiselect() {
-    let (f, tx) = setup_app();
+    let (f, tx) = setup_app(None, false);
 
     // send actions to the app
     for c in "file".chars() {
@@ -131,4 +138,57 @@ async fn test_app_basic_search_multiselect() {
             .collect::<HashSet<_>>(),
         HashSet::from([&"file1.txt".to_string(), &"file2.txt".to_string()])
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn test_app_exits_when_select_1_and_only_one_result() {
+    let channel =
+        TelevisionChannel::Stdin(television::channels::stdin::Channel::from(
+            vec!["file1.txt".to_string()],
+        ));
+    let (f, tx) = setup_app(Some(channel), true);
+
+    // tick a few times to get the results
+    for _ in 0..=10 {
+        tx.send(Action::Tick).unwrap();
+    }
+
+    // check the output with a timeout
+    // Note: we don't need to send a confirm action here, as the app should
+    // exit automatically when there's only one result
+    let output = timeout(DEFAULT_TIMEOUT, f)
+        .await
+        .expect("app did not finish within the default timeout")
+        .unwrap();
+
+    assert!(output.selected_entries.is_some());
+    assert_eq!(
+        &output
+            .selected_entries
+            .unwrap()
+            .drain()
+            .next()
+            .unwrap()
+            .name,
+        "file1.txt"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
+    let channel =
+        TelevisionChannel::Stdin(television::channels::stdin::Channel::from(
+            vec!["file1.txt".to_string(), "file2.txt".to_string()],
+        ));
+    let (f, tx) = setup_app(Some(channel), true);
+
+    // tick a few times to get the results
+    for _ in 0..=10 {
+        tx.send(Action::Tick).unwrap();
+    }
+
+    // check that the app is still running after the default timeout
+    let output = timeout(DEFAULT_TIMEOUT, f).await;
+
+    assert!(output.is_err());
 }
