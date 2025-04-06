@@ -30,10 +30,9 @@ fn setup_app() -> (
         television::channels::files::Channel::new(vec![target_dir]),
     );
     let config = default_config_from_file().unwrap();
-    let passthrough_keybindings = Vec::new();
     let input = None;
 
-    let mut app = App::new(channel, config, &passthrough_keybindings, input);
+    let mut app = App::new(channel, config, input);
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();

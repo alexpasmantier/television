@@ -51,10 +51,6 @@ pub enum Action {
     #[serde(alias = "select_entry")]
     #[serde(alias = "confirm_selection")]
     ConfirmSelection,
-    /// Select the entry currently under the cursor and pass the key that was pressed
-    /// through to be handled the parent process.
-    #[serde(alias = "select_passthrough")]
-    SelectPassthrough(String),
     /// Select the entry currently under the cursor and exit the application.
     #[serde(alias = "select_and_exit")]
     SelectAndExit,

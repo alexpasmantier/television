@@ -24,7 +24,6 @@ pub struct PostProcessedCli {
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
-    pub passthrough_keybindings: Vec<String>,
     pub input: Option<String>,
     pub command: Option<Command>,
     pub working_directory: Option<String>,
@@ -40,7 +39,6 @@ impl Default for PostProcessedCli {
             no_preview: false,
             tick_rate: None,
             frame_rate: None,
-            passthrough_keybindings: Vec::new(),
             input: None,
             command: None,
             working_directory: None,
@@ -52,21 +50,16 @@ impl Default for PostProcessedCli {
 
 impl From<Cli> for PostProcessedCli {
     fn from(cli: Cli) -> Self {
+        // parse literal keybindings passed through the CLI
         let keybindings: Option<KeyBindings> = cli.keybindings.map(|kb| {
-            parse_keybindings(&kb)
+            parse_keybindings_literal(&kb, CLI_KEYBINDINGS_DELIMITER)
                 .map_err(|e| {
                     cli_parsing_error_exit(&e.to_string());
                 })
                 .unwrap()
         });
 
-        let passthrough_keybindings = cli
-            .passthrough_keybindings
-            .unwrap_or_default()
-            .split(',')
-            .map(std::string::ToString::to_string)
-            .collect();
-
+        // parse the preview command if provided
         let preview_kind = cli
             .preview
             .map(|preview| PreviewCommand {
@@ -110,7 +103,6 @@ impl From<Cli> for PostProcessedCli {
             no_preview: cli.no_preview,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
-            passthrough_keybindings,
             input: cli.input,
             command: cli.command,
             working_directory,
@@ -147,7 +139,7 @@ impl ParsedCliChannel {
 
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
 
-/// Parse the keybindings string into a hashmap of key -> action.
+/// Parse a keybindings literal into a `KeyBindings` struct.
 ///
 /// The formalism used is the same as the one used in the configuration file:
 /// ```ignore
@@ -155,9 +147,12 @@ const CLI_KEYBINDINGS_DELIMITER: char = ';';
 /// ```
 /// Parsing it globally consists of splitting by the delimiter, reconstructing toml key-value pairs
 /// and parsing that using logic already implemented in the configuration module.
-fn parse_keybindings(cli_keybindings: &str) -> Result<KeyBindings> {
+fn parse_keybindings_literal(
+    cli_keybindings: &str,
+    delimiter: char,
+) -> Result<KeyBindings> {
     let toml_definition = cli_keybindings
-        .split(CLI_KEYBINDINGS_DELIMITER)
+        .split(delimiter)
         .fold(String::new(), |acc, kb| acc + kb + "\n");
 
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
@@ -323,7 +318,6 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             keybindings: None,
-            passthrough_keybindings: Some("q,ctrl-w,ctrl-t".to_string()),
             input: None,
             command: None,
             working_directory: Some("/home/user".to_string()),
@@ -346,10 +340,6 @@ mod tests {
         assert_eq!(post_processed_cli.tick_rate, Some(50.0));
         assert_eq!(post_processed_cli.frame_rate, Some(60.0));
         assert_eq!(
-            post_processed_cli.passthrough_keybindings,
-            vec!["q".to_string(), "ctrl-w".to_string(), "ctrl-t".to_string()]
-        );
-        assert_eq!(
             post_processed_cli.working_directory,
             Some("/home/user".to_string())
         );
@@ -366,7 +356,6 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             keybindings: None,
-            passthrough_keybindings: None,
             input: None,
             command: None,
             working_directory: None,
@@ -396,7 +385,6 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             keybindings: None,
-            passthrough_keybindings: None,
             input: None,
             command: None,
             working_directory: None,
@@ -421,7 +409,6 @@ mod tests {
             tick_rate: Some(50.0),
             frame_rate: Some(60.0),
             keybindings: None,
-            passthrough_keybindings: None,
             input: None,
             command: None,
             working_directory: None,
@@ -449,7 +436,6 @@ mod tests {
                 "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
                     .to_string(),
             ),
-            passthrough_keybindings: None,
             input: None,
             command: None,
             working_directory: None,

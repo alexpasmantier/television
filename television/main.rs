@@ -65,16 +65,12 @@ async fn main() -> Result<()> {
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
-    let mut app =
-        App::new(channel, config, &args.passthrough_keybindings, args.input);
+    let mut app = App::new(channel, config, args.input);
     stdout().flush()?;
     let output = app.run(stdout().is_terminal(), false).await?;
-    info!("{:?}", output);
+    info!("App output: {:?}", output);
     let stdout_handle = stdout().lock();
     let mut bufwriter = BufWriter::new(stdout_handle);
-    if let Some(passthrough) = output.passthrough {
-        writeln!(bufwriter, "{passthrough}")?;
-    }
     if let Some(entries) = output.selected_entries {
         for entry in &entries {
             writeln!(bufwriter, "{}", entry.stdout_repr())?;

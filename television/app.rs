@@ -4,11 +4,9 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::entry::Entry;
+use crate::channels::entry::{Entry, PreviewType};
 use crate::channels::TelevisionChannel;
-use crate::config::{
-    merge_keybindings, parse_key, Binding, Config, KeyBindings,
-};
+use crate::config::Config;
 use crate::keymap::Keymap;
 use crate::render::UiState;
 use crate::television::{Mode, Television};
@@ -62,7 +60,6 @@ pub struct App {
 pub enum ActionOutcome {
     Entries(FxHashSet<Entry>),
     Input(String),
-    Passthrough(FxHashSet<Entry>, String),
     None,
 }
 
@@ -70,7 +67,6 @@ pub enum ActionOutcome {
 #[derive(Debug)]
 pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
-    pub passthrough: Option<String>,
 }
 
 impl From<ActionOutcome> for AppOutput {
@@ -78,19 +74,15 @@ impl From<ActionOutcome> for AppOutput {
         match outcome {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
-                passthrough: None,
             },
             ActionOutcome::Input(input) => Self {
-                selected_entries: None,
-                passthrough: Some(input),
-            },
-            ActionOutcome::Passthrough(entries, key) => Self {
-                selected_entries: Some(entries),
-                passthrough: Some(key),
+                selected_entries: Some(FxHashSet::from_iter([Entry::new(
+                    input,
+                    PreviewType::None,
+                )])),
             },
             ActionOutcome::None => Self {
                 selected_entries: None,
-                passthrough: None,
             },
         }
     }
@@ -103,7 +95,6 @@ impl App {
     pub fn new(
         channel: TelevisionChannel,
         config: Config,
-        passthrough_keybindings: &[String],
         input: Option<String>,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
@@ -111,21 +102,7 @@ impl App {
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
         let tick_rate = config.application.tick_rate;
-        let keybindings = merge_keybindings(config.keybindings.clone(), {
-            &KeyBindings::from(passthrough_keybindings.iter().filter_map(
-                |s| match parse_key(s) {
-                    Ok(key) => Some((
-                        Action::SelectPassthrough(s.to_string()),
-                        Binding::SingleKey(key),
-                    )),
-                    Err(e) => {
-                        debug!("Failed to parse keybinding: {}", e);
-                        None
-                    }
-                },
-            ))
-        });
-        let keymap = Keymap::from(&keybindings);
+        let keymap = Keymap::from(&config.keybindings);
 
         debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
@@ -345,20 +322,6 @@ impl App {
                         return Ok(ActionOutcome::Input(
                             self.television.current_pattern.clone(),
                         ));
-                    }
-                    Action::SelectPassthrough(passthrough) => {
-                        self.should_quit = true;
-                        self.render_tx.send(RenderingTask::Quit)?;
-                        if let Some(entries) = self
-                            .television
-                            .get_selected_entries(Some(Mode::Channel))
-                        {
-                            return Ok(ActionOutcome::Passthrough(
-                                entries,
-                                passthrough,
-                            ));
-                        }
-                        return Ok(ActionOutcome::None);
                     }
                     Action::ClearScreen => {
                         self.render_tx.send(RenderingTask::ClearScreen)?;
