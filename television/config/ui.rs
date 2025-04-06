@@ -1,4 +1,4 @@
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::screen::layout::{InputPosition, PreviewTitlePosition};
 
@@ -6,7 +6,7 @@ use super::themes::DEFAULT_THEME;
 
 const DEFAULT_UI_SCALE: u16 = 100;
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,

@@ -4,9 +4,9 @@ use crate::config::parse_key;
 use crate::event::Key;
 use crate::utils::hashmaps;
 use rustc_hash::FxHashMap;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Default, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq)]
 #[serde(default)]
 pub struct ShellIntegrationConfig {
     /// DEPRECATED: This is a legacy configuration option that is no longer used.
