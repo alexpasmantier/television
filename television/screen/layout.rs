@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use ratatui::layout;
 use ratatui::layout::{Constraint, Direction, Rect};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::config::UiConfig;
 
@@ -46,7 +46,9 @@ impl HelpBarLayout {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Hash)]
+#[derive(
+    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
+)]
 pub enum InputPosition {
     #[serde(rename = "top")]
     #[default]
@@ -64,7 +66,9 @@ impl Display for InputPosition {
     }
 }
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Hash)]
+#[derive(
+    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
+)]
 pub enum PreviewTitlePosition {
     #[serde(rename = "top")]
     #[default]

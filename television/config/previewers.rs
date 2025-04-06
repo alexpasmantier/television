@@ -1,7 +1,7 @@
 use crate::preview::{previewers, PreviewerConfig};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq, Hash)]
 pub struct PreviewersConfig {
     #[serde(default)]
     pub basic: BasicPreviewerConfig,
@@ -17,10 +17,10 @@ impl From<PreviewersConfig> for PreviewerConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq, Hash)]
 pub struct BasicPreviewerConfig {}
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct FilePreviewerConfig {
     //pub max_file_size: u64,
@@ -36,5 +36,5 @@ impl Default for FilePreviewerConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default, PartialEq, Hash)]
 pub struct EnvVarPreviewerConfig {}

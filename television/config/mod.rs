@@ -10,7 +10,7 @@ use directories::ProjectDirs;
 pub use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
 use previewers::PreviewersConfig;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 pub use themes::Theme;
 use tracing::{debug, warn};
@@ -25,7 +25,7 @@ mod ui;
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
 #[allow(dead_code, clippy::module_name_repetitions)]
-#[derive(Clone, Debug, Deserialize, Default, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Default, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AppConfig {
     #[serde(default = "get_data_dir")]
@@ -48,7 +48,7 @@ impl Hash for AppConfig {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, Deserialize, Default, PartialEq, Hash)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Hash)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
     /// General application configuration
@@ -128,7 +128,10 @@ impl Config {
             let final_cfg =
                 Self::merge_user_with_default(default_config, user_cfg);
 
-            debug!("Config: {:?}", final_cfg);
+            debug!(
+                "Configuration: \n{}",
+                toml::to_string(&final_cfg).unwrap()
+            );
             Ok(final_cfg)
         } else {
             // otherwise, create the default configuration file
@@ -209,10 +212,8 @@ pub fn get_data_dir() -> PathBuf {
             });
 
     let directory = if let Some(s) = data_folder {
-        debug!("Using data directory: {:?}", s);
         s
     } else if let Some(proj_dirs) = project_directory() {
-        debug!("Falling back to default data dir");
         proj_dirs.data_local_dir().to_path_buf()
     } else {
         PathBuf::from("../../../../..").join(".data")
@@ -233,20 +234,17 @@ pub fn get_config_dir() -> PathBuf {
                     .filter(|p| p.is_absolute())
             });
     let directory = if let Some(s) = config_dir {
-        debug!("Config directory: {:?}", s);
         s
     } else if cfg!(unix) {
         // default to ~/.config/television for unix systems
         if let Some(base_dirs) = directories::BaseDirs::new() {
             let cfg_dir =
                 base_dirs.home_dir().join(".config").join("television");
-            debug!("Config directory: {:?}", cfg_dir);
             cfg_dir
         } else {
             PathBuf::from("../../../../..").join(".config")
         }
     } else if let Some(proj_dirs) = project_directory() {
-        debug!("Falling back to default config dir");
         proj_dirs.config_local_dir().to_path_buf()
     } else {
         PathBuf::from("../../../../..").join("../../../../../.config")

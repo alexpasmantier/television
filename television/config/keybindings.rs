@@ -2,12 +2,12 @@ use crate::action::Action;
 use crate::event::{convert_raw_event_to_key, Key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Hash)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 pub enum Binding {
     SingleKey(Key),
     MultipleKeys(Vec<Key>),
@@ -28,7 +28,7 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct KeyBindings(pub FxHashMap<Action, Binding>);
 
 impl<I> From<I> for KeyBindings
