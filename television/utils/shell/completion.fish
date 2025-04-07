@@ -5,7 +5,7 @@ function tv_smart_autocomplete
 
     if test -n "$output"
         # add a space if the prompt does not end with one (unless the prompt is an implicit cd, e.g. '\.')
-        string match -r '.*( |./)$' -- "$current_prompt" || set current_prompt "$current_prompt "
+        string match -q -r '.*( |./)$' -- "$current_prompt" || set current_prompt "$current_prompt "
         commandline -r "$current_prompt$output"
         commandline -f repaint
     end
