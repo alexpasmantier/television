@@ -4,7 +4,9 @@ use crate::channels::entry::Entry;
 use crate::channels::entry::PreviewType;
 use crate::channels::OnAir;
 use crate::matcher::{config::Config, injector::Injector, Matcher};
+use crate::utils::command::shell_command;
 use crate::utils::indices::sep_name_and_value_indices;
+use crate::utils::shell::Shell;
 use devicons::FileIcon;
 use rustc_hash::FxBuildHasher;
 use rustc_hash::FxHashSet;
@@ -32,19 +34,20 @@ pub struct Channel {
 const NUM_THREADS: usize = 1;
 
 const FILE_ICON_STR: &str = "nu";
-const SHELL_ENV_VAR: &str = "SHELL";
 
-fn get_current_shell() -> Option<String> {
-    std::env::var(SHELL_ENV_VAR).ok()
-}
+fn get_raw_aliases(shell: Shell) -> Vec<String> {
+    // this needs to be run in an interactive shell in order to get the aliases
+    let mut command = shell_command(true);
 
-fn get_raw_aliases(shell: &str) -> Vec<String> {
-    let output = std::process::Command::new(shell)
-        .arg("-i")
-        .arg("-c")
-        .arg("alias")
-        .output()
-        .expect("failed to execute process");
+    let output = match shell {
+        Shell::PowerShell => {
+            command.arg("Get-Alias | Format-List -Property Name, Definition")
+        }
+        Shell::Cmd => command.arg("doskey /macros"),
+        _ => command.arg("-i").arg("alias").arg("2>/dev/null"),
+    }
+    .output()
+    .expect("failed to execute process");
 
     let aliases = String::from_utf8_lossy(&output.stdout);
     aliases.lines().map(ToString::to_string).collect()
@@ -151,8 +154,7 @@ impl OnAir for Channel {
 
 #[allow(clippy::unused_async)]
 async fn load_aliases(injector: Injector<Alias>) {
-    let raw_shell = get_current_shell().unwrap_or("bash".to_string());
-    let shell = raw_shell.split('/').last().unwrap();
+    let shell = Shell::from_env().unwrap_or_default();
     debug!("Current shell: {}", shell);
     let raw_aliases = get_raw_aliases(shell);
 
@@ -167,6 +169,8 @@ async fn load_aliases(injector: Injector<Alias>) {
                         value.to_string(),
                     ));
                 }
+            } else {
+                debug!("Invalid alias format: {}", alias);
             }
             None
         })

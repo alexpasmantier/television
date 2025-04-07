@@ -110,7 +110,7 @@ impl Channel {
 #[allow(clippy::unused_async)]
 async fn load_candidates(command: String, injector: Injector<String>) {
     debug!("Loading candidates from command: {:?}", command);
-    let mut child = shell_command()
+    let mut child = shell_command(false)
         .arg(command)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
