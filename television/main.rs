@@ -65,7 +65,8 @@ async fn main() -> Result<()> {
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
-    let mut app = App::new(channel, config, args.input, args.select_1);
+    let mut app =
+        App::new(channel, config, args.input, args.select_1, args.no_remote);
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
