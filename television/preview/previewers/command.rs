@@ -174,7 +174,7 @@ pub fn try_preview(
     let command = format_command(command, entry, command_re);
     debug!("Formatted preview command: {:?}", command);
 
-    let child = shell_command()
+    let child = shell_command(false)
         .arg(&command)
         .output()
         .expect("failed to execute process");
