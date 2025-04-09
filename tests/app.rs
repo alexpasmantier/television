@@ -1,7 +1,9 @@
 use std::{collections::HashSet, path::PathBuf, time::Duration};
 
 use television::{
-    action::Action, app::App, channels::TelevisionChannel,
+    action::Action,
+    app::{App, AppOptions},
+    channels::TelevisionChannel,
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -39,7 +41,9 @@ fn setup_app(
     config.application.tick_rate = 100.0;
     let input = None;
 
-    let mut app = App::new(chan, config, input, select_1, false);
+    let options =
+        AppOptions::new(select_1, false, false, config.application.tick_rate);
+    let mut app = App::new(chan, config, input, options);
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();

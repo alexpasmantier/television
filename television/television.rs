@@ -48,6 +48,7 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
+    pub no_help: bool,
 }
 
 impl Television {
@@ -55,9 +56,10 @@ impl Television {
     pub fn new(
         action_tx: UnboundedSender<Action>,
         mut channel: TelevisionChannel,
-        config: Config,
+        mut config: Config,
         input: Option<String>,
         no_remote: bool,
+        no_help: bool,
     ) -> Self {
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
@@ -97,6 +99,10 @@ impl Television {
             )))
         };
 
+        if no_help {
+            config.ui.show_help_bar = false;
+        }
+
         Self {
             action_tx,
             config,
@@ -114,6 +120,7 @@ impl Television {
             colorscheme,
             ticks: 0,
             ui_state: UiState::default(),
+            no_help,
         }
     }
 
@@ -592,6 +599,9 @@ impl Television {
                 self.handle_toggle_send_to_channel();
             }
             Action::ToggleHelp => {
+                if self.no_help {
+                    return Ok(());
+                }
                 self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
             }
             Action::TogglePreview => {

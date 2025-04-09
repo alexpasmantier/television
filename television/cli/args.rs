@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand, ValueEnum};
 
-#[derive(Parser, Debug)]
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Parser, Debug, Default)]
 #[command(author, version, about, long_about = None)]
 pub struct Cli {
     /// Which channel shall we watch?
@@ -111,6 +112,16 @@ pub struct Cli {
     /// application).
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub no_remote: bool,
+
+    /// Disable the help panel.
+    ///
+    /// This will disable the help panel and associated toggling actions
+    /// entirely. This is useful when the help panel is not needed or
+    /// when the user wants `tv` to run with a minimal interface (e.g. when
+    /// using it as a file picker for a script or embedding it in a larger
+    /// application).
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub no_help: bool,
 
     #[command(subcommand)]
     pub command: Option<Command>,

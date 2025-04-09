@@ -6,7 +6,7 @@ use tracing::{debug, trace};
 
 use crate::channels::entry::{Entry, PreviewType};
 use crate::channels::{OnAir, TelevisionChannel};
-use crate::config::Config;
+use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;
 use crate::television::{Mode, Television};
@@ -16,12 +16,47 @@ use crate::{
     render::{render, RenderingTask},
 };
 
+pub struct AppOptions {
+    /// Whether the application should automatically select the first entry if there is only one
+    /// entry available.
+    pub select_1: bool,
+    /// Whether the application should disable the remote control feature.
+    pub no_remote: bool,
+    /// Whether the application should disable the help panel feature.
+    pub no_help: bool,
+    pub tick_rate: f64,
+}
+
+impl Default for AppOptions {
+    fn default() -> Self {
+        Self {
+            select_1: false,
+            no_remote: false,
+            no_help: false,
+            tick_rate: default_tick_rate(),
+        }
+    }
+}
+
+impl AppOptions {
+    pub fn new(
+        select_1: bool,
+        no_remote: bool,
+        no_help: bool,
+        tick_rate: f64,
+    ) -> Self {
+        Self {
+            select_1,
+            no_remote,
+            no_help,
+            tick_rate,
+        }
+    }
+}
+
 /// The main application struct that holds the state of the application.
 pub struct App {
     keymap: Keymap,
-    // maybe move these two into config instead of passing them
-    // via the cli?
-    tick_rate: f64,
     /// The television instance that handles channels and entries.
     television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
@@ -53,9 +88,7 @@ pub struct App {
     ui_state_tx: mpsc::UnboundedSender<UiState>,
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
-    /// Whether the application should automatically select the first entry if there is only one
-    /// entry available.
-    select_1: bool,
+    options: AppOptions,
 }
 
 /// The outcome of an action.
@@ -99,14 +132,12 @@ impl App {
         channel: TelevisionChannel,
         config: Config,
         input: Option<String>,
-        select_1: bool,
-        no_remote: bool,
+        options: AppOptions,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let tick_rate = config.application.tick_rate;
         let keymap = Keymap::from(&config.keybindings);
 
         debug!("{:?}", keymap);
@@ -116,12 +147,12 @@ impl App {
             channel,
             config,
             input,
-            no_remote,
+            options.no_remote,
+            options.no_help,
         );
 
         Self {
             keymap,
-            tick_rate,
             television,
             should_quit: false,
             should_suspend: false,
@@ -134,7 +165,7 @@ impl App {
             ui_state_rx,
             ui_state_tx,
             render_task: None,
-            select_1,
+            options,
         }
     }
 
@@ -160,7 +191,7 @@ impl App {
         // Event loop
         if !headless {
             debug!("Starting backend event loop");
-            let event_loop = EventLoop::new(self.tick_rate, true);
+            let event_loop = EventLoop::new(self.options.tick_rate, true);
             self.event_rx = event_loop.rx;
             self.event_abort_tx = event_loop.abort_tx;
         }
@@ -210,7 +241,7 @@ impl App {
 
             // If `self.select_1` is true, the channel is not running, and there is
             // only one entry available, automatically select the first entry.
-            if self.select_1
+            if self.options.select_1
                 && !self.television.channel.running()
                 && self.television.channel.total_count() == 1
             {
@@ -406,8 +437,7 @@ mod test {
             TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
             Config::default(),
             None,
-            true,
-            false,
+            AppOptions::default(),
         );
         app.television
             .results_picker

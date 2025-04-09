@@ -10,7 +10,7 @@ use television::cli::parse_channel;
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
-use television::app::App;
+use television::app::{App, AppOptions};
 use television::channels::{
     entry::PreviewType, stdin::Channel as StdinChannel, TelevisionChannel,
 };
@@ -65,8 +65,13 @@ async fn main() -> Result<()> {
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
-    let mut app =
-        App::new(channel, config, args.input, args.select_1, args.no_remote);
+    let options = AppOptions::new(
+        args.select_1,
+        args.no_remote,
+        args.no_help,
+        config.application.tick_rate,
+    );
+    let mut app = App::new(channel, config, args.input, options);
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;

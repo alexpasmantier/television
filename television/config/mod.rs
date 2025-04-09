@@ -260,7 +260,7 @@ fn default_frame_rate() -> f64 {
     60.0
 }
 
-fn default_tick_rate() -> f64 {
+pub fn default_tick_rate() -> f64 {
     50.0
 }
 
