@@ -1,14 +1,72 @@
 use crate::cli::args::Shell as CliShell;
 use crate::config::shell_integration::ShellIntegrationConfig;
 use anyhow::Result;
+use strum::Display;
+use tracing::debug;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Display)]
 pub enum Shell {
     Bash,
     Zsh,
     Fish,
     PowerShell,
     Cmd,
+}
+
+impl Default for Shell {
+    #[cfg(unix)]
+    fn default() -> Self {
+        Shell::Bash
+    }
+
+    #[cfg(windows)]
+    fn default() -> Self {
+        Shell::PowerShell
+    }
+}
+
+const SHELL_ENV_VAR: &str = "SHELL";
+
+impl TryFrom<&str> for Shell {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        if value.contains("bash") {
+            Ok(Shell::Bash)
+        } else if value.contains("zsh") {
+            Ok(Shell::Zsh)
+        } else if value.contains("fish") {
+            Ok(Shell::Fish)
+        } else if value.contains("powershell") {
+            Ok(Shell::PowerShell)
+        } else if value.contains("cmd") {
+            Ok(Shell::Cmd)
+        } else {
+            Err(anyhow::anyhow!("Unsupported shell: {}", value))
+        }
+    }
+}
+
+impl Shell {
+    #[allow(clippy::borrow_interior_mutable_const)]
+    pub fn from_env() -> Result<Self> {
+        if let Ok(shell) = std::env::var(SHELL_ENV_VAR) {
+            Shell::try_from(shell.as_str())
+        } else {
+            debug!("Environment variable {} not set", SHELL_ENV_VAR);
+            Ok(Shell::default())
+        }
+    }
+
+    pub fn executable(&self) -> &'static str {
+        match self {
+            Shell::Bash => "bash",
+            Shell::Zsh => "zsh",
+            Shell::Fish => "fish",
+            Shell::PowerShell => "powershell",
+            Shell::Cmd => "cmd",
+        }
+    }
 }
 
 impl From<CliShell> for Shell {
