@@ -102,6 +102,16 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub select_1: bool,
 
+    /// Disable the remote control.
+    ///
+    /// This will disable the remote control panel and associated actions
+    /// entirely. This is useful when the remote control is not needed or
+    /// when the user wants `tv` to run in single-channel mode (e.g. when
+    /// using it as a file picker for a script or embedding it in a larger
+    /// application).
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub no_remote: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

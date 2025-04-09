@@ -100,6 +100,7 @@ impl App {
         config: Config,
         input: Option<String>,
         select_1: bool,
+        no_remote: bool,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -110,8 +111,13 @@ impl App {
 
         debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
-        let television =
-            Television::new(action_tx.clone(), channel, config, input);
+        let television = Television::new(
+            action_tx.clone(),
+            channel,
+            config,
+            input,
+            no_remote,
+        );
 
         Self {
             keymap,
@@ -401,6 +407,7 @@ mod test {
             Config::default(),
             None,
             true,
+            false,
         );
         app.television
             .results_picker

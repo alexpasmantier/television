@@ -39,7 +39,7 @@ fn setup_app(
     config.application.tick_rate = 100.0;
     let input = None;
 
-    let mut app = App::new(chan, config, input, select_1);
+    let mut app = App::new(chan, config, input, select_1, false);
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();
