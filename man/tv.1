@@ -1,10 +1,10 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH television 1  "television 0.11.5" 
+.TH television 1  "television 0.11.6" 
 .SH NAME
 television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-p\fR|\fB\-\-preview\fR] [\fB\-\-no\-preview\fR] [\fB\-\-delimiter\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-select\-1\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-p\fR|\fB\-\-preview\fR] [\fB\-\-no\-preview\fR] [\fB\-\-delimiter\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-select\-1\fR] [\fB\-\-no\-remote\fR] [\fB\-\-no\-help\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
@@ -77,6 +77,24 @@ to finish loading first.
 For most channels and workloads this shouldn\*(Aqt be a problem since the
 loading times are usually very short and will go unnoticed by the user.
 .TP
+\fB\-\-no\-remote\fR
+Disable the remote control.
+
+This will disable the remote control panel and associated actions
+entirely. This is useful when the remote control is not needed or
+when the user wants `tv` to run in single\-channel mode (e.g. when
+using it as a file picker for a script or embedding it in a larger
+application).
+.TP
+\fB\-\-no\-help\fR
+Disable the help panel.
+
+This will disable the help panel and associated toggling actions
+entirely. This is useful when the help panel is not needed or
+when the user wants `tv` to run with a minimal interface (e.g. when
+using it as a file picker for a script or embedding it in a larger
+application).
+.TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)
 .TP
@@ -108,6 +126,6 @@ Initializes shell completion ("tv init zsh")
 television\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
-v0.11.5
+v0.11.6
 .SH AUTHORS
 Alexandre Pasmantier <alex.pasmant@gmail.com>
