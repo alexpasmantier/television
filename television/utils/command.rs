@@ -1,19 +1,21 @@
 use std::process::Command;
 
-#[cfg(not(windows))]
-pub fn shell_command() -> Command {
-    let mut cmd = Command::new("sh");
+use super::shell::Shell;
 
-    cmd.arg("-c");
+pub fn shell_command(interactive: bool) -> Command {
+    let shell = Shell::from_env().unwrap_or_default();
+    let mut cmd = Command::new(shell.executable());
 
-    cmd
-}
+    cmd.arg(match shell {
+        Shell::PowerShell => "-Command",
+        Shell::Cmd => "/C",
+        _ => "-c",
+    });
 
-#[cfg(windows)]
-pub fn shell_command() -> Command {
-    let mut cmd = Command::new("cmd");
-
-    cmd.arg("/c");
+    #[cfg(unix)]
+    if interactive {
+        cmd.arg("-i");
+    }
 
     cmd
 }
