@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.6](https://github.com/alexpasmantier/television/releases/tag/0.11.6) - 2025-04-09
+
+### ⛰️  Features
+
+- [5bf3d20](https://github.com/alexpasmantier/television/commit/5bf3d20c83d5ea0d5e4c8e146d40f0cc37423611) *(cli)* Add a `--no-help` flag to allow disabling showing the help panel by @alexpasmantier in [#456](https://github.com/alexpasmantier/television/pull/456)
+
+- [b818737](https://github.com/alexpasmantier/television/commit/b81873738a89d1aaa7ac04d67fedf495bc25f062) *(cli)* Add a `--no-remote` flag to lock the application on the cli-invoked channel by @alexpasmantier in [#455](https://github.com/alexpasmantier/television/pull/455)
+
+- [4892dc3](https://github.com/alexpasmantier/television/commit/4892dc3c3c5a5b970b21fb431e6411f6f63e26ab) *(cli)* Add `--select-1` cli flag to automatically select unique result by @alexpasmantier in [#448](https://github.com/alexpasmantier/television/pull/448)
+
+### 🐛 Bug Fixes
+
+- [4a584b4](https://github.com/alexpasmantier/television/commit/4a584b437c413f26c376154fe0751791b9cbd971) *(pwsh)* Use adequate quoting when formatting preview commands for pwsh by @alexpasmantier in [#454](https://github.com/alexpasmantier/television/pull/454)
+
+- [d4913d7](https://github.com/alexpasmantier/television/commit/d4913d73f61d13bdfba67c246845c0849a3caf0c) *(uncategorized)* Silence the `string match` in tv_smart_autocomplete by @dkmar in [#449](https://github.com/alexpasmantier/television/pull/449)
+
+### 🚜 Refactor
+
+- [69c4dcc](https://github.com/alexpasmantier/television/commit/69c4dcc5c57a43bab29f93ce4e14c1cae42d3528) *(debug)* Improve configuration debug logging by @alexpasmantier in [#447](https://github.com/alexpasmantier/television/pull/447)
+
+- [82e3f89](https://github.com/alexpasmantier/television/commit/82e3f890c83eb435c6d0d118a7e72ac30dbb3059) *(passthrough)* Drop support for unused passthrough keybindings by @alexpasmantier in [#446](https://github.com/alexpasmantier/television/pull/446) [**breaking**]
+
+### ⚙️ Miscellaneous Tasks
+
+- [8b267bb](https://github.com/alexpasmantier/television/commit/8b267bb1ff3a005ef6bc20c6ebca952ea99ae0ca) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#443](https://github.com/alexpasmantier/television/pull/443)
+
+- [a008d3f](https://github.com/alexpasmantier/television/commit/a008d3f4b45f85718087a0b203f132416f3a7dc7) *(uncategorized)* Bump to 0.11.6 by @alexpasmantier in [#457](https://github.com/alexpasmantier/television/pull/457)
+
+
+
+### New Contributors
+* @dkmar made their first contribution in [#449](https://github.com/alexpasmantier/television/pull/449)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.5...0.11.6
+
+
 ## [0.11.5](https://github.com/alexpasmantier/television/releases/tag/0.11.5) - 2025-03-31
 
 ### 🐛 Bug Fixes
