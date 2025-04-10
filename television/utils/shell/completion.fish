@@ -1,4 +1,5 @@
 function tv_smart_autocomplete
+    # prefix (lhs of cursor)
     set -l current_prompt (commandline -cp)
 
     set -l output (tv --autocomplete-prompt "$current_prompt")

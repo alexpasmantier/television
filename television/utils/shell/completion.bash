@@ -1,15 +1,17 @@
 function tv_smart_autocomplete() {
-  local prompt_prefix="${READLINE_LINE:0:$READLINE_POINT}"
-  local prompt_suffix="${READLINE_LINE:$READLINE_POINT}"
+  # prefix (lhs of cursor)
+  local current_prompt="${READLINE_LINE:0:$READLINE_POINT}"
 
-  local output=$(tv --autocomplete-prompt "$prompt_prefix" | tr '\n' ' ')
+  local output=$(tv --autocomplete-prompt "$current_prompt" | tr '\n' ' ')
 
   if [[ -n $output ]]; then
+    # suffix (rhs of cursor)
+    local rhs="${READLINE_LINE:$READLINE_POINT}"
     # add a space if the prompt does not end with one
-    [[ "${prompt_prefix}" != *" " ]] && prompt_prefix="${prompt_prefix} "
+    [[ "${current_prompt}" != *" " ]] && current_prompt="${current_prompt} "
 
-    local lhs=$prompt_prefix$output
-    READLINE_LINE=$lhs$prompt_suffix
+    local lhs=$current_prompt$output
+    READLINE_LINE=$lhs$rhs
     READLINE_POINT=${#lhs}
   fi
 }

@@ -2,6 +2,7 @@ _tv_smart_autocomplete() {
     emulate -L zsh
     zle -I
 
+    # prefix (lhs of cursor)
     local current_prompt
     current_prompt=$LBUFFER
 
@@ -9,6 +10,7 @@ _tv_smart_autocomplete() {
     output=$(tv --autocomplete-prompt "$current_prompt" $* | tr '\n' ' ')
 
     if [[ -n $output ]]; then
+        # suffix (rhs of cursor)
         local rhs=$RBUFFER
         # add a space if the prompt does not end with one
         [[ "${current_prompt}" != *" " ]] && current_prompt="${current_prompt} "
