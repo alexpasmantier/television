@@ -17,6 +17,7 @@ use crate::{
 
 pub mod args;
 
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: ParsedCliChannel,
@@ -30,6 +31,8 @@ pub struct PostProcessedCli {
     pub autocomplete_prompt: Option<String>,
     pub keybindings: Option<KeyBindings>,
     pub select_1: bool,
+    pub no_remote: bool,
+    pub no_help: bool,
 }
 
 impl Default for PostProcessedCli {
@@ -46,6 +49,8 @@ impl Default for PostProcessedCli {
             autocomplete_prompt: None,
             keybindings: None,
             select_1: false,
+            no_remote: false,
+            no_help: false,
         }
     }
 }
@@ -111,6 +116,8 @@ impl From<Cli> for PostProcessedCli {
             autocomplete_prompt: cli.autocomplete_prompt,
             keybindings,
             select_1: cli.select_1,
+            no_remote: cli.no_remote,
+            no_help: cli.no_help,
         }
     }
 }
@@ -316,16 +323,9 @@ mod tests {
         let cli = Cli {
             channel: "files".to_string(),
             preview: Some("bat -n --color=always {}".to_string()),
-            no_preview: false,
             delimiter: ":".to_string(),
-            tick_rate: Some(50.0),
-            frame_rate: Some(60.0),
-            keybindings: None,
-            input: None,
-            command: None,
             working_directory: Some("/home/user".to_string()),
-            autocomplete_prompt: None,
-            select_1: false,
+            ..Default::default()
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -341,8 +341,8 @@ mod tests {
                 delimiter: ":".to_string()
             })
         );
-        assert_eq!(post_processed_cli.tick_rate, Some(50.0));
-        assert_eq!(post_processed_cli.frame_rate, Some(60.0));
+        assert_eq!(post_processed_cli.tick_rate, None);
+        assert_eq!(post_processed_cli.frame_rate, None);
         assert_eq!(
             post_processed_cli.working_directory,
             Some("/home/user".to_string())
@@ -354,17 +354,8 @@ mod tests {
     fn test_from_cli_no_args() {
         let cli = Cli {
             channel: ".".to_string(),
-            preview: None,
-            no_preview: false,
             delimiter: ":".to_string(),
-            tick_rate: Some(50.0),
-            frame_rate: Some(60.0),
-            keybindings: None,
-            input: None,
-            command: None,
-            working_directory: None,
-            autocomplete_prompt: None,
-            select_1: false,
+            ..Default::default()
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -385,16 +376,8 @@ mod tests {
         let cli = Cli {
             channel: "files".to_string(),
             preview: Some(":files:".to_string()),
-            no_preview: false,
             delimiter: ":".to_string(),
-            tick_rate: Some(50.0),
-            frame_rate: Some(60.0),
-            keybindings: None,
-            input: None,
-            command: None,
-            working_directory: None,
-            autocomplete_prompt: None,
-            select_1: false,
+            ..Default::default()
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -410,16 +393,8 @@ mod tests {
         let cli = Cli {
             channel: "files".to_string(),
             preview: Some(":env_var:".to_string()),
-            no_preview: false,
             delimiter: ":".to_string(),
-            tick_rate: Some(50.0),
-            frame_rate: Some(60.0),
-            keybindings: None,
-            input: None,
-            command: None,
-            working_directory: None,
-            autocomplete_prompt: None,
-            select_1: false,
+            ..Default::default()
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();
@@ -435,19 +410,12 @@ mod tests {
         let cli = Cli {
             channel: "files".to_string(),
             preview: Some(":env_var:".to_string()),
-            no_preview: false,
             delimiter: ":".to_string(),
-            tick_rate: Some(50.0),
-            frame_rate: Some(60.0),
             keybindings: Some(
                 "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
                     .to_string(),
             ),
-            input: None,
-            command: None,
-            working_directory: None,
-            autocomplete_prompt: None,
-            select_1: false,
+            ..Default::default()
         };
 
         let post_processed_cli: PostProcessedCli = cli.into();

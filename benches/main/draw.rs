@@ -30,7 +30,8 @@ fn draw(c: &mut Criterion) {
                     ]));
                 channel.find("television");
                 // Wait for the channel to finish loading
-                let mut tv = Television::new(tx, channel, config, None);
+                let mut tv =
+                    Television::new(tx, channel, config, None, false, false);
                 for _ in 0..5 {
                     // tick the matcher
                     let _ = tv.channel.results(10, 0);

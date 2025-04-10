@@ -35,7 +35,7 @@ pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub config: Config,
     pub channel: TelevisionChannel,
-    pub remote_control: TelevisionChannel,
+    pub remote_control: Option<TelevisionChannel>,
     pub mode: Mode,
     pub current_pattern: String,
     pub results_picker: Picker,
@@ -48,6 +48,7 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
+    pub no_help: bool,
 }
 
 impl Television {
@@ -55,8 +56,10 @@ impl Television {
     pub fn new(
         action_tx: UnboundedSender<Action>,
         mut channel: TelevisionChannel,
-        config: Config,
+        mut config: Config,
         input: Option<String>,
+        no_remote: bool,
+        no_help: bool,
     ) -> Self {
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
@@ -87,13 +90,24 @@ impl Television {
             None,
         );
 
+        let remote_control = if no_remote {
+            None
+        } else {
+            Some(TelevisionChannel::RemoteControl(RemoteControl::new(
+                builtin_channels,
+                Some(cable_channels),
+            )))
+        };
+
+        if no_help {
+            config.ui.show_help_bar = false;
+        }
+
         Self {
             action_tx,
             config,
             channel,
-            remote_control: TelevisionChannel::RemoteControl(
-                RemoteControl::new(builtin_channels, Some(cable_channels)),
-            ),
+            remote_control,
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
@@ -106,6 +120,7 @@ impl Television {
             colorscheme,
             ticks: 0,
             ui_state: UiState::default(),
+            no_help,
         }
     }
 
@@ -118,9 +133,9 @@ impl Television {
         let builtin_channels = load_builtin_channels(Some(
             &cable_channels.keys().collect::<Vec<_>>(),
         ));
-        self.remote_control = TelevisionChannel::RemoteControl(
+        self.remote_control = Some(TelevisionChannel::RemoteControl(
             RemoteControl::new(builtin_channels, Some(cable_channels)),
-        );
+        ));
     }
 
     pub fn dump_context(&self) -> Ctx {
@@ -170,7 +185,7 @@ impl Television {
                 self.channel.find(pattern);
             }
             Mode::RemoteControl | Mode::SendToChannel => {
-                self.remote_control.find(pattern);
+                self.remote_control.as_mut().unwrap().find(pattern);
             }
         }
     }
@@ -188,6 +203,8 @@ impl Television {
                 if let Some(i) = self.rc_picker.selected() {
                     return self
                         .remote_control
+                        .as_ref()
+                        .unwrap()
                         .get_result(i.try_into().unwrap());
                 }
                 None
@@ -217,9 +234,10 @@ impl Television {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
             }
-            Mode::RemoteControl | Mode::SendToChannel => {
-                (self.remote_control.total_count(), &mut self.rc_picker)
-            }
+            Mode::RemoteControl | Mode::SendToChannel => (
+                self.remote_control.as_ref().unwrap().total_count(),
+                &mut self.rc_picker,
+            ),
         };
         if result_count == 0 {
             return;
@@ -236,9 +254,10 @@ impl Television {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
             }
-            Mode::RemoteControl | Mode::SendToChannel => {
-                (self.remote_control.total_count(), &mut self.rc_picker)
-            }
+            Mode::RemoteControl | Mode::SendToChannel => (
+                self.remote_control.as_ref().unwrap().total_count(),
+                &mut self.rc_picker,
+            ),
         };
         if result_count == 0 {
             return;
@@ -368,18 +387,20 @@ impl Television {
 
     pub fn update_rc_picker_state(&mut self) {
         if self.rc_picker.selected().is_none()
-            && self.remote_control.result_count() > 0
+            && self.remote_control.as_ref().unwrap().result_count() > 0
         {
             self.rc_picker.select(Some(0));
             self.rc_picker.relative_select(Some(0));
         }
 
-        self.rc_picker.entries = self.remote_control.results(
-            // this'll be more than the actual rc height but it's fine
-            self.ui_state.layout.results.height.into(),
-            u32::try_from(self.rc_picker.offset()).unwrap(),
-        );
-        self.rc_picker.total_items = self.remote_control.total_count();
+        self.rc_picker.entries =
+            self.remote_control.as_mut().unwrap().results(
+                // this'll be more than the actual rc height but it's fine
+                self.ui_state.layout.results.height.into(),
+                u32::try_from(self.rc_picker.offset()).unwrap(),
+            );
+        self.rc_picker.total_items =
+            self.remote_control.as_ref().unwrap().total_count();
     }
 
     pub fn handle_input_action(&mut self, action: &Action) {
@@ -408,6 +429,9 @@ impl Television {
     }
 
     pub fn handle_toggle_rc(&mut self) {
+        if self.remote_control.is_none() {
+            return;
+        }
         match self.mode {
             Mode::Channel => {
                 self.mode = Mode::RemoteControl;
@@ -417,7 +441,7 @@ impl Television {
                 // this resets the RC picker
                 self.reset_picker_input();
                 self.init_remote_control();
-                self.remote_control.find(EMPTY_STRING);
+                self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
             }
@@ -426,16 +450,19 @@ impl Television {
     }
 
     pub fn handle_toggle_send_to_channel(&mut self) {
+        if self.remote_control.is_none() {
+            return;
+        }
         match self.mode {
             Mode::Channel | Mode::RemoteControl => {
                 self.mode = Mode::SendToChannel;
-                self.remote_control = TelevisionChannel::RemoteControl(
+                self.remote_control = Some(TelevisionChannel::RemoteControl(
                     RemoteControl::with_transitions_from(&self.channel),
-                );
+                ));
             }
             Mode::SendToChannel => {
                 self.reset_picker_input();
-                self.remote_control.find(EMPTY_STRING);
+                self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
             }
@@ -462,12 +489,15 @@ impl Television {
             }
             Mode::RemoteControl => {
                 if let Some(entry) = self.get_selected_entry(None) {
-                    let new_channel =
-                        self.remote_control.zap(entry.name.as_str())?;
+                    let new_channel = self
+                        .remote_control
+                        .as_ref()
+                        .unwrap()
+                        .zap(entry.name.as_str())?;
                     // this resets the RC picker
                     self.reset_picker_selection();
                     self.reset_picker_input();
-                    self.remote_control.find(EMPTY_STRING);
+                    self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
                     self.change_channel(new_channel);
                 }
@@ -479,7 +509,7 @@ impl Television {
                         .transition_to(entry.name.as_str().try_into()?);
                     self.reset_picker_selection();
                     self.reset_picker_input();
-                    self.remote_control.find(EMPTY_STRING);
+                    self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
                     self.change_channel(new_channel);
                 }
@@ -569,6 +599,9 @@ impl Television {
                 self.handle_toggle_send_to_channel();
             }
             Action::ToggleHelp => {
+                if self.no_help {
+                    return Ok(());
+                }
                 self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
             }
             Action::TogglePreview => {
@@ -589,7 +622,9 @@ impl Television {
 
         self.update_results_picker_state();
 
-        self.update_rc_picker_state();
+        if self.remote_control.is_some() {
+            self.update_rc_picker_state();
+        }
 
         let selected_entry = self
             .get_selected_entry(Some(Mode::Channel))
