@@ -288,13 +288,27 @@ impl Television {
     }
 }
 
-const RENDER_FIRST_N_TICKS: u64 = 20;
-const RENDER_EVERY_N_TICKS: u64 = 10;
+/// Always render the first N ticks.
+///
+/// This is to ensure there are no startup artefacts and the UI
+/// stabilizes rapidly after startup.
+const FIRST_TICKS_TO_RENDER: u64 = 10;
+/// Render every N ticks.
+///
+/// Without any user input, this is the default rendering interval.
+const RENDERING_INTERVAL: u64 = 10;
+/// Render every N ticks if the channel is currently running.
+///
+/// This ensures that the UI stays in sync with the channel
+/// state (displaying a spinner, updating results, etc.).
+const RENDERING_INTERVAL_FAST: u64 = 3;
 
 impl Television {
     fn should_render(&self, action: &Action) -> bool {
-        self.ticks < RENDER_FIRST_N_TICKS
-            || self.ticks % RENDER_EVERY_N_TICKS == 0
+        self.ticks < FIRST_TICKS_TO_RENDER
+            || self.ticks % RENDERING_INTERVAL == 0
+            || (self.channel.running()
+                && self.ticks % RENDERING_INTERVAL_FAST == 0)
             || matches!(
                 action,
                 Action::AddInputChar(_)
@@ -322,7 +336,6 @@ impl Television {
                     | Action::TogglePreview
                     | Action::CopyEntryToClipboard
             )
-            || self.channel.running()
     }
 
     pub fn update_preview_state(
