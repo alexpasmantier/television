@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.7](https://github.com/alexpasmantier/television/releases/tag/0.11.7) - 2025-04-12
+
+### ⛰️  Features
+
+- [cb0a46f](https://github.com/alexpasmantier/television/commit/cb0a46fff517e5f3f995ca4828956b6ea1a3ffeb) *(input)* Add action to delete input line by @alexpasmantier in [#464](https://github.com/alexpasmantier/television/pull/464)
+
+- [de6200e](https://github.com/alexpasmantier/television/commit/de6200e45d30e82864434a1d58b4df0081634e14) *(shell)* Support completion in the middle of a prompt by @dkmar in [#450](https://github.com/alexpasmantier/television/pull/450)
+
+### 🐛 Bug Fixes
+
+- [425be1e](https://github.com/alexpasmantier/television/commit/425be1e01b024a0b45433676cb2b05b8820b7f0f) *(ui)* Fix slight responsiveness regression in 0.11.6 by @alexpasmantier in [#461](https://github.com/alexpasmantier/television/pull/461)
+
+### ⚙️ Miscellaneous Tasks
+
+- [e23c307](https://github.com/alexpasmantier/television/commit/e23c3076490c7e480561405d0dab9a4d2d41e890) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#458](https://github.com/alexpasmantier/television/pull/458)
+
+- [6771ecd](https://github.com/alexpasmantier/television/commit/6771ecdde57040f1eb996d9ee4c9c931a18a2c25) *(project)* Migrate from Makefile to Just by @alexpasmantier in [#463](https://github.com/alexpasmantier/television/pull/463)
+
+- [1693584](https://github.com/alexpasmantier/television/commit/169358442b9d619ddbab2367de8934022f4f241c) *(uncategorized)* Bump to 0.11.7 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.6...0.11.7
+
+
 ## [0.11.6](https://github.com/alexpasmantier/television/releases/tag/0.11.6) - 2025-04-09
 
 ### ⛰️  Features
