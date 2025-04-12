@@ -9,6 +9,7 @@ pub fn convert_action_to_input_request(
         Action::DeletePrevChar => Some(InputRequest::DeletePrevChar),
         Action::DeletePrevWord => Some(InputRequest::DeletePrevWord),
         Action::DeleteNextChar => Some(InputRequest::DeleteNextChar),
+        Action::DeleteLine => Some(InputRequest::DeleteLine),
         Action::GoToPrevChar => Some(InputRequest::GoToPrevChar),
         Action::GoToNextChar => Some(InputRequest::GoToNextChar),
         Action::GoToInputStart => Some(InputRequest::GoToStart),
