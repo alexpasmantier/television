@@ -625,7 +625,7 @@ mod tests {
     fn test_replace_non_printable(input: &str, expected: &str) {
         let (actual, _offset) = replace_non_printable(
             input.as_bytes(),
-            &ReplaceNonPrintableConfig::default().tab_width(2),
+            ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(actual, expected);
     }
@@ -641,7 +641,7 @@ mod tests {
         test_replace_non_printable(
             "	-- AND
 ", "  -- AND",
-        )
+        );
     }
 
     #[test]
@@ -686,7 +686,7 @@ mod tests {
         let input = b"Hello,\nWorld!";
         let (output, offsets) = replace_non_printable(
             input,
-            &ReplaceNonPrintableConfig::default().tab_width(2),
+            ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1]);
@@ -756,7 +756,7 @@ mod tests {
         let input = b"Hello,\x00World!";
         let (output, offsets) = replace_non_printable(
             input,
-            &ReplaceNonPrintableConfig::default().tab_width(2),
+            ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -764,7 +764,7 @@ mod tests {
         let input = b"Hello,\x7FWorld!";
         let (output, offsets) = replace_non_printable(
             input,
-            &ReplaceNonPrintableConfig::default().tab_width(2),
+            ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
@@ -784,7 +784,7 @@ mod tests {
         test_proportion_of_printable_ascii_characters("Hello, World!", 1.0);
         test_proportion_of_printable_ascii_characters(
             "Hello, World!\x00",
-            0.9285714,
+            0.928_571_4,
         );
         test_proportion_of_printable_ascii_characters(
             "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F",

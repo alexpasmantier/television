@@ -28,6 +28,7 @@ this project:
 
 - the [Rust](https://www.rust-lang.org/tools/install) toolchain installed on your machine
 - any working version of [Git](https://git-scm.com/downloads)
+- the [just](https://github.com/casey/just) command runner
 
 ### Forking the repository and setting up the project
 
@@ -44,13 +45,18 @@ this project:
    ```
 4. Install the project dependencies by running the following command:
    ```shell
-    make setup
+   just setup
     ```
 5. Create a new branch for your feature or bug fix:
    ```shell
    git checkout -b <branch-name>
    ```
-6. Make your changes and commit them to your branch:
+6. Make your changes and test them locally. Predefined commands are available to make your life simpler, using them
+   spares some time and effort:
+   ```shell
+   just --list
+   ```
+7. Once you're all set, commit them to your branch:
    ```shell
    git add .
    git commit -m "Your commit message"
@@ -62,18 +68,18 @@ this project:
 8. If not done automatically, create a pull request by navigating to the original repository and clicking on the
    `New pull request` button.
 
-### Building the project
+### Developing locally
 
-Before anything else:
+Before anything else (if not done already):
 
 ```shell
-make setup
+just setup
 ```
 
 To run the application in debug mode while developing, with the ability to see logs and debug information:
 
 ```shell
-make run
+just run
 ```
 
 **Accessing the Logs:**
@@ -86,40 +92,24 @@ configuration:
 | macOS | `$XDG_DATA_HOME/television/television.log` or `$HOME/Library/Application\ Support/television/television.log` |
 | Windows | `{FOLDERID_LocalAppData}\television\television.log` |
 
-To build the project in debug mode, run the following command in the project directory:
+To check for linting and formatting issues (and fix them automatically), run:
 
 ```shell
-make
+just fix
 ```
 
-or
+To get a sense of the real thing and test how your patch would behave in production, run:
 
 ```shell
-make build
+just b release
+
+# or `just br` 
+# or `just build release`
 ```
 
-To build the project in release mode, run the following command in the project directory:
-
+Running the tests can be done with:
 ```shell
-make release
-```
-
-Formatting the code
-
-```shell
-make format
-```
-
-Linting the code
-
-```shell
-make lint
-```
-
-Running the tests
-
-```shell
-make test
+just test
 ```
 
 ### Project structure
