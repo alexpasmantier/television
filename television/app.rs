@@ -297,6 +297,7 @@ impl App {
                     match keycode {
                         Key::Backspace => Action::DeletePrevChar,
                         Key::Ctrl('w') => Action::DeletePrevWord,
+                        Key::Ctrl('u') => Action::DeleteLine,
                         Key::Delete => Action::DeleteNextChar,
                         Key::Left => Action::GoToPrevChar,
                         Key::Right => Action::GoToNextChar,

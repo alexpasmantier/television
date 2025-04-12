@@ -428,6 +428,7 @@ impl Television {
             Action::AddInputChar(_)
             | Action::DeletePrevChar
             | Action::DeletePrevWord
+            | Action::DeleteLine
             | Action::DeleteNextChar => {
                 let new_pattern = input.value().to_string();
                 if new_pattern != self.current_pattern {
@@ -552,6 +553,7 @@ impl Television {
             | Action::DeletePrevChar
             | Action::DeletePrevWord
             | Action::DeleteNextChar
+            | Action::DeleteLine
             | Action::GoToInputEnd
             | Action::GoToInputStart
             | Action::GoToNextChar

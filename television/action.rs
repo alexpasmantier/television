@@ -18,6 +18,9 @@ pub enum Action {
     /// Delete the character after the cursor from the input buffer.
     #[serde(skip)]
     DeleteNextChar,
+    /// Delete the current line from the input buffer.
+    #[serde(skip)]
+    DeleteLine,
     /// Move the cursor to the character before the current cursor position.
     #[serde(skip)]
     GoToPrevChar,
