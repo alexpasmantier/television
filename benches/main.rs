@@ -1,7 +1,9 @@
+use criterion::criterion_main;
+
 pub mod main {
-    pub mod draw;
-    pub mod draw_results_list;
+    pub mod ui;
 }
+
 pub use main::*;
 
-criterion::criterion_main!(draw_results_list::benches, draw::benches,);
+criterion_main!(ui::benches,);
