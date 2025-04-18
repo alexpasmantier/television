@@ -195,6 +195,9 @@ const ALL_NF_RANGES: [&std::ops::RangeInclusive<char>; 10] = [
     &NF_RANGE_POWERLINE_2,
 ];
 
+const VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE: std::ops::RangeInclusive<char> =
+    '\u{2000}'..='\u{25FF}';
+
 pub struct ReplaceNonPrintableConfig {
     pub replace_tab: bool,
     pub tab_width: usize,
@@ -328,6 +331,10 @@ pub fn replace_non_printable(
                 c if ('\u{0900}'..='\u{097F}').contains(&c) => output.push(c),
                 // Nerd fonts
                 c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
+                    output.push(c);
+                }
+                // Other unit width symbols
+                c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
                     output.push(c);
                 }
                 // Unicode characters above 0x0700 seem unstable with ratatui
