@@ -74,6 +74,14 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub input: Option<String>,
 
+    /// Input fields header title
+    ///
+    /// This can be used to give the input field a custom title e.g. the current
+    /// working directory.
+    /// The default value for the input header is the current channel.
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
+    pub custom_header: Option<String>,
+
     /// The working directory to start the application in.
     ///
     /// This can be used to specify a different working directory for the

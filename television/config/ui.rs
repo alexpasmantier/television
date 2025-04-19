@@ -17,6 +17,7 @@ pub struct UiConfig {
     pub input_bar_position: InputPosition,
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
+    pub custom_header: Option<String>,
 }
 
 impl Default for UiConfig {
@@ -29,6 +30,7 @@ impl Default for UiConfig {
             input_bar_position: InputPosition::Top,
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
+            custom_header: None,
         }
     }
 }

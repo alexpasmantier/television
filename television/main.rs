@@ -101,6 +101,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.keybindings =
             merge_keybindings(config.keybindings.clone(), keybindings);
     }
+    if let Some(header) = &args.custom_header {
+        config.ui.custom_header = Some(header.to_string());
+    }
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
