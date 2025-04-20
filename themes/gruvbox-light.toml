@@ -19,4 +19,4 @@ preview_title_fg = '#98971a'
 channel_mode_fg = '#d65d0e'
 remote_control_mode_fg = '#689d6a'
 send_to_channel_mode_fg = '#458588'
-
+action_mode_fg = '#af3a03'

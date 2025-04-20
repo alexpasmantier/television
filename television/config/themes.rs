@@ -110,6 +110,7 @@ pub struct Theme {
     pub channel_mode_fg: Color,
     pub remote_control_mode_fg: Color,
     pub send_to_channel_mode_fg: Color,
+    pub action_mode_fg: Color,
 }
 
 impl Theme {
@@ -181,6 +182,7 @@ struct Inner {
     channel_mode_fg: String,
     remote_control_mode_fg: String,
     send_to_channel_mode_fg: String,
+    action_mode_fg: String,
 }
 
 impl<'de> Deserialize<'de> for Theme {
@@ -317,6 +319,13 @@ impl<'de> Deserialize<'de> for Theme {
                     &inner.send_to_channel_mode_fg
                 ))
             })?,
+            action_mode_fg: Color::from_str(&inner.action_mode_fg)
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.action_mode_fg
+                    ))
+                })?,
         })
     }
 }
@@ -440,6 +449,7 @@ impl Into<ModeColorscheme> for &Theme {
             channel: (&self.channel_mode_fg).into(),
             remote_control: (&self.remote_control_mode_fg).into(),
             send_to_channel: (&self.send_to_channel_mode_fg).into(),
+            action: (&self.action_mode_fg).into(),
         }
     }
 }
@@ -467,6 +477,7 @@ mod tests {
             channel_mode_fg = "bright-white"
             remote_control_mode_fg = "bright-white"
             send_to_channel_mode_fg = "bright-white"
+            action_mode_fg = "bright-white"
         "##;
         let theme: Theme = toml::from_str(theme_content).unwrap();
         assert_eq!(
@@ -520,6 +531,7 @@ mod tests {
             channel_mode_fg = "bright-white"
             remote_control_mode_fg = "bright-white"
             send_to_channel_mode_fg = "bright-white"
+            action_mode_fg = "bright-white"
         "##;
         let theme: Theme = toml::from_str(theme_content).unwrap();
         assert_eq!(theme.background, None);
@@ -553,5 +565,6 @@ mod tests {
             theme.send_to_channel_mode_fg,
             Color::Ansi(ANSIColor::BrightWhite)
         );
+        assert_eq!(theme.action_mode_fg, Color::Ansi(ANSIColor::BrightWhite));
     }
 }

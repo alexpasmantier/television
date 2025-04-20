@@ -52,4 +52,5 @@ pub struct ModeColorscheme {
     pub channel: Color,
     pub remote_control: Color,
     pub send_to_channel: Color,
+    pub action: Color,
 }

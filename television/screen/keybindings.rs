@@ -213,6 +213,9 @@ pub fn build_keybindings_table<'a>(
                 colorscheme,
             )
         }
+        Mode::Action => {
+            todo!("Implement keybindings table for action mode");
+        }
     }
 }
 

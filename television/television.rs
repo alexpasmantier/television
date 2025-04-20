@@ -29,6 +29,7 @@ pub enum Mode {
     Channel,
     RemoteControl,
     SendToChannel,
+    Action,
 }
 
 pub struct Television {
@@ -187,6 +188,9 @@ impl Television {
             Mode::RemoteControl | Mode::SendToChannel => {
                 self.remote_control.as_mut().unwrap().find(pattern);
             }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
+            }
         }
     }
 
@@ -208,6 +212,9 @@ impl Television {
                         .get_result(i.try_into().unwrap());
                 }
                 None
+            }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
             }
         }
     }
@@ -238,6 +245,9 @@ impl Television {
                 self.remote_control.as_ref().unwrap().total_count(),
                 &mut self.rc_picker,
             ),
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
+            }
         };
         if result_count == 0 {
             return;
@@ -258,6 +268,9 @@ impl Television {
                 self.remote_control.as_ref().unwrap().total_count(),
                 &mut self.rc_picker,
             ),
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
+            }
         };
         if result_count == 0 {
             return;
@@ -275,6 +288,9 @@ impl Television {
             Mode::RemoteControl | Mode::SendToChannel => {
                 self.rc_picker.reset_selection();
             }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
+            }
         }
     }
 
@@ -283,6 +299,9 @@ impl Television {
             Mode::Channel => self.results_picker.reset_input(),
             Mode::RemoteControl | Mode::SendToChannel => {
                 self.rc_picker.reset_input();
+            }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
             }
         }
     }
@@ -422,6 +441,9 @@ impl Television {
             Mode::RemoteControl | Mode::SendToChannel => {
                 &mut self.rc_picker.input
             }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
+            }
         };
         input.handle(convert_action_to_input_request(action).unwrap());
         match action {
@@ -459,7 +481,7 @@ impl Television {
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
             }
-            Mode::SendToChannel => {}
+            _ => {}
         }
     }
 
@@ -480,6 +502,7 @@ impl Television {
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
             }
+            Mode::Action => {}
         }
     }
 
@@ -527,6 +550,9 @@ impl Television {
                     self.mode = Mode::Channel;
                     self.change_channel(new_channel);
                 }
+            }
+            Mode::Action => {
+                todo!("Action mode not implemented yet");
             }
         }
         Ok(())

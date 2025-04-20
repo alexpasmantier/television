@@ -16,6 +16,7 @@ impl Display for Mode {
             Mode::Channel => write!(f, "Channel"),
             Mode::RemoteControl => write!(f, "Remote Control"),
             Mode::SendToChannel => write!(f, "Send to Channel"),
+            Mode::Action => write!(f, "Action"),
         }
     }
 }
