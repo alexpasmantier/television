@@ -239,6 +239,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
+        &ctx.config.ui.custom_header,
     )?;
 
     if layout.preview_window.is_some() {

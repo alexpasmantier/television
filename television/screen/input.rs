@@ -24,13 +24,15 @@ pub fn draw_input_box(
     channel_name: &str,
     spinner: &Spinner,
     colorscheme: &Colorscheme,
+    custom_header: &Option<String>,
 ) -> Result<()> {
+    let header = custom_header.as_deref().unwrap_or(channel_name);
     let input_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
         .title_top(
-            Line::from(String::from(" ") + channel_name + " ")
+            Line::from(String::from(" ") + header + " ")
                 .style(Style::default().fg(colorscheme.mode.channel).bold())
                 .centered(),
         )
