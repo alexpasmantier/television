@@ -52,6 +52,12 @@ impl UiState {
     }
 }
 
+/// The maximum frame rate for the UI rendering loop.
+///
+/// This is used to limit the frame rate of the UI rendering loop to avoid consuming
+/// unnecessary CPU resources.
+const MAX_FRAME_RATE: u128 = 1000 / 60; // 60 FPS
+
 /// The main UI rendering task loop.
 ///
 /// This function is responsible for rendering the UI based on the rendering tasks it receives from
@@ -83,9 +89,11 @@ pub async fn render(
     tui.enter()?;
 
     let mut buffer = Vec::with_capacity(256);
+    let mut frame_start;
 
     // Rendering loop
     'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
+        frame_start = std::time::Instant::now();
         // deduplicate events
         buffer.sort_unstable();
         buffer.dedup();
@@ -143,6 +151,15 @@ pub async fn render(
                     break 'rendering;
                 }
             }
+        }
+        // Sleep to limit the frame rate
+        let elapsed = frame_start.elapsed();
+        if elapsed.as_millis() < MAX_FRAME_RATE {
+            let sleep_duration = std::time::Duration::from_millis(
+                u64::try_from(MAX_FRAME_RATE - elapsed.as_millis())
+                    .unwrap_or(0),
+            );
+            tokio::time::sleep(sleep_duration).await;
         }
     }
 
