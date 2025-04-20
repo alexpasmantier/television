@@ -77,10 +77,10 @@ fn stream_from_stdin(injector: &Injector<String>) {
     loop {
         match stdin.read_line(&mut buffer) {
             Ok(c) if c > 0 => {
-                let buf = buffer.trim();
-                if !buf.is_empty() {
-                    injector.push(buf.to_string(), |e, cols| {
-                        cols[0] = e.to_string().into();
+                let trimmed = buffer.trim();
+                if !trimmed.is_empty() {
+                    injector.push(trimmed.to_owned(), |e, cols| {
+                        cols[0] = e.clone().into();
                     });
                 }
                 buffer.clear();
