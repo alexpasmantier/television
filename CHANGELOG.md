@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.8](https://github.com/alexpasmantier/television/releases/tag/0.11.8) - 2025-04-20
+
+### ⛰️  Features
+
+- [0bd4d42](https://github.com/alexpasmantier/television/commit/0bd4d4274edb00df7847f8be44b952389ad76d1c) *(cli)* Add custom header for input field by @nkxxll in [#472](https://github.com/alexpasmantier/television/pull/472)
+
+### 🐛 Bug Fixes
+
+- [2be2ae7](https://github.com/alexpasmantier/television/commit/2be2ae7cdef9ab356d276271352d284c5ac98ca7) *(unicode)* Add support for more unicode characters by @alexpasmantier in [#470](https://github.com/alexpasmantier/television/pull/470)
+
+### ⚡ Performance
+
+- [a938c1c](https://github.com/alexpasmantier/television/commit/a938c1c46929eb2306bca5201af98c6467be59db) *(ui)* Add frame rate throttling to avoid consuming unnecessary CPU resources by @alexpasmantier in [#473](https://github.com/alexpasmantier/television/pull/473)
+
+### 🧪 Testing
+
+- [315a9f7](https://github.com/alexpasmantier/television/commit/315a9f71fa33910d702ff9e577f582316afc0775) *(benches)* Refactor benches into a simpler and more scalable structure by @alexpasmantier in [#467](https://github.com/alexpasmantier/television/pull/467)
+
+### ⚙️ Miscellaneous Tasks
+
+- [ec8a7db](https://github.com/alexpasmantier/television/commit/ec8a7dbfc37dd6bc6346acbd2b22fb3ab07cdb24) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#465](https://github.com/alexpasmantier/television/pull/465)
+
+- [b4438ab](https://github.com/alexpasmantier/television/commit/b4438ab83585053406a946d242f8760184787d39) *(uncategorized)* Bump to 0.11.8 by @alexpasmantier
+
+
+
+### New Contributors
+* @nkxxll made their first contribution in [#472](https://github.com/alexpasmantier/television/pull/472)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.7...0.11.8
+
+
 ## [0.11.7](https://github.com/alexpasmantier/television/releases/tag/0.11.7) - 2025-04-12
 
 ### ⛰️  Features
