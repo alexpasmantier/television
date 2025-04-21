@@ -9,6 +9,7 @@
 /// default number of threads (which corresponds to the number of available logical
 /// cores on the current machine).
 #[derive(Copy, Clone, Debug)]
+#[allow(clippy::struct_excessive_bools)]
 pub struct Config {
     /// The number of threads to use for the fuzzy matcher.
     pub n_threads: Option<usize>,
