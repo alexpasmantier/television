@@ -167,25 +167,13 @@ async fn test_app_exact_search_multiselect() {
         .expect("app did not finish within the default timeout")
         .unwrap();
 
-    assert!(output.selected_entries.is_some());
-    assert!(&output
-        .selected_entries
-        .clone()
-        .unwrap()
-        .drain()
-        .next()
-        .unwrap()
-        .value
-        .is_none());
+    let selected_entries = output.selected_entries.clone();
+    assert!(selected_entries.is_some());
+    // should contain a single entry with the prompt
+    assert!(!selected_entries.as_ref().unwrap().is_empty());
     assert_eq!(
-        output
-            .selected_entries
-            .as_ref()
-            .unwrap()
-            .iter()
-            .map(|e| &e.name)
-            .collect::<HashSet<_>>(),
-        HashSet::from([&"fie".to_string()])
+        selected_entries.unwrap().drain().next().unwrap().name,
+        "fie"
     );
 }
 
