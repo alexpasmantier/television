@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.11.9](https://github.com/alexpasmantier/television/releases/tag/0.11.9) - 2025-04-21
+
+### ⛰️  Features
+
+- [bbbdcb0](https://github.com/alexpasmantier/television/commit/bbbdcb02710ffe656fa49567ecd247813523b557) *(cli)* Add substring matching with `--exact` flag by @nkxxll in [#477](https://github.com/alexpasmantier/television/pull/477)
+
+### ⚡ Performance
+
+- [ce02824](https://github.com/alexpasmantier/television/commit/ce02824f3c4c6a750a30651b478ff255d68ff0de) *(stdin)* Avoid unnecessary allocations when streaming from stdin by @alexpasmantier in [#475](https://github.com/alexpasmantier/television/pull/475)
+
+### ⚙️ Miscellaneous Tasks
+
+- [433d7fa](https://github.com/alexpasmantier/television/commit/433d7fa27057d43be4d9cd6cefd64a79339eb2a6) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#474](https://github.com/alexpasmantier/television/pull/474)
+
+- [f28c18e](https://github.com/alexpasmantier/television/commit/f28c18ed64b50e9be7b95fcfbfd9536837c3ebe3) *(uncategorized)* Release version 0.11.9 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.8...0.11.9
+
+
 ## [0.11.8](https://github.com/alexpasmantier/television/releases/tag/0.11.8) - 2025-04-20
 
 ### ⛰️  Features
