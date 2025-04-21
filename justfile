@@ -87,15 +87,35 @@ update-man: build
 	#!/usr/bin/env sh
 	echo "Checking for manpages updates..."
 	if ! diff ./man/tv.1 ./target/assets/tv.1 > /dev/null;
-	then cp ./target/assets/tv.1 ./man/tv.1 && echo "Updated manpages"
+	then cp ./target/assets/tv.1 ./man/tv.1 && git add ./man/tv.1 && echo "Updated manpages"
 	else echo "No changes to manpages"
 	fi
 
+publish:
+	echo "Publishing {{ NAME }}..."
+	cargo publish --all-features
+	echo "Done"
+
+commit-release:
+	#!/usr/bin/env sh
+	version=$(grep -E '^\s*version\s*=' Cargo.toml | cut -d '"' -f 2)
+	git commit -am "chore: release version $version"
+	git tag "$version"
+
 alias rl := release
 # Publish a new release (major, minor, or patch)
-release kind='patch':
-	#!/usr/bin/env sh
+@release kind='patch':
 	echo "Releasing {{ NAME }} (kind: {{ kind }})..."
+	just bump-version {{ kind }}
+	just update-man
+	just commit-release
+	just publish
+
+
+# Bump version
+bump-version kind='patch':
+	#!/usr/bin/env sh
+	echo "Bumping version (kind: {{ kind }})..."
 	# bump version (major, minor, patch)
 	version=$(grep -E '^\s*version\s*=' Cargo.toml | cut -d '"' -f 2)
 	kind="{{ kind }}"
@@ -110,8 +130,12 @@ release kind='patch':
 		echo "Invalid kind: $kind"
 		exit 1
 	fi
-	echo "New version is: $new_version"
-	sed -i "s/version = \"$version\"/version = \"$new_version\"/" Cargo.toml
+	echo "Bumping to: $new_version"
+	echo "Updating version in Cargo.toml..."
+	if [[ "$OSTYPE" == "darwin"* ]]; then
+		sed -i '' "s/version = \"$version\"/version = \"$new_version\"/" Cargo.toml
+	else
+		sed -i "s/version = \"$version\"/version = \"$new_version\"/" Cargo.toml
+	fi
 	git add Cargo.toml
 	echo "Done"
-
