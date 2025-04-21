@@ -66,6 +66,7 @@ async fn main() -> Result<()> {
 
     debug!("Creating application...");
     let options = AppOptions::new(
+        args.exact,
         args.select_1,
         args.no_remote,
         args.no_help,

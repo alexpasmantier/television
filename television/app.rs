@@ -16,7 +16,11 @@ use crate::{
     render::{render, RenderingTask},
 };
 
+#[allow(clippy::struct_excessive_bools)]
 pub struct AppOptions {
+    /// Whether the application should use subsring matching instead of fuzzy
+    /// matching.
+    pub exact: bool,
     /// Whether the application should automatically select the first entry if there is only one
     /// entry available.
     pub select_1: bool,
@@ -30,6 +34,7 @@ pub struct AppOptions {
 impl Default for AppOptions {
     fn default() -> Self {
         Self {
+            exact: false,
             select_1: false,
             no_remote: false,
             no_help: false,
@@ -39,13 +44,16 @@ impl Default for AppOptions {
 }
 
 impl AppOptions {
+    #[allow(clippy::fn_params_excessive_bools)]
     pub fn new(
+        exact: bool,
         select_1: bool,
         no_remote: bool,
         no_help: bool,
         tick_rate: f64,
     ) -> Self {
         Self {
+            exact,
             select_1,
             no_remote,
             no_help,
@@ -149,6 +157,7 @@ impl App {
             input,
             options.no_remote,
             options.no_help,
+            options.exact,
         );
 
         Self {
