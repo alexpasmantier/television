@@ -99,6 +99,14 @@ pub struct Cli {
     #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub autocomplete_prompt: Option<String>,
 
+    /// Use substring matching instead of fuzzy matching.
+    ///
+    /// This will use substring matching instead of fuzzy matching when
+    /// searching for entries. This is useful when the user wants to search for
+    /// an exact match instead of a fuzzy match e.g. to improve performance.
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub exact: bool,
+
     /// Automatically select and output the first entry if there is only one
     /// entry.
     ///

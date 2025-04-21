@@ -31,6 +31,12 @@ pub enum Mode {
     SendToChannel,
 }
 
+#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
+pub enum MatchingMode {
+    Substring,
+    Fuzzy,
+}
+
 pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub config: Config,
@@ -38,6 +44,7 @@ pub struct Television {
     pub remote_control: Option<TelevisionChannel>,
     pub mode: Mode,
     pub current_pattern: String,
+    pub matching_mode: MatchingMode,
     pub results_picker: Picker,
     pub rc_picker: Picker,
     pub previewer: Previewer,
@@ -60,6 +67,7 @@ impl Television {
         input: Option<String>,
         no_remote: bool,
         no_help: bool,
+        exact: bool,
     ) -> Self {
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
@@ -103,6 +111,12 @@ impl Television {
             config.ui.show_help_bar = false;
         }
 
+        let matching_mode = if exact {
+            MatchingMode::Substring
+        } else {
+            MatchingMode::Fuzzy
+        };
+
         Self {
             action_tx,
             config,
@@ -111,6 +125,7 @@ impl Television {
             mode: Mode::Channel,
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
+            matching_mode,
             rc_picker: Picker::default(),
             previewer,
             preview_state,
@@ -182,12 +197,30 @@ impl Television {
     fn find(&mut self, pattern: &str) {
         match self.mode {
             Mode::Channel => {
-                self.channel.find(pattern);
+                self.channel.find(
+                    Self::preprocess_pattern(self.matching_mode, pattern)
+                        .as_str(),
+                );
             }
             Mode::RemoteControl | Mode::SendToChannel => {
                 self.remote_control.as_mut().unwrap().find(pattern);
             }
         }
+    }
+
+    fn preprocess_pattern(mode: MatchingMode, pattern: &str) -> String {
+        if mode == MatchingMode::Substring {
+            return pattern
+                .split_ascii_whitespace()
+                .map(|x| {
+                    let mut new = x.to_string();
+                    new.insert(0, '\'');
+                    new
+                })
+                .collect::<Vec<String>>()
+                .join(" ");
+        }
+        pattern.to_string()
     }
 
     #[must_use]
@@ -658,5 +691,26 @@ impl Television {
         } else {
             None
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::television::{MatchingMode, Television};
+
+    #[test]
+    fn test_prompt_preprocessing() {
+        let one_word = "test";
+        let mult_word = "this is a specific test";
+        let expect_one = "'test";
+        let expect_mult = "'this 'is 'a 'specific 'test";
+        assert_eq!(
+            Television::preprocess_pattern(MatchingMode::Substring, one_word),
+            expect_one
+        );
+        assert_eq!(
+            Television::preprocess_pattern(MatchingMode::Substring, mult_word),
+            expect_mult
+        );
     }
 }
