@@ -13,11 +13,14 @@ use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use crate::channels::entry::{Entry, PreviewCommand, PreviewType};
 use crate::channels::OnAir;
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
+use crate::{
+    cable::ChannelPrototypes,
+    channels::entry::{Entry, PreviewCommand, PreviewType},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PreviewKind {
@@ -39,10 +42,10 @@ pub struct Channel {
 impl Default for Channel {
     fn default() -> Self {
         Self::new(
-            "Files",
+            "files",
             "find . -type f",
             false,
-            Some(PreviewCommand::new("bat -n --color=always {}", ":")),
+            Some(PreviewCommand::new("cat {}", ":")),
         )
     }
 }
@@ -290,7 +293,7 @@ impl Display for CableChannelPrototype {
     }
 }
 
-#[derive(Debug, serde::Deserialize, Default)]
+#[derive(Debug, serde::Deserialize)]
 pub struct CableChannels(pub FxHashMap<String, CableChannelPrototype>);
 
 impl Deref for CableChannels {
@@ -298,5 +301,27 @@ impl Deref for CableChannels {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(unix)]
+const DEFAULT_CABLE_CHANNELS_FILE: &str =
+    include_str!("../../cable/unix-channels.toml");
+#[cfg(not(unix))]
+const DEFAULT_CABLE_CHANNELS_FILE: &str =
+    include_str!("../../cable/windows-channels.toml");
+
+impl Default for CableChannels {
+    /// Fallback to the default cable channels specification (the template file
+    /// included in the repo).
+    fn default() -> Self {
+        let pts =
+            toml::from_str::<ChannelPrototypes>(DEFAULT_CABLE_CHANNELS_FILE)
+                .expect("Unable to parse default cable channels");
+        let mut channels = FxHashMap::default();
+        for prototype in pts.prototypes {
+            channels.insert(prototype.name.clone(), prototype);
+        }
+        CableChannels(channels)
     }
 }

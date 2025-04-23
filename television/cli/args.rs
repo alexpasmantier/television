@@ -9,13 +9,8 @@ pub struct Cli {
     /// A list of the available channels can be displayed using the
     /// `list-channels` command. The channel can also be changed from within
     /// the application.
-    #[arg(
-        value_enum,
-        default_value = "files",
-        index = 1,
-        verbatim_doc_comment
-    )]
-    pub channel: String,
+    #[arg(value_enum, index = 1, verbatim_doc_comment)]
+    pub channel: Option<String>,
 
     /// A preview command to use with the stdin channel.
     ///

@@ -4,6 +4,13 @@ name = "files"
 source_command = "fd -t f"
 preview_command = ":files:"
 
+# Text
+[[cable_channel]]
+name = "text"
+source_command = "rg . --no-heading --line-number"
+preview_command = "bat -n --color=always {0} -H {1}"
+preview_delimiter = ":"
+
 # Directories
 [[cable_channel]]
 name = "dirs"

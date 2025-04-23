@@ -4,10 +4,10 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use tracing::debug;
 
-use crate::channels::cable::{parse_preview_kind, PreviewKind};
+use crate::channels::cable::{parse_preview_kind, CableChannels, PreviewKind};
 use crate::channels::{cable::CableChannelPrototype, entry::PreviewCommand};
 use crate::cli::args::{Cli, Command};
-use crate::config::KeyBindings;
+use crate::config::{KeyBindings, DEFAULT_CHANNEL};
 use crate::{
     cable,
     config::{get_config_dir, get_data_dir},
@@ -86,22 +86,37 @@ impl From<Cli> for PostProcessedCli {
         let channel: CableChannelPrototype;
         let working_directory: Option<String>;
 
-        match parse_channel(&cli.channel) {
-            Ok(p) => {
-                channel = p;
-                working_directory = cli.working_directory;
-            }
-            Err(_) => {
-                // if the path is provided as first argument and it exists, use it as the working
-                // directory and default to the files channel
-                if cli.working_directory.is_none()
-                    && Path::new(&cli.channel).exists()
-                {
-                    channel = CableChannelPrototype::default();
-                    working_directory = Some(cli.channel.clone());
-                } else {
-                    unknown_channel_exit(&cli.channel);
-                    unreachable!();
+        let cable_channels = cable::load_cable_channels().unwrap_or_default();
+        if cli.channel.is_none() {
+            channel = cable_channels
+                .get(DEFAULT_CHANNEL)
+                .expect("Default channel not found in cable channels")
+                .clone();
+            working_directory = cli.working_directory;
+        } else {
+            let cli_channel = cli.channel.as_ref().unwrap().to_owned();
+            match parse_channel(&cli_channel, &cable_channels) {
+                Ok(p) => {
+                    channel = p;
+                    working_directory = cli.working_directory;
+                }
+                Err(_) => {
+                    // if the path is provided as first argument and it exists, use it as the working
+                    // directory and default to the files channel
+                    if cli.working_directory.is_none()
+                        && Path::new(&cli_channel).exists()
+                    {
+                        channel = cable_channels
+                            .get(DEFAULT_CHANNEL)
+                            .expect(
+                                "Default channel not found in cable channels",
+                            )
+                            .clone();
+                        working_directory = Some(cli.channel.unwrap().clone());
+                    } else {
+                        unknown_channel_exit(&cli.channel.unwrap());
+                        unreachable!();
+                    }
                 }
             }
         }
@@ -157,15 +172,17 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn parse_channel(channel: &str) -> Result<CableChannelPrototype> {
-    let cable_channels = cable::load_cable_channels().unwrap_or_default();
+pub fn parse_channel(
+    channel: &str,
+    cable_channels: &CableChannels,
+) -> Result<CableChannelPrototype> {
     // try to parse the channel as a cable channel
     match cable_channels
         .iter()
         .find(|(k, _)| k.to_lowercase() == channel)
     {
         Some((_, v)) => Ok(v.clone()),
-        None => Err(anyhow!("Unknown channel: {channel}")),
+        None => Err(anyhow!("The following channel wasn't found among cable channels: {channel}")),
     }
 }
 
@@ -201,13 +218,18 @@ pub fn list_channels() {
 pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
-    fallback_channel: CableChannelPrototype,
+    fallback_channel: &str,
+    cable_channels: &CableChannels,
 ) -> Result<CableChannelPrototype> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
+    let fallback = cable_channels
+        .get(fallback_channel)
+        .expect("Fallback channel not found in cable channels")
+        .clone();
     if prompt.trim().is_empty() {
-        return Ok(fallback_channel);
+        return Ok(fallback);
     }
     let rev_prompt_words = prompt.split_whitespace().rev();
     let mut stack = Vec::new();
@@ -221,7 +243,7 @@ pub fn guess_channel_from_prompt(
         for word in rev_prompt_words.clone() {
             // if the stack is empty, we have a match
             if stack.is_empty() {
-                return parse_channel(channel);
+                return parse_channel(channel, cable_channels);
             }
             // if the word matches the top of the stack, pop it
             if stack.last() == Some(&word) {
@@ -230,14 +252,14 @@ pub fn guess_channel_from_prompt(
         }
         // if the stack is empty, we have a match
         if stack.is_empty() {
-            return parse_channel(channel);
+            return parse_channel(channel, cable_channels);
         }
         // reset the stack
         stack.clear();
     }
 
     debug!("No match found, falling back to default channel");
-    Ok(fallback_channel)
+    Ok(fallback)
 }
 
 const VERSION_MESSAGE: &str = env!("CARGO_PKG_VERSION");
@@ -285,7 +307,7 @@ mod tests {
     #[allow(clippy::float_cmp)]
     fn test_from_cli() {
         let cli = Cli {
-            channel: "files".to_string(),
+            channel: Some("files".to_string()),
             preview: Some("bat -n --color=always {}".to_string()),
             delimiter: ":".to_string(),
             working_directory: Some("/home/user".to_string()),
@@ -317,7 +339,7 @@ mod tests {
     #[allow(clippy::float_cmp)]
     fn test_from_cli_no_args() {
         let cli = Cli {
-            channel: ".".to_string(),
+            channel: Some(".".to_string()),
             delimiter: ":".to_string(),
             ..Default::default()
         };
@@ -338,7 +360,7 @@ mod tests {
     #[test]
     fn test_builtin_previewer_files() {
         let cli = Cli {
-            channel: "files".to_string(),
+            channel: Some("files".to_string()),
             preview: Some(":files:".to_string()),
             delimiter: ":".to_string(),
             ..Default::default()
@@ -355,7 +377,7 @@ mod tests {
     #[test]
     fn test_builtin_previewer_env() {
         let cli = Cli {
-            channel: "files".to_string(),
+            channel: Some("files".to_string()),
             preview: Some(":env_var:".to_string()),
             delimiter: ":".to_string(),
             ..Default::default()
@@ -372,7 +394,7 @@ mod tests {
     #[test]
     fn test_custom_keybindings() {
         let cli = Cli {
-            channel: "files".to_string(),
+            channel: Some("files".to_string()),
             preview: Some(":env_var:".to_string()),
             delimiter: ":".to_string(),
             keybindings: Some(
@@ -395,15 +417,16 @@ mod tests {
     }
 
     /// Returns a tuple containing a command mapping and a fallback channel.
-    fn guess_channel_from_prompt_setup(
-    ) -> (FxHashMap<String, String>, CableChannelPrototype) {
+    fn guess_channel_from_prompt_setup<'a>(
+    ) -> (FxHashMap<String, String>, &'a str, CableChannels) {
         let mut command_mapping = FxHashMap::default();
         command_mapping.insert("vim".to_string(), "files".to_string());
         command_mapping.insert("export".to_string(), "env".to_string());
 
         (
             command_mapping,
-            CableChannelPrototype::new("env", "", false, None, None),
+            "env",
+            cable::load_cable_channels().unwrap_or_default(),
         )
     }
 
@@ -411,11 +434,16 @@ mod tests {
     fn test_guess_channel_from_prompt_present() {
         let prompt = "vim -d file1";
 
-        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+        let (command_mapping, fallback, channels) =
+            guess_channel_from_prompt_setup();
 
-        let channel =
-            guess_channel_from_prompt(prompt, &command_mapping, fallback)
-                .unwrap();
+        let channel = guess_channel_from_prompt(
+            prompt,
+            &command_mapping,
+            fallback,
+            &channels,
+        )
+        .unwrap();
 
         assert_eq!(channel.name, "files");
     }
@@ -424,31 +452,35 @@ mod tests {
     fn test_guess_channel_from_prompt_fallback() {
         let prompt = "git checkout ";
 
-        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+        let (command_mapping, fallback, channels) =
+            guess_channel_from_prompt_setup();
 
         let channel = guess_channel_from_prompt(
             prompt,
             &command_mapping,
-            fallback.clone(),
+            fallback,
+            &channels,
         )
         .unwrap();
 
-        assert_eq!(channel, fallback);
+        assert_eq!(channel.name, fallback);
     }
 
     #[test]
     fn test_guess_channel_from_prompt_empty() {
         let prompt = "";
 
-        let (command_mapping, fallback) = guess_channel_from_prompt_setup();
+        let (command_mapping, fallback, channels) =
+            guess_channel_from_prompt_setup();
 
         let channel = guess_channel_from_prompt(
             prompt,
             &command_mapping,
-            fallback.clone(),
+            fallback,
+            &channels,
         )
         .unwrap();
 
-        assert_eq!(channel, fallback);
+        assert_eq!(channel.name, fallback);
     }
 }

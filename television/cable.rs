@@ -10,9 +10,9 @@ use crate::config::get_config_dir;
 
 /// Just a proxy struct to deserialize prototypes
 #[derive(Debug, serde::Deserialize, Default)]
-struct ChannelPrototypes {
+pub struct ChannelPrototypes {
     #[serde(rename = "cable_channel")]
-    prototypes: Vec<CableChannelPrototype>,
+    pub prototypes: Vec<CableChannelPrototype>,
 }
 
 const CABLE_FILE_NAME_SUFFIX: &str = "channels";
@@ -85,6 +85,10 @@ pub fn load_cable_channels() -> Result<CableChannels> {
     );
 
     debug!("Loaded cable channels: {:?}", prototypes);
+    if prototypes.is_empty() {
+        error!("No cable channels found");
+        return Err(anyhow::anyhow!("No cable channels found"));
+    }
 
     let mut cable_channels = FxHashMap::default();
     for prototype in prototypes {

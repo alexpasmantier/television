@@ -5,8 +5,8 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
-use television::channels::cable::PreviewKind;
-use television::cli::parse_channel;
+use television::cable;
+use television::channels::cable::{CableChannels, PreviewKind};
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -43,6 +43,9 @@ async fn main() -> Result<()> {
     debug!("Loading configuration...");
     let mut config = Config::new(&ConfigEnv::init()?)?;
 
+    debug!("Loading cable channels...");
+    let cable_channels = cable::load_cable_channels().unwrap_or_default();
+
     // optionally handle subcommands
     debug!("Handling subcommands...");
     args.command
@@ -58,8 +61,12 @@ async fn main() -> Result<()> {
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
-    let channel =
-        determine_channel(args.clone(), &config, is_readable_stdin())?;
+    let channel = determine_channel(
+        args.clone(),
+        &config,
+        is_readable_stdin(),
+        &cable_channels,
+    )?;
 
     CLIPBOARD.with(<_>::default);
 
@@ -146,6 +153,7 @@ pub fn determine_channel(
     args: PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
+    cable_channels: &CableChannels,
 ) -> Result<TelevisionChannel> {
     if readable_stdin {
         debug!("Using stdin channel");
@@ -163,7 +171,8 @@ pub fn determine_channel(
         let channel = guess_channel_from_prompt(
             &prompt,
             &config.shell_integration.commands,
-            parse_channel(&config.shell_integration.fallback_channel)?,
+            &config.shell_integration.fallback_channel,
+            cable_channels,
         )?;
         debug!("Using guessed channel: {:?}", channel);
         Ok(TelevisionChannel::Cable(channel.into()))
@@ -176,7 +185,9 @@ pub fn determine_channel(
 #[cfg(test)]
 mod tests {
     use rustc_hash::FxHashMap;
-    use television::channels::cable::CableChannelPrototype;
+    use television::{
+        cable::load_cable_channels, channels::cable::CableChannelPrototype,
+    };
 
     use super::*;
 
@@ -185,9 +196,13 @@ mod tests {
         config: &Config,
         readable_stdin: bool,
         expected_channel: &TelevisionChannel,
+        cable_channels: Option<CableChannels>,
     ) {
+        let channels: CableChannels = cable_channels
+            .unwrap_or_else(|| load_cable_channels().unwrap_or_default());
         let channel =
-            determine_channel(args.clone(), config, readable_stdin).unwrap();
+            determine_channel(args.clone(), config, readable_stdin, &channels)
+                .unwrap();
 
         assert_eq!(
             channel.name(),
@@ -212,6 +227,7 @@ mod tests {
             &config,
             true,
             &TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
+            None,
         );
     }
 
@@ -242,7 +258,13 @@ mod tests {
         };
         config.shell_integration.merge_triggers();
 
-        assert_is_correct_channel(&args, &config, false, &expected_channel);
+        assert_is_correct_channel(
+            &args,
+            &config,
+            false,
+            &expected_channel,
+            None,
+        );
     }
 
     #[tokio::test]
@@ -262,6 +284,7 @@ mod tests {
                 CableChannelPrototype::new("dirs", "", false, None, None)
                     .into(),
             ),
+            None,
         );
     }
 
