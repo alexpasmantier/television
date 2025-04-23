@@ -16,8 +16,7 @@ use television::channels::{
 };
 use television::cli::{
     args::{Cli, Command},
-    guess_channel_from_prompt, list_channels, ParsedCliChannel,
-    PostProcessedCli,
+    guess_channel_from_prompt, list_channels, PostProcessedCli,
 };
 
 use television::config::{merge_keybindings, Config, ConfigEnv};
@@ -167,26 +166,17 @@ pub fn determine_channel(
             parse_channel(&config.shell_integration.fallback_channel)?,
         )?;
         debug!("Using guessed channel: {:?}", channel);
-        match channel {
-            ParsedCliChannel::Builtin(c) => Ok(c.to_channel()),
-            ParsedCliChannel::Cable(c) => {
-                Ok(TelevisionChannel::Cable(c.into()))
-            }
-        }
+        Ok(TelevisionChannel::Cable(channel.into()))
     } else {
         debug!("Using {:?} channel", args.channel);
-        match args.channel {
-            ParsedCliChannel::Builtin(c) => Ok(c.to_channel()),
-            ParsedCliChannel::Cable(c) => {
-                Ok(TelevisionChannel::Cable(c.into()))
-            }
-        }
+        Ok(TelevisionChannel::Cable(args.channel.into()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use rustc_hash::FxHashMap;
+    use television::channels::cable::CableChannelPrototype;
 
     use super::*;
 
@@ -199,8 +189,9 @@ mod tests {
         let channel =
             determine_channel(args.clone(), config, readable_stdin).unwrap();
 
-        assert!(
-            channel.name() == expected_channel.name(),
+        assert_eq!(
+            channel.name(),
+            expected_channel.name(),
             "Expected {:?} but got {:?}",
             expected_channel.name(),
             channel.name()
@@ -208,10 +199,9 @@ mod tests {
     }
 
     #[tokio::test]
+    /// Test that the channel is stdin when stdin is readable
     async fn test_determine_channel_readable_stdin() {
-        let channel = television::cli::ParsedCliChannel::Builtin(
-            television::channels::CliTvChannel::Env,
-        );
+        let channel = CableChannelPrototype::default();
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -228,8 +218,9 @@ mod tests {
     #[tokio::test]
     async fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
-        let expected_channel = television::channels::TelevisionChannel::Dirs(
-            television::channels::dirs::Channel::default(),
+        let expected_channel = TelevisionChannel::Cable(
+            CableChannelPrototype::new("dirs", "ls {}", false, None, None)
+                .into(),
         );
         let args = PostProcessedCli {
             autocomplete_prompt,
@@ -256,9 +247,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_determine_channel_standard_case() {
-        let channel = television::cli::ParsedCliChannel::Builtin(
-            television::channels::CliTvChannel::Dirs,
-        );
+        let channel =
+            CableChannelPrototype::new("dirs", "", false, None, None);
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -268,8 +258,9 @@ mod tests {
             &args,
             &config,
             false,
-            &TelevisionChannel::Dirs(
-                television::channels::dirs::Channel::default(),
+            &TelevisionChannel::Cable(
+                CableChannelPrototype::new("dirs", "", false, None, None)
+                    .into(),
             ),
         );
     }

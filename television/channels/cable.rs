@@ -41,6 +41,7 @@ impl Default for Channel {
         Self::new(
             "Files",
             "find . -type f",
+            false,
             Some(PreviewCommand::new("bat -n --color=always {}", ":")),
         )
     }
@@ -51,6 +52,7 @@ impl From<CableChannelPrototype> for Channel {
         Self::new(
             &prototype.name,
             &prototype.source_command,
+            prototype.interactive,
             match prototype.preview_command {
                 Some(command) => Some(PreviewCommand::new(
                     &command,
@@ -79,12 +81,14 @@ impl Channel {
     pub fn new(
         name: &str,
         entries_command: &str,
+        interactive: bool,
         preview_command: Option<PreviewCommand>,
     ) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         let crawl_handle = tokio::spawn(load_candidates(
             entries_command.to_string(),
+            interactive,
             injector,
         ));
         let preview_kind = match preview_command {
@@ -108,9 +112,13 @@ impl Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(command: String, injector: Injector<String>) {
+async fn load_candidates(
+    command: String,
+    interactive: bool,
+    injector: Injector<String>,
+) {
     debug!("Loading candidates from command: {:?}", command);
-    let mut child = shell_command(false)
+    let mut child = shell_command(interactive)
         .arg(command)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -228,9 +236,45 @@ impl OnAir for Channel {
 pub struct CableChannelPrototype {
     pub name: String,
     pub source_command: String,
+    #[serde(default)]
+    pub interactive: bool,
     pub preview_command: Option<String>,
     #[serde(default = "default_delimiter")]
     pub preview_delimiter: Option<String>,
+}
+
+impl CableChannelPrototype {
+    pub fn new(
+        name: &str,
+        source_command: &str,
+        interactive: bool,
+        preview_command: Option<String>,
+        preview_delimiter: Option<String>,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            source_command: source_command.to_string(),
+            interactive,
+            preview_command,
+            preview_delimiter,
+        }
+    }
+}
+
+const DEFAULT_PROTOTYPE_NAME: &str = "files";
+const DEFAULT_SOURCE_COMMAND: &str = "fd -t f";
+const DEFAULT_PREVIEW_COMMAND: &str = ":files:";
+
+impl Default for CableChannelPrototype {
+    fn default() -> Self {
+        Self {
+            name: DEFAULT_PROTOTYPE_NAME.to_string(),
+            source_command: DEFAULT_SOURCE_COMMAND.to_string(),
+            interactive: false,
+            preview_command: Some(DEFAULT_PREVIEW_COMMAND.to_string()),
+            preview_delimiter: Some(DEFAULT_DELIMITER.to_string()),
+        }
+    }
 }
 
 pub const DEFAULT_DELIMITER: &str = " ";

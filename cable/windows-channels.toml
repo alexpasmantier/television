@@ -1,41 +1,73 @@
+# Files
+[[cable_channel]]
+name = "files"
+source_command = "Get-ChildItem -Recurse -File"
+preview_command = ":files:"
+
+# Directories
+[[cable_channel]]
+name = "dirs"
+source_command = "Get-ChildItem -Recurse -Directory"
+preview_command = "Get-ChildItem -Force -LiteralPath '{}' | Format-List"
+
+# Environment variables
+[[cable_channel]]
+name = "env"
+source_command = "Get-ChildItem Env:"
+preview_command = "$env:{0} -split ';'"
+
+# Aliases
+[[cable_channel]]
+name = "aliases"
+source_command = "Get-Alias"
+interactive = true
+
 # GIT
+[[cable_channel]]
+name = "git-repos"
+source_command = "Get-ChildItem -Recurse -Directory -Force -ErrorAction SilentlyContinue | Where-Object { Test-Path \"$($_.FullName)\\.git\" } | Select-Object -ExpandProperty FullName"
+preview_command = "cd '{}' ; git log -n 200 --pretty=medium --all --graph --color"
+
 [[cable_channel]]
 name = "git-diff"
 source_command = "git diff --name-only"
-preview_command = "git diff --color=always -- {0}"
+preview_command = "git diff --color=always {0}"
 
 [[cable_channel]]
 name = "git-reflog"
-source_command = 'git reflog'
-preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+source_command = "git reflog"
+preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 [[cable_channel]]
 name = "git-log"
-source_command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
+source_command = "git log --oneline --date=short --pretty='format:%h %s %an %cd'"
 preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 [[cable_channel]]
 name = "git-branch"
-source_command = "git --no-pager branch --all --format=\"%(refname:short)\""
+source_command = "git branch --all --format='%(refname:short)'"
 preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 # Docker
 [[cable_channel]]
 name = "docker-images"
-source_command = "docker image list --format \"{{.ID}}\""
+source_command = "docker image ls --format '{{.ID}}'"
 preview_command = "docker image inspect {0} | jq -C"
+
+# S3
+[[cable_channel]]
+name = "s3-buckets"
+source_command = "aws s3 ls | ForEach-Object { ($_ -split '\s+')[-1] }"
+preview_command = "aws s3 ls s3://{0}"
+
+# Dotfiles (adapted to common Windows dotfile locations)
+[[cable_channel]]
+name = "my-dotfiles"
+source_command = "Get-ChildItem -Recurse -File -Path \"$env:USERPROFILE\\AppData\\Roaming\\\""
+preview_command = ":files:"
 
 # Shell history
 [[cable_channel]]
-name = "zsh-history"
-source_command = "tail -r $HISTFILE | cut -d\";\" -f 2-"
-
-[[cable_channel]]
-name = "bash-history"
-source_command = "tail -r $HISTFILE"
-
-[[cable_channel]]
-name = "fish-history"
-source_command = "fish -c 'history'"
-
+name = "powershell-history"
+source_command = "Get-Content (Get-PSReadLineOption).HistorySavePath | Select-Object -Last 500"
 

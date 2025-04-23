@@ -1,9 +1,8 @@
 use crate::action::Action;
 use crate::cable::load_cable_channels;
-use crate::channels::entry::{Entry, ENTRY_PLACEHOLDER};
+use crate::channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER};
 use crate::channels::{
-    remote_control::{load_builtin_channels, RemoteControl},
-    OnAir, TelevisionChannel, UnitChannel,
+    remote_control::RemoteControl, OnAir, TelevisionChannel,
 };
 use crate::config::{Config, Theme};
 use crate::draw::{ChannelState, Ctx, TvState};
@@ -28,7 +27,6 @@ use tokio::sync::mpsc::UnboundedSender;
 pub enum Mode {
     Channel,
     RemoteControl,
-    SendToChannel,
 }
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
@@ -75,9 +73,6 @@ impl Television {
         }
         let previewer = Previewer::new(Some(config.previewers.clone().into()));
         let cable_channels = load_cable_channels().unwrap_or_default();
-        let builtin_channels = load_builtin_channels(Some(
-            &cable_channels.keys().collect::<Vec<_>>(),
-        ));
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -101,10 +96,9 @@ impl Television {
         let remote_control = if no_remote {
             None
         } else {
-            Some(TelevisionChannel::RemoteControl(RemoteControl::new(
-                builtin_channels,
-                Some(cable_channels),
-            )))
+            Some(TelevisionChannel::RemoteControl(RemoteControl::new(Some(
+                cable_channels,
+            ))))
         };
 
         if no_help {
@@ -146,11 +140,8 @@ impl Television {
 
     pub fn init_remote_control(&mut self) {
         let cable_channels = load_cable_channels().unwrap_or_default();
-        let builtin_channels = load_builtin_channels(Some(
-            &cable_channels.keys().collect::<Vec<_>>(),
-        ));
         self.remote_control = Some(TelevisionChannel::RemoteControl(
-            RemoteControl::new(builtin_channels, Some(cable_channels)),
+            RemoteControl::new(Some(cable_channels)),
         ));
     }
 
@@ -182,12 +173,13 @@ impl Television {
         )
     }
 
-    pub fn current_channel(&self) -> UnitChannel {
-        UnitChannel::from(&self.channel)
+    pub fn current_channel(&self) -> String {
+        self.channel.name()
     }
 
     pub fn change_channel(&mut self, channel: TelevisionChannel) {
         self.preview_state.reset();
+        self.preview_state.enabled = channel.supports_preview();
         self.reset_picker_selection();
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -203,7 +195,7 @@ impl Television {
                         .as_str(),
                 );
             }
-            Mode::RemoteControl | Mode::SendToChannel => {
+            Mode::RemoteControl => {
                 self.remote_control.as_mut().unwrap().find(pattern);
             }
         }
@@ -233,7 +225,7 @@ impl Television {
                 }
                 None
             }
-            Mode::RemoteControl | Mode::SendToChannel => {
+            Mode::RemoteControl => {
                 if let Some(i) = self.rc_picker.selected() {
                     return self
                         .remote_control
@@ -268,7 +260,7 @@ impl Television {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
             }
-            Mode::RemoteControl | Mode::SendToChannel => (
+            Mode::RemoteControl => (
                 self.remote_control.as_ref().unwrap().total_count(),
                 &mut self.rc_picker,
             ),
@@ -288,7 +280,7 @@ impl Television {
             Mode::Channel => {
                 (self.channel.result_count(), &mut self.results_picker)
             }
-            Mode::RemoteControl | Mode::SendToChannel => (
+            Mode::RemoteControl => (
                 self.remote_control.as_ref().unwrap().total_count(),
                 &mut self.rc_picker,
             ),
@@ -306,7 +298,7 @@ impl Television {
     fn reset_picker_selection(&mut self) {
         match self.mode {
             Mode::Channel => self.results_picker.reset_selection(),
-            Mode::RemoteControl | Mode::SendToChannel => {
+            Mode::RemoteControl => {
                 self.rc_picker.reset_selection();
             }
         }
@@ -315,7 +307,7 @@ impl Television {
     fn reset_picker_input(&mut self) {
         match self.mode {
             Mode::Channel => self.results_picker.reset_input(),
-            Mode::RemoteControl | Mode::SendToChannel => {
+            Mode::RemoteControl => {
                 self.rc_picker.reset_input();
             }
         }
@@ -376,7 +368,9 @@ impl Television {
         &mut self,
         selected_entry: &Entry,
     ) -> Result<()> {
-        if self.config.ui.show_preview_panel && self.channel.supports_preview()
+        if self.config.ui.show_preview_panel
+            && self.channel.supports_preview()
+            && !matches!(selected_entry.preview_type, PreviewType::None)
         {
             // preview content
             if let Some(preview) = self
@@ -453,9 +447,7 @@ impl Television {
     pub fn handle_input_action(&mut self, action: &Action) {
         let input = match self.mode {
             Mode::Channel => &mut self.results_picker.input,
-            Mode::RemoteControl | Mode::SendToChannel => {
-                &mut self.rc_picker.input
-            }
+            Mode::RemoteControl => &mut self.rc_picker.input,
         };
         input.handle(convert_action_to_input_request(action).unwrap());
         match action {
@@ -493,27 +485,6 @@ impl Television {
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
             }
-            Mode::SendToChannel => {}
-        }
-    }
-
-    pub fn handle_toggle_send_to_channel(&mut self) {
-        if self.remote_control.is_none() {
-            return;
-        }
-        match self.mode {
-            Mode::Channel | Mode::RemoteControl => {
-                self.mode = Mode::SendToChannel;
-                self.remote_control = Some(TelevisionChannel::RemoteControl(
-                    RemoteControl::with_transitions_from(&self.channel),
-                ));
-            }
-            Mode::SendToChannel => {
-                self.reset_picker_input();
-                self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
-                self.reset_picker_selection();
-                self.mode = Mode::Channel;
-            }
         }
     }
 
@@ -543,18 +514,6 @@ impl Television {
                         .unwrap()
                         .zap(entry.name.as_str())?;
                     // this resets the RC picker
-                    self.reset_picker_selection();
-                    self.reset_picker_input();
-                    self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
-                    self.mode = Mode::Channel;
-                    self.change_channel(new_channel);
-                }
-            }
-            Mode::SendToChannel => {
-                if let Some(entry) = self.get_selected_entry(None) {
-                    let new_channel = self
-                        .channel
-                        .transition_to(entry.name.as_str().try_into()?);
                     self.reset_picker_selection();
                     self.reset_picker_input();
                     self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
@@ -643,9 +602,6 @@ impl Television {
             }
             Action::CopyEntryToClipboard => {
                 self.handle_copy_entry_to_clipboard();
-            }
-            Action::ToggleSendToChannel => {
-                self.handle_toggle_send_to_channel();
             }
             Action::ToggleHelp => {
                 if self.no_help {

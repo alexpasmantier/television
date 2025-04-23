@@ -5,9 +5,7 @@ use anyhow::{anyhow, Result};
 use tracing::debug;
 
 use crate::channels::cable::{parse_preview_kind, PreviewKind};
-use crate::channels::{
-    cable::CableChannelPrototype, entry::PreviewCommand, CliTvChannel,
-};
+use crate::channels::{cable::CableChannelPrototype, entry::PreviewCommand};
 use crate::cli::args::{Cli, Command};
 use crate::config::KeyBindings;
 use crate::{
@@ -20,7 +18,7 @@ pub mod args;
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
-    pub channel: ParsedCliChannel,
+    pub channel: CableChannelPrototype,
     pub preview_kind: PreviewKind,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
@@ -40,7 +38,7 @@ pub struct PostProcessedCli {
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
-            channel: ParsedCliChannel::Builtin(CliTvChannel::Files),
+            channel: CableChannelPrototype::default(),
             preview_kind: PreviewKind::None,
             no_preview: false,
             tick_rate: None,
@@ -85,7 +83,7 @@ impl From<Cli> for PostProcessedCli {
                     .unwrap()
             });
 
-        let channel: ParsedCliChannel;
+        let channel: CableChannelPrototype;
         let working_directory: Option<String>;
 
         match parse_channel(&cli.channel) {
@@ -99,7 +97,7 @@ impl From<Cli> for PostProcessedCli {
                 if cli.working_directory.is_none()
                     && Path::new(&cli.channel).exists()
                 {
-                    channel = ParsedCliChannel::Builtin(CliTvChannel::Files);
+                    channel = CableChannelPrototype::default();
                     working_directory = Some(cli.channel.clone());
                 } else {
                     unknown_channel_exit(&cli.channel);
@@ -138,21 +136,6 @@ fn unknown_channel_exit(channel: &str) {
     std::process::exit(1);
 }
 
-#[derive(Debug, Clone, PartialEq)]
-pub enum ParsedCliChannel {
-    Builtin(CliTvChannel),
-    Cable(CableChannelPrototype),
-}
-
-impl ParsedCliChannel {
-    pub fn name(&self) -> String {
-        match self {
-            Self::Builtin(c) => c.to_string(),
-            Self::Cable(c) => c.name.clone(),
-        }
-    }
-}
-
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
 
 /// Parse a keybindings literal into a `KeyBindings` struct.
@@ -174,45 +157,20 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn parse_channel(channel: &str) -> Result<ParsedCliChannel> {
+pub fn parse_channel(channel: &str) -> Result<CableChannelPrototype> {
     let cable_channels = cable::load_cable_channels().unwrap_or_default();
     // try to parse the channel as a cable channel
-    cable_channels
+    match cable_channels
         .iter()
         .find(|(k, _)| k.to_lowercase() == channel)
-        .map_or_else(
-            || {
-                // try to parse the channel as a builtin channel
-                CliTvChannel::try_from(channel)
-                    .map(ParsedCliChannel::Builtin)
-                    .map_err(|_| anyhow!("Unknown channel: '{}'", channel))
-            },
-            |(_, v)| Ok(ParsedCliChannel::Cable(v.clone())),
-        )
-}
-
-pub fn list_cable_channels() -> Vec<String> {
-    cable::load_cable_channels()
-        .unwrap_or_default()
-        .iter()
-        .map(|(k, _)| k.clone())
-        .collect()
-}
-
-pub fn list_builtin_channels() -> Vec<String> {
-    CliTvChannel::all_channels()
-        .iter()
-        .map(std::string::ToString::to_string)
-        .collect()
+    {
+        Some((_, v)) => Ok(v.clone()),
+        None => Err(anyhow!("Unknown channel: {channel}")),
+    }
 }
 
 pub fn list_channels() {
-    println!("\x1b[4mBuiltin channels:\x1b[0m");
-    for c in list_builtin_channels() {
-        println!("\t{c}");
-    }
-    println!("\n\x1b[4mCustom channels:\x1b[0m");
-    for c in list_cable_channels().iter().map(|c| c.to_lowercase()) {
+    for c in cable::load_cable_channels().unwrap_or_default().keys() {
         println!("\t{c}");
     }
 }
@@ -243,8 +201,8 @@ pub fn list_channels() {
 pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
-    fallback_channel: ParsedCliChannel,
-) -> Result<ParsedCliChannel> {
+    fallback_channel: CableChannelPrototype,
+) -> Result<CableChannelPrototype> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
@@ -338,7 +296,7 @@ mod tests {
 
         assert_eq!(
             post_processed_cli.channel,
-            ParsedCliChannel::Builtin(CliTvChannel::Files)
+            CableChannelPrototype::default(),
         );
         assert_eq!(
             post_processed_cli.preview_kind,
@@ -368,7 +326,7 @@ mod tests {
 
         assert_eq!(
             post_processed_cli.channel,
-            ParsedCliChannel::Builtin(CliTvChannel::Files)
+            CableChannelPrototype::default(),
         );
         assert_eq!(
             post_processed_cli.working_directory,
@@ -436,15 +394,16 @@ mod tests {
         assert_eq!(post_processed_cli.keybindings, Some(expected));
     }
 
+    /// Returns a tuple containing a command mapping and a fallback channel.
     fn guess_channel_from_prompt_setup(
-    ) -> (FxHashMap<String, String>, ParsedCliChannel) {
+    ) -> (FxHashMap<String, String>, CableChannelPrototype) {
         let mut command_mapping = FxHashMap::default();
         command_mapping.insert("vim".to_string(), "files".to_string());
         command_mapping.insert("export".to_string(), "env".to_string());
 
         (
             command_mapping,
-            ParsedCliChannel::Builtin(CliTvChannel::Env),
+            CableChannelPrototype::new("env", "", false, None, None),
         )
     }
 
@@ -458,7 +417,7 @@ mod tests {
             guess_channel_from_prompt(prompt, &command_mapping, fallback)
                 .unwrap();
 
-        assert_eq!(channel.name(), "files");
+        assert_eq!(channel.name, "files");
     }
 
     #[test]

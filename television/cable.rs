@@ -65,14 +65,14 @@ pub fn load_cable_channels() -> Result<CableChannels> {
         file_paths.push(default_channels_path);
     }
 
-    let user_defined_prototypes = file_paths.iter().fold(
+    let prototypes = file_paths.iter().fold(
         Vec::<CableChannelPrototype>::new(),
         |mut acc, p| {
             match toml::from_str::<ChannelPrototypes>(
                 &std::fs::read_to_string(p)
                     .expect("Unable to read configuration file"),
             ) {
-                Ok(prototypes) => acc.extend(prototypes.prototypes),
+                Ok(pts) => acc.extend(pts.prototypes),
                 Err(e) => {
                     error!(
                         "Failed to parse cable channel file {:?}: {}",
@@ -84,10 +84,10 @@ pub fn load_cable_channels() -> Result<CableChannels> {
         },
     );
 
-    debug!("Loaded cable channels: {:?}", user_defined_prototypes);
+    debug!("Loaded cable channels: {:?}", prototypes);
 
     let mut cable_channels = FxHashMap::default();
-    for prototype in user_defined_prototypes {
+    for prototype in prototypes {
         cable_channels.insert(prototype.name.clone(), prototype);
     }
     Ok(CableChannels(cable_channels))
