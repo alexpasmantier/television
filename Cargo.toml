@@ -31,7 +31,7 @@ build = "build.rs"
 path = "television/lib.rs"
 
 [dependencies]
-television-derive = { path = "television-derive", version = "0.0.26" }
+television-derive = { path = "television-derive", version = "0.0.27" }
 
 anyhow = "1.0"
 base64 = "0.22.1"
