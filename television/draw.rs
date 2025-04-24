@@ -225,6 +225,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             .to_string(),
         // only show the preview keybinding hint if there's actually something to preview
         ctx.tv_state.preview_state.enabled,
+        ctx.config.ui.no_help,
     )?;
 
     // input box

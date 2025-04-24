@@ -253,8 +253,12 @@ pub fn draw_results_list(
     help_keybinding: &str,
     preview_keybinding: &str,
     preview_togglable: bool,
+    no_help: bool,
 ) -> Result<()> {
-    let mut toggle_hints = format!(" help: <{help_keybinding}> ",);
+    let mut toggle_hints = String::new();
+    if !no_help {
+        toggle_hints.push_str(&format!(" help: <{help_keybinding}> ",));
+    }
     if preview_togglable {
         toggle_hints.push_str(&format!(" preview: <{preview_keybinding}> ",));
     }
