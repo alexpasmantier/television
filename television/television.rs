@@ -109,6 +109,7 @@ impl Television {
 
         if no_help {
             config.ui.show_help_bar = false;
+            config.ui.no_help = true;
         }
 
         let matching_mode = if exact {
