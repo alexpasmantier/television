@@ -8,12 +8,12 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
-use std::path::PathBuf;
 use television::action::Action;
+use television::channels::cable::CableChannelPrototype;
 use television::channels::entry::into_ranges;
 use television::channels::entry::{Entry, PreviewType};
 use television::channels::OnAir;
-use television::channels::{files::Channel, TelevisionChannel};
+use television::channels::TelevisionChannel;
 use television::config::{Config, ConfigEnv};
 use television::screen::colors::ResultsColorscheme;
 use television::screen::results::build_results_list;
@@ -506,10 +506,9 @@ pub fn draw(c: &mut Criterion) {
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
-                let mut channel =
-                    TelevisionChannel::Files(Channel::new(vec![
-                        PathBuf::from("."),
-                    ]));
+                let mut channel = TelevisionChannel::Cable(
+                    CableChannelPrototype::default().into(),
+                );
                 channel.find("television");
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(

@@ -13,11 +13,14 @@ use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use crate::channels::entry::{Entry, PreviewCommand, PreviewType};
 use crate::channels::OnAir;
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
+use crate::{
+    cable::ChannelPrototypes,
+    channels::entry::{Entry, PreviewCommand, PreviewType},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum PreviewKind {
@@ -39,9 +42,10 @@ pub struct Channel {
 impl Default for Channel {
     fn default() -> Self {
         Self::new(
-            "Files",
+            "files",
             "find . -type f",
-            Some(PreviewCommand::new("bat -n --color=always {}", ":")),
+            false,
+            Some(PreviewCommand::new("cat {}", ":")),
         )
     }
 }
@@ -51,6 +55,7 @@ impl From<CableChannelPrototype> for Channel {
         Self::new(
             &prototype.name,
             &prototype.source_command,
+            prototype.interactive,
             match prototype.preview_command {
                 Some(command) => Some(PreviewCommand::new(
                     &command,
@@ -79,12 +84,14 @@ impl Channel {
     pub fn new(
         name: &str,
         entries_command: &str,
+        interactive: bool,
         preview_command: Option<PreviewCommand>,
     ) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         let crawl_handle = tokio::spawn(load_candidates(
             entries_command.to_string(),
+            interactive,
             injector,
         ));
         let preview_kind = match preview_command {
@@ -108,9 +115,13 @@ impl Channel {
 }
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(command: String, injector: Injector<String>) {
+async fn load_candidates(
+    command: String,
+    interactive: bool,
+    injector: Injector<String>,
+) {
     debug!("Loading candidates from command: {:?}", command);
-    let mut child = shell_command(false)
+    let mut child = shell_command(interactive)
         .arg(command)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -228,9 +239,45 @@ impl OnAir for Channel {
 pub struct CableChannelPrototype {
     pub name: String,
     pub source_command: String,
+    #[serde(default)]
+    pub interactive: bool,
     pub preview_command: Option<String>,
     #[serde(default = "default_delimiter")]
     pub preview_delimiter: Option<String>,
+}
+
+impl CableChannelPrototype {
+    pub fn new(
+        name: &str,
+        source_command: &str,
+        interactive: bool,
+        preview_command: Option<String>,
+        preview_delimiter: Option<String>,
+    ) -> Self {
+        Self {
+            name: name.to_string(),
+            source_command: source_command.to_string(),
+            interactive,
+            preview_command,
+            preview_delimiter,
+        }
+    }
+}
+
+const DEFAULT_PROTOTYPE_NAME: &str = "files";
+const DEFAULT_SOURCE_COMMAND: &str = "fd -t f";
+const DEFAULT_PREVIEW_COMMAND: &str = ":files:";
+
+impl Default for CableChannelPrototype {
+    fn default() -> Self {
+        Self {
+            name: DEFAULT_PROTOTYPE_NAME.to_string(),
+            source_command: DEFAULT_SOURCE_COMMAND.to_string(),
+            interactive: false,
+            preview_command: Some(DEFAULT_PREVIEW_COMMAND.to_string()),
+            preview_delimiter: Some(DEFAULT_DELIMITER.to_string()),
+        }
+    }
 }
 
 pub const DEFAULT_DELIMITER: &str = " ";
@@ -246,7 +293,7 @@ impl Display for CableChannelPrototype {
     }
 }
 
-#[derive(Debug, serde::Deserialize, Default)]
+#[derive(Debug, serde::Deserialize)]
 pub struct CableChannels(pub FxHashMap<String, CableChannelPrototype>);
 
 impl Deref for CableChannels {
@@ -254,5 +301,27 @@ impl Deref for CableChannels {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+#[cfg(unix)]
+const DEFAULT_CABLE_CHANNELS_FILE: &str =
+    include_str!("../../cable/unix-channels.toml");
+#[cfg(not(unix))]
+const DEFAULT_CABLE_CHANNELS_FILE: &str =
+    include_str!("../../cable/windows-channels.toml");
+
+impl Default for CableChannels {
+    /// Fallback to the default cable channels specification (the template file
+    /// included in the repo).
+    fn default() -> Self {
+        let pts =
+            toml::from_str::<ChannelPrototypes>(DEFAULT_CABLE_CHANNELS_FILE)
+                .expect("Unable to parse default cable channels");
+        let mut channels = FxHashMap::default();
+        for prototype in pts.prototypes {
+            channels.insert(prototype.name.clone(), prototype);
+        }
+        CableChannels(channels)
     }
 }

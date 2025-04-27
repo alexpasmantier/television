@@ -36,6 +36,15 @@ pub struct AppConfig {
     pub frame_rate: f64,
     #[serde(default = "default_tick_rate")]
     pub tick_rate: f64,
+    /// The default channel to use when no channel is specified
+    #[serde(default = "default_channel")]
+    pub default_channel: String,
+}
+
+pub const DEFAULT_CHANNEL: &str = "files";
+
+fn default_channel() -> String {
+    DEFAULT_CHANNEL.to_string()
 }
 
 impl Hash for AppConfig {

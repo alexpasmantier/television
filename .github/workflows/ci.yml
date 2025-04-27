@@ -11,14 +11,18 @@ jobs:
   test:
     name: Test Suite
     runs-on: ubuntu-latest
+    env:
+      RUST_BACKTRACE: 1
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
+      - name: Install fd
+        run: sudo apt install -y fd-find && sudo ln -s $(which fdfind) /usr/bin/fd
       - name: Run tests
-        run: cargo test --locked --all-features --workspace
+        run: cargo test --locked --all-features --workspace -- --nocapture
 
   rustfmt:
     name: Rustfmt
