@@ -26,8 +26,6 @@ const DEFAULT_CABLE_CHANNELS: &str =
 const DEFAULT_CABLE_CHANNELS: &str =
     include_str!("../cable/windows-channels.toml");
 
-const DEFAULT_CABLE_CHANNELS_FILE_NAME: &str = "default_channels.toml";
-
 /// Load the cable configuration from the config directory.
 ///
 /// Cable is loaded by compiling all files that match the following
@@ -47,23 +45,19 @@ pub fn load_cable_channels() -> Result<CableChannels> {
     let files = std::fs::read_dir(&config_dir)?;
 
     // filter the files that match the pattern
-    let mut file_paths: Vec<PathBuf> = files
+    let file_paths: Vec<PathBuf> = files
         .filter_map(|f| f.ok().map(|f| f.path()))
         .filter(|p| is_cable_file_format(p) && p.is_file())
         .collect();
 
     debug!("Found cable channel files: {:?}", file_paths);
-
-    // If no cable provider files are found, write the default provider for the current
-    // platform to the config directory
     if file_paths.is_empty() {
         debug!("No user defined cable channels found");
-        // write the default cable channels to the config directory
-        let default_channels_path =
-            config_dir.join(DEFAULT_CABLE_CHANNELS_FILE_NAME);
-        std::fs::write(&default_channels_path, DEFAULT_CABLE_CHANNELS)?;
-        file_paths.push(default_channels_path);
     }
+
+    let default_prototypes =
+        toml::from_str::<ChannelPrototypes>(DEFAULT_CABLE_CHANNELS)
+            .expect("Failed to parse default cable channels");
 
     let prototypes = file_paths.iter().fold(
         Vec::<CableChannelPrototype>::new(),
@@ -84,14 +78,19 @@ pub fn load_cable_channels() -> Result<CableChannels> {
         },
     );
 
-    debug!("Loaded cable channels: {:?}", prototypes);
-    if prototypes.is_empty() {
-        error!("No cable channels found");
-        return Err(anyhow::anyhow!("No cable channels found"));
-    }
+    debug!(
+        "Loaded {} default and {} custom prototypes",
+        default_prototypes.prototypes.len(),
+        prototypes.len()
+    );
 
     let mut cable_channels = FxHashMap::default();
-    for prototype in prototypes {
+    // custom prototypes take precedence over default ones
+    for prototype in default_prototypes
+        .prototypes
+        .into_iter()
+        .chain(prototypes.into_iter())
+    {
         cable_channels.insert(prototype.name.clone(), prototype);
     }
     Ok(CableChannels(cable_channels))
@@ -117,9 +116,6 @@ mod tests {
     #[test]
     fn test_is_cable_file() {
         let path = std::path::Path::new("cable_channels.toml");
-        assert!(is_cable_file_format(path));
-
-        let path = std::path::Path::new(DEFAULT_CABLE_CHANNELS_FILE_NAME);
         assert!(is_cable_file_format(path));
     }
 }
