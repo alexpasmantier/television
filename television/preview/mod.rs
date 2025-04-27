@@ -107,12 +107,23 @@ impl Preview {
     }
 }
 
-#[derive(Debug, Default, Clone, PartialEq, Hash)]
+#[derive(Debug, Clone, PartialEq, Hash)]
 pub struct PreviewState {
     pub enabled: bool,
     pub preview: Arc<Preview>,
     pub scroll: u16,
     pub target_line: Option<u16>,
+}
+
+impl Default for PreviewState {
+    fn default() -> Self {
+        PreviewState {
+            enabled: false,
+            preview: Arc::new(Preview::default()),
+            scroll: 0,
+            target_line: None,
+        }
+    }
 }
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;

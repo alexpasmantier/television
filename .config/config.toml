@@ -15,8 +15,9 @@
 
 # General settings
 # ----------------------------------------------------------------------------
-frame_rate = 60 # DEPRECATED: this option is no longer used
+frame_rate = 60           # DEPRECATED: this option is no longer used
 tick_rate = 50
+default_channel = "files"
 
 [ui]
 # Whether to use nerd font icons in the UI

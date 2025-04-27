@@ -1,5 +1,8 @@
 use std::process::Command;
 
+#[cfg(not(unix))]
+use tracing::warn;
+
 use super::shell::Shell;
 
 pub fn shell_command(interactive: bool) -> Command {
@@ -15,6 +18,11 @@ pub fn shell_command(interactive: bool) -> Command {
     #[cfg(unix)]
     if interactive {
         cmd.arg("-i");
+    }
+
+    #[cfg(not(unix))]
+    if interactive {
+        warn!("Interactive mode is not supported on Windows.");
     }
 
     cmd

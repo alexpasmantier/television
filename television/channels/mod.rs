@@ -1,18 +1,12 @@
 use crate::channels::entry::Entry;
 use anyhow::Result;
 use rustc_hash::FxHashSet;
-use television_derive::{Broadcast, ToCliChannel, ToUnitChannel};
+use television_derive::Broadcast;
 
-pub mod alias;
 pub mod cable;
-pub mod dirs;
 pub mod entry;
-pub mod env;
-pub mod files;
-pub mod git_repos;
 pub mod remote_control;
 pub mod stdin;
-pub mod text;
 
 /// The interface that all television channels must implement.
 ///
@@ -118,54 +112,20 @@ pub trait OnAir: Send {
 /// of carrying the actual channel instances around. It also generates the necessary
 /// glue code to automatically create a channel instance from the selected enum variant.
 #[allow(dead_code, clippy::module_name_repetitions)]
-#[derive(ToUnitChannel, ToCliChannel, Broadcast)]
+#[derive(Broadcast)]
 pub enum TelevisionChannel {
-    /// The environment variables channel.
-    ///
-    /// This channel allows to search through environment variables.
-    Env(env::Channel),
-    /// The files channel.
-    ///
-    /// This channel allows to search through files.
-    Files(files::Channel),
-    /// The git repositories channel.
-    ///
-    /// This channel allows to search through git repositories.
-    GitRepos(git_repos::Channel),
-    /// The dirs channel.
-    ///
-    /// This channel allows to search through directories.
-    Dirs(dirs::Channel),
-    /// The text channel.
-    ///
-    /// This channel allows to search through the contents of text files.
-    Text(text::Channel),
     /// The standard input channel.
     ///
     /// This channel allows to search through whatever is passed through stdin.
-    #[exclude_from_cli]
     Stdin(stdin::Channel),
-    /// The alias channel.
-    ///
-    /// This channel allows to search through aliases.
-    Alias(alias::Channel),
     /// The remote control channel.
     ///
     /// This channel allows to switch between different channels.
-    #[exclude_from_unit]
-    #[exclude_from_cli]
     RemoteControl(remote_control::RemoteControl),
     /// A custom channel.
     ///
     /// This channel allows to search through custom data.
-    #[exclude_from_cli]
     Cable(cable::Channel),
-}
-
-impl From<&Entry> for TelevisionChannel {
-    fn from(entry: &Entry) -> Self {
-        UnitChannel::try_from(entry.name.as_str()).unwrap().into()
-    }
 }
 
 impl TelevisionChannel {
@@ -182,130 +142,7 @@ impl TelevisionChannel {
         match self {
             TelevisionChannel::Cable(channel) => channel.name.clone(),
             TelevisionChannel::Stdin(_) => String::from("Stdin"),
-            _ => UnitChannel::from(self).to_string(),
+            TelevisionChannel::RemoteControl(_) => String::from("Remote"),
         }
     }
-}
-
-macro_rules! variant_to_module {
-    (Files) => {
-        files::Channel
-    };
-    (Text) => {
-        text::Channel
-    };
-    (Dirs) => {
-        dirs::Channel
-    };
-    (GitRepos) => {
-        git_repos::Channel
-    };
-    (Env) => {
-        env::Channel
-    };
-    (Stdin) => {
-        stdin::Channel
-    };
-    (Alias) => {
-        alias::Channel
-    };
-    (RemoteControl) => {
-        remote_control::RemoteControl
-    };
-}
-
-/// A macro that generates two methods for the `TelevisionChannel` enum based on
-/// the transitions defined in the macro call.
-///
-/// The first method `available_transitions` returns a list of possible transitions
-/// from the current channel.
-///
-/// The second method `transition_to` transitions from the current channel to the
-/// target channel.
-///
-/// # Example
-/// The following example defines transitions from the `Files` channel to the `Text`
-/// channel and from the `GitRepos` channel to the `Files` and `Text` channels.
-/// ```ignore
-/// define_transitions! {
-///     // The `Files` channel can transition to the `Text` channel.
-///     Files => [Text],
-///     // The `GitRepos` channel can transition to the `Files` and `Text` channels.
-///     GitRepos => [Files, Text],
-/// }
-/// ```
-/// This will generate the following methods for the `TelevisionChannel` enum:
-/// ```ignore
-/// impl TelevisionChannel {
-///     pub fn available_transitions(&self) -> Vec<UnitChannel> {
-///         match self {
-///             TelevisionChannel::Files(_) => vec![UnitChannel::Text],
-///             TelevisionChannel::GitRepos(_) => vec![UnitChannel::Files, UnitChannel::Text],
-///             _ => Vec::new(),
-///         }
-///     }
-///
-///     pub fn transition_to(self, target: UnitChannel) -> TelevisionChannel {
-///         match (self, target) {
-///             (tv_channel @ TelevisionChannel::Files(_), UnitChannel::Text) => {
-///                 TelevisionChannel::Text(text::Channel::from(tv_channel))
-///             },
-///             (tv_channel @ TelevisionChannel::GitRepos(_), UnitChannel::Files) => {
-///                 TelevisionChannel::Files(files::Channel::from(tv_channel))
-///             },
-///             (tv_channel @ TelevisionChannel::GitRepos(_), UnitChannel::Text) => {
-///                 TelevisionChannel::Text(text::Channel::from(tv_channel))
-///             },
-///             _ => unreachable!(),
-///         }
-///     }
-/// }
-///
-///
-macro_rules! define_transitions {
-    (
-        $(
-            $from_variant:ident => [ $($to_variant:ident),* $(,)? ],
-        )*
-    ) => {
-        impl TelevisionChannel {
-            pub fn available_transitions(&self) -> Vec<UnitChannel> {
-                match self {
-                    $(
-                        TelevisionChannel::$from_variant(_) => vec![
-                            $( UnitChannel::$to_variant ),*
-                        ],
-                    )*
-                    _ => Vec::new(),
-                }
-            }
-
-            pub fn transition_to(&mut self, target: UnitChannel) -> TelevisionChannel {
-                match (self, target) {
-                    $(
-                        $(
-                            (tv_channel @ TelevisionChannel::$from_variant(_), UnitChannel::$to_variant) => {
-                                TelevisionChannel::$to_variant(
-                                    <variant_to_module!($to_variant)>::from(tv_channel)
-                                )
-                            },
-                        )*
-                    )*
-                    _ => unreachable!(),
-                }
-            }
-        }
-    }
-}
-
-// Define the transitions between the different channels.
-//
-// This is where the transitions between the different channels are defined.
-// The transitions are defined as a list of tuples where the first element
-// is the source channel and the second element is a list of potential target channels.
-define_transitions! {
-    Text => [Files, Text],
-    Files => [Files, Text],
-    Dirs => [Files, Text, Dirs],
-    GitRepos => [Files, Text, Dirs],
 }

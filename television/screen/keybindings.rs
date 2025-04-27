@@ -57,13 +57,6 @@ impl KeyBindings {
                     ),
                 ),
                 (
-                    DisplayableAction::SendToChannel,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleSendToChannel],
-                    ),
-                ),
-                (
                     DisplayableAction::ToggleRemoteControl,
                     serialized_keys_for_actions(
                         self,
@@ -101,40 +94,11 @@ impl KeyBindings {
             ),
         ]);
 
-        // send to channel mode keybindings
-        let send_to_channel_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::Cancel,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleSendToChannel],
-                ),
-            ),
-        ]);
-
         FxHashMap::from_iter(vec![
             (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
             (
                 Mode::RemoteControl,
                 DisplayableKeybindings::new(remote_control_bindings),
-            ),
-            (
-                Mode::SendToChannel,
-                DisplayableKeybindings::new(send_to_channel_bindings),
             ),
         ])
     }
@@ -167,7 +131,6 @@ pub enum DisplayableAction {
     PreviewNavigation,
     SelectEntry,
     CopyEntryToClipboard,
-    SendToChannel,
     ToggleRemoteControl,
     Cancel,
     Quit,
@@ -183,7 +146,6 @@ impl Display for DisplayableAction {
             DisplayableAction::CopyEntryToClipboard => {
                 "Copy entry to clipboard"
             }
-            DisplayableAction::SendToChannel => "Send to channel",
             DisplayableAction::ToggleRemoteControl => "Toggle Remote control",
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
@@ -207,12 +169,6 @@ pub fn build_keybindings_table<'a>(
             &keybindings[&mode],
             colorscheme,
         ),
-        Mode::SendToChannel => {
-            build_keybindings_table_for_channel_transitions(
-                &keybindings[&mode],
-                colorscheme,
-            )
-        }
     }
 }
 
@@ -268,18 +224,6 @@ fn build_keybindings_table_for_channel<'a>(
         colorscheme.mode.channel,
     ));
 
-    // Send to channel
-    let send_to_channel_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::SendToChannel)
-        .unwrap();
-    let send_to_channel_row = Row::new(build_cells_for_group(
-        "Send results to",
-        send_to_channel_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
-
     // Switch channels
     let switch_channels_keys = keybindings
         .bindings
@@ -300,7 +244,6 @@ fn build_keybindings_table_for_channel<'a>(
             preview_row,
             select_entry_row,
             copy_entry_row,
-            send_to_channel_row,
             switch_channels_row,
         ],
         widths,
@@ -349,52 +292,6 @@ fn build_keybindings_table_for_channel_selection<'a>(
 
     Table::new(
         vec![results_row, select_entry_row, switch_channels_row],
-        vec![Constraint::Fill(1), Constraint::Fill(2)],
-    )
-}
-
-fn build_keybindings_table_for_channel_transitions<'a>(
-    keybindings: &'a DisplayableKeybindings,
-    colorscheme: &'a Colorscheme,
-) -> Table<'a> {
-    // Results navigation
-    let results_navigation_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ResultsNavigation)
-        .unwrap();
-    let results_row = Row::new(build_cells_for_group(
-        "Browse channels",
-        results_navigation_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.send_to_channel,
-    ));
-
-    // Select entry
-    let select_entry_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::SelectEntry)
-        .unwrap();
-    let select_entry_row = Row::new(build_cells_for_group(
-        "Send to channel",
-        select_entry_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.send_to_channel,
-    ));
-
-    // Cancel
-    let cancel_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::Cancel)
-        .unwrap();
-    let cancel_row = Row::new(build_cells_for_group(
-        "Cancel",
-        cancel_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.send_to_channel,
-    ));
-
-    Table::new(
-        vec![results_row, select_entry_row, cancel_row],
         vec![Constraint::Fill(1), Constraint::Fill(2)],
     )
 }

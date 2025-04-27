@@ -1,4 +1,41 @@
+# Files
+[[cable_channel]]
+name = "files"
+source_command = "fd -t f"
+preview_command = ":files:"
+
+# Text
+[[cable_channel]]
+name = "text"
+source_command = "rg . --no-heading --line-number"
+preview_command = "bat -n --color=always {0} -H {1}"
+preview_delimiter = ":"
+
+# Directories
+[[cable_channel]]
+name = "dirs"
+source_command = "fd -t d"
+preview_command = "ls -la --color=always {}"
+
+# Environment variables
+[[cable_channel]]
+name = "env"
+source_command = "printenv"
+preview_command = "cut -d= -f2 <<< ${0} | cut -d\" \" -f2- | sed 's/:/\\n/g'"
+
+# Aliases
+[[cable_channel]]
+name = "aliases"
+source_command = "alias"
+interactive = true
+
 # GIT
+[[cable_channel]]
+name = "git-repos"
+# this is a MacOS version but feel free to change it to fit your needs
+source_command = "fd -g .git -HL -t d -d 10 --prune ~ -E 'Library' -E 'Application Support' --exec dirname {}"
+preview_command = "cd {} && git log -n 200 --pretty=medium --all --graph --color"
+
 [[cable_channel]]
 name = "git-diff"
 source_command = "git diff --name-only"

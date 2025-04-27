@@ -3,7 +3,7 @@ use std::{collections::HashSet, path::PathBuf, time::Duration};
 use television::{
     action::Action,
     app::{App, AppOptions},
-    channels::TelevisionChannel,
+    channels::{cable::CableChannelPrototype, TelevisionChannel},
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -33,9 +33,7 @@ fn setup_app(
             .join("tests")
             .join("target_dir");
         std::env::set_current_dir(&target_dir).unwrap();
-        TelevisionChannel::Files(television::channels::files::Channel::new(
-            vec![target_dir],
-        ))
+        TelevisionChannel::Cable(CableChannelPrototype::default().into())
     });
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
