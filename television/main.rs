@@ -5,6 +5,7 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use crossterm::terminal::enable_raw_mode;
 use television::cable;
 use television::channels::cable::{
     preview::PreviewKind, prototypes::CableChannels,
@@ -53,6 +54,8 @@ async fn main() -> Result<()> {
     args.command
         .as_ref()
         .map(|x| handle_subcommands(x, &config));
+
+    enable_raw_mode()?;
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
