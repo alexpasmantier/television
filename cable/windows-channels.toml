@@ -17,7 +17,7 @@ source_command = "Get-ChildItem Env:"
 
 # Aliases
 [[cable_channel]]
-name = "aliases"
+name = "alias"
 source_command = "Get-Alias"
 
 # GIT
@@ -62,4 +62,3 @@ preview_command = ":files:"
 [[cable_channel]]
 name = "powershell-history"
 source_command = "Get-Content (Get-PSReadLineOption).HistorySavePath | Select-Object -Last 500"
-

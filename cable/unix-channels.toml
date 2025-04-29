@@ -25,7 +25,7 @@ preview_command = "cut -d= -f2 <<< ${0} | cut -d\" \" -f2- | sed 's/:/\\n/g'"
 
 # Aliases
 [[cable_channel]]
-name = "aliases"
+name = "alias"
 source_command = "alias"
 interactive = true
 
