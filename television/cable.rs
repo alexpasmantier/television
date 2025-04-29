@@ -2,11 +2,13 @@ use std::path::PathBuf;
 
 use rustc_hash::FxHashMap;
 
-use crate::channels::cable::{CableChannelPrototype, CableChannels};
 use anyhow::Result;
 use tracing::{debug, error};
 
-use crate::config::get_config_dir;
+use crate::{
+    channels::cable::prototypes::{CableChannelPrototype, CableChannels},
+    config::get_config_dir,
+};
 
 /// Just a proxy struct to deserialize prototypes
 #[derive(Debug, serde::Deserialize, Default)]
