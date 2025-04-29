@@ -12,7 +12,7 @@ use crate::{
 
 /// Just a proxy struct to deserialize prototypes
 #[derive(Debug, serde::Deserialize, Default)]
-pub struct ChannelPrototypes {
+pub struct SerializedChannelPrototypes {
     #[serde(rename = "cable_channel")]
     pub prototypes: Vec<CableChannelPrototype>,
 }
@@ -58,13 +58,13 @@ pub fn load_cable_channels() -> Result<CableChannels> {
     }
 
     let default_prototypes =
-        toml::from_str::<ChannelPrototypes>(DEFAULT_CABLE_CHANNELS)
+        toml::from_str::<SerializedChannelPrototypes>(DEFAULT_CABLE_CHANNELS)
             .expect("Failed to parse default cable channels");
 
     let prototypes = file_paths.iter().fold(
         Vec::<CableChannelPrototype>::new(),
         |mut acc, p| {
-            match toml::from_str::<ChannelPrototypes>(
+            match toml::from_str::<SerializedChannelPrototypes>(
                 &std::fs::read_to_string(p)
                     .expect("Unable to read configuration file"),
             ) {
