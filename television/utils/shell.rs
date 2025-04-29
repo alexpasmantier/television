@@ -66,6 +66,7 @@ impl Shell {
             Shell::Fish => "fish",
             Shell::PowerShell => "powershell",
             Shell::Cmd => "cmd",
+            Shell::Nu => "nu",
         }
     }
 }
