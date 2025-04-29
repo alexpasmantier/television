@@ -4,8 +4,13 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use tracing::debug;
 
-use crate::channels::cable::{parse_preview_kind, CableChannels, PreviewKind};
-use crate::channels::{cable::CableChannelPrototype, entry::PreviewCommand};
+use crate::channels::cable::{
+    preview::parse_preview_kind, preview::PreviewKind,
+    prototypes::CableChannels,
+};
+use crate::channels::{
+    cable::prototypes::CableChannelPrototype, entry::PreviewCommand,
+};
 use crate::cli::args::{Cli, Command};
 use crate::config::{KeyBindings, DEFAULT_CHANNEL};
 use crate::{

@@ -6,7 +6,9 @@ use std::process::exit;
 use anyhow::Result;
 use clap::Parser;
 use television::cable;
-use television::channels::cable::{CableChannels, PreviewKind};
+use television::channels::cable::{
+    preview::PreviewKind, prototypes::CableChannels,
+};
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -186,7 +188,8 @@ pub fn determine_channel(
 mod tests {
     use rustc_hash::FxHashMap;
     use television::{
-        cable::load_cable_channels, channels::cable::CableChannelPrototype,
+        cable::load_cable_channels,
+        channels::cable::prototypes::CableChannelPrototype,
     };
 
     use super::*;
