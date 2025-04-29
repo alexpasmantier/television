@@ -9,7 +9,7 @@ use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
 use television::action::Action;
-use television::channels::cable::CableChannelPrototype;
+use television::channels::cable::prototypes::CableChannelPrototype;
 use television::channels::entry::into_ranges;
 use television::channels::entry::{Entry, PreviewType};
 use television::channels::OnAir;
