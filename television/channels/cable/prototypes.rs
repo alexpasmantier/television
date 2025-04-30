@@ -80,6 +80,8 @@ impl Default for CableChannelPrototype {
     }
 }
 
+/// The default delimiter to use for the preview command to use to split
+/// entries into multiple referenceable parts.
 #[allow(clippy::unnecessary_wraps)]
 fn default_delimiter() -> Option<String> {
     Some(DEFAULT_DELIMITER.to_string())
@@ -107,9 +109,13 @@ impl Deref for CableChannels {
     }
 }
 
+/// A default cable channels specification that is compiled into the
+/// application.
 #[cfg(unix)]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
     include_str!("../../../cable/unix-channels.toml");
+/// A default cable channels specification that is compiled into the
+/// application.
 #[cfg(not(unix))]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
     include_str!("../../cable/windows-channels.toml");
