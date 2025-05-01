@@ -134,6 +134,18 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub no_help: bool,
 
+    /// Change the display size in relation to the available area.
+    ///
+    /// This will crop the UI to a centered rectangle of the specified
+    /// percentage of the available area (e.g. 0.5 for 50% x 50%).
+    #[arg(
+        long,
+        value_name = "INTEGER",
+        default_value = "100",
+        verbatim_doc_comment
+    )]
+    pub ui_scale: u16,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }
