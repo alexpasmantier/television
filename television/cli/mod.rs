@@ -37,6 +37,7 @@ pub struct PostProcessedCli {
     pub select_1: bool,
     pub no_remote: bool,
     pub no_help: bool,
+    pub ui_scale: u16,
 }
 
 impl Default for PostProcessedCli {
@@ -57,6 +58,7 @@ impl Default for PostProcessedCli {
             select_1: false,
             no_remote: false,
             no_help: false,
+            ui_scale: 100,
         }
     }
 }
@@ -141,6 +143,7 @@ impl From<Cli> for PostProcessedCli {
             select_1: cli.select_1,
             no_remote: cli.no_remote,
             no_help: cli.no_help,
+            ui_scale: cli.ui_scale,
         }
     }
 }
