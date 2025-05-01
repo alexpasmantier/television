@@ -1,0 +1,1 @@
+- checkout the `which` crate for searching binaries

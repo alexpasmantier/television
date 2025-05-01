@@ -7,19 +7,19 @@ use std::{
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use super::OnAir;
-use crate::channels::{entry::Entry, preview::PreviewType};
+use super::{preview::PreviewCommand, OnAir};
+use crate::channels::entry::Entry;
 use crate::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,
-    preview_type: PreviewType,
+    preview_command: Option<PreviewCommand>,
     selected_entries: FxHashSet<Entry>,
     instream_handle: std::thread::JoinHandle<()>,
 }
 
 impl Channel {
-    pub fn new(preview_type: PreviewType) -> Self {
+    pub fn new(preview_command: Option<PreviewCommand>) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
 
@@ -27,7 +27,7 @@ impl Channel {
 
         Self {
             matcher,
-            preview_type,
+            preview_command,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             instream_handle,
         }
@@ -36,7 +36,7 @@ impl Channel {
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new(PreviewType::default())
+        Self::new(None)
     }
 }
 
@@ -60,7 +60,7 @@ where
 
         Self {
             matcher,
-            preview_type: PreviewType::default(),
+            preview_command: None,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             instream_handle,
         }
@@ -112,16 +112,16 @@ impl OnAir for Channel {
             .map(|item| {
                 // NOTE: we're passing `PreviewType::Basic` here just as a placeholder
                 // to avoid storing the preview command multiple times for each item.
-                Entry::new(item.matched_string, PreviewType::Basic)
+                Entry::new(item.matched_string)
                     .with_name_match_indices(&item.match_indices)
             })
             .collect()
     }
 
     fn get_result(&self, index: u32) -> Option<Entry> {
-        self.matcher.get_result(index).map(|item| {
-            Entry::new(item.matched_string, self.preview_type.clone())
-        })
+        self.matcher
+            .get_result(index)
+            .map(|item| Entry::new(item.matched_string))
     }
 
     fn selected_entries(&self) -> &FxHashSet<Entry> {
@@ -151,6 +151,6 @@ impl OnAir for Channel {
     fn shutdown(&self) {}
 
     fn supports_preview(&self) -> bool {
-        self.preview_type != PreviewType::None
+        self.preview_command.is_some()
     }
 }

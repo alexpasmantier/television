@@ -1,9 +1,6 @@
 use crate::action::Action;
 use crate::cable::load_cable_channels;
-use crate::channels::{
-    entry::{Entry, ENTRY_PLACEHOLDER},
-    preview::PreviewType,
-};
+use crate::channels::entry::{Entry, ENTRY_PLACEHOLDER};
 use crate::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel,
 };
@@ -11,7 +8,7 @@ use crate::config::{Config, Theme};
 use crate::draw::{ChannelState, Ctx, TvState};
 use crate::input::convert_action_to_input_request;
 use crate::picker::Picker;
-use crate::preview::{Preview, PreviewState, Previewer};
+use crate::preview::{previewer::Previewer, Preview, PreviewState};
 use crate::render::UiState;
 use crate::screen::colors::Colorscheme;
 use crate::screen::layout::InputPosition;
@@ -74,7 +71,8 @@ impl Television {
         if config.ui.input_bar_position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
-        let previewer = Previewer::new(Some(config.previewers.clone().into()));
+        // FIXME: fix this
+        let previewer = Previewer::new();
         let cable_channels = load_cable_channels().unwrap_or_default();
 
         let app_metadata = AppMetadata::new(
@@ -371,15 +369,10 @@ impl Television {
         &mut self,
         selected_entry: &Entry,
     ) -> Result<()> {
-        if self.config.ui.show_preview_panel
-            && self.channel.supports_preview()
-            && !matches!(selected_entry.preview_type, PreviewType::None)
+        if self.config.ui.show_preview_panel && self.channel.supports_preview()
         {
             // preview content
-            if let Some(preview) = self
-                .previewer
-                .preview(selected_entry, self.ui_state.layout.preview_window)
-            {
+            if let Some(preview) = self.previewer.preview(selected_entry) {
                 // only update if the preview content has changed
                 if self.preview_state.preview.title != preview.title {
                     self.preview_state.update(

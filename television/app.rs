@@ -4,9 +4,7 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::{
-    entry::Entry, preview::PreviewType, OnAir, TelevisionChannel,
-};
+use crate::channels::{entry::Entry, OnAir, TelevisionChannel};
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;
@@ -123,7 +121,6 @@ impl From<ActionOutcome> for AppOutput {
             ActionOutcome::Input(input) => Self {
                 selected_entries: Some(FxHashSet::from_iter([Entry::new(
                     input,
-                    PreviewType::None,
                 )])),
             },
             ActionOutcome::None => Self {
@@ -445,7 +442,7 @@ mod test {
     #[test]
     fn test_maybe_select_1() {
         let mut app = App::new(
-            TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
+            TelevisionChannel::Stdin(StdinChannel::new(None)),
             Config::default(),
             None,
             AppOptions::default(),
@@ -453,14 +450,13 @@ mod test {
         app.television
             .results_picker
             .entries
-            .push(Entry::new("test".to_string(), PreviewType::None));
+            .push(Entry::new("test".to_string()));
         let outcome = app.maybe_select_1();
         assert!(outcome.is_some());
         assert_eq!(
             outcome.unwrap(),
             ActionOutcome::Entries(FxHashSet::from_iter([Entry::new(
                 "test".to_string(),
-                PreviewType::None
             )]))
         );
     }

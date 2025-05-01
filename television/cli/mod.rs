@@ -7,9 +7,7 @@ use tracing::debug;
 use crate::channels::cable::prototypes::{
     CableChannelPrototype, CableChannels,
 };
-use crate::channels::preview::{
-    parse_preview_type, PreviewCommand, PreviewType,
-};
+use crate::channels::preview::PreviewCommand;
 use crate::cli::args::{Cli, Command};
 use crate::config::{KeyBindings, DEFAULT_CHANNEL};
 use crate::{
@@ -23,7 +21,7 @@ pub mod args;
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: CableChannelPrototype,
-    pub preview_kind: PreviewType,
+    pub preview_command: Option<PreviewCommand>,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
@@ -44,7 +42,7 @@ impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
             channel: CableChannelPrototype::default(),
-            preview_kind: PreviewType::None,
+            preview_command: None,
             no_preview: false,
             tick_rate: None,
             frame_rate: None,
@@ -75,19 +73,10 @@ impl From<Cli> for PostProcessedCli {
         });
 
         // parse the preview command if provided
-        let preview_kind = cli
-            .preview
-            .map(|preview| PreviewCommand {
-                command: preview,
-                delimiter: cli.delimiter.clone(),
-            })
-            .map_or(PreviewType::None, |preview_command| {
-                parse_preview_type(&preview_command)
-                    .map_err(|e| {
-                        cli_parsing_error_exit(&e.to_string());
-                    })
-                    .unwrap()
-            });
+        let preview_command = cli.preview.map(|preview| PreviewCommand {
+            command: preview,
+            delimiter: cli.delimiter.clone(),
+        });
 
         let channel: CableChannelPrototype;
         let working_directory: Option<String>;
@@ -129,7 +118,7 @@ impl From<Cli> for PostProcessedCli {
 
         Self {
             channel,
-            preview_kind,
+            preview_command,
             no_preview: cli.no_preview,
             tick_rate: cli.tick_rate,
             frame_rate: cli.frame_rate,
@@ -303,10 +292,7 @@ Data directory: {data_dir_path}"
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        action::Action, channels::preview::PreviewType, config::Binding,
-        event::Key,
-    };
+    use crate::{action::Action, config::Binding, event::Key};
 
     use super::*;
 
@@ -328,8 +314,8 @@ mod tests {
             CableChannelPrototype::default(),
         );
         assert_eq!(
-            post_processed_cli.preview_kind,
-            PreviewType::Command(PreviewCommand {
+            post_processed_cli.preview_command,
+            Some(PreviewCommand {
                 command: "bat -n --color=always {}".to_string(),
                 delimiter: ":".to_string()
             })
@@ -362,34 +348,6 @@ mod tests {
             Some(".".to_string())
         );
         assert_eq!(post_processed_cli.command, None);
-    }
-
-    #[test]
-    fn test_builtin_previewer_files() {
-        let cli = Cli {
-            channel: Some("files".to_string()),
-            preview: Some(":files:".to_string()),
-            delimiter: ":".to_string(),
-            ..Default::default()
-        };
-
-        let post_processed_cli: PostProcessedCli = cli.into();
-
-        assert_eq!(post_processed_cli.preview_kind, PreviewType::Files);
-    }
-
-    #[test]
-    fn test_builtin_previewer_env() {
-        let cli = Cli {
-            channel: Some("files".to_string()),
-            preview: Some(":env_var:".to_string()),
-            delimiter: ":".to_string(),
-            ..Default::default()
-        };
-
-        let post_processed_cli: PostProcessedCli = cli.into();
-
-        assert_eq!(post_processed_cli.preview_kind, PreviewType::EnvVar);
     }
 
     #[test]

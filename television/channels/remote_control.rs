@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::channels::cable::prototypes::CableChannels;
-use crate::channels::{entry::Entry, preview::PreviewType};
+use crate::channels::entry::Entry;
 use crate::channels::{OnAir, TelevisionChannel};
 use crate::matcher::{config::Config, Matcher};
 use anyhow::Result;
@@ -83,7 +83,7 @@ impl OnAir for RemoteControl {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path, PreviewType::Basic)
+                Entry::new(path)
                     .with_name_match_indices(&item.match_indices)
                     .with_icon(CABLE_ICON)
             })
@@ -93,7 +93,7 @@ impl OnAir for RemoteControl {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path, PreviewType::Basic).with_icon(TV_ICON)
+            Entry::new(path).with_icon(TV_ICON)
         })
     }
 
