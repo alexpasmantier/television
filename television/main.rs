@@ -114,6 +114,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(header) = &args.custom_header {
         config.ui.custom_header = Some(header.to_string());
     }
+    config.ui.ui_scale = args.ui_scale;
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
