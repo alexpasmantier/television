@@ -5,6 +5,7 @@ use television_derive::Broadcast;
 
 pub mod cable;
 pub mod entry;
+pub mod preview;
 pub mod remote_control;
 pub mod stdin;
 

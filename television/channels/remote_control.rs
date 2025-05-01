@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use crate::channels::cable::prototypes::CableChannels;
-use crate::channels::entry::{Entry, PreviewType};
+use crate::channels::{entry::Entry, preview::PreviewType};
 use crate::channels::{OnAir, TelevisionChannel};
 use crate::matcher::{config::Config, Matcher};
 use anyhow::Result;
