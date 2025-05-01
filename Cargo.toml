@@ -48,7 +48,6 @@ ratatui = { version = "0.29", features = ["serde", "macros"] }
 better-panic = "0.3"
 signal-hook = "0.3"
 human-panic = "2.0"
-ignore = "0.4"
 strum = { version = "0.26", features = ["derive"] }
 regex = "1.11"
 parking_lot = "0.12"

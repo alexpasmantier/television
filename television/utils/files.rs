@@ -5,10 +5,8 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Read;
 use std::path::Path;
-use std::path::PathBuf;
 use std::sync::OnceLock;
 
-use ignore::{overrides::Override, types::TypesBuilder, WalkBuilder};
 use tracing::{debug, warn};
 
 use crate::utils::strings::{
@@ -65,38 +63,6 @@ pub static DEFAULT_NUM_THREADS: OnceLock<usize> = OnceLock::new();
 
 pub fn get_default_num_threads() -> usize {
     *DEFAULT_NUM_THREADS.get_or_init(default_num_threads)
-}
-
-pub fn walk_builder(
-    path: &Path,
-    n_threads: usize,
-    overrides: Option<Override>,
-    ignore_paths: Option<Vec<PathBuf>>,
-) -> WalkBuilder {
-    let mut builder = WalkBuilder::new(path);
-
-    // ft-based filtering
-    let mut types_builder = TypesBuilder::new();
-    types_builder.add_defaults();
-    builder.types(types_builder.build().unwrap());
-
-    // ignore paths
-    if let Some(paths) = ignore_paths {
-        builder.filter_entry(move |e| {
-            let path = e.path();
-            if paths.iter().any(|p| path.starts_with(p)) {
-                debug!("Ignoring path: {:?}", path);
-                return false;
-            }
-            true
-        });
-    }
-
-    builder.threads(n_threads);
-    if let Some(ov) = overrides {
-        builder.overrides(ov);
-    }
-    builder
 }
 
 pub fn get_file_size(path: &Path) -> Option<u64> {
