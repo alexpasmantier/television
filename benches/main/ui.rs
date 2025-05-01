@@ -8,16 +8,18 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
-use television::action::Action;
-use television::channels::cable::prototypes::CableChannelPrototype;
-use television::channels::entry::into_ranges;
-use television::channels::entry::{Entry, PreviewType};
-use television::channels::OnAir;
-use television::channels::TelevisionChannel;
-use television::config::{Config, ConfigEnv};
-use television::screen::colors::ResultsColorscheme;
-use television::screen::results::build_results_list;
-use television::television::Television;
+use television::{
+    action::Action,
+    channels::{
+        cable::prototypes::CableChannelPrototype,
+        entry::{into_ranges, Entry},
+        preview::PreviewType,
+        OnAir, TelevisionChannel,
+    },
+    config::{Config, ConfigEnv},
+    screen::{colors::ResultsColorscheme, results::build_results_list},
+    television::Television,
+};
 use tokio::runtime::Runtime;
 
 pub fn draw_results_list(c: &mut Criterion) {

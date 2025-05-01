@@ -25,6 +25,9 @@ use crate::cable::SerializedChannelPrototypes;
 /// - `preview_delimiter`: The delimiter to use to split an entry into
 ///     multiple parts that can then be referenced in the preview command (e.g.
 ///     `{1} + {2}`).
+/// - `preview_offset`: a litteral expression that will be interpreted later on
+///     in order to determine the vertical offset at which the preview should be
+///     displayed.
 ///
 /// # Example
 /// The default files channel might look something like this:
@@ -43,6 +46,7 @@ pub struct CableChannelPrototype {
     pub preview_command: Option<String>,
     #[serde(default = "default_delimiter")]
     pub preview_delimiter: Option<String>,
+    pub preview_offset: Option<String>,
 }
 
 impl CableChannelPrototype {
@@ -52,6 +56,7 @@ impl CableChannelPrototype {
         interactive: bool,
         preview_command: Option<String>,
         preview_delimiter: Option<String>,
+        preview_offset: Option<String>,
     ) -> Self {
         Self {
             name: name.to_string(),
@@ -59,6 +64,7 @@ impl CableChannelPrototype {
             interactive,
             preview_command,
             preview_delimiter,
+            preview_offset,
         }
     }
 }
@@ -76,10 +82,13 @@ impl Default for CableChannelPrototype {
             interactive: false,
             preview_command: Some(DEFAULT_PREVIEW_COMMAND.to_string()),
             preview_delimiter: Some(DEFAULT_DELIMITER.to_string()),
+            preview_offset: None,
         }
     }
 }
 
+/// The default delimiter to use for the preview command to use to split
+/// entries into multiple referenceable parts.
 #[allow(clippy::unnecessary_wraps)]
 fn default_delimiter() -> Option<String> {
     Some(DEFAULT_DELIMITER.to_string())
@@ -107,9 +116,13 @@ impl Deref for CableChannels {
     }
 }
 
+/// A default cable channels specification that is compiled into the
+/// application.
 #[cfg(unix)]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
     include_str!("../../../cable/unix-channels.toml");
+/// A default cable channels specification that is compiled into the
+/// application.
 #[cfg(not(unix))]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
     include_str!("../../cable/windows-channels.toml");

@@ -8,7 +8,7 @@ use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
 use super::OnAir;
-use crate::channels::entry::{Entry, PreviewType};
+use crate::channels::{entry::Entry, preview::PreviewType};
 use crate::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {

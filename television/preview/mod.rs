@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::channels::entry::{Entry, PreviewType};
+use crate::channels::{entry::Entry, preview::PreviewType};
 use devicons::FileIcon;
 use ratatui::layout::Rect;
 

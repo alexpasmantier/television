@@ -4,12 +4,11 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use tracing::debug;
 
-use crate::channels::cable::{
-    preview::parse_preview_kind, preview::PreviewKind,
-    prototypes::CableChannels,
+use crate::channels::cable::prototypes::{
+    CableChannelPrototype, CableChannels,
 };
-use crate::channels::{
-    cable::prototypes::CableChannelPrototype, entry::PreviewCommand,
+use crate::channels::preview::{
+    parse_preview_type, PreviewCommand, PreviewType,
 };
 use crate::cli::args::{Cli, Command};
 use crate::config::{KeyBindings, DEFAULT_CHANNEL};
@@ -24,7 +23,7 @@ pub mod args;
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: CableChannelPrototype,
-    pub preview_kind: PreviewKind,
+    pub preview_kind: PreviewType,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
@@ -44,7 +43,7 @@ impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
             channel: CableChannelPrototype::default(),
-            preview_kind: PreviewKind::None,
+            preview_kind: PreviewType::None,
             no_preview: false,
             tick_rate: None,
             frame_rate: None,
@@ -80,8 +79,8 @@ impl From<Cli> for PostProcessedCli {
                 command: preview,
                 delimiter: cli.delimiter.clone(),
             })
-            .map_or(PreviewKind::None, |preview_command| {
-                parse_preview_kind(&preview_command)
+            .map_or(PreviewType::None, |preview_command| {
+                parse_preview_type(&preview_command)
                     .map_err(|e| {
                         cli_parsing_error_exit(&e.to_string());
                     })
@@ -302,7 +301,7 @@ Data directory: {data_dir_path}"
 #[cfg(test)]
 mod tests {
     use crate::{
-        action::Action, channels::entry::PreviewType, config::Binding,
+        action::Action, channels::preview::PreviewType, config::Binding,
         event::Key,
     };
 
@@ -327,7 +326,7 @@ mod tests {
         );
         assert_eq!(
             post_processed_cli.preview_kind,
-            PreviewKind::Command(PreviewCommand {
+            PreviewType::Command(PreviewCommand {
                 command: "bat -n --color=always {}".to_string(),
                 delimiter: ":".to_string()
             })
@@ -373,10 +372,7 @@ mod tests {
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        assert_eq!(
-            post_processed_cli.preview_kind,
-            PreviewKind::Builtin(PreviewType::Files)
-        );
+        assert_eq!(post_processed_cli.preview_kind, PreviewType::Files);
     }
 
     #[test]
@@ -390,10 +386,7 @@ mod tests {
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        assert_eq!(
-            post_processed_cli.preview_kind,
-            PreviewKind::Builtin(PreviewType::EnvVar)
-        );
+        assert_eq!(post_processed_cli.preview_kind, PreviewType::EnvVar);
     }
 
     #[test]

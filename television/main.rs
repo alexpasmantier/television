@@ -7,15 +7,13 @@ use anyhow::Result;
 use clap::Parser;
 use crossterm::terminal::enable_raw_mode;
 use television::cable;
-use television::channels::cable::{
-    preview::PreviewKind, prototypes::CableChannels,
-};
+use television::channels::cable::prototypes::CableChannels;
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
 use television::app::{App, AppOptions};
 use television::channels::{
-    entry::PreviewType, stdin::Channel as StdinChannel, TelevisionChannel,
+    stdin::Channel as StdinChannel, TelevisionChannel,
 };
 use television::cli::{
     args::{Cli, Command},
@@ -163,13 +161,7 @@ pub fn determine_channel(
     if readable_stdin {
         debug!("Using stdin channel");
         Ok(TelevisionChannel::Stdin(StdinChannel::new(
-            match &args.preview_kind {
-                PreviewKind::Command(ref preview_command) => {
-                    PreviewType::Command(preview_command.clone())
-                }
-                PreviewKind::Builtin(preview_type) => preview_type.clone(),
-                PreviewKind::None => PreviewType::None,
-            },
+            args.preview_kind,
         )))
     } else if let Some(prompt) = args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
@@ -192,7 +184,9 @@ mod tests {
     use rustc_hash::FxHashMap;
     use television::{
         cable::load_cable_channels,
-        channels::cable::prototypes::CableChannelPrototype,
+        channels::{
+            cable::prototypes::CableChannelPrototype, preview::PreviewType,
+        },
     };
 
     use super::*;
@@ -241,8 +235,10 @@ mod tests {
     async fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
         let expected_channel = TelevisionChannel::Cable(
-            CableChannelPrototype::new("dirs", "ls {}", false, None, None)
-                .into(),
+            CableChannelPrototype::new(
+                "dirs", "ls {}", false, None, None, None,
+            )
+            .into(),
         );
         let args = PostProcessedCli {
             autocomplete_prompt,
@@ -276,7 +272,7 @@ mod tests {
     #[tokio::test]
     async fn test_determine_channel_standard_case() {
         let channel =
-            CableChannelPrototype::new("dirs", "", false, None, None);
+            CableChannelPrototype::new("dirs", "", false, None, None, None);
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -287,8 +283,10 @@ mod tests {
             &config,
             false,
             &TelevisionChannel::Cable(
-                CableChannelPrototype::new("dirs", "", false, None, None)
-                    .into(),
+                CableChannelPrototype::new(
+                    "dirs", "", false, None, None, None,
+                )
+                .into(),
             ),
             None,
         );

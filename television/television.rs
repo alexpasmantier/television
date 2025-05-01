@@ -1,6 +1,9 @@
 use crate::action::Action;
 use crate::cable::load_cable_channels;
-use crate::channels::entry::{Entry, PreviewType, ENTRY_PLACEHOLDER};
+use crate::channels::{
+    entry::{Entry, ENTRY_PLACEHOLDER},
+    preview::PreviewType,
+};
 use crate::channels::{
     remote_control::RemoteControl, OnAir, TelevisionChannel,
 };

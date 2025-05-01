@@ -294,7 +294,7 @@ pub fn draw_results_list(
 
 #[cfg(test)]
 mod tests {
-    use crate::channels::entry::PreviewType;
+    use crate::channels::preview::PreviewType;
 
     use super::*;
 

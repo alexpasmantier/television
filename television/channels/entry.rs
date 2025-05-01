@@ -1,10 +1,8 @@
-use std::{
-    fmt::Display,
-    hash::{Hash, Hasher},
-};
+use std::hash::{Hash, Hasher};
 
 use devicons::FileIcon;
-use strum::EnumString;
+
+use crate::channels::preview::PreviewType;
 
 // NOTE: having an enum for entry types would be nice since it would allow
 // having a nicer implementation for transitions between channels. This would
@@ -87,7 +85,7 @@ impl Entry {
     ///
     /// Additional fields can be set using the builder pattern.
     /// ```
-    /// use television::channels::entry::{Entry, PreviewType};
+    /// use television::channels::{entry::Entry, preview::PreviewType};
     /// use devicons::FileIcon;
     ///
     /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
@@ -160,39 +158,6 @@ pub const ENTRY_PLACEHOLDER: Entry = Entry {
     line_number: None,
     preview_type: PreviewType::EnvVar,
 };
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
-pub struct PreviewCommand {
-    pub command: String,
-    pub delimiter: String,
-}
-
-impl PreviewCommand {
-    pub fn new(command: &str, delimiter: &str) -> Self {
-        Self {
-            command: command.to_string(),
-            delimiter: delimiter.to_string(),
-        }
-    }
-}
-
-impl Display for PreviewCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, EnumString)]
-#[strum(serialize_all = "snake_case")]
-pub enum PreviewType {
-    Basic,
-    EnvVar,
-    Files,
-    #[strum(disabled)]
-    Command(PreviewCommand),
-    #[default]
-    None,
-}
 
 #[cfg(test)]
 mod tests {
