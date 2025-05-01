@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+
+## [unreleased]
+
+### 🐛 Bug Fixes
+
+- [dbff3a3](https://github.com/alexpasmantier/television/commit/dbff3a330b169c422ae384e373b934dceb8e01b2) *(alias)* Move terminal raw mode before loading bat assets #444 by @cr4ftx in [#484](https://github.com/alexpasmantier/television/pull/484)
+
+- [0514a91](https://github.com/alexpasmantier/television/commit/0514a914b630719391d66df61eb9d53c58933c3f) *(alias)* Rename the aliases channel to `alias` by @alexpasmantier in [#485](https://github.com/alexpasmantier/television/pull/485)
+
+- [1f0c178](https://github.com/alexpasmantier/television/commit/1f0c178a2d79ccf1e6cbe13ea3ec246f987bfbf2) *(results)* Remove keymap hint if help is disabled by @nkxxll in [#480](https://github.com/alexpasmantier/television/pull/480)
+
+### 🚜 Refactor
+
+- [e2f52b8](https://github.com/alexpasmantier/television/commit/e2f52b835d6447c251d7fca6724cf409ed153546) *(cable)* Improve naming and documentation for `prototypes.rs` by @alexpasmantier in [#487](https://github.com/alexpasmantier/television/pull/487)
+
+- [4385317](https://github.com/alexpasmantier/television/commit/4385317e069db287d8d86f987e11e079a7ff6d1c) *(cable)* Split cable related code into separate submodules by @alexpasmantier in [#486](https://github.com/alexpasmantier/television/pull/486)
+
+- [b9f42e8](https://github.com/alexpasmantier/television/commit/b9f42e8c29a7eca86a91a6cb00d9c4ee46bb2bd3) *(preview)* Simplify channel previews code and remove intermediate `PreviewKind` struct by @alexpasmantier in [#490](https://github.com/alexpasmantier/television/pull/490)
+
+- [c2f4cc2](https://github.com/alexpasmantier/television/commit/c2f4cc258f5f3b21601e8c7ce98f4584222813b2) *(uncategorized)* Tv no longer needs to write the default cable channel recipes to the user's configuration directory by @alexpasmantier in [#482](https://github.com/alexpasmantier/television/pull/482)
+
+- [67677fb](https://github.com/alexpasmantier/television/commit/67677fb917b6d59d8217eaf6369b95f5ba940ff0) *(uncategorized)* All channels are now cable channels by @alexpasmantier in [#479](https://github.com/alexpasmantier/television/pull/479) [**breaking**]
+
+### 📚 Documentation
+
+- [d3bb3b0](https://github.com/alexpasmantier/television/commit/d3bb3b0a5610b6896a698f89afcf2fb7a2aab44a) *(uncategorized)* Cleanup old todo list by @alexpasmantier in [#483](https://github.com/alexpasmantier/television/pull/483)
+
+### ⚙️ Miscellaneous Tasks
+
+- [a602dda](https://github.com/alexpasmantier/television/commit/a602dda34758f9f4a24f1c77b589216c12b9cfba) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#478](https://github.com/alexpasmantier/television/pull/478)
+
+
+
+### New Contributors
+* @cr4ftx made their first contribution in [#484](https://github.com/alexpasmantier/television/pull/484)
+
+
 ## [0.11.9](https://github.com/alexpasmantier/television/releases/tag/0.11.9) - 2025-04-21
 
 ### ⛰️  Features
