@@ -4,8 +4,9 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::entry::{Entry, PreviewType};
-use crate::channels::{OnAir, TelevisionChannel};
+use crate::channels::{
+    entry::Entry, preview::PreviewType, OnAir, TelevisionChannel,
+};
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;

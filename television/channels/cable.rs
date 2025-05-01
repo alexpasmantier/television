@@ -2,18 +2,20 @@ use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 
-use preview::{parse_preview_kind, PreviewKind};
 use prototypes::{CableChannelPrototype, DEFAULT_DELIMITER};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use crate::channels::entry::{Entry, PreviewCommand, PreviewType};
-use crate::channels::OnAir;
+use crate::channels::preview::parse_preview_type;
+use crate::channels::{
+    entry::Entry,
+    preview::{PreviewCommand, PreviewType},
+    OnAir,
+};
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
-pub mod preview;
 pub mod prototypes;
 
 #[allow(dead_code)]
@@ -21,7 +23,7 @@ pub struct Channel {
     pub name: String,
     matcher: Matcher<String>,
     entries_command: String,
-    preview_kind: PreviewKind,
+    preview_type: PreviewType,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
@@ -72,17 +74,17 @@ impl Channel {
         ));
         let preview_kind = match preview_command {
             Some(command) => {
-                parse_preview_kind(&command).unwrap_or_else(|_| {
+                parse_preview_type(&command).unwrap_or_else(|_| {
                     panic!("Invalid preview command: {command}")
                 })
             }
-            None => PreviewKind::None,
+            None => PreviewType::None,
         };
         debug!("Preview kind: {:?}", preview_kind);
         Self {
             matcher,
             entries_command: entries_command.to_string(),
-            preview_kind,
+            preview_type: preview_kind,
             name: name.to_string(),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle,
@@ -147,19 +149,8 @@ impl OnAir for Channel {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(
-                    path,
-                    match &self.preview_kind {
-                        PreviewKind::Command(ref preview_command) => {
-                            PreviewType::Command(preview_command.clone())
-                        }
-                        PreviewKind::Builtin(preview_type) => {
-                            preview_type.clone()
-                        }
-                        PreviewKind::None => PreviewType::None,
-                    },
-                )
-                .with_name_match_indices(&item.match_indices)
+                Entry::new(path, self.preview_type.clone())
+                    .with_name_match_indices(&item.match_indices)
             })
             .collect()
     }
@@ -167,16 +158,7 @@ impl OnAir for Channel {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(
-                path,
-                match &self.preview_kind {
-                    PreviewKind::Command(ref preview_command) => {
-                        PreviewType::Command(preview_command.clone())
-                    }
-                    PreviewKind::Builtin(preview_type) => preview_type.clone(),
-                    PreviewKind::None => PreviewType::None,
-                },
-            )
+            Entry::new(path, self.preview_type.clone())
         })
     }
 
@@ -207,6 +189,6 @@ impl OnAir for Channel {
     fn shutdown(&self) {}
 
     fn supports_preview(&self) -> bool {
-        self.preview_kind != PreviewKind::None
+        self.preview_type != PreviewType::None
     }
 }

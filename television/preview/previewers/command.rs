@@ -1,7 +1,9 @@
-use crate::channels::entry::{Entry, PreviewCommand};
-use crate::preview::cache::PreviewCache;
 use crate::preview::{Preview, PreviewContent};
 use crate::utils::command::shell_command;
+use crate::{
+    channels::{entry::Entry, preview::PreviewCommand},
+    preview::cache::PreviewCache,
+};
 use parking_lot::Mutex;
 use regex::Regex;
 use rustc_hash::FxHashSet;
@@ -127,7 +129,7 @@ impl CommandPreviewer {
 ///
 /// # Example
 /// ```
-/// use television::channels::entry::{PreviewCommand, PreviewType, Entry};
+/// use television::channels::{preview::{PreviewCommand, PreviewType}, entry::Entry};
 /// use television::preview::previewers::command::format_command;
 ///
 /// let command = PreviewCommand {
@@ -209,7 +211,7 @@ pub fn try_preview(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::channels::entry::{Entry, PreviewType};
+    use crate::channels::{entry::Entry, preview::PreviewType};
 
     #[test]
     fn test_format_command() {
