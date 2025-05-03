@@ -50,6 +50,8 @@ show_help_bar = false
 show_preview_panel = true
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
+# What orientation should tv be (landscape or portrait)
+orientation = "landscape"
 # DEPRECATED: title is now always displayed at the top as part of the border
 # Where to place the preview title in the UI (top or bottom)
 # preview_title_position = "top"

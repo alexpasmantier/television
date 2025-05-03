@@ -69,6 +69,17 @@ impl Display for InputPosition {
 #[derive(
     Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
 )]
+pub enum Orientation {
+    #[serde(rename = "landscape")]
+    #[default]
+    Landscape,
+    #[serde(rename = "portrait")]
+    Portrait,
+}
+
+#[derive(
+    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
+)]
 pub enum PreviewTitlePosition {
     #[serde(rename = "top")]
     #[default]
@@ -168,26 +179,57 @@ impl Layout {
             help_bar_layout = None;
         }
 
-        // split the main block into 1, 2, or 3 vertical chunks
-        // (results + preview + remote)
-        let mut constraints = vec![Constraint::Fill(1)];
-        if show_preview {
-            constraints.push(Constraint::Fill(1));
-        }
-        if show_remote {
-            // in order to fit with the help bar logo
-            constraints.push(Constraint::Length(24));
-        }
-        let vt_chunks = layout::Layout::default()
+        let remote_constraints = if show_remote {
+            vec![Constraint::Fill(1), Constraint::Length(24)]
+        } else {
+            vec![Constraint::Fill(1)]
+        };
+        let remote_chunks = layout::Layout::default()
             .direction(Direction::Horizontal)
-            .constraints(constraints)
+            .constraints(remote_constraints)
             .split(main_rect);
 
-        // left block: results + input field
+        let remote_control = if show_remote {
+            Some(remote_chunks[1])
+        } else {
+            None
+        };
+
+        // split the main block into 1 or 2 chunks
+        // (results + preview)
+        let constraints = if show_preview {
+            vec![Constraint::Fill(1), Constraint::Fill(1)]
+        } else {
+            vec![Constraint::Fill(1)]
+        };
+
+        let main_chunks = layout::Layout::default()
+            .direction(match ui_config.orientation {
+                Orientation::Portrait => Direction::Vertical,
+                Orientation::Landscape => Direction::Horizontal,
+            })
+            .constraints(constraints)
+            .split(remote_chunks[0]);
+
+        // result block: results + input field
         let results_constraints =
             vec![Constraint::Min(3), Constraint::Length(3)];
 
-        let left_chunks = layout::Layout::default()
+        let (result_window, preview_window) = if show_preview {
+            match (ui_config.orientation, ui_config.input_bar_position) {
+                (Orientation::Landscape, _)
+                | (Orientation::Portrait, InputPosition::Top) => {
+                    (main_chunks[0], Some(main_chunks[1]))
+                }
+                (Orientation::Portrait, InputPosition::Bottom) => {
+                    (main_chunks[1], Some(main_chunks[0]))
+                }
+            }
+        } else {
+            (main_chunks[0], None)
+        };
+
+        let result_chunks = layout::Layout::default()
             .direction(Direction::Vertical)
             .constraints(match ui_config.input_bar_position {
                 InputPosition::Top => {
@@ -195,25 +237,10 @@ impl Layout {
                 }
                 InputPosition::Bottom => results_constraints,
             })
-            .split(vt_chunks[0]);
+            .split(result_window);
         let (input, results) = match ui_config.input_bar_position {
-            InputPosition::Bottom => (left_chunks[1], left_chunks[0]),
-            InputPosition::Top => (left_chunks[0], left_chunks[1]),
-        };
-
-        // right block: preview title + preview
-        let mut remote_idx = 1;
-        let preview_window = if show_preview {
-            remote_idx += 1;
-            Some(vt_chunks[1])
-        } else {
-            None
-        };
-
-        let remote_control = if show_remote {
-            Some(vt_chunks[remote_idx])
-        } else {
-            None
+            InputPosition::Bottom => (result_chunks[1], result_chunks[0]),
+            InputPosition::Top => (result_chunks[0], result_chunks[1]),
         };
 
         Self::new(
