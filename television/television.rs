@@ -2,7 +2,10 @@ use crate::{
     action::Action,
     cable::load_cable_channels,
     channels::{
-        cable::{prototypes::CableChannelPrototypes, Channel as CableChannel},
+        cable::{
+            prototypes::{CableChannelPrototype, CableChannelPrototypes},
+            Channel as CableChannel,
+        },
         entry::{Entry, ENTRY_PLACEHOLDER},
         remote_control::RemoteControl,
         // stdin::Channel as StdinChannel,
@@ -46,7 +49,7 @@ pub enum MatchingMode {
 pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub config: Config,
-    pub channel: TelevisionChannel,
+    pub channel: CableChannel,
     pub remote_control: Option<TelevisionChannel>,
     pub mode: Mode,
     pub current_pattern: String,
@@ -68,7 +71,7 @@ impl Television {
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        mut channel: TelevisionChannel,
+        channel_prototype: CableChannelPrototype,
         mut config: Config,
         input: Option<String>,
         no_remote: bool,
@@ -81,17 +84,8 @@ impl Television {
             results_picker = results_picker.inverted();
         }
 
-        let previewer = match &channel {
-            // TelevisionChannel::Stdin(StdinChannel {
-            //     preview_command: command,
-            //     ..
-            // }) |
-            TelevisionChannel::Cable(CableChannel {
-                preview_command: command,
-                ..
-            }) => command.clone().map(Previewer::new),
-            _ => None,
-        };
+        let previewer: Option<Previewer> = (&channel_prototype).into();
+        let mut channel: CableChannel = channel_prototype.into();
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -166,7 +160,7 @@ impl Television {
 
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
-            self.channel.name(),
+            self.channel.name.clone(),
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),
@@ -193,20 +187,24 @@ impl Television {
     }
 
     pub fn current_channel(&self) -> String {
-        self.channel.name()
+        self.channel.name.clone()
     }
 
-    pub fn change_channel(&mut self, channel: TelevisionChannel) {
+    pub fn change_channel(
+        &mut self,
+        channel_prototype: CableChannelPrototype,
+    ) {
         self.preview_state.reset();
-        self.preview_state.enabled = channel.supports_preview();
+        self.preview_state.enabled =
+            channel_prototype.preview_command.is_some();
         self.reset_picker_selection();
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
         self.channel.shutdown();
-        self.channel = channel;
+        self.channel = channel_prototype.into();
     }
 
-    fn find(&mut self, pattern: &str) {
+    pub fn find(&mut self, pattern: &str) {
         match self.mode {
             Mode::Channel => {
                 self.channel.find(
@@ -530,6 +528,7 @@ impl Television {
                         .remote_control
                         .as_ref()
                         .unwrap()
+                        // FIXME: is the TelevisionChannel enum still worth it?
                         .zap(entry.name.as_str())?;
                     // this resets the RC picker
                     self.reset_picker_selection();

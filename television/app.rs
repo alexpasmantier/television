@@ -4,8 +4,10 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::cable::prototypes::CableChannelPrototypes;
-use crate::channels::{entry::Entry, OnAir, TelevisionChannel};
+use crate::channels::cable::prototypes::{
+    CableChannelPrototype, CableChannelPrototypes,
+};
+use crate::channels::{entry::Entry, OnAir};
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;
@@ -97,8 +99,6 @@ pub struct App {
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
     options: AppOptions,
-    /// The cable channels that are available.
-    cable_channels: CableChannelPrototypes,
 }
 
 /// The outcome of an action.
@@ -138,7 +138,7 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel: TelevisionChannel,
+        channel_prototype: CableChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
@@ -154,7 +154,7 @@ impl App {
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television = Television::new(
             action_tx.clone(),
-            channel,
+            channel_prototype,
             config,
             input,
             options.no_remote,
@@ -178,7 +178,6 @@ impl App {
             ui_state_tx,
             render_task: None,
             options,
-            cable_channels,
         }
     }
 
@@ -443,14 +442,13 @@ impl App {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::channels::cable::Channel as CableChannel;
 
     #[test]
     fn test_maybe_select_1() {
         let mut app = App::new(
-            TelevisionChannel::Cable(CableChannel::new(
-                "random", "cat", false, None,
-            )),
+            CableChannelPrototype::new(
+                "random", "cat", false, None, None, None,
+            ),
             Config::default(),
             None,
             AppOptions::default(),

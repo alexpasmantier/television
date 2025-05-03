@@ -1,3 +1,4 @@
+use crate::channels::cable::prototypes::CableChannelPrototype;
 use crate::preview::{Preview, PreviewContent};
 use crate::utils::cache::RingSet;
 use crate::utils::command::shell_command;
@@ -149,4 +150,14 @@ pub fn try_preview(
 
     concurrent_tasks.fetch_sub(1, Ordering::Relaxed);
     in_flight_previews.lock().remove(&entry.name);
+}
+
+impl From<&CableChannelPrototype> for Option<Previewer> {
+    fn from(value: &CableChannelPrototype) -> Self {
+        if let Some(preview_command) = value.into() {
+            Some(Previewer::new(preview_command))
+        } else {
+            None
+        }
+    }
 }

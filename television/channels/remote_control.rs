@@ -2,13 +2,13 @@ use std::collections::HashSet;
 
 use crate::channels::cable::prototypes::CableChannelPrototypes;
 use crate::channels::entry::Entry;
-use crate::channels::{OnAir, TelevisionChannel};
+use crate::channels::OnAir;
 use crate::matcher::{config::Config, Matcher};
 use anyhow::Result;
 use devicons::FileIcon;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
-use super::cable;
+use super::cable::prototypes::CableChannelPrototype;
 
 pub struct RemoteControl {
     matcher: Matcher<String>,
@@ -38,15 +38,13 @@ impl RemoteControl {
         }
     }
 
-    pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
+    pub fn zap(&self, channel_name: &str) -> Result<CableChannelPrototype> {
         match self
             .cable_channels
             .as_ref()
             .and_then(|channels| channels.get(channel_name).cloned())
         {
-            Some(prototype) => {
-                Ok(TelevisionChannel::Cable(cable::Channel::from(prototype)))
-            }
+            Some(prototype) => Ok(prototype),
             None => Err(anyhow::anyhow!(
                 "No channel or cable channel prototype found for {}",
                 channel_name

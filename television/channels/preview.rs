@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::entry::Entry;
+use super::{cable::prototypes::DEFAULT_DELIMITER, entry::Entry};
 use crate::channels::cable::prototypes::CableChannelPrototype;
 use lazy_regex::{regex, Lazy, Regex};
 
@@ -62,26 +62,23 @@ impl PreviewCommand {
     }
 }
 
-impl TryFrom<&CableChannelPrototype> for PreviewCommand {
-    type Error = anyhow::Error;
+impl From<&CableChannelPrototype> for Option<PreviewCommand> {
+    fn from(value: &CableChannelPrototype) -> Self {
+        if let Some(command) = value.preview_command.as_ref() {
+            let delimiter = value
+                .preview_delimiter
+                .as_ref()
+                .map_or(DEFAULT_DELIMITER, |v| v);
 
-    fn try_from(value: &CableChannelPrototype) -> Result<Self, Self::Error> {
-        let command = value
-            .preview_command
-            .as_ref()
-            .expect("Preview command is not set.");
+            let offset_expr = value.preview_offset.clone();
 
-        let delimiter = value
-            .preview_delimiter
-            .as_ref()
-            .expect("Preview delimiter is not set");
-
-        let offset_expr = value.preview_offset.clone();
-
-        // FIXME: handle offset here (side note: we don't want to reparse the offset
-        // expression for each entry, so maybe just parse it once and try to store it
-        // as some sort of function we can call later on
-        Ok(PreviewCommand::new(command, delimiter, offset_expr))
+            // FIXME: handle offset here (side note: we don't want to reparse the offset
+            // expression for each entry, so maybe just parse it once and try to store it
+            // as some sort of function we can call later on
+            Some(PreviewCommand::new(command, delimiter, offset_expr))
+        } else {
+            None
+        }
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::channels::entry::Entry;
 use anyhow::Result;
+use cable::prototypes::CableChannelPrototype;
 use rustc_hash::FxHashSet;
 use television_derive::Broadcast;
 
@@ -130,7 +131,7 @@ pub enum TelevisionChannel {
 }
 
 impl TelevisionChannel {
-    pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
+    pub fn zap(&self, channel_name: &str) -> Result<CableChannelPrototype> {
         match self {
             TelevisionChannel::RemoteControl(remote_control) => {
                 remote_control.zap(channel_name)

@@ -14,7 +14,7 @@ use television::{
     channels::{
         cable::prototypes::CableChannelPrototype,
         entry::{into_ranges, Entry},
-        OnAir, TelevisionChannel,
+        OnAir,
     },
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, results::build_results_list},
@@ -472,10 +472,7 @@ pub fn draw(c: &mut Criterion) {
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
-                let mut channel = TelevisionChannel::Cable(
-                    CableChannelPrototype::default().into(),
-                );
-                channel.find("television");
+                let channel = CableChannelPrototype::default();
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
                     tx,
@@ -487,6 +484,7 @@ pub fn draw(c: &mut Criterion) {
                     false,
                     CableChannelPrototypes::default(),
                 );
+                tv.find("television");
                 for _ in 0..5 {
                     // tick the matcher
                     let _ = tv.channel.results(10, 0);
