@@ -18,7 +18,7 @@ pub struct Channel {
     pub name: String,
     matcher: Matcher<String>,
     entries_command: String,
-    preview_command: Option<PreviewCommand>,
+    pub preview_command: Option<PreviewCommand>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
@@ -29,7 +29,7 @@ impl Default for Channel {
             "files",
             "find . -type f",
             false,
-            Some(PreviewCommand::new("cat {}", ":")),
+            Some(PreviewCommand::new("cat {}", ":", None)),
         )
     }
 }
@@ -46,6 +46,7 @@ impl From<CableChannelPrototype> for Channel {
                     &prototype
                         .preview_delimiter
                         .unwrap_or(DEFAULT_DELIMITER.to_string()),
+                    prototype.preview_offset,
                 )),
                 None => None,
             },

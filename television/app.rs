@@ -4,6 +4,7 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
+use crate::channels::cable::prototypes::CableChannelPrototypes;
 use crate::channels::{entry::Entry, OnAir, TelevisionChannel};
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
@@ -96,6 +97,8 @@ pub struct App {
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
     options: AppOptions,
+    /// The cable channels that are available.
+    cable_channels: CableChannelPrototypes,
 }
 
 /// The outcome of an action.
@@ -139,6 +142,7 @@ impl App {
         config: Config,
         input: Option<String>,
         options: AppOptions,
+        cable_channels: CableChannelPrototypes,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -156,6 +160,7 @@ impl App {
             options.no_remote,
             options.no_help,
             options.exact,
+            CableChannelPrototypes(cable_channels.clone()),
         );
 
         Self {
@@ -173,6 +178,7 @@ impl App {
             ui_state_tx,
             render_task: None,
             options,
+            cable_channels,
         }
     }
 
@@ -198,7 +204,7 @@ impl App {
         // Event loop
         if !headless {
             debug!("Starting backend event loop");
-            let event_loop = EventLoop::new(self.options.tick_rate, true);
+            let event_loop = EventLoop::new(self.options.tick_rate);
             self.event_rx = event_loop.rx;
             self.event_abort_tx = event_loop.abort_tx;
         }
@@ -437,15 +443,18 @@ impl App {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::channels::stdin::Channel as StdinChannel;
+    use crate::channels::cable::Channel as CableChannel;
 
     #[test]
     fn test_maybe_select_1() {
         let mut app = App::new(
-            TelevisionChannel::Stdin(StdinChannel::new(None)),
+            TelevisionChannel::Cable(CableChannel::new(
+                "random", "cat", false, None,
+            )),
             Config::default(),
             None,
             AppOptions::default(),
+            CableChannelPrototypes::default(),
         );
         app.television
             .results_picker

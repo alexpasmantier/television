@@ -1,8 +1,8 @@
 use std::fmt::Display;
 
-use lazy_regex::{regex, Lazy, Regex};
-
 use super::entry::Entry;
+use crate::channels::cable::prototypes::CableChannelPrototype;
+use lazy_regex::{regex, Lazy, Regex};
 
 static CMD_RE: &Lazy<Regex> = regex!(r"\{(\d+)\}");
 
@@ -10,13 +10,19 @@ static CMD_RE: &Lazy<Regex> = regex!(r"\{(\d+)\}");
 pub struct PreviewCommand {
     pub command: String,
     pub delimiter: String,
+    pub offset_expr: Option<String>,
 }
 
 impl PreviewCommand {
-    pub fn new(command: &str, delimiter: &str) -> Self {
+    pub fn new(
+        command: &str,
+        delimiter: &str,
+        offset_expr: Option<String>,
+    ) -> Self {
         Self {
             command: command.to_string(),
             delimiter: delimiter.to_string(),
+            offset_expr,
         }
     }
 
@@ -29,6 +35,7 @@ impl PreviewCommand {
     /// let command = PreviewCommand {
     ///     command: "something {} {2} {0}".to_string(),
     ///     delimiter: ":".to_string(),
+    ///     offset_expr: None,
     /// };
     /// let entry = Entry::new("a:given:entry:to:preview".to_string());
     ///
@@ -55,6 +62,29 @@ impl PreviewCommand {
     }
 }
 
+impl TryFrom<&CableChannelPrototype> for PreviewCommand {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &CableChannelPrototype) -> Result<Self, Self::Error> {
+        let command = value
+            .preview_command
+            .as_ref()
+            .expect("Preview command is not set.");
+
+        let delimiter = value
+            .preview_delimiter
+            .as_ref()
+            .expect("Preview delimiter is not set");
+
+        let offset_expr = value.preview_offset.clone();
+
+        // FIXME: handle offset here (side note: we don't want to reparse the offset
+        // expression for each entry, so maybe just parse it once and try to store it
+        // as some sort of function we can call later on
+        Ok(PreviewCommand::new(command, delimiter, offset_expr))
+    }
+}
+
 impl Display for PreviewCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{self:?}")
@@ -71,6 +101,7 @@ mod tests {
         let command = PreviewCommand {
             command: "something {} {2} {0}".to_string(),
             delimiter: ":".to_string(),
+            offset_expr: None,
         };
         let entry = Entry::new("an:entry:to:preview".to_string());
         let formatted_command = command.format_with(&entry);
@@ -86,6 +117,7 @@ mod tests {
         let command = PreviewCommand {
             command: "something".to_string(),
             delimiter: ":".to_string(),
+            offset_expr: None,
         };
         let entry = Entry::new("an:entry:to:preview".to_string());
         let formatted_command = command.format_with(&entry);
@@ -98,6 +130,7 @@ mod tests {
         let command = PreviewCommand {
             command: "something {}".to_string(),
             delimiter: ":".to_string(),
+            offset_expr: None,
         };
         let entry = Entry::new("an:entry:to:preview".to_string());
         let formatted_command = command.format_with(&entry);
@@ -110,6 +143,7 @@ mod tests {
         let command = PreviewCommand {
             command: "something {0} -t {2}".to_string(),
             delimiter: ":".to_string(),
+            offset_expr: None,
         };
         let entry = Entry::new("an:entry:to:preview".to_string());
         let formatted_command = command.format_with(&entry);

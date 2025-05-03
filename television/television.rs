@@ -1,21 +1,29 @@
-use crate::action::Action;
-use crate::cable::load_cable_channels;
-use crate::channels::entry::{Entry, ENTRY_PLACEHOLDER};
-use crate::channels::{
-    remote_control::RemoteControl, OnAir, TelevisionChannel,
+use crate::{
+    action::Action,
+    cable::load_cable_channels,
+    channels::{
+        cable::{prototypes::CableChannelPrototypes, Channel as CableChannel},
+        entry::{Entry, ENTRY_PLACEHOLDER},
+        remote_control::RemoteControl,
+        // stdin::Channel as StdinChannel,
+        OnAir,
+        TelevisionChannel,
+    },
+    config::{Config, Theme},
+    draw::{ChannelState, Ctx, TvState},
+    input::convert_action_to_input_request,
+    picker::Picker,
+    preview::{previewer::Previewer, Preview, PreviewState},
+    render::UiState,
+    screen::{
+        colors::Colorscheme,
+        layout::InputPosition,
+        spinner::{Spinner, SpinnerState},
+    },
+    utils::{
+        clipboard::CLIPBOARD, metadata::AppMetadata, strings::EMPTY_STRING,
+    },
 };
-use crate::config::{Config, Theme};
-use crate::draw::{ChannelState, Ctx, TvState};
-use crate::input::convert_action_to_input_request;
-use crate::picker::Picker;
-use crate::preview::{previewer::Previewer, Preview, PreviewState};
-use crate::render::UiState;
-use crate::screen::colors::Colorscheme;
-use crate::screen::layout::InputPosition;
-use crate::screen::spinner::{Spinner, SpinnerState};
-use crate::utils::clipboard::CLIPBOARD;
-use crate::utils::metadata::AppMetadata;
-use crate::utils::strings::EMPTY_STRING;
 use anyhow::Result;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
@@ -45,7 +53,7 @@ pub struct Television {
     pub matching_mode: MatchingMode,
     pub results_picker: Picker,
     pub rc_picker: Picker,
-    pub previewer: Previewer,
+    pub previewer: Option<Previewer>,
     pub preview_state: PreviewState,
     pub spinner: Spinner,
     pub spinner_state: SpinnerState,
@@ -66,14 +74,24 @@ impl Television {
         no_remote: bool,
         no_help: bool,
         exact: bool,
+        cable_channels: CableChannelPrototypes,
     ) -> Self {
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
-        // FIXME: fix this
-        let previewer = Previewer::new();
-        let cable_channels = load_cable_channels().unwrap_or_default();
+
+        let previewer = match &channel {
+            // TelevisionChannel::Stdin(StdinChannel {
+            //     preview_command: command,
+            //     ..
+            // }) |
+            TelevisionChannel::Cable(CableChannel {
+                preview_command: command,
+                ..
+            }) => command.clone().map(Previewer::new),
+            _ => None,
+        };
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -369,10 +387,14 @@ impl Television {
         &mut self,
         selected_entry: &Entry,
     ) -> Result<()> {
-        if self.config.ui.show_preview_panel && self.channel.supports_preview()
+        if self.config.ui.show_preview_panel
+            && self.channel.supports_preview()
+            && self.previewer.is_some()
         {
             // preview content
-            if let Some(preview) = self.previewer.preview(selected_entry) {
+            if let Some(preview) =
+                self.previewer.as_mut().unwrap().preview(selected_entry)
+            {
                 // only update if the preview content has changed
                 if self.preview_state.preview.title != preview.title {
                     self.preview_state.update(

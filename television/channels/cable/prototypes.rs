@@ -106,9 +106,11 @@ impl Display for CableChannelPrototype {
 /// in a way that facilitates answering questions like "what's the prototype
 /// for `files`?" or "does this channel exist?".
 #[derive(Debug, serde::Deserialize)]
-pub struct CableChannels(pub FxHashMap<String, CableChannelPrototype>);
+pub struct CableChannelPrototypes(
+    pub FxHashMap<String, CableChannelPrototype>,
+);
 
-impl Deref for CableChannels {
+impl Deref for CableChannelPrototypes {
     type Target = FxHashMap<String, CableChannelPrototype>;
 
     fn deref(&self) -> &Self::Target {
@@ -127,18 +129,18 @@ const DEFAULT_CABLE_CHANNELS_FILE: &str =
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
     include_str!("../../cable/windows-channels.toml");
 
-impl Default for CableChannels {
+impl Default for CableChannelPrototypes {
     /// Fallback to the default cable channels specification (the template file
     /// included in the repo).
     fn default() -> Self {
-        let pts = toml::from_str::<SerializedChannelPrototypes>(
+        let s = toml::from_str::<SerializedChannelPrototypes>(
             DEFAULT_CABLE_CHANNELS_FILE,
         )
         .expect("Unable to parse default cable channels");
-        let mut channels = FxHashMap::default();
-        for prototype in pts.prototypes {
-            channels.insert(prototype.name.clone(), prototype);
+        let mut prototypes = FxHashMap::default();
+        for prototype in s.prototypes {
+            prototypes.insert(prototype.name.clone(), prototype);
         }
-        CableChannels(channels)
+        CableChannelPrototypes(prototypes)
     }
 }

@@ -13,7 +13,7 @@ use crate::matcher::{config::Config, injector::Injector, Matcher};
 
 pub struct Channel {
     matcher: Matcher<String>,
-    preview_command: Option<PreviewCommand>,
+    pub preview_command: Option<PreviewCommand>,
     selected_entries: FxHashSet<Entry>,
     instream_handle: std::thread::JoinHandle<()>,
 }

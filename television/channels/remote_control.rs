@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use crate::channels::cable::prototypes::CableChannels;
+use crate::channels::cable::prototypes::CableChannelPrototypes;
 use crate::channels::entry::Entry;
 use crate::channels::{OnAir, TelevisionChannel};
 use crate::matcher::{config::Config, Matcher};
@@ -12,19 +12,19 @@ use super::cable;
 
 pub struct RemoteControl {
     matcher: Matcher<String>,
-    cable_channels: Option<CableChannels>,
+    cable_channels: Option<CableChannelPrototypes>,
     selected_entries: FxHashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Option<CableChannels>) -> Self {
+    pub fn new(cable_channels: Option<CableChannelPrototypes>) -> Self {
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         for c in cable_channels
             .as_ref()
-            .unwrap_or(&CableChannels::default())
+            .unwrap_or(&CableChannelPrototypes::default())
             .keys()
         {
             let () = injector.push(c.clone(), |e, cols| {

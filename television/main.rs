@@ -7,7 +7,9 @@ use anyhow::Result;
 use clap::Parser;
 use crossterm::terminal::enable_raw_mode;
 use television::cable;
-use television::channels::cable::prototypes::CableChannels;
+use television::channels::cable::prototypes::{
+    CableChannelPrototype, CableChannelPrototypes,
+};
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -81,7 +83,8 @@ async fn main() -> Result<()> {
         args.no_help,
         config.application.tick_rate,
     );
-    let mut app = App::new(channel, config, args.input, options);
+    let mut app =
+        App::new(channel, config, args.input, options, cable_channels);
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -157,8 +160,8 @@ pub fn determine_channel(
     args: PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
-    cable_channels: &CableChannels,
-) -> Result<TelevisionChannel> {
+    cable_channels: &CableChannelPrototypes,
+) -> Result<CableChannelPrototype> {
     if readable_stdin {
         debug!("Using stdin channel");
         Ok(TelevisionChannel::Stdin(StdinChannel::new(
@@ -197,9 +200,9 @@ mod tests {
         config: &Config,
         readable_stdin: bool,
         expected_channel: &TelevisionChannel,
-        cable_channels: Option<CableChannels>,
+        cable_channels: Option<CableChannelPrototypes>,
     ) {
-        let channels: CableChannels = cable_channels
+        let channels: CableChannelPrototypes = cable_channels
             .unwrap_or_else(|| load_cable_channels().unwrap_or_default());
         let channel =
             determine_channel(args.clone(), config, readable_stdin, &channels)

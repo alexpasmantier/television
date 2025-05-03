@@ -5,7 +5,7 @@ use anyhow::{anyhow, Result};
 use tracing::debug;
 
 use crate::channels::cable::prototypes::{
-    CableChannelPrototype, CableChannels,
+    CableChannelPrototype, CableChannelPrototypes,
 };
 use crate::channels::preview::PreviewCommand;
 use crate::cli::args::{Cli, Command};
@@ -76,6 +76,8 @@ impl From<Cli> for PostProcessedCli {
         let preview_command = cli.preview.map(|preview| PreviewCommand {
             command: preview,
             delimiter: cli.delimiter.clone(),
+            // TODO: add the --preview-offset option to the CLI
+            offset_expr: None,
         });
 
         let channel: CableChannelPrototype;
@@ -170,7 +172,7 @@ fn parse_keybindings_literal(
 
 pub fn parse_channel(
     channel: &str,
-    cable_channels: &CableChannels,
+    cable_channels: &CableChannelPrototypes,
 ) -> Result<CableChannelPrototype> {
     // try to parse the channel as a cable channel
     match cable_channels
@@ -215,7 +217,7 @@ pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
     fallback_channel: &str,
-    cable_channels: &CableChannels,
+    cable_channels: &CableChannelPrototypes,
 ) -> Result<CableChannelPrototype> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
@@ -317,7 +319,8 @@ mod tests {
             post_processed_cli.preview_command,
             Some(PreviewCommand {
                 command: "bat -n --color=always {}".to_string(),
-                delimiter: ":".to_string()
+                delimiter: ":".to_string(),
+                offset_expr: None,
             })
         );
         assert_eq!(post_processed_cli.tick_rate, None);
@@ -377,7 +380,7 @@ mod tests {
 
     /// Returns a tuple containing a command mapping and a fallback channel.
     fn guess_channel_from_prompt_setup<'a>(
-    ) -> (FxHashMap<String, String>, &'a str, CableChannels) {
+    ) -> (FxHashMap<String, String>, &'a str, CableChannelPrototypes) {
         let mut command_mapping = FxHashMap::default();
         command_mapping.insert("vim".to_string(), "files".to_string());
         command_mapping.insert("export".to_string(), "env".to_string());

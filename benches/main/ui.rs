@@ -8,12 +8,12 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
+use television::channels::cable::prototypes::CableChannelPrototypes;
 use television::{
     action::Action,
     channels::{
         cable::prototypes::CableChannelPrototype,
         entry::{into_ranges, Entry},
-        preview::PreviewType,
         OnAir, TelevisionChannel,
     },
     config::{Config, ConfigEnv},
@@ -37,7 +37,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#7e8e91",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/README.md".to_string(),
@@ -49,7 +48,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#dddddd",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/re.pyi".to_string(),
@@ -61,7 +59,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/io.pyi".to_string(),
@@ -73,7 +70,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/gc.pyi".to_string(),
@@ -85,7 +81,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/uu.pyi".to_string(),
@@ -97,7 +92,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/nt.pyi".to_string(),
@@ -109,7 +103,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/dis.pyi".to_string(),
@@ -121,7 +114,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/imp.pyi".to_string(),
@@ -133,7 +125,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/bdb.pyi".to_string(),
@@ -145,7 +136,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/abc.pyi".to_string(),
@@ -157,7 +147,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/cgi.pyi".to_string(),
@@ -169,7 +158,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/bz2.pyi".to_string(),
@@ -181,7 +169,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/grp.pyi".to_string(),
@@ -193,7 +180,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/ast.pyi".to_string(),
@@ -205,7 +191,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/csv.pyi".to_string(),
@@ -217,7 +202,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/pdb.pyi".to_string(),
@@ -229,7 +213,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/pwd.pyi".to_string(),
@@ -241,7 +224,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/ssl.pyi".to_string(),
@@ -253,7 +235,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/tty.pyi".to_string(),
@@ -265,7 +246,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/nis.pyi".to_string(),
@@ -277,7 +257,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/pty.pyi".to_string(),
@@ -289,7 +268,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/cmd.pyi".to_string(),
@@ -301,7 +279,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/tests/utils.py".to_string(),
@@ -313,7 +290,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/pyproject.toml".to_string(),
@@ -325,7 +301,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#9c4221",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/MAINTAINERS.md".to_string(),
@@ -337,7 +312,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#dddddd",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/enum.pyi".to_string(),
@@ -349,7 +323,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/hmac.pyi".to_string(),
@@ -361,7 +334,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/uuid.pyi".to_string(),
@@ -373,7 +345,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/glob.pyi".to_string(),
@@ -385,7 +356,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/_ast.pyi".to_string(),
@@ -397,7 +367,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/_csv.pyi".to_string(),
@@ -409,7 +378,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/code.pyi".to_string(),
@@ -421,7 +389,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/spwd.pyi".to_string(),
@@ -433,7 +400,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/_msi.pyi".to_string(),
@@ -445,7 +411,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
         },
         Entry {
             name: "typeshed/stdlib/time.pyi".to_string(),
@@ -456,7 +421,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                 color: "#ffbc03",
             }),
             line_number: None,
-            preview_type: PreviewType::Files,
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             value_match_ranges: None,
         },
@@ -514,7 +478,14 @@ pub fn draw(c: &mut Criterion) {
                 channel.find("television");
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
-                    tx, channel, config, None, false, false, false,
+                    tx,
+                    channel,
+                    config,
+                    None,
+                    false,
+                    false,
+                    false,
+                    CableChannelPrototypes::default(),
                 );
                 for _ in 0..5 {
                     // tick the matcher
