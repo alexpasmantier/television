@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use devicons::FileIcon;
 
-pub mod ansi;
 pub mod cache;
 pub mod meta;
 pub mod previewer;

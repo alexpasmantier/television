@@ -51,15 +51,13 @@ human-panic = "2.0"
 # FIXME: we probably don't need strum anymore
 strum = { version = "0.26", features = ["derive"] }
 parking_lot = "0.12"
-nom = "7.1"
 thiserror = "2.0"
-simdutf8 = { version = "0.1", optional = true }
-smallvec = { version = "1.13", features = ["const_generics"] }
 nucleo = "0.5"
 toml = "0.8"
 lazy-regex = { version = "3.4.1", features = [
   "lite",
 ], default-features = false }
+ansi-to-tui = "7.0.0"
 
 
 # target specific dependencies
@@ -77,11 +75,6 @@ clipboard-win = "5.4.0"
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
 tempfile = "3.16.0"
-
-[features]
-simd = ["dep:simdutf8"]
-zero-copy = []
-default = ["zero-copy", "simd"]
 
 
 [build-dependencies]

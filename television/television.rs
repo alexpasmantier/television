@@ -6,7 +6,7 @@ use crate::{
             prototypes::{CableChannelPrototype, CableChannelPrototypes},
             Channel as CableChannel,
         },
-        entry::{Entry, ENTRY_PLACEHOLDER},
+        entry::Entry,
         remote_control::RemoteControl,
         // stdin::Channel as StdinChannel,
         OnAir,
@@ -201,6 +201,7 @@ impl Television {
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
         self.channel.shutdown();
+        self.previewer = (&channel_prototype).into();
         self.channel = channel_prototype.into();
     }
 
@@ -387,11 +388,15 @@ impl Television {
     ) -> Result<()> {
         if self.config.ui.show_preview_panel
             && self.channel.supports_preview()
+            // FIXME: this is probably redundant with the channel supporting previews
             && self.previewer.is_some()
         {
             // preview content
-            if let Some(preview) =
-                self.previewer.as_mut().unwrap().preview(selected_entry)
+            if let Some(preview) = self
+                .previewer
+                .as_mut()
+                .unwrap()
+                .handle_request(selected_entry)
             {
                 // only update if the preview content has changed
                 if self.preview_state.preview.title != preview.title {
@@ -648,11 +653,11 @@ impl Television {
             self.update_rc_picker_state();
         }
 
-        let selected_entry = self
-            .get_selected_entry(Some(Mode::Channel))
-            .unwrap_or(ENTRY_PLACEHOLDER);
-
-        self.update_preview_state(&selected_entry)?;
+        if let Some(selected_entry) =
+            self.get_selected_entry(Some(Mode::Channel))
+        {
+            self.update_preview_state(&selected_entry)?;
+        }
 
         self.ticks += 1;
 

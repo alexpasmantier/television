@@ -5,7 +5,6 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
-use crossterm::terminal::enable_raw_mode;
 use television::cable;
 use television::channels::cable::prototypes::{
     CableChannelPrototype, CableChannelPrototypes,
@@ -51,8 +50,6 @@ async fn main() -> Result<()> {
     args.command
         .as_ref()
         .map(|x| handle_subcommands(x, &config));
-
-    enable_raw_mode()?;
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
@@ -161,9 +158,7 @@ pub fn determine_channel(
 ) -> Result<CableChannelPrototype> {
     if readable_stdin {
         debug!("Using stdin channel");
-        Ok(CableChannelPrototype::new(
-            "STDIN", "cat", false, None, None, None,
-        ))
+        Ok(CableChannelPrototype::stdin(args.preview_command))
     } else if let Some(prompt) = args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let channel_prototype = guess_channel_from_prompt(

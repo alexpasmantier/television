@@ -4,7 +4,9 @@ use std::{
     ops::Deref,
 };
 
-use crate::cable::SerializedChannelPrototypes;
+use crate::{
+    cable::SerializedChannelPrototypes, channels::preview::PreviewCommand,
+};
 
 /// A prototype for a cable channel.
 ///
@@ -49,6 +51,9 @@ pub struct CableChannelPrototype {
     pub preview_offset: Option<String>,
 }
 
+const STDIN_CHANNEL_NAME: &str = "stdin";
+const STDIN_SOURCE_COMMAND: &str = "cat";
+
 impl CableChannelPrototype {
     pub fn new(
         name: &str,
@@ -65,6 +70,31 @@ impl CableChannelPrototype {
             preview_command,
             preview_delimiter,
             preview_offset,
+        }
+    }
+
+    pub fn stdin(preview: Option<PreviewCommand>) -> Self {
+        match preview {
+            Some(PreviewCommand {
+                command,
+                delimiter,
+                offset_expr,
+            }) => Self {
+                name: STDIN_CHANNEL_NAME.to_string(),
+                source_command: STDIN_SOURCE_COMMAND.to_string(),
+                interactive: false,
+                preview_command: Some(command),
+                preview_delimiter: Some(delimiter),
+                preview_offset: offset_expr,
+            },
+            None => Self {
+                name: STDIN_CHANNEL_NAME.to_string(),
+                source_command: STDIN_SOURCE_COMMAND.to_string(),
+                interactive: false,
+                preview_command: None,
+                preview_delimiter: None,
+                preview_offset: None,
+            },
         }
     }
 }

@@ -143,15 +143,6 @@ impl Entry {
     }
 }
 
-pub const ENTRY_PLACEHOLDER: Entry = Entry {
-    name: String::new(),
-    value: None,
-    name_match_ranges: None,
-    value_match_ranges: None,
-    icon: None,
-    line_number: None,
-};
-
 #[cfg(test)]
 mod tests {
     use super::*;

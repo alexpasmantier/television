@@ -39,6 +39,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b46cbb362ab8752921c97e041f5e366ee6297bd428a31275b9fcf1e380f7299"
 
 [[package]]
+name = "ansi-to-tui"
+version = "7.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67555e1f1ece39d737e28c8a017721287753af3f93225e4a445b29ccb0f5912c"
+dependencies = [
+ "nom",
+ "ratatui",
+ "simdutf8",
+ "smallvec",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "anstream"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1392,6 +1405,7 @@ dependencies = [
 name = "television"
 version = "0.11.9"
 dependencies = [
+ "ansi-to-tui",
  "anyhow",
  "base64",
  "better-panic",
@@ -1404,15 +1418,12 @@ dependencies = [
  "directories",
  "human-panic",
  "lazy-regex",
- "nom",
  "nucleo",
  "parking_lot",
  "ratatui",
  "rustc-hash",
  "serde",
  "signal-hook",
- "simdutf8",
- "smallvec",
  "strum",
  "television-derive",
  "tempfile",

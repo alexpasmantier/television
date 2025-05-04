@@ -1,15 +1,14 @@
 use crate::preview::PreviewState;
-use crate::preview::{
-    ansi::IntoText, PreviewContent, LOADING_MSG, TIMEOUT_MSG,
-};
-use crate::screen::colors::{Colorscheme, PreviewColorscheme};
+use crate::preview::{PreviewContent, LOADING_MSG, TIMEOUT_MSG};
+use crate::screen::colors::Colorscheme;
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
 };
+use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::Frame;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -49,12 +48,12 @@ pub fn draw_preview_content_block(
     Ok(())
 }
 
-pub fn build_preview_paragraph<'a>(
+pub fn build_preview_paragraph(
     inner: Rect,
-    preview_content: &'a PreviewContent,
+    preview_content: &PreviewContent,
     target_line: Option<u16>,
     preview_scroll: u16,
-) -> Paragraph<'a> {
+) -> Paragraph<'_> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -117,65 +116,6 @@ fn build_ansi_text_paragraph<'a>(
     Paragraph::new(text.into_text().unwrap())
         .block(preview_block)
         .scroll((preview_scroll, 0))
-}
-
-fn build_plain_text_paragraph<'a>(
-    text: &'a [String],
-    preview_block: Block<'a>,
-    target_line: Option<u16>,
-    preview_scroll: u16,
-    colorscheme: PreviewColorscheme,
-) -> Paragraph<'a> {
-    let mut lines = Vec::new();
-    for (i, line) in text.iter().enumerate() {
-        lines.push(Line::from(vec![
-            build_line_number_span(i + 1).style(Style::default().fg(
-                if matches!(
-                        target_line,
-                        Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
-                    )
-                {
-                    colorscheme.gutter_selected_fg
-                } else {
-                    colorscheme.gutter_fg
-                },
-            )),
-            Span::styled(" │ ",
-                         Style::default().fg(colorscheme.gutter_fg).dim()),
-            Span::styled(
-                line.to_string(),
-                Style::default().fg(colorscheme.content_fg).bg(
-                    if matches!(target_line, Some(l) if l == u16::try_from(i).unwrap() + 1) {
-                        colorscheme.highlight_bg
-                    } else {
-                        Color::Reset
-                    },
-                ),
-            ),
-        ]));
-    }
-    let text = Text::from(lines);
-    Paragraph::new(text)
-        .block(preview_block)
-        .scroll((preview_scroll, 0))
-}
-
-fn build_plain_text_wrapped_paragraph<'a>(
-    text: &'a str,
-    preview_block: Block<'a>,
-    colorscheme: PreviewColorscheme,
-) -> Paragraph<'a> {
-    let mut lines = Vec::new();
-    for line in text.lines() {
-        lines.push(Line::styled(
-            line.to_string(),
-            Style::default().fg(colorscheme.content_fg),
-        ));
-    }
-    let text = Text::from(lines);
-    Paragraph::new(text)
-        .block(preview_block)
-        .wrap(Wrap { trim: true })
 }
 
 pub fn build_meta_preview_paragraph<'a>(
@@ -285,8 +225,4 @@ fn draw_content_outer_block(
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);
     Ok(inner)
-}
-
-fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
-    Span::from(format!("{line_number:5} "))
 }

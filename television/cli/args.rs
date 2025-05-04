@@ -12,7 +12,7 @@ pub struct Cli {
     #[arg(value_enum, index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
-    /// A preview command to use with the stdin channel.
+    /// A preview command to use with the current channel.
     ///
     /// If provided, the preview command will be executed and formatted using
     /// the entry.

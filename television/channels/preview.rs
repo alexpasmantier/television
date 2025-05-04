@@ -3,6 +3,7 @@ use std::fmt::Display;
 use super::{cable::prototypes::DEFAULT_DELIMITER, entry::Entry};
 use crate::channels::cable::prototypes::CableChannelPrototype;
 use lazy_regex::{regex, Lazy, Regex};
+use tracing::debug;
 
 static CMD_RE: &Lazy<Regex> = regex!(r"\{(\d+)\}");
 
@@ -49,6 +50,8 @@ impl PreviewCommand {
         let mut formatted_command = self
             .command
             .replace("{}", format!("'{}'", entry.name).as_str());
+        debug!("FORMATTED_COMMAND: {formatted_command}");
+        debug!("PARTS: {parts:?}");
 
         formatted_command = CMD_RE
             .replace_all(&formatted_command, |caps: &regex::Captures| {
