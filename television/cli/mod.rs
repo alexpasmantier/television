@@ -80,7 +80,7 @@ impl From<Cli> for PostProcessedCli {
             offset_expr: None,
         });
 
-        let channel: CableChannelPrototype;
+        let mut channel: CableChannelPrototype;
         let working_directory: Option<String>;
 
         let cable_channels = cable::load_cable_channels().unwrap_or_default();
@@ -116,6 +116,12 @@ impl From<Cli> for PostProcessedCli {
                     }
                 }
             }
+        }
+
+        if let Some(preview_cmd) = &preview_command {
+            channel.preview_command = Some(preview_cmd.command.clone());
+            channel.preview_delimiter = Some(preview_cmd.delimiter.clone());
+            channel.preview_offset = preview_cmd.offset_expr.clone();
         }
 
         Self {

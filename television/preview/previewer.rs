@@ -30,8 +30,8 @@ impl Previewer {
     // fast for most standard file sizes, plus we're caching the previews,
     // I'm not sure the extra complexity is worth it.
     pub fn handle_request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
-        // check if we have a preview for the current request
-        if let Some(preview) = self.preview(entry) {
+        // check if we have a preview in cache for the current request
+        if let Some(preview) = self.cached(entry) {
             return Some(preview);
         }
 
