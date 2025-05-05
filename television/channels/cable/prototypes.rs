@@ -157,7 +157,7 @@ const DEFAULT_CABLE_CHANNELS_FILE: &str =
 /// application.
 #[cfg(not(unix))]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
-    include_str!("../../cable/windows-channels.toml");
+    include_str!("../../../cable/windows-channels.toml");
 
 impl Default for CableChannelPrototypes {
     /// Fallback to the default cable channels specification (the template file
