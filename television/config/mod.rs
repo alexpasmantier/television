@@ -9,7 +9,6 @@ use anyhow::{Context, Result};
 use directories::ProjectDirs;
 pub use keybindings::merge_keybindings;
 pub use keybindings::{parse_key, Binding, KeyBindings};
-use previewers::PreviewersConfig;
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 pub use themes::Theme;
@@ -17,7 +16,6 @@ use tracing::{debug, warn};
 pub use ui::UiConfig;
 
 mod keybindings;
-mod previewers;
 pub mod shell_integration;
 mod themes;
 mod ui;
@@ -58,7 +56,6 @@ impl Hash for AppConfig {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Hash)]
-#[serde(deny_unknown_fields)]
 pub struct Config {
     /// General application configuration
     #[allow(clippy::struct_field_names)]
@@ -70,9 +67,6 @@ pub struct Config {
     /// UI configuration
     #[serde(default)]
     pub ui: UiConfig,
-    /// Previewers configuration
-    #[serde(default)]
-    pub previewers: PreviewersConfig,
     /// Shell integration configuration
     #[serde(default)]
     pub shell_integration: ShellIntegrationConfig,
@@ -201,7 +195,6 @@ impl Config {
             application: user.application,
             keybindings: user.keybindings,
             ui: user.ui,
-            previewers: user.previewers,
             shell_integration: user.shell_integration,
         }
     }
@@ -330,7 +323,6 @@ mod tests {
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
         assert_eq!(config.ui, default_config.ui);
-        assert_eq!(config.previewers, default_config.previewers);
         // backwards compatibility
         assert_eq!(
             config.shell_integration.commands,
@@ -350,7 +342,7 @@ mod tests {
         theme = "television"
 
         [previewers.file]
-        theme = "Visual Studio Dark"
+        theme = "something"
 
         [keybindings]
         toggle_help = ["ctrl-a", "ctrl-b"]
@@ -384,8 +376,6 @@ mod tests {
         default_config.application.frame_rate = 30.0;
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
-        default_config.previewers.file.theme =
-            "Visual Studio Dark".to_string();
         default_config.keybindings.extend({
             let mut map = FxHashMap::default();
             map.insert(
@@ -408,7 +398,6 @@ mod tests {
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
         assert_eq!(config.ui, default_config.ui);
-        assert_eq!(config.previewers, default_config.previewers);
         assert_eq!(
             config.shell_integration.commands,
             [(&String::from("git add"), &String::from("git-diff"))]

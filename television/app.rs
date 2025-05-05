@@ -4,9 +4,10 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::{
-    entry::Entry, preview::PreviewType, OnAir, TelevisionChannel,
+use crate::channels::cable::prototypes::{
+    CableChannelPrototype, CableChannelPrototypes,
 };
+use crate::channels::{entry::Entry, OnAir};
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;
@@ -123,7 +124,6 @@ impl From<ActionOutcome> for AppOutput {
             ActionOutcome::Input(input) => Self {
                 selected_entries: Some(FxHashSet::from_iter([Entry::new(
                     input,
-                    PreviewType::None,
                 )])),
             },
             ActionOutcome::None => Self {
@@ -138,10 +138,11 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel: TelevisionChannel,
+        channel_prototype: CableChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
+        cable_channels: &CableChannelPrototypes,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -153,12 +154,13 @@ impl App {
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television = Television::new(
             action_tx.clone(),
-            channel,
+            channel_prototype,
             config,
             input,
             options.no_remote,
             options.no_help,
             options.exact,
+            CableChannelPrototypes((*cable_channels).clone()),
         );
 
         Self {
@@ -201,7 +203,7 @@ impl App {
         // Event loop
         if !headless {
             debug!("Starting backend event loop");
-            let event_loop = EventLoop::new(self.options.tick_rate, true);
+            let event_loop = EventLoop::new(self.options.tick_rate);
             self.event_rx = event_loop.rx;
             self.event_abort_tx = event_loop.abort_tx;
         }
@@ -434,34 +436,5 @@ impl App {
             ])));
         }
         None
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use crate::channels::stdin::Channel as StdinChannel;
-
-    #[test]
-    fn test_maybe_select_1() {
-        let mut app = App::new(
-            TelevisionChannel::Stdin(StdinChannel::new(PreviewType::None)),
-            Config::default(),
-            None,
-            AppOptions::default(),
-        );
-        app.television
-            .results_picker
-            .entries
-            .push(Entry::new("test".to_string(), PreviewType::None));
-        let outcome = app.maybe_select_1();
-        assert!(outcome.is_some());
-        assert_eq!(
-            outcome.unwrap(),
-            ActionOutcome::Entries(FxHashSet::from_iter([Entry::new(
-                "test".to_string(),
-                PreviewType::None
-            )]))
-        );
     }
 }

@@ -1,5 +1,6 @@
 use crate::channels::entry::Entry;
 use anyhow::Result;
+use cable::prototypes::CableChannelPrototype;
 use rustc_hash::FxHashSet;
 use television_derive::Broadcast;
 
@@ -7,7 +8,6 @@ pub mod cable;
 pub mod entry;
 pub mod preview;
 pub mod remote_control;
-pub mod stdin;
 
 /// The interface that all television channels must implement.
 ///
@@ -115,10 +115,6 @@ pub trait OnAir: Send {
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Broadcast)]
 pub enum TelevisionChannel {
-    /// The standard input channel.
-    ///
-    /// This channel allows to search through whatever is passed through stdin.
-    Stdin(stdin::Channel),
     /// The remote control channel.
     ///
     /// This channel allows to switch between different channels.
@@ -130,19 +126,18 @@ pub enum TelevisionChannel {
 }
 
 impl TelevisionChannel {
-    pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
+    pub fn zap(&self, channel_name: &str) -> Result<CableChannelPrototype> {
         match self {
             TelevisionChannel::RemoteControl(remote_control) => {
                 remote_control.zap(channel_name)
             }
-            _ => unreachable!(),
+            TelevisionChannel::Cable(_) => unreachable!(),
         }
     }
 
     pub fn name(&self) -> String {
         match self {
             TelevisionChannel::Cable(channel) => channel.name.clone(),
-            TelevisionChannel::Stdin(_) => String::from("Stdin"),
             TelevisionChannel::RemoteControl(_) => String::from("Remote"),
         }
     }

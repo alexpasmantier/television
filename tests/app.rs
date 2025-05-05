@@ -3,7 +3,9 @@ use std::{collections::HashSet, path::PathBuf, time::Duration};
 use television::{
     action::Action,
     app::{App, AppOptions},
-    channels::{cable::prototypes::CableChannelPrototype, TelevisionChannel},
+    channels::cable::prototypes::{
+        CableChannelPrototype, CableChannelPrototypes,
+    },
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -21,19 +23,19 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
 /// The app is started in a separate task and can be interacted with by sending
 /// actions to the action channel.
 fn setup_app(
-    channel: Option<TelevisionChannel>,
+    channel_prototype: Option<CableChannelPrototype>,
     select_1: bool,
     exact: bool,
 ) -> (
     JoinHandle<television::app::AppOutput>,
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
-    let chan: TelevisionChannel = channel.unwrap_or_else(|| {
+    let chan: CableChannelPrototype = channel_prototype.unwrap_or_else(|| {
         let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("target_dir");
         std::env::set_current_dir(&target_dir).unwrap();
-        TelevisionChannel::Cable(CableChannelPrototype::default().into())
+        CableChannelPrototype::default()
     });
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
@@ -47,7 +49,13 @@ fn setup_app(
         false,
         config.application.tick_rate,
     );
-    let mut app = App::new(chan, config, input, options);
+    let mut app = App::new(
+        chan,
+        config,
+        input,
+        options,
+        &CableChannelPrototypes::default(),
+    );
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();
@@ -212,11 +220,15 @@ async fn test_app_exact_search_positive() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_exits_when_select_1_and_only_one_result() {
-    let channel =
-        TelevisionChannel::Stdin(television::channels::stdin::Channel::from(
-            vec!["file1.txt".to_string()],
-        ));
-    let (f, tx) = setup_app(Some(channel), true, false);
+    let prototype = CableChannelPrototype::new(
+        "cable",
+        "echo file1.txt",
+        false,
+        None,
+        None,
+        None,
+    );
+    let (f, tx) = setup_app(Some(prototype), true, false);
 
     // tick a few times to get the results
     for _ in 0..=10 {
@@ -246,11 +258,15 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
-    let channel =
-        TelevisionChannel::Stdin(television::channels::stdin::Channel::from(
-            vec!["file1.txt".to_string(), "file2.txt".to_string()],
-        ));
-    let (f, tx) = setup_app(Some(channel), true, false);
+    let prototype = CableChannelPrototype::new(
+        "cable",
+        "echo 'file1.txt\nfile2.txt'",
+        false,
+        None,
+        None,
+        None,
+    );
+    let (f, tx) = setup_app(Some(prototype), true, false);
 
     // tick a few times to get the results
     for _ in 0..=10 {

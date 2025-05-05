@@ -12,12 +12,11 @@ pub struct Cli {
     #[arg(value_enum, index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
-    /// A preview command to use with the stdin channel.
+    /// A preview command to use with the current channel.
     ///
     /// If provided, the preview command will be executed and formatted using
     /// the entry.
-    /// Example: "bat -n --color=always {}" (where {} will be replaced with
-    /// the entry)
+    /// Example: "cat {}" (where {} will be replaced with the entry)
     ///
     /// Parts of the entry can be extracted positionally using the `delimiter`
     /// option.

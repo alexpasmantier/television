@@ -48,19 +48,13 @@ ratatui = { version = "0.29", features = ["serde", "macros"] }
 better-panic = "0.3"
 signal-hook = "0.3"
 human-panic = "2.0"
-strum = { version = "0.26", features = ["derive"] }
-regex = "1.11"
 parking_lot = "0.12"
-nom = "7.1"
-thiserror = "2.0"
-simdutf8 = { version = "0.1", optional = true }
-smallvec = { version = "1.13", features = ["const_generics"] }
-gag = "1.0"
 nucleo = "0.5"
 toml = "0.8"
-image = "0.25"
-syntect = { package = "syntect", version = "5.2", default-features = false }
-bat = { package = "bat", version = "0.25", default-features = false }
+lazy-regex = { version = "3.4.1", features = [
+  "lite",
+], default-features = false }
+ansi-to-tui = "7.0.0"
 
 
 # target specific dependencies
@@ -78,15 +72,6 @@ clipboard-win = "5.4.0"
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
 tempfile = "3.16.0"
-
-[features]
-simd = ["dep:simdutf8"]
-zero-copy = []
-# Use fancy-regex for aarch64 Linux
-fancy = ["syntect/regex-fancy", "bat/regex-fancy"]
-# Use oniguruma for other platforms
-onig = ["syntect/regex-onig", "bat/regex-onig"]
-default = ["zero-copy", "simd", "onig"]
 
 
 [build-dependencies]

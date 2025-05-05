@@ -1,20 +1,14 @@
 use crate::preview::PreviewState;
-use crate::preview::{
-    ansi::IntoText, PreviewContent, FILE_TOO_LARGE_MSG, LOADING_MSG,
-    PREVIEW_NOT_SUPPORTED_MSG, TIMEOUT_MSG,
-};
-use crate::screen::colors::{Colorscheme, PreviewColorscheme};
-use crate::utils::image::ImagePreviewWidget;
+use crate::preview::{PreviewContent, LOADING_MSG, TIMEOUT_MSG};
+use crate::screen::colors::Colorscheme;
 use crate::utils::strings::{
     replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
     EMPTY_STRING,
 };
+use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::buffer::Buffer;
-use ratatui::widgets::{
-    Block, BorderType, Borders, Padding, Paragraph, Widget, Wrap,
-};
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::Frame;
 use ratatui::{
     layout::{Alignment, Rect},
@@ -25,22 +19,6 @@ use std::str::FromStr;
 #[allow(dead_code)]
 const FILL_CHAR_SLANTED: char = '╱';
 const FILL_CHAR_EMPTY: char = ' ';
-
-pub enum PreviewWidget<'a> {
-    Paragraph(Paragraph<'a>),
-    Image(ImagePreviewWidget),
-}
-impl Widget for PreviewWidget<'_> {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        match self {
-            PreviewWidget::Paragraph(p) => p.render(area, buf),
-            PreviewWidget::Image(image) => image.render(area, buf),
-        }
-    }
-}
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_preview_content_block(
@@ -59,25 +37,23 @@ pub fn draw_preview_content_block(
         use_nerd_font_icons,
     )?;
     // render the preview content
-    let rp = build_preview_widget(
+    let rp = build_preview_paragraph(
         inner,
         &preview_state.preview.content,
         preview_state.target_line,
         preview_state.scroll,
-        colorscheme,
     );
     f.render_widget(rp, inner);
 
     Ok(())
 }
 
-pub fn build_preview_widget<'a>(
+pub fn build_preview_paragraph(
     inner: Rect,
-    preview_content: &'a PreviewContent,
-    target_line: Option<u16>,
+    preview_content: &PreviewContent,
+    #[allow(unused_variables)] target_line: Option<u16>,
     preview_scroll: u16,
-    colorscheme: &'a Colorscheme,
-) -> PreviewWidget<'a> {
+) -> Paragraph<'_> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -87,75 +63,23 @@ pub fn build_preview_widget<'a>(
         });
 
     match preview_content {
-        PreviewContent::AnsiText(text) => PreviewWidget::Paragraph(
-            build_ansi_text_paragraph(text, preview_block, preview_scroll),
-        ),
-        PreviewContent::PlainText(content) => {
-            PreviewWidget::Paragraph(build_plain_text_paragraph(
-                content,
-                preview_block,
-                target_line,
-                preview_scroll,
-                colorscheme.preview,
-            ))
+        PreviewContent::AnsiText(text) => {
+            build_ansi_text_paragraph(text, preview_block, preview_scroll)
         }
-        PreviewContent::PlainTextWrapped(content) => PreviewWidget::Paragraph(
-            build_plain_text_wrapped_paragraph(
-                content,
-                preview_block,
-                colorscheme.preview,
-            )
-            .scroll((preview_scroll, 0)),
-        ),
-        PreviewContent::SyntectHighlightedText(highlighted_lines) => {
-            PreviewWidget::Paragraph(build_syntect_highlighted_paragraph(
-                &highlighted_lines.lines,
-                preview_block,
-                target_line,
-                preview_scroll,
-                colorscheme.preview,
-                inner.height,
-            ))
-        }
-        PreviewContent::Image(image) => PreviewWidget::Image(image.clone()),
-
         // meta
-        PreviewContent::Loading => PreviewWidget::Paragraph(
+        PreviewContent::Loading => {
             build_meta_preview_paragraph(inner, LOADING_MSG, FILL_CHAR_EMPTY)
                 .block(preview_block)
                 .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC)),
-        ),
-        PreviewContent::NotSupported => PreviewWidget::Paragraph(
-            build_meta_preview_paragraph(
-                inner,
-                PREVIEW_NOT_SUPPORTED_MSG,
-                FILL_CHAR_EMPTY,
-            )
-            .block(preview_block)
-            .alignment(Alignment::Left)
-            .style(Style::default().add_modifier(Modifier::ITALIC)),
-        ),
-        PreviewContent::FileTooLarge => PreviewWidget::Paragraph(
-            build_meta_preview_paragraph(
-                inner,
-                FILE_TOO_LARGE_MSG,
-                FILL_CHAR_EMPTY,
-            )
-            .block(preview_block)
-            .alignment(Alignment::Left)
-            .style(Style::default().add_modifier(Modifier::ITALIC)),
-        ),
-
-        PreviewContent::Timeout => PreviewWidget::Paragraph(
+                .style(Style::default().add_modifier(Modifier::ITALIC))
+        }
+        PreviewContent::Timeout => {
             build_meta_preview_paragraph(inner, TIMEOUT_MSG, FILL_CHAR_EMPTY)
                 .block(preview_block)
                 .alignment(Alignment::Left)
-                .style(Style::default().add_modifier(Modifier::ITALIC)),
-        ),
-        PreviewContent::Empty => {
-            PreviewWidget::Paragraph(Paragraph::new(Text::raw(EMPTY_STRING)))
+                .style(Style::default().add_modifier(Modifier::ITALIC))
         }
+        PreviewContent::Empty => Paragraph::new(Text::raw(EMPTY_STRING)),
     }
 }
 
@@ -192,85 +116,6 @@ fn build_ansi_text_paragraph<'a>(
     Paragraph::new(text.into_text().unwrap())
         .block(preview_block)
         .scroll((preview_scroll, 0))
-}
-
-fn build_plain_text_paragraph<'a>(
-    text: &'a [String],
-    preview_block: Block<'a>,
-    target_line: Option<u16>,
-    preview_scroll: u16,
-    colorscheme: PreviewColorscheme,
-) -> Paragraph<'a> {
-    let mut lines = Vec::new();
-    for (i, line) in text.iter().enumerate() {
-        lines.push(Line::from(vec![
-            build_line_number_span(i + 1).style(Style::default().fg(
-                if matches!(
-                        target_line,
-                        Some(l) if l == u16::try_from(i).unwrap_or(0) + 1
-                    )
-                {
-                    colorscheme.gutter_selected_fg
-                } else {
-                    colorscheme.gutter_fg
-                },
-            )),
-            Span::styled(" │ ",
-                         Style::default().fg(colorscheme.gutter_fg).dim()),
-            Span::styled(
-                line.to_string(),
-                Style::default().fg(colorscheme.content_fg).bg(
-                    if matches!(target_line, Some(l) if l == u16::try_from(i).unwrap() + 1) {
-                        colorscheme.highlight_bg
-                    } else {
-                        Color::Reset
-                    },
-                ),
-            ),
-        ]));
-    }
-    let text = Text::from(lines);
-    Paragraph::new(text)
-        .block(preview_block)
-        .scroll((preview_scroll, 0))
-}
-
-fn build_plain_text_wrapped_paragraph<'a>(
-    text: &'a str,
-    preview_block: Block<'a>,
-    colorscheme: PreviewColorscheme,
-) -> Paragraph<'a> {
-    let mut lines = Vec::new();
-    for line in text.lines() {
-        lines.push(Line::styled(
-            line.to_string(),
-            Style::default().fg(colorscheme.content_fg),
-        ));
-    }
-    let text = Text::from(lines);
-    Paragraph::new(text)
-        .block(preview_block)
-        .wrap(Wrap { trim: true })
-}
-
-fn build_syntect_highlighted_paragraph<'a>(
-    highlighted_lines: &'a [Vec<(syntect::highlighting::Style, String)>],
-    preview_block: Block<'a>,
-    target_line: Option<u16>,
-    preview_scroll: u16,
-    colorscheme: PreviewColorscheme,
-    height: u16,
-) -> Paragraph<'a> {
-    compute_paragraph_from_highlighted_lines(
-        highlighted_lines,
-        target_line.map(|l| l as usize),
-        preview_scroll,
-        colorscheme,
-        height,
-    )
-    .block(preview_block)
-    .alignment(Alignment::Left)
-    //.scroll((preview_scroll, 0))
 }
 
 pub fn build_meta_preview_paragraph<'a>(
@@ -380,82 +225,4 @@ fn draw_content_outer_block(
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);
     Ok(inner)
-}
-
-fn build_line_number_span<'a>(line_number: usize) -> Span<'a> {
-    Span::from(format!("{line_number:5} "))
-}
-
-fn compute_paragraph_from_highlighted_lines(
-    highlighted_lines: &[Vec<(syntect::highlighting::Style, String)>],
-    line_specifier: Option<usize>,
-    preview_scroll: u16,
-    colorscheme: PreviewColorscheme,
-    height: u16,
-) -> Paragraph<'static> {
-    let preview_lines: Vec<Line> = highlighted_lines
-        .iter()
-        .enumerate()
-        .skip(preview_scroll.saturating_sub(1).into())
-        .take(height.into())
-        .map(|(i, l)| {
-            let line_number =
-                build_line_number_span(i + 1).style(Style::default().fg(
-                    if line_specifier.is_some()
-                        && i == line_specifier.unwrap().saturating_sub(1)
-                    {
-                        colorscheme.gutter_selected_fg
-                    } else {
-                        colorscheme.gutter_fg
-                    },
-                ));
-            Line::from_iter(
-                std::iter::once(line_number)
-                    .chain(std::iter::once(Span::styled(
-                        " │ ",
-                        Style::default().fg(colorscheme.gutter_fg).dim(),
-                    )))
-                    .chain(l.iter().cloned().map(|sr| {
-                        convert_syn_region_to_span(
-                            &(sr.0, sr.1),
-                            if line_specifier.is_some()
-                                && i == line_specifier
-                                    .unwrap()
-                                    .saturating_sub(1)
-                            {
-                                Some(colorscheme.highlight_bg)
-                            } else {
-                                None
-                            },
-                        )
-                    })),
-            )
-        })
-        .collect();
-
-    Paragraph::new(preview_lines)
-}
-
-pub fn convert_syn_region_to_span<'a>(
-    syn_region: &(syntect::highlighting::Style, String),
-    background: Option<Color>,
-) -> Span<'a> {
-    let mut style = Style::default()
-        .fg(convert_syn_color_to_ratatui_color(syn_region.0.foreground));
-    if let Some(background) = background {
-        style = style.bg(background);
-    }
-    style = match syn_region.0.font_style {
-        syntect::highlighting::FontStyle::BOLD => style.bold(),
-        syntect::highlighting::FontStyle::ITALIC => style.italic(),
-        syntect::highlighting::FontStyle::UNDERLINE => style.underlined(),
-        _ => style,
-    };
-    Span::styled(syn_region.1.clone(), style)
-}
-
-fn convert_syn_color_to_ratatui_color(
-    color: syntect::highlighting::Color,
-) -> Color {
-    Color::Rgb(color.r, color.g, color.b)
 }

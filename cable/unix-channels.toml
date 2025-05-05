@@ -2,7 +2,7 @@
 [[cable_channel]]
 name = "files"
 source_command = "fd -t f"
-preview_command = ":files:"
+preview_command = "bat -n --color=always {}"
 
 # Text
 [[cable_channel]]
@@ -72,7 +72,7 @@ preview_command = "aws s3 ls s3://{0}"
 [[cable_channel]]
 name = "my-dotfiles"
 source_command = "fd -t f . $HOME/.config"
-preview_command = ":files:"
+preview_command = "bat -n --color=always {}"
 
 # Shell history
 [[cable_channel]]

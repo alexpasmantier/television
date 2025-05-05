@@ -294,20 +294,17 @@ pub fn draw_results_list(
 
 #[cfg(test)]
 mod tests {
-    use crate::channels::preview::PreviewType;
-
     use super::*;
 
     #[test]
     fn test_build_result_line() {
-        let entry =
-            Entry::new(String::from("something nice"), PreviewType::None)
-                .with_name_match_indices(
-                    // something nice
-                    // 012345678901234
-                    //  om       ni
-                    &[1, 2, 10, 11],
-                );
+        let entry = Entry::new(String::from("something nice"))
+            .with_name_match_indices(
+                // something nice
+                // 012345678901234
+                //  om       ni
+                &[1, 2, 10, 11],
+            );
         let result_line = build_result_line(
             &entry,
             None,
@@ -331,7 +328,7 @@ mod tests {
     fn test_build_result_line_multibyte_chars() {
         let entry =
             // See https://github.com/alexpasmantier/television/issues/439
-            Entry::new(String::from("ジェイムス下地 - REDLINE Original Soundtrack - 06 - ROBOWORLD TV.mp3"), PreviewType::None)
+            Entry::new(String::from("ジェイムス下地 - REDLINE Original Soundtrack - 06 - ROBOWORLD TV.mp3"))
                 .with_name_match_indices(&[27, 28, 29, 30, 31]);
         let result_line = build_result_line(
             &entry,

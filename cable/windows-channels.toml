@@ -2,13 +2,13 @@
 [[cable_channel]]
 name = "files"
 source_command = "Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName"
-preview_command = ":files:"
+preview_command = "bat -n --color=always {}"
 
 # Directories
 [[cable_channel]]
 name = "dirs"
 source_command = "Get-ChildItem -Recurse -Directory | Select-Object -ExpandProperty FullName"
-preview_command = "ls -l {0}"
+preview_command = "ls -l {}"
 
 # Environment variables
 [[cable_channel]]
@@ -29,7 +29,7 @@ preview_command = "cd '{}' ; git log -n 200 --pretty=medium --all --graph --colo
 [[cable_channel]]
 name = "git-diff"
 source_command = "git diff --name-only"
-preview_command = "git diff --color=always {0}"
+preview_command = "git diff --color=always {}"
 
 [[cable_channel]]
 name = "git-reflog"
@@ -56,7 +56,7 @@ preview_command = "docker image inspect {0} | jq -C"
 [[cable_channel]]
 name = "my-dotfiles"
 source_command = "Get-ChildItem -Recurse -File -Path \"$env:USERPROFILE\\AppData\\Roaming\\\""
-preview_command = ":files:"
+preview_command = "bat -n --color=always {}"
 
 # Shell history
 [[cable_channel]]
