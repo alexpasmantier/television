@@ -48,10 +48,7 @@ ratatui = { version = "0.29", features = ["serde", "macros"] }
 better-panic = "0.3"
 signal-hook = "0.3"
 human-panic = "2.0"
-# FIXME: we probably don't need strum anymore
-strum = { version = "0.26", features = ["derive"] }
 parking_lot = "0.12"
-thiserror = "2.0"
 nucleo = "0.5"
 toml = "0.8"
 lazy-regex = { version = "3.4.1", features = [

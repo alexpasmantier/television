@@ -56,7 +56,6 @@ impl Hash for AppConfig {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Serialize, Deserialize, Default, PartialEq, Hash)]
-#[serde(deny_unknown_fields)]
 pub struct Config {
     /// General application configuration
     #[allow(clippy::struct_field_names)]
@@ -341,6 +340,9 @@ mod tests {
         [ui]
         ui_scale = 40
         theme = "television"
+
+        [previewers.file]
+        theme = "something"
 
         [keybindings]
         toggle_help = ["ctrl-a", "ctrl-b"]

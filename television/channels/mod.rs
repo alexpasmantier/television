@@ -8,7 +8,6 @@ pub mod cable;
 pub mod entry;
 pub mod preview;
 pub mod remote_control;
-// pub mod stdin;
 
 /// The interface that all television channels must implement.
 ///
@@ -116,10 +115,6 @@ pub trait OnAir: Send {
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Broadcast)]
 pub enum TelevisionChannel {
-    /// The standard input channel.
-    ///
-    /// This channel allows to search through whatever is passed through stdin.
-    // Stdin(stdin::Channel),
     /// The remote control channel.
     ///
     /// This channel allows to switch between different channels.
@@ -143,7 +138,6 @@ impl TelevisionChannel {
     pub fn name(&self) -> String {
         match self {
             TelevisionChannel::Cable(channel) => channel.name.clone(),
-            // TelevisionChannel::Stdin(_) => String::from("Stdin"),
             TelevisionChannel::RemoteControl(_) => String::from("Remote"),
         }
     }
