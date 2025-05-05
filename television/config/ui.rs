@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use crate::screen::layout::{InputPosition, PreviewTitlePosition};
+use crate::screen::layout::{
+    InputPosition, Orientation, PreviewTitlePosition,
+};
 
 use super::themes::DEFAULT_THEME;
 
@@ -17,6 +19,7 @@ pub struct UiConfig {
     pub show_preview_panel: bool,
     #[serde(default)]
     pub input_bar_position: InputPosition,
+    pub orientation: Orientation,
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
     pub custom_header: Option<String>,
@@ -31,6 +34,7 @@ impl Default for UiConfig {
             show_help_bar: false,
             show_preview_panel: true,
             input_bar_position: InputPosition::Top,
+            orientation: Orientation::Landscape,
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
             custom_header: None,

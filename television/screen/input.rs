@@ -6,11 +6,15 @@ use ratatui::{
     },
     style::{Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, ListState, Paragraph},
+    widgets::{
+        block::Position, Block, BorderType, Borders, ListState, Paragraph,
+    },
     Frame,
 };
 
 use crate::screen::{colors::Colorscheme, spinner::Spinner};
+
+use super::layout::InputPosition;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
@@ -25,13 +29,18 @@ pub fn draw_input_box(
     spinner: &Spinner,
     colorscheme: &Colorscheme,
     custom_header: &Option<String>,
+    input_bar_position: &InputPosition,
 ) -> Result<()> {
     let header = custom_header.as_deref().unwrap_or(channel_name);
     let input_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .title_top(
+        .title_position(match input_bar_position {
+            InputPosition::Top => Position::Top,
+            InputPosition::Bottom => Position::Bottom,
+        })
+        .title(
             Line::from(String::from(" ") + header + " ")
                 .style(Style::default().fg(colorscheme.mode.channel).bold())
                 .centered(),

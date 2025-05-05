@@ -241,12 +241,13 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
         &ctx.config.ui.custom_header,
+        &ctx.config.ui.input_bar_position,
     )?;
 
-    if layout.preview_window.is_some() {
+    if let Some(preview_rect) = layout.preview_window {
         draw_preview_content_block(
             f,
-            layout.preview_window.unwrap(),
+            preview_rect,
             &ctx.tv_state.preview_state,
             ctx.config.ui.use_nerd_font_icons,
             &ctx.colorscheme,
