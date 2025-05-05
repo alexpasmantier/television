@@ -142,7 +142,7 @@ impl App {
         config: Config,
         input: Option<String>,
         options: AppOptions,
-        cable_channels: CableChannelPrototypes,
+        cable_channels: &CableChannelPrototypes,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -160,7 +160,7 @@ impl App {
             options.no_remote,
             options.no_help,
             options.exact,
-            CableChannelPrototypes(cable_channels.clone()),
+            CableChannelPrototypes((*cable_channels).clone()),
         );
 
         Self {
@@ -452,7 +452,7 @@ mod test {
             Config::default(),
             None,
             AppOptions::default(),
-            CableChannelPrototypes::default(),
+            &CableChannelPrototypes::default(),
         );
         app.television
             .results_picker

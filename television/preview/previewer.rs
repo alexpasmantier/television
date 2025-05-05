@@ -132,10 +132,6 @@ pub fn try_preview(
 
 impl From<&CableChannelPrototype> for Option<Previewer> {
     fn from(value: &CableChannelPrototype) -> Self {
-        if let Some(preview_command) = value.into() {
-            Some(Previewer::new(preview_command))
-        } else {
-            None
-        }
+        Option::<PreviewCommand>::from(value).map(Previewer::new)
     }
 }

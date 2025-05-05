@@ -121,7 +121,7 @@ impl From<Cli> for PostProcessedCli {
         if let Some(preview_cmd) = &preview_command {
             channel.preview_command = Some(preview_cmd.command.clone());
             channel.preview_delimiter = Some(preview_cmd.delimiter.clone());
-            channel.preview_offset = preview_cmd.offset_expr.clone();
+            channel.preview_offset.clone_from(&preview_cmd.offset_expr);
         }
 
         Self {

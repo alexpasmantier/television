@@ -51,7 +51,7 @@ pub fn draw_preview_content_block(
 pub fn build_preview_paragraph(
     inner: Rect,
     preview_content: &PreviewContent,
-    target_line: Option<u16>,
+    #[allow(unused_variables)] target_line: Option<u16>,
     preview_scroll: u16,
 ) -> Paragraph<'_> {
     let preview_block =

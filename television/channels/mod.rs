@@ -136,7 +136,7 @@ impl TelevisionChannel {
             TelevisionChannel::RemoteControl(remote_control) => {
                 remote_control.zap(channel_name)
             }
-            _ => unreachable!(),
+            TelevisionChannel::Cable(_) => unreachable!(),
         }
     }
 

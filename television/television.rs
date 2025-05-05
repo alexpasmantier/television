@@ -66,6 +66,7 @@ pub struct Television {
 }
 
 impl Television {
+    #[allow(clippy::too_many_arguments)]
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,

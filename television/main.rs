@@ -78,7 +78,7 @@ async fn main() -> Result<()> {
         config.application.tick_rate,
     );
     let mut app =
-        App::new(channel, config, args.input, options, cable_channels);
+        App::new(channel, config, args.input, options, &cable_channels);
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
