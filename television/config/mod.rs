@@ -342,9 +342,6 @@ mod tests {
         ui_scale = 40
         theme = "television"
 
-        [previewers.file]
-        theme = "Visual Studio Dark"
-
         [keybindings]
         toggle_help = ["ctrl-a", "ctrl-b"]
         confirm_selection = "ctrl-enter"

@@ -37,7 +37,7 @@ use crate::{
 /// [[cable_channel]]
 /// name = "files"
 /// source_command = "fd -t f"
-/// preview_command = ":files:"
+/// preview_command = "cat {}"
 /// ```
 #[derive(Clone, Debug, serde::Deserialize, PartialEq)]
 pub struct CableChannelPrototype {
@@ -100,20 +100,14 @@ impl CableChannelPrototype {
 }
 
 const DEFAULT_PROTOTYPE_NAME: &str = "files";
-const DEFAULT_SOURCE_COMMAND: &str = "fd -t f";
-const DEFAULT_PREVIEW_COMMAND: &str = ":files:";
 pub const DEFAULT_DELIMITER: &str = " ";
 
 impl Default for CableChannelPrototype {
     fn default() -> Self {
-        Self {
-            name: DEFAULT_PROTOTYPE_NAME.to_string(),
-            source_command: DEFAULT_SOURCE_COMMAND.to_string(),
-            interactive: false,
-            preview_command: Some(DEFAULT_PREVIEW_COMMAND.to_string()),
-            preview_delimiter: Some(DEFAULT_DELIMITER.to_string()),
-            preview_offset: None,
-        }
+        CableChannelPrototypes::default()
+            .get(DEFAULT_PROTOTYPE_NAME)
+            .cloned()
+            .unwrap()
     }
 }
 

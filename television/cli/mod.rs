@@ -317,10 +317,12 @@ mod tests {
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        assert_eq!(
-            post_processed_cli.channel,
-            CableChannelPrototype::default(),
-        );
+        let expected = CableChannelPrototype {
+            preview_delimiter: Some(":".to_string()),
+            ..Default::default()
+        };
+
+        assert_eq!(post_processed_cli.channel, expected,);
         assert_eq!(
             post_processed_cli.preview_command,
             Some(PreviewCommand {

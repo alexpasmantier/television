@@ -219,7 +219,7 @@ mod tests {
             &config,
             true,
             &CableChannelPrototype::new(
-                "STDIN", "cat", false, None, None, None,
+                "stdin", "cat", false, None, None, None,
             ),
             None,
         );

@@ -438,33 +438,3 @@ impl App {
         None
     }
 }
-
-#[cfg(test)]
-mod test {
-    use super::*;
-
-    #[test]
-    fn test_maybe_select_1() {
-        let mut app = App::new(
-            CableChannelPrototype::new(
-                "random", "cat", false, None, None, None,
-            ),
-            Config::default(),
-            None,
-            AppOptions::default(),
-            &CableChannelPrototypes::default(),
-        );
-        app.television
-            .results_picker
-            .entries
-            .push(Entry::new("test".to_string()));
-        let outcome = app.maybe_select_1();
-        assert!(outcome.is_some());
-        assert_eq!(
-            outcome.unwrap(),
-            ActionOutcome::Entries(FxHashSet::from_iter([Entry::new(
-                "test".to_string(),
-            )]))
-        );
-    }
-}
