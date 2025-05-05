@@ -8,9 +8,7 @@ use crate::{
         },
         entry::Entry,
         remote_control::RemoteControl,
-        // stdin::Channel as StdinChannel,
-        OnAir,
-        TelevisionChannel,
+        OnAir, TelevisionChannel,
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
@@ -391,15 +389,11 @@ impl Television {
             // FIXME: this is probably redundant with the channel supporting previews
             && self.previewer.is_some()
         {
-            // preview content
-            if let Some(preview) = self
-                .previewer
-                .as_mut()
-                .unwrap()
-                .handle_request(selected_entry)
-            {
-                // only update if the preview content has changed
-                if self.preview_state.preview.title != preview.title {
+            // avoid sending unnecessary requests to the previewer
+            if self.preview_state.preview.title != selected_entry.name {
+                if let Some(preview) =
+                    self.previewer.as_mut().unwrap().request(selected_entry)
+                {
                     self.preview_state.update(
                         preview,
                         // scroll to center the selected entry
@@ -576,15 +570,12 @@ impl Television {
                 self.handle_input_action(action);
             }
             Action::SelectNextEntry => {
-                self.preview_state.reset();
                 self.select_next_entry(1);
             }
             Action::SelectPrevEntry => {
-                self.preview_state.reset();
                 self.select_prev_entry(1);
             }
             Action::SelectNextPage => {
-                self.preview_state.reset();
                 self.select_next_entry(
                     self.ui_state
                         .layout
@@ -595,7 +586,6 @@ impl Television {
                 );
             }
             Action::SelectPrevPage => {
-                self.preview_state.reset();
                 self.select_prev_entry(
                     self.ui_state
                         .layout

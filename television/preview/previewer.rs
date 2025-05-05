@@ -1,6 +1,5 @@
 use crate::channels::cable::prototypes::CableChannelPrototype;
 use crate::preview::{Preview, PreviewContent};
-use crate::utils::cache::RingSet;
 use crate::utils::command::shell_command;
 use crate::{
     channels::{entry::Entry, preview::PreviewCommand},
@@ -16,34 +15,25 @@ use tracing::debug;
 #[derive(Debug)]
 pub struct Previewer {
     cache: Arc<Mutex<PreviewCache>>,
-    requests: RingSet<Entry>,
     concurrent_preview_tasks: Arc<AtomicU8>,
     in_flight_previews: Arc<Mutex<FxHashSet<String>>>,
     command: PreviewCommand,
 }
-
-const REQUEST_STACK_SIZE: usize = 10;
 
 impl Previewer {
     // we could use a target scroll here to make the previewer
     // faster, but since it's already running in the background and quite
     // fast for most standard file sizes, plus we're caching the previews,
     // I'm not sure the extra complexity is worth it.
-    pub fn handle_request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
+    pub fn request(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
         // check if we have a preview in cache for the current request
         if let Some(preview) = self.cached(entry) {
             return Some(preview);
         }
 
-        // otherwise, if we haven't acknowledged the request yet, acknowledge it
-        self.requests.push(entry.clone());
+        // start a background task to compute the preview
+        self.preview(entry);
 
-        // lookup request stack and return the most recent preview available
-        for entry in self.requests.back_to_front() {
-            if let Some(preview) = self.preview(&entry) {
-                return Some(preview);
-            }
-        }
         None
     }
 }
@@ -54,7 +44,6 @@ impl Previewer {
     pub fn new(command: PreviewCommand) -> Self {
         Previewer {
             cache: Arc::new(Mutex::new(PreviewCache::default())),
-            requests: RingSet::with_capacity(REQUEST_STACK_SIZE),
             concurrent_preview_tasks: Arc::new(AtomicU8::new(0)),
             in_flight_previews: Arc::new(Mutex::new(FxHashSet::default())),
             command,
@@ -65,18 +54,7 @@ impl Previewer {
         self.cache.lock().get(&entry.name)
     }
 
-    pub fn preview(&mut self, entry: &Entry) -> Option<Arc<Preview>> {
-        if let Some(preview) = self.cached(entry) {
-            Some(preview)
-        } else {
-            // preview is not in cache, spawn a task to compute the preview
-            debug!("Preview cache miss for {:?}", entry.name);
-            self.handle_preview_request(entry);
-            None
-        }
-    }
-
-    pub fn handle_preview_request(&mut self, entry: &Entry) {
+    pub fn preview(&mut self, entry: &Entry) {
         if self.in_flight_previews.lock().contains(&entry.name) {
             debug!("Preview already in flight for {:?}", entry.name);
             return;
