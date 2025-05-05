@@ -115,9 +115,7 @@ impl Display for Key {
 #[allow(clippy::module_name_repetitions)]
 pub struct EventLoop {
     pub rx: mpsc::UnboundedReceiver<Event<Key>>,
-    //tx: mpsc::UnboundedSender<Event<Key>>,
     pub abort_tx: mpsc::UnboundedSender<()>,
-    //tick_rate: std::time::Duration,
 }
 
 struct PollFuture {
@@ -162,8 +160,7 @@ fn flush_existing_events() {
 }
 
 impl EventLoop {
-    // FIXME: this init parameter doesn't seem to be used anymore
-    pub fn new(tick_rate: f64, init: bool) -> Self {
+    pub fn new(tick_rate: f64) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let tick_interval = Duration::from_secs_f64(1.0 / tick_rate);
 
@@ -171,55 +168,52 @@ impl EventLoop {
 
         flush_existing_events();
 
-        if init {
-            //let mut reader = crossterm::event::EventStream::new();
-            tokio::spawn(async move {
-                loop {
-                    let delay = tokio::time::sleep(tick_interval);
-                    let event_available = poll_event(tick_interval);
+        tokio::spawn(async move {
+            loop {
+                let delay = tokio::time::sleep(tick_interval);
+                let event_available = poll_event(tick_interval);
 
-                    tokio::select! {
-                        // if we receive a message on the abort channel, stop the event loop
-                        _ = abort_recv.recv() => {
-                            tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
-                            tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
-                            break;
-                        },
-                        _ = signal::ctrl_c() => {
-                            debug!("Received SIGINT");
-                            tx.send(Event::Input(Key::Ctrl('c'))).unwrap_or_else(|_| warn!("Unable to send Ctrl-C event"));
-                        },
-                        // if `delay` completes, pass to the next event "frame"
-                        () = delay => {
-                            tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
-                        },
-                        // if the receiver dropped the channel, stop the event loop
-                        () = tx.closed() => break,
-                        // if an event was received, process it
-                        _ = event_available => {
-                            let maybe_event = crossterm::event::read();
-                            match maybe_event {
-                                Ok(crossterm::event::Event::Key(key)) => {
-                                    let key = convert_raw_event_to_key(key);
-                                    tx.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
-                                },
-                                Ok(crossterm::event::Event::FocusLost) => {
-                                    tx.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
-                                },
-                                Ok(crossterm::event::Event::FocusGained) => {
-                                    tx.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
-                                },
-                                Ok(crossterm::event::Event::Resize(x, y)) => {
-                                    let (_, (new_x, new_y)) = flush_resize_events((x, y));
-                                    tx.send(Event::Resize(new_x, new_y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
-                                },
-                                _ => {}
-                            }
+                tokio::select! {
+                    // if we receive a message on the abort channel, stop the event loop
+                    _ = abort_recv.recv() => {
+                        tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
+                        tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                        break;
+                    },
+                    _ = signal::ctrl_c() => {
+                        debug!("Received SIGINT");
+                        tx.send(Event::Input(Key::Ctrl('c'))).unwrap_or_else(|_| warn!("Unable to send Ctrl-C event"));
+                    },
+                    // if `delay` completes, pass to the next event "frame"
+                    () = delay => {
+                        tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                    },
+                    // if the receiver dropped the channel, stop the event loop
+                    () = tx.closed() => break,
+                    // if an event was received, process it
+                    _ = event_available => {
+                        let maybe_event = crossterm::event::read();
+                        match maybe_event {
+                            Ok(crossterm::event::Event::Key(key)) => {
+                                let key = convert_raw_event_to_key(key);
+                                tx.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
+                            },
+                            Ok(crossterm::event::Event::FocusLost) => {
+                                tx.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));
+                            },
+                            Ok(crossterm::event::Event::FocusGained) => {
+                                tx.send(Event::FocusGained).unwrap_or_else(|_| warn!("Unable to send FocusGained event"));
+                            },
+                            Ok(crossterm::event::Event::Resize(x, y)) => {
+                                let (_, (new_x, new_y)) = flush_resize_events((x, y));
+                                tx.send(Event::Resize(new_x, new_y)).unwrap_or_else(|_| warn!("Unable to send Resize event"));
+                            },
+                            _ => {}
                         }
                     }
                 }
-            });
-        }
+            }
+        });
 
         Self {
             //tx,

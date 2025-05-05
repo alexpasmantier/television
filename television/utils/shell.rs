@@ -1,10 +1,11 @@
+use std::fmt::Display;
+
 use crate::cli::args::Shell as CliShell;
 use crate::config::shell_integration::ShellIntegrationConfig;
 use anyhow::Result;
-use strum::Display;
 use tracing::debug;
 
-#[derive(Debug, Clone, Copy, PartialEq, Display)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Shell {
     Bash,
     Zsh,
@@ -22,6 +23,18 @@ impl Default for Shell {
     #[cfg(windows)]
     fn default() -> Self {
         Shell::PowerShell
+    }
+}
+
+impl Display for Shell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Shell::Bash => write!(f, "bash"),
+            Shell::Zsh => write!(f, "zsh"),
+            Shell::Fish => write!(f, "fish"),
+            Shell::PowerShell => write!(f, "powershell"),
+            Shell::Cmd => write!(f, "cmd"),
+        }
     }
 }
 

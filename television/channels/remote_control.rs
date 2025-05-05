@@ -1,30 +1,30 @@
 use std::collections::HashSet;
 
-use crate::channels::cable::prototypes::CableChannels;
-use crate::channels::{entry::Entry, preview::PreviewType};
-use crate::channels::{OnAir, TelevisionChannel};
+use crate::channels::cable::prototypes::CableChannelPrototypes;
+use crate::channels::entry::Entry;
+use crate::channels::OnAir;
 use crate::matcher::{config::Config, Matcher};
 use anyhow::Result;
 use devicons::FileIcon;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 
-use super::cable;
+use super::cable::prototypes::CableChannelPrototype;
 
 pub struct RemoteControl {
     matcher: Matcher<String>,
-    cable_channels: Option<CableChannels>,
+    cable_channels: Option<CableChannelPrototypes>,
     selected_entries: FxHashSet<Entry>,
 }
 
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Option<CableChannels>) -> Self {
+    pub fn new(cable_channels: Option<CableChannelPrototypes>) -> Self {
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
         for c in cable_channels
             .as_ref()
-            .unwrap_or(&CableChannels::default())
+            .unwrap_or(&CableChannelPrototypes::default())
             .keys()
         {
             let () = injector.push(c.clone(), |e, cols| {
@@ -38,15 +38,13 @@ impl RemoteControl {
         }
     }
 
-    pub fn zap(&self, channel_name: &str) -> Result<TelevisionChannel> {
+    pub fn zap(&self, channel_name: &str) -> Result<CableChannelPrototype> {
         match self
             .cable_channels
             .as_ref()
             .and_then(|channels| channels.get(channel_name).cloned())
         {
-            Some(prototype) => {
-                Ok(TelevisionChannel::Cable(cable::Channel::from(prototype)))
-            }
+            Some(prototype) => Ok(prototype),
             None => Err(anyhow::anyhow!(
                 "No channel or cable channel prototype found for {}",
                 channel_name
@@ -83,7 +81,7 @@ impl OnAir for RemoteControl {
             .into_iter()
             .map(|item| {
                 let path = item.matched_string;
-                Entry::new(path, PreviewType::Basic)
+                Entry::new(path)
                     .with_name_match_indices(&item.match_indices)
                     .with_icon(CABLE_ICON)
             })
@@ -93,7 +91,7 @@ impl OnAir for RemoteControl {
     fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
             let path = item.matched_string;
-            Entry::new(path, PreviewType::Basic).with_icon(TV_ICON)
+            Entry::new(path).with_icon(TV_ICON)
         })
     }
 

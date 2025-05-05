@@ -2,8 +2,6 @@ use std::hash::{Hash, Hasher};
 
 use devicons::FileIcon;
 
-use crate::channels::preview::PreviewType;
-
 // NOTE: having an enum for entry types would be nice since it would allow
 // having a nicer implementation for transitions between channels. This would
 // permit implementing `From<EntryType>` for channels which would make the
@@ -24,8 +22,6 @@ pub struct Entry {
     pub icon: Option<FileIcon>,
     /// The optional line number associated with the entry.
     pub line_number: Option<usize>,
-    /// The type of preview associated with the entry.
-    pub preview_type: PreviewType,
 }
 
 impl Hash for Entry {
@@ -85,10 +81,10 @@ impl Entry {
     ///
     /// Additional fields can be set using the builder pattern.
     /// ```
-    /// use television::channels::{entry::Entry, preview::PreviewType};
+    /// use television::channels::entry::Entry;
     /// use devicons::FileIcon;
     ///
-    /// let entry = Entry::new("name".to_string(), PreviewType::EnvVar)
+    /// let entry = Entry::new("name".to_string())
     ///                 .with_value("value".to_string())
     ///                 .with_name_match_indices(&vec![0])
     ///                 .with_value_match_indices(&vec![0])
@@ -98,12 +94,11 @@ impl Entry {
     ///
     /// # Arguments
     /// * `name` - The name of the entry.
-    /// * `preview_type` - The type of preview associated with the entry.
     ///
     /// # Returns
     /// A new entry with the given name and preview type.
     /// The other fields are set to `None` by default.
-    pub fn new(name: String, preview_type: PreviewType) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
             name,
             value: None,
@@ -111,7 +106,6 @@ impl Entry {
             value_match_ranges: None,
             icon: None,
             line_number: None,
-            preview_type,
         }
     }
 
@@ -148,16 +142,6 @@ impl Entry {
         repr
     }
 }
-
-pub const ENTRY_PLACEHOLDER: Entry = Entry {
-    name: String::new(),
-    value: None,
-    name_match_ranges: None,
-    value_match_ranges: None,
-    icon: None,
-    line_number: None,
-    preview_type: PreviewType::EnvVar,
-};
 
 #[cfg(test)]
 mod tests {
@@ -196,7 +180,6 @@ mod tests {
             value_match_ranges: None,
             icon: None,
             line_number: None,
-            preview_type: PreviewType::Basic,
         };
         assert_eq!(entry.stdout_repr(), "test name with spaces");
     }
@@ -210,7 +193,6 @@ mod tests {
             value_match_ranges: None,
             icon: None,
             line_number: Some(a),
-            preview_type: PreviewType::Basic,
         };
         assert_eq!(entry.stdout_repr(), "test_file_name.rs:10");
     }

@@ -6,7 +6,9 @@ use anyhow::Result;
 use tracing::{debug, error};
 
 use crate::{
-    channels::cable::prototypes::{CableChannelPrototype, CableChannels},
+    channels::cable::prototypes::{
+        CableChannelPrototype, CableChannelPrototypes,
+    },
     config::get_config_dir,
 };
 
@@ -40,7 +42,7 @@ const DEFAULT_CABLE_CHANNELS: &str =
 ///   ├── my_channels.toml
 ///   └── windows_channels.toml
 /// ```
-pub fn load_cable_channels() -> Result<CableChannels> {
+pub fn load_cable_channels() -> Result<CableChannelPrototypes> {
     let config_dir = get_config_dir();
 
     // list all files in the config directory
@@ -95,7 +97,7 @@ pub fn load_cable_channels() -> Result<CableChannels> {
     {
         cable_channels.insert(prototype.name.clone(), prototype);
     }
-    Ok(CableChannels(cable_channels))
+    Ok(CableChannelPrototypes(cable_channels))
 }
 
 fn is_cable_file_format<P>(p: P) -> bool

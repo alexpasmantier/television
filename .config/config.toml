@@ -61,15 +61,6 @@ orientation = "landscape"
 # directory in your configuration directory (see the `config.toml` location above).
 theme = "default"
 
-# Previewers settings
-# ----------------------------------------------------------------------------
-[previewers.file]
-# The theme to use for syntax highlighting.
-# Bulitin syntax highlighting uses the same syntax highlighting engine as bat.
-# To get a list of your currently available themes, run `bat --list-themes`
-# Note that setting the BAT_THEME environment variable will override this setting.
-theme = "TwoDark"
-
 # Keybindings
 # ----------------------------------------------------------------------------
 #
