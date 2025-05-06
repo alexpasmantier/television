@@ -4,9 +4,7 @@ use std::path::Path;
 use anyhow::{anyhow, Result};
 use tracing::debug;
 
-use crate::channels::cable::prototypes::{
-    CableChannelPrototype, CableChannelPrototypes,
-};
+use crate::channels::cable::prototypes::{Cable, ChannelPrototype};
 use crate::channels::preview::PreviewCommand;
 use crate::cli::args::{Cli, Command};
 use crate::config::{KeyBindings, DEFAULT_CHANNEL};
@@ -20,7 +18,7 @@ pub mod args;
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
-    pub channel: CableChannelPrototype,
+    pub channel: ChannelPrototype,
     pub preview_command: Option<PreviewCommand>,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
@@ -41,7 +39,7 @@ pub struct PostProcessedCli {
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
-            channel: CableChannelPrototype::default(),
+            channel: ChannelPrototype::default(),
             preview_command: None,
             no_preview: false,
             tick_rate: None,
@@ -80,10 +78,10 @@ impl From<Cli> for PostProcessedCli {
             offset_expr: None,
         });
 
-        let mut channel: CableChannelPrototype;
+        let mut channel: ChannelPrototype;
         let working_directory: Option<String>;
 
-        let cable_channels = cable::load_cable_channels().unwrap_or_default();
+        let cable_channels = cable::load_cable().unwrap_or_default();
         if cli.channel.is_none() {
             channel = cable_channels
                 .get(DEFAULT_CHANNEL)
@@ -178,8 +176,8 @@ fn parse_keybindings_literal(
 
 pub fn parse_channel(
     channel: &str,
-    cable_channels: &CableChannelPrototypes,
-) -> Result<CableChannelPrototype> {
+    cable_channels: &Cable,
+) -> Result<ChannelPrototype> {
     // try to parse the channel as a cable channel
     match cable_channels
         .iter()
@@ -191,7 +189,7 @@ pub fn parse_channel(
 }
 
 pub fn list_channels() {
-    for c in cable::load_cable_channels().unwrap_or_default().keys() {
+    for c in cable::load_cable().unwrap_or_default().keys() {
         println!("\t{c}");
     }
 }
@@ -223,8 +221,8 @@ pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
     fallback_channel: &str,
-    cable_channels: &CableChannelPrototypes,
-) -> Result<CableChannelPrototype> {
+    cable_channels: &Cable,
+) -> Result<ChannelPrototype> {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
@@ -317,7 +315,7 @@ mod tests {
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        let expected = CableChannelPrototype {
+        let expected = ChannelPrototype {
             preview_delimiter: Some(":".to_string()),
             ..Default::default()
         };
@@ -350,10 +348,7 @@ mod tests {
 
         let post_processed_cli: PostProcessedCli = cli.into();
 
-        assert_eq!(
-            post_processed_cli.channel,
-            CableChannelPrototype::default(),
-        );
+        assert_eq!(post_processed_cli.channel, ChannelPrototype::default(),);
         assert_eq!(
             post_processed_cli.working_directory,
             Some(".".to_string())
@@ -388,7 +383,7 @@ mod tests {
 
     /// Returns a tuple containing a command mapping and a fallback channel.
     fn guess_channel_from_prompt_setup<'a>(
-    ) -> (FxHashMap<String, String>, &'a str, CableChannelPrototypes) {
+    ) -> (FxHashMap<String, String>, &'a str, Cable) {
         let mut command_mapping = FxHashMap::default();
         command_mapping.insert("vim".to_string(), "files".to_string());
         command_mapping.insert("export".to_string(), "env".to_string());
@@ -396,7 +391,7 @@ mod tests {
         (
             command_mapping,
             "env",
-            cable::load_cable_channels().unwrap_or_default(),
+            cable::load_cable().unwrap_or_default(),
         )
     }
 

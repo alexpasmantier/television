@@ -3,9 +3,7 @@ use std::{collections::HashSet, path::PathBuf, time::Duration};
 use television::{
     action::Action,
     app::{App, AppOptions},
-    channels::cable::prototypes::{
-        CableChannelPrototype, CableChannelPrototypes,
-    },
+    channels::cable::prototypes::{Cable, ChannelPrototype},
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -23,19 +21,19 @@ const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
 /// The app is started in a separate task and can be interacted with by sending
 /// actions to the action channel.
 fn setup_app(
-    channel_prototype: Option<CableChannelPrototype>,
+    channel_prototype: Option<ChannelPrototype>,
     select_1: bool,
     exact: bool,
 ) -> (
     JoinHandle<television::app::AppOutput>,
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
-    let chan: CableChannelPrototype = channel_prototype.unwrap_or_else(|| {
+    let chan: ChannelPrototype = channel_prototype.unwrap_or_else(|| {
         let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
             .join("target_dir");
         std::env::set_current_dir(&target_dir).unwrap();
-        CableChannelPrototype::default()
+        ChannelPrototype::default()
     });
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
@@ -49,13 +47,7 @@ fn setup_app(
         false,
         config.application.tick_rate,
     );
-    let mut app = App::new(
-        chan,
-        config,
-        input,
-        options,
-        &CableChannelPrototypes::default(),
-    );
+    let mut app = App::new(chan, config, input, options, &Cable::default());
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();
@@ -220,8 +212,8 @@ async fn test_app_exact_search_positive() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_exits_when_select_1_and_only_one_result() {
-    let prototype = CableChannelPrototype::new(
-        "cable",
+    let prototype = ChannelPrototype::new(
+        "some_channel",
         "echo file1.txt",
         false,
         None,
@@ -258,8 +250,8 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
-    let prototype = CableChannelPrototype::new(
-        "cable",
+    let prototype = ChannelPrototype::new(
+        "some_channel",
         "echo 'file1.txt\nfile2.txt'",
         false,
         None,

@@ -4,10 +4,8 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::cable::prototypes::{
-    CableChannelPrototype, CableChannelPrototypes,
-};
-use crate::channels::{entry::Entry, OnAir};
+use crate::channels::cable::prototypes::{Cable, ChannelPrototype};
+use crate::channels::entry::Entry;
 use crate::config::{default_tick_rate, Config};
 use crate::keymap::Keymap;
 use crate::render::UiState;
@@ -138,11 +136,11 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel_prototype: CableChannelPrototype,
+        channel_prototype: ChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
-        cable_channels: &CableChannelPrototypes,
+        cable_channels: &Cable,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -160,7 +158,7 @@ impl App {
             options.no_remote,
             options.no_help,
             options.exact,
-            CableChannelPrototypes((*cable_channels).clone()),
+            cable_channels.clone(),
         );
 
         Self {
