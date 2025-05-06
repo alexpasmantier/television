@@ -1424,7 +1424,6 @@ dependencies = [
  "rustc-hash",
  "serde",
  "signal-hook",
- "television-derive",
  "tempfile",
  "tokio",
  "toml",
@@ -1432,15 +1431,6 @@ dependencies = [
  "tracing-subscriber",
  "unicode-width 0.2.0",
  "winapi-util",
-]
-
-[[package]]
-name = "television-derive"
-version = "0.0.27"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]
