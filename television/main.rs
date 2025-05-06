@@ -6,9 +6,7 @@ use std::process::exit;
 use anyhow::Result;
 use clap::Parser;
 use television::cable;
-use television::channels::cable::prototypes::{
-    CableChannelPrototype, CableChannelPrototypes,
-};
+use television::channels::cable::prototypes::{Cable, ChannelPrototype};
 use television::utils::clipboard::CLIPBOARD;
 use tracing::{debug, error, info};
 
@@ -43,7 +41,7 @@ async fn main() -> Result<()> {
     let mut config = Config::new(&ConfigEnv::init()?)?;
 
     debug!("Loading cable channels...");
-    let cable_channels = cable::load_cable_channels().unwrap_or_default();
+    let cable_channels = cable::load_cable().unwrap_or_default();
 
     // optionally handle subcommands
     debug!("Handling subcommands...");
@@ -154,11 +152,11 @@ pub fn determine_channel(
     args: PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
-    cable_channels: &CableChannelPrototypes,
-) -> Result<CableChannelPrototype> {
+    cable_channels: &Cable,
+) -> Result<ChannelPrototype> {
     if readable_stdin {
         debug!("Using stdin channel");
-        Ok(CableChannelPrototype::stdin(args.preview_command))
+        Ok(ChannelPrototype::stdin(args.preview_command))
     } else if let Some(prompt) = args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let channel_prototype = guess_channel_from_prompt(
@@ -179,8 +177,7 @@ pub fn determine_channel(
 mod tests {
     use rustc_hash::FxHashMap;
     use television::{
-        cable::load_cable_channels,
-        channels::cable::prototypes::CableChannelPrototype,
+        cable::load_cable, channels::cable::prototypes::ChannelPrototype,
     };
 
     use super::*;
@@ -189,11 +186,11 @@ mod tests {
         args: &PostProcessedCli,
         config: &Config,
         readable_stdin: bool,
-        expected_channel: &CableChannelPrototype,
-        cable_channels: Option<CableChannelPrototypes>,
+        expected_channel: &ChannelPrototype,
+        cable_channels: Option<Cable>,
     ) {
-        let channels: CableChannelPrototypes = cable_channels
-            .unwrap_or_else(|| load_cable_channels().unwrap_or_default());
+        let channels: Cable =
+            cable_channels.unwrap_or_else(|| load_cable().unwrap_or_default());
         let channel =
             determine_channel(args.clone(), config, readable_stdin, &channels)
                 .unwrap();
@@ -208,7 +205,7 @@ mod tests {
     #[tokio::test]
     /// Test that the channel is stdin when stdin is readable
     async fn test_determine_channel_readable_stdin() {
-        let channel = CableChannelPrototype::default();
+        let channel = ChannelPrototype::default();
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -218,9 +215,7 @@ mod tests {
             &args,
             &config,
             true,
-            &CableChannelPrototype::new(
-                "stdin", "cat", false, None, None, None,
-            ),
+            &ChannelPrototype::new("stdin", "cat", false, None, None, None),
             None,
         );
     }
@@ -228,9 +223,8 @@ mod tests {
     #[tokio::test]
     async fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
-        let expected_channel = CableChannelPrototype::new(
-            "dirs", "ls {}", false, None, None, None,
-        );
+        let expected_channel =
+            ChannelPrototype::new("dirs", "ls {}", false, None, None, None);
         let args = PostProcessedCli {
             autocomplete_prompt,
             ..Default::default()
@@ -263,7 +257,7 @@ mod tests {
     #[tokio::test]
     async fn test_determine_channel_standard_case() {
         let channel =
-            CableChannelPrototype::new("dirs", "", false, None, None, None);
+            ChannelPrototype::new("dirs", "", false, None, None, None);
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -273,7 +267,7 @@ mod tests {
             &args,
             &config,
             false,
-            &CableChannelPrototype::new("dirs", "", false, None, None, None),
+            &ChannelPrototype::new("dirs", "", false, None, None, None),
             None,
         );
     }

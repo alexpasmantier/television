@@ -6,17 +6,15 @@ use anyhow::Result;
 use tracing::{debug, error};
 
 use crate::{
-    channels::cable::prototypes::{
-        CableChannelPrototype, CableChannelPrototypes,
-    },
+    channels::cable::prototypes::{Cable, ChannelPrototype},
     config::get_config_dir,
 };
 
 /// Just a proxy struct to deserialize prototypes
 #[derive(Debug, serde::Deserialize, Default)]
-pub struct SerializedChannelPrototypes {
+pub struct CableSpec {
     #[serde(rename = "cable_channel")]
-    pub prototypes: Vec<CableChannelPrototype>,
+    pub prototypes: Vec<ChannelPrototype>,
 }
 
 const CABLE_FILE_NAME_SUFFIX: &str = "channels";
@@ -42,7 +40,7 @@ const DEFAULT_CABLE_CHANNELS: &str =
 ///   ├── my_channels.toml
 ///   └── windows_channels.toml
 /// ```
-pub fn load_cable_channels() -> Result<CableChannelPrototypes> {
+pub fn load_cable() -> Result<Cable> {
     let config_dir = get_config_dir();
 
     // list all files in the config directory
@@ -60,13 +58,13 @@ pub fn load_cable_channels() -> Result<CableChannelPrototypes> {
     }
 
     let default_prototypes =
-        toml::from_str::<SerializedChannelPrototypes>(DEFAULT_CABLE_CHANNELS)
+        toml::from_str::<CableSpec>(DEFAULT_CABLE_CHANNELS)
             .expect("Failed to parse default cable channels");
 
     let prototypes = file_paths.iter().fold(
-        Vec::<CableChannelPrototype>::new(),
+        Vec::<ChannelPrototype>::new(),
         |mut acc, p| {
-            match toml::from_str::<SerializedChannelPrototypes>(
+            match toml::from_str::<CableSpec>(
                 &std::fs::read_to_string(p)
                     .expect("Unable to read configuration file"),
             ) {
@@ -97,7 +95,7 @@ pub fn load_cable_channels() -> Result<CableChannelPrototypes> {
     {
         cable_channels.insert(prototype.name.clone(), prototype);
     }
-    Ok(CableChannelPrototypes(cable_channels))
+    Ok(Cable(cable_channels))
 }
 
 fn is_cable_file_format<P>(p: P) -> bool

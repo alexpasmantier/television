@@ -1,14 +1,12 @@
 use crate::{
     action::Action,
-    cable::load_cable_channels,
     channels::{
         cable::{
-            prototypes::{CableChannelPrototype, CableChannelPrototypes},
+            prototypes::{Cable, ChannelPrototype},
             Channel as CableChannel,
         },
         entry::Entry,
         remote_control::RemoteControl,
-        OnAir, TelevisionChannel,
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
@@ -48,7 +46,7 @@ pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub config: Config,
     pub channel: CableChannel,
-    pub remote_control: Option<TelevisionChannel>,
+    pub remote_control: Option<RemoteControl>,
     pub mode: Mode,
     pub current_pattern: String,
     pub matching_mode: MatchingMode,
@@ -70,13 +68,13 @@ impl Television {
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        channel_prototype: CableChannelPrototype,
+        channel_prototype: ChannelPrototype,
         mut config: Config,
         input: Option<String>,
         no_remote: bool,
         no_help: bool,
         exact: bool,
-        cable_channels: CableChannelPrototypes,
+        cable_channels: Cable,
     ) -> Self {
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
@@ -108,9 +106,7 @@ impl Television {
         let remote_control = if no_remote {
             None
         } else {
-            Some(TelevisionChannel::RemoteControl(RemoteControl::new(Some(
-                cable_channels,
-            ))))
+            Some(RemoteControl::new(Some(cable_channels)))
         };
 
         if no_help {
@@ -150,13 +146,6 @@ impl Television {
         self.ui_state = ui_state;
     }
 
-    pub fn init_remote_control(&mut self) {
-        let cable_channels = load_cable_channels().unwrap_or_default();
-        self.remote_control = Some(TelevisionChannel::RemoteControl(
-            RemoteControl::new(Some(cable_channels)),
-        ));
-    }
-
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
             self.channel.name.clone(),
@@ -189,10 +178,7 @@ impl Television {
         self.channel.name.clone()
     }
 
-    pub fn change_channel(
-        &mut self,
-        channel_prototype: CableChannelPrototype,
-    ) {
+    pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
         self.preview_state.reset();
         self.preview_state.enabled =
             channel_prototype.preview_command.is_some();
@@ -213,7 +199,9 @@ impl Television {
                 );
             }
             Mode::RemoteControl => {
-                self.remote_control.as_mut().unwrap().find(pattern);
+                if let Some(rc) = self.remote_control.as_mut() {
+                    rc.find(pattern);
+                }
             }
         }
     }
@@ -244,11 +232,9 @@ impl Television {
             }
             Mode::RemoteControl => {
                 if let Some(i) = self.rc_picker.selected() {
-                    return self
-                        .remote_control
-                        .as_ref()
-                        .unwrap()
-                        .get_result(i.try_into().unwrap());
+                    if let Some(rc) = &self.remote_control {
+                        return rc.get_result(i.try_into().unwrap());
+                    }
                 }
                 None
             }
@@ -491,12 +477,10 @@ impl Television {
         match self.mode {
             Mode::Channel => {
                 self.mode = Mode::RemoteControl;
-                self.init_remote_control();
             }
             Mode::RemoteControl => {
                 // this resets the RC picker
                 self.reset_picker_input();
-                self.init_remote_control();
                 self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                 self.reset_picker_selection();
                 self.mode = Mode::Channel;
@@ -528,7 +512,6 @@ impl Television {
                         .remote_control
                         .as_ref()
                         .unwrap()
-                        // FIXME: is the TelevisionChannel enum still worth it?
                         .zap(entry.name.as_str())?;
                     // this resets the RC picker
                     self.reset_picker_selection();

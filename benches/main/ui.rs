@@ -8,13 +8,12 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
-use television::channels::cable::prototypes::CableChannelPrototypes;
+use television::channels::cable::prototypes::Cable;
 use television::{
     action::Action,
     channels::{
-        cable::prototypes::CableChannelPrototype,
+        cable::prototypes::ChannelPrototype,
         entry::{into_ranges, Entry},
-        OnAir,
     },
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, results::build_results_list},
@@ -22,6 +21,7 @@ use television::{
 };
 use tokio::runtime::Runtime;
 
+#[allow(clippy::too_many_lines)]
 pub fn draw_results_list(c: &mut Criterion) {
     // FIXME: there's  probably a way to have this as a benchmark asset
     // possible as a JSON file and to load it for the benchmark using Serde
@@ -458,6 +458,7 @@ pub fn draw_results_list(c: &mut Criterion) {
     });
 }
 
+#[allow(clippy::missing_panics_doc)]
 pub fn draw(c: &mut Criterion) {
     let width = 250;
     let height = 80;
@@ -472,7 +473,7 @@ pub fn draw(c: &mut Criterion) {
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
-                let channel = CableChannelPrototype::default();
+                let channel = ChannelPrototype::default();
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
                     tx,
@@ -482,7 +483,7 @@ pub fn draw(c: &mut Criterion) {
                     false,
                     false,
                     false,
-                    CableChannelPrototypes::default(),
+                    Cable::default(),
                 );
                 tv.find("television");
                 for _ in 0..5 {

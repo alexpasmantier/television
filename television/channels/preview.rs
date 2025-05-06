@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use super::{cable::prototypes::DEFAULT_DELIMITER, entry::Entry};
-use crate::channels::cable::prototypes::CableChannelPrototype;
+use crate::channels::cable::prototypes::ChannelPrototype;
 use lazy_regex::{regex, Lazy, Regex};
 use tracing::debug;
 
@@ -65,8 +65,8 @@ impl PreviewCommand {
     }
 }
 
-impl From<&CableChannelPrototype> for Option<PreviewCommand> {
-    fn from(value: &CableChannelPrototype) -> Self {
+impl From<&ChannelPrototype> for Option<PreviewCommand> {
+    fn from(value: &ChannelPrototype) -> Self {
         if let Some(command) = value.preview_command.as_ref() {
             let delimiter = value
                 .preview_delimiter

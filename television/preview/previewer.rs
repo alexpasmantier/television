@@ -1,4 +1,4 @@
-use crate::channels::cable::prototypes::CableChannelPrototype;
+use crate::channels::cable::prototypes::ChannelPrototype;
 use crate::preview::{Preview, PreviewContent};
 use crate::utils::command::shell_command;
 use crate::{
@@ -130,8 +130,8 @@ pub fn try_preview(
     in_flight_previews.lock().remove(&entry.name);
 }
 
-impl From<&CableChannelPrototype> for Option<Previewer> {
-    fn from(value: &CableChannelPrototype) -> Self {
+impl From<&ChannelPrototype> for Option<Previewer> {
+    fn from(value: &ChannelPrototype) -> Self {
         Option::<PreviewCommand>::from(value).map(Previewer::new)
     }
 }
