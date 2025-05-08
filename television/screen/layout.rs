@@ -140,7 +140,6 @@ impl Layout {
         ui_config: &UiConfig,
         show_remote: bool,
         show_preview: bool,
-        //
     ) -> Self {
         let show_preview = show_preview && ui_config.show_preview_panel;
         let dimensions = Dimensions::from(ui_config.ui_scale);

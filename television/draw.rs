@@ -179,12 +179,14 @@ impl Ord for Ctx {
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
 pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
-    let show_preview =
-        ctx.config.ui.show_preview_panel && ctx.tv_state.preview_state.enabled;
     let show_remote = !matches!(ctx.tv_state.mode, Mode::Channel);
 
-    let layout =
-        Layout::build(area, &ctx.config.ui, show_remote, show_preview);
+    let layout = Layout::build(
+        area,
+        &ctx.config.ui,
+        show_remote,
+        ctx.tv_state.preview_state.enabled,
+    );
 
     // help bar (metadata, keymaps, logo)
     draw_help_bar(
