@@ -5,9 +5,11 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
-use television::cable;
-use television::channels::cable::prototypes::{Cable, ChannelPrototype};
-use television::utils::clipboard::CLIPBOARD;
+use television::{
+    cable,
+    channels::prototypes::{Cable, ChannelPrototype},
+    utils::clipboard::CLIPBOARD,
+};
 use tracing::{debug, error, info};
 
 use television::app::{App, AppOptions};
@@ -177,7 +179,7 @@ pub fn determine_channel(
 mod tests {
     use rustc_hash::FxHashMap;
     use television::{
-        cable::load_cable, channels::cable::prototypes::ChannelPrototype,
+        cable::load_cable, channels::prototypes::ChannelPrototype,
     };
 
     use super::*;

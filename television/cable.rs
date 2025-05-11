@@ -6,7 +6,7 @@ use anyhow::Result;
 use tracing::{debug, error};
 
 use crate::{
-    channels::cable::prototypes::{Cable, ChannelPrototype},
+    channels::prototypes::{Cable, ChannelPrototype},
     config::get_config_dir,
 };
 

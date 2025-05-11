@@ -1,10 +1,12 @@
-use crate::channels::cable::prototypes::Cable;
-use crate::channels::entry::Entry;
-use crate::matcher::{config::Config, Matcher};
+use crate::{
+    channels::{
+        entry::Entry,
+        prototypes::{Cable, ChannelPrototype},
+    },
+    matcher::{config::Config, Matcher},
+};
 use anyhow::Result;
 use devicons::FileIcon;
-
-use super::cable::prototypes::ChannelPrototype;
 
 pub struct RemoteControl {
     matcher: Matcher<String>,

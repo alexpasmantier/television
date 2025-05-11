@@ -4,16 +4,17 @@ use anyhow::Result;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
-use crate::channels::cable::prototypes::{Cable, ChannelPrototype};
-use crate::channels::entry::Entry;
-use crate::config::{default_tick_rate, Config};
-use crate::keymap::Keymap;
-use crate::render::UiState;
-use crate::television::{Mode, Television};
 use crate::{
     action::Action,
+    channels::{
+        entry::Entry,
+        prototypes::{Cable, ChannelPrototype},
+    },
+    config::{default_tick_rate, Config},
     event::{Event, EventLoop, Key},
-    render::{render, RenderingTask},
+    keymap::Keymap,
+    render::{render, RenderingTask, UiState},
+    television::{Mode, Television},
 };
 
 #[allow(clippy::struct_excessive_bools)]

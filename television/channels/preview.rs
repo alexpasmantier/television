@@ -1,7 +1,9 @@
 use std::fmt::Display;
 
-use super::{cable::prototypes::DEFAULT_DELIMITER, entry::Entry};
-use crate::channels::cable::prototypes::ChannelPrototype;
+use crate::channels::{
+    entry::Entry,
+    prototypes::{ChannelPrototype, DEFAULT_DELIMITER},
+};
 use lazy_regex::{regex, Lazy, Regex};
 use tracing::debug;
 

@@ -8,12 +8,11 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use ratatui::Terminal;
-use television::channels::cable::prototypes::Cable;
 use television::{
     action::Action,
     channels::{
-        cable::prototypes::ChannelPrototype,
         entry::{into_ranges, Entry},
+        prototypes::{Cable, ChannelPrototype},
     },
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, results::build_results_list},
