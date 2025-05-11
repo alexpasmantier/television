@@ -1,9 +1,9 @@
-use crate::channels::cable::prototypes::ChannelPrototype;
-use crate::preview::{Preview, PreviewContent};
-use crate::utils::command::shell_command;
 use crate::{
-    channels::{entry::Entry, preview::PreviewCommand},
-    preview::cache::PreviewCache,
+    channels::{
+        entry::Entry, preview::PreviewCommand, prototypes::ChannelPrototype,
+    },
+    preview::{cache::PreviewCache, Preview, PreviewContent},
+    utils::command::shell_command,
 };
 use parking_lot::Mutex;
 use rustc_hash::FxHashSet;

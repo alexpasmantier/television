@@ -1,11 +1,9 @@
 use crate::{
     action::Action,
     channels::{
-        cable::{
-            prototypes::{Cable, ChannelPrototype},
-            Channel as CableChannel,
-        },
+        cable::Channel as CableChannel,
         entry::Entry,
+        prototypes::{Cable, ChannelPrototype},
         remote_control::RemoteControl,
     },
     config::{Config, Theme},

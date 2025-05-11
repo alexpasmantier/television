@@ -2,16 +2,17 @@ use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 
-use prototypes::{ChannelPrototype, DEFAULT_DELIMITER};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use crate::channels::{entry::Entry, preview::PreviewCommand};
+use crate::channels::{
+    entry::Entry,
+    preview::PreviewCommand,
+    prototypes::{ChannelPrototype, DEFAULT_DELIMITER},
+};
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
-
-pub mod prototypes;
 
 #[allow(dead_code)]
 pub struct Channel {
