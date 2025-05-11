@@ -6,7 +6,7 @@ use std::{
 
 use crate::{cable::CableSpec, channels::preview::PreviewCommand};
 
-/// A prototype for a cable channel.
+/// A prototype for cable channels.
 ///
 /// This can be seen as a cable channel specification, which is used to
 /// create a cable channel.
@@ -122,7 +122,7 @@ impl Display for ChannelPrototype {
     }
 }
 
-/// A neat `HashMap` of cable channel prototypes indexed by their name.
+/// A neat `HashMap` of channel prototypes indexed by their name.
 ///
 /// This is used to store cable channel prototypes throughout the application
 /// in a way that facilitates answering questions like "what's the prototype
@@ -142,12 +142,12 @@ impl Deref for Cable {
 /// application.
 #[cfg(unix)]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
-    include_str!("../../../cable/unix-channels.toml");
+    include_str!("../../cable/unix-channels.toml");
 /// A default cable channels specification that is compiled into the
 /// application.
 #[cfg(not(unix))]
 const DEFAULT_CABLE_CHANNELS_FILE: &str =
-    include_str!("../../../cable/windows-channels.toml");
+    include_str!("../../cable/windows-channels.toml");
 
 impl Default for Cable {
     /// Fallback to the default cable channels specification (the template file

@@ -3,7 +3,7 @@ use std::{collections::HashSet, path::PathBuf, time::Duration};
 use television::{
     action::Action,
     app::{App, AppOptions},
-    channels::cable::prototypes::{Cable, ChannelPrototype},
+    channels::prototypes::{Cable, ChannelPrototype},
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
