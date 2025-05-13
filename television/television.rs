@@ -10,7 +10,10 @@ use crate::{
     draw::{ChannelState, Ctx, TvState},
     input::convert_action_to_input_request,
     picker::Picker,
-    preview::{previewer::Previewer, Preview, PreviewState},
+    previewer::{
+        state::PreviewState, Config as PreviewerConfig, Preview, Previewer,
+        Request as PreviewRequest, Ticket,
+    },
     render::UiState,
     screen::{
         colors::Colorscheme,
@@ -25,8 +28,9 @@ use anyhow::Result;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::mpsc::{
+    unbounded_channel, UnboundedReceiver, UnboundedSender,
+};
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -46,12 +50,14 @@ pub struct Television {
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
     pub mode: Mode,
+    pub currently_selected: Option<Entry>,
     pub current_pattern: String,
     pub matching_mode: MatchingMode,
     pub results_picker: Picker,
     pub rc_picker: Picker,
-    pub previewer: Option<Previewer>,
     pub preview_state: PreviewState,
+    pub preview_handles:
+        Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
     pub spinner: Spinner,
     pub spinner_state: SpinnerState,
     pub app_metadata: AppMetadata,
@@ -79,7 +85,9 @@ impl Television {
             results_picker = results_picker.inverted();
         }
 
-        let previewer: Option<Previewer> = (&channel_prototype).into();
+        // previewer
+        let preview_handles = Self::setup_previewer(&channel_prototype);
+
         let mut channel: CableChannel = channel_prototype.into();
 
         let app_metadata = AppMetadata::new(
@@ -96,7 +104,7 @@ impl Television {
 
         let preview_state = PreviewState::new(
             channel.supports_preview(),
-            Arc::new(Preview::default()),
+            Preview::default(),
             0,
             None,
         );
@@ -124,12 +132,13 @@ impl Television {
             channel,
             remote_control,
             mode: Mode::Channel,
+            currently_selected: None,
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
             matching_mode,
             rc_picker: Picker::default(),
-            previewer,
             preview_state,
+            preview_handles,
             spinner,
             spinner_state: SpinnerState::from(&spinner),
             app_metadata,
@@ -137,6 +146,26 @@ impl Television {
             ticks: 0,
             ui_state: UiState::default(),
             no_help,
+        }
+    }
+
+    fn setup_previewer(
+        channel_prototype: &ChannelPrototype,
+    ) -> Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>
+    {
+        if channel_prototype.preview_command.is_some() {
+            let (pv_request_tx, pv_request_rx) = unbounded_channel();
+            let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
+            let previewer = Previewer::new(
+                channel_prototype.preview_command().unwrap(),
+                PreviewerConfig::default(),
+                pv_request_rx,
+                pv_preview_tx,
+            );
+            tokio::spawn(async move { previewer.run().await });
+            Some((pv_request_tx, pv_preview_rx))
+        } else {
+            None
         }
     }
 
@@ -153,11 +182,13 @@ impl Television {
         );
         let tv_state = TvState::new(
             self.mode,
-            self.get_selected_entry(Some(Mode::Channel)),
+            self.currently_selected.clone(),
             self.results_picker.clone(),
             self.rc_picker.clone(),
             channel_state,
             self.spinner,
+            // PERF: we shouldn't need to clone the whole preview here but only
+            // what's in range of the preview window
             self.preview_state.clone(),
         );
 
@@ -184,7 +215,12 @@ impl Television {
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
         self.channel.shutdown();
-        self.previewer = (&channel_prototype).into();
+        if let Some((sender, _)) = &self.preview_handles {
+            sender
+                .send(PreviewRequest::Shutdown)
+                .expect("Failed to send shutdown signal to previewer");
+        }
+        self.preview_handles = Self::setup_previewer(&channel_prototype);
         self.channel = channel_prototype.into();
     }
 
@@ -367,46 +403,45 @@ impl Television {
 
     pub fn update_preview_state(
         &mut self,
-        selected_entry: &Entry,
+        selected_entry: &Option<Entry>,
     ) -> Result<()> {
-        if self.config.ui.show_preview_panel
-            && self.channel.supports_preview()
-            // FIXME: this is probably redundant with the channel supporting previews
-            && self.previewer.is_some()
-        {
-            // avoid sending unnecessary requests to the previewer
-            if self.preview_state.preview.title != selected_entry.name {
-                if let Some(preview) =
-                    self.previewer.as_mut().unwrap().request(selected_entry)
-                {
-                    self.preview_state.update(
-                        preview,
-                        // scroll to center the selected entry
-                        selected_entry
-                            .line_number
-                            .unwrap_or(0)
-                            .saturating_sub(
-                                (self
-                                    .ui_state
-                                    .layout
-                                    .preview_window
-                                    .map_or(0, |w| w.height)
-                                    / 2)
-                                .into(),
-                            )
-                            .try_into()
-                            // if the scroll doesn't fit in a u16, just scroll to the top
-                            // this is a current limitation of ratatui
-                            .unwrap_or(0),
-                        selected_entry
-                            .line_number
-                            .and_then(|l| l.try_into().ok()),
-                    );
-                    self.action_tx.send(Action::Render)?;
-                }
-            }
-        } else {
+        if selected_entry.is_none() {
             self.preview_state.reset();
+            return Ok(());
+        }
+        if let Some((sender, receiver)) = &mut self.preview_handles {
+            // preview requests
+            if *selected_entry != self.currently_selected {
+                sender.send(PreviewRequest::Preview(Ticket::new(
+                    selected_entry.as_ref().unwrap().clone(),
+                )))?;
+            }
+            // available previews
+            let entry = selected_entry.as_ref().unwrap();
+            if let Ok(preview) = receiver.try_recv() {
+                self.preview_state.update(
+                    preview,
+                    // scroll to center the selected entry
+                    entry
+                        .line_number
+                        .unwrap_or(0)
+                        .saturating_sub(
+                            (self
+                                .ui_state
+                                .layout
+                                .preview_window
+                                .map_or(0, |w| w.height)
+                                / 2)
+                            .into(),
+                        )
+                        .try_into()
+                        // if the scroll doesn't fit in a u16, just scroll to the top
+                        // this is a current limitation of ratatui
+                        .unwrap_or(0),
+                    entry.line_number.and_then(|l| l.try_into().ok()),
+                );
+                self.action_tx.send(Action::Render)?;
+            }
         }
         Ok(())
     }
@@ -461,7 +496,6 @@ impl Television {
                     self.current_pattern.clone_from(&new_pattern);
                     self.find(&new_pattern);
                     self.reset_picker_selection();
-                    self.preview_state.reset();
                 }
             }
             _ => {}
@@ -488,8 +522,8 @@ impl Television {
 
     pub fn handle_toggle_selection(&mut self, action: &Action) {
         if matches!(self.mode, Mode::Channel) {
-            if let Some(entry) = self.get_selected_entry(None) {
-                self.channel.toggle_selection(&entry);
+            if let Some(entry) = &self.currently_selected {
+                self.channel.toggle_selection(entry);
                 if matches!(action, Action::ToggleSelectionDown) {
                     self.select_next_entry(1);
                 } else {
@@ -625,12 +659,11 @@ impl Television {
             self.update_rc_picker_state();
         }
 
-        if let Some(selected_entry) =
-            self.get_selected_entry(Some(Mode::Channel))
-        {
+        if self.mode == Mode::Channel {
+            let selected_entry = self.get_selected_entry(None);
             self.update_preview_state(&selected_entry)?;
+            self.currently_selected = selected_entry;
         }
-
         self.ticks += 1;
 
         Ok(if self.should_render(action) {

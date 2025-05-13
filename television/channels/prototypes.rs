@@ -95,6 +95,10 @@ impl ChannelPrototype {
             },
         }
     }
+
+    pub fn preview_command(&self) -> Option<PreviewCommand> {
+        self.into()
+    }
 }
 
 const DEFAULT_PROTOTYPE_NAME: &str = "files";
