@@ -32,21 +32,13 @@ pub fn draw_preview_content_block(
         use_nerd_font_icons,
     )?;
     // render the preview content
-    let rp = build_preview_paragraph(
-        &preview_state.preview.content,
-        preview_state.target_line,
-        preview_state.scroll,
-    );
+    let rp = build_preview_paragraph(&preview_state.preview.content);
     f.render_widget(rp, inner);
 
     Ok(())
 }
 
-pub fn build_preview_paragraph(
-    preview_content: &str,
-    #[allow(unused_variables)] target_line: Option<u16>,
-    preview_scroll: u16,
-) -> Paragraph<'_> {
+pub fn build_preview_paragraph(content: &str) -> Paragraph<'_> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -55,42 +47,14 @@ pub fn build_preview_paragraph(
             left: 1,
         });
 
-    build_ansi_text_paragraph(preview_content, preview_block, preview_scroll)
+    build_ansi_text_paragraph(content, preview_block)
 }
-
-const ANSI_BEFORE_CONTEXT_SIZE: u16 = 10;
-const ANSI_CONTEXT_SIZE: usize = 150;
 
 fn build_ansi_text_paragraph<'a>(
     text: &'a str,
     preview_block: Block<'a>,
-    preview_scroll: u16,
 ) -> Paragraph<'a> {
-    let lines = text.lines();
-    let skip =
-        preview_scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE) as usize;
-    let context = lines
-        .skip(skip)
-        .take(ANSI_CONTEXT_SIZE)
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let mut text = "\n".repeat(skip);
-    text.push_str(
-        &replace_non_printable(
-            context.as_bytes(),
-            &ReplaceNonPrintableConfig {
-                replace_line_feed: false,
-                replace_control_characters: false,
-                ..Default::default()
-            },
-        )
-        .0,
-    );
-
-    Paragraph::new(text.into_text().unwrap())
-        .block(preview_block)
-        .scroll((preview_scroll, 0))
+    Paragraph::new(text.into_text().unwrap()).block(preview_block)
 }
 
 pub fn build_meta_preview_paragraph<'a>(
