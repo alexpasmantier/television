@@ -210,6 +210,16 @@ impl ReplaceNonPrintableConfig {
         self.tab_width = tab_width;
         self
     }
+
+    pub fn keep_line_feed(&mut self) -> &mut Self {
+        self.replace_line_feed = false;
+        self
+    }
+
+    pub fn keep_control_characters(&mut self) -> &mut Self {
+        self.replace_control_characters = false;
+        self
+    }
 }
 
 impl Default for ReplaceNonPrintableConfig {
