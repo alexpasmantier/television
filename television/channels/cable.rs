@@ -14,11 +14,9 @@ use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
-#[allow(dead_code)]
 pub struct Channel {
     pub name: String,
     matcher: Matcher<String>,
-    entries_command: String,
     pub preview_command: Option<PreviewCommand>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: tokio::task::JoinHandle<()>,
@@ -71,7 +69,6 @@ impl Channel {
         ));
         Self {
             matcher,
-            entries_command: entries_command.to_string(),
             preview_command,
             name: name.to_string(),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
