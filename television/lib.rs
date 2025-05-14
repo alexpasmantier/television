@@ -12,7 +12,7 @@ pub mod keymap;
 pub mod logging;
 pub mod matcher;
 pub mod picker;
-pub mod preview;
+pub mod previewer;
 pub mod render;
 pub mod screen;
 pub mod television;

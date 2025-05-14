@@ -1,0 +1,234 @@
+use std::{
+    cmp::Ordering,
+    time::{Duration, Instant},
+};
+
+use devicons::FileIcon;
+use tokio::{
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    time::timeout,
+};
+use tracing::debug;
+
+use crate::{
+    channels::{entry::Entry, preview::PreviewCommand},
+    utils::command::shell_command,
+};
+
+pub mod state;
+
+pub struct Config {
+    request_max_age: Duration,
+    job_timeout: Duration,
+}
+
+pub const DEFAULT_REQUEST_MAX_AGE: Duration = Duration::from_millis(1000);
+pub const DEFAULT_JOB_TIMEOUT: Duration = Duration::from_millis(500);
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            request_max_age: DEFAULT_REQUEST_MAX_AGE,
+            job_timeout: DEFAULT_JOB_TIMEOUT,
+        }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub enum Request {
+    Preview(Ticket),
+    Shutdown,
+}
+
+impl PartialOrd for Request {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Request {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            // Shutdown signals always have priority
+            (Self::Shutdown, _) => Ordering::Greater,
+            (_, Self::Shutdown) => Ordering::Less,
+            // Otherwise fall back to ticket age comparison
+            (Self::Preview(t1), Self::Preview(t2)) => t1.cmp(t2),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+pub struct Ticket {
+    entry: Entry,
+    timestamp: Instant,
+}
+
+impl PartialOrd for Ticket {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Ticket {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.age().cmp(&other.age())
+    }
+}
+
+impl Ticket {
+    pub fn new(entry: Entry) -> Self {
+        Self {
+            entry,
+            timestamp: Instant::now(),
+        }
+    }
+
+    fn age(&self) -> Duration {
+        Instant::now().duration_since(self.timestamp)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Preview {
+    pub title: String,
+    pub content: String,
+    pub icon: Option<FileIcon>,
+    pub total_lines: u16,
+}
+
+const DEFAULT_PREVIEW_TITLE: &str = "Select an entry to preview";
+
+impl Default for Preview {
+    fn default() -> Self {
+        Self {
+            title: DEFAULT_PREVIEW_TITLE.to_string(),
+            content: String::new(),
+            icon: None,
+            total_lines: 1,
+        }
+    }
+}
+
+impl Preview {
+    fn new(
+        title: &str,
+        content: String,
+        icon: Option<FileIcon>,
+        total_lines: u16,
+    ) -> Self {
+        Self {
+            title: title.to_string(),
+            content,
+            icon,
+            total_lines,
+        }
+    }
+}
+
+pub struct Previewer {
+    config: Config,
+    requests: UnboundedReceiver<Request>,
+    last_job_entry: Option<Entry>,
+    preview_command: PreviewCommand,
+    previews: UnboundedSender<Preview>,
+}
+
+impl Previewer {
+    pub fn new(
+        preview_command: PreviewCommand,
+        config: Config,
+        receiver: UnboundedReceiver<Request>,
+        sender: UnboundedSender<Preview>,
+    ) -> Self {
+        Self {
+            config,
+            requests: receiver,
+            last_job_entry: None,
+            preview_command,
+            previews: sender,
+        }
+    }
+
+    pub async fn run(mut self) {
+        let mut buffer = Vec::with_capacity(32);
+        loop {
+            let num = self.requests.recv_many(&mut buffer, 32).await;
+            if num > 0 {
+                debug!("Previewer received {num} request(s)!");
+                // only keep the newest request
+                match buffer.drain(..).max().unwrap() {
+                    Request::Preview(ticket) => {
+                        if ticket.age() > self.config.request_max_age {
+                            debug!("Preview request is stale, skipping");
+                            continue;
+                        }
+                        let notify = self.previews.clone();
+                        let command =
+                            self.preview_command.format_with(&ticket.entry);
+                        self.last_job_entry = Some(ticket.entry.clone());
+                        // try to execute the preview with a timeout
+                        match timeout(
+                            self.config.job_timeout,
+                            tokio::spawn(async move {
+                                try_preview(&command, &ticket.entry, &notify);
+                            }),
+                        )
+                        .await
+                        {
+                            Ok(_) => {
+                                debug!("Preview job completed successfully");
+                            }
+                            Err(e) => {
+                                debug!("Preview job timeout: {}", e);
+                            }
+                        }
+                    }
+                    Request::Shutdown => {
+                        debug!("Received shutdown signal, breaking out of the previewer loop.");
+                        break;
+                    }
+                }
+            } else {
+                debug!("Preview request channel closed and no messages left, breaking out of the previewer loop.");
+                break;
+            }
+        }
+    }
+}
+
+pub fn try_preview(
+    command: &str,
+    entry: &Entry,
+    notify: &UnboundedSender<Preview>,
+) {
+    debug!("Preview command: {}", command);
+
+    let child = shell_command(false)
+        .arg(command)
+        .output()
+        .expect("failed to execute process");
+
+    let preview: Preview = {
+        if child.status.success() {
+            let content = String::from_utf8_lossy(&child.stdout);
+            Preview::new(
+                &entry.name,
+                content.to_string(),
+                None,
+                u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+            )
+        } else {
+            let content = String::from_utf8_lossy(&child.stderr);
+            Preview::new(
+                &entry.name,
+                content.to_string(),
+                None,
+                u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+            )
+        }
+    };
+    notify
+        .send(preview)
+        .expect("Unable to send preview result to main thread.");
+}

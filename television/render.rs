@@ -11,7 +11,7 @@ use crate::draw::Ctx;
 use crate::screen::layout::Layout;
 use crate::{action::Action, draw::draw, tui::Tui};
 
-#[derive(Debug, PartialEq, PartialOrd, Ord, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub enum RenderingTask {
     ClearScreen,
     Render(Box<Ctx>),
@@ -89,15 +89,29 @@ pub async fn render(
     tui.enter()?;
 
     let mut buffer = Vec::with_capacity(256);
+    let mut num_instructions;
     let mut frame_start;
 
     // Rendering loop
     'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
         frame_start = std::time::Instant::now();
-        // deduplicate events
-        buffer.sort_unstable();
-        buffer.dedup();
-        for event in buffer.drain(..) {
+        num_instructions = buffer.len();
+        if let Some(last_render) = buffer
+            .iter()
+            .rfind(|e| matches!(e, RenderingTask::Render(_)))
+        {
+            buffer.push(last_render.clone());
+        }
+
+        for event in buffer
+            .drain(..)
+            .enumerate()
+            .filter(|(i, e)| {
+                !matches!(e, RenderingTask::Render(_))
+                    || *i == num_instructions
+            })
+            .map(|(_, val)| val)
+        {
             match event {
                 RenderingTask::ClearScreen => {
                     tui.terminal.clear()?;
