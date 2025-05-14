@@ -8,8 +8,9 @@ preview_command = "bat -n --color=always {}"
 [[cable_channel]]
 name = "text"
 source_command = "rg . --no-heading --line-number"
-preview_command = "bat -n --color=always {0} -H {1}"
+preview_command = "bat -n --color=always {0}"
 preview_delimiter = ":"
+preview_offset = "{1}"
 
 # Directories
 [[cable_channel]]

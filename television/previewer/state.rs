@@ -9,7 +9,7 @@ pub struct PreviewState {
 }
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
-pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 10;
+pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 3;
 const ANSI_CONTEXT_SIZE: usize = 500;
 
 impl PreviewState {
@@ -51,7 +51,7 @@ impl PreviewState {
         scroll: u16,
         target_line: Option<u16>,
     ) {
-        if self.preview.title != preview.title {
+        if self.preview.title != preview.title || self.scroll != scroll {
             self.preview = preview;
             self.scroll = scroll;
             self.target_line = target_line;
@@ -59,16 +59,31 @@ impl PreviewState {
     }
 
     pub fn for_render_context(&self) -> Self {
-        let skipped_lines =
+        let num_skipped_lines =
             self.scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE);
         let cropped_content = self
             .preview
             .content
             .lines()
-            .skip(skipped_lines as usize)
+            .skip(num_skipped_lines as usize)
             .take(ANSI_CONTEXT_SIZE)
             .collect::<Vec<_>>()
             .join("\n");
+
+        let target_line: Option<u16> =
+            if let Some(target_line) = self.target_line {
+                if num_skipped_lines < target_line
+                    && (target_line - num_skipped_lines)
+                        <= u16::try_from(ANSI_CONTEXT_SIZE).unwrap()
+                {
+                    Some(target_line.saturating_sub(num_skipped_lines))
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
         PreviewState::new(
             self.enabled,
             Preview::new(
@@ -77,8 +92,8 @@ impl PreviewState {
                 self.preview.icon,
                 self.preview.total_lines,
             ),
-            skipped_lines,
-            self.target_line,
+            num_skipped_lines,
+            target_line,
         )
     }
 }

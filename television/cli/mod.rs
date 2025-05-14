@@ -75,8 +75,7 @@ impl From<Cli> for PostProcessedCli {
         let preview_command = cli.preview.map(|preview| PreviewCommand {
             command: preview,
             delimiter: cli.delimiter.clone(),
-            // TODO: add the --preview-offset option to the CLI
-            offset_expr: None,
+            offset_expr: cli.preview_offset.clone(),
         });
 
         let mut channel: ChannelPrototype;

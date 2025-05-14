@@ -2,12 +2,10 @@ use std::fmt::Display;
 
 use crate::channels::{
     entry::Entry,
-    prototypes::{ChannelPrototype, DEFAULT_DELIMITER},
+    prototypes::{
+        format_prototype_string, ChannelPrototype, DEFAULT_DELIMITER,
+    },
 };
-use lazy_regex::{regex, Lazy, Regex};
-use tracing::debug;
-
-static CMD_RE: &Lazy<Regex> = regex!(r"\{(\d+)\}");
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct PreviewCommand {
@@ -47,23 +45,7 @@ impl PreviewCommand {
     /// assert_eq!(formatted_command, "something 'a:given:entry:to:preview' 'entry' 'a'");
     /// ```
     pub fn format_with(&self, entry: &Entry) -> String {
-        let parts = entry.name.split(&self.delimiter).collect::<Vec<&str>>();
-
-        let mut formatted_command = self
-            .command
-            .replace("{}", format!("'{}'", entry.name).as_str());
-        debug!("FORMATTED_COMMAND: {formatted_command}");
-        debug!("PARTS: {parts:?}");
-
-        formatted_command = CMD_RE
-            .replace_all(&formatted_command, |caps: &regex::Captures| {
-                let index =
-                    caps.get(1).unwrap().as_str().parse::<usize>().unwrap();
-                format!("'{}'", parts[index])
-            })
-            .to_string();
-
-        formatted_command
+        format_prototype_string(&self.command, &entry.name, &self.delimiter)
     }
 }
 

@@ -14,6 +14,8 @@ use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
+use super::prototypes::format_prototype_string;
+
 pub struct Channel {
     pub name: String,
     matcher: Matcher<String>,
@@ -94,8 +96,27 @@ impl Channel {
 
     pub fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
-            let path = item.matched_string;
-            Entry::new(path)
+            let name = item.matched_string;
+            if let Some(cmd) = &self.preview_command {
+                if let Some(offset_expr) = &cmd.offset_expr {
+                    let offset_string = format_prototype_string(
+                        offset_expr,
+                        &name,
+                        &cmd.delimiter,
+                    );
+                    let offset_str = {
+                        offset_string
+                            .strip_prefix('\'')
+                            .and_then(|s| s.strip_suffix('\''))
+                            .unwrap_or(&offset_string)
+                    };
+
+                    return Entry::new(name).with_line_number(
+                        offset_str.parse::<usize>().unwrap(),
+                    );
+                }
+            }
+            Entry::new(name)
         })
     }
 

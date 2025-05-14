@@ -416,25 +416,26 @@ impl Television {
             // available previews
             let entry = selected_entry.as_ref().unwrap();
             if let Ok(preview) = receiver.try_recv() {
+                let scroll = entry
+                    .line_number
+                    .unwrap_or(0)
+                    .saturating_sub(
+                        (self
+                            .ui_state
+                            .layout
+                            .preview_window
+                            .map_or(0, |w| w.height.saturating_sub(2)) // borders
+                            / 2)
+                        .into(),
+                    )
+                    .saturating_add(3) // 3 lines above the center
+                    .try_into()
+                    // if the scroll doesn't fit in a u16, just scroll to the top
+                    // this is a current limitation of ratatui
+                    .unwrap_or(0);
                 self.preview_state.update(
                     preview,
-                    // scroll to center the selected entry
-                    entry
-                        .line_number
-                        .unwrap_or(0)
-                        .saturating_sub(
-                            (self
-                                .ui_state
-                                .layout
-                                .preview_window
-                                .map_or(0, |w| w.height)
-                                / 2)
-                            .into(),
-                        )
-                        .try_into()
-                        // if the scroll doesn't fit in a u16, just scroll to the top
-                        // this is a current limitation of ratatui
-                        .unwrap_or(0),
+                    scroll,
                     entry.line_number.and_then(|l| l.try_into().ok()),
                 );
                 self.action_tx.send(Action::Render)?;
