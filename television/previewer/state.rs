@@ -9,6 +9,8 @@ pub struct PreviewState {
 }
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
+pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 10;
+const ANSI_CONTEXT_SIZE: usize = 500;
 
 impl PreviewState {
     pub fn new(
@@ -54,5 +56,29 @@ impl PreviewState {
             self.scroll = scroll;
             self.target_line = target_line;
         }
+    }
+
+    pub fn for_render_context(&self) -> Self {
+        let skipped_lines =
+            self.scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE);
+        let cropped_content = self
+            .preview
+            .content
+            .lines()
+            .skip(skipped_lines as usize)
+            .take(ANSI_CONTEXT_SIZE)
+            .collect::<Vec<_>>()
+            .join("\n");
+        PreviewState::new(
+            self.enabled,
+            Preview::new(
+                &self.preview.title,
+                cropped_content,
+                self.preview.icon,
+                self.preview.total_lines,
+            ),
+            skipped_lines,
+            self.target_line,
+        )
     }
 }

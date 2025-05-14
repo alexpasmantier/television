@@ -187,9 +187,7 @@ impl Television {
             self.rc_picker.clone(),
             channel_state,
             self.spinner,
-            // PERF: we shouldn't need to clone the whole preview here but only
-            // what's in range of the preview window
-            self.preview_state.clone(),
+            self.preview_state.for_render_context(),
         );
 
         Ctx::new(
@@ -197,7 +195,6 @@ impl Television {
             self.config.clone(),
             self.colorscheme.clone(),
             self.app_metadata.clone(),
-            // now timestamp
             std::time::Instant::now(),
             self.ui_state.layout,
         )
