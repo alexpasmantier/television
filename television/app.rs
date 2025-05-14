@@ -364,8 +364,13 @@ impl App {
                 }
                 match action {
                     Action::Quit => {
-                        self.should_quit = true;
-                        self.render_tx.send(RenderingTask::Quit)?;
+                        if self.television.mode == Mode::RemoteControl {
+                            self.action_tx
+                                .send(Action::ToggleRemoteControl)?;
+                        } else {
+                            self.should_quit = true;
+                            self.render_tx.send(RenderingTask::Quit)?;
+                        }
                     }
                     Action::Suspend => {
                         self.should_suspend = true;
