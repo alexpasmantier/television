@@ -2,12 +2,6 @@ use std::hash::{Hash, Hasher};
 
 use devicons::FileIcon;
 
-// NOTE: having an enum for entry types would be nice since it would allow
-// having a nicer implementation for transitions between channels. This would
-// permit implementing `From<EntryType>` for channels which would make the
-// channel convertible from any other that yields `EntryType`.
-// This needs pondering since it does bring another level of abstraction and
-// adds a layer of complexity.
 #[derive(Clone, Debug, Eq)]
 pub struct Entry {
     /// The name of the entry.
