@@ -12,7 +12,10 @@ use tracing::debug;
 
 use crate::{
     channels::{entry::Entry, preview::PreviewCommand},
-    utils::command::shell_command,
+    utils::{
+        command::shell_command,
+        strings::{replace_non_printable, ReplaceNonPrintableConfig},
+    },
 };
 
 pub mod state;
@@ -211,7 +214,12 @@ pub fn try_preview(
 
     let preview: Preview = {
         if child.status.success() {
-            let content = String::from_utf8_lossy(&child.stdout);
+            let (content, _) = replace_non_printable(
+                &child.stdout,
+                ReplaceNonPrintableConfig::default()
+                    .keep_line_feed()
+                    .keep_control_characters(),
+            );
             Preview::new(
                 &entry.name,
                 content.to_string(),
@@ -219,7 +227,12 @@ pub fn try_preview(
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
             )
         } else {
-            let content = String::from_utf8_lossy(&child.stderr);
+            let (content, _) = replace_non_printable(
+                &child.stderr,
+                ReplaceNonPrintableConfig::default()
+                    .keep_line_feed()
+                    .keep_control_characters(),
+            );
             Preview::new(
                 &entry.name,
                 content.to_string(),
