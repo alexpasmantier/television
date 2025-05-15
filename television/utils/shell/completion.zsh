@@ -1,6 +1,22 @@
+_disable_bracketed_paste() {
+    # Check if bracketed paste is defined, for compatibility with older versions
+    if [[ -n $zle_bracketed_paste ]]; then
+        print -nr ${zle_bracketed_paste[2]} >/dev/tty
+    fi
+}
+
+_enable_bracketed_paste() {
+    # Check if bracketed paste is defined, for compatibility with older versions
+    if [[ -n $zle_bracketed_paste ]]; then
+        print -nr ${zle_bracketed_paste[1]} >/dev/tty
+    fi
+}
+
 _tv_smart_autocomplete() {
     emulate -L zsh
     zle -I
+
+    _disable_bracketed_paste
 
     # prefix (lhs of cursor)
     local current_prompt
@@ -24,11 +40,15 @@ _tv_smart_autocomplete() {
         # (i.e. run the command without having to press enter twice)
         # zle accept-line
     fi
+
+    _enable_bracketed_paste
 }
 
 _tv_shell_history() {
     emulate -L zsh
     zle -I
+
+    _disable_bracketed_paste
 
     local current_prompt
     current_prompt=$LBUFFER
@@ -46,6 +66,8 @@ _tv_shell_history() {
         # (i.e. run the command without having to press enter twice)
         # zle accept-line
     fi
+
+    _enable_bracketed_paste
 }
 
 
