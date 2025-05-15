@@ -7,13 +7,29 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### ⛰️  Features
+
+- [f887a23](https://github.com/alexpasmantier/television/commit/f887a2390ede0a5f30d61f2bb9d4e1e421109d63) *(cli)* Add a `--ui-scale` [0,100] cli parameter by @alexpasmantier in [#492](https://github.com/alexpasmantier/television/pull/492)
+
+- [cfe49ce](https://github.com/alexpasmantier/television/commit/cfe49ce81c1eb428b7c38fe5b524d67141099946) *(remote)* Redirect `Action::Quit` to `Action::ToggleRemoteControl` when in remote mode by @alexpasmantier in [#508](https://github.com/alexpasmantier/television/pull/508)
+
+- [be8008e](https://github.com/alexpasmantier/television/commit/be8008e97d5ab5063aff27bea52b6315b9f878f7) *(shell)* Improve fish completion system by @lalvarezt in [#494](https://github.com/alexpasmantier/television/pull/494)
+
+- [1086899](https://github.com/alexpasmantier/television/commit/1086899ba76f9b3377a4f67d8d7aef5da2cd310d) *(ui)* Add a UI portrait mode #489 by @cr4ftx in [#496](https://github.com/alexpasmantier/television/pull/496)
+
 ### 🐛 Bug Fixes
 
 - [dbff3a3](https://github.com/alexpasmantier/television/commit/dbff3a330b169c422ae384e373b934dceb8e01b2) *(alias)* Move terminal raw mode before loading bat assets #444 by @cr4ftx in [#484](https://github.com/alexpasmantier/television/pull/484)
 
 - [0514a91](https://github.com/alexpasmantier/television/commit/0514a914b630719391d66df61eb9d53c58933c3f) *(alias)* Rename the aliases channel to `alias` by @alexpasmantier in [#485](https://github.com/alexpasmantier/television/pull/485)
 
+- [cd33151](https://github.com/alexpasmantier/television/commit/cd33151bac9422dcef8edcfd16a6553228611631) *(layout)* Double check whether preview is enabled by @nkxxll in [#499](https://github.com/alexpasmantier/television/pull/499)
+
+- [1741a15](https://github.com/alexpasmantier/television/commit/1741a15e526ea0a304bb1cccb5f75bb46d42a6a2) *(preview)* Add a post-processing step to clean out ansi text from non-displayable characters by @alexpasmantier in [#509](https://github.com/alexpasmantier/television/pull/509)
+
 - [1f0c178](https://github.com/alexpasmantier/television/commit/1f0c178a2d79ccf1e6cbe13ea3ec246f987bfbf2) *(results)* Remove keymap hint if help is disabled by @nkxxll in [#480](https://github.com/alexpasmantier/television/pull/480)
+
+- [39dd9ef](https://github.com/alexpasmantier/television/commit/39dd9efd5dfa1fb36281f9f97b753152af82095f) *(shell)* Paste not working in zsh shell integration by @kapobajza in [#512](https://github.com/alexpasmantier/television/pull/512)
 
 ### 🚜 Refactor
 
@@ -21,7 +37,15 @@ All notable changes to this project will be documented in this file.
 
 - [4385317](https://github.com/alexpasmantier/television/commit/4385317e069db287d8d86f987e11e079a7ff6d1c) *(cable)* Split cable related code into separate submodules by @alexpasmantier in [#486](https://github.com/alexpasmantier/television/pull/486)
 
+- [1a5fa5d](https://github.com/alexpasmantier/television/commit/1a5fa5dd4cb485e2b0b08301ca457fa1c6d06094) *(channels)* Some renaming and refactoring the channels module by @alexpasmantier in [#503](https://github.com/alexpasmantier/television/pull/503)
+
 - [b9f42e8](https://github.com/alexpasmantier/television/commit/b9f42e8c29a7eca86a91a6cb00d9c4ee46bb2bd3) *(preview)* Simplify channel previews code and remove intermediate `PreviewKind` struct by @alexpasmantier in [#490](https://github.com/alexpasmantier/television/pull/490)
+
+- [67c067f](https://github.com/alexpasmantier/television/commit/67c067ff40f97eef9090c2a5addca5da50a7fa0f) *(previewer)* A much more efficient preview system for tv by @alexpasmantier in [#506](https://github.com/alexpasmantier/television/pull/506)
+
+- [2b2654b](https://github.com/alexpasmantier/television/commit/2b2654b6aab86707577c0bb5c65301106422e737) *(uncategorized)* Drop TelevisionChannel enum and all associated macros by @alexpasmantier in [#498](https://github.com/alexpasmantier/television/pull/498)
+
+- [cc27b5e](https://github.com/alexpasmantier/television/commit/cc27b5ec6bf3a5a71d6785558e57976db9f2d129) *(uncategorized)* Drop dependency to the `ignore` crate by @alexpasmantier
 
 - [c2f4cc2](https://github.com/alexpasmantier/television/commit/c2f4cc258f5f3b21601e8c7ce98f4584222813b2) *(uncategorized)* Tv no longer needs to write the default cable channel recipes to the user's configuration directory by @alexpasmantier in [#482](https://github.com/alexpasmantier/television/pull/482)
 
@@ -31,14 +55,24 @@ All notable changes to this project will be documented in this file.
 
 - [d3bb3b0](https://github.com/alexpasmantier/television/commit/d3bb3b0a5610b6896a698f89afcf2fb7a2aab44a) *(uncategorized)* Cleanup old todo list by @alexpasmantier in [#483](https://github.com/alexpasmantier/television/pull/483)
 
+### ⚡ Performance
+
+- [fc2f8b9](https://github.com/alexpasmantier/television/commit/fc2f8b9473d1d84712951184da8d4e59edeedc86) *(previews)* Avoid unnecessary preview content copy by @alexpasmantier in [#507](https://github.com/alexpasmantier/television/pull/507)
+
 ### ⚙️ Miscellaneous Tasks
 
+- [64c599e](https://github.com/alexpasmantier/television/commit/64c599ef103d18e852d1070c6b313800646f1940) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#491](https://github.com/alexpasmantier/television/pull/491)
+
 - [a602dda](https://github.com/alexpasmantier/television/commit/a602dda34758f9f4a24f1c77b589216c12b9cfba) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#478](https://github.com/alexpasmantier/television/pull/478)
+
+- [0f6b29b](https://github.com/alexpasmantier/television/commit/0f6b29ba817f54da7c6cc694c21127c8588709a0) *(uncategorized)* Add sponsorhips button to the repo by @alexpasmantier
 
 
 
 ### New Contributors
-* @cr4ftx made their first contribution in [#484](https://github.com/alexpasmantier/television/pull/484)
+* @kapobajza made their first contribution in [#512](https://github.com/alexpasmantier/television/pull/512)
+* @cr4ftx made their first contribution in [#496](https://github.com/alexpasmantier/television/pull/496)
+* @lalvarezt made their first contribution in [#494](https://github.com/alexpasmantier/television/pull/494)
 
 
 ## [0.11.9](https://github.com/alexpasmantier/television/releases/tag/0.11.9) - 2025-04-21
