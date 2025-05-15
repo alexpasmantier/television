@@ -15,6 +15,8 @@ pub use themes::Theme;
 use tracing::{debug, warn};
 pub use ui::UiConfig;
 
+use crate::channels::prototypes::DEFAULT_PROTOTYPE_NAME;
+
 mod keybindings;
 pub mod shell_integration;
 mod themes;
@@ -39,10 +41,8 @@ pub struct AppConfig {
     pub default_channel: String,
 }
 
-pub const DEFAULT_CHANNEL: &str = "files";
-
 fn default_channel() -> String {
-    DEFAULT_CHANNEL.to_string()
+    DEFAULT_PROTOTYPE_NAME.to_string()
 }
 
 impl Hash for AppConfig {

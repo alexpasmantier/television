@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use rustc_hash::FxHashMap;
 
 use anyhow::Result;
-#[cfg(debug_assertions)]
 use tracing::{debug, error};
 
 use crate::{
@@ -53,12 +52,9 @@ pub fn load_cable() -> Result<Cable> {
         .filter(|p| is_cable_file_format(p) && p.is_file())
         .collect();
 
-    #[cfg(debug_assertions)]
-    {
-        debug!("Found cable channel files: {:?}", file_paths);
-        if file_paths.is_empty() {
-            debug!("No user defined cable channels found");
-        }
+    debug!("Found cable channel files: {:?}", file_paths);
+    if file_paths.is_empty() {
+        debug!("No user defined cable channels found");
     }
 
     let default_prototypes =
@@ -74,25 +70,19 @@ pub fn load_cable() -> Result<Cable> {
             ) {
                 Ok(pts) => acc.extend(pts.prototypes),
                 Err(e) => {
-                    #[cfg(debug_assertions)]
-                    {
-                        error!(
-                            "Failed to parse cable channel file {:?}: {}",
-                            p, e
-                        );
-                    }
+                    error!(
+                        "Failed to parse cable channel file {:?}: {}",
+                        p, e
+                    );
                 }
             }
             acc
         },
     );
 
-    #[cfg(debug_assertions)]
-    {
-        debug!("Loaded {} custom cable channels", prototypes.len());
-        if prototypes.is_empty() {
-            debug!("No custom cable channels found");
-        }
+    debug!("Loaded {} custom cable channels", prototypes.len());
+    if prototypes.is_empty() {
+        debug!("No custom cable channels found");
     }
 
     let mut cable_channels = FxHashMap::default();

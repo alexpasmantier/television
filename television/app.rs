@@ -137,7 +137,7 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel_prototype: ChannelPrototype,
+        channel_prototype: &ChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,

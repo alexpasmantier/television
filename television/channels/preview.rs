@@ -1,17 +1,25 @@
 use std::fmt::Display;
 
-use crate::channels::{
-    entry::Entry,
-    prototypes::{
-        format_prototype_string, ChannelPrototype, DEFAULT_DELIMITER,
-    },
-};
+use serde::Deserialize;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+use crate::channels::{entry::Entry, prototypes::format_prototype_string};
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Deserialize)]
 pub struct PreviewCommand {
     pub command: String,
+    #[serde(default = "default_delimiter")]
     pub delimiter: String,
+    #[serde(rename = "offset")]
     pub offset_expr: Option<String>,
+}
+
+pub const DEFAULT_DELIMITER: &str = " ";
+
+/// The default delimiter to use for the preview command to use to split
+/// entries into multiple referenceable parts.
+#[allow(clippy::unnecessary_wraps)]
+fn default_delimiter() -> String {
+    DEFAULT_DELIMITER.to_string()
 }
 
 impl PreviewCommand {
@@ -46,26 +54,6 @@ impl PreviewCommand {
     /// ```
     pub fn format_with(&self, entry: &Entry) -> String {
         format_prototype_string(&self.command, &entry.name, &self.delimiter)
-    }
-}
-
-impl From<&ChannelPrototype> for Option<PreviewCommand> {
-    fn from(value: &ChannelPrototype) -> Self {
-        if let Some(command) = value.preview_command.as_ref() {
-            let delimiter = value
-                .preview_delimiter
-                .as_ref()
-                .map_or(DEFAULT_DELIMITER, |v| v);
-
-            let offset_expr = value.preview_offset.clone();
-
-            // FIXME: handle offset here (side note: we don't want to reparse the offset
-            // expression for each entry, so maybe just parse it once and try to store it
-            // as some sort of function we can call later on
-            Some(PreviewCommand::new(command, delimiter, offset_expr))
-        } else {
-            None
-        }
     }
 }
 

@@ -31,6 +31,7 @@ use std::collections::HashSet;
 use tokio::sync::mpsc::{
     unbounded_channel, UnboundedReceiver, UnboundedSender,
 };
+use tracing::debug;
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -72,7 +73,7 @@ impl Television {
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        channel_prototype: ChannelPrototype,
+        channel_prototype: &ChannelPrototype,
         mut config: Config,
         input: Option<String>,
         no_remote: bool,
@@ -86,9 +87,9 @@ impl Television {
         }
 
         // previewer
-        let preview_handles = Self::setup_previewer(&channel_prototype);
+        let preview_handles = Self::setup_previewer(channel_prototype);
 
-        let mut channel: CableChannel = channel_prototype.into();
+        let mut channel = CableChannel::new(channel_prototype);
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -157,7 +158,7 @@ impl Television {
             let (pv_request_tx, pv_request_rx) = unbounded_channel();
             let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
             let previewer = Previewer::new(
-                channel_prototype.preview_command().unwrap(),
+                channel_prototype.preview_command.clone().unwrap(),
                 PreviewerConfig::default(),
                 pv_request_rx,
                 pv_preview_tx,
@@ -204,7 +205,7 @@ impl Television {
         self.channel.name.clone()
     }
 
-    pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
+    pub fn change_channel(&mut self, channel_prototype: &ChannelPrototype) {
         self.preview_state.reset();
         self.preview_state.enabled =
             channel_prototype.preview_command.is_some();
@@ -217,8 +218,9 @@ impl Television {
                 .send(PreviewRequest::Shutdown)
                 .expect("Failed to send shutdown signal to previewer");
         }
-        self.preview_handles = Self::setup_previewer(&channel_prototype);
-        self.channel = channel_prototype.into();
+        self.preview_handles = Self::setup_previewer(channel_prototype);
+        self.channel = CableChannel::new(channel_prototype);
+        debug!("Changed channel to {:?}", channel_prototype);
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -548,7 +550,7 @@ impl Television {
                     self.reset_picker_input();
                     self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
-                    self.change_channel(new_channel);
+                    self.change_channel(&new_channel);
                 }
             }
         }

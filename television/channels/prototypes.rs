@@ -44,10 +44,8 @@ pub struct ChannelPrototype {
     pub source_command: String,
     #[serde(default)]
     pub interactive: bool,
-    pub preview_command: Option<String>,
-    #[serde(default = "default_delimiter")]
-    pub preview_delimiter: Option<String>,
-    pub preview_offset: Option<String>,
+    #[serde(rename = "preview")]
+    pub preview_command: Option<PreviewCommand>,
 }
 
 const STDIN_CHANNEL_NAME: &str = "stdin";
@@ -58,52 +56,27 @@ impl ChannelPrototype {
         name: &str,
         source_command: &str,
         interactive: bool,
-        preview_command: Option<String>,
-        preview_delimiter: Option<String>,
-        preview_offset: Option<String>,
+        preview_command: Option<PreviewCommand>,
     ) -> Self {
         Self {
             name: name.to_string(),
             source_command: source_command.to_string(),
             interactive,
             preview_command,
-            preview_delimiter,
-            preview_offset,
         }
     }
 
     pub fn stdin(preview: Option<PreviewCommand>) -> Self {
-        match preview {
-            Some(PreviewCommand {
-                command,
-                delimiter,
-                offset_expr,
-            }) => Self {
-                name: STDIN_CHANNEL_NAME.to_string(),
-                source_command: STDIN_SOURCE_COMMAND.to_string(),
-                interactive: false,
-                preview_command: Some(command),
-                preview_delimiter: Some(delimiter),
-                preview_offset: offset_expr,
-            },
-            None => Self {
-                name: STDIN_CHANNEL_NAME.to_string(),
-                source_command: STDIN_SOURCE_COMMAND.to_string(),
-                interactive: false,
-                preview_command: None,
-                preview_delimiter: None,
-                preview_offset: None,
-            },
+        Self {
+            name: STDIN_CHANNEL_NAME.to_string(),
+            source_command: STDIN_SOURCE_COMMAND.to_string(),
+            interactive: false,
+            preview_command: preview,
         }
-    }
-
-    pub fn preview_command(&self) -> Option<PreviewCommand> {
-        self.into()
     }
 }
 
-const DEFAULT_PROTOTYPE_NAME: &str = "files";
-pub const DEFAULT_DELIMITER: &str = " ";
+pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
 
 impl Default for ChannelPrototype {
     fn default() -> Self {
@@ -112,13 +85,6 @@ impl Default for ChannelPrototype {
             .cloned()
             .unwrap()
     }
-}
-
-/// The default delimiter to use for the preview command to use to split
-/// entries into multiple referenceable parts.
-#[allow(clippy::unnecessary_wraps)]
-fn default_delimiter() -> Option<String> {
-    Some(DEFAULT_DELIMITER.to_string())
 }
 
 impl Display for ChannelPrototype {
@@ -163,6 +129,16 @@ impl Deref for Cable {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Cable {
+    pub fn default_channel(&self) -> ChannelPrototype {
+        self.get(DEFAULT_PROTOTYPE_NAME)
+            .cloned()
+            .unwrap_or_else(|| {
+                panic!("Default channel '{DEFAULT_PROTOTYPE_NAME}' not found")
+            })
     }
 }
 

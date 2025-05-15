@@ -6,9 +6,7 @@ use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
 use crate::channels::{
-    entry::Entry,
-    preview::PreviewCommand,
-    prototypes::{ChannelPrototype, DEFAULT_DELIMITER},
+    entry::Entry, preview::PreviewCommand, prototypes::ChannelPrototype,
 };
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
@@ -26,53 +24,28 @@ pub struct Channel {
 
 impl Default for Channel {
     fn default() -> Self {
-        Self::new(
+        Self::new(&ChannelPrototype::new(
             "files",
             "find . -type f",
             false,
             Some(PreviewCommand::new("cat {}", ":", None)),
-        )
-    }
-}
-
-impl From<ChannelPrototype> for Channel {
-    fn from(prototype: ChannelPrototype) -> Self {
-        Self::new(
-            &prototype.name,
-            &prototype.source_command,
-            prototype.interactive,
-            match prototype.preview_command {
-                Some(command) => Some(PreviewCommand::new(
-                    &command,
-                    &prototype
-                        .preview_delimiter
-                        .unwrap_or(DEFAULT_DELIMITER.to_string()),
-                    prototype.preview_offset,
-                )),
-                None => None,
-            },
-        )
+        ))
     }
 }
 
 impl Channel {
-    pub fn new(
-        name: &str,
-        entries_command: &str,
-        interactive: bool,
-        preview_command: Option<PreviewCommand>,
-    ) -> Self {
+    pub fn new(prototype: &ChannelPrototype) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
         let crawl_handle = tokio::spawn(load_candidates(
-            entries_command.to_string(),
-            interactive,
+            prototype.source_command.to_string(),
+            prototype.interactive,
             injector,
         ));
         Self {
             matcher,
-            preview_command,
-            name: name.to_string(),
+            preview_command: prototype.preview_command.clone(),
+            name: prototype.name.to_string(),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle,
         }

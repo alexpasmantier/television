@@ -2,13 +2,13 @@
 [[cable_channel]]
 name = "files"
 source_command = "Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName"
-preview_command = "bat -n --color=always {}"
+preview.command = "bat -n --color=always {}"
 
 # Directories
 [[cable_channel]]
 name = "dirs"
 source_command = "Get-ChildItem -Recurse -Directory | Select-Object -ExpandProperty FullName"
-preview_command = "ls -l {}"
+preview.command = "ls -l {}"
 
 # Environment variables
 [[cable_channel]]
@@ -24,39 +24,39 @@ source_command = "Get-Alias"
 [[cable_channel]]
 name = "git-repos"
 source_command = "Get-ChildItem -Path 'C:\\Users' -Recurse -Directory -Force -ErrorAction SilentlyContinue | Where-Object { Test-Path \"$($_.FullName)\\.git\" } | Select-Object -ExpandProperty FullName"
-preview_command = "cd '{}' ; git log -n 200 --pretty=medium --all --graph --color"
+preview.command = "cd '{}' ; git log -n 200 --pretty=medium --all --graph --color"
 
 [[cable_channel]]
 name = "git-diff"
 source_command = "git diff --name-only"
-preview_command = "git diff --color=always {}"
+preview.command = "git diff --color=always {}"
 
 [[cable_channel]]
 name = "git-reflog"
 source_command = "git reflog"
-preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+preview.command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 [[cable_channel]]
 name = "git-log"
 source_command = "git log --oneline --date=short --pretty='format:%h %s %an %cd'"
-preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+preview.command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 [[cable_channel]]
 name = "git-branch"
 source_command = "git branch --all --format='%(refname:short)'"
-preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+preview.command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 # Docker
 [[cable_channel]]
 name = "docker-images"
 source_command = "docker image ls --format '{{.ID}}'"
-preview_command = "docker image inspect {0} | jq -C"
+preview.command = "docker image inspect {0} | jq -C"
 
 # Dotfiles (adapted to common Windows dotfile locations)
 [[cable_channel]]
 name = "my-dotfiles"
 source_command = "Get-ChildItem -Recurse -File -Path \"$env:USERPROFILE\\AppData\\Roaming\\\""
-preview_command = "bat -n --color=always {}"
+preview.command = "bat -n --color=always {}"
 
 # Shell history
 [[cable_channel]]
