@@ -32,13 +32,19 @@ pub fn draw_preview_content_block(
         use_nerd_font_icons,
     )?;
     // render the preview content
-    let rp = build_preview_paragraph(&preview_state.preview.content);
+    let rp = build_preview_paragraph(
+        preview_state,
+        colorscheme.preview.highlight_bg,
+    );
     f.render_widget(rp, inner);
 
     Ok(())
 }
 
-pub fn build_preview_paragraph(content: &str) -> Paragraph<'_> {
+pub fn build_preview_paragraph(
+    preview_state: &PreviewState,
+    highlight_bg: Color,
+) -> Paragraph<'_> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -47,14 +53,30 @@ pub fn build_preview_paragraph(content: &str) -> Paragraph<'_> {
             left: 1,
         });
 
-    build_ansi_text_paragraph(content, preview_block)
+    build_ansi_text_paragraph(
+        &preview_state.preview.content,
+        preview_block,
+        preview_state.target_line,
+        highlight_bg,
+    )
 }
 
 fn build_ansi_text_paragraph<'a>(
     text: &'a str,
     preview_block: Block<'a>,
+    target_line: Option<u16>,
+    highlight_bg: Color,
 ) -> Paragraph<'a> {
-    Paragraph::new(text.into_text().unwrap()).block(preview_block)
+    let mut t = text.into_text().unwrap();
+    if let Some(target_line) = target_line {
+        // Highlight the target line
+        if let Some(line) = t.lines.get_mut((target_line - 1) as usize) {
+            for span in &mut line.spans {
+                span.style = span.style.bg(highlight_bg);
+            }
+        }
+    }
+    Paragraph::new(t).block(preview_block)
 }
 
 pub fn build_meta_preview_paragraph<'a>(

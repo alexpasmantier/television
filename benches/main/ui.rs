@@ -472,11 +472,11 @@ pub fn draw(c: &mut Criterion) {
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
-                let channel = ChannelPrototype::default();
+                let channel_prototype = ChannelPrototype::default();
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
                     tx,
-                    channel,
+                    &channel_prototype,
                     config,
                     None,
                     false,

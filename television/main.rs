@@ -60,7 +60,7 @@ async fn main() -> Result<()> {
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
-    let channel = determine_channel(
+    let channel_prototype = determine_channel(
         args.clone(),
         &config,
         is_readable_stdin(),
@@ -77,8 +77,13 @@ async fn main() -> Result<()> {
         args.no_help,
         config.application.tick_rate,
     );
-    let mut app =
-        App::new(channel, config, args.input, options, &cable_channels);
+    let mut app = App::new(
+        &channel_prototype,
+        config,
+        args.input,
+        options,
+        &cable_channels,
+    );
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -217,7 +222,7 @@ mod tests {
             &args,
             &config,
             true,
-            &ChannelPrototype::new("stdin", "cat", false, None, None, None),
+            &ChannelPrototype::new("stdin", "cat", false, None),
             None,
         );
     }
@@ -226,7 +231,7 @@ mod tests {
     async fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
         let expected_channel =
-            ChannelPrototype::new("dirs", "ls {}", false, None, None, None);
+            ChannelPrototype::new("dirs", "ls {}", false, None);
         let args = PostProcessedCli {
             autocomplete_prompt,
             ..Default::default()
@@ -258,8 +263,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_determine_channel_standard_case() {
-        let channel =
-            ChannelPrototype::new("dirs", "", false, None, None, None);
+        let channel = ChannelPrototype::new("dirs", "", false, None);
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -269,7 +273,7 @@ mod tests {
             &args,
             &config,
             false,
-            &ChannelPrototype::new("dirs", "", false, None, None, None),
+            &ChannelPrototype::new("dirs", "", false, None),
             None,
         );
     }

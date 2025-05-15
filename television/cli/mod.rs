@@ -11,7 +11,7 @@ use crate::{
         prototypes::{Cable, ChannelPrototype},
     },
     cli::args::{Cli, Command},
-    config::{get_config_dir, get_data_dir, KeyBindings, DEFAULT_CHANNEL},
+    config::{get_config_dir, get_data_dir, KeyBindings},
 };
 
 pub mod args;
@@ -75,23 +75,19 @@ impl From<Cli> for PostProcessedCli {
         let preview_command = cli.preview.map(|preview| PreviewCommand {
             command: preview,
             delimiter: cli.delimiter.clone(),
-            // TODO: add the --preview-offset option to the CLI
-            offset_expr: None,
+            offset_expr: cli.preview_offset.clone(),
         });
 
         let mut channel: ChannelPrototype;
         let working_directory: Option<String>;
 
-        let cable_channels = cable::load_cable().unwrap_or_default();
+        let cable = cable::load_cable().unwrap_or_default();
         if cli.channel.is_none() {
-            channel = cable_channels
-                .get(DEFAULT_CHANNEL)
-                .expect("Default channel not found in cable channels")
-                .clone();
+            channel = cable.default_channel();
             working_directory = cli.working_directory;
         } else {
             let cli_channel = cli.channel.as_ref().unwrap().to_owned();
-            match parse_channel(&cli_channel, &cable_channels) {
+            match parse_channel(&cli_channel, &cable) {
                 Ok(p) => {
                     channel = p;
                     working_directory = cli.working_directory;
@@ -102,12 +98,7 @@ impl From<Cli> for PostProcessedCli {
                     if cli.working_directory.is_none()
                         && Path::new(&cli_channel).exists()
                     {
-                        channel = cable_channels
-                            .get(DEFAULT_CHANNEL)
-                            .expect(
-                                "Default channel not found in cable channels",
-                            )
-                            .clone();
+                        channel = cable.default_channel();
                         working_directory = Some(cli.channel.unwrap().clone());
                     } else {
                         unknown_channel_exit(&cli.channel.unwrap());
@@ -117,10 +108,9 @@ impl From<Cli> for PostProcessedCli {
             }
         }
 
+        // override the default previewer
         if let Some(preview_cmd) = &preview_command {
-            channel.preview_command = Some(preview_cmd.command.clone());
-            channel.preview_delimiter = Some(preview_cmd.delimiter.clone());
-            channel.preview_offset.clone_from(&preview_cmd.offset_expr);
+            channel.preview_command = Some(preview_cmd.clone());
         }
 
         Self {
@@ -317,7 +307,11 @@ mod tests {
         let post_processed_cli: PostProcessedCli = cli.into();
 
         let expected = ChannelPrototype {
-            preview_delimiter: Some(":".to_string()),
+            preview_command: Some(PreviewCommand {
+                command: "bat -n --color=always {}".to_string(),
+                delimiter: ":".to_string(),
+                offset_expr: None,
+            }),
             ..Default::default()
         };
 
