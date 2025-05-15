@@ -2,26 +2,27 @@
 [[cable_channel]]
 name = "files"
 source_command = "fd -t f"
-preview_command = "bat -n --color=always {}"
+preview.command = "bat -n --color=always {}"
 
 # Text
 [[cable_channel]]
 name = "text"
 source_command = "rg . --no-heading --line-number"
-preview_command = "bat -n --color=always {0} -H {1}"
-preview_delimiter = ":"
+preview.command = "bat -n --color=always {0}"
+preview.delimiter = ":"
+preview.offset = "{1}"
 
 # Directories
 [[cable_channel]]
 name = "dirs"
 source_command = "fd -t d"
-preview_command = "ls -la --color=always {}"
+preview.command = "ls -la --color=always {}"
 
 # Environment variables
 [[cable_channel]]
 name = "env"
 source_command = "printenv"
-preview_command = "cut -d= -f2 <<< ${0} | cut -d\" \" -f2- | sed 's/:/\\n/g'"
+preview.command = "cut -d= -f2 <<< ${0} | cut -d\" \" -f2- | sed 's/:/\\n/g'"
 
 # Aliases
 [[cable_channel]]
@@ -32,47 +33,50 @@ interactive = true
 # GIT
 [[cable_channel]]
 name = "git-repos"
-# this is a MacOS version but feel free to change it to fit your needs
+# this is a MacOS version but feel free to override it to fit your needs
 source_command = "fd -g .git -HL -t d -d 10 --prune ~ -E 'Library' -E 'Application Support' --exec dirname {}"
-preview_command = "cd {} && git log -n 200 --pretty=medium --all --graph --color"
+preview.command = "cd {} && git log -n 200 --pretty=medium --all --graph --color"
 
 [[cable_channel]]
 name = "git-diff"
 source_command = "git diff --name-only"
-preview_command = "git diff --color=always {0}"
+preview.command = "git diff --color=always {0}"
 
 [[cable_channel]]
 name = "git-reflog"
 source_command = 'git reflog'
-preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+preview.command = 'git show -p --stat --pretty=fuller --color=always {0}'
+
 
 [[cable_channel]]
 name = "git-log"
 source_command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
-preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+preview.command = 'git show -p --stat --pretty=fuller --color=always {0}'
 
 [[cable_channel]]
 name = "git-branch"
 source_command = "git --no-pager branch --all --format=\"%(refname:short)\""
-preview_command = "git show -p --stat --pretty=fuller --color=always {0}"
+preview.command = 'git show -p --stat --pretty=fuller --color=always {0}'
 
 # Docker
 [[cable_channel]]
 name = "docker-images"
 source_command = "docker image list --format \"{{.ID}}\""
-preview_command = "docker image inspect {0} | jq -C"
+preview.command = "docker image inspect {0} | jq -C"
+
 
 # S3
 [[cable_channel]]
 name = "s3-buckets"
 source_command = "aws s3 ls | cut -d \" \" -f 3"
-preview_command = "aws s3 ls s3://{0}"
+preview.command = "aws s3 ls s3://{0}"
+
 
 # Dotfiles
 [[cable_channel]]
 name = "my-dotfiles"
 source_command = "fd -t f . $HOME/.config"
-preview_command = "bat -n --color=always {}"
+preview.command = "bat -n --color=always {}"
 
 # Shell history
 [[cable_channel]]

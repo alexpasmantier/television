@@ -80,11 +80,10 @@ pub fn load_cable() -> Result<Cable> {
         },
     );
 
-    debug!(
-        "Loaded {} default and {} custom prototypes",
-        default_prototypes.prototypes.len(),
-        prototypes.len()
-    );
+    debug!("Loaded {} custom cable channels", prototypes.len());
+    if prototypes.is_empty() {
+        debug!("No custom cable channels found");
+    }
 
     let mut cable_channels = FxHashMap::default();
     // custom prototypes take precedence over default ones

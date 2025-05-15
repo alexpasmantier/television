@@ -25,6 +25,14 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub preview: Option<String>,
 
+    /// A preview line number offset template to use to scroll the preview to for each
+    /// entry.
+    ///
+    /// This template uses the same syntax as the `preview` option and will be formatted
+    /// using the currently selected entry.
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
+    pub preview_offset: Option<String>,
+
     /// Disable the preview panel entirely on startup.
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub no_preview: bool,
