@@ -85,7 +85,12 @@ impl Channel {
                     };
 
                     return Entry::new(name).with_line_number(
-                        offset_str.parse::<usize>().unwrap(),
+                        offset_str.parse::<usize>().unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to parse line number from {}",
+                                offset_str
+                            );
+                        }),
                     );
                 }
             }

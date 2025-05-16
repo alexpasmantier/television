@@ -4,6 +4,14 @@ name = "files"
 source_command = "Get-ChildItem -Recurse -File | Select-Object -ExpandProperty FullName"
 preview.command = "bat -n --color=always {}"
 
+# Text
+[[cable_channel]]
+name = "text"
+source_command = "rg . --no-heading --line-number"
+preview.command = "bat -n --color=always {0}"
+preview.delimiter = ":"
+preview.offset = "{1}"
+
 # Directories
 [[cable_channel]]
 name = "dirs"
