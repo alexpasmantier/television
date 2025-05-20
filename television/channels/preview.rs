@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use serde::Deserialize;
 
-use crate::channels::{entry::Entry, prototypes::format_prototype_string};
+use crate::{channels::entry::Entry, utils::strings::format_string};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default, Deserialize)]
 pub struct PreviewCommand {
@@ -53,7 +53,7 @@ impl PreviewCommand {
     /// assert_eq!(formatted_command, "something 'a:given:entry:to:preview' 'entry' 'a'");
     /// ```
     pub fn format_with(&self, entry: &Entry) -> String {
-        format_prototype_string(&self.command, &entry.name, &self.delimiter)
+        format_string(&self.command, &entry.name, &self.delimiter)
     }
 }
 

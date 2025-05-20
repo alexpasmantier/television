@@ -1,4 +1,3 @@
-use lazy_regex::{regex, Lazy, Regex};
 use rustc_hash::FxHashMap;
 use std::{
     fmt::{self, Display, Formatter},
@@ -91,43 +90,6 @@ impl Display for ChannelPrototype {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.name)
     }
-}
-
-pub static CMD_RE: &Lazy<Regex> = regex!(r"\{(\d+)\}");
-
-/// Formats a prototype string with the given template and source strings.
-///
-/// # Example
-/// ```
-/// use television::channels::prototypes::format_prototype_string;
-///
-/// let template = "cat {} {1}";
-/// let source = "foo:bar:baz";
-/// let delimiter = ":";
-///
-/// let formatted = format_prototype_string(template, source, delimiter);
-/// assert_eq!(formatted, "cat 'foo:bar:baz' 'bar'");
-/// ```
-pub fn format_prototype_string(
-    template: &str,
-    source: &str,
-    delimiter: &str,
-) -> String {
-    let parts = source.split(delimiter).collect::<Vec<&str>>();
-
-    let mut formatted_string =
-        template.replace("{}", format!("'{}'", source).as_str());
-
-    formatted_string = CMD_RE
-        .replace_all(&formatted_string, |caps: &regex::Captures| {
-            let index =
-                // these unwraps are safe because of the regex pattern
-                caps.get(1).unwrap().as_str().parse::<usize>().unwrap();
-            format!("'{}'", parts.get(index).unwrap_or(&""))
-        })
-        .to_string();
-
-    formatted_string
 }
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
