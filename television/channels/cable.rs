@@ -152,6 +152,7 @@ async fn load_candidates(
             if let Ok(l) = line {
                 if !l.trim().is_empty() {
                     let () = injector.push(l, |e, cols| {
+                        // PERF: maybe we can avoid cloning here by using &Utf32Str
                         cols[0] = e.clone().into();
                     });
                     produced_output = true;

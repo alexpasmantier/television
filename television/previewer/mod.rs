@@ -131,10 +131,11 @@ impl Preview {
 
 pub struct Previewer {
     config: Config,
+    // FIXME: maybe use a bounded channel here with a single slot
     requests: UnboundedReceiver<Request>,
     last_job_entry: Option<Entry>,
     preview_command: PreviewCommand,
-    previews: UnboundedSender<Preview>,
+    results: UnboundedSender<Preview>,
 }
 
 impl Previewer {
@@ -149,7 +150,7 @@ impl Previewer {
             requests: receiver,
             last_job_entry: None,
             preview_command,
-            previews: sender,
+            results: sender,
         }
     }
 
@@ -166,7 +167,7 @@ impl Previewer {
                             debug!("Preview request is stale, skipping");
                             continue;
                         }
-                        let notify = self.previews.clone();
+                        let results_handle = self.results.clone();
                         let command =
                             self.preview_command.format_with(&ticket.entry);
                         self.last_job_entry = Some(ticket.entry.clone());
@@ -174,7 +175,11 @@ impl Previewer {
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
-                                try_preview(&command, &ticket.entry, &notify);
+                                try_preview(
+                                    &command,
+                                    &ticket.entry,
+                                    &results_handle,
+                                );
                             }),
                         )
                         .await
@@ -203,7 +208,7 @@ impl Previewer {
 pub fn try_preview(
     command: &str,
     entry: &Entry,
-    notify: &UnboundedSender<Preview>,
+    results_handle: &UnboundedSender<Preview>,
 ) {
     debug!("Preview command: {}", command);
 
@@ -241,7 +246,7 @@ pub fn try_preview(
             )
         }
     };
-    notify
+    results_handle
         .send(preview)
         .expect("Unable to send preview result to main thread.");
 }
