@@ -177,6 +177,7 @@ pub enum Shell {
     Fish,
     PowerShell,
     Cmd,
+    Nu,
 }
 
 #[allow(clippy::unnecessary_wraps)]
