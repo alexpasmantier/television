@@ -4,6 +4,7 @@ use std::{
     ops::Deref,
 };
 
+use crate::config::default_channel;
 use crate::{cable::CableSpec, channels::preview::PreviewCommand};
 
 /// A prototype for cable channels.
@@ -110,11 +111,10 @@ impl Deref for Cable {
 
 impl Cable {
     pub fn default_channel(&self) -> ChannelPrototype {
-        self.get(DEFAULT_PROTOTYPE_NAME)
-            .cloned()
-            .unwrap_or_else(|| {
-                panic!("Default channel '{DEFAULT_PROTOTYPE_NAME}' not found")
-            })
+        let default_channel = &default_channel();
+        self.get(default_channel).cloned().unwrap_or_else(|| {
+            panic!("Default channel '{default_channel}' not found")
+        })
     }
 }
 
