@@ -40,7 +40,7 @@ pub struct AppConfig {
 }
 
 pub fn default_channel() -> String {
-    let config = Config::load_user_config(&get_config_dir()).unwrap();
+    let config = Config::new(&ConfigEnv::init().unwrap()).unwrap();
     config.application.default_channel.to_string()
 }
 
