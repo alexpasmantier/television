@@ -5,8 +5,9 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use television::cable::load_cable;
+use television::cli::post_process;
 use television::{
-    cable,
     channels::prototypes::{Cable, ChannelPrototype},
     utils::clipboard::CLIPBOARD,
 };
@@ -35,15 +36,16 @@ async fn main() -> Result<()> {
     // process the CLI arguments
     let cli = Cli::parse();
     debug!("CLI: {:?}", cli);
-    let args: PostProcessedCli = cli.into();
-    debug!("PostProcessedCli: {:?}", args);
 
     // load the configuration file
     debug!("Loading configuration...");
     let mut config = Config::new(&ConfigEnv::init()?)?;
 
     debug!("Loading cable channels...");
-    let cable_channels = cable::load_cable().unwrap_or_default();
+    let cable = load_cable().unwrap_or_default();
+
+    let args = post_process(cli, &cable);
+    debug!("PostProcessedCli: {:?}", args);
 
     // optionally handle subcommands
     debug!("Handling subcommands...");
@@ -60,12 +62,8 @@ async fn main() -> Result<()> {
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
-    let channel_prototype = determine_channel(
-        args.clone(),
-        &config,
-        is_readable_stdin(),
-        &cable_channels,
-    )?;
+    let channel_prototype =
+        determine_channel(&args, &config, is_readable_stdin(), &cable);
 
     CLIPBOARD.with(<_>::default);
 
@@ -77,13 +75,8 @@ async fn main() -> Result<()> {
         args.no_help,
         config.application.tick_rate,
     );
-    let mut app = App::new(
-        &channel_prototype,
-        config,
-        args.input,
-        options,
-        &cable_channels,
-    );
+    let mut app =
+        App::new(&channel_prototype, config, args.input, options, &cable);
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -156,27 +149,38 @@ pub fn handle_subcommands(command: &Command, config: &Config) -> Result<()> {
 }
 
 pub fn determine_channel(
-    args: PostProcessedCli,
+    args: &PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
-    cable_channels: &Cable,
-) -> Result<ChannelPrototype> {
+    cable: &Cable,
+) -> ChannelPrototype {
     if readable_stdin {
         debug!("Using stdin channel");
-        Ok(ChannelPrototype::stdin(args.preview_command))
-    } else if let Some(prompt) = args.autocomplete_prompt {
+        ChannelPrototype::stdin(args.preview_command.clone())
+    } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let channel_prototype = guess_channel_from_prompt(
-            &prompt,
+            prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
-            cable_channels,
-        )?;
+            cable,
+        );
         debug!("Using guessed channel: {:?}", channel_prototype);
-        Ok(channel_prototype)
+        channel_prototype
     } else {
-        debug!("Using {:?} channel", args.channel);
-        Ok(args.channel)
+        let channel = args
+            .channel
+            .as_ref()
+            .unwrap_or(&config.application.default_channel)
+            .clone();
+
+        let mut prototype = cable.get_channel(&channel);
+        // use cli preview command if any
+        if let Some(pc) = &args.preview_command {
+            prototype.preview_command = Some(pc.clone());
+        }
+
+        prototype
     }
 }
 
@@ -184,7 +188,8 @@ pub fn determine_channel(
 mod tests {
     use rustc_hash::FxHashMap;
     use television::{
-        cable::load_cable, channels::prototypes::ChannelPrototype,
+        cable::load_cable,
+        channels::{preview::PreviewCommand, prototypes::ChannelPrototype},
     };
 
     use super::*;
@@ -199,8 +204,7 @@ mod tests {
         let channels: Cable =
             cable_channels.unwrap_or_else(|| load_cable().unwrap_or_default());
         let channel =
-            determine_channel(args.clone(), config, readable_stdin, &channels)
-                .unwrap();
+            determine_channel(args, config, readable_stdin, &channels);
 
         assert_eq!(
             channel.name, expected_channel.name,
@@ -209,14 +213,10 @@ mod tests {
         );
     }
 
-    #[tokio::test]
+    #[test]
     /// Test that the channel is stdin when stdin is readable
-    async fn test_determine_channel_readable_stdin() {
-        let channel = ChannelPrototype::default();
-        let args = PostProcessedCli {
-            channel,
-            ..Default::default()
-        };
+    fn test_determine_channel_readable_stdin() {
+        let args = PostProcessedCli::default();
         let config = Config::default();
         assert_is_correct_channel(
             &args,
@@ -227,8 +227,8 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_determine_channel_autocomplete_prompt() {
+    #[test]
+    fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
         let expected_channel =
             ChannelPrototype::new("dirs", "ls {}", false, None);
@@ -261,9 +261,9 @@ mod tests {
         );
     }
 
-    #[tokio::test]
-    async fn test_determine_channel_standard_case() {
-        let channel = ChannelPrototype::new("dirs", "", false, None);
+    #[test]
+    fn test_determine_channel_standard_case() {
+        let channel = Some(String::from("dirs"));
         let args = PostProcessedCli {
             channel,
             ..Default::default()
@@ -275,6 +275,50 @@ mod tests {
             false,
             &ChannelPrototype::new("dirs", "", false, None),
             None,
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_config_fallback() {
+        let cable = Cable::default();
+        let args = PostProcessedCli {
+            channel: None,
+            ..Default::default()
+        };
+        let mut config = Config::default();
+        config.application.default_channel = String::from("dirs");
+        assert_is_correct_channel(
+            &args,
+            &config,
+            false,
+            &cable.get_channel("dirs"),
+            Some(cable),
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_with_cli_preview() {
+        let cable = Cable::default();
+
+        let preview_command = PreviewCommand::new("echo hello", ",", None);
+
+        let args = PostProcessedCli {
+            channel: Some(String::from("dirs")),
+            preview_command: Some(preview_command),
+            ..Default::default()
+        };
+        let config = Config::default();
+
+        let expected_prototype = cable
+            .get_channel("dirs")
+            .set_preview(args.preview_command.clone());
+
+        assert_is_correct_channel(
+            &args,
+            &config,
+            false,
+            &expected_prototype,
+            Some(cable),
         );
     }
 

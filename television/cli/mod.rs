@@ -19,7 +19,7 @@ pub mod args;
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
-    pub channel: ChannelPrototype,
+    pub channel: Option<String>,
     pub preview_command: Option<PreviewCommand>,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
@@ -40,7 +40,7 @@ pub struct PostProcessedCli {
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
-            channel: ChannelPrototype::default(),
+            channel: None,
             preview_command: None,
             no_preview: false,
             tick_rate: None,
@@ -60,87 +60,59 @@ impl Default for PostProcessedCli {
     }
 }
 
-impl From<Cli> for PostProcessedCli {
-    fn from(cli: Cli) -> Self {
-        // parse literal keybindings passed through the CLI
-        let keybindings: Option<KeyBindings> = cli.keybindings.map(|kb| {
-            parse_keybindings_literal(&kb, CLI_KEYBINDINGS_DELIMITER)
-                .map_err(|e| {
-                    cli_parsing_error_exit(&e.to_string());
-                })
-                .unwrap()
-        });
+pub fn post_process(cli: Cli, cable: &Cable) -> PostProcessedCli {
+    // Parse literal keybindings passed through the CLI
+    let keybindings = cli.keybindings.as_ref().map(|kb| {
+        parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
+            .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+    });
 
-        // parse the preview command if provided
-        let preview_command = cli.preview.map(|preview| PreviewCommand {
-            command: preview,
-            delimiter: cli.delimiter.clone(),
-            offset_expr: cli.preview_offset.clone(),
-        });
+    // Parse the preview command if provided
+    let preview_command = cli.preview.as_ref().map(|preview| PreviewCommand {
+        command: preview.clone(),
+        delimiter: cli.delimiter.clone(),
+        offset_expr: cli.preview_offset.clone(),
+    });
 
-        let mut channel: ChannelPrototype;
-        let working_directory: Option<String>;
-
-        let cable = cable::load_cable().unwrap_or_default();
-        if cli.channel.is_none() {
-            channel = cable.default_channel();
-            working_directory = cli.working_directory;
-        } else {
-            let cli_channel = cli.channel.as_ref().unwrap().to_owned();
-            match parse_channel(&cli_channel, &cable) {
-                Ok(p) => {
-                    channel = p;
-                    working_directory = cli.working_directory;
-                }
-                Err(_) => {
-                    // if the path is provided as first argument and it exists, use it as the working
-                    // directory and default to the files channel
-                    if cli.working_directory.is_none()
-                        && Path::new(&cli_channel).exists()
-                    {
-                        channel = cable.default_channel();
-                        working_directory = Some(cli.channel.unwrap().clone());
-                    } else {
-                        unknown_channel_exit(&cli.channel.unwrap());
-                        unreachable!();
-                    }
-                }
+    // Determine channel and working_directory
+    let (channel, working_directory) = match &cli.channel {
+        Some(c) if !cable.has_channel(c) => {
+            if cli.working_directory.is_none() && Path::new(c).exists() {
+                (None, Some(c.clone()))
+            } else {
+                unknown_channel_exit(c);
             }
         }
+        _ => (cli.channel.clone(), cli.working_directory.clone()),
+    };
 
-        // override the default previewer
-        if let Some(preview_cmd) = &preview_command {
-            channel.preview_command = Some(preview_cmd.clone());
-        }
-
-        Self {
-            channel,
-            preview_command,
-            no_preview: cli.no_preview,
-            tick_rate: cli.tick_rate,
-            frame_rate: cli.frame_rate,
-            input: cli.input,
-            custom_header: cli.custom_header,
-            command: cli.command,
-            working_directory,
-            autocomplete_prompt: cli.autocomplete_prompt,
-            keybindings,
-            exact: cli.exact,
-            select_1: cli.select_1,
-            no_remote: cli.no_remote,
-            no_help: cli.no_help,
-            ui_scale: cli.ui_scale,
-        }
+    PostProcessedCli {
+        channel,
+        preview_command,
+        no_preview: cli.no_preview,
+        tick_rate: cli.tick_rate,
+        frame_rate: cli.frame_rate,
+        input: cli.input,
+        custom_header: cli.custom_header,
+        command: cli.command,
+        working_directory,
+        autocomplete_prompt: cli.autocomplete_prompt,
+        keybindings,
+        exact: cli.exact,
+        select_1: cli.select_1,
+        no_remote: cli.no_remote,
+        no_help: cli.no_help,
+        ui_scale: cli.ui_scale,
     }
 }
 
-fn cli_parsing_error_exit(message: &str) {
+fn cli_parsing_error_exit(message: &str) -> ! {
     eprintln!("Error parsing CLI arguments: {message}\n");
     std::process::exit(1);
 }
 
-fn unknown_channel_exit(channel: &str) {
-    eprintln!("Unknown channel: {channel}\n");
+pub fn unknown_channel_exit(channel: &str) -> ! {
+    eprintln!("Channel not found: {channel}\n");
     std::process::exit(1);
 }
 
@@ -163,20 +135,6 @@ fn parse_keybindings_literal(
         .fold(String::new(), |acc, kb| acc + kb + "\n");
 
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
-}
-
-pub fn parse_channel(
-    channel: &str,
-    cable_channels: &Cable,
-) -> Result<ChannelPrototype> {
-    // try to parse the channel as a cable channel
-    match cable_channels
-        .iter()
-        .find(|(k, _)| k.to_lowercase() == channel)
-    {
-        Some((_, v)) => Ok(v.clone()),
-        None => Err(anyhow!("The following channel wasn't found among cable channels: {channel}")),
-    }
 }
 
 pub fn list_channels() {
@@ -212,17 +170,17 @@ pub fn guess_channel_from_prompt(
     prompt: &str,
     command_mapping: &FxHashMap<String, String>,
     fallback_channel: &str,
-    cable_channels: &Cable,
-) -> Result<ChannelPrototype> {
+    cable: &Cable,
+) -> ChannelPrototype {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
-    let fallback = cable_channels
+    let fallback = cable
         .get(fallback_channel)
         .expect("Fallback channel not found in cable channels")
         .clone();
     if prompt.trim().is_empty() {
-        return Ok(fallback);
+        return fallback;
     }
     let rev_prompt_words = prompt.split_whitespace().rev();
     let mut stack = Vec::new();
@@ -236,7 +194,7 @@ pub fn guess_channel_from_prompt(
         for word in rev_prompt_words.clone() {
             // if the stack is empty, we have a match
             if stack.is_empty() {
-                return parse_channel(channel, cable_channels);
+                return cable.get_channel(channel);
             }
             // if the word matches the top of the stack, pop it
             if stack.last() == Some(&word) {
@@ -245,14 +203,14 @@ pub fn guess_channel_from_prompt(
         }
         // if the stack is empty, we have a match
         if stack.is_empty() {
-            return parse_channel(channel, cable_channels);
+            return cable.get_channel(channel);
         }
         // reset the stack
         stack.clear();
     }
 
     debug!("No match found, falling back to default channel");
-    Ok(fallback)
+    fallback
 }
 
 const VERSION_MESSAGE: &str = env!("CARGO_PKG_VERSION");
@@ -304,18 +262,9 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli: PostProcessedCli = cli.into();
+        let cable = cable::load_cable().unwrap_or_default();
+        let post_processed_cli = post_process(cli, &cable);
 
-        let expected = ChannelPrototype {
-            preview_command: Some(PreviewCommand {
-                command: "bat -n --color=always {}".to_string(),
-                delimiter: ":".to_string(),
-                offset_expr: None,
-            }),
-            ..Default::default()
-        };
-
-        assert_eq!(post_processed_cli.channel, expected,);
         assert_eq!(
             post_processed_cli.preview_command,
             Some(PreviewCommand {
@@ -341,9 +290,9 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli: PostProcessedCli = cli.into();
+        let cable = cable::load_cable().unwrap_or_default();
+        let post_processed_cli = post_process(cli, &cable);
 
-        assert_eq!(post_processed_cli.channel, ChannelPrototype::default(),);
         assert_eq!(
             post_processed_cli.working_directory,
             Some(".".to_string())
@@ -364,7 +313,8 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli: PostProcessedCli = cli.into();
+        let cable = cable::load_cable().unwrap_or_default();
+        let post_processed_cli = post_process(cli, &cable);
 
         let mut expected = KeyBindings::default();
         expected.insert(Action::Quit, Binding::SingleKey(Key::Esc));
@@ -402,8 +352,7 @@ mod tests {
             &command_mapping,
             fallback,
             &channels,
-        )
-        .unwrap();
+        );
 
         assert_eq!(channel.name, "files");
     }
@@ -420,8 +369,7 @@ mod tests {
             &command_mapping,
             fallback,
             &channels,
-        )
-        .unwrap();
+        );
 
         assert_eq!(channel.name, fallback);
     }
@@ -438,8 +386,7 @@ mod tests {
             &command_mapping,
             fallback,
             &channels,
-        )
-        .unwrap();
+        );
 
         assert_eq!(channel.name, fallback);
     }

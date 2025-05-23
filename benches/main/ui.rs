@@ -12,7 +12,7 @@ use television::{
     action::Action,
     channels::{
         entry::{into_ranges, Entry},
-        prototypes::{Cable, ChannelPrototype},
+        prototypes::Cable,
     },
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, results::build_results_list},
@@ -464,6 +464,8 @@ pub fn draw(c: &mut Criterion) {
 
     let rt = Runtime::new().unwrap();
 
+    let cable = Cable::default();
+
     c.bench_function("draw", |b| {
         b.to_async(&rt).iter_batched(
             // FIXME: this is kind of hacky
@@ -472,7 +474,7 @@ pub fn draw(c: &mut Criterion) {
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
-                let channel_prototype = ChannelPrototype::default();
+                let channel_prototype = cable.get_channel("files");
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
                     tx,
