@@ -12,7 +12,7 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | Konsole | Linux | ✅ |
 | Terminator | Linux | ✅ |
 | Xterm | Linux | ✅ |
-| Cmder | Windows | ✖️ |
+| Cmder | Windows | ✅ |
 | Foot | Linux | ✅ |
 | Rio | macOS, Linux, Windows | ✅ |
 | Warp | macOS | ✅ |
