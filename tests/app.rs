@@ -33,7 +33,7 @@ fn setup_app(
             .join("tests")
             .join("target_dir");
         std::env::set_current_dir(&target_dir).unwrap();
-        ChannelPrototype::default()
+        Cable::default().get("files").unwrap().clone()
     });
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests

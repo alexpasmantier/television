@@ -4,7 +4,10 @@ use std::{
     ops::Deref,
 };
 
-use crate::{cable::CableSpec, channels::preview::PreviewCommand};
+use crate::{
+    cable::CableSpec, channels::preview::PreviewCommand,
+    cli::unknown_channel_exit,
+};
 
 /// A prototype for cable channels.
 ///
@@ -73,18 +76,18 @@ impl ChannelPrototype {
             preview_command: preview,
         }
     }
+
+    pub fn set_preview(self, preview_command: Option<PreviewCommand>) -> Self {
+        Self::new(
+            &self.name,
+            &self.source_command,
+            self.interactive,
+            preview_command,
+        )
+    }
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
-
-impl Default for ChannelPrototype {
-    fn default() -> Self {
-        Cable::default()
-            .get(DEFAULT_PROTOTYPE_NAME)
-            .cloned()
-            .unwrap()
-    }
-}
 
 impl Display for ChannelPrototype {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -109,12 +112,14 @@ impl Deref for Cable {
 }
 
 impl Cable {
-    pub fn default_channel(&self) -> ChannelPrototype {
-        self.get(DEFAULT_PROTOTYPE_NAME)
+    pub fn get_channel(&self, name: &str) -> ChannelPrototype {
+        self.get(name)
             .cloned()
-            .unwrap_or_else(|| {
-                panic!("Default channel '{DEFAULT_PROTOTYPE_NAME}' not found")
-            })
+            .unwrap_or_else(|| unknown_channel_exit(name))
+    }
+
+    pub fn has_channel(&self, name: &str) -> bool {
+        self.contains_key(name)
     }
 }
 
