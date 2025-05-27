@@ -11,7 +11,10 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    channels::{entry::Entry, preview::PreviewCommand},
+    channels::{
+        entry::Entry,
+        prototypes::{CommandSpec, PreviewSpec},
+    },
     utils::{
         command::shell_command,
         strings::{ReplaceNonPrintableConfig, replace_non_printable},
@@ -134,13 +137,13 @@ pub struct Previewer {
     // FIXME: maybe use a bounded channel here with a single slot
     requests: UnboundedReceiver<Request>,
     last_job_entry: Option<Entry>,
-    preview_command: PreviewCommand,
+    preview_spec: PreviewSpec,
     results: UnboundedSender<Preview>,
 }
 
 impl Previewer {
     pub fn new(
-        preview_command: PreviewCommand,
+        preview_command: &PreviewSpec,
         config: Config,
         receiver: UnboundedReceiver<Request>,
         sender: UnboundedSender<Preview>,
@@ -149,7 +152,7 @@ impl Previewer {
             config,
             requests: receiver,
             last_job_entry: None,
-            preview_command,
+            preview_spec: preview_command.clone(),
             results: sender,
         }
     }
@@ -168,15 +171,15 @@ impl Previewer {
                             continue;
                         }
                         let results_handle = self.results.clone();
-                        let command =
-                            self.preview_command.format_with(&ticket.entry);
                         self.last_job_entry = Some(ticket.entry.clone());
                         // try to execute the preview with a timeout
+                        let preview_command =
+                            self.preview_spec.command.clone();
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
                                 try_preview(
-                                    &command,
+                                    &preview_command,
                                     &ticket.entry,
                                     &results_handle,
                                 );
@@ -210,16 +213,22 @@ impl Previewer {
 }
 
 pub fn try_preview(
-    command: &str,
+    command: &CommandSpec,
     entry: &Entry,
     results_handle: &UnboundedSender<Preview>,
 ) {
     debug!("Preview command: {}", command);
 
-    let child = shell_command(false)
-        .arg(command)
-        .output()
-        .expect("failed to execute process");
+    let child = shell_command(
+        &command
+            .inner
+            .format(&entry.raw)
+            .expect("Failed to format command"),
+        command.interactive,
+        &command.env,
+    )
+    .output()
+    .expect("failed to execute process");
 
     let preview: Preview = {
         if child.status.success() {
@@ -230,7 +239,7 @@ pub fn try_preview(
                     .keep_control_characters(),
             );
             Preview::new(
-                &entry.name,
+                &entry.raw,
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
@@ -243,7 +252,7 @@ pub fn try_preview(
                     .keep_control_characters(),
             );
             Preview::new(
-                &entry.name,
+                &entry.raw,
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
