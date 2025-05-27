@@ -6,10 +6,8 @@ use tracing::{debug, trace};
 
 use crate::{
     action::Action,
-    channels::{
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
-    },
+    cable::Cable,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     config::{Config, default_tick_rate},
     event::{Event, EventLoop, Key},
     keymap::Keymap,
@@ -67,7 +65,7 @@ impl AppOptions {
 pub struct App {
     keymap: Keymap,
     /// The television instance that handles channels and entries.
-    television: Television,
+    pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
     /// A flag that indicates whether the application should suspend during the next frame.
@@ -114,9 +112,9 @@ pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
 }
 
-impl From<ActionOutcome> for AppOutput {
-    fn from(outcome: ActionOutcome) -> Self {
-        match outcome {
+impl AppOutput {
+    pub fn new(action_outcome: ActionOutcome) -> Self {
+        match action_outcome {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
             },
@@ -137,11 +135,11 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel_prototype: &ChannelPrototype,
+        channel_prototype: ChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
-        cable_channels: &Cable,
+        cable_channels: Cable,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -159,7 +157,7 @@ impl App {
             options.no_remote,
             options.no_help,
             options.exact,
-            cable_channels.clone(),
+            cable_channels,
         );
 
         Self {
@@ -272,7 +270,7 @@ impl App {
                     rendering_task.await??;
                 }
 
-                return Ok(AppOutput::from(action_outcome));
+                return Ok(AppOutput::new(action_outcome));
             }
         }
     }

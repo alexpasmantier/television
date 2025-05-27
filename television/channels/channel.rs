@@ -5,47 +5,28 @@ use std::process::Stdio;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
 
-use crate::channels::{
-    entry::Entry, preview::PreviewCommand, prototypes::ChannelPrototype,
-};
+use crate::channels::prototypes::SourceSpec;
+use crate::channels::{entry::Entry, prototypes::ChannelPrototype};
 use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
-use crate::utils::strings::format_string;
-
 pub struct Channel {
-    pub name: String,
+    pub prototype: ChannelPrototype,
     matcher: Matcher<String>,
-    pub preview_command: Option<PreviewCommand>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: tokio::task::JoinHandle<()>,
 }
 
-impl Default for Channel {
-    fn default() -> Self {
-        Self::new(&ChannelPrototype::new(
-            "files",
-            "find . -type f",
-            false,
-            Some(PreviewCommand::new("cat {}", ":", None)),
-        ))
-    }
-}
-
 impl Channel {
-    pub fn new(prototype: &ChannelPrototype) -> Self {
+    pub fn new(prototype: ChannelPrototype) -> Self {
         let matcher = Matcher::new(Config::default());
         let injector = matcher.injector();
-        let crawl_handle = tokio::spawn(load_candidates(
-            prototype.source_command.to_string(),
-            prototype.interactive,
-            injector,
-        ));
+        let crawl_handle =
+            tokio::spawn(load_candidates(prototype.source.clone(), injector));
         Self {
+            prototype,
             matcher,
-            preview_command: prototype.preview_command.clone(),
-            name: prototype.name.to_string(),
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle,
         }
@@ -61,27 +42,25 @@ impl Channel {
             .results(num_entries, offset)
             .into_iter()
             .map(|item| {
-                let path = item.matched_string;
-                Entry::new(path).with_name_match_indices(&item.match_indices)
+                Entry::new(item.inner)
+                    .with_display(item.matched_string)
+                    .with_match_indices(&item.match_indices)
             })
             .collect()
     }
 
     pub fn get_result(&self, index: u32) -> Option<Entry> {
         self.matcher.get_result(index).map(|item| {
-            let name = item.matched_string;
-            if let Some(cmd) = &self.preview_command {
-                if let Some(offset_expr) = &cmd.offset_expr {
-                    let offset_string =
-                        format_string(offset_expr, &name, &cmd.delimiter);
-                    let offset_str = {
-                        offset_string
-                            .strip_prefix('\'')
-                            .and_then(|s| s.strip_suffix('\''))
-                            .unwrap_or(&offset_string)
-                    };
+            let mut entry = Entry::new(item.inner.clone())
+                .with_display(item.matched_string)
+                .with_match_indices(&item.match_indices);
+            if let Some(p) = &self.prototype.preview {
+                if let Some(offset_expr) = &p.offset {
+                    let offset_str = offset_expr
+                        .format(&item.inner)
+                        .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.template_string(), item.inner));
 
-                    return Entry::new(name).with_line_number(
+                    entry = entry.with_line_number(
                         offset_str.parse::<usize>().unwrap_or_else(|_| {
                             panic!(
                                 "Failed to parse line number from {}",
@@ -91,7 +70,7 @@ impl Channel {
                     );
                 }
             }
-            Entry::new(name)
+            entry
         })
     }
 
@@ -122,23 +101,22 @@ impl Channel {
     pub fn shutdown(&self) {}
 
     pub fn supports_preview(&self) -> bool {
-        self.preview_command.is_some()
+        self.prototype.preview.is_some()
     }
 }
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(
-    command: String,
-    interactive: bool,
-    injector: Injector<String>,
-) {
-    debug!("Loading candidates from command: {:?}", command);
-    let mut child = shell_command(interactive)
-        .arg(command)
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .spawn()
-        .expect("failed to execute process");
+async fn load_candidates(source: SourceSpec, injector: Injector<String>) {
+    debug!("Loading candidates from command: {:?}", source.command);
+    let mut child = shell_command(
+        source.command.inner.template_string(),
+        source.command.interactive,
+        &source.command.env,
+    )
+    .stdout(Stdio::piped())
+    .stderr(Stdio::piped())
+    .spawn()
+    .expect("failed to execute process");
 
     if let Some(out) = child.stdout.take() {
         let reader = BufReader::new(out);
@@ -150,13 +128,25 @@ async fn load_candidates(
                 if !l.trim().is_empty() {
                     let () = injector.push(l, |e, cols| {
                         // PERF: maybe we can avoid cloning here by using &Utf32Str
-                        cols[0] = e.clone().into();
+                        if let Some(display) = &source.display {
+                            let formatted = display.format(e).unwrap_or_else(|_| {
+                                panic!(
+                                    "Failed to format display expression '{}' with entry '{}'",
+                                    display.template_string(),
+                                    e
+                                );
+                            });
+                            cols[0] = formatted.into();
+                        } else {
+                            cols[0] = e.clone().into();
+                        }
                     });
                     produced_output = true;
                 }
             }
         }
 
+        // if the command didn't produce any output, check stderr and display that instead
         if !produced_output {
             let reader = BufReader::new(child.stderr.take().unwrap());
             for line in reader.lines() {

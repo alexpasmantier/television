@@ -20,43 +20,13 @@ const POINTER_SYMBOL: &str = "> ";
 const SELECTED_SYMBOL: &str = "● ";
 const DESELECTED_SYMBOL: &str = "  ";
 
-/// The max width for each part of the entry (name and value) depending on various factors.
-fn max_widths(
-    entry: &Entry,
-    available_width: u16,
-    use_icons: bool,
-    is_selected: bool,
-) -> (u16, u16) {
-    let available_width = available_width.saturating_sub(
+fn max_width(available_width: u16, use_icons: bool, is_selected: bool) -> u16 {
+    available_width.saturating_sub(
         2 // pointer and space
             + 2 * (u16::from(use_icons))
             + 2 * (u16::from(is_selected))
-            + 2 // borders
-            + entry
-                .line_number
-                // ":{line_number}: "
-                .map_or(0, |l| 1 + u16::try_from(l.checked_ilog10().unwrap_or(0)).unwrap() + 3),
-    );
-
-    if entry.value.is_none() {
-        return (available_width, 0);
-    }
-
-    // otherwise, use up the available space for both name and value as nicely as possible
-    let name_len =
-        u16::try_from(entry.name.chars().count()).unwrap_or(u16::MAX);
-    let value_len = entry
-        .value
-        .as_ref()
-        .map_or(0, |v| u16::try_from(v.chars().count()).unwrap_or(u16::MAX));
-
-    if name_len < available_width / 2 {
-        (name_len, available_width - name_len)
-    } else if value_len < available_width / 2 {
-        (available_width - value_len, value_len)
-    } else {
-        (available_width / 2, available_width / 2)
-    }
+            + 2, // borders
+    )
 }
 
 // TODO: could we not just iterate on chars here instead of using the indices?
@@ -70,8 +40,7 @@ fn build_result_line<'a>(
     area_width: u16,
 ) -> Line<'a> {
     let mut spans = Vec::new();
-    let (name_max_width, value_max_width) = max_widths(
-        entry,
+    let name_max_width = max_width(
         area_width,
         use_icons,
         selected_entries
@@ -104,7 +73,7 @@ fn build_result_line<'a>(
     // entry name
     let (mut entry_name, mut name_match_ranges) =
         make_matched_string_printable(
-            &entry.name,
+            entry.display(),
             entry.name_match_ranges.as_deref(),
         );
     // if the name is too long, we need to truncate it and add an ellipsis
@@ -159,56 +128,6 @@ fn build_result_line<'a>(
             format!(":{line_number}"),
             Style::default().fg(colorscheme.result_line_number_fg),
         ));
-    }
-    // optional value
-    if let Some(value) = &entry.value {
-        spans.push(Span::raw(": "));
-
-        let (mut value, mut value_match_ranges) =
-            make_matched_string_printable(
-                value,
-                entry.value_match_ranges.as_deref(),
-            );
-        // if the value is too long, we need to truncate it and add an ellipsis
-        if value.as_str().width() > value_max_width as usize {
-            (value, value_match_ranges) = truncate_highlighted_string(
-                &value,
-                &value_match_ranges,
-                value_max_width,
-            );
-        }
-
-        let mut last_match_end = 0;
-        let value_chars = value.chars();
-        let value_len = value.chars().count();
-        for (start, end) in value_match_ranges
-            .iter()
-            .map(|(s, e)| (*s as usize, *e as usize))
-        {
-            spans.push(Span::styled(
-                value_chars
-                    .clone()
-                    .skip(last_match_end)
-                    .take(start - last_match_end)
-                    .collect::<String>(),
-                Style::default().fg(colorscheme.result_preview_fg),
-            ));
-            spans.push(Span::styled(
-                value_chars
-                    .clone()
-                    .skip(start)
-                    .take(end - start)
-                    .collect::<String>(),
-                Style::default().fg(colorscheme.match_foreground_color),
-            ));
-            last_match_end = end;
-        }
-        if last_match_end < value_len {
-            spans.push(Span::styled(
-                value_chars.skip(last_match_end).collect::<String>(),
-                Style::default().fg(colorscheme.result_preview_fg),
-            ));
-        }
     }
     Line::from(spans)
 }
@@ -301,7 +220,7 @@ mod tests {
     #[test]
     fn test_build_result_line() {
         let entry = Entry::new(String::from("something nice"))
-            .with_name_match_indices(
+            .with_match_indices(
                 // something nice
                 // 012345678901234
                 //  om       ni
@@ -331,7 +250,7 @@ mod tests {
         let entry =
             // See https://github.com/alexpasmantier/television/issues/439
             Entry::new(String::from("ジェイムス下地 - REDLINE Original Soundtrack - 06 - ROBOWORLD TV.mp3"))
-                .with_name_match_indices(&[27, 28, 29, 30, 31]);
+                .with_match_indices(&[27, 28, 29, 30, 31]);
         let result_line = build_result_line(
             &entry,
             None,

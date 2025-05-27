@@ -15,7 +15,10 @@ pub use themes::Theme;
 use tracing::{debug, warn};
 pub use ui::UiConfig;
 
-use crate::channels::prototypes::DEFAULT_PROTOTYPE_NAME;
+use crate::{
+    cable::CABLE_DIR_NAME,
+    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
+};
 
 mod keybindings;
 pub mod shell_integration;
@@ -84,9 +87,12 @@ impl ConfigEnv {
     pub fn init() -> Result<Self> {
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
+        let cable_dir = config_dir.join(CABLE_DIR_NAME);
 
         std::fs::create_dir_all(&config_dir)
             .context("Failed creating configuration directory")?;
+        std::fs::create_dir_all(&cable_dir)
+            .context("Failed creating cable directory")?;
         std::fs::create_dir_all(&data_dir)
             .context("Failed creating data directory")?;
 
@@ -128,8 +134,7 @@ impl Config {
                 Self::load_user_config(&config_env.config_dir)?;
 
             // merge the user configuration with the default configuration
-            let final_cfg =
-                Self::merge_user_with_default(default_config, user_cfg);
+            let final_cfg = Self::merge_with_default(default_config, user_cfg);
 
             debug!(
                 "Configuration: \n{}",
@@ -162,23 +167,20 @@ impl Config {
         Ok(user_cfg)
     }
 
-    fn merge_user_with_default(
-        mut default: Config,
-        mut user: Config,
-    ) -> Config {
+    fn merge_with_default(mut default: Config, mut new: Config) -> Config {
         // use default fallback channel as a fallback if user hasn't specified one
-        if user.shell_integration.fallback_channel.is_empty() {
-            user.shell_integration
+        if new.shell_integration.fallback_channel.is_empty() {
+            new.shell_integration
                 .fallback_channel
                 .clone_from(&default.shell_integration.fallback_channel);
         }
 
         // merge shell integration triggers with commands
         default.shell_integration.merge_triggers();
-        user.shell_integration.merge_triggers();
+        new.shell_integration.merge_triggers();
         // merge shell integration commands with default commands
-        if user.shell_integration.commands.is_empty() {
-            user.shell_integration
+        if new.shell_integration.commands.is_empty() {
+            new.shell_integration
                 .commands
                 .clone_from(&default.shell_integration.commands);
         }
@@ -186,19 +188,41 @@ impl Config {
         // merge shell integration keybindings with default keybindings
         let mut merged_keybindings =
             default.shell_integration.keybindings.clone();
-        merged_keybindings.extend(user.shell_integration.keybindings.clone());
-        user.shell_integration.keybindings = merged_keybindings;
+        merged_keybindings.extend(new.shell_integration.keybindings.clone());
+        new.shell_integration.keybindings = merged_keybindings;
 
         // merge keybindings with default keybindings
         let keybindings =
-            merge_keybindings(default.keybindings.clone(), &user.keybindings);
-        user.keybindings = keybindings;
+            merge_keybindings(default.keybindings.clone(), &new.keybindings);
+        new.keybindings = keybindings;
 
         Config {
-            application: user.application,
-            keybindings: user.keybindings,
-            ui: user.ui,
-            shell_integration: user.shell_integration,
+            application: new.application,
+            keybindings: new.keybindings,
+            ui: new.ui,
+            shell_integration: new.shell_integration,
+        }
+    }
+
+    pub fn merge_keybindings(&mut self, other: &KeyBindings) {
+        self.keybindings = merge_keybindings(self.keybindings.clone(), other);
+    }
+
+    pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
+        if let Some(ui_scale) = &ui_spec.ui_scale {
+            self.ui.ui_scale = *ui_scale;
+        }
+        if let Some(show_help_bar) = &ui_spec.show_help_bar {
+            self.ui.show_help_bar = *show_help_bar;
+        }
+        if let Some(show_preview_panel) = &ui_spec.show_preview_panel {
+            self.ui.show_preview_panel = *show_preview_panel;
+        }
+        if let Some(orientation) = &ui_spec.orientation {
+            self.ui.orientation = *orientation;
+        }
+        if let Some(input_position) = &ui_spec.input_bar_position {
+            self.ui.input_bar_position = *input_position;
         }
     }
 }
