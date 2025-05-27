@@ -1,11 +1,15 @@
-use std::process::Command;
+use std::{collections::HashMap, process::Command};
 
 #[cfg(not(unix))]
 use tracing::warn;
 
 use super::shell::Shell;
 
-pub fn shell_command(interactive: bool) -> Command {
+pub fn shell_command<S>(
+    command: &str,
+    interactive: bool,
+    envs: &HashMap<String, String, S>,
+) -> Command {
     let shell = Shell::from_env().unwrap_or_default();
     let mut cmd = Command::new(shell.executable());
 
@@ -25,5 +29,6 @@ pub fn shell_command(interactive: bool) -> Command {
         warn!("Interactive mode is not supported on Windows.");
     }
 
+    cmd.envs(envs).arg(command);
     cmd
 }
