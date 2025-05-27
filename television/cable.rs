@@ -1,14 +1,52 @@
-use std::path::PathBuf;
+use std::{
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
 use rustc_hash::FxHashMap;
-
-use anyhow::Result;
 use tracing::{debug, error};
+use walkdir::WalkDir;
 
 use crate::{
-    channels::prototypes::{Cable, ChannelPrototype},
+    channels::prototypes::ChannelPrototype, cli::unknown_channel_exit,
     config::get_config_dir,
 };
+
+/// A neat `HashMap` of channel prototypes indexed by their name.
+///
+/// This is used to store cable channel prototypes throughout the application
+/// in a way that facilitates answering questions like "what's the prototype
+/// for `files`?" or "does this channel exist?".
+#[derive(Debug, serde::Deserialize, Clone)]
+pub struct Cable(pub FxHashMap<String, ChannelPrototype>);
+
+impl Deref for Cable {
+    type Target = FxHashMap<String, ChannelPrototype>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Cable {
+    pub fn get_channel(&self, name: &str) -> ChannelPrototype {
+        self.get(name)
+            .cloned()
+            .unwrap_or_else(|| unknown_channel_exit(name))
+    }
+
+    pub fn has_channel(&self, name: &str) -> bool {
+        self.contains_key(name)
+    }
+
+    pub fn from_prototypes(prototypes: Vec<ChannelPrototype>) -> Self {
+        let mut map = FxHashMap::default();
+        for prototype in prototypes {
+            map.insert(prototype.metadata.name.clone(), prototype);
+        }
+        Cable(map)
+    }
+}
 
 /// Just a proxy struct to deserialize prototypes
 #[derive(Debug, serde::Deserialize, Default)]
@@ -17,106 +55,99 @@ pub struct CableSpec {
     pub prototypes: Vec<ChannelPrototype>,
 }
 
-const CABLE_FILE_NAME_SUFFIX: &str = "channels";
-const CABLE_FILE_FORMAT: &str = "toml";
+pub const CHANNEL_FILE_FORMAT: &str = "toml";
+/// ```ignore
+///   config_folder/
+///   ├── config.toml
+///   └── cable/
+///    ├── channel_1.toml
+///    ├── channel_2.toml
+///    └── ...
+/// ```
+pub const CABLE_DIR_NAME: &str = "cable";
 
-#[cfg(unix)]
-const DEFAULT_CABLE_CHANNELS: &str =
-    include_str!("../cable/unix-channels.toml");
+fn get_cable_files<P>(cable_dir: P) -> Vec<PathBuf>
+where
+    P: AsRef<Path>,
+{
+    WalkDir::new(cable_dir)
+        .into_iter()
+        .map(|e| e.unwrap().path().to_owned())
+        .filter(|p| {
+            p.is_file()
+                && p.extension().is_some()
+                && p.extension().unwrap() == CHANNEL_FILE_FORMAT
+        })
+        .collect::<Vec<_>>()
+}
 
-#[cfg(not(unix))]
-const DEFAULT_CABLE_CHANNELS: &str =
-    include_str!("../cable/windows-channels.toml");
+fn load_prototypes<I>(cable_files: I) -> Vec<ChannelPrototype>
+where
+    I: IntoIterator<Item = PathBuf>,
+{
+    cable_files
+        .into_iter()
+        .filter_map(|p| match std::fs::read_to_string(&p) {
+            Ok(content) => {
+                match toml::from_str::<ChannelPrototype>(&content) {
+                    Ok(prototype) => {
+                        debug!(
+                            "Loaded cable channel prototype from {:?}: {}",
+                            p, prototype.metadata.name
+                        );
+                        Some(prototype)
+                    }
+                    Err(e) => {
+                        error!(
+                            "Failed to parse cable channel file {:?}: {}",
+                            p, e
+                        );
+                        None
+                    }
+                }
+            }
+            Err(e) => {
+                error!("Failed to read cable channel file {:?}: {}", p, e);
+                None
+            }
+        })
+        .collect()
+}
 
-/// Load the cable configuration from the config directory.
+/// Load cable channels from the config directory.
 ///
-/// Cable is loaded by compiling all files that match the following
-/// pattern in the config directory: `*channels.toml`.
+/// Cable is loaded by compiling all files located in the `cable/` subdirectory
+/// of the user's configuration directory (+ defaults)
 ///
 /// # Example:
 /// ```ignore
 ///   config_folder/
-///   ├── cable_channels.toml
-///   ├── my_channels.toml
-///   └── windows_channels.toml
+///   ├── config.toml
+///   └── cable/
+///    ├── channel_1.toml
+///    ├── channel_2.toml
+///    └── ...
 /// ```
-pub fn load_cable() -> Result<Cable> {
-    let config_dir = get_config_dir();
+pub fn load_cable() -> Option<Cable> {
+    let cable_dir = get_config_dir().join(CABLE_DIR_NAME);
+    debug!("Cable directory: {}", cable_dir.to_string_lossy());
+    let cable_files = get_cable_files(&cable_dir);
+    debug!("Found cable channel files: {:?}", cable_files);
 
-    // list all files in the config directory
-    let files = std::fs::read_dir(&config_dir)?;
+    if cable_files.is_empty() {
+        println!(
+            "It seems you don't have any cable channels configured yet.
+Run `tv update-channels` to get the latest default cable channels and/or add your own in `{}`.
 
-    // filter the files that match the pattern
-    let file_paths: Vec<PathBuf> = files
-        .filter_map(|f| f.ok().map(|f| f.path()))
-        .filter(|p| is_cable_file_format(p) && p.is_file())
-        .collect();
-
-    debug!("Found cable channel files: {:?}", file_paths);
-    if file_paths.is_empty() {
-        debug!("No user defined cable channels found");
+More info: https://github.com/alexpasmantier/television/blob/main/README.md",
+            cable_dir.to_string_lossy()
+        );
+        return None;
     }
 
-    let default_prototypes =
-        toml::from_str::<CableSpec>(DEFAULT_CABLE_CHANNELS)
-            .expect("Failed to parse default cable channels");
+    let prototypes = load_prototypes(cable_files);
 
-    let prototypes = file_paths.iter().fold(
-        Vec::<ChannelPrototype>::new(),
-        |mut acc, p| {
-            match toml::from_str::<CableSpec>(
-                &std::fs::read_to_string(p)
-                    .expect("Unable to read configuration file"),
-            ) {
-                Ok(pts) => acc.extend(pts.prototypes),
-                Err(e) => {
-                    error!(
-                        "Failed to parse cable channel file {:?}: {}",
-                        p, e
-                    );
-                }
-            }
-            acc
-        },
-    );
+    debug!("Loaded {} cable channels", prototypes.len());
 
-    debug!("Loaded {} custom cable channels", prototypes.len());
-    if prototypes.is_empty() {
-        debug!("No custom cable channels found");
-    }
-
-    let mut cable_channels = FxHashMap::default();
-    // custom prototypes take precedence over default ones
-    for prototype in default_prototypes
-        .prototypes
-        .into_iter()
-        .chain(prototypes.into_iter())
-    {
-        cable_channels.insert(prototype.name.clone(), prototype);
-    }
-    Ok(Cable(cable_channels))
-}
-
-fn is_cable_file_format<P>(p: P) -> bool
-where
-    P: AsRef<std::path::Path>,
-{
-    let p = p.as_ref();
-    p.file_stem()
-        .and_then(|s| s.to_str())
-        .map_or_else(|| false, |s| s.ends_with(CABLE_FILE_NAME_SUFFIX))
-        && p.extension()
-            .and_then(|e| e.to_str())
-            .map_or_else(|| false, |e| e.to_lowercase() == CABLE_FILE_FORMAT)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_is_cable_file() {
-        let path = std::path::Path::new("cable_channels.toml");
-        assert!(is_cable_file_format(path));
-    }
+    Some(Cable::from_prototypes(prototypes))
 }

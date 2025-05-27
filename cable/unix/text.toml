@@ -1,7 +1,7 @@
 [metadata]
 name = "text"
 description = "A channel to find and select text from files"
-# requirements = ["rg", "bat"]
+requirements = ["rg", "bat"]
 
 [source]
 command = "rg . --no-heading --line-number"
