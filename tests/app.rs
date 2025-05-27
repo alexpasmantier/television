@@ -3,7 +3,8 @@ use std::{collections::HashSet, path::PathBuf, time::Duration};
 use television::{
     action::Action,
     app::{App, AppOptions},
-    channels::prototypes::{Cable, ChannelPrototype},
+    cable::Cable,
+    channels::prototypes::ChannelPrototype,
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -28,13 +29,13 @@ fn setup_app(
     JoinHandle<television::app::AppOutput>,
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
-    let chan: ChannelPrototype = channel_prototype.unwrap_or_else(|| {
-        let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("tests")
-            .join("target_dir");
-        std::env::set_current_dir(&target_dir).unwrap();
-        Cable::default().get("files").unwrap().clone()
-    });
+    let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("tests")
+        .join("target_dir");
+    std::env::set_current_dir(&target_dir).unwrap();
+
+    let chan: ChannelPrototype =
+        channel_prototype.unwrap_or(ChannelPrototype::new("files", "fd -t f"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
     config.application.tick_rate = 100.0;
@@ -47,7 +48,17 @@ fn setup_app(
         false,
         config.application.tick_rate,
     );
-    let mut app = App::new(&chan, config, input, options, &Cable::default());
+    let mut app = App::new(
+        chan,
+        config,
+        input,
+        options,
+        Cable::from_prototypes(vec![
+            ChannelPrototype::new("files", "fd -t f"),
+            ChannelPrototype::new("dirs", "fd -t d"),
+            ChannelPrototype::new("env", "printenv"),
+        ]),
+    );
 
     // retrieve the app's action channel handle in order to send a quit action
     let tx = app.action_tx.clone();
@@ -102,13 +113,7 @@ async fn test_app_basic_search() {
 
     assert!(output.selected_entries.is_some());
     assert_eq!(
-        &output
-            .selected_entries
-            .unwrap()
-            .drain()
-            .next()
-            .unwrap()
-            .name,
+        &output.selected_entries.unwrap().drain().next().unwrap().raw,
         "file1.txt"
     );
 }
@@ -142,7 +147,7 @@ async fn test_app_basic_search_multiselect() {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|e| &e.name)
+            .map(|e| &e.raw)
             .collect::<HashSet<_>>(),
         HashSet::from([&"file1.txt".to_string(), &"file2.txt".to_string()])
     );
@@ -169,10 +174,7 @@ async fn test_app_exact_search_multiselect() {
     assert!(selected_entries.is_some());
     // should contain a single entry with the prompt
     assert!(!selected_entries.as_ref().unwrap().is_empty());
-    assert_eq!(
-        selected_entries.unwrap().drain().next().unwrap().name,
-        "fie"
-    );
+    assert_eq!(selected_entries.unwrap().drain().next().unwrap().raw, "fie");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -204,7 +206,7 @@ async fn test_app_exact_search_positive() {
             .as_ref()
             .unwrap()
             .iter()
-            .map(|e| &e.name)
+            .map(|e| &e.raw)
             .collect::<HashSet<_>>(),
         HashSet::from([&"file1.txt".to_string(), &"file2.txt".to_string()])
     );
@@ -212,8 +214,7 @@ async fn test_app_exact_search_positive() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_exits_when_select_1_and_only_one_result() {
-    let prototype =
-        ChannelPrototype::new("some_channel", "echo file1.txt", false, None);
+    let prototype = ChannelPrototype::new("some_channel", "echo file1.txt");
     let (f, tx) = setup_app(Some(prototype), true, false);
 
     // tick a few times to get the results
@@ -231,25 +232,15 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
 
     assert!(output.selected_entries.is_some());
     assert_eq!(
-        &output
-            .selected_entries
-            .unwrap()
-            .drain()
-            .next()
-            .unwrap()
-            .name,
+        &output.selected_entries.unwrap().drain().next().unwrap().raw,
         "file1.txt"
     );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
-    let prototype = ChannelPrototype::new(
-        "some_channel",
-        "echo 'file1.txt\nfile2.txt'",
-        false,
-        None,
-    );
+    let prototype =
+        ChannelPrototype::new("some_channel", "echo 'file1.txt\nfile2.txt'");
     let (f, tx) = setup_app(Some(prototype), true, false);
 
     // tick a few times to get the results
