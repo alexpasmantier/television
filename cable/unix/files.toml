@@ -1,0 +1,46 @@
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd -t f"
+interactive = false
+
+[entry]
+# only show the last path segment ('/a/b/c' -> 'c')
+template = "{split:/-1}"
+ansi = false
+
+[output]
+# output the entire path when selecting entries
+template = "{}"
+
+[preview]
+command = "bat -n --color=always {}"
+env = { "BAT_THEME" = "ansi" }
+
+[ui]
+layout = "landscape"
+scale = 100
+show_help = false
+show_preview = true
+input_position = "bottom"
+
+[keymap]
+quit = ["esc", "ctrl-c"]
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
+confirm_selection = "enter"
+
+[actions.'open in $EDITOR']
+command = "$EDITOR {}"
+mode = "become"          # "become" / "spawn" / "transform"
+
+[actions.'remove']
+command = "rm {}"
+mode = "spawn"
+
+[actions.'rename']
+command = "read -p \"New name: \" new_name && mv {} $new_name"
+mode = "spawn"
