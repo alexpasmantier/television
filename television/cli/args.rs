@@ -37,13 +37,6 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub no_preview: bool,
 
-    /// The delimiter used to extract fields from the entry to provide to the
-    /// preview command.
-    ///
-    /// See the `preview` option for more information.
-    #[arg(long, value_name = "STRING", default_value = " ", value_parser = delimiter_parser, verbatim_doc_comment)]
-    pub delimiter: String,
-
     /// The application's tick rate.
     ///
     /// The tick rate is the number of times the application will update per
@@ -168,6 +161,9 @@ pub enum Command {
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Downloads the latest collection of default channel prototypes from github
+    /// and saves them to the local configuration directory.
+    UpdateChannels,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
@@ -177,13 +173,4 @@ pub enum Shell {
     Fish,
     PowerShell,
     Cmd,
-}
-
-#[allow(clippy::unnecessary_wraps)]
-fn delimiter_parser(s: &str) -> Result<String, String> {
-    Ok(match s {
-        "" => " ".to_string(),
-        "\\t" => "\t".to_string(),
-        _ => s.to_string(),
-    })
 }
