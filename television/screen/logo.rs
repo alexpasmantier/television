@@ -21,8 +21,7 @@ pub fn build_logo_paragraph<'a>() -> Paragraph<'a> {
         .lines()
         .map(std::convert::Into::into)
         .collect::<Vec<_>>();
-    let logo_paragraph = Paragraph::new(lines);
-    logo_paragraph
+    Paragraph::new(lines)
 }
 
 const REMOTE_LOGO: &str = r"
@@ -51,6 +50,5 @@ pub fn build_remote_logo_paragraph<'a>() -> Paragraph<'a> {
         .lines()
         .map(std::convert::Into::into)
         .collect::<Vec<_>>();
-    let logo_paragraph = Paragraph::new(lines);
-    logo_paragraph
+    Paragraph::new(lines)
 }

@@ -417,7 +417,7 @@ impl App {
                 // forward action to the television handler
                 if let Some(action) = self.television.update(&action)? {
                     self.action_tx.send(action)?;
-                };
+                }
             }
         }
         Ok(ActionOutcome::None)
