@@ -14,7 +14,7 @@ use crate::{
     channels::{entry::Entry, preview::PreviewCommand},
     utils::{
         command::shell_command,
-        strings::{replace_non_printable, ReplaceNonPrintableConfig},
+        strings::{ReplaceNonPrintableConfig, replace_non_printable},
     },
 };
 
@@ -193,12 +193,16 @@ impl Previewer {
                         }
                     }
                     Request::Shutdown => {
-                        debug!("Received shutdown signal, breaking out of the previewer loop.");
+                        debug!(
+                            "Received shutdown signal, breaking out of the previewer loop."
+                        );
                         break;
                     }
                 }
             } else {
-                debug!("Preview request channel closed and no messages left, breaking out of the previewer loop.");
+                debug!(
+                    "Preview request channel closed and no messages left, breaking out of the previewer loop."
+                );
                 break;
             }
         }

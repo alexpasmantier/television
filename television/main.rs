@@ -1,5 +1,5 @@
 use std::env;
-use std::io::{stdout, BufWriter, IsTerminal, Write};
+use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::Path;
 use std::process::exit;
 
@@ -15,14 +15,15 @@ use tracing::{debug, error, info};
 
 use television::app::{App, AppOptions};
 use television::cli::{
+    PostProcessedCli,
     args::{Cli, Command},
-    guess_channel_from_prompt, list_channels, PostProcessedCli,
+    guess_channel_from_prompt, list_channels,
 };
 
-use television::config::{merge_keybindings, Config, ConfigEnv};
+use television::config::{Config, ConfigEnv, merge_keybindings};
 use television::utils::shell::render_autocomplete_script_template;
 use television::utils::{
-    shell::{completion_script, Shell},
+    shell::{Shell, completion_script},
     stdin::is_readable_stdin,
 };
 

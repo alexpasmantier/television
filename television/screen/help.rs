@@ -5,10 +5,10 @@ use crate::screen::metadata::build_metadata_table;
 use crate::screen::mode::mode_color;
 use crate::television::Mode;
 use crate::utils::metadata::AppMetadata;
+use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Color, Style};
 use ratatui::widgets::{Block, BorderType, Borders, Padding, Table};
-use ratatui::Frame;
 
 pub fn draw_logo_block(
     f: &mut Frame,

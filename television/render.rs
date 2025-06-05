@@ -2,7 +2,7 @@ use anyhow::Result;
 use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
 use crossterm::{execute, queue};
 use ratatui::layout::Rect;
-use std::io::{stderr, stdout, LineWriter};
+use std::io::{LineWriter, stderr, stdout};
 use tracing::{debug, warn};
 
 use tokio::sync::mpsc;

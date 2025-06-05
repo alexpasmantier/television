@@ -1,5 +1,5 @@
 use anyhow::Result;
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 use crate::config::get_data_dir;
 

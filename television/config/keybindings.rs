@@ -1,5 +1,5 @@
 use crate::action::Action;
-use crate::event::{convert_raw_event_to_key, Key};
+use crate::event::{Key, convert_raw_event_to_key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer, Serialize};
@@ -144,7 +144,7 @@ fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
                 current = &rest[6..];
             }
             _ => break, // break out of the loop if no known prefix is detected
-        };
+        }
     }
 
     (current, modifiers)
@@ -273,8 +273,7 @@ pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
         raw
     } else {
         let raw = raw.strip_prefix('<').unwrap_or(raw);
-        let raw = raw.strip_suffix('>').unwrap_or(raw);
-        raw
+        raw.strip_suffix('>').unwrap_or(raw)
     };
     let key_event = parse_key_event(raw)?;
     Ok(convert_raw_event_to_key(key_event))

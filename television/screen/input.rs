@@ -1,15 +1,15 @@
 use crate::utils::input::Input;
 use anyhow::Result;
 use ratatui::{
+    Frame,
     layout::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
     style::{Style, Stylize},
     text::{Line, Span},
     widgets::{
-        block::Position, Block, BorderType, Borders, ListState, Paragraph,
+        Block, BorderType, Borders, ListState, Paragraph, block::Position,
     },
-    Frame,
 };
 
 use crate::screen::{colors::Colorscheme, spinner::Spinner};

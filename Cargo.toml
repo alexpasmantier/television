@@ -1,7 +1,7 @@
 [package]
 name = "television"
 version = "0.11.9"
-edition = "2021"
+edition = "2024"
 description = "A cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
@@ -24,7 +24,7 @@ include = [
   "build.rs",
   "man",
 ]
-rust-version = "1.83"
+rust-version = "1.87"
 build = "build.rs"
 
 [lib]

@@ -1,4 +1,7 @@
-use std::hash::{Hash, Hasher};
+use std::{
+    fmt::Write,
+    hash::{Hash, Hasher},
+};
 
 use devicons::FileIcon;
 
@@ -131,7 +134,7 @@ impl Entry {
     pub fn stdout_repr(&self) -> String {
         let mut repr = self.name.clone();
         if let Some(line_number) = self.line_number {
-            repr.push_str(&format!(":{line_number}"));
+            write!(repr, ":{}", line_number).unwrap();
         }
         repr
     }

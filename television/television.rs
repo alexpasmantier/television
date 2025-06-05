@@ -11,8 +11,8 @@ use crate::{
     input::convert_action_to_input_request,
     picker::Picker,
     previewer::{
-        state::PreviewState, Config as PreviewerConfig, Preview, Previewer,
-        Request as PreviewRequest, Ticket,
+        Config as PreviewerConfig, Preview, Previewer,
+        Request as PreviewRequest, Ticket, state::PreviewState,
     },
     render::UiState,
     screen::{
@@ -29,7 +29,7 @@ use rustc_hash::{FxBuildHasher, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use tokio::sync::mpsc::{
-    unbounded_channel, UnboundedReceiver, UnboundedSender,
+    UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
 use tracing::debug;
 

@@ -10,10 +10,10 @@ use crate::{
         entry::Entry,
         prototypes::{Cable, ChannelPrototype},
     },
-    config::{default_tick_rate, Config},
+    config::{Config, default_tick_rate},
     event::{Event, EventLoop, Key},
     keymap::Keymap,
-    render::{render, RenderingTask, UiState},
+    render::{RenderingTask, UiState, render},
     television::{Mode, Television},
 };
 
@@ -417,7 +417,7 @@ impl App {
                 // forward action to the television handler
                 if let Some(action) = self.television.update(&action)? {
                     self.action_tx.send(action)?;
-                };
+                }
             }
         }
         Ok(ActionOutcome::None)

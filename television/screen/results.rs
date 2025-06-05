@@ -4,14 +4,15 @@ use crate::screen::layout::InputPosition;
 use crate::utils::indices::truncate_highlighted_string;
 use crate::utils::strings::make_matched_string_printable;
 use anyhow::Result;
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::style::Stylize;
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
-use ratatui::Frame;
 use rustc_hash::FxHashSet;
+use std::fmt::Write;
 use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;
 
@@ -73,7 +74,8 @@ fn build_result_line<'a>(
         entry,
         area_width,
         use_icons,
-        selected_entries.map_or(false, |selected| selected.contains(entry)),
+        selected_entries
+            .map_or_else(|| false, |selected| selected.contains(entry)),
     );
     // optional selection symbol
     if let Some(selected_entries) = selected_entries {
@@ -257,10 +259,10 @@ pub fn draw_results_list(
 ) -> Result<()> {
     let mut toggle_hints = String::new();
     if !no_help {
-        toggle_hints.push_str(&format!(" help: <{help_keybinding}> ",));
+        write!(toggle_hints, " help: <{}> ", help_keybinding)?;
     }
     if preview_togglable {
-        toggle_hints.push_str(&format!(" preview: <{preview_keybinding}> ",));
+        write!(toggle_hints, " preview: <{}> ", preview_keybinding)?;
     }
 
     let results_block = Block::default()

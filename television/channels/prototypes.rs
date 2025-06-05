@@ -16,21 +16,21 @@ use crate::{
 ///
 /// The prototype contains the following fields:
 /// - `name`: The name of the channel. This will be used to identify the
-///     channel throughout the application and in UI menus.
+///   channel throughout the application and in UI menus.
 /// - `source_command`: The command to run to get the source for the channel.
-///     This is a shell command that will be run in the background.
+///   This is a shell command that will be run in the background.
 /// - `interactive`: Whether the source command should be run in an interactive
-///     shell. This is useful for commands that need the user's environment e.g.
-///     `alias`.
+///   shell. This is useful for commands that need the user's environment e.g.
+///   `alias`.
 /// - `preview_command`: The command to run on each entry to get the preview
-///     for the channel. If this is not `None`, the channel will display a preview
-///     pane with the output of this command.
+///   for the channel. If this is not `None`, the channel will display a preview
+///   pane with the output of this command.
 /// - `preview_delimiter`: The delimiter to use to split an entry into
-///     multiple parts that can then be referenced in the preview command (e.g.
-///     `{1} + {2}`).
+///   multiple parts that can then be referenced in the preview command (e.g.
+///   `{1} + {2}`).
 /// - `preview_offset`: a litteral expression that will be interpreted later on
-///     in order to determine the vertical offset at which the preview should be
-///     displayed.
+///   in order to determine the vertical offset at which the preview should be
+///   displayed.
 ///
 /// # Example
 /// The default files channel might look something like this:

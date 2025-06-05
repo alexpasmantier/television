@@ -1,7 +1,7 @@
 use std::{hash::Hash, time::Instant};
 
 use anyhow::Result;
-use ratatui::{layout::Rect, Frame};
+use ratatui::{Frame, layout::Rect};
 use rustc_hash::FxHashSet;
 
 use crate::{

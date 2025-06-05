@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 pub use keybindings::merge_keybindings;
-pub use keybindings::{parse_key, Binding, KeyBindings};
+pub use keybindings::{Binding, KeyBindings, parse_key};
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 pub use themes::Theme;
@@ -138,7 +138,10 @@ impl Config {
             Ok(final_cfg)
         } else {
             // otherwise, create the default configuration file
-            warn!("No config file found at {:?}, creating default configuration file at that location.", config_env.config_dir);
+            warn!(
+                "No config file found at {:?}, creating default configuration file at that location.",
+                config_env.config_dir
+            );
             // create the default configuration file in the user's config directory
             std::fs::write(
                 config_env.config_dir.join(CONFIG_FILE_NAME),
@@ -213,14 +216,13 @@ pub fn get_data_dir() -> PathBuf {
                     .filter(|p| p.is_absolute())
             });
 
-    let directory = if let Some(s) = data_folder {
+    if let Some(s) = data_folder {
         s
     } else if let Some(proj_dirs) = project_directory() {
         proj_dirs.data_local_dir().to_path_buf()
     } else {
         PathBuf::from("../../../../..").join(".data")
-    };
-    directory
+    }
 }
 
 pub fn get_config_dir() -> PathBuf {
@@ -235,14 +237,12 @@ pub fn get_config_dir() -> PathBuf {
                     .map(|p| p.join(PROJECT_NAME))
                     .filter(|p| p.is_absolute())
             });
-    let directory = if let Some(s) = config_dir {
+    if let Some(s) = config_dir {
         s
     } else if cfg!(unix) {
         // default to ~/.config/television for unix systems
         if let Some(base_dirs) = directories::BaseDirs::new() {
-            let cfg_dir =
-                base_dirs.home_dir().join(".config").join("television");
-            cfg_dir
+            base_dirs.home_dir().join(".config").join("television")
         } else {
             PathBuf::from("../../../../..").join(".config")
         }
@@ -250,8 +250,7 @@ pub fn get_config_dir() -> PathBuf {
         proj_dirs.config_local_dir().to_path_buf()
     } else {
         PathBuf::from("../../../../..").join("../../../../../.config")
-    };
-    directory
+    }
 }
 
 fn project_directory() -> Option<ProjectDirs> {
