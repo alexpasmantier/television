@@ -33,7 +33,7 @@
             pkgs.rustChannelOf
             {
               rustToolchain = ./rust-toolchain.toml;
-              sha256 = "s1RPtyvDGJaX/BisLT+ifVfuhDT1nZkZ1NcK8sbwELM=";
+              sha256 = "KUm16pHj+cRedf8vxs/Hd2YWxpOrWZ7UOrwhILdSJBU=";
             }
           )
           .rust;
