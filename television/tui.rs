@@ -1,5 +1,5 @@
 use std::{
-    io::{stderr, LineWriter, Write},
+    io::{LineWriter, Write, stderr},
     ops::{Deref, DerefMut},
 };
 
@@ -9,8 +9,8 @@ use crossterm::{
     event::DisableMouseCapture,
     execute,
     terminal::{
-        disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
-        EnterAlternateScreen, LeaveAlternateScreen,
+        EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
+        enable_raw_mode, is_raw_mode_enabled,
     },
 };
 use ratatui::{backend::CrosstermBackend, layout::Size};

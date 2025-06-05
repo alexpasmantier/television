@@ -7,6 +7,7 @@ use crate::television::Mode;
 use crate::utils::input::Input;
 
 use anyhow::Result;
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
 use ratatui::prelude::Style;
 use ratatui::style::{Color, Stylize};
@@ -14,7 +15,6 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{
     Block, BorderType, Borders, ListDirection, ListState, Padding, Paragraph,
 };
-use ratatui::Frame;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_remote_control(

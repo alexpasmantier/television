@@ -104,10 +104,10 @@ where
     let p = p.as_ref();
     p.file_stem()
         .and_then(|s| s.to_str())
-        .map_or(false, |s| s.ends_with(CABLE_FILE_NAME_SUFFIX))
+        .map_or_else(|| false, |s| s.ends_with(CABLE_FILE_NAME_SUFFIX))
         && p.extension()
             .and_then(|e| e.to_str())
-            .map_or(false, |e| e.to_lowercase() == CABLE_FILE_FORMAT)
+            .map_or_else(|| false, |e| e.to_lowercase() == CABLE_FILE_FORMAT)
 }
 
 #[cfg(test)]

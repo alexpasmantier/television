@@ -1,14 +1,14 @@
 use crate::previewer::state::PreviewState;
 use crate::screen::colors::Colorscheme;
 use crate::utils::strings::{
-    replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig,
-    EMPTY_STRING,
+    EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+    shrink_with_ellipsis,
 };
 use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::Frame;
+use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::{
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},

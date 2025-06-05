@@ -123,6 +123,7 @@ impl Picker {
     }
 }
 
+#[allow(clippy::doc_overindented_list_items)]
 #[cfg(test)]
 mod tests {
     use super::*;
