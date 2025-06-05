@@ -8,8 +8,8 @@ use std::{
 
 use crossterm::event::{
     KeyCode::{
-        BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, Home, Insert,
-        Left, PageDown, PageUp, Right, Tab, Up, F,
+        BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
+        Insert, Left, PageDown, PageUp, Right, Tab, Up,
     },
     KeyEvent, KeyEventKind, KeyModifiers,
 };

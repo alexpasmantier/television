@@ -1,4 +1,4 @@
-use lazy_regex::{regex, Lazy, Regex};
+use lazy_regex::{Lazy, Regex, regex};
 
 /// Returns the index of the next character boundary in the given string.
 ///

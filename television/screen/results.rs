@@ -4,13 +4,13 @@ use crate::screen::layout::InputPosition;
 use crate::utils::indices::truncate_highlighted_string;
 use crate::utils::strings::make_matched_string_printable;
 use anyhow::Result;
+use ratatui::Frame;
 use ratatui::layout::{Alignment, Rect};
 use ratatui::prelude::{Color, Line, Span, Style};
 use ratatui::style::Stylize;
 use ratatui::widgets::{
     Block, BorderType, Borders, List, ListDirection, ListState, Padding,
 };
-use ratatui::Frame;
 use rustc_hash::FxHashSet;
 use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;

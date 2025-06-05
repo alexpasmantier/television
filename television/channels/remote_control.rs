@@ -3,7 +3,7 @@ use crate::{
         entry::Entry,
         prototypes::{Cable, ChannelPrototype},
     },
-    matcher::{config::Config, Matcher},
+    matcher::{Matcher, config::Config},
 };
 use anyhow::Result;
 use devicons::FileIcon;

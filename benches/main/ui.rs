@@ -1,17 +1,17 @@
 use criterion::criterion_group;
-use criterion::{black_box, Criterion};
+use criterion::{Criterion, black_box};
 use devicons::FileIcon;
+use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::layout::Alignment;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
-use ratatui::Terminal;
 use television::{
     action::Action,
     channels::{
-        entry::{into_ranges, Entry},
+        entry::{Entry, into_ranges},
         prototypes::Cable,
     },
     config::{Config, ConfigEnv},

@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 use std::path::Path;
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use tracing::debug;
 
 use crate::{
@@ -11,7 +11,7 @@ use crate::{
         prototypes::{Cable, ChannelPrototype},
     },
     cli::args::{Cli, Command},
-    config::{get_config_dir, get_data_dir, KeyBindings},
+    config::{KeyBindings, get_config_dir, get_data_dir},
 };
 
 pub mod args;
@@ -327,8 +327,8 @@ mod tests {
     }
 
     /// Returns a tuple containing a command mapping and a fallback channel.
-    fn guess_channel_from_prompt_setup<'a>(
-    ) -> (FxHashMap<String, String>, &'a str, Cable) {
+    fn guess_channel_from_prompt_setup<'a>()
+    -> (FxHashMap<String, String>, &'a str, Cable) {
         let mut command_mapping = FxHashMap::default();
         command_mapping.insert("vim".to_string(), "files".to_string());
         command_mapping.insert("export".to_string(), "env".to_string());

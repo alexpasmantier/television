@@ -8,7 +8,7 @@ use std::{
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 pub use keybindings::merge_keybindings;
-pub use keybindings::{parse_key, Binding, KeyBindings};
+pub use keybindings::{Binding, KeyBindings, parse_key};
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 pub use themes::Theme;
@@ -138,7 +138,10 @@ impl Config {
             Ok(final_cfg)
         } else {
             // otherwise, create the default configuration file
-            warn!("No config file found at {:?}, creating default configuration file at that location.", config_env.config_dir);
+            warn!(
+                "No config file found at {:?}, creating default configuration file at that location.",
+                config_env.config_dir
+            );
             // create the default configuration file in the user's config directory
             std::fs::write(
                 config_env.config_dir.join(CONFIG_FILE_NAME),

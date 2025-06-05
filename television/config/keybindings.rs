@@ -1,5 +1,5 @@
 use crate::action::Action;
-use crate::event::{convert_raw_event_to_key, Key};
+use crate::event::{Key, convert_raw_event_to_key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Deserializer, Serialize};

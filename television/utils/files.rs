@@ -10,7 +10,7 @@ use std::sync::OnceLock;
 use tracing::{debug, warn};
 
 use crate::utils::strings::{
-    proportion_of_printable_ascii_characters, PRINTABLE_ASCII_THRESHOLD,
+    PRINTABLE_ASCII_THRESHOLD, proportion_of_printable_ascii_characters,
 };
 use crate::utils::threads::default_num_threads;
 
