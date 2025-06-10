@@ -1,0 +1,40 @@
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd -t f"
+interactive = false
+# env
+display = "{}" # show the full path
+output = "{}"  # output the full path
+
+[preview]
+command = "bat -n --color=always {}"
+env = { "BAT_THEME" = "ansi" }
+
+[ui]
+layout = "landscape"
+ui_scale = 100
+show_help_bar = false
+show_preview_panel = true
+input_bar_position = "bottom"
+
+[keybindings]
+quit = ["esc", "ctrl-c"]
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
+confirm_selection = "enter"
+
+# [actions.'open in $EDITOR']
+# command = "$EDITOR {}"
+# mode = "become"          # "become" / "spawn" / "transform"
+#
+# [actions.'remove']
+# command = "rm {}"
+# mode = "spawn"
+#
+# [actions.'rename']
+# command = "read -p \"New name: \" new_name && mv {} $new_name"
+# mode = "spawn"

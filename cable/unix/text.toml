@@ -1,0 +1,39 @@
+[metadata]
+name = "text"
+description = "A channel to find and select text from files"
+# requirements = ["rg", "bat"]
+
+[source]
+command = "rg . --no-heading --line-number"
+display = "[{split:\\::..2}]\t{split:\\::2}"
+output = "{split:\\::..2}"
+
+[preview]
+command = "bat -n --color=always {split:\\::0}"
+env = { "BAT_THEME" = "ansi" }
+offset = "{split:\\::1}"
+
+[ui]
+layout = "portrait"
+ui_scale = 100
+show_help_bar = false
+show_preview_panel = true
+input_bar_position = "bottom"
+
+[keybindings]
+quit = ["esc", "ctrl-c"]
+select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
+confirm_selection = "enter"
+
+# [actions.'open in $EDITOR']
+# command = "$EDITOR {}"
+# mode = "become"          # "become" / "spawn" / "transform"
+#
+# [actions.'remove']
+# command = "rm {}"
+# mode = "spawn"
+#
+# [actions.'rename']
+# command = "read -p \"New name: \" new_name && mv {} $new_name"
+# mode = "spawn"
