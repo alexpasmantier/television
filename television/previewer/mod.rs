@@ -222,6 +222,8 @@ pub fn try_preview(
     let child = shell_command(
         &command
             .inner
+            .clone()
+            .with_debug(false)
             .format(&entry.raw)
             .expect("Failed to format command"),
         command.interactive,
