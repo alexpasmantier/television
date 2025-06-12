@@ -335,7 +335,7 @@ mod tests {
     fn test_determine_channel_with_cli_preview() {
         let preview_spec = PreviewSpec::new(
             CommandSpec::new(
-                MultiTemplate::parse("echo hello", None).unwrap(),
+                MultiTemplate::parse("echo hello", Some(false)).unwrap(),
                 false,
                 FxHashMap::default(),
             ),

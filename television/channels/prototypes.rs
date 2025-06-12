@@ -116,9 +116,10 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse(source_command, None).expect(
-                        "Failed to parse source command MultiTemplate",
-                    ),
+                    inner: MultiTemplate::parse(source_command, Some(false))
+                        .expect(
+                            "Failed to parse source command MultiTemplate",
+                        ),
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -142,7 +143,7 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse("cat", None).unwrap(),
+                    inner: MultiTemplate::parse("cat", Some(false)).unwrap(),
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -213,7 +214,7 @@ impl PreviewSpec {
     pub fn from_str_command(command: &str) -> Self {
         Self {
             command: CommandSpec {
-                inner: MultiTemplate::parse(command, None)
+                inner: MultiTemplate::parse(command, Some(false))
                     .expect("Failed to parse preview command"),
                 interactive: false,
                 env: FxHashMap::default(),

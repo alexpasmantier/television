@@ -68,7 +68,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse the preview spec if provided
     let preview_spec = cli.preview.as_ref().map(|preview| {
         let command_spec = CommandSpec::new(
-            MultiTemplate::parse(preview, None).unwrap_or_else(|e| {
+            MultiTemplate::parse(preview, Some(false)).unwrap_or_else(|e| {
                 cli_parsing_error_exit(&format!(
                     "Error parsing preview command: {e}"
                 ))
@@ -79,11 +79,13 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         PreviewSpec::new(
             command_spec,
             cli.preview_offset.map(|offset_str| {
-                MultiTemplate::parse(&offset_str, None).unwrap_or_else(|e| {
-                    cli_parsing_error_exit(&format!(
-                        "Error parsing preview offset: {e}"
-                    ))
-                })
+                MultiTemplate::parse(&offset_str, Some(false)).unwrap_or_else(
+                    |e| {
+                        cli_parsing_error_exit(&format!(
+                            "Error parsing preview offset: {e}"
+                        ))
+                    },
+                )
             }),
         )
     });
