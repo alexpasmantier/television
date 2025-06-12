@@ -175,7 +175,8 @@ mod tests {
             line_number: None,
         };
         assert_eq!(
-            entry.stdout_repr(&Some(MultiTemplate::parse("{}").unwrap())),
+            entry
+                .stdout_repr(&Some(MultiTemplate::parse("{}", None).unwrap())),
             "test name with spaces"
         );
     }

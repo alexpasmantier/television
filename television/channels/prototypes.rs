@@ -73,7 +73,7 @@ where
     D: serde::Deserializer<'de>,
 {
     let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    MultiTemplate::parse(&raw).map_err(serde::de::Error::custom)
+    MultiTemplate::parse(&raw, None).map_err(serde::de::Error::custom)
 }
 
 fn deserialize_maybe_template<'de, D>(
@@ -84,7 +84,7 @@ where
 {
     let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
     match raw {
-        Some(template) => MultiTemplate::parse(&template)
+        Some(template) => MultiTemplate::parse(&template, None)
             .map(Some)
             .map_err(serde::de::Error::custom),
         None => Ok(None),
@@ -116,7 +116,7 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse(source_command).expect(
+                    inner: MultiTemplate::parse(source_command, None).expect(
                         "Failed to parse source command MultiTemplate",
                     ),
                     interactive: false,
@@ -142,7 +142,7 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse("cat").unwrap(),
+                    inner: MultiTemplate::parse("cat", None).unwrap(),
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -213,7 +213,7 @@ impl PreviewSpec {
     pub fn from_str_command(command: &str) -> Self {
         Self {
             command: CommandSpec {
-                inner: MultiTemplate::parse(command)
+                inner: MultiTemplate::parse(command, None)
                     .expect("Failed to parse preview command"),
                 interactive: false,
                 env: FxHashMap::default(),
