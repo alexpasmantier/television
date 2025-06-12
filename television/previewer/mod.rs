@@ -173,8 +173,9 @@ impl Previewer {
                         let results_handle = self.results.clone();
                         self.last_job_entry = Some(ticket.entry.clone());
                         // try to execute the preview with a timeout
-                        let preview_command =
+                        let mut preview_command =
                             self.preview_spec.command.clone();
+                        preview_command.inner.set_debug(false);
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
@@ -222,8 +223,6 @@ pub fn try_preview(
     let child = shell_command(
         &command
             .inner
-            .clone()
-            .with_debug(false)
             .format(&entry.raw)
             .expect("Failed to format command"),
         command.interactive,
