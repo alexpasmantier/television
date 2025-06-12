@@ -11,7 +11,7 @@ use string_pipeline::MultiTemplate;
 pub struct CommandSpec {
     #[serde(
         rename = "command",
-        deserialize_with = "deserialize_template",
+        deserialize_with = "deserialize_template_without_debug",
         serialize_with = "serialize_template"
     )]
     pub inner: MultiTemplate,
@@ -76,6 +76,16 @@ where
     MultiTemplate::parse(&raw, None).map_err(serde::de::Error::custom)
 }
 
+fn deserialize_template_without_debug<'de, D>(
+    deserializer: D,
+) -> Result<MultiTemplate, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: String = serde::Deserialize::deserialize(deserializer)?;
+    MultiTemplate::parse(&raw, Some(false)).map_err(serde::de::Error::custom)
+}
+
 fn deserialize_maybe_template<'de, D>(
     deserializer: D,
 ) -> Result<Option<MultiTemplate>, D::Error>
@@ -85,6 +95,21 @@ where
     let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
     match raw {
         Some(template) => MultiTemplate::parse(&template, None)
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
+
+fn deserialize_maybe_template_without_debug<'de, D>(
+    deserializer: D,
+) -> Result<Option<MultiTemplate>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
+    match raw {
+        Some(template) => MultiTemplate::parse(&template, Some(false))
             .map(Some)
             .map_err(serde::de::Error::custom),
         None => Ok(None),
@@ -182,7 +207,7 @@ pub struct SourceSpec {
     pub command: CommandSpec,
     #[serde(
         default,
-        deserialize_with = "deserialize_maybe_template",
+        deserialize_with = "deserialize_maybe_template_without_debug",
         serialize_with = "serialize_maybe_template"
     )]
     pub display: Option<MultiTemplate>,
@@ -200,7 +225,7 @@ pub struct PreviewSpec {
     pub command: CommandSpec,
     #[serde(
         default,
-        deserialize_with = "deserialize_maybe_template",
+        deserialize_with = "deserialize_maybe_template_without_debug",
         serialize_with = "serialize_maybe_template"
     )]
     pub offset: Option<MultiTemplate>,
