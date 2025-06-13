@@ -30,6 +30,7 @@ pub struct ChannelState {
     pub selected_entries: FxHashSet<Entry>,
     pub total_count: u32,
     pub running: bool,
+    pub current_command: String,
 }
 
 impl ChannelState {
@@ -38,12 +39,14 @@ impl ChannelState {
         selected_entries: FxHashSet<Entry>,
         total_count: u32,
         running: bool,
+        current_command: String,
     ) -> Self {
         Self {
             current_channel_name,
             selected_entries,
             total_count,
             running,
+            current_command,
         }
     }
 }
@@ -56,6 +59,7 @@ impl Hash for ChannelState {
             .for_each(|entry| entry.hash(state));
         self.total_count.hash(state);
         self.running.hash(state);
+        self.current_command.hash(state);
     }
 }
 
@@ -193,6 +197,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         f,
         &layout.help_bar,
         &ctx.tv_state.channel_state.current_channel_name,
+        &ctx.tv_state.channel_state.current_command,
         build_keybindings_table(
             &ctx.config.keybindings.to_displayable(),
             ctx.tv_state.mode,

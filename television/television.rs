@@ -66,6 +66,8 @@ pub struct Television {
     pub ui_state: UiState,
     pub no_help: bool,
     pub no_preview: bool,
+    pub current_command_index: usize,
+    pub channel_prototype: ChannelPrototype,
 }
 
 impl Television {
@@ -101,7 +103,8 @@ impl Television {
         // previewer
         let preview_handles = Self::setup_previewer(&channel_prototype);
 
-        let mut channel = CableChannel::new(channel_prototype);
+        let mut channel = CableChannel::new(channel_prototype.clone());
+        channel.load();
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -156,6 +159,8 @@ impl Television {
             ui_state: UiState::default(),
             no_help,
             no_preview,
+            current_command_index: 0,
+            channel_prototype,
         }
     }
 
@@ -220,6 +225,7 @@ impl Television {
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),
+            self.channel.current_command().to_string(),
         );
         let tv_state = TvState::new(
             self.mode,
@@ -269,6 +275,8 @@ impl Television {
             self.no_help,
             self.no_preview,
         );
+        self.channel_prototype = channel_prototype.clone();
+        self.current_command_index = 0;
         self.channel = CableChannel::new(channel_prototype);
     }
 
@@ -445,6 +453,8 @@ impl Television {
                     | Action::ToggleHelp
                     | Action::TogglePreview
                     | Action::CopyEntryToClipboard
+                    | Action::CycleThroughSources
+                    | Action::ReloadSource
             )
     }
 
@@ -619,6 +629,18 @@ impl Television {
         }
     }
 
+    pub fn cycle_through_sources(&mut self) {
+        self.channel.cycle_sources();
+    }
+
+    pub fn handle_reload_source(&mut self) {
+        let current_pattern = self.current_pattern.clone();
+        self.channel.reload();
+        // Preserve the current pattern and re-run the search
+        self.find(&current_pattern);
+        self.reset_picker_selection();
+    }
+
     pub fn handle_action(&mut self, action: &Action) -> Result<()> {
         // handle actions
         match action {
@@ -678,6 +700,12 @@ impl Television {
             }
             Action::CopyEntryToClipboard => {
                 self.handle_copy_entry_to_clipboard();
+            }
+            Action::CycleThroughSources => {
+                self.cycle_through_sources();
+            }
+            Action::ReloadSource => {
+                self.handle_reload_source();
             }
             Action::ToggleHelp => {
                 if self.no_help {

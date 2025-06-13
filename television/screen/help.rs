@@ -37,6 +37,7 @@ fn draw_metadata_block(
     area: Rect,
     mode: Mode,
     current_channel_name: &str,
+    current_command: &str,
     app_metadata: &AppMetadata,
     colorscheme: &Colorscheme,
 ) {
@@ -53,6 +54,7 @@ fn draw_metadata_block(
     let metadata_table = build_metadata_table(
         mode,
         current_channel_name,
+        current_command,
         app_metadata,
         colorscheme,
     )
@@ -79,10 +81,12 @@ fn draw_keymaps_block(
     f.render_widget(table, area);
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw_help_bar(
     f: &mut Frame,
     layout: &Option<HelpBarLayout>,
     current_channel_name: &str,
+    current_command: &str,
     keymap_table: Table,
     mode: Mode,
     app_metadata: &AppMetadata,
@@ -94,6 +98,7 @@ pub fn draw_help_bar(
             help_bar.left,
             mode,
             current_channel_name,
+            current_command,
             app_metadata,
             colorscheme,
         );

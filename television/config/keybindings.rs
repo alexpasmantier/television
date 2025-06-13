@@ -8,6 +8,7 @@ use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+#[serde(untagged)]
 pub enum Binding {
     SingleKey(Key),
     MultipleKeys(Vec<Key>),

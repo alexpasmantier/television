@@ -68,11 +68,11 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse the preview spec if provided
     let preview_spec = cli.preview.as_ref().map(|preview| {
         let command_spec = CommandSpec::new(
-            MultiTemplate::parse(preview).unwrap_or_else(|e| {
+            vec![MultiTemplate::parse(preview).unwrap_or_else(|e| {
                 cli_parsing_error_exit(&format!(
                     "Error parsing preview command: {e}"
                 ))
-            }),
+            })],
             false,
             FxHashMap::default(),
         );
@@ -280,7 +280,7 @@ mod tests {
                 .preview_spec
                 .unwrap()
                 .command
-                .inner
+                .get_nth(0)
                 .template_string(),
             "bat -n --color=always {}".to_string(),
         );
