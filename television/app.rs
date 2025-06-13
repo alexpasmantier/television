@@ -27,6 +27,8 @@ pub struct AppOptions {
     pub no_remote: bool,
     /// Whether the application should disable the help panel feature.
     pub no_help: bool,
+    /// Whether the application should disable the preview panel feature.
+    pub no_preview: bool,
     pub tick_rate: f64,
 }
 
@@ -37,6 +39,7 @@ impl Default for AppOptions {
             select_1: false,
             no_remote: false,
             no_help: false,
+            no_preview: false,
             tick_rate: default_tick_rate(),
         }
     }
@@ -49,6 +52,7 @@ impl AppOptions {
         select_1: bool,
         no_remote: bool,
         no_help: bool,
+        no_preview: bool,
         tick_rate: f64,
     ) -> Self {
         Self {
@@ -56,6 +60,7 @@ impl AppOptions {
             select_1,
             no_remote,
             no_help,
+            no_preview,
             tick_rate,
         }
     }
@@ -156,6 +161,7 @@ impl App {
             input,
             options.no_remote,
             options.no_help,
+            options.no_preview,
             options.exact,
             cable_channels,
         );
