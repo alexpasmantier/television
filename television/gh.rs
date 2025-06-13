@@ -1,9 +1,14 @@
 use anyhow::Result;
+use colored::Colorize;
 use std::path::Path;
 use tracing::debug;
 use ureq::get;
 
-use crate::channels::prototypes::ChannelPrototype;
+use crate::{
+    cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT, Cable},
+    channels::prototypes::ChannelPrototype,
+    config::get_config_dir,
+};
 
 #[derive(Debug, Clone, serde::Deserialize)]
 struct GhNode {
@@ -69,9 +74,9 @@ pub fn get_default_prototypes_from_repo() -> Result<Vec<ChannelPrototype>> {
     let nodes = make_gh_content_request(Path::new(DEFAULT_CABLE_DIR_PATH))?;
     for node in &nodes {
         println!(
-            "Discovered channel: \x1b[31m{}\x1b[0m\t\tdownload url: {}",
-            node.name,
-            node.download_url.as_deref().unwrap_or("N/A")
+            "  Discovered channel: {}\t\tdownload url: {}",
+            node.name.blue().bold(),
+            node.download_url.as_deref().unwrap_or("N/A").blue().bold()
         );
     }
     Ok(nodes
@@ -88,4 +93,40 @@ pub fn get_default_prototypes_from_repo() -> Result<Vec<ChannelPrototype>> {
             toml::from_str::<ChannelPrototype>(&content).ok()
         })
         .collect())
+}
+
+pub fn update_local_channels() -> Result<()> {
+    println!("{}", "Fetching latest cable channels...".bold());
+    let cable = Cable::from_prototypes(get_default_prototypes_from_repo()?);
+    println!("{}", "\nSaving channels locally...".bold());
+    let cable_path = get_config_dir().join(CABLE_DIR_NAME);
+    if !cable_path.exists() {
+        println!("  Creating cable directory at {}", cable_path.display());
+        std::fs::create_dir_all(&cable_path)?;
+    }
+    for (name, prototype) in cable.iter() {
+        let file_path =
+            cable_path.join(name).with_extension(CHANNEL_FILE_FORMAT);
+        let content = toml::to_string(&prototype)?;
+        // if the file already exists, don't overwrite it
+        if file_path.exists() {
+            println!(
+                "  Channel {} already exists at {}, SKIPPING...",
+                name.blue().bold(),
+                file_path.display().to_string().yellow().bold()
+            );
+            continue;
+        }
+        std::fs::write(&file_path, content)?;
+        println!(
+            "  Saved channel {} to {}",
+            name.blue().bold(),
+            file_path.display().to_string().yellow().bold()
+        );
+    }
+    println!(
+        "{}",
+        "\nCable channels updated successfully.".green().bold()
+    );
+    Ok(())
 }
