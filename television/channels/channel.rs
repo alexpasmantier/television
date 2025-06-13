@@ -52,6 +52,14 @@ impl Channel {
         self.load();
     }
 
+    pub fn current_command(&self) -> &str {
+        self.prototype
+            .source
+            .command
+            .get_nth(self.current_source_index)
+            .template_string()
+    }
+
     pub fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
     }

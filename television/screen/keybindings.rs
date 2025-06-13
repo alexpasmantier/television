@@ -70,9 +70,9 @@ impl KeyBindings {
             ]);
 
         // Optional bindings only included if present in the configuration
-        if let Some(binding) = self.get(&Action::ToggleSource) {
+        if let Some(binding) = self.get(&Action::CycleThroughSources) {
             channel_bindings.insert(
-                DisplayableAction::ToggleSource,
+                DisplayableAction::CycleThroughSources,
                 vec![binding.to_string()],
             );
         }
@@ -151,7 +151,7 @@ pub enum DisplayableAction {
     Cancel,
     Quit,
     ToggleHelpBar,
-    ToggleSource,
+    CycleThroughSources,
     ReloadSource,
 }
 
@@ -168,7 +168,7 @@ impl Display for DisplayableAction {
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
             DisplayableAction::ToggleHelpBar => "Toggle help bar",
-            DisplayableAction::ToggleSource => "Toggle source",
+            DisplayableAction::CycleThroughSources => "Cycle through sources",
             DisplayableAction::ReloadSource => "Reload source",
         };
         write!(f, "{action}")
@@ -259,7 +259,7 @@ fn build_keybindings_table_for_channel<'a>(
     // Toggle source (optional)
     let toggle_source_row = keybindings
         .bindings
-        .get(&DisplayableAction::ToggleSource)
+        .get(&DisplayableAction::CycleThroughSources)
         .map(|toggle_source_keys| {
             Row::new(build_cells_for_group(
                 "Toggle source",

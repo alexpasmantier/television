@@ -220,32 +220,12 @@ impl Television {
     }
 
     pub fn dump_context(&self) -> Ctx {
-        let current_command = if self
-            .channel_prototype
-            .source
-            .command
-            .has_multiple_commands()
-        {
-            self.channel_prototype
-                .source
-                .command
-                .get_command_at_index(self.current_command_index)
-                .to_string()
-        } else {
-            self.channel_prototype
-                .source
-                .command
-                .inner
-                .template_string()
-                .to_string()
-        };
-
         let channel_state = ChannelState::new(
             self.channel.prototype.metadata.name.clone(),
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),
-            current_command,
+            self.channel.current_command().to_string(),
         );
         let tv_state = TvState::new(
             self.mode,
