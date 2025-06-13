@@ -5,9 +5,9 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
-use television::cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT, load_cable};
+use television::cable::load_cable;
 use television::cli::post_process;
-use television::gh::get_default_prototypes_from_repo;
+use television::gh::update_local_channels;
 use television::{
     cable::Cable, channels::prototypes::ChannelPrototype,
     utils::clipboard::CLIPBOARD,
@@ -21,9 +21,7 @@ use television::cli::{
     guess_channel_from_prompt, list_channels,
 };
 
-use television::config::{
-    Config, ConfigEnv, get_config_dir, merge_keybindings,
-};
+use television::config::{Config, ConfigEnv, merge_keybindings};
 use television::utils::shell::render_autocomplete_script_template;
 use television::utils::{
     shell::{Shell, completion_script},
@@ -156,26 +154,7 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
             exit(0);
         }
         Command::UpdateChannels => {
-            println!("\x1b[1mFetching latest cable channels...\x1b[0m");
-            let cable =
-                Cable::from_prototypes(get_default_prototypes_from_repo()?);
-            println!("\n\x1b[1mWriting channels locally...\x1b[0m");
-            let cable_path = get_config_dir().join(CABLE_DIR_NAME);
-            if !cable_path.exists() {
-                println!(
-                    "Creating cable directory at {}",
-                    cable_path.display()
-                );
-                std::fs::create_dir_all(&cable_path)?;
-            }
-            for (name, prototype) in cable.iter() {
-                let file_path =
-                    cable_path.join(name).with_extension(CHANNEL_FILE_FORMAT);
-                let content = toml::to_string(&prototype)?;
-                std::fs::write(&file_path, content)?;
-                println!("Saved channel {} to {}", name, file_path.display());
-            }
-            println!("\n\x1b[1mCable channels updated successfully.\x1b[0m");
+            update_local_channels()?;
             exit(0);
         }
     }
