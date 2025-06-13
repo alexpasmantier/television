@@ -65,30 +65,32 @@ pub struct Television {
     pub ticks: u64,
     pub ui_state: UiState,
     pub no_help: bool,
+    pub no_preview: bool,
 }
 
 impl Television {
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::fn_params_excessive_bools)]
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
         channel_prototype: ChannelPrototype,
-        mut base_config: Config,
+        base_config: Config,
         input: Option<String>,
         no_remote: bool,
         no_help: bool,
+        no_preview: bool,
         exact: bool,
         cable_channels: Cable,
     ) -> Self {
-        if no_help {
-            base_config.ui.show_help_bar = false;
-            base_config.ui.no_help = true;
-        }
-
-        let config = Self::merge_base_config_with_prototype_specs(
+        let mut config = Self::merge_base_config_with_prototype_specs(
             &base_config,
             &channel_prototype,
         );
+
+        // Apply CLI overrides after prototype merging to ensure they take precedence
+        Self::apply_cli_overrides(&mut config, no_help, no_preview);
+
         debug!("Merged config: {:?}", config);
 
         let mut results_picker = Picker::new(input.clone());
@@ -153,6 +155,7 @@ impl Television {
             ticks: 0,
             ui_state: UiState::default(),
             no_help,
+            no_preview,
         }
     }
 
@@ -170,6 +173,21 @@ impl Television {
             config.apply_prototype_ui_spec(ui_spec);
         }
         config
+    }
+
+    /// Apply CLI overrides to ensure they take precedence over channel prototype settings
+    fn apply_cli_overrides(
+        config: &mut Config,
+        no_help: bool,
+        no_preview: bool,
+    ) {
+        if no_help {
+            config.ui.show_help_bar = false;
+            config.ui.no_help = true;
+        }
+        if no_preview {
+            config.ui.show_preview_panel = false;
+        }
     }
 
     fn setup_previewer(
@@ -244,6 +262,12 @@ impl Television {
         self.config = Self::merge_base_config_with_prototype_specs(
             &self.base_config,
             &channel_prototype,
+        );
+        // Reapply CLI overrides to ensure they persist across channel changes
+        Self::apply_cli_overrides(
+            &mut self.config,
+            self.no_help,
+            self.no_preview,
         );
         self.channel = CableChannel::new(channel_prototype);
     }
