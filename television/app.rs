@@ -145,9 +145,7 @@ impl App {
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let keymap = Keymap::from(&config.keybindings);
 
-        debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television = Television::new(
             action_tx.clone(),
@@ -159,6 +157,10 @@ impl App {
             options.exact,
             cable_channels,
         );
+
+        // Create keymap from the merged config that includes channel prototype keybindings
+        let keymap = Keymap::from(&television.config.keybindings);
+        debug!("{:?}", keymap);
 
         Self {
             keymap,
@@ -176,6 +178,14 @@ impl App {
             render_task: None,
             options,
         }
+    }
+
+    /// Update the keymap from the television's current config.
+    /// This should be called whenever the channel changes to ensure
+    /// the keymap includes the channel's keybindings.
+    fn update_keymap(&mut self) {
+        self.keymap = Keymap::from(&self.television.config.keybindings);
+        debug!("Updated keymap: {:?}", self.keymap);
     }
 
     /// Run the application main loop.
@@ -412,9 +422,22 @@ impl App {
                     }
                     _ => {}
                 }
+                // Check if we're switching from remote control to channel mode
+                let was_remote_control =
+                    self.television.mode == Mode::RemoteControl;
+
                 // forward action to the television handler
                 if let Some(action) = self.television.update(&action)? {
                     self.action_tx.send(action)?;
+                }
+
+                // Update keymap if channel changed (remote control to channel mode transition)
+                // This ensures channel-specific keybindings are properly loaded
+                if was_remote_control
+                    && matches!(action, Action::ConfirmSelection)
+                    && self.television.mode == Mode::Channel
+                {
+                    self.update_keymap();
                 }
             }
         }
