@@ -22,6 +22,7 @@ impl Display for Mode {
 pub fn build_metadata_table<'a>(
     mode: Mode,
     current_channel_name: &'a str,
+    current_command: &'a str,
     app_metadata: &'a AppMetadata,
     colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
@@ -61,6 +62,17 @@ pub fn build_metadata_table<'a>(
         )),
     ]);
 
+    let current_command_row = Row::new(vec![
+        Cell::from(Span::styled(
+            "current command: ",
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
+        )),
+        Cell::from(Span::styled(
+            current_command,
+            Style::default().fg(colorscheme.help.metadata_field_value_fg),
+        )),
+    ]);
+
     let current_mode_row = Row::new(vec![
         Cell::from(Span::styled(
             "current mode: ",
@@ -79,6 +91,7 @@ pub fn build_metadata_table<'a>(
             version_row,
             current_dir_row,
             current_channel_row,
+            current_command_row,
             current_mode_row,
         ],
         widths,
