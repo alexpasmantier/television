@@ -46,6 +46,7 @@ fn setup_app(
         select_1,
         false,
         false,
+        false,
         config.application.tick_rate,
     );
     let mut app = App::new(
