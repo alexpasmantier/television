@@ -257,13 +257,13 @@ fn build_keybindings_table_for_channel<'a>(
     ));
 
     // Toggle source (optional)
-    let toggle_source_row = keybindings
+    let cycle_through_sources_row = keybindings
         .bindings
         .get(&DisplayableAction::CycleThroughSources)
-        .map(|toggle_source_keys| {
+        .map(|keys| {
             Row::new(build_cells_for_group(
-                "Toggle source",
-                toggle_source_keys,
+                "Cycle through sources",
+                keys,
                 colorscheme.help.metadata_field_name_fg,
                 colorscheme.mode.channel,
             ))
@@ -292,7 +292,7 @@ fn build_keybindings_table_for_channel<'a>(
         switch_channels_row,
     ];
 
-    if let Some(row) = toggle_source_row {
+    if let Some(row) = cycle_through_sources_row {
         rows.push(row);
     }
     if let Some(row) = reload_source_row {

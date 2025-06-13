@@ -26,7 +26,7 @@ quit = ["esc", "ctrl-c"]
 select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
 confirm_selection = "enter"
-toggle_source = "ctrl-t"
+cycle_through_sources = "ctrl-t"
 reload_source = "ctrl-r"
 
 # [actions.'open in $EDITOR']
