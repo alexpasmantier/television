@@ -7,18 +7,73 @@ use crate::{
 use rustc_hash::FxHashMap;
 use string_pipeline::MultiTemplate;
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone)]
 pub struct CommandSpec {
-    #[serde(
-        rename = "command",
-        deserialize_with = "deserialize_template",
-        serialize_with = "serialize_template"
-    )]
     pub inner: MultiTemplate,
-    #[serde(default)]
+    /// List of commands when multiple are provided (for source commands)
+    pub command_list: Vec<String>,
     pub interactive: bool,
-    #[serde(default)]
     pub env: FxHashMap<String, String>,
+}
+
+impl serde::Serialize for CommandSpec {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("CommandSpec", 3)?;
+
+        // Serialize command list if it has multiple commands, otherwise serialize the single command
+        if self.command_list.len() > 1 {
+            state.serialize_field("command", &self.command_list)?;
+        } else {
+            state.serialize_field("command", &self.inner.template_string())?;
+        }
+
+        state.serialize_field("interactive", &self.interactive)?;
+        state.serialize_field("env", &self.env)?;
+        state.end()
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for CommandSpec {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        struct Helper {
+            command: SerializedCommand,
+            #[serde(default)]
+            interactive: bool,
+            #[serde(default)]
+            env: FxHashMap<String, String>,
+        }
+
+        let helper = Helper::deserialize(deserializer)?;
+        let (inner, command_list) = match helper.command {
+            SerializedCommand::Single(s) => {
+                let template = MultiTemplate::parse(&s)
+                    .map_err(serde::de::Error::custom)?;
+                (template, vec![s])
+            }
+            SerializedCommand::Multiple(commands) => {
+                let first_command =
+                    commands.first().map(String::as_str).unwrap_or("");
+                let template = MultiTemplate::parse(first_command)
+                    .map_err(serde::de::Error::custom)?;
+                (template, commands)
+            }
+        };
+
+        Ok(CommandSpec {
+            inner,
+            command_list,
+            interactive: helper.interactive,
+            env: helper.env,
+        })
+    }
 }
 
 impl Display for CommandSpec {
@@ -35,8 +90,38 @@ impl CommandSpec {
     ) -> Self {
         Self {
             inner,
+            command_list: vec![],
             interactive,
             env,
+        }
+    }
+
+    /// Get the command at the specified index, or the current command if index is out of bounds
+    pub fn get_command_at_index(&self, index: usize) -> &str {
+        if self.command_list.is_empty() {
+            return self.inner.template_string();
+        }
+
+        if let Some(command) = self.command_list.get(index) {
+            command.as_str()
+        } else if let Some(first_command) = self.command_list.first() {
+            first_command.as_str()
+        } else {
+            self.inner.template_string()
+        }
+    }
+
+    /// Check if this command spec has multiple commands
+    pub fn has_multiple_commands(&self) -> bool {
+        self.command_list.len() > 1
+    }
+
+    /// Get the total number of commands
+    pub fn command_count(&self) -> usize {
+        if self.command_list.is_empty() {
+            1
+        } else {
+            self.command_list.len()
         }
     }
 }
@@ -66,14 +151,11 @@ where
     }
 }
 
-fn deserialize_template<'de, D>(
-    deserializer: D,
-) -> Result<MultiTemplate, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    MultiTemplate::parse(&raw).map_err(serde::de::Error::custom)
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(untagged)]
+enum SerializedCommand {
+    Single(String),
+    Multiple(Vec<String>),
 }
 
 fn deserialize_maybe_template<'de, D>(
@@ -119,6 +201,7 @@ impl ChannelPrototype {
                     inner: MultiTemplate::parse(source_command).expect(
                         "Failed to parse source command MultiTemplate",
                     ),
+                    command_list: vec![source_command.to_string()],
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -143,6 +226,7 @@ impl ChannelPrototype {
             source: SourceSpec {
                 command: CommandSpec {
                     inner: MultiTemplate::parse("cat").unwrap(),
+                    command_list: vec!["cat".to_string()],
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -215,6 +299,7 @@ impl PreviewSpec {
             command: CommandSpec {
                 inner: MultiTemplate::parse(command)
                     .expect("Failed to parse preview command"),
+                command_list: vec![command.to_string()],
                 interactive: false,
                 env: FxHashMap::default(),
             },

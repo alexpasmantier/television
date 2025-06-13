@@ -120,4 +120,10 @@ pub enum Action {
     /// Toggle the remote control in `send to channel` mode.
     #[serde(alias = "toggle_send_to_channel")]
     ToggleSendToChannel,
+    /// Toggle between different source commands.
+    #[serde(alias = "toggle_source")]
+    ToggleSource,
+    /// Reload the current source command.
+    #[serde(alias = "reload_source")]
+    ReloadSource,
 }
