@@ -121,8 +121,8 @@ pub enum Action {
     #[serde(alias = "toggle_send_to_channel")]
     ToggleSendToChannel,
     /// Toggle between different source commands.
-    #[serde(alias = "toggle_source")]
-    ToggleSource,
+    #[serde(alias = "cycle_through_sources")]
+    CycleThroughSources,
     /// Reload the current source command.
     #[serde(alias = "reload_source")]
     ReloadSource,

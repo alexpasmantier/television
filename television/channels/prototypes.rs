@@ -5,140 +5,86 @@ use crate::{
     screen::layout::{InputPosition, Orientation},
 };
 use rustc_hash::FxHashMap;
+use serde::ser::SerializeSeq;
 use string_pipeline::MultiTemplate;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct CommandSpec {
-    pub inner: MultiTemplate,
-    /// List of commands when multiple are provided (for source commands)
-    pub command_list: Vec<String>,
+    #[serde(
+        rename = "command",
+        deserialize_with = "deserialize_commands",
+        serialize_with = "serialize_commands"
+    )]
+    pub inner: Vec<MultiTemplate>,
+    #[serde(default)]
     pub interactive: bool,
+    #[serde(default)]
     pub env: FxHashMap<String, String>,
 }
 
-impl serde::Serialize for CommandSpec {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        use serde::ser::SerializeStruct;
-        let mut state = serializer.serialize_struct("CommandSpec", 3)?;
-
-        // Serialize command list if it has multiple commands, otherwise serialize the single command
-        if self.command_list.len() > 1 {
-            state.serialize_field("command", &self.command_list)?;
-        } else {
-            state.serialize_field("command", &self.inner.template_string())?;
-        }
-
-        state.serialize_field("interactive", &self.interactive)?;
-        state.serialize_field("env", &self.env)?;
-        state.end()
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for CommandSpec {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        #[derive(serde::Deserialize)]
-        struct Helper {
-            command: SerializedCommand,
-            #[serde(default)]
-            interactive: bool,
-            #[serde(default)]
-            env: FxHashMap<String, String>,
-        }
-
-        let helper = Helper::deserialize(deserializer)?;
-        let (inner, command_list) = match helper.command {
-            SerializedCommand::Single(s) => {
-                let template = MultiTemplate::parse(&s)
-                    .map_err(serde::de::Error::custom)?;
-                (template, vec![s])
-            }
-            SerializedCommand::Multiple(commands) => {
-                let first_command =
-                    commands.first().map(String::as_str).unwrap_or("");
-                let template = MultiTemplate::parse(first_command)
-                    .map_err(serde::de::Error::custom)?;
-                (template, commands)
-            }
-        };
-
-        Ok(CommandSpec {
-            inner,
-            command_list,
-            interactive: helper.interactive,
-            env: helper.env,
-        })
-    }
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum SerializedCommand {
+    Single(String),
+    Multiple(Vec<String>),
 }
 
 impl Display for CommandSpec {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.inner.template_string())
+        write!(
+            f,
+            "[{}]",
+            self.inner
+                .iter()
+                .map(string_pipeline::MultiTemplate::template_string)
+                .collect::<Vec<_>>()
+                .join(";")
+        )
     }
 }
 
 impl CommandSpec {
     pub fn new(
-        inner: MultiTemplate,
+        inner: Vec<MultiTemplate>,
         interactive: bool,
         env: FxHashMap<String, String>,
     ) -> Self {
         Self {
             inner,
-            command_list: vec![],
             interactive,
             env,
         }
     }
 
-    /// Get the command at the specified index, or the current command if index is out of bounds
-    pub fn get_command_at_index(&self, index: usize) -> &str {
-        if self.command_list.is_empty() {
-            return self.inner.template_string();
-        }
-
-        if let Some(command) = self.command_list.get(index) {
-            command.as_str()
-        } else if let Some(first_command) = self.command_list.first() {
-            first_command.as_str()
-        } else {
-            self.inner.template_string()
-        }
-    }
-
-    /// Check if this command spec has multiple commands
-    pub fn has_multiple_commands(&self) -> bool {
-        self.command_list.len() > 1
-    }
-
-    /// Get the total number of commands
     pub fn command_count(&self) -> usize {
-        if self.command_list.is_empty() {
-            1
-        } else {
-            self.command_list.len()
-        }
+        self.inner.len()
+    }
+
+    pub fn has_multiple_commands(&self) -> bool {
+        self.inner.len() > 1
+    }
+
+    /// This wraps back to the first command in a circular manner.
+    ///
+    /// # Panics
+    /// If the command spec does not contain any commands.
+    pub fn get_nth(&self, index: usize) -> &MultiTemplate {
+        &self.inner[index % self.inner.len()]
     }
 }
 
-fn serialize_template<S>(
+fn serialize_command<S>(
     command: &MultiTemplate,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    let raw = command.template_string();
-    serializer.serialize_str(raw)
+    serializer.serialize_str(command.template_string())
 }
 
 #[allow(clippy::ref_option)]
-fn serialize_maybe_template<S>(
+fn serialize_maybe_command<S>(
     command: &Option<MultiTemplate>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
@@ -146,19 +92,23 @@ where
     S: serde::Serializer,
 {
     match command {
-        Some(template) => serialize_template(template, serializer),
+        Some(cmd) => serialize_command(cmd, serializer),
         None => serializer.serialize_none(),
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
-#[serde(untagged)]
-enum SerializedCommand {
-    Single(String),
-    Multiple(Vec<String>),
+#[allow(dead_code)]
+fn deserialize_command<'de, D>(
+    deserializer: D,
+) -> Result<MultiTemplate, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: String = serde::Deserialize::deserialize(deserializer)?;
+    MultiTemplate::parse(&raw).map_err(serde::de::Error::custom)
 }
 
-fn deserialize_maybe_template<'de, D>(
+fn deserialize_maybe_command<'de, D>(
     deserializer: D,
 ) -> Result<Option<MultiTemplate>, D::Error>
 where
@@ -166,9 +116,99 @@ where
 {
     let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
     match raw {
-        Some(template) => MultiTemplate::parse(&template)
+        Some(cmd) => MultiTemplate::parse(&cmd)
             .map(Some)
             .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
+
+fn serialize_commands<S>(
+    commands: &[MultiTemplate],
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if commands.len() == 1 {
+        let raw = commands[0].template_string();
+        serializer.serialize_str(raw)
+    } else {
+        let raw: Vec<String> = commands
+            .iter()
+            .map(|c| c.template_string().to_string())
+            .collect();
+        let mut seq = serializer.serialize_seq(Some(raw.len()))?;
+        for item in raw {
+            seq.serialize_element(&item)?;
+        }
+        seq.end()
+    }
+}
+
+#[allow(clippy::ref_option, dead_code)]
+fn serialize_maybe_commands<S>(
+    commands: Option<&[MultiTemplate]>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match commands {
+        Some(m) => serialize_commands(m, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_commands<'de, D>(
+    deserializer: D,
+) -> Result<Vec<MultiTemplate>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let res = match serde::Deserialize::deserialize(deserializer)? {
+        SerializedCommand::Single(cmd) => {
+            MultiTemplate::parse(&cmd).map(|m| vec![m])
+        }
+        SerializedCommand::Multiple(cmds) => cmds
+            .iter()
+            .map(|cmd| MultiTemplate::parse(cmd))
+            .collect::<Result<Vec<_>, _>>(),
+    }
+    .map_err(serde::de::Error::custom);
+
+    if let Ok(ref cmds) = res {
+        if cmds.is_empty() {
+            return Err(serde::de::Error::custom(
+                "Command list cannot be empty",
+            ));
+        }
+    }
+
+    res
+}
+
+#[allow(dead_code)]
+fn deserialize_maybe_commands<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<MultiTemplate>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: Option<SerializedCommand> =
+        serde::Deserialize::deserialize(deserializer)?;
+    match raw {
+        Some(template) => {
+            let cmd = match template {
+                SerializedCommand::Single(cmd) => {
+                    MultiTemplate::parse(&cmd).map(|m| vec![m])
+                }
+                SerializedCommand::Multiple(cmds) => {
+                    cmds.iter().map(|cmd| MultiTemplate::parse(cmd)).collect()
+                }
+            };
+            cmd.map_err(serde::de::Error::custom).map(Some)
+        }
         None => Ok(None),
     }
 }
@@ -188,20 +228,19 @@ pub struct ChannelPrototype {
 }
 
 impl ChannelPrototype {
-    // FIXME: is this really needed? maybe tests should use a toml spec directly
-    pub fn new(name: &str, source_command: &str) -> Self {
+    pub fn new(name: &str, command: &str) -> Self {
         Self {
             metadata: Metadata {
                 name: name.to_string(),
-                description: Some(String::new()),
+                description: None,
                 requirements: vec![],
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse(source_command).expect(
-                        "Failed to parse source command MultiTemplate",
-                    ),
-                    command_list: vec![source_command.to_string()],
+                    inner: vec![
+                        MultiTemplate::parse(command)
+                            .expect("Failed to parse command"),
+                    ],
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -225,8 +264,7 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: MultiTemplate::parse("cat").unwrap(),
-                    command_list: vec!["cat".to_string()],
+                    inner: vec![MultiTemplate::parse("cat").unwrap()],
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -265,14 +303,14 @@ pub struct SourceSpec {
     pub command: CommandSpec,
     #[serde(
         default,
-        deserialize_with = "deserialize_maybe_template",
-        serialize_with = "serialize_maybe_template"
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
     )]
     pub display: Option<MultiTemplate>,
     #[serde(
         default,
-        deserialize_with = "deserialize_maybe_template",
-        serialize_with = "serialize_maybe_template"
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
     )]
     pub output: Option<MultiTemplate>,
 }
@@ -283,8 +321,8 @@ pub struct PreviewSpec {
     pub command: CommandSpec,
     #[serde(
         default,
-        deserialize_with = "deserialize_maybe_template",
-        serialize_with = "serialize_maybe_template"
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
     )]
     pub offset: Option<MultiTemplate>,
 }
@@ -297,9 +335,10 @@ impl PreviewSpec {
     pub fn from_str_command(command: &str) -> Self {
         Self {
             command: CommandSpec {
-                inner: MultiTemplate::parse(command)
-                    .expect("Failed to parse preview command"),
-                command_list: vec![command.to_string()],
+                inner: vec![
+                    MultiTemplate::parse(command)
+                        .expect("Failed to parse preview command"),
+                ],
                 interactive: false,
                 env: FxHashMap::default(),
             },
@@ -331,6 +370,24 @@ mod tests {
 
     use super::*;
     use toml::from_str;
+
+    #[test]
+    fn test_command_spec_get_nth() {
+        let command_spec = CommandSpec {
+            inner: vec![
+                MultiTemplate::parse("cmd1").unwrap(),
+                MultiTemplate::parse("cmd2").unwrap(),
+                MultiTemplate::parse("cmd3").unwrap(),
+            ],
+            interactive: false,
+            env: FxHashMap::default(),
+        };
+
+        assert_eq!(command_spec.get_nth(0).template_string(), "cmd1");
+        assert_eq!(command_spec.get_nth(1).template_string(), "cmd2");
+        assert_eq!(command_spec.get_nth(2).template_string(), "cmd3");
+        assert_eq!(command_spec.get_nth(3).template_string(), "cmd1"); // wraps around
+    }
 
     #[test]
     fn test_channel_prototype_deserialization() {
@@ -374,7 +431,10 @@ mod tests {
             prototype.metadata.description,
             Some("A channel to select files and directories".to_string())
         );
-        assert_eq!(format!("{}", prototype.source.command.inner), "fd -t f");
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
         assert!(!prototype.source.command.interactive);
         assert_eq!(
             prototype.source.display.unwrap().template_string(),
@@ -382,7 +442,7 @@ mod tests {
         );
         assert_eq!(prototype.source.output.unwrap().template_string(), "{}");
         assert_eq!(
-            format!("{}", prototype.preview.unwrap().command.inner),
+            format!("{}", prototype.preview.unwrap().command.inner[0]),
             "bat -n --color=always {}"
         );
         let ui = prototype.ui.unwrap();
@@ -437,7 +497,10 @@ mod tests {
             prototype.metadata.description,
             Some("A channel to select files and directories".to_string())
         );
-        assert_eq!(format!("{}", prototype.source.command.inner), "fd -t f");
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
         assert!(!prototype.source.command.interactive);
         assert!(prototype.source.command.env.is_empty());
         assert!(prototype.source.display.is_none());
@@ -470,7 +533,10 @@ mod tests {
             prototype.metadata.description,
             Some("A channel to select files and directories".to_string())
         );
-        assert_eq!(format!("{}", prototype.source.command.inner), "fd -t f");
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
         assert!(!prototype.source.command.interactive);
         assert!(prototype.source.command.env.is_empty());
         assert!(prototype.source.display.is_none());

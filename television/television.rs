@@ -26,7 +26,6 @@ use crate::{
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use string_pipeline::MultiTemplate;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -105,6 +104,7 @@ impl Television {
         let preview_handles = Self::setup_previewer(&channel_prototype);
 
         let mut channel = CableChannel::new(channel_prototype.clone());
+        channel.load();
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -473,7 +473,7 @@ impl Television {
                     | Action::ToggleHelp
                     | Action::TogglePreview
                     | Action::CopyEntryToClipboard
-                    | Action::ToggleSource
+                    | Action::CycleThroughSources
                     | Action::ReloadSource
             )
     }
@@ -649,69 +649,15 @@ impl Television {
         }
     }
 
-    pub fn handle_toggle_source(&mut self) {
-        // If single command, then reload
-        if !self
-            .channel_prototype
-            .source
-            .command
-            .has_multiple_commands()
-        {
-            self.reload_source_command();
-            return;
-        }
-
-        // Toggle to the next command
-        let command_count =
-            self.channel_prototype.source.command.command_count();
-        self.current_command_index =
-            (self.current_command_index + 1) % command_count;
-
-        // Execute the new command
-        self.reload_source_command();
+    pub fn cycle_through_sources(&mut self) {
+        self.channel.cycle_sources();
     }
 
     pub fn handle_reload_source(&mut self) {
-        self.reload_source_command();
-    }
-
-    fn reload_source_command(&mut self) {
-        // Get the current command
-        let current_command = if self
-            .channel_prototype
-            .source
-            .command
-            .has_multiple_commands()
-        {
-            self.channel_prototype
-                .source
-                .command
-                .get_command_at_index(self.current_command_index)
-                .to_string()
-        } else {
-            self.channel_prototype
-                .source
-                .command
-                .inner
-                .template_string()
-                .to_string()
-        };
-
-        // Create a new channel prototype with the current command
-        let mut new_prototype = self.channel_prototype.clone();
-        new_prototype.source.command.inner =
-            MultiTemplate::parse(&current_command)
-                .expect("Failed to parse command");
-
-        // Update the channel with the new command
-        self.channel.shutdown();
-        self.channel = CableChannel::new(new_prototype);
-
-        // Preserve the current pattern and re-run the search
         let current_pattern = self.current_pattern.clone();
+        self.channel.reload();
+        // Preserve the current pattern and re-run the search
         self.find(&current_pattern);
-
-        // Reset selection
         self.reset_picker_selection();
     }
 
@@ -775,8 +721,8 @@ impl Television {
             Action::CopyEntryToClipboard => {
                 self.handle_copy_entry_to_clipboard();
             }
-            Action::ToggleSource => {
-                self.handle_toggle_source();
+            Action::CycleThroughSources => {
+                self.cycle_through_sources();
             }
             Action::ReloadSource => {
                 self.handle_reload_source();
