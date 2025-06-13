@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
@@ -136,11 +137,21 @@ pub fn load_cable() -> Option<Cable> {
 
     if cable_files.is_empty() {
         println!(
-            "It seems you don't have any cable channels configured yet.
-Run `tv update-channels` to get the latest default cable channels and/or add your own in `{}`.
-
-More info: https://github.com/alexpasmantier/television/blob/main/README.md",
-            cable_dir.to_string_lossy()
+            "{}",
+            "It seems you don't have any cable channels configured yet.\n"
+                .blue()
+                .bold()
+        );
+        println!(
+            "Run {} to get the latest default cable channels and/or add your own in `{}`.\n",
+            "`tv update-channels`".green().bold(),
+            cable_dir.to_string_lossy().yellow().bold()
+        );
+        println!(
+            "More info: {}",
+            "https://github.com/alexpasmantier/television/blob/main/README.md"
+                .blue()
+                .bold()
         );
         return None;
     }
