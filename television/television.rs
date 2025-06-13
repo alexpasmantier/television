@@ -756,7 +756,10 @@ impl Television {
 
 #[cfg(test)]
 mod test {
-    use crate::television::{MatchingMode, Television};
+    use crate::{
+        cable::Cable,
+        television::{MatchingMode, Television},
+    };
 
     #[test]
     fn test_prompt_preprocessing() {
@@ -772,5 +775,29 @@ mod test {
             Television::preprocess_pattern(MatchingMode::Substring, mult_word),
             expect_mult
         );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_cli_overrides() {
+        let config = crate::config::Config::default();
+        let prototype = crate::channels::prototypes::ChannelPrototype::new(
+            "test", "echo 1",
+        );
+        let tv = Television::new(
+            tokio::sync::mpsc::unbounded_channel().0,
+            prototype,
+            config.clone(),
+            None,
+            true,
+            false,
+            false,
+            true,
+            Cable::from_prototypes(vec![]),
+        );
+
+        assert_eq!(tv.matching_mode, MatchingMode::Substring);
+        assert!(!tv.no_help);
+        assert!(!tv.no_preview);
+        assert!(tv.remote_control.is_none());
     }
 }
