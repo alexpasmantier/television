@@ -479,6 +479,41 @@ mod tests {
     }
 
     #[test]
+    fn test_channel_prototype_deserialization_multiple_commands() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+        requirements = ["fd", "bat"]
+
+        [source]
+        command = ["fd -t f", "fd -t f --hidden"]
+        output = "{}"            # output the full path
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.metadata.name, "files");
+        assert_eq!(
+            prototype.metadata.description,
+            Some("A channel to select files and directories".to_string())
+        );
+        assert_eq!(
+            prototype
+                .source
+                .command
+                .inner
+                .iter()
+                .map(string_pipeline::MultiTemplate::template_string)
+                .collect::<Vec<_>>(),
+            vec!["fd -t f", "fd -t f --hidden"]
+        );
+        assert!(!prototype.source.command.interactive);
+        assert!(prototype.source.command.env.is_empty());
+        assert_eq!(prototype.source.output.unwrap().template_string(), "{}");
+    }
+
+    #[test]
     fn test_channel_prototype_deserialization_bare_minimum() {
         let toml_data = r#"
         [metadata]
