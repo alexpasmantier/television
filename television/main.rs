@@ -75,6 +75,7 @@ async fn main() -> Result<()> {
         args.select_1,
         args.no_remote,
         args.no_help,
+        args.no_preview,
         config.application.tick_rate,
     );
     let mut app =
@@ -106,6 +107,10 @@ async fn main() -> Result<()> {
 fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(tick_rate) = args.tick_rate {
         config.application.tick_rate = tick_rate;
+    }
+    if args.no_help {
+        config.ui.show_help_bar = false;
+        config.ui.no_help = true;
     }
     if args.no_preview {
         config.ui.show_preview_panel = false;

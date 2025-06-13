@@ -449,6 +449,7 @@ pub fn draw(c: &mut Criterion) {
                     false,
                     false,
                     false,
+                    false,
                     cable.clone(),
                 );
                 tv.find("television");
