@@ -15,21 +15,49 @@ pub struct Channel {
     pub prototype: ChannelPrototype,
     matcher: Matcher<String>,
     selected_entries: FxHashSet<Entry>,
-    crawl_handle: tokio::task::JoinHandle<()>,
+    crawl_handle: Option<tokio::task::JoinHandle<()>>,
+    current_source_index: usize,
 }
 
 impl Channel {
     pub fn new(prototype: ChannelPrototype) -> Self {
         let matcher = Matcher::new(Config::default());
-        let injector = matcher.injector();
-        let crawl_handle =
-            tokio::spawn(load_candidates(prototype.source.clone(), injector));
+        let current_source_index = 0;
         Self {
             prototype,
             matcher,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
-            crawl_handle,
+            crawl_handle: None,
+            current_source_index,
         }
+    }
+
+    pub fn load(&mut self) {
+        let injector = self.matcher.injector();
+        let crawl_handle = tokio::spawn(load_candidates(
+            self.prototype.source.clone(),
+            self.current_source_index,
+            injector,
+        ));
+        self.crawl_handle = Some(crawl_handle);
+    }
+
+    pub fn reload(&mut self) {
+        if let Some(handle) = self.crawl_handle.take() {
+            if !handle.is_finished() {
+                handle.abort();
+            }
+        }
+        self.matcher.restart();
+        self.load();
+    }
+
+    pub fn current_command(&self) -> &str {
+        self.prototype
+            .source
+            .command
+            .get_nth(self.current_source_index)
+            .template_string()
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -55,6 +83,7 @@ impl Channel {
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices);
             if let Some(p) = &self.prototype.preview {
+                // FIXME: this should be done by the previewer instead
                 if let Some(offset_expr) = &p.offset {
                     let offset_str = offset_expr
                         .format(&item.inner)
@@ -95,7 +124,9 @@ impl Channel {
     }
 
     pub fn running(&self) -> bool {
-        self.matcher.status.running || !self.crawl_handle.is_finished()
+        self.matcher.status.running
+            || (self.crawl_handle.is_some()
+                && !self.crawl_handle.as_ref().unwrap().is_finished())
     }
 
     pub fn shutdown(&self) {}
@@ -103,13 +134,35 @@ impl Channel {
     pub fn supports_preview(&self) -> bool {
         self.prototype.preview.is_some()
     }
+
+    /// Cycles to the next source command
+    pub fn cycle_sources(&mut self) {
+        if self.prototype.source.command.inner.len() > 1 {
+            self.current_source_index = (self.current_source_index + 1)
+                % self.prototype.source.command.inner.len();
+            debug!(
+                "Cycling to source command index: {}",
+                self.current_source_index
+            );
+            self.reload();
+        } else {
+            debug!("No other source commands to cycle through.");
+        }
+    }
 }
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(source: SourceSpec, injector: Injector<String>) {
+async fn load_candidates(
+    source: SourceSpec,
+    source_command_index: usize,
+    injector: Injector<String>,
+) {
     debug!("Loading candidates from command: {:?}", source.command);
     let mut child = shell_command(
-        source.command.inner.template_string(),
+        source
+            .command
+            .get_nth(source_command_index)
+            .template_string(),
         source.command.interactive,
         &source.command.env,
     )
