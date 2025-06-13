@@ -14,7 +14,7 @@ use ratatui::{
 impl KeyBindings {
     pub fn to_displayable(&self) -> FxHashMap<Mode, DisplayableKeybindings> {
         // channel mode keybindings
-        let channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
+        let mut channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
             FxHashMap::from_iter(vec![
                 (
                     DisplayableAction::ResultsNavigation,
@@ -69,6 +69,21 @@ impl KeyBindings {
                 ),
             ]);
 
+        // Optional bindings only included if present in the configuration
+        if let Some(binding) = self.get(&Action::CycleThroughSources) {
+            channel_bindings.insert(
+                DisplayableAction::CycleThroughSources,
+                vec![binding.to_string()],
+            );
+        }
+
+        if let Some(binding) = self.get(&Action::ReloadSource) {
+            channel_bindings.insert(
+                DisplayableAction::ReloadSource,
+                vec![binding.to_string()],
+            );
+        }
+
         // remote control mode keybindings
         let remote_control_bindings: FxHashMap<
             DisplayableAction,
@@ -110,7 +125,8 @@ fn serialized_keys_for_actions(
 ) -> Vec<String> {
     actions
         .iter()
-        .map(|a| keybindings.get(a).unwrap().clone().to_string())
+        .filter_map(|a| keybindings.get(a).cloned())
+        .map(|binding| binding.to_string())
         .collect()
 }
 
@@ -135,6 +151,8 @@ pub enum DisplayableAction {
     Cancel,
     Quit,
     ToggleHelpBar,
+    CycleThroughSources,
+    ReloadSource,
 }
 
 impl Display for DisplayableAction {
@@ -150,6 +168,8 @@ impl Display for DisplayableAction {
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
             DisplayableAction::ToggleHelpBar => "Toggle help bar",
+            DisplayableAction::CycleThroughSources => "Cycle through sources",
+            DisplayableAction::ReloadSource => "Reload source",
         };
         write!(f, "{action}")
     }
@@ -236,18 +256,50 @@ fn build_keybindings_table_for_channel<'a>(
         colorscheme.mode.channel,
     ));
 
+    // Toggle source (optional)
+    let toggle_source_row = keybindings
+        .bindings
+        .get(&DisplayableAction::CycleThroughSources)
+        .map(|toggle_source_keys| {
+            Row::new(build_cells_for_group(
+                "Toggle source",
+                toggle_source_keys,
+                colorscheme.help.metadata_field_name_fg,
+                colorscheme.mode.channel,
+            ))
+        });
+
+    // Reload source (optional)
+    let reload_source_row = keybindings
+        .bindings
+        .get(&DisplayableAction::ReloadSource)
+        .map(|reload_source_keys| {
+            Row::new(build_cells_for_group(
+                "Reload source",
+                reload_source_keys,
+                colorscheme.help.metadata_field_name_fg,
+                colorscheme.mode.channel,
+            ))
+        });
+
     let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
 
-    Table::new(
-        vec![
-            results_row,
-            preview_row,
-            select_entry_row,
-            copy_entry_row,
-            switch_channels_row,
-        ],
-        widths,
-    )
+    let mut rows = vec![
+        results_row,
+        preview_row,
+        select_entry_row,
+        copy_entry_row,
+        switch_channels_row,
+    ];
+
+    if let Some(row) = toggle_source_row {
+        rows.push(row);
+    }
+    if let Some(row) = reload_source_row {
+        rows.push(row);
+    }
+
+    Table::new(rows, widths)
 }
 
 fn build_keybindings_table_for_channel_selection<'a>(
