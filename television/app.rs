@@ -6,10 +6,8 @@ use tracing::{debug, trace};
 
 use crate::{
     action::Action,
-    channels::{
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
-    },
+    cable::Cable,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     config::{Config, default_tick_rate},
     event::{Event, EventLoop, Key},
     keymap::Keymap,
@@ -29,6 +27,8 @@ pub struct AppOptions {
     pub no_remote: bool,
     /// Whether the application should disable the help panel feature.
     pub no_help: bool,
+    /// Whether the application should disable the preview panel feature.
+    pub no_preview: bool,
     pub tick_rate: f64,
 }
 
@@ -39,6 +39,7 @@ impl Default for AppOptions {
             select_1: false,
             no_remote: false,
             no_help: false,
+            no_preview: false,
             tick_rate: default_tick_rate(),
         }
     }
@@ -51,6 +52,7 @@ impl AppOptions {
         select_1: bool,
         no_remote: bool,
         no_help: bool,
+        no_preview: bool,
         tick_rate: f64,
     ) -> Self {
         Self {
@@ -58,6 +60,7 @@ impl AppOptions {
             select_1,
             no_remote,
             no_help,
+            no_preview,
             tick_rate,
         }
     }
@@ -67,7 +70,7 @@ impl AppOptions {
 pub struct App {
     keymap: Keymap,
     /// The television instance that handles channels and entries.
-    television: Television,
+    pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
     /// A flag that indicates whether the application should suspend during the next frame.
@@ -114,9 +117,9 @@ pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
 }
 
-impl From<ActionOutcome> for AppOutput {
-    fn from(outcome: ActionOutcome) -> Self {
-        match outcome {
+impl AppOutput {
+    pub fn new(action_outcome: ActionOutcome) -> Self {
+        match action_outcome {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
             },
@@ -137,19 +140,17 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel_prototype: &ChannelPrototype,
+        channel_prototype: ChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
-        cable_channels: &Cable,
+        cable_channels: Cable,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let keymap = Keymap::from(&config.keybindings);
 
-        debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television = Television::new(
             action_tx.clone(),
@@ -158,9 +159,14 @@ impl App {
             input,
             options.no_remote,
             options.no_help,
+            options.no_preview,
             options.exact,
-            cable_channels.clone(),
+            cable_channels,
         );
+
+        // Create keymap from the merged config that includes channel prototype keybindings
+        let keymap = Keymap::from(&television.config.keybindings);
+        debug!("{:?}", keymap);
 
         Self {
             keymap,
@@ -178,6 +184,14 @@ impl App {
             render_task: None,
             options,
         }
+    }
+
+    /// Update the keymap from the television's current config.
+    /// This should be called whenever the channel changes to ensure
+    /// the keymap includes the channel's keybindings.
+    fn update_keymap(&mut self) {
+        self.keymap = Keymap::from(&self.television.config.keybindings);
+        debug!("Updated keymap: {:?}", self.keymap);
     }
 
     /// Run the application main loop.
@@ -272,7 +286,7 @@ impl App {
                     rendering_task.await??;
                 }
 
-                return Ok(AppOutput::from(action_outcome));
+                return Ok(AppOutput::new(action_outcome));
             }
         }
     }
@@ -414,9 +428,22 @@ impl App {
                     }
                     _ => {}
                 }
+                // Check if we're switching from remote control to channel mode
+                let was_remote_control =
+                    self.television.mode == Mode::RemoteControl;
+
                 // forward action to the television handler
                 if let Some(action) = self.television.update(&action)? {
                     self.action_tx.send(action)?;
+                }
+
+                // Update keymap if channel changed (remote control to channel mode transition)
+                // This ensures channel-specific keybindings are properly loaded
+                if was_remote_control
+                    && matches!(action, Action::ConfirmSelection)
+                    && self.television.mode == Mode::Channel
+                {
+                    self.update_keymap();
                 }
             }
         }

@@ -1,25 +1,22 @@
 use crate::{
-    channels::{
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
-    },
+    cable::Cable,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     matcher::{Matcher, config::Config},
 };
-use anyhow::Result;
 use devicons::FileIcon;
 
 pub struct RemoteControl {
     matcher: Matcher<String>,
-    cable_channels: Option<Cable>,
+    cable_channels: Cable,
 }
 
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Option<Cable>) -> Self {
+    pub fn new(cable_channels: Cable) -> Self {
         let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
         let injector = matcher.injector();
-        for c in cable_channels.as_ref().unwrap_or(&Cable::default()).keys() {
+        for c in cable_channels.keys() {
             let () = injector.push(c.clone(), |e, cols| {
                 cols[0] = e.to_string().into();
             });
@@ -30,24 +27,8 @@ impl RemoteControl {
         }
     }
 
-    pub fn zap(&self, channel_name: &str) -> Result<ChannelPrototype> {
-        match self
-            .cable_channels
-            .as_ref()
-            .and_then(|channels| channels.get(channel_name).cloned())
-        {
-            Some(prototype) => Ok(prototype),
-            None => Err(anyhow::anyhow!(
-                "No channel or cable channel prototype found for {}",
-                channel_name
-            )),
-        }
-    }
-}
-
-impl Default for RemoteControl {
-    fn default() -> Self {
-        Self::new(None)
+    pub fn zap(&self, channel_name: &str) -> ChannelPrototype {
+        self.cable_channels.get_channel(channel_name)
     }
 }
 
@@ -74,7 +55,7 @@ impl RemoteControl {
             .map(|item| {
                 let path = item.matched_string;
                 Entry::new(path)
-                    .with_name_match_indices(&item.match_indices)
+                    .with_match_indices(&item.match_indices)
                     .with_icon(CABLE_ICON)
             })
             .collect()
