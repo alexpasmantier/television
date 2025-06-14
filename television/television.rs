@@ -456,7 +456,7 @@ impl Television {
                     | Action::ToggleHelp
                     | Action::TogglePreview
                     | Action::CopyEntryToClipboard
-                    | Action::CycleThroughSources
+                    | Action::CycleSources
                     | Action::ReloadSource
             )
     }
@@ -632,7 +632,7 @@ impl Television {
         }
     }
 
-    pub fn cycle_through_sources(&mut self) {
+    pub fn cycle_sources(&mut self) {
         self.channel.cycle_sources();
     }
 
@@ -704,8 +704,8 @@ impl Television {
             Action::CopyEntryToClipboard => {
                 self.handle_copy_entry_to_clipboard();
             }
-            Action::CycleThroughSources => {
-                self.cycle_through_sources();
+            Action::CycleSources => {
+                self.cycle_sources();
             }
             Action::ReloadSource => {
                 self.handle_reload_source();
