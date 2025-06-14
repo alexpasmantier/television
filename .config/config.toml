@@ -86,13 +86,15 @@ confirm_selection = "enter"
 # Copy the selected entry to the clipboard
 copy_entry_to_clipboard = "ctrl-y"
 # Toggle the remote control mode
-toggle_remote_control = "ctrl-r"
-# Toggle the send to channel mode
-toggle_send_to_channel = "ctrl-s"
+toggle_remote_control = "ctrl-t"
 # Toggle the help bar
 toggle_help = "ctrl-g"
 # Toggle the preview panel
 toggle_preview = "ctrl-o"
+# Reload the current source
+reload_source = "ctrl-r"
+# Cycle through the available sources for the current channel
+cycle_sources = "ctrl-s"
 
 
 # Shell integration

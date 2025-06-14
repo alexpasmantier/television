@@ -70,9 +70,9 @@ impl KeyBindings {
             ]);
 
         // Optional bindings only included if present in the configuration
-        if let Some(binding) = self.get(&Action::CycleThroughSources) {
+        if let Some(binding) = self.get(&Action::CycleSources) {
             channel_bindings.insert(
-                DisplayableAction::CycleThroughSources,
+                DisplayableAction::CycleSources,
                 vec![binding.to_string()],
             );
         }
@@ -151,7 +151,7 @@ pub enum DisplayableAction {
     Cancel,
     Quit,
     ToggleHelpBar,
-    CycleThroughSources,
+    CycleSources,
     ReloadSource,
 }
 
@@ -168,7 +168,7 @@ impl Display for DisplayableAction {
             DisplayableAction::Cancel => "Cancel",
             DisplayableAction::Quit => "Quit",
             DisplayableAction::ToggleHelpBar => "Toggle help bar",
-            DisplayableAction::CycleThroughSources => "Cycle through sources",
+            DisplayableAction::CycleSources => "Cycle through sources",
             DisplayableAction::ReloadSource => "Reload source",
         };
         write!(f, "{action}")
@@ -257,9 +257,9 @@ fn build_keybindings_table_for_channel<'a>(
     ));
 
     // Toggle source (optional)
-    let cycle_through_sources_row = keybindings
+    let cycle_sources_row = keybindings
         .bindings
-        .get(&DisplayableAction::CycleThroughSources)
+        .get(&DisplayableAction::CycleSources)
         .map(|keys| {
             Row::new(build_cells_for_group(
                 "Cycle through sources",
@@ -292,7 +292,7 @@ fn build_keybindings_table_for_channel<'a>(
         switch_channels_row,
     ];
 
-    if let Some(row) = cycle_through_sources_row {
+    if let Some(row) = cycle_sources_row {
         rows.push(row);
     }
     if let Some(row) = reload_source_row {
