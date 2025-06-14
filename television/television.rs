@@ -252,6 +252,7 @@ impl Television {
     }
 
     pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
+        // shutdown the current channel and reset state
         self.preview_state.reset();
         self.preview_state.enabled = channel_prototype.preview.is_some();
         self.reset_picker_selection();
@@ -263,6 +264,7 @@ impl Television {
                 .send(PreviewRequest::Shutdown)
                 .expect("Failed to send shutdown signal to previewer");
         }
+        // setup the new channel
         debug!("Changing channel to {:?}", channel_prototype);
         self.preview_handles = Self::setup_previewer(&channel_prototype);
         self.config = Self::merge_base_config_with_prototype_specs(
@@ -278,6 +280,7 @@ impl Television {
         self.channel_prototype = channel_prototype.clone();
         self.current_command_index = 0;
         self.channel = CableChannel::new(channel_prototype);
+        self.channel.load();
     }
 
     pub fn find(&mut self, pattern: &str) {
