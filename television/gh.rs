@@ -5,7 +5,7 @@ use tracing::debug;
 use ureq::get;
 
 use crate::{
-    cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT, Cable},
+    cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT},
     channels::prototypes::ChannelPrototype,
     config::get_config_dir,
 };
@@ -16,6 +16,12 @@ struct GhNode {
     #[serde(rename = "type")]
     kind: NodeType,
     download_url: Option<String>,
+}
+
+impl GhNode {
+    pub fn is_file(&self) -> bool {
+        matches!(self.kind, NodeType::File)
+    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
@@ -65,12 +71,23 @@ fn fetch_raw_content_from_url(url: &str) -> Result<String> {
     }
 }
 
+struct DownloadedPrototype {
+    pub name: String,
+    pub content: String,
+}
+
+impl DownloadedPrototype {
+    pub fn new(name: String, content: String) -> Self {
+        Self { name, content }
+    }
+}
+
 #[cfg(unix)]
 const DEFAULT_CABLE_DIR_PATH: &str = "cable/unix";
 #[cfg(windows)]
 const DEFAULT_CABLE_DIR_PATH: &str = "cable/windows";
 
-pub fn get_default_prototypes_from_repo() -> Result<Vec<ChannelPrototype>> {
+fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
     let nodes = make_gh_content_request(Path::new(DEFAULT_CABLE_DIR_PATH))?;
     for node in &nodes {
         println!(
@@ -82,45 +99,52 @@ pub fn get_default_prototypes_from_repo() -> Result<Vec<ChannelPrototype>> {
     Ok(nodes
         .iter()
         .filter_map(|node| {
-            if let NodeType::File = node.kind {
+            if node.is_file() {
                 node.download_url.clone()
             } else {
                 None
             }
         })
         .filter_map(|url| fetch_raw_content_from_url(&url).ok())
-        .filter_map(|content| {
-            toml::from_str::<ChannelPrototype>(&content).ok()
+        .map(|content| {
+            // NOTE: this acts as a sanity check to ensure the file is a valid prototype
+            // for the current tv version.
+            let name = toml::from_str::<ChannelPrototype>(&content)
+                .map(|p| p.metadata.name)
+                .expect("Failed to parse channel name from content.\n
+                    This might indicate one of two things:\n
+                    1. The channel file is not a valid prototype.\n
+                    2. The channel file is not compatible with your current version of television.");
+            DownloadedPrototype::new(name, content)
         })
         .collect())
 }
 
 pub fn update_local_channels() -> Result<()> {
     println!("{}", "Fetching latest cable channels...".bold());
-    let cable = Cable::from_prototypes(get_default_prototypes_from_repo()?);
+    let default_prototypes = get_default_prototypes_from_repo()?;
     println!("{}", "\nSaving channels locally...".bold());
     let cable_path = get_config_dir().join(CABLE_DIR_NAME);
     if !cable_path.exists() {
         println!("  Creating cable directory at {}", cable_path.display());
         std::fs::create_dir_all(&cable_path)?;
     }
-    for (name, prototype) in cable.iter() {
+    for p in default_prototypes {
         let file_path =
-            cable_path.join(name).with_extension(CHANNEL_FILE_FORMAT);
-        let content = toml::to_string(&prototype)?;
+            cable_path.join(&p.name).with_extension(CHANNEL_FILE_FORMAT);
         // if the file already exists, don't overwrite it
         if file_path.exists() {
             println!(
                 "  Channel {} already exists at {}, SKIPPING...",
-                name.blue().bold(),
+                p.name.blue().bold(),
                 file_path.display().to_string().yellow().bold()
             );
             continue;
         }
-        std::fs::write(&file_path, content)?;
+        std::fs::write(&file_path, p.content)?;
         println!(
             "  Saved channel {} to {}",
-            name.blue().bold(),
+            p.name.blue().bold(),
             file_path.display().to_string().yellow().bold()
         );
     }
