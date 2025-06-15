@@ -764,7 +764,10 @@ impl Television {
 #[cfg(test)]
 mod test {
     use crate::{
+        action::Action,
         cable::Cable,
+        config::{Binding, KeyBindings},
+        event::Key,
         television::{MatchingMode, Television},
     };
 
@@ -806,5 +809,46 @@ mod test {
         assert!(!tv.no_help);
         assert!(!tv.no_preview);
         assert!(tv.remote_control.is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_channel_keybindings_take_precedence() {
+        let mut config = crate::config::Config::default();
+        config.keybindings.insert(
+            Action::SelectNextEntry,
+            Binding::SingleKey(Key::Ctrl('n')),
+        );
+
+        let prototype =
+            toml::from_str::<crate::channels::prototypes::ChannelPrototype>(
+                r#"
+            [metadata]
+            name = "test"
+
+            [source]
+            command = "echo 1"
+
+            [keybindings]
+            select_next_entry = "ctrl-j"
+            "#,
+            )
+            .unwrap();
+
+        let tv = Television::new(
+            tokio::sync::mpsc::unbounded_channel().0,
+            prototype,
+            config.clone(),
+            None,
+            true,
+            false,
+            false,
+            true,
+            Cable::from_prototypes(vec![]),
+        );
+
+        assert_eq!(
+            tv.config.keybindings.get(&Action::SelectNextEntry),
+            Some(&Binding::SingleKey(Key::Ctrl('j')))
+        );
     }
 }
