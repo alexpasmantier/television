@@ -1,0 +1,7 @@
+# UNTESTED
+[metadata]
+name = "fish-history"
+description = "A channel to select from your fish history"
+
+[source]
+command = "fish -c 'history'"
