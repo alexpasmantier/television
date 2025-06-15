@@ -766,7 +766,7 @@ mod test {
     use crate::{
         action::Action,
         cable::Cable,
-        config::{Binding, KeyBindings},
+        config::Binding,
         event::Key,
         television::{MatchingMode, Television},
     };
