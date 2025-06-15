@@ -1,13 +1,14 @@
 use rustc_hash::FxHashMap;
 use std::path::Path;
-use string_pipeline::MultiTemplate;
 
 use anyhow::{Result, anyhow};
 use tracing::debug;
 
 use crate::{
     cable::{self, Cable},
-    channels::prototypes::{ChannelPrototype, CommandSpec, PreviewSpec},
+    channels::prototypes::{
+        ChannelPrototype, CommandSpec, PreviewSpec, Template,
+    },
     cli::args::{Cli, Command},
     config::{KeyBindings, get_config_dir, get_data_dir},
 };
@@ -68,7 +69,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse the preview spec if provided
     let preview_spec = cli.preview.as_ref().map(|preview| {
         let command_spec = CommandSpec::new(
-            vec![MultiTemplate::parse(preview).unwrap_or_else(|e| {
+            vec![Template::parse(preview).unwrap_or_else(|e| {
                 cli_parsing_error_exit(&format!(
                     "Error parsing preview command: {e}"
                 ))
@@ -79,7 +80,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         PreviewSpec::new(
             command_spec,
             cli.preview_offset.map(|offset_str| {
-                MultiTemplate::parse(&offset_str).unwrap_or_else(|e| {
+                Template::parse(&offset_str).unwrap_or_else(|e| {
                     cli_parsing_error_exit(&format!(
                         "Error parsing preview offset: {e}"
                     ))
@@ -281,7 +282,7 @@ mod tests {
                 .unwrap()
                 .command
                 .get_nth(0)
-                .template_string(),
+                .raw(),
             "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
