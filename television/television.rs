@@ -633,15 +633,19 @@ impl Television {
     }
 
     pub fn cycle_sources(&mut self) {
-        self.channel.cycle_sources();
+        if self.mode == Mode::Channel {
+            self.channel.cycle_sources();
+        }
     }
 
     pub fn handle_reload_source(&mut self) {
-        let current_pattern = self.current_pattern.clone();
-        self.channel.reload();
-        // Preserve the current pattern and re-run the search
-        self.find(&current_pattern);
-        self.reset_picker_selection();
+        if self.mode == Mode::Channel {
+            let current_pattern = self.current_pattern.clone();
+            self.channel.reload();
+            // Preserve the current pattern and re-run the search
+            self.find(&current_pattern);
+            self.reset_picker_selection();
+        }
     }
 
     pub fn handle_action(&mut self, action: &Action) -> Result<()> {
