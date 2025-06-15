@@ -1,0 +1,8 @@
+[metadata]
+name = "alias"
+description = "A channel to select from shell aliases"
+
+[source]
+command = "alias"
+interactive = true
+output = "{split:=:0}"
