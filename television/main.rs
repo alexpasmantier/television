@@ -204,9 +204,8 @@ pub fn determine_channel(
 #[cfg(test)]
 mod tests {
     use rustc_hash::FxHashMap;
-    use string_pipeline::MultiTemplate;
     use television::channels::prototypes::{
-        ChannelPrototype, CommandSpec, PreviewSpec,
+        ChannelPrototype, CommandSpec, PreviewSpec, Template,
     };
 
     use super::*;
@@ -319,7 +318,7 @@ mod tests {
     fn test_determine_channel_with_cli_preview() {
         let preview_spec = PreviewSpec::new(
             CommandSpec::new(
-                vec![MultiTemplate::parse("echo hello").unwrap()],
+                vec![Template::parse("echo hello").unwrap()],
                 false,
                 FxHashMap::default(),
             ),
