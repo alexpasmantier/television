@@ -1,5 +1,5 @@
 use rustc_hash::FxHashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
 use tracing::debug;
@@ -11,6 +11,7 @@ use crate::{
     },
     cli::args::{Cli, Command},
     config::{KeyBindings, get_config_dir, get_data_dir},
+    utils::paths::expand_tilde,
 };
 
 pub mod args;
@@ -34,6 +35,8 @@ pub struct PostProcessedCli {
     pub no_remote: bool,
     pub no_help: bool,
     pub ui_scale: u16,
+    pub config_file: Option<PathBuf>,
+    pub cable_dir: Option<PathBuf>,
 }
 
 impl Default for PostProcessedCli {
@@ -55,6 +58,8 @@ impl Default for PostProcessedCli {
             no_remote: false,
             no_help: false,
             ui_scale: 100,
+            config_file: None,
+            cable_dir: None,
         }
     }
 }
@@ -115,6 +120,8 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         no_remote: cli.no_remote,
         no_help: cli.no_help,
         ui_scale: cli.ui_scale,
+        config_file: cli.config_file.map(expand_tilde),
+        cable_dir: cli.cable_dir.map(expand_tilde),
     }
 }
 
@@ -149,8 +156,9 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn list_channels() {
-    let channels = cable::load_cable().expect("Failed to load cable channels");
+pub fn list_channels(cable_dir: Option<&Path>) {
+    let channels = cable::load_cable::<&Path>(cable_dir)
+        .expect("Failed to load cable channels");
     for c in channels.keys() {
         println!("\t{c}");
     }

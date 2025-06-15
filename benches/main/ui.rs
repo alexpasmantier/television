@@ -435,7 +435,8 @@ pub fn draw(c: &mut Criterion) {
         b.to_async(&rt).iter_batched(
             // FIXME: this is kind of hacky
             || {
-                let config = Config::new(&ConfigEnv::init().unwrap()).unwrap();
+                let config =
+                    Config::new(&ConfigEnv::init().unwrap(), None).unwrap();
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
