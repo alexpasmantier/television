@@ -10,7 +10,6 @@ use walkdir::WalkDir;
 
 use crate::{
     channels::prototypes::ChannelPrototype, cli::unknown_channel_exit,
-    config::get_config_dir,
 };
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
@@ -129,16 +128,13 @@ where
 ///    ├── channel_2.toml
 ///    └── ...
 /// ```
-pub fn load_cable<P>(cable_dir: Option<P>) -> Option<Cable>
+pub fn load_cable<P>(cable_dir: P) -> Option<Cable>
 where
     P: AsRef<Path>,
 {
-    let cable_dir = match cable_dir {
-        Some(dir) => PathBuf::from(dir.as_ref()),
-        None => get_config_dir().join(CABLE_DIR_NAME),
-    };
+    let cable_dir = cable_dir.as_ref();
     debug!("Using cable directory: {}", cable_dir.to_string_lossy());
-    let cable_files = get_cable_files(&cable_dir);
+    let cable_files = get_cable_files(cable_dir);
     debug!("Found cable channel files: {:?}", cable_files);
 
     if cable_files.is_empty() {

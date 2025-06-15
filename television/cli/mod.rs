@@ -156,9 +156,12 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn list_channels(cable_dir: Option<&Path>) {
-    let channels = cable::load_cable::<&Path>(cable_dir)
-        .expect("Failed to load cable channels");
+pub fn list_channels<P>(cable_dir: P)
+where
+    P: AsRef<Path>,
+{
+    let channels =
+        cable::load_cable(cable_dir).expect("Failed to load cable channels");
     for c in channels.keys() {
         println!("\t{c}");
     }
