@@ -35,6 +35,8 @@ pub struct AppConfig {
     pub data_dir: PathBuf,
     #[serde(default = "get_config_dir")]
     pub config_dir: PathBuf,
+    #[serde(default = "default_cable_dir")]
+    pub cable_dir: PathBuf,
     #[serde(default = "default_frame_rate")]
     pub frame_rate: f64,
     #[serde(default = "default_tick_rate")]
@@ -288,6 +290,10 @@ pub fn get_config_dir() -> PathBuf {
     } else {
         PathBuf::from("../../../../..").join("../../../../../.config")
     }
+}
+
+fn default_cable_dir() -> PathBuf {
+    get_config_dir().join(CABLE_DIR_NAME)
 }
 
 fn project_directory() -> Option<ProjectDirs> {
