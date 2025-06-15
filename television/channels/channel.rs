@@ -57,7 +57,7 @@ impl Channel {
             .source
             .command
             .get_nth(self.current_source_index)
-            .template_string()
+            .raw()
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -87,7 +87,7 @@ impl Channel {
                 if let Some(offset_expr) = &p.offset {
                     let offset_str = offset_expr
                         .format(&item.inner)
-                        .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.template_string(), item.inner));
+                        .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.raw(), item.inner));
 
                     entry = entry.with_line_number(
                         offset_str.parse::<usize>().unwrap_or_else(|_| {
@@ -159,10 +159,7 @@ async fn load_candidates(
 ) {
     debug!("Loading candidates from command: {:?}", source.command);
     let mut child = shell_command(
-        source
-            .command
-            .get_nth(source_command_index)
-            .template_string(),
+        source.command.get_nth(source_command_index).raw(),
         source.command.interactive,
         &source.command.env,
     )
@@ -185,7 +182,7 @@ async fn load_candidates(
                             let formatted = display.format(e).unwrap_or_else(|_| {
                                 panic!(
                                     "Failed to format display expression '{}' with entry '{}'",
-                                    display.template_string(),
+                                    display.raw(),
                                     e
                                 );
                             });
