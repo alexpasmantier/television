@@ -1,10 +1,9 @@
 use crate::{
     action::Action,
+    cable::Cable,
     channels::{
-        cable::Channel as CableChannel,
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
-        remote_control::RemoteControl,
+        channel::Channel as CableChannel, entry::Entry,
+        prototypes::ChannelPrototype, remote_control::RemoteControl,
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
@@ -25,9 +24,8 @@ use crate::{
     },
 };
 use anyhow::Result;
-use rustc_hash::{FxBuildHasher, FxHashSet};
+use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -47,6 +45,7 @@ pub enum MatchingMode {
 
 pub struct Television {
     action_tx: UnboundedSender<Action>,
+    base_config: Config,
     pub config: Config,
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
@@ -66,30 +65,46 @@ pub struct Television {
     pub ticks: u64,
     pub ui_state: UiState,
     pub no_help: bool,
+    pub no_preview: bool,
+    pub current_command_index: usize,
+    pub channel_prototype: ChannelPrototype,
 }
 
 impl Television {
     #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::fn_params_excessive_bools)]
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        channel_prototype: &ChannelPrototype,
-        mut config: Config,
+        channel_prototype: ChannelPrototype,
+        base_config: Config,
         input: Option<String>,
         no_remote: bool,
         no_help: bool,
+        no_preview: bool,
         exact: bool,
         cable_channels: Cable,
     ) -> Self {
+        let mut config = Self::merge_base_config_with_prototype_specs(
+            &base_config,
+            &channel_prototype,
+        );
+
+        // Apply CLI overrides after prototype merging to ensure they take precedence
+        Self::apply_cli_overrides(&mut config, no_help, no_preview);
+
+        debug!("Merged config: {:?}", config);
+
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar_position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
 
         // previewer
-        let preview_handles = Self::setup_previewer(channel_prototype);
+        let preview_handles = Self::setup_previewer(&channel_prototype);
 
-        let mut channel = CableChannel::new(channel_prototype);
+        let mut channel = CableChannel::new(channel_prototype.clone());
+        channel.load();
 
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -113,13 +128,8 @@ impl Television {
         let remote_control = if no_remote {
             None
         } else {
-            Some(RemoteControl::new(Some(cable_channels)))
+            Some(RemoteControl::new(cable_channels))
         };
-
-        if no_help {
-            config.ui.show_help_bar = false;
-            config.ui.no_help = true;
-        }
 
         let matching_mode = if exact {
             MatchingMode::Substring
@@ -129,6 +139,7 @@ impl Television {
 
         Self {
             action_tx,
+            base_config,
             config,
             channel,
             remote_control,
@@ -147,6 +158,40 @@ impl Television {
             ticks: 0,
             ui_state: UiState::default(),
             no_help,
+            no_preview,
+            current_command_index: 0,
+            channel_prototype,
+        }
+    }
+
+    fn merge_base_config_with_prototype_specs(
+        base_config: &Config,
+        channel_prototype: &ChannelPrototype,
+    ) -> Config {
+        let mut config = base_config.clone();
+        // keybindings
+        if let Some(keybindings) = &channel_prototype.keybindings {
+            config.merge_keybindings(keybindings);
+        }
+        // ui
+        if let Some(ui_spec) = &channel_prototype.ui {
+            config.apply_prototype_ui_spec(ui_spec);
+        }
+        config
+    }
+
+    /// Apply CLI overrides to ensure they take precedence over channel prototype settings
+    fn apply_cli_overrides(
+        config: &mut Config,
+        no_help: bool,
+        no_preview: bool,
+    ) {
+        if no_help {
+            config.ui.show_help_bar = false;
+            config.ui.no_help = true;
+        }
+        if no_preview {
+            config.ui.show_preview_panel = false;
         }
     }
 
@@ -154,11 +199,11 @@ impl Television {
         channel_prototype: &ChannelPrototype,
     ) -> Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>
     {
-        if channel_prototype.preview_command.is_some() {
+        if let Some(preview_spec) = &channel_prototype.preview {
             let (pv_request_tx, pv_request_rx) = unbounded_channel();
             let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
             let previewer = Previewer::new(
-                channel_prototype.preview_command.clone().unwrap(),
+                preview_spec,
                 PreviewerConfig::default(),
                 pv_request_rx,
                 pv_preview_tx,
@@ -176,10 +221,11 @@ impl Television {
 
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
-            self.channel.name.clone(),
+            self.channel.prototype.metadata.name.clone(),
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),
+            self.channel.current_command().to_string(),
         );
         let tv_state = TvState::new(
             self.mode,
@@ -202,13 +248,13 @@ impl Television {
     }
 
     pub fn current_channel(&self) -> String {
-        self.channel.name.clone()
+        self.channel.prototype.metadata.name.clone()
     }
 
-    pub fn change_channel(&mut self, channel_prototype: &ChannelPrototype) {
+    pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
+        // shutdown the current channel and reset state
         self.preview_state.reset();
-        self.preview_state.enabled =
-            channel_prototype.preview_command.is_some();
+        self.preview_state.enabled = channel_prototype.preview.is_some();
         self.reset_picker_selection();
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -218,9 +264,23 @@ impl Television {
                 .send(PreviewRequest::Shutdown)
                 .expect("Failed to send shutdown signal to previewer");
         }
-        self.preview_handles = Self::setup_previewer(channel_prototype);
+        // setup the new channel
+        debug!("Changing channel to {:?}", channel_prototype);
+        self.preview_handles = Self::setup_previewer(&channel_prototype);
+        self.config = Self::merge_base_config_with_prototype_specs(
+            &self.base_config,
+            &channel_prototype,
+        );
+        // Reapply CLI overrides to ensure they persist across channel changes
+        Self::apply_cli_overrides(
+            &mut self.config,
+            self.no_help,
+            self.no_preview,
+        );
+        self.channel_prototype = channel_prototype.clone();
+        self.current_command_index = 0;
         self.channel = CableChannel::new(channel_prototype);
-        debug!("Changed channel to {:?}", channel_prototype);
+        self.channel.load();
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -279,14 +339,13 @@ impl Television {
         &self,
         mode: Option<Mode>,
     ) -> Option<FxHashSet<Entry>> {
+        // if nothing is selected, return the currently hovered entry
         if self.channel.selected_entries().is_empty()
             || matches!(mode, Some(Mode::RemoteControl))
         {
-            return self.get_selected_entry(mode).map(|e| {
-                let mut set = HashSet::with_hasher(FxBuildHasher);
-                set.insert(e);
-                set
-            });
+            return self
+                .get_selected_entry(mode)
+                .map(|e| FxHashSet::from_iter([e]));
         }
         Some(self.channel.selected_entries().clone())
     }
@@ -397,6 +456,8 @@ impl Television {
                     | Action::ToggleHelp
                     | Action::TogglePreview
                     | Action::CopyEntryToClipboard
+                    | Action::CycleSources
+                    | Action::ReloadSource
             )
     }
 
@@ -544,13 +605,13 @@ impl Television {
                         .remote_control
                         .as_ref()
                         .unwrap()
-                        .zap(entry.name.as_str())?;
+                        .zap(entry.raw.as_str());
                     // this resets the RC picker
                     self.reset_picker_selection();
                     self.reset_picker_input();
                     self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
-                    self.change_channel(&new_channel);
+                    self.change_channel(new_channel);
                 }
             }
         }
@@ -562,12 +623,28 @@ impl Television {
             if let Some(entries) = self.get_selected_entries(None) {
                 let copied_string = entries
                     .iter()
-                    .map(|e| e.name.clone())
+                    .map(|e| e.raw.clone())
                     .collect::<Vec<_>>()
                     .join(" ");
 
                 tokio::spawn(CLIPBOARD.set(copied_string));
             }
+        }
+    }
+
+    pub fn cycle_sources(&mut self) {
+        if self.mode == Mode::Channel {
+            self.channel.cycle_sources();
+        }
+    }
+
+    pub fn handle_reload_source(&mut self) {
+        if self.mode == Mode::Channel {
+            let current_pattern = self.current_pattern.clone();
+            self.channel.reload();
+            // Preserve the current pattern and re-run the search
+            self.find(&current_pattern);
+            self.reset_picker_selection();
         }
     }
 
@@ -631,6 +708,12 @@ impl Television {
             Action::CopyEntryToClipboard => {
                 self.handle_copy_entry_to_clipboard();
             }
+            Action::CycleSources => {
+                self.cycle_sources();
+            }
+            Action::ReloadSource => {
+                self.handle_reload_source();
+            }
             Action::ToggleHelp => {
                 if self.no_help {
                     return Ok(());
@@ -680,7 +763,13 @@ impl Television {
 
 #[cfg(test)]
 mod test {
-    use crate::television::{MatchingMode, Television};
+    use crate::{
+        action::Action,
+        cable::Cable,
+        config::Binding,
+        event::Key,
+        television::{MatchingMode, Television},
+    };
 
     #[test]
     fn test_prompt_preprocessing() {
@@ -695,6 +784,71 @@ mod test {
         assert_eq!(
             Television::preprocess_pattern(MatchingMode::Substring, mult_word),
             expect_mult
+        );
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_cli_overrides() {
+        let config = crate::config::Config::default();
+        let prototype = crate::channels::prototypes::ChannelPrototype::new(
+            "test", "echo 1",
+        );
+        let tv = Television::new(
+            tokio::sync::mpsc::unbounded_channel().0,
+            prototype,
+            config.clone(),
+            None,
+            true,
+            false,
+            false,
+            true,
+            Cable::from_prototypes(vec![]),
+        );
+
+        assert_eq!(tv.matching_mode, MatchingMode::Substring);
+        assert!(!tv.no_help);
+        assert!(!tv.no_preview);
+        assert!(tv.remote_control.is_none());
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+    async fn test_channel_keybindings_take_precedence() {
+        let mut config = crate::config::Config::default();
+        config.keybindings.insert(
+            Action::SelectNextEntry,
+            Binding::SingleKey(Key::Ctrl('n')),
+        );
+
+        let prototype =
+            toml::from_str::<crate::channels::prototypes::ChannelPrototype>(
+                r#"
+            [metadata]
+            name = "test"
+
+            [source]
+            command = "echo 1"
+
+            [keybindings]
+            select_next_entry = "ctrl-j"
+            "#,
+            )
+            .unwrap();
+
+        let tv = Television::new(
+            tokio::sync::mpsc::unbounded_channel().0,
+            prototype,
+            config.clone(),
+            None,
+            true,
+            false,
+            false,
+            true,
+            Cable::from_prototypes(vec![]),
+        );
+
+        assert_eq!(
+            tv.config.keybindings.get(&Action::SelectNextEntry),
+            Some(&Binding::SingleKey(Key::Ctrl('j')))
         );
     }
 }

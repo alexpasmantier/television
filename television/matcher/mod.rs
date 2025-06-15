@@ -216,4 +216,16 @@ where
             }
         })
     }
+
+    /// Restart the matcher.
+    ///
+    /// This will reset the matcher to its initial state, clearing all
+    /// matched items and the last pattern.
+    pub fn restart(&mut self) {
+        self.inner.restart(true);
+        self.total_item_count = 0;
+        self.matched_item_count = 0;
+        self.status = Status::default();
+        self.last_pattern.clear();
+    }
 }

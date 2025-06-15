@@ -1,149 +1,628 @@
-use rustc_hash::FxHashMap;
-use std::{
-    fmt::{self, Display, Formatter},
-    ops::Deref,
-};
+use anyhow::Result;
+use std::fmt::{self, Display, Formatter};
 
 use crate::{
-    cable::CableSpec, channels::preview::PreviewCommand,
-    cli::unknown_channel_exit,
+    config::KeyBindings,
+    screen::layout::{InputPosition, Orientation},
 };
+use rustc_hash::FxHashMap;
+use serde::ser::SerializeSeq;
+use string_pipeline::MultiTemplate;
 
-/// A prototype for cable channels.
-///
-/// This can be seen as a cable channel specification, which is used to
-/// create a cable channel.
-///
-/// The prototype contains the following fields:
-/// - `name`: The name of the channel. This will be used to identify the
-///   channel throughout the application and in UI menus.
-/// - `source_command`: The command to run to get the source for the channel.
-///   This is a shell command that will be run in the background.
-/// - `interactive`: Whether the source command should be run in an interactive
-///   shell. This is useful for commands that need the user's environment e.g.
-///   `alias`.
-/// - `preview_command`: The command to run on each entry to get the preview
-///   for the channel. If this is not `None`, the channel will display a preview
-///   pane with the output of this command.
-/// - `preview_delimiter`: The delimiter to use to split an entry into
-///   multiple parts that can then be referenced in the preview command (e.g.
-///   `{1} + {2}`).
-/// - `preview_offset`: a litteral expression that will be interpreted later on
-///   in order to determine the vertical offset at which the preview should be
-///   displayed.
-///
-/// # Example
-/// The default files channel might look something like this:
-/// ```toml
-/// [[cable_channel]]
-/// name = "files"
-/// source_command = "fd -t f"
-/// preview_command = "cat {}"
-/// ```
-#[derive(Clone, Debug, serde::Deserialize, PartialEq)]
-pub struct ChannelPrototype {
-    pub name: String,
-    pub source_command: String,
-    #[serde(default)]
-    pub interactive: bool,
-    #[serde(rename = "preview")]
-    pub preview_command: Option<PreviewCommand>,
+#[derive(Debug, Clone)]
+pub enum Template {
+    StringPipeline(MultiTemplate),
+    Raw(String),
 }
 
-const STDIN_CHANNEL_NAME: &str = "stdin";
-const STDIN_SOURCE_COMMAND: &str = "cat";
-
-impl ChannelPrototype {
-    pub fn new(
-        name: &str,
-        source_command: &str,
-        interactive: bool,
-        preview_command: Option<PreviewCommand>,
-    ) -> Self {
-        Self {
-            name: name.to_string(),
-            source_command: source_command.to_string(),
-            interactive,
-            preview_command,
+impl Template {
+    pub fn raw(&self) -> &str {
+        match self {
+            Template::StringPipeline(template) => template.template_string(),
+            Template::Raw(raw) => raw,
         }
     }
 
-    pub fn stdin(preview: Option<PreviewCommand>) -> Self {
-        Self {
-            name: STDIN_CHANNEL_NAME.to_string(),
-            source_command: STDIN_SOURCE_COMMAND.to_string(),
-            interactive: false,
-            preview_command: preview,
+    pub fn parse(template: &str) -> Result<Self, String> {
+        match MultiTemplate::parse(template) {
+            Ok(multi_template) => Ok(Template::StringPipeline(multi_template)),
+            Err(_) => Ok(Template::Raw(template.to_string())),
         }
     }
 
-    pub fn set_preview(self, preview_command: Option<PreviewCommand>) -> Self {
-        Self::new(
-            &self.name,
-            &self.source_command,
-            self.interactive,
-            preview_command,
+    pub fn format(&self, input: &str) -> Result<String> {
+        match self {
+            Template::StringPipeline(template) => {
+                template.format(input).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Failed to format template '{}' with '{}': {}",
+                        self.raw(),
+                        input,
+                        e
+                    )
+                })
+            }
+            Template::Raw(raw) => Ok(raw.replace("{}", input)),
+        }
+    }
+}
+
+impl Display for Template {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.raw())
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct CommandSpec {
+    #[serde(
+        rename = "command",
+        deserialize_with = "deserialize_commands",
+        serialize_with = "serialize_commands"
+    )]
+    pub inner: Vec<Template>,
+    #[serde(default)]
+    pub interactive: bool,
+    #[serde(default)]
+    pub env: FxHashMap<String, String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum SerializedCommand {
+    Single(String),
+    Multiple(Vec<String>),
+}
+
+impl Display for CommandSpec {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "[{}]",
+            self.inner
+                .iter()
+                .map(Template::raw)
+                .collect::<Vec<_>>()
+                .join(";")
         )
     }
 }
 
-pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
+impl CommandSpec {
+    pub fn new(
+        inner: Vec<Template>,
+        interactive: bool,
+        env: FxHashMap<String, String>,
+    ) -> Self {
+        Self {
+            inner,
+            interactive,
+            env,
+        }
+    }
+
+    pub fn command_count(&self) -> usize {
+        self.inner.len()
+    }
+
+    pub fn has_multiple_commands(&self) -> bool {
+        self.inner.len() > 1
+    }
+
+    /// This wraps back to the first command in a circular manner.
+    ///
+    /// # Panics
+    /// If the command spec does not contain any commands.
+    pub fn get_nth(&self, index: usize) -> &Template {
+        &self.inner[index % self.inner.len()]
+    }
+}
+
+fn serialize_command<S>(
+    command: &Template,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(command.raw())
+}
+
+#[allow(clippy::ref_option)]
+fn serialize_maybe_command<S>(
+    command: &Option<Template>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match command {
+        Some(cmd) => serialize_command(cmd, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+#[allow(dead_code)]
+fn deserialize_command<'de, D>(deserializer: D) -> Result<Template, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: String = serde::Deserialize::deserialize(deserializer)?;
+    // FIXME: we want to fall back to the default command if parsing fails
+    // but since everything uses MultiTemplates, we might need a wrapper enum
+    // with a Raw variant.
+    Template::parse(&raw).map_err(serde::de::Error::custom)
+}
+
+fn deserialize_maybe_command<'de, D>(
+    deserializer: D,
+) -> Result<Option<Template>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
+    match raw {
+        Some(cmd) => Template::parse(&cmd)
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
+
+fn serialize_commands<S>(
+    commands: &[Template],
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    if commands.len() == 1 {
+        let raw = commands[0].raw();
+        serializer.serialize_str(raw)
+    } else {
+        let raw: Vec<String> =
+            commands.iter().map(|c| c.raw().to_string()).collect();
+        let mut seq = serializer.serialize_seq(Some(raw.len()))?;
+        for item in raw {
+            seq.serialize_element(&item)?;
+        }
+        seq.end()
+    }
+}
+
+#[allow(clippy::ref_option, dead_code)]
+fn serialize_maybe_commands<S>(
+    commands: Option<&[Template]>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match commands {
+        Some(m) => serialize_commands(m, serializer),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_commands<'de, D>(
+    deserializer: D,
+) -> Result<Vec<Template>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let res = match serde::Deserialize::deserialize(deserializer)? {
+        SerializedCommand::Single(cmd) => {
+            Template::parse(&cmd).map(|m| vec![m])
+        }
+        SerializedCommand::Multiple(cmds) => cmds
+            .iter()
+            .map(|cmd| Template::parse(cmd))
+            .collect::<Result<Vec<_>, _>>(),
+    }
+    .map_err(serde::de::Error::custom);
+
+    if let Ok(ref cmds) = res {
+        if cmds.is_empty() {
+            return Err(serde::de::Error::custom(
+                "Command list cannot be empty",
+            ));
+        }
+    }
+
+    res
+}
+
+#[allow(dead_code)]
+fn deserialize_maybe_commands<'de, D>(
+    deserializer: D,
+) -> Result<Option<Vec<Template>>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: Option<SerializedCommand> =
+        serde::Deserialize::deserialize(deserializer)?;
+    match raw {
+        Some(template) => {
+            let cmd = match template {
+                SerializedCommand::Single(cmd) => {
+                    Template::parse(&cmd).map(|m| vec![m])
+                }
+                SerializedCommand::Multiple(cmds) => {
+                    cmds.iter().map(|cmd| Template::parse(cmd)).collect()
+                }
+            };
+            cmd.map_err(serde::de::Error::custom).map(Some)
+        }
+        None => Ok(None),
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct ChannelPrototype {
+    pub metadata: Metadata,
+    #[serde(rename = "source")]
+    pub source: SourceSpec,
+    #[serde(default, rename = "preview")]
+    pub preview: Option<PreviewSpec>,
+    #[serde(default, rename = "ui")]
+    pub ui: Option<UiSpec>,
+    #[serde(default)]
+    pub keybindings: Option<KeyBindings>,
+    // actions: Vec<Action>,
+}
+
+impl ChannelPrototype {
+    pub fn new(name: &str, command: &str) -> Self {
+        Self {
+            metadata: Metadata {
+                name: name.to_string(),
+                description: None,
+                requirements: vec![],
+            },
+            source: SourceSpec {
+                command: CommandSpec {
+                    inner: vec![
+                        Template::parse(command)
+                            .expect("Failed to parse command"),
+                    ],
+                    interactive: false,
+                    env: FxHashMap::default(),
+                },
+                display: None,
+                output: None,
+            },
+            preview: None,
+            ui: None,
+            keybindings: None,
+        }
+    }
+
+    pub fn stdin(preview: Option<PreviewSpec>) -> Self {
+        Self {
+            metadata: Metadata {
+                name: "stdin".to_string(),
+                description: Some(
+                    "A channel that reads from stdin".to_string(),
+                ),
+                requirements: vec![],
+            },
+            source: SourceSpec {
+                command: CommandSpec {
+                    inner: vec![Template::parse("cat").unwrap()],
+                    interactive: false,
+                    env: FxHashMap::default(),
+                },
+                display: None,
+                output: None,
+            },
+            preview,
+            ui: None,
+            keybindings: None,
+        }
+    }
+
+    pub fn with_preview(mut self, preview: Option<PreviewSpec>) -> Self {
+        self.preview = preview;
+        self
+    }
+}
 
 impl Display for ChannelPrototype {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.name)
+        write!(f, "{}", self.metadata.name)
     }
 }
 
-/// A neat `HashMap` of channel prototypes indexed by their name.
-///
-/// This is used to store cable channel prototypes throughout the application
-/// in a way that facilitates answering questions like "what's the prototype
-/// for `files`?" or "does this channel exist?".
-#[derive(Debug, serde::Deserialize, Clone)]
-pub struct Cable(pub FxHashMap<String, ChannelPrototype>);
-
-impl Deref for Cable {
-    type Target = FxHashMap<String, ChannelPrototype>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct Metadata {
+    pub name: String,
+    pub description: Option<String>,
+    #[serde(default)]
+    requirements: Vec<String>,
 }
 
-impl Cable {
-    pub fn get_channel(&self, name: &str) -> ChannelPrototype {
-        self.get(name)
-            .cloned()
-            .unwrap_or_else(|| unknown_channel_exit(name))
-    }
-
-    pub fn has_channel(&self, name: &str) -> bool {
-        self.contains_key(name)
-    }
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct SourceSpec {
+    #[serde(flatten)]
+    pub command: CommandSpec,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub display: Option<Template>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub output: Option<Template>,
 }
 
-/// A default cable channels specification that is compiled into the
-/// application.
-#[cfg(unix)]
-const DEFAULT_CABLE_CHANNELS_FILE: &str =
-    include_str!("../../cable/unix-channels.toml");
-/// A default cable channels specification that is compiled into the
-/// application.
-#[cfg(not(unix))]
-const DEFAULT_CABLE_CHANNELS_FILE: &str =
-    include_str!("../../cable/windows-channels.toml");
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct PreviewSpec {
+    #[serde(flatten)]
+    pub command: CommandSpec,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub offset: Option<Template>,
+}
 
-impl Default for Cable {
-    /// Fallback to the default cable channels specification (the template file
-    /// included in the repo).
-    fn default() -> Self {
-        let s = toml::from_str::<CableSpec>(DEFAULT_CABLE_CHANNELS_FILE)
-            .expect("Unable to parse default cable channels");
-        let mut prototypes = FxHashMap::default();
-        for prototype in s.prototypes {
-            prototypes.insert(prototype.name.clone(), prototype);
+impl PreviewSpec {
+    pub fn new(command: CommandSpec, offset: Option<Template>) -> Self {
+        Self { command, offset }
+    }
+
+    pub fn from_str_command(command: &str) -> Self {
+        Self {
+            command: CommandSpec {
+                inner: vec![
+                    Template::parse(command)
+                        .expect("Failed to parse preview command"),
+                ],
+                interactive: false,
+                env: FxHashMap::default(),
+            },
+            offset: None,
         }
-        Cable(prototypes)
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct UiSpec {
+    #[serde(default)]
+    pub ui_scale: Option<u16>,
+    #[serde(default)]
+    pub show_help_bar: Option<bool>,
+    #[serde(default)]
+    pub show_preview_panel: Option<bool>,
+    // `layout` is clearer for the user but collides with the overall `Layout` type.
+    #[serde(rename = "layout", default)]
+    pub orientation: Option<Orientation>,
+    #[serde(default)]
+    pub input_bar_position: Option<InputPosition>,
+}
+
+pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
+
+#[cfg(test)]
+mod tests {
+    use crate::{action::Action, config::Binding, event::Key};
+
+    use super::*;
+    use toml::from_str;
+
+    #[test]
+    fn test_command_spec_get_nth() {
+        let command_spec = CommandSpec {
+            inner: vec![
+                Template::parse("cmd1").unwrap(),
+                Template::parse("cmd2").unwrap(),
+                Template::parse("cmd3").unwrap(),
+            ],
+            interactive: false,
+            env: FxHashMap::default(),
+        };
+
+        assert_eq!(command_spec.get_nth(0).raw(), "cmd1");
+        assert_eq!(command_spec.get_nth(1).raw(), "cmd2");
+        assert_eq!(command_spec.get_nth(2).raw(), "cmd3");
+        assert_eq!(command_spec.get_nth(3).raw(), "cmd1"); // wraps around
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+        requirements = ["fd", "bat"]
+
+        [source]
+        command = "fd -t f"
+        interactive = false
+        env = {}
+        display = "{split:/:-1}" # only show the last path segment ('/a/b/c' -> 'c')
+        ansi = false
+        output = "{}"            # output the full path
+
+        [preview]
+        command = "bat -n --color=always {}"
+        env = { "BAT_THEME" = "ansi" }
+        interactive = false
+
+        [ui]
+        layout = "landscape"
+        ui_scale = 100
+        show_help_bar = false
+        show_preview_panel = true
+        input_bar_position = "bottom"
+
+        [keybindings]
+        quit = ["esc", "ctrl-c"]
+        select_next_entry = ["down", "ctrl-n", "ctrl-j"]
+        select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
+        confirm_selection = "enter"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.metadata.name, "files");
+        assert_eq!(
+            prototype.metadata.description,
+            Some("A channel to select files and directories".to_string())
+        );
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
+        assert!(!prototype.source.command.interactive);
+        assert_eq!(prototype.source.display.unwrap().raw(), "{split:/:-1}");
+        assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+        assert_eq!(
+            format!("{}", prototype.preview.unwrap().command.inner[0]),
+            "bat -n --color=always {}"
+        );
+        let ui = prototype.ui.unwrap();
+        assert_eq!(ui.orientation, Some(Orientation::Landscape));
+        assert_eq!(ui.ui_scale, Some(100));
+        assert!(!(ui.show_help_bar.unwrap()));
+        assert!(ui.show_preview_panel.unwrap());
+        assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
+        let keybindings = prototype.keybindings.unwrap();
+        assert_eq!(
+            keybindings.0.get(&Action::Quit),
+            Some(&Binding::MultipleKeys(vec![Key::Esc, Key::Ctrl('c')]))
+        );
+        assert_eq!(
+            keybindings.0.get(&Action::SelectNextEntry),
+            Some(&Binding::MultipleKeys(vec![
+                Key::Down,
+                Key::Ctrl('n'),
+                Key::Ctrl('j')
+            ]))
+        );
+        assert_eq!(
+            keybindings.0.get(&Action::SelectPrevEntry),
+            Some(&Binding::MultipleKeys(vec![
+                Key::Up,
+                Key::Ctrl('p'),
+                Key::Ctrl('k')
+            ]))
+        );
+        assert_eq!(
+            keybindings.0.get(&Action::ConfirmSelection),
+            Some(&Binding::SingleKey(Key::Enter))
+        );
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_multiple_commands() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+        requirements = ["fd", "bat"]
+
+        [source]
+        command = ["fd -t f", "fd -t f --hidden"]
+        output = "{}"            # output the full path
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.metadata.name, "files");
+        assert_eq!(
+            prototype.metadata.description,
+            Some("A channel to select files and directories".to_string())
+        );
+        assert_eq!(
+            prototype
+                .source
+                .command
+                .inner
+                .iter()
+                .map(Template::raw)
+                .collect::<Vec<_>>(),
+            vec!["fd -t f", "fd -t f --hidden"]
+        );
+        assert!(!prototype.source.command.interactive);
+        assert!(prototype.source.command.env.is_empty());
+        assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_bare_minimum() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+        requirements = ["fd"]
+
+        [source]
+        command = "fd -t f"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.metadata.name, "files");
+        assert_eq!(
+            prototype.metadata.description,
+            Some("A channel to select files and directories".to_string())
+        );
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
+        assert!(!prototype.source.command.interactive);
+        assert!(prototype.source.command.env.is_empty());
+        assert!(prototype.source.display.is_none());
+        assert!(prototype.source.output.is_none());
+        assert!(prototype.preview.is_none());
+        assert!(prototype.ui.is_none());
+        assert!(prototype.keybindings.is_none());
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_partial_ui_options() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+        requirements = ["fd"]
+
+        [source]
+        command = "fd -t f"
+
+        [ui]
+        layout = "landscape"
+        ui_scale = 40
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.metadata.name, "files");
+        assert_eq!(
+            prototype.metadata.description,
+            Some("A channel to select files and directories".to_string())
+        );
+        assert_eq!(
+            format!("{}", prototype.source.command.inner[0]),
+            "fd -t f"
+        );
+        assert!(!prototype.source.command.interactive);
+        assert!(prototype.source.command.env.is_empty());
+        assert!(prototype.source.display.is_none());
+        assert!(prototype.source.output.is_none());
+
+        let ui = prototype.ui.unwrap();
+        assert_eq!(ui.orientation, Some(Orientation::Landscape));
+        assert_eq!(ui.ui_scale, Some(40));
+        assert!(ui.show_help_bar.is_none());
+        assert!(ui.show_preview_panel.is_none());
+        assert!(ui.input_bar_position.is_none());
     }
 }

@@ -1,17 +1,17 @@
 use rustc_hash::FxHashMap;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, anyhow};
 use tracing::debug;
 
 use crate::{
-    cable,
-    channels::{
-        preview::PreviewCommand,
-        prototypes::{Cable, ChannelPrototype},
+    cable::{self, Cable},
+    channels::prototypes::{
+        ChannelPrototype, CommandSpec, PreviewSpec, Template,
     },
     cli::args::{Cli, Command},
     config::{KeyBindings, get_config_dir, get_data_dir},
+    utils::paths::expand_tilde,
 };
 
 pub mod args;
@@ -20,7 +20,7 @@ pub mod args;
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
     pub channel: Option<String>,
-    pub preview_command: Option<PreviewCommand>,
+    pub preview_spec: Option<PreviewSpec>,
     pub no_preview: bool,
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
@@ -35,13 +35,15 @@ pub struct PostProcessedCli {
     pub no_remote: bool,
     pub no_help: bool,
     pub ui_scale: u16,
+    pub config_file: Option<PathBuf>,
+    pub cable_dir: Option<PathBuf>,
 }
 
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
             channel: None,
-            preview_command: None,
+            preview_spec: None,
             no_preview: false,
             tick_rate: None,
             frame_rate: None,
@@ -56,39 +58,54 @@ impl Default for PostProcessedCli {
             no_remote: false,
             no_help: false,
             ui_scale: 100,
+            config_file: None,
+            cable_dir: None,
         }
     }
 }
 
-pub fn post_process(cli: Cli, cable: &Cable) -> PostProcessedCli {
+pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
     let keybindings = cli.keybindings.as_ref().map(|kb| {
         parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
             .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
     });
 
-    // Parse the preview command if provided
-    let preview_command = cli.preview.as_ref().map(|preview| PreviewCommand {
-        command: preview.clone(),
-        delimiter: cli.delimiter.clone(),
-        offset_expr: cli.preview_offset.clone(),
+    // Parse the preview spec if provided
+    let preview_spec = cli.preview.as_ref().map(|preview| {
+        let command_spec = CommandSpec::new(
+            vec![Template::parse(preview).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing preview command: {e}"
+                ))
+            })],
+            false,
+            FxHashMap::default(),
+        );
+        PreviewSpec::new(
+            command_spec,
+            cli.preview_offset.map(|offset_str| {
+                Template::parse(&offset_str).unwrap_or_else(|e| {
+                    cli_parsing_error_exit(&format!(
+                        "Error parsing preview offset: {e}"
+                    ))
+                })
+            }),
+        )
     });
 
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
-        Some(c) if !cable.has_channel(c) => {
-            if cli.working_directory.is_none() && Path::new(c).exists() {
-                (None, Some(c.clone()))
-            } else {
-                unknown_channel_exit(c);
-            }
+        Some(c) if Path::new(c).exists() => {
+            // If the channel is a path, use it as the working directory
+            (None, Some(c.clone()))
         }
         _ => (cli.channel.clone(), cli.working_directory.clone()),
     };
 
     PostProcessedCli {
         channel,
-        preview_command,
+        preview_spec,
         no_preview: cli.no_preview,
         tick_rate: cli.tick_rate,
         frame_rate: cli.frame_rate,
@@ -103,6 +120,8 @@ pub fn post_process(cli: Cli, cable: &Cable) -> PostProcessedCli {
         no_remote: cli.no_remote,
         no_help: cli.no_help,
         ui_scale: cli.ui_scale,
+        config_file: cli.config_file.map(expand_tilde),
+        cable_dir: cli.cable_dir.map(expand_tilde),
     }
 }
 
@@ -137,8 +156,13 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn list_channels() {
-    for c in cable::load_cable().unwrap_or_default().keys() {
+pub fn list_channels<P>(cable_dir: P)
+where
+    P: AsRef<Path>,
+{
+    let channels =
+        cable::load_cable(cable_dir).expect("Failed to load cable channels");
+    for c in channels.keys() {
         println!("\t{c}");
     }
 }
@@ -257,21 +281,20 @@ mod tests {
         let cli = Cli {
             channel: Some("files".to_string()),
             preview: Some("bat -n --color=always {}".to_string()),
-            delimiter: ":".to_string(),
             working_directory: Some("/home/user".to_string()),
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         assert_eq!(
-            post_processed_cli.preview_command,
-            Some(PreviewCommand {
-                command: "bat -n --color=always {}".to_string(),
-                delimiter: ":".to_string(),
-                offset_expr: None,
-            })
+            post_processed_cli
+                .preview_spec
+                .unwrap()
+                .command
+                .get_nth(0)
+                .raw(),
+            "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
         assert_eq!(post_processed_cli.frame_rate, None);
@@ -286,12 +309,10 @@ mod tests {
     fn test_from_cli_no_args() {
         let cli = Cli {
             channel: Some(".".to_string()),
-            delimiter: ":".to_string(),
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         assert_eq!(
             post_processed_cli.working_directory,
@@ -305,7 +326,6 @@ mod tests {
         let cli = Cli {
             channel: Some("files".to_string()),
             preview: Some(":env_var:".to_string()),
-            delimiter: ":".to_string(),
             keybindings: Some(
                 "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
                     .to_string(),
@@ -313,8 +333,7 @@ mod tests {
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         let mut expected = KeyBindings::default();
         expected.insert(Action::Quit, Binding::SingleKey(Key::Esc));
@@ -336,7 +355,11 @@ mod tests {
         (
             command_mapping,
             "env",
-            cable::load_cable().unwrap_or_default(),
+            Cable::from_prototypes(vec![
+                ChannelPrototype::new("files", "fd -t f"),
+                ChannelPrototype::new("env", "env"),
+                ChannelPrototype::new("git", "git status"),
+            ]),
         )
     }
 
@@ -354,7 +377,7 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, "files");
+        assert_eq!(channel.metadata.name, "files");
     }
 
     #[test]
@@ -371,7 +394,7 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, fallback);
+        assert_eq!(channel.metadata.name, fallback);
     }
 
     #[test]
@@ -388,6 +411,6 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, fallback);
+        assert_eq!(channel.metadata.name, fallback);
     }
 }
