@@ -1,0 +1,9 @@
+[metadata]
+name = "git-diff"
+description = "A channel to select files from git diff commands"
+
+[source]
+command = "git diff --name-only HEAD"
+
+[preview]
+command = "git diff HEAD --color=always -- {}"
