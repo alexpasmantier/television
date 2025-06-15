@@ -118,7 +118,7 @@ where
 /// Load cable channels from the config directory.
 ///
 /// Cable is loaded by compiling all files located in the `cable/` subdirectory
-/// of the user's configuration directory (+ defaults)
+/// of the user's configuration directory, unless a custom directory is provided.
 ///
 /// # Example:
 /// ```ignore
@@ -129,9 +129,15 @@ where
 ///    ├── channel_2.toml
 ///    └── ...
 /// ```
-pub fn load_cable() -> Option<Cable> {
-    let cable_dir = get_config_dir().join(CABLE_DIR_NAME);
-    debug!("Cable directory: {}", cable_dir.to_string_lossy());
+pub fn load_cable<P>(cable_dir: Option<P>) -> Option<Cable>
+where
+    P: AsRef<Path>,
+{
+    let cable_dir = match cable_dir {
+        Some(dir) => PathBuf::from(dir.as_ref()),
+        None => get_config_dir().join(CABLE_DIR_NAME),
+    };
+    debug!("Using cable directory: {}", cable_dir.to_string_lossy());
     let cable_files = get_cable_files(&cable_dir);
     debug!("Found cable channel files: {:?}", cable_files);
 
