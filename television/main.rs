@@ -44,16 +44,17 @@ async fn main() -> Result<()> {
 
     // load the configuration file
     debug!("Loading configuration...");
-    let mut config = Config::new(&ConfigEnv::init()?)?;
+    let mut config =
+        Config::new(&ConfigEnv::init()?, args.config_file.as_deref())?;
 
     // handle subcommands
     debug!("Handling subcommands...");
     if let Some(subcommand) = &args.command {
-        handle_subcommand(subcommand, &config)?;
+        handle_subcommand(subcommand, &config, &args)?;
     }
 
     debug!("Loading cable channels...");
-    let cable = load_cable().unwrap_or_else(|| exit(1));
+    let cable = load_cable(args.cable_dir.as_ref()).unwrap_or_else(|| exit(1));
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
@@ -139,10 +140,14 @@ pub fn set_current_dir(path: &String) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
+pub fn handle_subcommand(
+    command: &Command,
+    config: &Config,
+    args: &PostProcessedCli,
+) -> Result<()> {
     match command {
         Command::ListChannels => {
-            list_channels();
+            list_channels(args.cable_dir.as_deref());
             exit(0);
         }
         Command::InitShell { shell } => {

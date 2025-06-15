@@ -146,6 +146,14 @@ pub struct Cli {
     )]
     pub ui_scale: u16,
 
+    /// Provide a custom configuration file to use.
+    #[arg(long, value_name = "PATH", verbatim_doc_comment)]
+    pub config_file: Option<String>,
+
+    /// Provide a custom cable directory to use.
+    #[arg(long, value_name = "PATH", verbatim_doc_comment)]
+    pub cable_dir: Option<String>,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }
