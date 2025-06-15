@@ -1,3 +1,4 @@
+use anyhow::Result;
 use std::fmt::{self, Display, Formatter};
 
 use crate::{
@@ -8,6 +9,50 @@ use rustc_hash::FxHashMap;
 use serde::ser::SerializeSeq;
 use string_pipeline::MultiTemplate;
 
+#[derive(Debug, Clone)]
+pub enum Template {
+    StringPipeline(MultiTemplate),
+    Raw(String),
+}
+
+impl Template {
+    pub fn raw(&self) -> &str {
+        match self {
+            Template::StringPipeline(template) => template.template_string(),
+            Template::Raw(raw) => raw,
+        }
+    }
+
+    pub fn parse(template: &str) -> Result<Self, String> {
+        match MultiTemplate::parse(template) {
+            Ok(multi_template) => Ok(Template::StringPipeline(multi_template)),
+            Err(_) => Ok(Template::Raw(template.to_string())),
+        }
+    }
+
+    pub fn format(&self, input: &str) -> Result<String> {
+        match self {
+            Template::StringPipeline(template) => {
+                template.format(input).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Failed to format template '{}' with '{}': {}",
+                        self.raw(),
+                        input,
+                        e
+                    )
+                })
+            }
+            Template::Raw(raw) => Ok(raw.replace("{}", input)),
+        }
+    }
+}
+
+impl Display for Template {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.raw())
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct CommandSpec {
     #[serde(
@@ -15,7 +60,7 @@ pub struct CommandSpec {
         deserialize_with = "deserialize_commands",
         serialize_with = "serialize_commands"
     )]
-    pub inner: Vec<MultiTemplate>,
+    pub inner: Vec<Template>,
     #[serde(default)]
     pub interactive: bool,
     #[serde(default)]
@@ -36,7 +81,7 @@ impl Display for CommandSpec {
             "[{}]",
             self.inner
                 .iter()
-                .map(string_pipeline::MultiTemplate::template_string)
+                .map(Template::raw)
                 .collect::<Vec<_>>()
                 .join(";")
         )
@@ -45,7 +90,7 @@ impl Display for CommandSpec {
 
 impl CommandSpec {
     pub fn new(
-        inner: Vec<MultiTemplate>,
+        inner: Vec<Template>,
         interactive: bool,
         env: FxHashMap<String, String>,
     ) -> Self {
@@ -68,24 +113,24 @@ impl CommandSpec {
     ///
     /// # Panics
     /// If the command spec does not contain any commands.
-    pub fn get_nth(&self, index: usize) -> &MultiTemplate {
+    pub fn get_nth(&self, index: usize) -> &Template {
         &self.inner[index % self.inner.len()]
     }
 }
 
 fn serialize_command<S>(
-    command: &MultiTemplate,
+    command: &Template,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
-    serializer.serialize_str(command.template_string())
+    serializer.serialize_str(command.raw())
 }
 
 #[allow(clippy::ref_option)]
 fn serialize_maybe_command<S>(
-    command: &Option<MultiTemplate>,
+    command: &Option<Template>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -98,25 +143,26 @@ where
 }
 
 #[allow(dead_code)]
-fn deserialize_command<'de, D>(
-    deserializer: D,
-) -> Result<MultiTemplate, D::Error>
+fn deserialize_command<'de, D>(deserializer: D) -> Result<Template, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    MultiTemplate::parse(&raw).map_err(serde::de::Error::custom)
+    // FIXME: we want to fall back to the default command if parsing fails
+    // but since everything uses MultiTemplates, we might need a wrapper enum
+    // with a Raw variant.
+    Template::parse(&raw).map_err(serde::de::Error::custom)
 }
 
 fn deserialize_maybe_command<'de, D>(
     deserializer: D,
-) -> Result<Option<MultiTemplate>, D::Error>
+) -> Result<Option<Template>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
     match raw {
-        Some(cmd) => MultiTemplate::parse(&cmd)
+        Some(cmd) => Template::parse(&cmd)
             .map(Some)
             .map_err(serde::de::Error::custom),
         None => Ok(None),
@@ -124,20 +170,18 @@ where
 }
 
 fn serialize_commands<S>(
-    commands: &[MultiTemplate],
+    commands: &[Template],
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
     S: serde::Serializer,
 {
     if commands.len() == 1 {
-        let raw = commands[0].template_string();
+        let raw = commands[0].raw();
         serializer.serialize_str(raw)
     } else {
-        let raw: Vec<String> = commands
-            .iter()
-            .map(|c| c.template_string().to_string())
-            .collect();
+        let raw: Vec<String> =
+            commands.iter().map(|c| c.raw().to_string()).collect();
         let mut seq = serializer.serialize_seq(Some(raw.len()))?;
         for item in raw {
             seq.serialize_element(&item)?;
@@ -148,7 +192,7 @@ where
 
 #[allow(clippy::ref_option, dead_code)]
 fn serialize_maybe_commands<S>(
-    commands: Option<&[MultiTemplate]>,
+    commands: Option<&[Template]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -162,17 +206,17 @@ where
 
 fn deserialize_commands<'de, D>(
     deserializer: D,
-) -> Result<Vec<MultiTemplate>, D::Error>
+) -> Result<Vec<Template>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
     let res = match serde::Deserialize::deserialize(deserializer)? {
         SerializedCommand::Single(cmd) => {
-            MultiTemplate::parse(&cmd).map(|m| vec![m])
+            Template::parse(&cmd).map(|m| vec![m])
         }
         SerializedCommand::Multiple(cmds) => cmds
             .iter()
-            .map(|cmd| MultiTemplate::parse(cmd))
+            .map(|cmd| Template::parse(cmd))
             .collect::<Result<Vec<_>, _>>(),
     }
     .map_err(serde::de::Error::custom);
@@ -191,7 +235,7 @@ where
 #[allow(dead_code)]
 fn deserialize_maybe_commands<'de, D>(
     deserializer: D,
-) -> Result<Option<Vec<MultiTemplate>>, D::Error>
+) -> Result<Option<Vec<Template>>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -201,10 +245,10 @@ where
         Some(template) => {
             let cmd = match template {
                 SerializedCommand::Single(cmd) => {
-                    MultiTemplate::parse(&cmd).map(|m| vec![m])
+                    Template::parse(&cmd).map(|m| vec![m])
                 }
                 SerializedCommand::Multiple(cmds) => {
-                    cmds.iter().map(|cmd| MultiTemplate::parse(cmd)).collect()
+                    cmds.iter().map(|cmd| Template::parse(cmd)).collect()
                 }
             };
             cmd.map_err(serde::de::Error::custom).map(Some)
@@ -238,7 +282,7 @@ impl ChannelPrototype {
             source: SourceSpec {
                 command: CommandSpec {
                     inner: vec![
-                        MultiTemplate::parse(command)
+                        Template::parse(command)
                             .expect("Failed to parse command"),
                     ],
                     interactive: false,
@@ -264,7 +308,7 @@ impl ChannelPrototype {
             },
             source: SourceSpec {
                 command: CommandSpec {
-                    inner: vec![MultiTemplate::parse("cat").unwrap()],
+                    inner: vec![Template::parse("cat").unwrap()],
                     interactive: false,
                     env: FxHashMap::default(),
                 },
@@ -306,13 +350,13 @@ pub struct SourceSpec {
         deserialize_with = "deserialize_maybe_command",
         serialize_with = "serialize_maybe_command"
     )]
-    pub display: Option<MultiTemplate>,
+    pub display: Option<Template>,
     #[serde(
         default,
         deserialize_with = "deserialize_maybe_command",
         serialize_with = "serialize_maybe_command"
     )]
-    pub output: Option<MultiTemplate>,
+    pub output: Option<Template>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -324,11 +368,11 @@ pub struct PreviewSpec {
         deserialize_with = "deserialize_maybe_command",
         serialize_with = "serialize_maybe_command"
     )]
-    pub offset: Option<MultiTemplate>,
+    pub offset: Option<Template>,
 }
 
 impl PreviewSpec {
-    pub fn new(command: CommandSpec, offset: Option<MultiTemplate>) -> Self {
+    pub fn new(command: CommandSpec, offset: Option<Template>) -> Self {
         Self { command, offset }
     }
 
@@ -336,7 +380,7 @@ impl PreviewSpec {
         Self {
             command: CommandSpec {
                 inner: vec![
-                    MultiTemplate::parse(command)
+                    Template::parse(command)
                         .expect("Failed to parse preview command"),
                 ],
                 interactive: false,
@@ -375,18 +419,18 @@ mod tests {
     fn test_command_spec_get_nth() {
         let command_spec = CommandSpec {
             inner: vec![
-                MultiTemplate::parse("cmd1").unwrap(),
-                MultiTemplate::parse("cmd2").unwrap(),
-                MultiTemplate::parse("cmd3").unwrap(),
+                Template::parse("cmd1").unwrap(),
+                Template::parse("cmd2").unwrap(),
+                Template::parse("cmd3").unwrap(),
             ],
             interactive: false,
             env: FxHashMap::default(),
         };
 
-        assert_eq!(command_spec.get_nth(0).template_string(), "cmd1");
-        assert_eq!(command_spec.get_nth(1).template_string(), "cmd2");
-        assert_eq!(command_spec.get_nth(2).template_string(), "cmd3");
-        assert_eq!(command_spec.get_nth(3).template_string(), "cmd1"); // wraps around
+        assert_eq!(command_spec.get_nth(0).raw(), "cmd1");
+        assert_eq!(command_spec.get_nth(1).raw(), "cmd2");
+        assert_eq!(command_spec.get_nth(2).raw(), "cmd3");
+        assert_eq!(command_spec.get_nth(3).raw(), "cmd1"); // wraps around
     }
 
     #[test]
@@ -436,11 +480,8 @@ mod tests {
             "fd -t f"
         );
         assert!(!prototype.source.command.interactive);
-        assert_eq!(
-            prototype.source.display.unwrap().template_string(),
-            "{split:/:-1}"
-        );
-        assert_eq!(prototype.source.output.unwrap().template_string(), "{}");
+        assert_eq!(prototype.source.display.unwrap().raw(), "{split:/:-1}");
+        assert_eq!(prototype.source.output.unwrap().raw(), "{}");
         assert_eq!(
             format!("{}", prototype.preview.unwrap().command.inner[0]),
             "bat -n --color=always {}"
@@ -504,13 +545,13 @@ mod tests {
                 .command
                 .inner
                 .iter()
-                .map(string_pipeline::MultiTemplate::template_string)
+                .map(Template::raw)
                 .collect::<Vec<_>>(),
             vec!["fd -t f", "fd -t f --hidden"]
         );
         assert!(!prototype.source.command.interactive);
         assert!(prototype.source.command.env.is_empty());
-        assert_eq!(prototype.source.output.unwrap().template_string(), "{}");
+        assert_eq!(prototype.source.output.unwrap().raw(), "{}");
     }
 
     #[test]
