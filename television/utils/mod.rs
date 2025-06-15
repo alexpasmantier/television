@@ -6,6 +6,7 @@ pub mod hashmaps;
 pub mod indices;
 pub mod input;
 pub mod metadata;
+pub mod paths;
 pub mod rocell;
 pub mod shell;
 pub mod stdin;

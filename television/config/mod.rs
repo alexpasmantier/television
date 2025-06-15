@@ -122,16 +122,30 @@ const USER_CONFIG_ERROR_MSG: &str = "
 
 impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
-    pub fn new(config_env: &ConfigEnv) -> Result<Self> {
+    pub fn new(
+        config_env: &ConfigEnv,
+        custom_config_file: Option<&Path>,
+    ) -> Result<Self> {
         // Load the default_config values as base defaults
         let default_config: Config = default_config_from_file()?;
 
         // if a config file exists, load it and merge it with the default configuration
-        if config_env.config_dir.join(CONFIG_FILE_NAME).is_file() {
-            debug!("Found config file at {:?}", config_env.config_dir);
+        if config_env.config_dir.join(CONFIG_FILE_NAME).is_file()
+            || custom_config_file.is_some()
+        {
+            let config_file = if let Some(path) = custom_config_file {
+                debug!("Using custom configuration file at: {:?}", path);
+                path.to_path_buf()
+            } else {
+                let config_file = config_env.config_dir.join(CONFIG_FILE_NAME);
+                debug!(
+                    "Using default configuration file at: {:?}",
+                    config_file
+                );
+                config_file
+            };
 
-            let user_cfg: Config =
-                Self::load_user_config(&config_env.config_dir)?;
+            let user_cfg: Config = Self::load_user_config(&config_file)?;
 
             // merge the user configuration with the default configuration
             let final_cfg = Self::merge_with_default(default_config, user_cfg);
@@ -156,12 +170,11 @@ impl Config {
         }
     }
 
-    fn load_user_config(config_dir: &Path) -> Result<Self> {
-        let path = config_dir.join(CONFIG_FILE_NAME);
-        let contents = std::fs::read_to_string(&path)?;
+    fn load_user_config(config_file: &Path) -> Result<Self> {
+        let contents = std::fs::read_to_string(config_file)?;
         let user_cfg: Config = toml::from_str(&contents).context(format!(
             "Error parsing configuration file: {}\n{}",
-            path.display(),
+            config_file.display(),
             USER_CONFIG_ERROR_MSG,
         ))?;
         Ok(user_cfg)
@@ -320,7 +333,7 @@ mod tests {
         let mut file = File::create(&config_file).unwrap();
         file.write_all(DEFAULT_CONFIG.as_bytes()).unwrap();
 
-        let config = Config::load_user_config(config_dir).unwrap();
+        let config = Config::load_user_config(&config_file).unwrap();
         assert_eq!(config.application.data_dir, get_data_dir());
         assert_eq!(config.application.config_dir, get_config_dir());
         assert_eq!(config, toml::from_str(DEFAULT_CONFIG).unwrap());
@@ -338,7 +351,7 @@ mod tests {
             _data_dir: get_data_dir(),
             config_dir: config_dir.to_path_buf(),
         };
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.shell_integration.merge_triggers();
@@ -392,7 +405,7 @@ mod tests {
             _data_dir: get_data_dir(),
             config_dir: config_dir.to_path_buf(),
         };
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
@@ -452,7 +465,7 @@ mod tests {
             config_dir: config_dir.to_path_buf(),
         };
 
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
         assert_eq!(
             config.shell_integration.commands.iter().collect::<Vec<_>>(),
@@ -479,7 +492,7 @@ mod tests {
             config_dir: config_dir.to_path_buf(),
         };
 
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
         assert_eq!(
             config.shell_integration.keybindings,
