@@ -47,21 +47,22 @@ async fn main() -> Result<()> {
     let mut config =
         Config::new(&ConfigEnv::init()?, args.config_file.as_deref())?;
 
+    // override configuration values with provided CLI arguments
+    debug!("Applying CLI overrides...");
+    apply_cli_overrides(&args, &mut config);
+
     // handle subcommands
     debug!("Handling subcommands...");
     if let Some(subcommand) = &args.command {
-        handle_subcommand(subcommand, &config, &args)?;
+        handle_subcommand(subcommand, &config)?;
     }
 
     debug!("Loading cable channels...");
-    let cable = load_cable(args.cable_dir.as_ref()).unwrap_or_else(|| exit(1));
+    let cable =
+        load_cable(&config.application.cable_dir).unwrap_or_else(|| exit(1));
 
     // optionally change the working directory
     args.working_directory.as_ref().map(set_current_dir);
-
-    // optionally override configuration values with CLI arguments
-    debug!("Applying CLI overrides...");
-    apply_cli_overrides(&args, &mut config);
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
@@ -106,6 +107,9 @@ async fn main() -> Result<()> {
 ///
 /// This function mutates the configuration in place.
 fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
+    if let Some(cable_dir) = &args.cable_dir {
+        config.application.cable_dir.clone_from(cable_dir);
+    }
     if let Some(tick_rate) = args.tick_rate {
         config.application.tick_rate = tick_rate;
     }
@@ -140,14 +144,10 @@ pub fn set_current_dir(path: &String) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_subcommand(
-    command: &Command,
-    config: &Config,
-    args: &PostProcessedCli,
-) -> Result<()> {
+pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
     match command {
         Command::ListChannels => {
-            list_channels(args.cable_dir.as_deref());
+            list_channels(&config.application.cable_dir);
             exit(0);
         }
         Command::InitShell { shell } => {
