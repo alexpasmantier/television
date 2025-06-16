@@ -148,9 +148,6 @@ where
     D: serde::Deserializer<'de>,
 {
     let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    // FIXME: we want to fall back to the default command if parsing fails
-    // but since everything uses MultiTemplates, we might need a wrapper enum
-    // with a Raw variant.
     Template::parse(&raw).map_err(serde::de::Error::custom)
 }
 
