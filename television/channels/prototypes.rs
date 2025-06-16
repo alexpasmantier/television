@@ -7,7 +7,8 @@ use crate::{
     screen::layout::{InputPosition, Orientation},
 };
 use rustc_hash::FxHashMap;
-use serde::ser::SerializeSeq;
+use serde::{Deserialize, Serialize};
+use serde_with::{OneOrMany, serde_as};
 use string_pipeline::MultiTemplate;
 
 #[derive(Debug, Clone)]
@@ -68,25 +69,35 @@ impl Hash for Template {
     }
 }
 
+impl Serialize for Template {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.raw())
+    }
+}
+
+impl<'de> Deserialize<'de> for Template {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        Template::parse(&raw).map_err(serde::de::Error::custom)
+    }
+}
+
+#[serde_as]
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct CommandSpec {
-    #[serde(
-        rename = "command",
-        deserialize_with = "deserialize_commands",
-        serialize_with = "serialize_commands"
-    )]
+    #[serde(rename = "command")]
+    #[serde_as(as = "OneOrMany<_>")]
     pub inner: Vec<Template>,
     #[serde(default)]
     pub interactive: bool,
     #[serde(default)]
     pub env: FxHashMap<String, String>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(untagged)]
-enum SerializedCommand {
-    Single(String),
-    Multiple(Vec<String>),
 }
 
 impl Display for CommandSpec {
@@ -130,142 +141,6 @@ impl CommandSpec {
     /// If the command spec does not contain any commands.
     pub fn get_nth(&self, index: usize) -> &Template {
         &self.inner[index % self.inner.len()]
-    }
-}
-
-fn serialize_command<S>(
-    command: &Template,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(command.raw())
-}
-
-#[allow(clippy::ref_option)]
-fn serialize_maybe_command<S>(
-    command: &Option<Template>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match command {
-        Some(cmd) => serialize_command(cmd, serializer),
-        None => serializer.serialize_none(),
-    }
-}
-
-#[allow(dead_code)]
-fn deserialize_command<'de, D>(deserializer: D) -> Result<Template, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    Template::parse(&raw).map_err(serde::de::Error::custom)
-}
-
-fn deserialize_maybe_command<'de, D>(
-    deserializer: D,
-) -> Result<Option<Template>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
-    match raw {
-        Some(cmd) => Template::parse(&cmd)
-            .map(Some)
-            .map_err(serde::de::Error::custom),
-        None => Ok(None),
-    }
-}
-
-fn serialize_commands<S>(
-    commands: &[Template],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    if commands.len() == 1 {
-        let raw = commands[0].raw();
-        serializer.serialize_str(raw)
-    } else {
-        let raw: Vec<String> =
-            commands.iter().map(|c| c.raw().to_string()).collect();
-        let mut seq = serializer.serialize_seq(Some(raw.len()))?;
-        for item in raw {
-            seq.serialize_element(&item)?;
-        }
-        seq.end()
-    }
-}
-
-#[allow(clippy::ref_option, dead_code)]
-fn serialize_maybe_commands<S>(
-    commands: Option<&[Template]>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match commands {
-        Some(m) => serialize_commands(m, serializer),
-        None => serializer.serialize_none(),
-    }
-}
-
-fn deserialize_commands<'de, D>(
-    deserializer: D,
-) -> Result<Vec<Template>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let res = match serde::Deserialize::deserialize(deserializer)? {
-        SerializedCommand::Single(cmd) => {
-            Template::parse(&cmd).map(|m| vec![m])
-        }
-        SerializedCommand::Multiple(cmds) => cmds
-            .iter()
-            .map(|cmd| Template::parse(cmd))
-            .collect::<Result<Vec<_>, _>>(),
-    }
-    .map_err(serde::de::Error::custom);
-
-    if let Ok(ref cmds) = res {
-        if cmds.is_empty() {
-            return Err(serde::de::Error::custom(
-                "Command list cannot be empty",
-            ));
-        }
-    }
-
-    res
-}
-
-#[allow(dead_code)]
-fn deserialize_maybe_commands<'de, D>(
-    deserializer: D,
-) -> Result<Option<Vec<Template>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: Option<SerializedCommand> =
-        serde::Deserialize::deserialize(deserializer)?;
-    match raw {
-        Some(template) => {
-            let cmd = match template {
-                SerializedCommand::Single(cmd) => {
-                    Template::parse(&cmd).map(|m| vec![m])
-                }
-                SerializedCommand::Multiple(cmds) => {
-                    cmds.iter().map(|cmd| Template::parse(cmd)).collect()
-                }
-            };
-            cmd.map_err(serde::de::Error::custom).map(Some)
-        }
-        None => Ok(None),
     }
 }
 
@@ -357,17 +232,9 @@ pub struct Metadata {
 pub struct SourceSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub display: Option<Template>,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub output: Option<Template>,
 }
 
@@ -375,11 +242,7 @@ pub struct SourceSpec {
 pub struct PreviewSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub offset: Option<Template>,
 }
 
@@ -418,23 +281,11 @@ pub struct UiSpec {
     pub input_bar_position: Option<InputPosition>,
     #[serde(default)]
     pub preview_size: Option<u16>,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub input_header: Option<Template>,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub preview_header: Option<Template>,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub preview_footer: Option<Template>,
 }
 
