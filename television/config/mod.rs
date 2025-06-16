@@ -239,6 +239,12 @@ impl Config {
         if let Some(input_position) = &ui_spec.input_bar_position {
             self.ui.input_bar_position = *input_position;
         }
+        if let Some(preview_size) = &ui_spec.preview_size {
+            if !preview_size.is_empty() {
+                self.ui.preview_size.clone_from(preview_size);
+                self.ui.current_preview_size_idx = 0;
+            }
+        }
     }
 }
 

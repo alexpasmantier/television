@@ -455,6 +455,7 @@ impl Television {
                     | Action::ToggleSendToChannel
                     | Action::ToggleHelp
                     | Action::TogglePreview
+                    | Action::TogglePreviewSize
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -723,6 +724,14 @@ impl Television {
             Action::TogglePreview => {
                 self.config.ui.show_preview_panel =
                     !self.config.ui.show_preview_panel;
+            }
+            Action::TogglePreviewSize => {
+                // Only cycle if more than one size configured
+                if self.config.ui.preview_size.len() > 1 {
+                    self.config.ui.current_preview_size_idx =
+                        (self.config.ui.current_preview_size_idx + 1)
+                            % self.config.ui.preview_size.len();
+                }
             }
             _ => {}
         }

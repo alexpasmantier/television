@@ -107,6 +107,9 @@ pub enum Action {
     /// Toggle the preview panel.
     #[serde(alias = "toggle_preview")]
     TogglePreview,
+    /// Cycle through configured preview sizes.
+    #[serde(alias = "toggle_preview_size")]
+    TogglePreviewSize,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),

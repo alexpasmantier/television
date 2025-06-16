@@ -23,6 +23,10 @@ pub struct UiConfig {
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
     pub custom_header: Option<String>,
+    #[serde(default = "default_preview_size")]
+    pub preview_size: Vec<u16>,
+    #[serde(skip)]
+    pub current_preview_size_idx: usize,
 }
 
 impl Default for UiConfig {
@@ -38,6 +42,12 @@ impl Default for UiConfig {
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
             custom_header: None,
+            preview_size: vec![50],
+            current_preview_size_idx: 0,
         }
     }
+}
+
+fn default_preview_size() -> Vec<u16> {
+    vec![50]
 }
