@@ -69,13 +69,35 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub input: Option<String>,
 
-    /// Input fields header title
+    /// Input field header template.
     ///
-    /// This can be used to give the input field a custom title e.g. the current
-    /// working directory.
-    /// The default value for the input header is the current channel.
-    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
-    pub custom_header: Option<String>,
+    /// The given value is parsed as a `MultiTemplate`. It is evaluated against
+    /// the current channel name and the resulting text is shown as the input
+    /// field title. Defaults to the current channel name when omitted.
+    #[arg(long = "input-header", value_name = "STRING", verbatim_doc_comment)]
+    pub input_header: Option<String>,
+
+    /// Preview header template
+    ///
+    /// The given value is parsed as a `MultiTemplate`. It is evaluated for every
+    /// entry and its result is displayed above the preview panel.
+    #[arg(
+        long = "preview-header",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub preview_header: Option<String>,
+
+    /// Preview footer template
+    ///
+    /// The given value is parsed as a `MultiTemplate`. It is evaluated for every
+    /// entry and its result is displayed below the preview panel.
+    #[arg(
+        long = "preview-footer",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub preview_footer: Option<String>,
 
     /// The working directory to start the application in.
     ///
