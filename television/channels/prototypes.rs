@@ -58,6 +58,11 @@ impl Display for Template {
 impl PartialEq for Template {
     fn eq(&self, other: &Self) -> bool {
         self.raw() == other.raw()
+            && matches!(
+                (self, other),
+                (Template::StringPipeline(_), Template::StringPipeline(_))
+                    | (Template::Raw(_), Template::Raw(_))
+            )
     }
 }
 
@@ -317,6 +322,41 @@ mod tests {
     }
 
     #[test]
+    fn test_template_serialization() {
+        #[derive(Deserialize, Serialize, Debug, PartialEq)]
+        struct TestStruct {
+            template: Template,
+        }
+        let raw_1 = r#"template = "Hello, {}""#;
+        let raw_2 = r#"template = "Hello, World""#;
+        let raw_3 = r#"template = "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'""#;
+
+        let test_1: TestStruct = from_str(raw_1).unwrap();
+        let test_2: TestStruct = from_str(raw_2).unwrap();
+        let test_3: TestStruct = from_str(raw_3).unwrap();
+
+        assert_eq!(
+            test_1.template,
+            Template::StringPipeline(
+                MultiTemplate::parse("Hello, {}").unwrap()
+            )
+        );
+        assert_eq!(
+            test_2.template,
+            Template::StringPipeline(
+                MultiTemplate::parse("Hello, World").unwrap()
+            )
+        );
+        assert_eq!(
+            test_3.template,
+            Template::Raw(
+                "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
+                    .to_string()
+            )
+        );
+    }
+
+    #[test]
     fn test_channel_prototype_deserialization() {
         let toml_data = r#"
         [metadata]
@@ -329,13 +369,14 @@ mod tests {
         interactive = false
         env = {}
         display = "{split:/:-1}" # only show the last path segment ('/a/b/c' -> 'c')
-        ansi = false
         output = "{}"            # output the full path
+        unknown_field = "ignored" # should be ignored
 
         [preview]
         command = "bat -n --color=always {}"
         env = { "BAT_THEME" = "ansi" }
         interactive = false
+        offset = "3" # why not
 
         [ui]
         layout = "landscape"
@@ -343,6 +384,10 @@ mod tests {
         show_help_bar = false
         show_preview_panel = true
         input_bar_position = "bottom"
+        preview_size = 66
+        input_header = "Input: {}"
+        preview_header = "Preview: {}"
+        preview_footer = "Press 'q' to quit"
 
         [keybindings]
         quit = ["esc", "ctrl-c"]
@@ -362,19 +407,37 @@ mod tests {
             format!("{}", prototype.source.command.inner[0]),
             "fd -t f"
         );
+
         assert!(!prototype.source.command.interactive);
         assert_eq!(prototype.source.display.unwrap().raw(), "{split:/:-1}");
         assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+
+        let preview = prototype.preview.as_ref().unwrap();
         assert_eq!(
-            format!("{}", prototype.preview.unwrap().command.inner[0]),
+            format!("{}", preview.command.inner[0]),
             "bat -n --color=always {}"
         );
+        assert!(!preview.command.interactive);
+        assert_eq!(
+            preview.command.env.get("BAT_THEME"),
+            Some(&"ansi".to_string())
+        );
+        assert_eq!(preview.offset.as_ref().unwrap().raw(), "3");
+
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(100));
         assert!(!(ui.show_help_bar.unwrap()));
         assert!(ui.show_preview_panel.unwrap());
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
+        assert_eq!(ui.preview_size, Some(66));
+        assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(ui.preview_header.as_ref().unwrap().raw(), "Preview: {}");
+        assert_eq!(
+            ui.preview_footer.as_ref().unwrap().raw(),
+            "Press 'q' to quit"
+        );
+
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(
             keybindings.0.get(&Action::Quit),
@@ -483,6 +546,7 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 40
+        preview_footer = "Press 'q' to quit"
         "#;
 
         let prototype: ChannelPrototype = from_str(toml_data).unwrap();
@@ -507,5 +571,12 @@ mod tests {
         assert!(ui.show_help_bar.is_none());
         assert!(ui.show_preview_panel.is_none());
         assert!(ui.input_bar_position.is_none());
+        assert!(ui.preview_size.is_none());
+        assert!(ui.input_header.is_none());
+        assert!(ui.preview_header.is_none());
+        assert_eq!(
+            ui.preview_footer.as_ref().unwrap().raw(),
+            "Press 'q' to quit"
+        );
     }
 }
