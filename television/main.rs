@@ -78,6 +78,7 @@ async fn main() -> Result<()> {
         args.no_remote,
         args.no_help,
         args.no_preview,
+        args.preview_size,
         config.application.tick_rate,
     );
     let mut app =
@@ -119,6 +120,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     }
     if args.no_preview {
         config.ui.show_preview_panel = false;
+    }
+    if let Some(ps) = args.preview_size {
+        config.ui.preview_size = ps;
     }
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =

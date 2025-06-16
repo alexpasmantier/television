@@ -8,7 +8,7 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{entry::Entry, prototypes::ChannelPrototype},
-    config::{Config, default_tick_rate},
+    config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, Key},
     keymap::Keymap,
     render::{RenderingTask, UiState, render},
@@ -29,6 +29,7 @@ pub struct AppOptions {
     pub no_help: bool,
     /// Whether the application should disable the preview panel feature.
     pub no_preview: bool,
+    pub preview_size: Option<u16>,
     pub tick_rate: f64,
 }
 
@@ -40,6 +41,7 @@ impl Default for AppOptions {
             no_remote: false,
             no_help: false,
             no_preview: false,
+            preview_size: Some(DEFAULT_PREVIEW_SIZE),
             tick_rate: default_tick_rate(),
         }
     }
@@ -53,6 +55,7 @@ impl AppOptions {
         no_remote: bool,
         no_help: bool,
         no_preview: bool,
+        preview_size: Option<u16>,
         tick_rate: f64,
     ) -> Self {
         Self {
@@ -61,6 +64,7 @@ impl AppOptions {
             no_remote,
             no_help,
             no_preview,
+            preview_size,
             tick_rate,
         }
     }
@@ -160,6 +164,7 @@ impl App {
             options.no_remote,
             options.no_help,
             options.no_preview,
+            options.preview_size,
             options.exact,
             cable_channels,
         );

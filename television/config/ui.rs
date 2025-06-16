@@ -6,7 +6,8 @@ use crate::screen::layout::{
 
 use super::themes::DEFAULT_THEME;
 
-const DEFAULT_UI_SCALE: u16 = 100;
+pub const DEFAULT_UI_SCALE: u16 = 100;
+pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
@@ -23,6 +24,8 @@ pub struct UiConfig {
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
     pub custom_header: Option<String>,
+
+    pub preview_size: u16,
 }
 
 impl Default for UiConfig {
@@ -38,6 +41,7 @@ impl Default for UiConfig {
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
             custom_header: None,
+            preview_size: DEFAULT_PREVIEW_SIZE,
         }
     }
 }

@@ -146,6 +146,12 @@ pub struct Cli {
     )]
     pub ui_scale: u16,
 
+    /// Percentage of the screen to allocate to the preview panel (1-99).
+    ///
+    /// This value overrides any `preview_size` defined in configuration files or channel prototypes.
+    #[arg(long, value_name = "INTEGER", verbatim_doc_comment)]
+    pub preview_size: Option<u16>,
+
     /// Provide a custom configuration file to use.
     #[arg(long, value_name = "PATH", verbatim_doc_comment)]
     pub config_file: Option<String>,
