@@ -1,3 +1,4 @@
+use crate::channels::prototypes::Template;
 use serde::{Deserialize, Serialize};
 
 use crate::screen::layout::{
@@ -23,9 +24,13 @@ pub struct UiConfig {
     pub orientation: Orientation,
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
-    pub custom_header: Option<String>,
-
     pub preview_size: u16,
+    #[serde(default)]
+    pub input_header: Option<Template>,
+    #[serde(default)]
+    pub preview_header: Option<Template>,
+    #[serde(default)]
+    pub preview_footer: Option<Template>,
 }
 
 impl Default for UiConfig {
@@ -40,8 +45,10 @@ impl Default for UiConfig {
             orientation: Orientation::Landscape,
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
-            custom_header: None,
             preview_size: DEFAULT_PREVIEW_SIZE,
+            input_header: None,
+            preview_header: None,
+            preview_footer: None,
         }
     }
 }

@@ -10,7 +10,7 @@ use television::cli::post_process;
 use television::gh::update_local_channels;
 use television::{
     cable::Cable, channels::prototypes::ChannelPrototype,
-    utils::clipboard::CLIPBOARD,
+    channels::prototypes::Template, utils::clipboard::CLIPBOARD,
 };
 use tracing::{debug, error, info};
 
@@ -81,8 +81,34 @@ async fn main() -> Result<()> {
         args.preview_size,
         config.application.tick_rate,
     );
-    let mut app =
-        App::new(channel_prototype, config, args.input, options, cable);
+    let mut app = App::new(
+        channel_prototype,
+        config,
+        args.input.clone(),
+        options,
+        cable,
+    );
+
+    // Apply CLI template overrides last (highest priority). This must run
+    // AFTER the channel-specific UI spec has been merged (inside
+    // `Television::new`) so that CLI flags win over both global and channel
+    // configuration.
+    if let Some(ref s) = args.input_header {
+        if let Ok(t) = Template::parse(s) {
+            app.television.config.ui.input_header = Some(t);
+        }
+    }
+    if let Some(ref s) = args.preview_header {
+        if let Ok(t) = Template::parse(s) {
+            app.television.config.ui.preview_header = Some(t);
+        }
+    }
+    if let Some(ref s) = args.preview_footer {
+        if let Ok(t) = Template::parse(s) {
+            app.television.config.ui.preview_footer = Some(t);
+        }
+    }
+
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -127,9 +153,6 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
             merge_keybindings(config.keybindings.clone(), keybindings);
-    }
-    if let Some(header) = &args.custom_header {
-        config.ui.custom_header = Some(header.to_string());
     }
     config.ui.ui_scale = args.ui_scale;
 }
