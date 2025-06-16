@@ -10,7 +10,10 @@ use crate::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template,
     },
     cli::args::{Cli, Command},
-    config::{KeyBindings, get_config_dir, get_data_dir},
+    config::{
+        DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE, KeyBindings, get_config_dir,
+        get_data_dir,
+    },
     utils::paths::expand_tilde,
 };
 
@@ -35,6 +38,7 @@ pub struct PostProcessedCli {
     pub no_remote: bool,
     pub no_help: bool,
     pub ui_scale: u16,
+    pub preview_size: Option<u16>,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
 }
@@ -57,7 +61,8 @@ impl Default for PostProcessedCli {
             select_1: false,
             no_remote: false,
             no_help: false,
-            ui_scale: 100,
+            ui_scale: DEFAULT_UI_SCALE,
+            preview_size: Some(DEFAULT_PREVIEW_SIZE),
             config_file: None,
             cable_dir: None,
         }
@@ -120,6 +125,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         no_remote: cli.no_remote,
         no_help: cli.no_help,
         ui_scale: cli.ui_scale,
+        preview_size: cli.preview_size,
         config_file: cli.config_file.map(expand_tilde),
         cable_dir: cli.cable_dir.map(expand_tilde),
     }

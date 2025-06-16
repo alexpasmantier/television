@@ -213,12 +213,7 @@ impl Layout {
         // split the main block into 1 or 2 chunks (results + preview)
         let constraints = if show_preview {
             // Determine the desired preview percentage (as configured by the user)
-            let raw_preview_percentage = ui_config
-                .preview_size
-                .get(ui_config.current_preview_size_idx)
-                .copied()
-                .unwrap_or(50)
-                .clamp(1, 99); // ensure sane value
+            let raw_preview_percentage = ui_config.preview_size.clamp(1, 99); // ensure sane value
 
             // In portrait orientation, reserve the input bar height from the total
             // vertical space before applying the percentage split so the preview
@@ -372,12 +367,7 @@ impl Layout {
                 // If preview is enabled, calculate the concrete percentages now
                 if let Some(p_idx) = preview_idx {
                     // Determine preview percentage from config
-                    let preview_pct = ui_config
-                        .preview_size
-                        .get(ui_config.current_preview_size_idx)
-                        .copied()
-                        .unwrap_or(50)
-                        .clamp(1, 99);
+                    let preview_pct = ui_config.preview_size.clamp(1, 99);
 
                     // Remaining for results
                     let results_pct = 100u16.saturating_sub(preview_pct);

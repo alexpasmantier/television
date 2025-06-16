@@ -405,7 +405,7 @@ pub struct UiSpec {
     #[serde(default)]
     pub input_bar_position: Option<InputPosition>,
     #[serde(default)]
-    pub preview_size: Option<Vec<u16>>,
+    pub preview_size: Option<u16>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";

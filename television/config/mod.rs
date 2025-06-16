@@ -240,10 +240,7 @@ impl Config {
             self.ui.input_bar_position = *input_position;
         }
         if let Some(preview_size) = &ui_spec.preview_size {
-            if !preview_size.is_empty() {
-                self.ui.preview_size.clone_from(preview_size);
-                self.ui.current_preview_size_idx = 0;
-            }
+            self.ui.preview_size = *preview_size;
         }
     }
 }
@@ -313,6 +310,8 @@ fn default_frame_rate() -> f64 {
 pub fn default_tick_rate() -> f64 {
     50.0
 }
+
+pub use ui::{DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE};
 
 #[cfg(test)]
 mod tests {

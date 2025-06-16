@@ -66,6 +66,7 @@ pub struct Television {
     pub ui_state: UiState,
     pub no_help: bool,
     pub no_preview: bool,
+    pub preview_size: Option<u16>,
     pub current_command_index: usize,
     pub channel_prototype: ChannelPrototype,
 }
@@ -82,6 +83,7 @@ impl Television {
         no_remote: bool,
         no_help: bool,
         no_preview: bool,
+        preview_size: Option<u16>,
         exact: bool,
         cable_channels: Cable,
     ) -> Self {
@@ -91,7 +93,12 @@ impl Television {
         );
 
         // Apply CLI overrides after prototype merging to ensure they take precedence
-        Self::apply_cli_overrides(&mut config, no_help, no_preview);
+        Self::apply_cli_overrides(
+            &mut config,
+            no_help,
+            no_preview,
+            preview_size,
+        );
 
         debug!("Merged config: {:?}", config);
 
@@ -159,6 +166,7 @@ impl Television {
             ui_state: UiState::default(),
             no_help,
             no_preview,
+            preview_size,
             current_command_index: 0,
             channel_prototype,
         }
@@ -185,6 +193,7 @@ impl Television {
         config: &mut Config,
         no_help: bool,
         no_preview: bool,
+        preview_size: Option<u16>,
     ) {
         if no_help {
             config.ui.show_help_bar = false;
@@ -192,6 +201,9 @@ impl Television {
         }
         if no_preview {
             config.ui.show_preview_panel = false;
+        }
+        if let Some(ps) = preview_size {
+            config.ui.preview_size = ps;
         }
     }
 
@@ -276,6 +288,7 @@ impl Television {
             &mut self.config,
             self.no_help,
             self.no_preview,
+            self.preview_size,
         );
         self.channel_prototype = channel_prototype.clone();
         self.current_command_index = 0;
@@ -455,7 +468,6 @@ impl Television {
                     | Action::ToggleSendToChannel
                     | Action::ToggleHelp
                     | Action::TogglePreview
-                    | Action::TogglePreviewSize
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -725,14 +737,6 @@ impl Television {
                 self.config.ui.show_preview_panel =
                     !self.config.ui.show_preview_panel;
             }
-            Action::TogglePreviewSize => {
-                // Only cycle if more than one size configured
-                if self.config.ui.preview_size.len() > 1 {
-                    self.config.ui.current_preview_size_idx =
-                        (self.config.ui.current_preview_size_idx + 1)
-                            % self.config.ui.preview_size.len();
-                }
-            }
             _ => {}
         }
         Ok(())
@@ -810,6 +814,7 @@ mod test {
             true,
             false,
             false,
+            Some(50),
             true,
             Cable::from_prototypes(vec![]),
         );
@@ -851,6 +856,7 @@ mod test {
             true,
             false,
             false,
+            Some(50),
             true,
             Cable::from_prototypes(vec![]),
         );

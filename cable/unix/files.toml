@@ -11,7 +11,4 @@ command = "bat -n --color=always {}"
 env = { BAT_THEME = "ansi" }
 
 [ui]
-preview_size = [50, 75]
-
-[keybindings]
-toggle_preview_size = "ctrl-p"
+preview_size = 75
