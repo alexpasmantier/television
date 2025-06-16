@@ -1,12 +1,14 @@
 use anyhow::Result;
 use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 use crate::{
     config::KeyBindings,
     screen::layout::{InputPosition, Orientation},
 };
 use rustc_hash::FxHashMap;
-use serde::ser::SerializeSeq;
+use serde::{Deserialize, Serialize};
+use serde_with::{OneOrMany, serde_as};
 use string_pipeline::MultiTemplate;
 
 #[derive(Debug, Clone)]
@@ -53,25 +55,54 @@ impl Display for Template {
     }
 }
 
+impl PartialEq for Template {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw() == other.raw()
+            && matches!(
+                (self, other),
+                (Template::StringPipeline(_), Template::StringPipeline(_))
+                    | (Template::Raw(_), Template::Raw(_))
+            )
+    }
+}
+
+impl Eq for Template {}
+
+impl Hash for Template {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.raw().hash(state);
+    }
+}
+
+impl Serialize for Template {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.raw())
+    }
+}
+
+impl<'de> Deserialize<'de> for Template {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let raw = String::deserialize(deserializer)?;
+        Template::parse(&raw).map_err(serde::de::Error::custom)
+    }
+}
+
+#[serde_as]
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct CommandSpec {
-    #[serde(
-        rename = "command",
-        deserialize_with = "deserialize_commands",
-        serialize_with = "serialize_commands"
-    )]
+    #[serde(rename = "command")]
+    #[serde_as(as = "OneOrMany<_>")]
     pub inner: Vec<Template>,
     #[serde(default)]
     pub interactive: bool,
     #[serde(default)]
     pub env: FxHashMap<String, String>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(untagged)]
-enum SerializedCommand {
-    Single(String),
-    Multiple(Vec<String>),
 }
 
 impl Display for CommandSpec {
@@ -115,142 +146,6 @@ impl CommandSpec {
     /// If the command spec does not contain any commands.
     pub fn get_nth(&self, index: usize) -> &Template {
         &self.inner[index % self.inner.len()]
-    }
-}
-
-fn serialize_command<S>(
-    command: &Template,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(command.raw())
-}
-
-#[allow(clippy::ref_option)]
-fn serialize_maybe_command<S>(
-    command: &Option<Template>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match command {
-        Some(cmd) => serialize_command(cmd, serializer),
-        None => serializer.serialize_none(),
-    }
-}
-
-#[allow(dead_code)]
-fn deserialize_command<'de, D>(deserializer: D) -> Result<Template, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: String = serde::Deserialize::deserialize(deserializer)?;
-    Template::parse(&raw).map_err(serde::de::Error::custom)
-}
-
-fn deserialize_maybe_command<'de, D>(
-    deserializer: D,
-) -> Result<Option<Template>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: Option<String> = serde::Deserialize::deserialize(deserializer)?;
-    match raw {
-        Some(cmd) => Template::parse(&cmd)
-            .map(Some)
-            .map_err(serde::de::Error::custom),
-        None => Ok(None),
-    }
-}
-
-fn serialize_commands<S>(
-    commands: &[Template],
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    if commands.len() == 1 {
-        let raw = commands[0].raw();
-        serializer.serialize_str(raw)
-    } else {
-        let raw: Vec<String> =
-            commands.iter().map(|c| c.raw().to_string()).collect();
-        let mut seq = serializer.serialize_seq(Some(raw.len()))?;
-        for item in raw {
-            seq.serialize_element(&item)?;
-        }
-        seq.end()
-    }
-}
-
-#[allow(clippy::ref_option, dead_code)]
-fn serialize_maybe_commands<S>(
-    commands: Option<&[Template]>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match commands {
-        Some(m) => serialize_commands(m, serializer),
-        None => serializer.serialize_none(),
-    }
-}
-
-fn deserialize_commands<'de, D>(
-    deserializer: D,
-) -> Result<Vec<Template>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let res = match serde::Deserialize::deserialize(deserializer)? {
-        SerializedCommand::Single(cmd) => {
-            Template::parse(&cmd).map(|m| vec![m])
-        }
-        SerializedCommand::Multiple(cmds) => cmds
-            .iter()
-            .map(|cmd| Template::parse(cmd))
-            .collect::<Result<Vec<_>, _>>(),
-    }
-    .map_err(serde::de::Error::custom);
-
-    if let Ok(ref cmds) = res {
-        if cmds.is_empty() {
-            return Err(serde::de::Error::custom(
-                "Command list cannot be empty",
-            ));
-        }
-    }
-
-    res
-}
-
-#[allow(dead_code)]
-fn deserialize_maybe_commands<'de, D>(
-    deserializer: D,
-) -> Result<Option<Vec<Template>>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    let raw: Option<SerializedCommand> =
-        serde::Deserialize::deserialize(deserializer)?;
-    match raw {
-        Some(template) => {
-            let cmd = match template {
-                SerializedCommand::Single(cmd) => {
-                    Template::parse(&cmd).map(|m| vec![m])
-                }
-                SerializedCommand::Multiple(cmds) => {
-                    cmds.iter().map(|cmd| Template::parse(cmd)).collect()
-                }
-            };
-            cmd.map_err(serde::de::Error::custom).map(Some)
-        }
-        None => Ok(None),
     }
 }
 
@@ -342,17 +237,9 @@ pub struct Metadata {
 pub struct SourceSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub display: Option<Template>,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub output: Option<Template>,
 }
 
@@ -360,11 +247,7 @@ pub struct SourceSpec {
 pub struct PreviewSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
-    #[serde(
-        default,
-        deserialize_with = "deserialize_maybe_command",
-        serialize_with = "serialize_maybe_command"
-    )]
+    #[serde(default)]
     pub offset: Option<Template>,
 }
 
@@ -397,12 +280,18 @@ pub struct UiSpec {
     #[serde(default)]
     pub show_preview_panel: Option<bool>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
-    #[serde(rename = "layout", default)]
+    #[serde(rename = "layout", alias = "orientation", default)]
     pub orientation: Option<Orientation>,
     #[serde(default)]
     pub input_bar_position: Option<InputPosition>,
     #[serde(default)]
     pub preview_size: Option<u16>,
+    #[serde(default)]
+    pub input_header: Option<Template>,
+    #[serde(default)]
+    pub preview_header: Option<Template>,
+    #[serde(default)]
+    pub preview_footer: Option<Template>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
@@ -433,6 +322,41 @@ mod tests {
     }
 
     #[test]
+    fn test_template_serialization() {
+        #[derive(Deserialize, Serialize, Debug, PartialEq)]
+        struct TestStruct {
+            template: Template,
+        }
+        let raw_1 = r#"template = "Hello, {}""#;
+        let raw_2 = r#"template = "Hello, World""#;
+        let raw_3 = r#"template = "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'""#;
+
+        let test_1: TestStruct = from_str(raw_1).unwrap();
+        let test_2: TestStruct = from_str(raw_2).unwrap();
+        let test_3: TestStruct = from_str(raw_3).unwrap();
+
+        assert_eq!(
+            test_1.template,
+            Template::StringPipeline(
+                MultiTemplate::parse("Hello, {}").unwrap()
+            )
+        );
+        assert_eq!(
+            test_2.template,
+            Template::StringPipeline(
+                MultiTemplate::parse("Hello, World").unwrap()
+            )
+        );
+        assert_eq!(
+            test_3.template,
+            Template::Raw(
+                "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
+                    .to_string()
+            )
+        );
+    }
+
+    #[test]
     fn test_channel_prototype_deserialization() {
         let toml_data = r#"
         [metadata]
@@ -445,13 +369,14 @@ mod tests {
         interactive = false
         env = {}
         display = "{split:/:-1}" # only show the last path segment ('/a/b/c' -> 'c')
-        ansi = false
         output = "{}"            # output the full path
+        unknown_field = "ignored" # should be ignored
 
         [preview]
         command = "bat -n --color=always {}"
         env = { "BAT_THEME" = "ansi" }
         interactive = false
+        offset = "3" # why not
 
         [ui]
         layout = "landscape"
@@ -459,6 +384,10 @@ mod tests {
         show_help_bar = false
         show_preview_panel = true
         input_bar_position = "bottom"
+        preview_size = 66
+        input_header = "Input: {}"
+        preview_header = "Preview: {}"
+        preview_footer = "Press 'q' to quit"
 
         [keybindings]
         quit = ["esc", "ctrl-c"]
@@ -478,19 +407,37 @@ mod tests {
             format!("{}", prototype.source.command.inner[0]),
             "fd -t f"
         );
+
         assert!(!prototype.source.command.interactive);
         assert_eq!(prototype.source.display.unwrap().raw(), "{split:/:-1}");
         assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+
+        let preview = prototype.preview.as_ref().unwrap();
         assert_eq!(
-            format!("{}", prototype.preview.unwrap().command.inner[0]),
+            format!("{}", preview.command.inner[0]),
             "bat -n --color=always {}"
         );
+        assert!(!preview.command.interactive);
+        assert_eq!(
+            preview.command.env.get("BAT_THEME"),
+            Some(&"ansi".to_string())
+        );
+        assert_eq!(preview.offset.as_ref().unwrap().raw(), "3");
+
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(100));
         assert!(!(ui.show_help_bar.unwrap()));
         assert!(ui.show_preview_panel.unwrap());
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
+        assert_eq!(ui.preview_size, Some(66));
+        assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(ui.preview_header.as_ref().unwrap().raw(), "Preview: {}");
+        assert_eq!(
+            ui.preview_footer.as_ref().unwrap().raw(),
+            "Press 'q' to quit"
+        );
+
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(
             keybindings.0.get(&Action::Quit),
@@ -599,6 +546,7 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 40
+        preview_footer = "Press 'q' to quit"
         "#;
 
         let prototype: ChannelPrototype = from_str(toml_data).unwrap();
@@ -623,5 +571,12 @@ mod tests {
         assert!(ui.show_help_bar.is_none());
         assert!(ui.show_preview_panel.is_none());
         assert!(ui.input_bar_position.is_none());
+        assert!(ui.preview_size.is_none());
+        assert!(ui.input_header.is_none());
+        assert!(ui.preview_header.is_none());
+        assert_eq!(
+            ui.preview_footer.as_ref().unwrap().raw(),
+            "Press 'q' to quit"
+        );
     }
 }

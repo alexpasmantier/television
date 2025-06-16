@@ -51,7 +51,11 @@ impl PreviewState {
         scroll: u16,
         target_line: Option<u16>,
     ) {
-        if self.preview.title != preview.title || self.scroll != scroll {
+        if self.preview.title != preview.title
+            || self.preview.content != preview.content
+            || self.preview.footer != preview.footer
+            || self.scroll != scroll
+        {
             self.preview = preview;
             self.scroll = scroll;
             self.target_line = target_line;
@@ -91,6 +95,7 @@ impl PreviewState {
                 cropped_content,
                 self.preview.icon,
                 self.preview.total_lines,
+                self.preview.footer.clone(),
             ),
             num_skipped_lines,
             target_line,

@@ -29,6 +29,7 @@ pub fn draw_preview_content_block(
         colorscheme,
         preview_state.preview.icon,
         &preview_state.preview.title,
+        &preview_state.preview.footer,
         use_nerd_font_icons,
     )?;
     // render the preview content
@@ -138,6 +139,7 @@ fn draw_content_outer_block(
     colorscheme: &Colorscheme,
     icon: Option<FileIcon>,
     title: &str,
+    footer: &str,
     use_nerd_font_icons: bool,
 ) -> Result<Rect> {
     let mut preview_title_spans = vec![Span::from(" ")];
@@ -153,7 +155,7 @@ fn draw_content_outer_block(
             Style::default().fg(Color::from_str(icon.color)?),
         ));
     }
-    // preview title
+    // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable(
@@ -167,13 +169,26 @@ fn draw_content_outer_block(
     ));
     preview_title_spans.push(Span::from(" "));
 
-    // build the preview block
-    let preview_outer_block = Block::default()
-        .title_top(
-            Line::from(preview_title_spans)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(colorscheme.preview.title_fg)),
-        )
+    let mut block = Block::default();
+    block = block.title_top(
+        Line::from(preview_title_spans)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(colorscheme.preview.title_fg)),
+    );
+
+    // preview footer
+    if !footer.is_empty() {
+        let footer_line = Line::from(vec![
+            Span::from(" "),
+            Span::from(footer),
+            Span::from(" "),
+        ])
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(colorscheme.preview.title_fg));
+        block = block.title_bottom(footer_line);
+    }
+
+    let preview_outer_block = block
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
