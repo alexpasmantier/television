@@ -1,4 +1,6 @@
-use std::{collections::HashSet, path::PathBuf, time::Duration};
+use std::{
+    collections::HashSet, path::PathBuf, thread::sleep, time::Duration,
+};
 
 use television::{
     action::Action,
@@ -34,8 +36,8 @@ fn setup_app(
         .join("target_dir");
     std::env::set_current_dir(&target_dir).unwrap();
 
-    let chan: ChannelPrototype =
-        channel_prototype.unwrap_or(ChannelPrototype::new("files", "fd -t f"));
+    let chan: ChannelPrototype = channel_prototype
+        .unwrap_or(ChannelPrototype::new("files", "find . -type f"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
     config.application.tick_rate = 100.0;
@@ -55,8 +57,8 @@ fn setup_app(
         input,
         options,
         Cable::from_prototypes(vec![
-            ChannelPrototype::new("files", "fd -t f"),
-            ChannelPrototype::new("dirs", "fd -t d"),
+            ChannelPrototype::new("files", "find . -type f"),
+            ChannelPrototype::new("dirs", "find . -type d"),
             ChannelPrototype::new("env", "printenv"),
         ]),
     );
@@ -103,6 +105,7 @@ async fn test_app_basic_search() {
     // send actions to the app
     for c in "file1".chars() {
         tx.send(Action::AddInputChar(c)).unwrap();
+        sleep(Duration::from_millis(100));
     }
     tx.send(Action::ConfirmSelection).unwrap();
 
@@ -115,7 +118,7 @@ async fn test_app_basic_search() {
     assert!(output.selected_entries.is_some());
     assert_eq!(
         &output.selected_entries.unwrap().drain().next().unwrap().raw,
-        "file1.txt"
+        "./file1.txt"
     );
 }
 
@@ -150,7 +153,10 @@ async fn test_app_basic_search_multiselect() {
             .iter()
             .map(|e| &e.raw)
             .collect::<HashSet<_>>(),
-        HashSet::from([&"file1.txt".to_string(), &"file2.txt".to_string()])
+        HashSet::from([
+            &"./file1.txt".to_string(),
+            &"./file2.txt".to_string()
+        ])
     );
 }
 
@@ -209,7 +215,10 @@ async fn test_app_exact_search_positive() {
             .iter()
             .map(|e| &e.raw)
             .collect::<HashSet<_>>(),
-        HashSet::from([&"file1.txt".to_string(), &"file2.txt".to_string()])
+        HashSet::from([
+            &"./file1.txt".to_string(),
+            &"./file2.txt".to_string()
+        ])
     );
 }
 
