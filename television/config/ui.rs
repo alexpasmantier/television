@@ -1,3 +1,4 @@
+use crate::channels::prototypes::Template;
 use serde::{Deserialize, Serialize};
 
 use crate::screen::layout::{
@@ -8,6 +9,34 @@ use super::themes::DEFAULT_THEME;
 
 pub const DEFAULT_UI_SCALE: u16 = 100;
 pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
+
+fn serialize_maybe_template<S>(
+    template: &Option<Template>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match template {
+        Some(tpl) => serializer.serialize_str(tpl.raw()),
+        None => serializer.serialize_none(),
+    }
+}
+
+fn deserialize_maybe_template<'de, D>(
+    deserializer: D,
+) -> Result<Option<Template>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw: Option<String> = Option::<String>::deserialize(deserializer)?;
+    match raw {
+        Some(s) => Template::parse(&s)
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
 
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
@@ -24,8 +53,25 @@ pub struct UiConfig {
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
     pub custom_header: Option<String>,
-
     pub preview_size: u16,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_template",
+        serialize_with = "serialize_maybe_template"
+    )]
+    pub input_header: Option<Template>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_template",
+        serialize_with = "serialize_maybe_template"
+    )]
+    pub preview_header: Option<Template>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_template",
+        serialize_with = "serialize_maybe_template"
+    )]
+    pub preview_footer: Option<Template>,
 }
 
 impl Default for UiConfig {
@@ -42,6 +88,9 @@ impl Default for UiConfig {
             theme: String::from(DEFAULT_THEME),
             custom_header: None,
             preview_size: DEFAULT_PREVIEW_SIZE,
+            input_header: None,
+            preview_header: None,
+            preview_footer: None,
         }
     }
 }
