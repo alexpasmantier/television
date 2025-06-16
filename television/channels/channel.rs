@@ -90,12 +90,7 @@ impl Channel {
                         .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.raw(), item.inner));
 
                     entry = entry.with_line_number(
-                        offset_str.parse::<usize>().unwrap_or_else(|_| {
-                            panic!(
-                                "Failed to parse line number from {}",
-                                offset_str
-                            );
-                        }),
+                        offset_str.parse::<usize>().unwrap_or(0),
                     );
                 }
             }
