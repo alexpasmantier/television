@@ -239,6 +239,17 @@ impl Config {
         if let Some(input_position) = &ui_spec.input_bar_position {
             self.ui.input_bar_position = *input_position;
         }
+        if let Some(input_header) = &ui_spec.input_header {
+            self.ui.input_header = Some(input_header.clone());
+        }
+
+        if let Some(preview_header) = &ui_spec.preview_header {
+            self.ui.preview_header = Some(preview_header.clone());
+        }
+
+        if let Some(preview_footer) = &ui_spec.preview_footer {
+            self.ui.preview_footer = Some(preview_footer.clone());
+        }
     }
 }
 

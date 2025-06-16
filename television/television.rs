@@ -176,6 +176,21 @@ impl Television {
         // ui
         if let Some(ui_spec) = &channel_prototype.ui {
             config.apply_prototype_ui_spec(ui_spec);
+            if config.ui.input_header.is_none() {
+                if let Some(header_tpl) = &ui_spec.input_header {
+                    config.ui.input_header = Some(header_tpl.clone());
+                }
+            }
+            if config.ui.preview_header.is_none() {
+                if let Some(ph) = &ui_spec.preview_header {
+                    config.ui.preview_header = Some(ph.clone());
+                }
+            }
+            if config.ui.preview_footer.is_none() {
+                if let Some(pf) = &ui_spec.preview_footer {
+                    config.ui.preview_footer = Some(pf.clone());
+                }
+            }
         }
         config
     }
@@ -478,7 +493,21 @@ impl Television {
             }
             // available previews
             let entry = selected_entry.as_ref().unwrap();
-            if let Ok(preview) = receiver.try_recv() {
+            if let Ok(mut preview) = receiver.try_recv() {
+                if let Some(tpl) = &self.config.ui.preview_header {
+                    preview.title = tpl
+                        .format(&entry.raw)
+                        .unwrap_or_else(|_| entry.raw.clone());
+                } else {
+                    preview.title.clone_from(&entry.raw);
+                }
+
+                if let Some(ftpl) = &self.config.ui.preview_footer {
+                    preview.footer = ftpl
+                        .format(&entry.raw)
+                        .unwrap_or_else(|_| String::new());
+                }
+
                 let scroll = entry
                     .line_number
                     .unwrap_or(0)

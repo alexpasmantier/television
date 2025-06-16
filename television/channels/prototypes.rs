@@ -1,5 +1,6 @@
 use anyhow::Result;
 use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 use crate::{
     config::KeyBindings,
@@ -50,6 +51,20 @@ impl Template {
 impl Display for Template {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.raw())
+    }
+}
+
+impl PartialEq for Template {
+    fn eq(&self, other: &Self) -> bool {
+        self.raw() == other.raw()
+    }
+}
+
+impl Eq for Template {}
+
+impl Hash for Template {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.raw().hash(state);
     }
 }
 
@@ -400,10 +415,30 @@ pub struct UiSpec {
     #[serde(default)]
     pub show_preview_panel: Option<bool>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
-    #[serde(rename = "layout", default)]
+    #[serde(rename = "layout", alias = "orientation", default)]
     pub orientation: Option<Orientation>,
     #[serde(default)]
     pub input_bar_position: Option<InputPosition>,
+    #[serde(default)]
+    pub preview_size: Option<Vec<u16>>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub input_header: Option<Template>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub preview_header: Option<Template>,
+    #[serde(
+        default,
+        deserialize_with = "deserialize_maybe_command",
+        serialize_with = "serialize_maybe_command"
+    )]
+    pub preview_footer: Option<Template>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
