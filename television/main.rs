@@ -89,26 +89,6 @@ async fn main() -> Result<()> {
         cable,
     );
 
-    // Apply CLI template overrides last (highest priority). This must run
-    // AFTER the channel-specific UI spec has been merged (inside
-    // `Television::new`) so that CLI flags win over both global and channel
-    // configuration.
-    if let Some(ref s) = args.input_header {
-        if let Ok(t) = Template::parse(s) {
-            app.television.config.ui.input_header = Some(t);
-        }
-    }
-    if let Some(ref s) = args.preview_header {
-        if let Ok(t) = Template::parse(s) {
-            app.television.config.ui.preview_header = Some(t);
-        }
-    }
-    if let Some(ref s) = args.preview_footer {
-        if let Ok(t) = Template::parse(s) {
-            app.television.config.ui.preview_footer = Some(t);
-        }
-    }
-
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -155,6 +135,21 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
             merge_keybindings(config.keybindings.clone(), keybindings);
     }
     config.ui.ui_scale = args.ui_scale;
+    if let Some(input_header) = &args.input_header {
+        if let Ok(t) = Template::parse(input_header) {
+            config.ui.input_header = Some(t);
+        }
+    }
+    if let Some(preview_header) = &args.preview_header {
+        if let Ok(t) = Template::parse(preview_header) {
+            config.ui.preview_header = Some(t);
+        }
+    }
+    if let Some(preview_footer) = &args.preview_footer {
+        if let Ok(t) = Template::parse(preview_footer) {
+            config.ui.preview_footer = Some(t);
+        }
+    }
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
@@ -382,11 +377,26 @@ mod tests {
         let args = PostProcessedCli {
             tick_rate: Some(100_f64),
             no_preview: true,
+            input_header: Some("Input Header".to_string()),
+            preview_header: Some("Preview Header".to_string()),
+            preview_footer: Some("Preview Footer".to_string()),
             ..Default::default()
         };
         apply_cli_overrides(&args, &mut config);
 
         assert_eq!(config.application.tick_rate, 100_f64);
         assert!(!config.ui.show_preview_panel);
+        assert_eq!(
+            config.ui.input_header,
+            Some(Template::parse("Input Header").unwrap())
+        );
+        assert_eq!(
+            config.ui.preview_header,
+            Some(Template::parse("Preview Header").unwrap())
+        );
+        assert_eq!(
+            config.ui.preview_footer,
+            Some(Template::parse("Preview Footer").unwrap())
+        );
     }
 }
