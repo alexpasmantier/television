@@ -10,5 +10,3 @@ command = ["fd -t f", "fd -t f -H"]
 command = "bat -n --color=always {}"
 env = { BAT_THEME = "ansi" }
 
-[ui]
-preview_size = 75
