@@ -211,6 +211,34 @@ fn tv_remote_control() {
     assert_exit_ok(&mut child, DEFAULT_TIMEOUT);
 }
 
+#[test]
+fn tv_custom_input_header_and_preview_size() {
+    let pty_system = native_pty_system();
+    // Create a new pty
+    let pair = pty_system.openpty(DEFAULT_PTY_SIZE).unwrap();
+
+    // Spawn a tv process in the pty
+    let mut cmd = tv_command("files");
+    cmd.args(["--input-header", "bagels"]);
+    let mut child = pair.slave.spawn_command(cmd).unwrap();
+    sleep(Duration::from_millis(200));
+
+    // Read the output from the pty
+    let mut buf = [0; 5096];
+    let mut reader = pair.master.try_clone_reader().unwrap();
+    let _ = reader.read(&mut buf).unwrap();
+    let output = String::from_utf8_lossy(&buf);
+
+    assert!(output.contains("bagels"));
+
+    // Send Ctrl-C to the process
+    let mut writer = pair.master.take_writer().unwrap();
+    writeln!(writer, "\x03").unwrap(); // Ctrl-C
+    sleep(Duration::from_millis(200));
+
+    assert_exit_ok(&mut child, DEFAULT_TIMEOUT);
+}
+
 macro_rules! test_channel {
     ($($name:ident: $channel_name:expr,)*) => {
     $(

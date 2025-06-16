@@ -101,6 +101,7 @@ pub struct Preview {
     pub content: String,
     pub icon: Option<FileIcon>,
     pub total_lines: u16,
+    pub footer: String,
 }
 
 const DEFAULT_PREVIEW_TITLE: &str = "Select an entry to preview";
@@ -112,6 +113,7 @@ impl Default for Preview {
             content: String::new(),
             icon: None,
             total_lines: 1,
+            footer: String::new(),
         }
     }
 }
@@ -122,12 +124,14 @@ impl Preview {
         content: String,
         icon: Option<FileIcon>,
         total_lines: u16,
+        footer: String,
     ) -> Self {
         Self {
             title: title.to_string(),
             content,
             icon,
             total_lines,
+            footer,
         }
     }
 }
@@ -243,6 +247,7 @@ pub fn try_preview(
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+                String::new(),
             )
         } else {
             let (content, _) = replace_non_printable(
@@ -256,6 +261,7 @@ pub fn try_preview(
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+                String::new(),
             )
         }
     };
