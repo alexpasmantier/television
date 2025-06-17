@@ -126,4 +126,7 @@ pub enum Action {
     /// Reload the current source command.
     #[serde(alias = "reload_source")]
     ReloadSource,
+    /// Switch to the specified channel directly via shortcut.
+    #[serde(skip)]
+    SwitchToChannel(String),
 }
