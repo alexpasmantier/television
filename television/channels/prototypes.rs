@@ -149,6 +149,23 @@ impl CommandSpec {
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default)]
+pub struct ChannelKeyBindings {
+    /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
+    #[serde(default)]
+    pub shortcut: Option<String>,
+    /// Regular action -> binding mappings living at channel level.
+    #[serde(flatten)]
+    #[serde(default)]
+    pub bindings: KeyBindings,
+}
+
+impl ChannelKeyBindings {
+    pub fn shortcut_key(&self) -> Option<&str> {
+        self.shortcut.as_deref()
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
@@ -159,7 +176,7 @@ pub struct ChannelPrototype {
     #[serde(default, rename = "ui")]
     pub ui: Option<UiSpec>,
     #[serde(default)]
-    pub keybindings: Option<KeyBindings>,
+    pub keybindings: Option<ChannelKeyBindings>,
     // actions: Vec<Action>,
 }
 
@@ -440,11 +457,11 @@ mod tests {
 
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(
-            keybindings.0.get(&Action::Quit),
+            keybindings.bindings.0.get(&Action::Quit),
             Some(&Binding::MultipleKeys(vec![Key::Esc, Key::Ctrl('c')]))
         );
         assert_eq!(
-            keybindings.0.get(&Action::SelectNextEntry),
+            keybindings.bindings.0.get(&Action::SelectNextEntry),
             Some(&Binding::MultipleKeys(vec![
                 Key::Down,
                 Key::Ctrl('n'),
@@ -452,7 +469,7 @@ mod tests {
             ]))
         );
         assert_eq!(
-            keybindings.0.get(&Action::SelectPrevEntry),
+            keybindings.bindings.0.get(&Action::SelectPrevEntry),
             Some(&Binding::MultipleKeys(vec![
                 Key::Up,
                 Key::Ctrl('p'),
@@ -460,7 +477,7 @@ mod tests {
             ]))
         );
         assert_eq!(
-            keybindings.0.get(&Action::ConfirmSelection),
+            keybindings.bindings.0.get(&Action::ConfirmSelection),
             Some(&Binding::SingleKey(Key::Enter))
         );
     }

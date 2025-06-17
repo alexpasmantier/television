@@ -179,7 +179,7 @@ impl Layout {
         }
 
         let remote_constraints = if show_remote {
-            vec![Constraint::Fill(1), Constraint::Length(24)]
+            vec![Constraint::Fill(1), Constraint::Length(32)]
         } else {
             vec![Constraint::Fill(1)]
         };

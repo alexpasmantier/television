@@ -10,3 +10,5 @@ command = ["fd -t f", "fd -t f -H"]
 command = "bat -n --color=always {}"
 env = { BAT_THEME = "ansi" }
 
+[keybindings]
+shortcut = "f1"
