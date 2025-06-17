@@ -2,7 +2,7 @@ use crate::action::Action;
 use crate::event::{Key, convert_raw_event_to_key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
@@ -29,7 +29,12 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// A set of keybindings for various actions in the application.
+///
+/// This struct is a wrapper around a `FxHashMap` that maps `Action`s to their corresponding
+/// `Binding`s. It's main use is to provide a convenient way to manage and serialize/deserialize
+/// keybindings from the configuration file as well as channel prototypes.
 pub struct KeyBindings(pub FxHashMap<Action, Binding>);
 
 impl<I> From<I> for KeyBindings
@@ -77,47 +82,6 @@ pub fn merge_keybindings(
         keybindings.insert(action.clone(), binding.clone());
     }
     keybindings
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
-pub enum SerializedBinding {
-    SingleKey(String),
-    MultipleKeys(Vec<String>),
-}
-
-impl<'de> Deserialize<'de> for KeyBindings {
-    fn deserialize<D>(deserializer: D) -> anyhow::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let parsed_map =
-            FxHashMap::<Action, SerializedBinding>::deserialize(deserializer)?;
-
-        let keybindings: FxHashMap<Action, Binding> = parsed_map
-            .into_iter()
-            .map(|(cmd, binding)| {
-                (
-                    cmd,
-                    match binding {
-                        SerializedBinding::SingleKey(key_str) => {
-                            Binding::SingleKey(parse_key(&key_str).unwrap())
-                        }
-                        SerializedBinding::MultipleKeys(keys_str) => {
-                            Binding::MultipleKeys(
-                                keys_str
-                                    .iter()
-                                    .map(|key_str| parse_key(key_str).unwrap())
-                                    .collect(),
-                            )
-                        }
-                    },
-                )
-            })
-            .collect();
-
-        Ok(KeyBindings(keybindings))
-    }
 }
 
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
