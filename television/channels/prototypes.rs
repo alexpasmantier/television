@@ -9,6 +9,7 @@ use crate::{
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
+use std::collections::HashMap;
 use string_pipeline::MultiTemplate;
 
 #[derive(Debug, Clone)]
@@ -160,6 +161,9 @@ pub struct ChannelPrototype {
     pub ui: Option<UiSpec>,
     #[serde(default)]
     pub keybindings: Option<KeyBindings>,
+    /// Mapping of destination channel name -> template for argument generation.
+    #[serde(default, rename = "transition")]
+    pub transition: Option<HashMap<String, Template>>,
     // actions: Vec<Action>,
 }
 
@@ -182,11 +186,11 @@ impl ChannelPrototype {
                 },
                 display: None,
                 output: None,
-                transition: None,
             },
             preview: None,
             ui: None,
             keybindings: None,
+            transition: None,
         }
     }
 
@@ -207,11 +211,11 @@ impl ChannelPrototype {
                 },
                 display: None,
                 output: None,
-                transition: None,
             },
             preview,
             ui: None,
             keybindings: None,
+            transition: None,
         }
     }
 
@@ -243,8 +247,6 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
-    #[serde(default)]
-    pub transition: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

@@ -1,3 +1,4 @@
+use crate::channels::prototypes::Template;
 use crate::{
     action::Action,
     cable::Cable,
@@ -26,6 +27,7 @@ use crate::{
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -458,6 +460,10 @@ impl Television {
             }
         }
     }
+
+    fn transition_map(&self) -> Option<&HashMap<String, Template>> {
+        self.channel_prototype.transition.as_ref()
+    }
 }
 
 /// Always render the first N ticks.
@@ -674,11 +680,16 @@ impl Television {
                         .unwrap()
                         .zap(entry.raw.as_str());
 
-                    // If we were in a transition-selection flow, inject args.
                     if self.pending_transition_entries.is_some() {
-                        self.inject_pending_entries_into_prototype(
-                            &mut new_channel,
-                        );
+                        let dest_name = entry.raw.as_str();
+                        if let Some(tmap) = self.transition_map() {
+                            self.inject_entries_for_destination(
+                                &mut new_channel,
+                                dest_name,
+                                &self.pending_transition_entries,
+                                tmap,
+                            );
+                        }
                         // Clear pending state.
                         self.pending_transition_entries = None;
                     }
@@ -732,47 +743,53 @@ impl Television {
             return;
         }
 
-        // Ensure the source prototype actually defines transition targets.
-        let Some(targets) = &self.channel_prototype.source.transition else {
+        let Some(transitions) = self.transition_map() else {
             return;
         };
 
-        if targets.is_empty() {
+        if transitions.is_empty() {
             return;
         }
 
-        // Retrieve the cable registry through the remote control.
-        let Some(rc) = &self.remote_control else {
-            tracing::warn!(
-                "Transition requested but no cable registry available (remote control disabled)"
-            );
+        let available_names: Vec<&String> = transitions
+            .keys()
+            .filter(|name| {
+                self.remote_control
+                    .as_ref()
+                    .unwrap()
+                    .has_channel(name.as_str())
+            })
+            .collect();
+
+        if available_names.is_empty() {
             return;
-        };
+        }
 
-        // Fast-path: if there is exactly one destination, switch immediately.
-        if targets.len() == 1 {
-            let mut target_prototype = rc.zap(&targets[0]);
+        if available_names.len() == 1 {
+            let dest_name_ref = available_names[0];
+            let dest_name = dest_name_ref.clone(); // owned String
 
-            // Forward the currently selected/hovered entries so they can be injected.
+            let mut target_prototype = self.remote_control.as_ref().unwrap().zap(dest_name.as_str());
+
             let temp_entries = self.get_selected_entries(None);
-            self.pending_transition_entries = temp_entries;
+            self.inject_entries_for_destination(
+                &mut target_prototype,
+                &dest_name,
+                &temp_entries,
+                transitions,
+            );
 
-            self.inject_pending_entries_into_prototype(&mut target_prototype);
-
-            // Clear temporary state.
-            self.pending_transition_entries = None;
-
+            // After borrow on `transitions` is no longer used, we can mutate `self`.
             self.change_channel(target_prototype, true);
             return;
         }
 
         // Interactive mode – let the user pick the destination.
-        // First capture the entries that must be forwarded once the destination is chosen.
-        let pending = self.get_selected_entries(None);
+        let pending_entries = self.get_selected_entries(None);
 
         // Build a temporary cable containing only the listed targets.
         let subset_prototypes: Vec<_> =
-            targets.iter().map(|name| rc.zap(name)).collect();
+            available_names.iter().map(|name| self.remote_control.as_ref().unwrap().zap(name)).collect();
 
         let subset_cable =
             crate::cable::Cable::from_prototypes(subset_prototypes);
@@ -783,7 +800,7 @@ impl Television {
         self.remote_control = Some(new_rc);
         self.rc_picker = crate::picker::Picker::new(None);
         self.mode = Mode::RemoteControl;
-        self.pending_transition_entries = pending;
+        self.pending_transition_entries = pending_entries;
 
         self.update_rc_picker_state();
     }
@@ -795,7 +812,6 @@ impl Television {
         prototype: &mut ChannelPrototype,
     ) {
         if let Some(entries_set) = &self.pending_transition_entries {
-            use crate::channels::prototypes::Template;
             let args = entries_set
                 .iter()
                 .map(|e| {
@@ -940,6 +956,39 @@ impl Television {
         }
         if let Some(prev) = self.transition_history.pop() {
             self.change_channel(prev, false);
+        }
+    }
+
+    fn inject_entries_for_destination(
+        &self,
+        target_prototype: &mut ChannelPrototype,
+        dest_name: &str,
+        entries_opt: &Option<FxHashSet<Entry>>,
+        transitions: &HashMap<String, Template>,
+    ) {
+        let Some(tpl) = transitions.get(dest_name) else {
+            // No template defined for this destination – nothing to inject.
+            return;
+        };
+
+        let Some(entries) = entries_opt else {
+            return;
+        };
+
+        let args = entries
+            .iter()
+            .map(|e| tpl.format(&e.raw).unwrap_or_else(|_| e.raw.clone()))
+            .collect::<Vec<_>>()
+            .join(" ");
+
+        if args.is_empty() {
+            return;
+        }
+
+        for cmd_tpl in &mut target_prototype.source.command.inner {
+            let new_raw = format!("{} {}", cmd_tpl.raw(), args);
+            *cmd_tpl =
+                Template::parse(&new_raw).unwrap_or(Template::Raw(new_raw));
         }
     }
 }

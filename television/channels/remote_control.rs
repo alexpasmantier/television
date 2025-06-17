@@ -30,6 +30,10 @@ impl RemoteControl {
     pub fn zap(&self, channel_name: &str) -> ChannelPrototype {
         self.cable_channels.get_channel(channel_name)
     }
+
+    pub fn has_channel(&self, channel_name: &str) -> bool {
+        self.cable_channels.has_channel(channel_name)
+    }
 }
 
 const TV_ICON: FileIcon = FileIcon {

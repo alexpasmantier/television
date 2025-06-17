@@ -5,7 +5,13 @@ requirements = ["fd"]
 
 [source]
 command = ["fd -t d .", "fd -t d --hidden ."]
-transition = ["text", "files"]
 
 [preview]
 command = "ls -la --color=always {}"
+
+[transition]
+# remove trailing /
+files = ". {replace:s/\\/$//g}"
+# use extra command flag on top of the arguments
+text = "--with-filename {}"
+pepe = "{}"
