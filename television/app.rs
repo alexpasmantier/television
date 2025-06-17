@@ -173,7 +173,7 @@ impl App {
         let keymap = Keymap::from(&television.config.keybindings);
         debug!("{:?}", keymap);
 
-        Self {
+        let mut app = Self {
             keymap,
             television,
             should_quit: false,
@@ -188,7 +188,12 @@ impl App {
             ui_state_tx,
             render_task: None,
             options,
-        }
+        };
+
+        // populate keymap with channel shortcuts if remote control is present
+        app.update_keymap();
+
+        app
     }
 
     /// Update the keymap from the television's current config.
@@ -197,6 +202,22 @@ impl App {
     fn update_keymap(&mut self) {
         self.keymap = Keymap::from(&self.television.config.keybindings);
         debug!("Updated keymap: {:?}", self.keymap);
+
+        // Add channel specific shortcuts
+        if let Some(rc) = &self.television.remote_control {
+            for (channel_name, kb) in rc.shortcuts_iter() {
+                if let Some(shortcut) = &kb.shortcut {
+                    if let Ok(key) = crate::config::parse_key(shortcut) {
+                        self.keymap.0.insert(
+                            key,
+                            Action::SwitchToChannel(channel_name.clone()),
+                        );
+                    }
+                }
+            }
+        }
+
+        debug!("Updated keymap (with shortcuts): {:?}", self.keymap);
     }
 
     /// Run the application main loop.
@@ -448,6 +469,9 @@ impl App {
                     && matches!(action, Action::ConfirmSelection)
                     && self.television.mode == Mode::Channel
                 {
+                    self.update_keymap();
+                } else if matches!(action, Action::SwitchToChannel(_)) {
+                    // Channel changed via shortcut, refresh keymap
                     self.update_keymap();
                 }
             }
