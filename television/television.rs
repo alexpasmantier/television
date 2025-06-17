@@ -179,7 +179,7 @@ impl Television {
         let mut config = base_config.clone();
         // keybindings
         if let Some(keybindings) = &channel_prototype.keybindings {
-            config.merge_keybindings(keybindings);
+            config.merge_keybindings(&keybindings.bindings);
         }
         // ui
         if let Some(ui_spec) = &channel_prototype.ui {
@@ -755,6 +755,12 @@ impl Television {
             }
             Action::ReloadSource => {
                 self.handle_reload_source();
+            }
+            Action::SwitchToChannel(channel_name) => {
+                if let Some(rc) = &self.remote_control {
+                    let prototype = rc.zap(channel_name);
+                    self.change_channel(prototype);
+                }
             }
             Action::ToggleHelp => {
                 if self.no_help {
