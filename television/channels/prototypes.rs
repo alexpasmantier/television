@@ -2,6 +2,7 @@ use anyhow::Result;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
 
+use crate::config::Binding;
 use crate::{
     config::KeyBindings,
     screen::layout::{InputPosition, Orientation},
@@ -153,17 +154,11 @@ impl CommandSpec {
 pub struct ChannelKeyBindings {
     /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
     #[serde(default)]
-    pub shortcut: Option<String>,
+    pub shortcut: Option<Binding>,
     /// Regular action -> binding mappings living at channel level.
     #[serde(flatten)]
     #[serde(default)]
     pub bindings: KeyBindings,
-}
-
-impl ChannelKeyBindings {
-    pub fn shortcut_key(&self) -> Option<&str> {
-        self.shortcut.as_deref()
-    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
