@@ -6,7 +6,7 @@ use rustc_hash::FxHashSet;
 
 use crate::{
     action::Action,
-    channels::entry::Entry,
+    channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
     previewer::state::PreviewState,
@@ -70,8 +70,8 @@ impl Hash for ChannelState {
 pub struct TvState {
     pub mode: Mode,
     pub selected_entry: Option<Entry>,
-    pub results_picker: Picker,
-    pub rc_picker: Picker,
+    pub results_picker: Picker<Entry>,
+    pub rc_picker: Picker<CableEntry>,
     pub channel_state: ChannelState,
     pub spinner: Spinner,
     pub preview_state: PreviewState,
@@ -82,8 +82,8 @@ impl TvState {
     pub fn new(
         mode: Mode,
         selected_entry: Option<Entry>,
-        results_picker: Picker,
-        rc_picker: Picker,
+        results_picker: Picker<Entry>,
+        rc_picker: Picker<CableEntry>,
         channel_state: ChannelState,
         spinner: Spinner,
         preview_state: PreviewState,
@@ -183,7 +183,7 @@ impl Ctx {
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
 pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
-    let show_remote = !matches!(ctx.tv_state.mode, Mode::Channel);
+    let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
 
     let layout = Layout::build(
         area,

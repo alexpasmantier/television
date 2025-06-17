@@ -29,7 +29,9 @@ pub struct AppOptions {
     pub no_help: bool,
     /// Whether the application should disable the preview panel feature.
     pub no_preview: bool,
+    /// The size of the preview panel in lines/columns.
     pub preview_size: Option<u16>,
+    /// The tick rate of the application in ticks per second (Hz).
     pub tick_rate: f64,
 }
 
@@ -190,33 +192,30 @@ impl App {
             options,
         };
 
-        // populate keymap with channel shortcuts if remote control is present
+        // populate keymap by going through all cable channels and adding their shortcuts if remote
+        // control is present
         app.update_keymap();
 
         app
     }
 
     /// Update the keymap from the television's current config.
-    /// This should be called whenever the channel changes to ensure
-    /// the keymap includes the channel's keybindings.
+    ///
+    /// This should be called whenever the channel changes to ensure the keymap includes the
+    /// channel's keybindings and shortcuts for all other channels if the remote control is
+    /// enabled.
     fn update_keymap(&mut self) {
-        self.keymap = Keymap::from(&self.television.config.keybindings);
-        debug!("Updated keymap: {:?}", self.keymap);
+        let mut keymap = Keymap::from(&self.television.config.keybindings);
 
         // Add channel specific shortcuts
         if let Some(rc) = &self.television.remote_control {
-            for (channel_name, kb) in rc.shortcuts_iter() {
-                if let Some(shortcut) = &kb.shortcut {
-                    if let Ok(key) = crate::config::parse_key(shortcut) {
-                        self.keymap.0.insert(
-                            key,
-                            Action::SwitchToChannel(channel_name.clone()),
-                        );
-                    }
-                }
-            }
+            let shortcut_keybindings =
+                rc.cable_channels.get_channels_shortcut_keybindings();
+            let shortcut_keymap = Keymap::from(&shortcut_keybindings);
+            keymap.merge(&shortcut_keymap);
         }
 
+        self.keymap = keymap;
         debug!("Updated keymap (with shortcuts): {:?}", self.keymap);
     }
 
@@ -425,9 +424,8 @@ impl App {
                         if !self.render_tx.is_closed() {
                             self.render_tx.send(RenderingTask::Quit)?;
                         }
-                        if let Some(entries) = self
-                            .television
-                            .get_selected_entries(Some(Mode::Channel))
+                        if let Some(entries) =
+                            self.television.get_selected_entries()
                         {
                             return Ok(ActionOutcome::Entries(entries));
                         }

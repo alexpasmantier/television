@@ -16,7 +16,7 @@ use std::fmt::Write;
 use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;
 
-const POINTER_SYMBOL: &str = "> ";
+pub const POINTER_SYMBOL: &str = "> ";
 const SELECTED_SYMBOL: &str = "● ";
 const DESELECTED_SYMBOL: &str = "  ";
 
@@ -32,6 +32,7 @@ fn max_width(available_width: u16, use_icons: bool, is_selected: bool) -> u16 {
 // TODO: could we not just iterate on chars here instead of using the indices?
 // that would avoid quite some computation during the rendering and might fix multibyte char
 // issues (nucleo's indices are actually char-based)
+// TODO: clean this function up (things like `line_number` etc aren't used anymore)
 fn build_result_line<'a>(
     entry: &'a Entry,
     selected_entries: Option<&FxHashSet<Entry>>,

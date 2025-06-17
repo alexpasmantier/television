@@ -9,7 +9,10 @@ use tracing::{debug, error};
 use walkdir::WalkDir;
 
 use crate::{
-    channels::prototypes::ChannelPrototype, cli::unknown_channel_exit,
+    action::Action,
+    channels::prototypes::ChannelPrototype,
+    cli::unknown_channel_exit,
+    config::{Binding, KeyBindings},
 };
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
@@ -29,6 +32,10 @@ impl Deref for Cable {
 }
 
 impl Cable {
+    /// Get a channel prototype by its name.
+    ///
+    /// # Panics
+    /// If the channel does not exist.
     pub fn get_channel(&self, name: &str) -> ChannelPrototype {
         self.get(name)
             .cloned()
@@ -45,6 +52,39 @@ impl Cable {
             map.insert(prototype.metadata.name.clone(), prototype);
         }
         Cable(map)
+    }
+
+    /// Get a hash map of channel names and their related shortcut bindings.
+    ///
+    /// (e.g. "files" -> "F1", "dirs" -> "F2", etc.)
+    pub fn get_channels_shortcut_keybindings(&self) -> KeyBindings {
+        KeyBindings(
+            self.iter()
+                .filter_map(|(name, prototype)| {
+                    if let Some(keybindings) = &prototype.keybindings {
+                        if let Some(binding) = &keybindings.shortcut {
+                            return Some((name.clone(), binding));
+                        }
+                    }
+                    None
+                })
+                .fold(FxHashMap::default(), |mut acc, (name, binding)| {
+                    acc.insert(Action::SwitchToChannel(name), binding.clone());
+                    acc
+                }),
+        )
+    }
+
+    /// Get a channel prototype's shortcut binding.
+    ///
+    /// E.g. if the channel is "files" and the shortcut is "F1",
+    /// this will return `Some(Binding::SingleKey("F1"))`.
+    pub fn get_channel_shortcut(&self, channel_name: &str) -> Option<Binding> {
+        self.get_channel(channel_name)
+            .keybindings
+            .as_ref()
+            .and_then(|keybindings| keybindings.shortcut.as_ref())
+            .cloned()
     }
 }
 
