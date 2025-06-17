@@ -95,6 +95,8 @@ toggle_preview = "ctrl-o"
 reload_source = "ctrl-r"
 # Cycle through the available sources for the current channel
 cycle_sources = "ctrl-s"
+transition = "f2"
+transition_back = "f1"
 
 
 # Shell integration

@@ -69,6 +69,12 @@ pub struct Television {
     pub preview_size: Option<u16>,
     pub current_command_index: usize,
     pub channel_prototype: ChannelPrototype,
+    /// Stack of previously visited channels for `TransitionBack` operations.
+    pub transition_history: Vec<ChannelPrototype>,
+    /// If a transition is in progress (awaiting destination selection), holds the
+    /// set of entries that should be forwarded to the destination channel.
+    pub pending_transition_entries:
+        Option<rustc_hash::FxHashSet<crate::channels::entry::Entry>>,
 }
 
 impl Television {
@@ -169,6 +175,8 @@ impl Television {
             preview_size,
             current_command_index: 0,
             channel_prototype,
+            transition_history: Vec::new(),
+            pending_transition_entries: None,
         }
     }
 
@@ -262,6 +270,7 @@ impl Television {
             channel_state,
             self.spinner,
             self.preview_state.for_render_context(),
+            self.pending_transition_entries.is_some(),
         );
 
         Ctx::new(
@@ -278,7 +287,11 @@ impl Television {
         self.channel.prototype.metadata.name.clone()
     }
 
-    pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
+    pub fn change_channel(
+        &mut self,
+        channel_prototype: ChannelPrototype,
+        record_history: bool,
+    ) {
         // shutdown the current channel and reset state
         self.preview_state.reset();
         self.preview_state.enabled = channel_prototype.preview.is_some();
@@ -291,6 +304,10 @@ impl Television {
                 .send(PreviewRequest::Shutdown)
                 .expect("Failed to send shutdown signal to previewer");
         }
+        if record_history {
+            self.transition_history.push(self.channel_prototype.clone());
+        }
+
         // setup the new channel
         debug!("Changing channel to {:?}", channel_prototype);
         self.preview_handles = Self::setup_previewer(&channel_prototype);
@@ -367,15 +384,21 @@ impl Television {
         &self,
         mode: Option<Mode>,
     ) -> Option<FxHashSet<Entry>> {
-        // if nothing is selected, return the currently hovered entry
-        if self.channel.selected_entries().is_empty()
-            || matches!(mode, Some(Mode::RemoteControl))
-        {
-            return self
-                .get_selected_entry(mode)
-                .map(|e| FxHashSet::from_iter([e]));
+        match mode.unwrap_or(self.mode) {
+            Mode::Channel => {
+                if self.channel.selected_entries().is_empty() {
+                    // No explicit selections; fallback to hovered entry (if any).
+                    self.get_selected_entry(Some(Mode::Channel))
+                        .map(|e| FxHashSet::from_iter([e]))
+                } else {
+                    // Return the explicit selection set.
+                    Some(self.channel.selected_entries().clone())
+                }
+            }
+            Mode::RemoteControl => self
+                .get_selected_entry(Some(Mode::RemoteControl))
+                .map(|e| FxHashSet::from_iter([e])),
         }
-        Some(self.channel.selected_entries().clone())
     }
 
     pub fn select_prev_entry(&mut self, step: u32) {
@@ -486,6 +509,8 @@ impl Television {
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
+                    | Action::Transition
+                    | Action::TransitionBack
             )
     }
 
@@ -643,17 +668,27 @@ impl Television {
             }
             Mode::RemoteControl => {
                 if let Some(entry) = self.get_selected_entry(None) {
-                    let new_channel = self
+                    let mut new_channel = self
                         .remote_control
                         .as_ref()
                         .unwrap()
                         .zap(entry.raw.as_str());
-                    // this resets the RC picker
+
+                    // If we were in a transition-selection flow, inject args.
+                    if self.pending_transition_entries.is_some() {
+                        self.inject_pending_entries_into_prototype(
+                            &mut new_channel,
+                        );
+                        // Clear pending state.
+                        self.pending_transition_entries = None;
+                    }
+
+                    // reset rc picker state and switch back to channel mode
                     self.reset_picker_selection();
                     self.reset_picker_input();
                     self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
-                    self.change_channel(new_channel);
+                    self.change_channel(new_channel, true);
                 }
             }
         }
@@ -687,6 +722,96 @@ impl Television {
             // Preserve the current pattern and re-run the search
             self.find(&current_pattern);
             self.reset_picker_selection();
+        }
+    }
+
+    /// Jump to the first channel listed in the current prototype's `transition` field.
+    fn handle_transition(&mut self) {
+        // Only meaningful from the Channel mode.
+        if self.mode != Mode::Channel {
+            return;
+        }
+
+        // Ensure the source prototype actually defines transition targets.
+        let Some(targets) = &self.channel_prototype.source.transition else {
+            return;
+        };
+
+        if targets.is_empty() {
+            return;
+        }
+
+        // Retrieve the cable registry through the remote control.
+        let Some(rc) = &self.remote_control else {
+            tracing::warn!(
+                "Transition requested but no cable registry available (remote control disabled)"
+            );
+            return;
+        };
+
+        // Fast-path: if there is exactly one destination, switch immediately.
+        if targets.len() == 1 {
+            let mut target_prototype = rc.zap(&targets[0]);
+
+            // Forward the currently selected/hovered entries so they can be injected.
+            let temp_entries = self.get_selected_entries(None);
+            self.pending_transition_entries = temp_entries;
+
+            self.inject_pending_entries_into_prototype(&mut target_prototype);
+
+            // Clear temporary state.
+            self.pending_transition_entries = None;
+
+            self.change_channel(target_prototype, true);
+            return;
+        }
+
+        // Interactive mode – let the user pick the destination.
+        // First capture the entries that must be forwarded once the destination is chosen.
+        let pending = self.get_selected_entries(None);
+
+        // Build a temporary cable containing only the listed targets.
+        let subset_prototypes: Vec<_> =
+            targets.iter().map(|name| rc.zap(name)).collect();
+
+        let subset_cable =
+            crate::cable::Cable::from_prototypes(subset_prototypes);
+
+        // Create the Remote Control restricted to these targets.
+        let new_rc =
+            crate::channels::remote_control::RemoteControl::new(subset_cable);
+        self.remote_control = Some(new_rc);
+        self.rc_picker = crate::picker::Picker::new(None);
+        self.mode = Mode::RemoteControl;
+        self.pending_transition_entries = pending;
+
+        self.update_rc_picker_state();
+    }
+
+    /// Append the pending transition arguments (selected entries) as positional parameters to the
+    /// command templates contained in the given prototype.
+    pub fn inject_pending_entries_into_prototype(
+        &self,
+        prototype: &mut ChannelPrototype,
+    ) {
+        if let Some(entries_set) = &self.pending_transition_entries {
+            use crate::channels::prototypes::Template;
+            let args = entries_set
+                .iter()
+                .map(|e| {
+                    let escaped = e.raw.replace('\'', "'\\''");
+                    format!("'{}'", escaped)
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+
+            if !args.is_empty() {
+                for tpl in &mut prototype.source.command.inner {
+                    let new_raw = format!("{} {}", tpl.raw(), args);
+                    *tpl = Template::parse(&new_raw)
+                        .unwrap_or(Template::Raw(new_raw));
+                }
+            }
         }
     }
 
@@ -756,6 +881,12 @@ impl Television {
             Action::ReloadSource => {
                 self.handle_reload_source();
             }
+            Action::Transition => {
+                self.handle_transition();
+            }
+            Action::TransitionBack => {
+                self.handle_transition_back();
+            }
             Action::ToggleHelp => {
                 if self.no_help {
                     return Ok(());
@@ -800,6 +931,16 @@ impl Television {
         } else {
             None
         })
+    }
+
+    fn handle_transition_back(&mut self) {
+        // Only allow in Channel mode and if we have history
+        if self.mode != Mode::Channel {
+            return;
+        }
+        if let Some(prev) = self.transition_history.pop() {
+            self.change_channel(prev, false);
+        }
     }
 }
 

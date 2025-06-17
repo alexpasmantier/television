@@ -182,6 +182,7 @@ impl ChannelPrototype {
                 },
                 display: None,
                 output: None,
+                transition: None,
             },
             preview: None,
             ui: None,
@@ -206,6 +207,7 @@ impl ChannelPrototype {
                 },
                 display: None,
                 output: None,
+                transition: None,
             },
             preview,
             ui: None,
@@ -241,6 +243,8 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
+    #[serde(default)]
+    pub transition: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

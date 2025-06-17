@@ -26,6 +26,7 @@ pub fn draw_remote_control(
     input_state: &mut Input,
     mode: &Mode,
     colorscheme: &Colorscheme,
+    title: &str,
 ) -> Result<()> {
     let layout = Layout::default()
         .direction(Direction::Vertical)
@@ -46,7 +47,7 @@ pub fn draw_remote_control(
         picker_state,
         colorscheme,
     );
-    draw_rc_input(f, layout[1], input_state, colorscheme)?;
+    draw_rc_input(f, layout[1], input_state, colorscheme, title)?;
     draw_rc_logo(
         f,
         layout[2],
@@ -92,9 +93,10 @@ fn draw_rc_input(
     area: Rect,
     input: &mut Input,
     colorscheme: &Colorscheme,
+    title: &str,
 ) -> Result<()> {
     let input_block = Block::default()
-        .title_top(Line::from("Remote Control").alignment(Alignment::Center))
+        .title_top(Line::from(title).alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
@@ -153,6 +155,7 @@ fn draw_rc_input(
     ));
     Ok(())
 }
+
 fn draw_rc_logo(
     f: &mut Frame,
     area: Rect,

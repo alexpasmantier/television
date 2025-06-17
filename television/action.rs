@@ -126,4 +126,10 @@ pub enum Action {
     /// Reload the current source command.
     #[serde(alias = "reload_source")]
     ReloadSource,
+    /// Transition to the next channel(s) defined in the current channel prototype.
+    #[serde(alias = "transition")]
+    Transition,
+    /// Return to the previous channel after a transition.
+    #[serde(alias = "transition_back")]
+    TransitionBack,
 }

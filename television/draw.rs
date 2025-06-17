@@ -75,6 +75,7 @@ pub struct TvState {
     pub channel_state: ChannelState,
     pub spinner: Spinner,
     pub preview_state: PreviewState,
+    pub in_transition: bool,
 }
 
 impl TvState {
@@ -87,6 +88,7 @@ impl TvState {
         channel_state: ChannelState,
         spinner: Spinner,
         preview_state: PreviewState,
+        in_transition: bool,
     ) -> Self {
         Self {
             mode,
@@ -96,6 +98,7 @@ impl TvState {
             channel_state,
             spinner,
             preview_state,
+            in_transition,
         }
     }
 }
@@ -263,6 +266,12 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
 
     // remote control
     if show_remote {
+        let rc_title = if ctx.tv_state.in_transition {
+            "Select Station"
+        } else {
+            "Remote Control"
+        };
+
         draw_remote_control(
             f,
             layout.remote_control.unwrap(),
@@ -272,6 +281,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.tv_state.mode,
             &ctx.colorscheme,
+            rc_title,
         )?;
     }
 
