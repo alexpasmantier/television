@@ -1,26 +1,32 @@
-use crate::channels::entry::Entry;
-use crate::screen::colors::{Colorscheme, GeneralColorscheme};
+use crate::channels::remote_control::{CABLE_ICON, CableEntry};
+use crate::config::Binding;
+use crate::screen::colors::{
+    Colorscheme, GeneralColorscheme, ResultsColorscheme,
+};
 use crate::screen::logo::build_remote_logo_paragraph;
 use crate::screen::mode::mode_color;
-use crate::screen::results::build_results_list;
+use crate::screen::results::POINTER_SYMBOL;
 use crate::television::Mode;
+use crate::utils::indices::truncate_highlighted_string;
 use crate::utils::input::Input;
+use std::str::FromStr;
 
 use anyhow::Result;
 use ratatui::Frame;
 use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::prelude::Style;
-use ratatui::style::{Color, Stylize};
-use ratatui::text::{Line, Span};
+use ratatui::prelude::{Color, Line, Span, Style};
+use ratatui::style::Stylize;
 use ratatui::widgets::{
-    Block, BorderType, Borders, ListDirection, ListState, Padding, Paragraph,
+    Block, BorderType, Borders, List, ListDirection, ListState, Padding,
+    Paragraph,
 };
+use unicode_width::UnicodeWidthStr;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_remote_control(
     f: &mut Frame,
     rect: Rect,
-    entries: &[Entry],
+    entries: &[CableEntry],
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     input_state: &mut Input,
@@ -59,7 +65,7 @@ pub fn draw_remote_control(
 fn draw_rc_channels(
     f: &mut Frame,
     area: Rect,
-    entries: &[Entry],
+    entries: &[CableEntry],
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     colorscheme: &Colorscheme,
@@ -77,7 +83,6 @@ fn draw_rc_channels(
     let channel_list = build_results_list(
         rc_block,
         entries,
-        None,
         ListDirection::TopToBottom,
         use_nerd_font_icons,
         &colorscheme.results,
@@ -85,6 +90,28 @@ fn draw_rc_channels(
     );
 
     f.render_stateful_widget(channel_list, area, picker_state);
+}
+
+pub fn build_results_list<'a, 'b>(
+    results_block: Block<'b>,
+    entries: &'a [CableEntry],
+    list_direction: ListDirection,
+    use_icons: bool,
+    colorscheme: &ResultsColorscheme,
+    area_width: u16,
+) -> List<'a>
+where
+    'b: 'a,
+{
+    List::new(entries.iter().map(|entry| {
+        build_result_line(entry, use_icons, colorscheme, area_width)
+    }))
+    .direction(list_direction)
+    .highlight_style(
+        Style::default().bg(colorscheme.result_selected_bg).bold(),
+    )
+    .highlight_symbol(POINTER_SYMBOL)
+    .block(results_block)
 }
 
 fn draw_rc_input(
@@ -153,6 +180,134 @@ fn draw_rc_input(
     ));
     Ok(())
 }
+
+fn max_width(
+    area_width: u16,
+    use_icons: bool,
+    channel_shortcut: Option<&Binding>,
+) -> u16 {
+    area_width
+        .saturating_sub(2) // 2 for borders
+        .saturating_sub(2 * u16::from(use_icons)) // 2 for the icon and space
+        .saturating_sub(2) // 2 for the pointer symbol and space
+        .saturating_sub(1) // 1 for the padding
+        // reserve space for the optional shortcut
+        .saturating_sub(if let Some(shortcut) = channel_shortcut {
+            match shortcut {
+                // > entry_1 Ctrl+S
+                Binding::SingleKey(key) => {
+                    // 1 for the key and 1 for the space before it
+                    2 + u16::try_from(key.to_string().len()).unwrap_or(0)
+                }
+                // > entry_2 Ctrl+S Alt+T
+                Binding::MultipleKeys(keys) => {
+                    // each key's length + 1 for the space before it
+                    keys.iter()
+                        .map(|key| {
+                            1 + u16::try_from(key.to_string().len())
+                                .unwrap_or(0)
+                        })
+                        .sum::<u16>()
+                }
+            }
+        } else {
+            0
+        })
+}
+
+fn build_result_line<'a>(
+    entry: &'a CableEntry,
+    use_icons: bool,
+    colorscheme: &ResultsColorscheme,
+    area_width: u16,
+) -> Line<'a> {
+    let mut spans = Vec::new();
+    let name_max_width =
+        max_width(area_width, use_icons, entry.shortcut.as_ref());
+    // optional icon
+    if use_icons {
+        spans.push(Span::styled(
+            CABLE_ICON.icon.to_string(),
+            Style::default().fg(Color::from_str(CABLE_ICON.color).unwrap()),
+        ));
+
+        spans.push(Span::raw(" "));
+    }
+    // if the name is too long, we need to truncate it and add an ellipsis
+    let mut channel_name = entry.channel_name.clone();
+    let mut match_ranges = entry.match_ranges.clone().unwrap_or_default();
+    if channel_name.width() > name_max_width as usize {
+        (channel_name, match_ranges) = truncate_highlighted_string(
+            &channel_name,
+            &match_ranges,
+            name_max_width,
+        );
+    }
+
+    // build the spans for the entry name and match ranges
+    let mut last_match_end = 0;
+    let name_chars = channel_name.chars();
+    let name_len = channel_name.as_str().width();
+    for (start, end) in
+        match_ranges.iter().map(|(s, e)| (*s as usize, *e as usize))
+    {
+        // from the end of the last match to the start of the current one
+        spans.push(Span::styled(
+            name_chars
+                .clone()
+                .skip(last_match_end)
+                .take(start - last_match_end)
+                .collect::<String>(),
+            //channel_name[last_match_end..start].to_string(),
+            Style::default().fg(colorscheme.result_name_fg),
+        ));
+        // the current match
+        spans.push(Span::styled(
+            name_chars
+                .clone()
+                .skip(start)
+                .take(end - start)
+                .collect::<String>(),
+            Style::default().fg(colorscheme.match_foreground_color),
+        ));
+        last_match_end = end;
+    }
+    // we need to push a span for the remainder of the entry name
+    // but only if there's something left
+    if last_match_end < name_len {
+        let remainder = name_chars.skip(last_match_end).collect::<String>();
+        spans.push(Span::styled(
+            remainder,
+            Style::default().fg(colorscheme.result_name_fg),
+        ));
+    }
+    // if the entry has a shortcut, add it
+    if let Some(shortcut) = &entry.shortcut {
+        spans.push(Span::raw(" "));
+        match shortcut {
+            Binding::SingleKey(key) => {
+                spans.push(Span::styled(
+                    key.to_string(),
+                    Style::default().fg(colorscheme.match_foreground_color),
+                ));
+            }
+            Binding::MultipleKeys(keys) => {
+                for (i, key) in keys.iter().enumerate() {
+                    if i > 0 {
+                        spans.push(Span::raw(" "));
+                    }
+                    spans.push(Span::styled(
+                        key.to_string(),
+                        Style::default()
+                            .fg(colorscheme.match_foreground_color),
+                    ));
+                }
+            }
+        }
+    }
+    Line::from(spans)
+}
+
 fn draw_rc_logo(
     f: &mut Frame,
     area: Rect,

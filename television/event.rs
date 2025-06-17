@@ -17,6 +17,8 @@ use serde::{Deserialize, Serialize};
 use tokio::{signal, sync::mpsc};
 use tracing::{debug, trace, warn};
 
+use crate::config::parse_key;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Event<I> {
     Closed,
@@ -27,9 +29,7 @@ pub enum Event<I> {
     Tick,
 }
 
-#[derive(
-    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Hash,
-)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, PartialOrd, Eq, Hash)]
 pub enum Key {
     Backspace,
     Enter,
@@ -67,6 +67,16 @@ pub enum Key {
     Null,
     Esc,
     Tab,
+}
+
+impl<'de> Deserialize<'de> for Key {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        parse_key(&s).map_err(serde::de::Error::custom)
+    }
 }
 
 impl Display for Key {

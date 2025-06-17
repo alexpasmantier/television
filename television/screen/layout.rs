@@ -23,12 +23,6 @@ impl From<u16> for Dimensions {
     }
 }
 
-impl Default for Dimensions {
-    fn default() -> Self {
-        Self::new(UI_WIDTH_PERCENT, UI_HEIGHT_PERCENT)
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HelpBarLayout {
     pub left: Rect,
@@ -117,6 +111,8 @@ impl Default for Layout {
     }
 }
 
+const LOGO_WIDTH: u16 = 24;
+
 impl Layout {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
@@ -164,7 +160,7 @@ impl Layout {
                     // keymaps
                     Constraint::Fill(1),
                     // logo
-                    Constraint::Length(24),
+                    Constraint::Length(LOGO_WIDTH),
                 ])
                 .split(hz_chunks[0]);
 
@@ -179,7 +175,7 @@ impl Layout {
         }
 
         let remote_constraints = if show_remote {
-            vec![Constraint::Fill(1), Constraint::Length(32)]
+            vec![Constraint::Fill(1), Constraint::Length(LOGO_WIDTH)]
         } else {
             vec![Constraint::Fill(1)]
         };
@@ -428,7 +424,3 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
 }
-
-// UI size
-const UI_WIDTH_PERCENT: u16 = 95;
-const UI_HEIGHT_PERCENT: u16 = 95;

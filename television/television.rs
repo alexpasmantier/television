@@ -2,8 +2,10 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{
-        channel::Channel as CableChannel, entry::Entry,
-        prototypes::ChannelPrototype, remote_control::RemoteControl,
+        channel::Channel as CableChannel,
+        entry::Entry,
+        prototypes::ChannelPrototype,
+        remote_control::{CableEntry, RemoteControl},
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
@@ -53,8 +55,8 @@ pub struct Television {
     pub currently_selected: Option<Entry>,
     pub current_pattern: String,
     pub matching_mode: MatchingMode,
-    pub results_picker: Picker,
-    pub rc_picker: Picker,
+    pub results_picker: Picker<Entry>,
+    pub rc_picker: Picker<CableEntry>,
     pub preview_state: PreviewState,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
@@ -342,56 +344,39 @@ impl Television {
         pattern.to_string()
     }
 
-    #[must_use]
-    pub fn get_selected_entry(&self, mode: Option<Mode>) -> Option<Entry> {
-        match mode.unwrap_or(self.mode) {
-            Mode::Channel => {
-                if let Some(i) = self.results_picker.selected() {
-                    return self.channel.get_result(i.try_into().unwrap());
-                }
-                None
-            }
-            Mode::RemoteControl => {
-                if let Some(i) = self.rc_picker.selected() {
-                    if let Some(rc) = &self.remote_control {
-                        return rc.get_result(i.try_into().unwrap());
-                    }
-                }
-                None
+    pub fn get_selected_entry(&self) -> Option<Entry> {
+        if let Some(i) = self.results_picker.selected() {
+            return self.channel.get_result(i.try_into().unwrap());
+        }
+        None
+    }
+
+    pub fn get_selected_cable_entry(&self) -> Option<CableEntry> {
+        if let Some(i) = self.rc_picker.selected() {
+            if let Some(rc) = &self.remote_control {
+                return rc.get_result(i.try_into().unwrap());
             }
         }
+        None
     }
 
     #[must_use]
-    pub fn get_selected_entries(
-        &self,
-        mode: Option<Mode>,
-    ) -> Option<FxHashSet<Entry>> {
+    pub fn get_selected_entries(&self) -> Option<FxHashSet<Entry>> {
         // if nothing is selected, return the currently hovered entry
-        if self.channel.selected_entries().is_empty()
-            || matches!(mode, Some(Mode::RemoteControl))
-        {
+        if self.channel.selected_entries().is_empty() {
             return self
-                .get_selected_entry(mode)
+                .get_selected_entry()
                 .map(|e| FxHashSet::from_iter([e]));
         }
         Some(self.channel.selected_entries().clone())
     }
 
     pub fn select_prev_entry(&mut self, step: u32) {
-        let (result_count, picker) = match self.mode {
-            Mode::Channel => {
-                (self.channel.result_count(), &mut self.results_picker)
-            }
-            Mode::RemoteControl => (
-                self.remote_control.as_ref().unwrap().total_count(),
-                &mut self.rc_picker,
-            ),
-        };
+        let result_count = self.channel.result_count();
         if result_count == 0 {
             return;
         }
-        picker.select_prev(
+        self.results_picker.select_prev(
             step,
             result_count as usize,
             self.ui_state.layout.results.height.saturating_sub(2) as usize,
@@ -399,19 +384,41 @@ impl Television {
     }
 
     pub fn select_next_entry(&mut self, step: u32) {
-        let (result_count, picker) = match self.mode {
-            Mode::Channel => {
-                (self.channel.result_count(), &mut self.results_picker)
-            }
-            Mode::RemoteControl => (
-                self.remote_control.as_ref().unwrap().total_count(),
-                &mut self.rc_picker,
-            ),
-        };
+        let result_count = self.channel.result_count();
         if result_count == 0 {
             return;
         }
-        picker.select_next(
+        self.results_picker.select_next(
+            step,
+            result_count as usize,
+            self.ui_state.layout.results.height.saturating_sub(2) as usize,
+        );
+    }
+
+    pub fn select_prev_cable_entry(&mut self, step: u32) {
+        let result_count = self
+            .remote_control
+            .as_ref()
+            .map_or(0, RemoteControl::result_count);
+        if result_count == 0 {
+            return;
+        }
+        self.rc_picker.select_prev(
+            step,
+            result_count as usize,
+            self.ui_state.layout.results.height.saturating_sub(2) as usize,
+        );
+    }
+
+    pub fn select_next_cable_entry(&mut self, step: u32) {
+        let result_count = self
+            .remote_control
+            .as_ref()
+            .map_or(0, RemoteControl::result_count);
+        if result_count == 0 {
+            return;
+        }
+        self.rc_picker.select_next(
             step,
             result_count as usize,
             self.ui_state.layout.results.height.saturating_sub(2) as usize,
@@ -642,12 +649,12 @@ impl Television {
                 self.action_tx.send(Action::SelectAndExit)?;
             }
             Mode::RemoteControl => {
-                if let Some(entry) = self.get_selected_entry(None) {
+                if let Some(entry) = self.get_selected_cable_entry() {
                     let new_channel = self
                         .remote_control
                         .as_ref()
                         .unwrap()
-                        .zap(entry.raw.as_str());
+                        .zap(&entry.channel_name);
                     // this resets the RC picker
                     self.reset_picker_selection();
                     self.reset_picker_input();
@@ -662,7 +669,7 @@ impl Television {
 
     pub fn handle_copy_entry_to_clipboard(&mut self) {
         if self.mode == Mode::Channel {
-            if let Some(entries) = self.get_selected_entries(None) {
+            if let Some(entries) = self.get_selected_entries() {
                 let copied_string = entries
                     .iter()
                     .map(|e| e.raw.clone())
@@ -704,32 +711,66 @@ impl Television {
             | Action::GoToPrevChar => {
                 self.handle_input_action(action);
             }
-            Action::SelectNextEntry => {
-                self.select_next_entry(1);
-            }
-            Action::SelectPrevEntry => {
-                self.select_prev_entry(1);
-            }
-            Action::SelectNextPage => {
-                self.select_next_entry(
-                    self.ui_state
-                        .layout
-                        .results
-                        .height
-                        .saturating_sub(2)
-                        .into(),
-                );
-            }
-            Action::SelectPrevPage => {
-                self.select_prev_entry(
-                    self.ui_state
-                        .layout
-                        .results
-                        .height
-                        .saturating_sub(2)
-                        .into(),
-                );
-            }
+            Action::SelectNextEntry => match self.mode {
+                Mode::Channel => {
+                    self.select_next_entry(1);
+                }
+                Mode::RemoteControl => {
+                    self.select_next_cable_entry(1);
+                }
+            },
+            Action::SelectPrevEntry => match self.mode {
+                Mode::Channel => {
+                    self.select_prev_entry(1);
+                }
+                Mode::RemoteControl => {
+                    self.select_prev_cable_entry(1);
+                }
+            },
+            Action::SelectNextPage => match self.mode {
+                Mode::Channel => {
+                    self.select_next_entry(
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                    );
+                }
+                Mode::RemoteControl => {
+                    self.select_next_cable_entry(
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                    );
+                }
+            },
+            Action::SelectPrevPage => match self.mode {
+                Mode::Channel => {
+                    self.select_prev_entry(
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                    );
+                }
+                Mode::RemoteControl => {
+                    self.select_prev_cable_entry(
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                    );
+                }
+            },
             Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
             Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
             Action::ScrollPreviewHalfPageDown => {
@@ -790,11 +831,9 @@ impl Television {
             self.update_rc_picker_state();
         }
 
-        if self.mode == Mode::Channel {
-            let selected_entry = self.get_selected_entry(None);
-            self.update_preview_state(&selected_entry)?;
-            self.currently_selected = selected_entry;
-        }
+        let selected_entry = self.get_selected_entry();
+        self.update_preview_state(&selected_entry)?;
+        self.currently_selected = selected_entry;
         self.ticks += 1;
 
         Ok(if self.should_render(action) {

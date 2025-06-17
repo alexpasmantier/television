@@ -20,7 +20,7 @@ use crate::{
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
 };
 
-mod keybindings;
+pub mod keybindings;
 pub mod shell_integration;
 mod themes;
 mod ui;

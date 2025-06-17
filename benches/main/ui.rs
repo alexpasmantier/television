@@ -461,7 +461,7 @@ pub fn draw(c: &mut Criterion) {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
                 tv.select_next_entry(10);
-                let _ = tv.update_preview_state(&tv.get_selected_entry(None));
+                let _ = tv.update_preview_state(&tv.get_selected_entry());
                 let _ = tv.update(&Action::Tick);
                 (tv, terminal)
             },
