@@ -8,3 +8,6 @@ command = ["fd -t d", "fd -t d --hidden"]
 
 [preview]
 command = "ls -la --color=always {}"
+
+[keybindings]
+shortcut = "f2"
