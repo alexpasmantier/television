@@ -209,10 +209,7 @@ impl App {
 
         // Add channel specific shortcuts
         if let Some(rc) = &self.television.remote_control {
-            let shortcut_keybindings =
-                rc.cable_channels.get_channels_shortcut_keybindings();
-            let shortcut_keymap = Keymap::from(&shortcut_keybindings);
-            keymap.merge(&shortcut_keymap);
+            keymap.merge(&rc.cable_channels.shortcut_keymap());
         }
 
         self.keymap = keymap;
