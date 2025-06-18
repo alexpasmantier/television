@@ -1,5 +1,6 @@
 pub mod cache;
 pub mod colors;
+pub mod constants;
 pub mod help;
 pub mod input;
 pub mod keybindings;
@@ -9,5 +10,6 @@ pub mod metadata;
 pub mod mode;
 pub mod preview;
 pub mod remote_control;
+pub mod result_item;
 pub mod results;
 pub mod spinner;
