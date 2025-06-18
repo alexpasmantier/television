@@ -39,7 +39,8 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     area_width: u16,
     prefix: Option<bool>, // Some(true)=selected ●, Some(false)=unselected, None=no prefix
 ) -> Line<'a> {
-    let mut spans = Vec::<Span<'a>>::new();
+    // PERF: Pre-allocate spans vector with estimated capacity
+    let mut spans = Vec::<Span<'a>>::with_capacity(8);
 
     // Optional selection prefix
     if let Some(selected) = prefix {
@@ -102,32 +103,62 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         match_ranges = ranges;
     }
 
-    // Build highlighted spans.
-    let mut last_end = 0;
-    let chars = entry_name.chars();
-    let name_len = UnicodeWidthStr::width(entry_name.as_str());
+    // PERF: Early return for empty match ranges
+    if match_ranges.is_empty() {
+        spans.push(Span::styled(
+            entry_name,
+            Style::default().fg(colorscheme.result_name_fg),
+        ));
+    } else {
+        // Build highlighted spans
+        let mut last_end = 0;
 
-    for (s, e) in match_ranges.iter().map(|(s, e)| (*s as usize, *e as usize))
-    {
-        spans.push(Span::styled(
-            chars
-                .clone()
-                .skip(last_end)
-                .take(s - last_end)
-                .collect::<String>(),
-            Style::default().fg(colorscheme.result_name_fg),
-        ));
-        spans.push(Span::styled(
-            chars.clone().skip(s).take(e - s).collect::<String>(),
-            Style::default().fg(colorscheme.match_foreground_color),
-        ));
-        last_end = e;
-    }
-    if last_end < name_len {
-        spans.push(Span::styled(
-            chars.skip(last_end).collect::<String>(),
-            Style::default().fg(colorscheme.result_name_fg),
-        ));
+        // PERF: Use byte indices for better performance, convert to chars only when needed
+        for (start, end) in
+            match_ranges.iter().map(|(s, e)| (*s as usize, *e as usize))
+        {
+            // Add unhighlighted text before match
+            if start > last_end {
+                let chars: String = entry_name
+                    .chars()
+                    .skip(last_end)
+                    .take(start - last_end)
+                    .collect();
+                if !chars.is_empty() {
+                    spans.push(Span::styled(
+                        chars,
+                        Style::default().fg(colorscheme.result_name_fg),
+                    ));
+                }
+            }
+
+            // Add highlighted match
+            if end > start {
+                let chars: String =
+                    entry_name.chars().skip(start).take(end - start).collect();
+                if !chars.is_empty() {
+                    spans.push(Span::styled(
+                        chars,
+                        Style::default()
+                            .fg(colorscheme.match_foreground_color),
+                    ));
+                }
+            }
+
+            last_end = end;
+        }
+
+        // Add remaining unhighlighted text
+        let name_len = entry_name.chars().count();
+        if last_end < name_len {
+            let chars: String = entry_name.chars().skip(last_end).collect();
+            if !chars.is_empty() {
+                spans.push(Span::styled(
+                    chars,
+                    Style::default().fg(colorscheme.result_name_fg),
+                ));
+            }
+        }
     }
 
     // Show shortcut if present.

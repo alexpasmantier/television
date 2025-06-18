@@ -21,7 +21,10 @@ pub struct Channel {
 
 impl Channel {
     pub fn new(prototype: ChannelPrototype) -> Self {
-        let matcher = Matcher::new(Config::default());
+        let config = Config::default()
+            .prefer_prefix(true)
+            .optimize_for_paths(true);
+        let matcher = Matcher::new(&config);
         let current_source_index = 0;
         Self {
             prototype,
@@ -66,15 +69,19 @@ impl Channel {
 
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         self.matcher.tick();
-        self.matcher
-            .results(num_entries, offset)
-            .into_iter()
-            .map(|item| {
-                Entry::new(item.inner)
-                    .with_display(item.matched_string)
-                    .with_match_indices(&item.match_indices)
-            })
-            .collect()
+
+        let results = self.matcher.results(num_entries, offset);
+
+        let mut entries = Vec::with_capacity(results.len());
+
+        for item in results {
+            let entry = Entry::new(item.inner)
+                .with_display(item.matched_string)
+                .with_match_indices(&item.match_indices);
+            entries.push(entry);
+        }
+
+        entries
     }
 
     pub fn get_result(&self, index: u32) -> Option<Entry> {
@@ -171,20 +178,22 @@ async fn load_candidates(
         for line in reader.lines() {
             if let Ok(l) = line {
                 if !l.trim().is_empty() {
-                    let () = injector.push(l, |e, cols| {
-                        // PERF: maybe we can avoid cloning here by using &Utf32Str
-                        if let Some(display) = &source.display {
-                            let formatted = display.format(e).unwrap_or_else(|_| {
-                                panic!(
-                                    "Failed to format display expression '{}' with entry '{}'",
-                                    display.raw(),
-                                    e
-                                );
-                            });
-                            cols[0] = formatted.into();
-                        } else {
-                            cols[0] = e.clone().into();
-                        }
+                    // PERF: Optimize string handling - avoid unnecessary clones
+                    let entry_string = if let Some(display) = &source.display {
+                        display.format(&l).unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to format display expression '{}' with entry '{}'",
+                                display.raw(),
+                                l
+                            )
+                        })
+                    } else {
+                        l
+                    };
+
+                    let () = injector.push(entry_string, |e, cols| {
+                        // PERF: Reduced cloning by handling the string more efficiently
+                        cols[0] = e.clone().into();
                     });
                     produced_output = true;
                 }

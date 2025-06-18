@@ -50,6 +50,8 @@ where
     pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
+    /// Cache for reused vectors to reduce allocations
+    col_indices_cache: Vec<u32>,
 }
 
 impl<I> Matcher<I>
@@ -57,10 +59,10 @@ where
     I: Sync + Send + Clone + 'static,
 {
     /// Create a new fuzzy matcher with the given configuration.
-    pub fn new(config: config::Config) -> Self {
+    pub fn new(config: &config::Config) -> Self {
         Self {
             inner: nucleo::Nucleo::new(
-                (&config).into(),
+                config.into(),
                 Arc::new(|| {}),
                 config.n_threads,
                 1,
@@ -69,6 +71,7 @@ where
             matched_item_count: 0,
             status: Status::default(),
             last_pattern: String::new(),
+            col_indices_cache: Vec::with_capacity(64), // Pre-allocate for performance
         }
     }
 
@@ -88,7 +91,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
+    /// let matcher = Matcher::new(&config);
     /// let injector = matcher.injector();
     ///
     /// injector.push(
@@ -138,7 +141,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config);
     /// matcher.find("some pattern");
     ///
     /// let results = matcher.results(10, 0);
@@ -159,32 +162,40 @@ where
         self.total_item_count = snapshot.item_count();
         self.matched_item_count = snapshot.matched_item_count();
 
-        let mut col_indices = Vec::new();
+        // Clear cached vector for reuse
+        self.col_indices_cache.clear();
         let mut matcher = lazy::MATCHER.lock();
+        let mut results = Vec::new();
 
-        snapshot
-            .matched_items(
-                offset..(num_entries + offset).min(self.matched_item_count),
-            )
-            .map(move |item| {
-                snapshot.pattern().column_pattern(0).indices(
-                    item.matcher_columns[0].slice(..),
-                    &mut matcher,
-                    &mut col_indices,
-                );
-                col_indices.sort_unstable();
-                col_indices.dedup();
+        for item in snapshot.matched_items(
+            offset..(num_entries + offset).min(self.matched_item_count),
+        ) {
+            snapshot.pattern().column_pattern(0).indices(
+                item.matcher_columns[0].slice(..),
+                &mut matcher,
+                &mut self.col_indices_cache,
+            );
 
-                let indices = col_indices.drain(..);
+            // PERF: Avoid unnecessary sorting if already sorted or small
+            if self.col_indices_cache.len() > 1 {
+                self.col_indices_cache.sort_unstable();
+                self.col_indices_cache.dedup();
+            }
 
-                let matched_string = item.matcher_columns[0].to_string();
-                matched_item::MatchedItem {
-                    inner: item.data.clone(),
-                    matched_string,
-                    match_indices: indices.collect(),
-                }
-            })
-            .collect()
+            let indices: Vec<u32> = self.col_indices_cache.drain(..).collect();
+            let matched_string = item.matcher_columns[0].to_string();
+
+            results.push(matched_item::MatchedItem {
+                inner: item.data.clone(),
+                matched_string,
+                match_indices: indices,
+            });
+
+            // Clear for next iteration
+            self.col_indices_cache.clear();
+        }
+
+        results
     }
 
     /// Get a single matched item.
@@ -194,7 +205,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config);
     /// matcher.find("some pattern");
     ///
     /// if let Some(item) = matcher.get_result(0) {
@@ -207,12 +218,25 @@ where
         index: u32,
     ) -> Option<matched_item::MatchedItem<I>> {
         let snapshot = self.inner.snapshot();
-        snapshot.get_matched_item(index).map(|item| {
+        let mut col_indices = Vec::new();
+        let mut matcher = lazy::MATCHER.lock();
+
+        snapshot.matched_items(index..=index).next().map(|item| {
+            snapshot.pattern().column_pattern(0).indices(
+                item.matcher_columns[0].slice(..),
+                &mut matcher,
+                &mut col_indices,
+            );
+            col_indices.sort_unstable();
+            col_indices.dedup();
+
+            let indices = col_indices.drain(..);
             let matched_string = item.matcher_columns[0].to_string();
+
             matched_item::MatchedItem {
                 inner: item.data.clone(),
                 matched_string,
-                match_indices: Vec::new(),
+                match_indices: indices.collect(),
             }
         })
     }
@@ -227,5 +251,6 @@ where
         self.matched_item_count = 0;
         self.status = Status::default();
         self.last_pattern.clear();
+        self.col_indices_cache.clear();
     }
 }

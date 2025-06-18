@@ -316,10 +316,9 @@ impl Television {
     pub fn find(&mut self, pattern: &str) {
         match self.mode {
             Mode::Channel => {
-                self.channel.find(
-                    Self::preprocess_pattern(self.matching_mode, pattern)
-                        .as_str(),
-                );
+                let processed_pattern =
+                    Self::preprocess_pattern(self.matching_mode, pattern);
+                self.channel.find(&processed_pattern);
             }
             Mode::RemoteControl => {
                 if let Some(rc) = self.remote_control.as_mut() {
@@ -331,20 +330,33 @@ impl Television {
 
     fn preprocess_pattern(mode: MatchingMode, pattern: &str) -> String {
         if mode == MatchingMode::Substring {
-            return pattern
-                .split_ascii_whitespace()
-                .map(|x| {
-                    let mut new = x.to_string();
-                    new.insert(0, '\'');
-                    new
-                })
-                .collect::<Vec<String>>()
-                .join(" ");
+            let parts: Vec<&str> = pattern.split_ascii_whitespace().collect();
+            if parts.is_empty() {
+                return pattern.to_string();
+            }
+
+            let capacity = parts.iter().map(|s| s.len() + 2).sum::<usize>()
+                + parts.len()
+                - 1;
+            let mut result = String::with_capacity(capacity);
+
+            for (i, part) in parts.iter().enumerate() {
+                if i > 0 {
+                    result.push(' ');
+                }
+                result.push('\'');
+                result.push_str(part);
+            }
+            result
+        } else {
+            pattern.to_string()
         }
-        pattern.to_string()
     }
 
     pub fn get_selected_entry(&self) -> Option<Entry> {
+        if self.channel.result_count() == 0 {
+            return None;
+        }
         self.selected_index()
             .and_then(|idx| self.channel.get_result(idx))
     }

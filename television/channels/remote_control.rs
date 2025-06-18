@@ -57,7 +57,8 @@ const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
     pub fn new(cable_channels: Cable) -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher =
+            Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
         for c in cable_channels.keys() {
             let () = injector.push(c.clone(), |e, cols| {
