@@ -13,6 +13,7 @@ use crate::{
     channels::prototypes::ChannelPrototype,
     cli::unknown_channel_exit,
     config::{Binding, KeyBindings},
+    keymap::Keymap,
 };
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
@@ -85,6 +86,12 @@ impl Cable {
             .as_ref()
             .and_then(|keybindings| keybindings.shortcut.as_ref())
             .cloned()
+    }
+
+    /// Build a `Keymap` that contains every channel shortcut defined in the cable.
+    /// Useful for merging directly into the application's global keymap.
+    pub fn shortcut_keymap(&self) -> Keymap {
+        Keymap::from(&self.get_channels_shortcut_keybindings())
     }
 }
 
