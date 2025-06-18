@@ -9,6 +9,7 @@ use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
 use television::channels::prototypes::ChannelPrototype;
+use television::picker::Movement;
 use television::{
     action::Action,
     cable::Cable,
@@ -410,7 +411,6 @@ pub fn draw_results_list(c: &mut Criterion) {
                     .style(Style::default())
                     .padding(Padding::right(1)),
                 &entries,
-                None,
                 ListDirection::BottomToTop,
                 false,
                 &colorscheme,
@@ -461,7 +461,7 @@ pub fn draw(c: &mut Criterion) {
                     let _ = tv.channel.results(10, 0);
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
-                tv.select_next_entry(10);
+                tv.move_cursor(Movement::Next, 10);
                 let _ = tv.update_preview_state(&tv.get_selected_entry());
                 let _ = tv.update(&Action::Tick);
                 (tv, terminal)
