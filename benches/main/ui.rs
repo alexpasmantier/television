@@ -14,7 +14,7 @@ use television::{
     cable::Cable,
     channels::entry::{Entry, into_ranges},
     config::{Config, ConfigEnv},
-    screen::{colors::ResultsColorscheme, results::build_results_list},
+    screen::{colors::ResultsColorscheme, result_item::build_results_list},
     television::Television,
 };
 use tokio::runtime::Runtime;
@@ -415,6 +415,7 @@ pub fn draw_results_list(c: &mut Criterion) {
                 false,
                 &colorscheme,
                 100,
+                |_| None,
             );
         });
     });
