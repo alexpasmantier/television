@@ -46,10 +46,6 @@ impl ResultItem for CableEntry {
     fn shortcut(&self) -> Option<&crate::config::Binding> {
         self.shortcut.as_ref()
     }
-
-    fn line_number(&self) -> Option<u32> {
-        None
-    }
 }
 
 pub struct RemoteControl {
