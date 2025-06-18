@@ -447,10 +447,10 @@ mod tests {
             map
         });
 
-        default_config
-            .shell_integration
-            .keybindings
-            .insert("command_history".to_string(), "ctrl-h".to_string());
+        default_config.shell_integration.keybindings.insert(
+            "command_history".to_string(),
+            Binding::SingleKey(parse_key("ctrl-h").unwrap()),
+        );
         default_config.shell_integration.merge_triggers();
 
         assert_eq!(config.application, default_config.application);
@@ -516,15 +516,21 @@ mod tests {
 
         let config = Config::new(&config_env, None).unwrap();
 
-        assert_eq!(
-            config.shell_integration.keybindings,
-            [
-                (&String::from("command_history"), &String::from("ctrl-[")),
-                (&String::from("smart_autocomplete"), &String::from("ctrl-t"))
-            ]
-            .iter()
-            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
-            .collect()
-        );
+        use crate::config::parse_key;
+        let expected: rustc_hash::FxHashMap<String, Binding> = [
+            (
+                "command_history".to_string(),
+                Binding::SingleKey(parse_key("ctrl-[").unwrap()),
+            ),
+            (
+                "smart_autocomplete".to_string(),
+                Binding::SingleKey(parse_key("ctrl-t").unwrap()),
+            ),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        assert_eq!(config.shell_integration.keybindings, expected);
     }
 }
