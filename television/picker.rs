@@ -102,6 +102,24 @@ impl<T> Picker<T> {
             self.relative_select(Some((height - 1).min(total_items - 1)));
         }
     }
+
+    /// Generic cursor movement helper.
+    pub fn move_cursor(
+        &mut self,
+        movement: Movement,
+        step: u32,
+        total_items: usize,
+        viewport_height: usize,
+    ) {
+        match movement {
+            Movement::Next => {
+                self.select_next(step, total_items, viewport_height);
+            }
+            Movement::Prev => {
+                self.select_prev(step, total_items, viewport_height);
+            }
+        }
+    }
 }
 
 impl<Entry> Picker<Entry> {
@@ -120,6 +138,12 @@ impl<Entry> Picker<Entry> {
     pub(crate) fn relative_select(&mut self, index: Option<usize>) {
         self.relative_state.select(index);
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Movement {
+    Next,
+    Prev,
 }
 
 #[allow(clippy::doc_overindented_list_items)]
