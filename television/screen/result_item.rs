@@ -27,11 +27,6 @@ pub trait ResultItem {
     fn shortcut(&self) -> Option<&Binding> {
         None
     }
-
-    /// Optional line number (file search results).
-    fn line_number(&self) -> Option<u32> {
-        None
-    }
 }
 
 /// Build a single `Line` for a [`ResultItem`].
@@ -156,14 +151,6 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
                 }
             }
         }
-    }
-
-    // Optional line number (only for Entry).
-    if let Some(line) = item.line_number() {
-        spans.push(Span::styled(
-            format!(":{line}"),
-            Style::default().fg(colorscheme.result_line_number_fg),
-        ));
     }
 
     Line::from(spans)
