@@ -156,11 +156,6 @@ impl ResultItem for Entry {
     fn shortcut(&self) -> Option<&Binding> {
         None
     }
-
-    #[allow(clippy::cast_possible_truncation)]
-    fn line_number(&self) -> Option<u32> {
-        self.line_number.map(|l| l as u32)
-    }
 }
 
 #[cfg(test)]
