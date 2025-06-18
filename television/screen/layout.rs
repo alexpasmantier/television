@@ -5,6 +5,7 @@ use ratatui::layout::{Constraint, Direction, Rect};
 use serde::{Deserialize, Serialize};
 
 use crate::config::UiConfig;
+use crate::screen::constants::LOGO_WIDTH;
 
 pub struct Dimensions {
     pub x: u16,
@@ -110,8 +111,6 @@ impl Default for Layout {
         Self::new(None, Rect::new(0, 0, 0, 100), Rect::default(), None, None)
     }
 }
-
-const LOGO_WIDTH: u16 = 24;
 
 impl Layout {
     #[allow(clippy::too_many_arguments)]

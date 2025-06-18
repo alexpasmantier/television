@@ -3,6 +3,7 @@ use crate::{
     channels::{entry::into_ranges, prototypes::ChannelPrototype},
     config::Binding,
     matcher::{Matcher, config::Config},
+    screen::result_item::ResultItem,
 };
 use devicons::FileIcon;
 
@@ -25,6 +26,29 @@ impl CableEntry {
     pub fn with_match_indices(mut self, indices: &[u32]) -> Self {
         self.match_ranges = Some(into_ranges(indices));
         self
+    }
+}
+
+impl ResultItem for CableEntry {
+    fn icon(&self) -> Option<&devicons::FileIcon> {
+        // Remote control entries always share the same popcorn icon
+        Some(&crate::channels::remote_control::CABLE_ICON)
+    }
+
+    fn display(&self) -> &str {
+        &self.channel_name
+    }
+
+    fn match_ranges(&self) -> Option<&[(u32, u32)]> {
+        self.match_ranges.as_deref()
+    }
+
+    fn shortcut(&self) -> Option<&crate::config::Binding> {
+        self.shortcut.as_ref()
+    }
+
+    fn line_number(&self) -> Option<u32> {
+        None
     }
 }
 

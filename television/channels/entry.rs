@@ -3,6 +3,8 @@ use std::hash::{Hash, Hasher};
 use devicons::FileIcon;
 
 use crate::channels::prototypes::Template;
+use crate::config::Binding;
+use crate::screen::result_item::ResultItem;
 
 #[derive(Clone, Debug, Eq)]
 pub struct Entry {
@@ -135,6 +137,29 @@ impl Entry {
             });
         }
         self.raw.clone()
+    }
+}
+
+impl ResultItem for Entry {
+    fn icon(&self) -> Option<&devicons::FileIcon> {
+        self.icon.as_ref()
+    }
+
+    fn display(&self) -> &str {
+        self.display()
+    }
+
+    fn match_ranges(&self) -> Option<&[(u32, u32)]> {
+        self.name_match_ranges.as_deref()
+    }
+
+    fn shortcut(&self) -> Option<&Binding> {
+        None
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    fn line_number(&self) -> Option<u32> {
+        self.line_number.map(|l| l as u32)
     }
 }
 
