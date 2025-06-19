@@ -512,10 +512,32 @@ pub fn make_matched_string_printable(
     matched_string: &str,
     match_ranges: Option<&[(u32, u32)]>,
 ) -> (String, Vec<(u32, u32)>) {
+    // PERF: Fast path for ASCII strings without match ranges
+    if matched_string.is_ascii() && match_ranges.is_none() {
+        return (matched_string.to_string(), Vec::new());
+    }
+
+    // PERF: If ASCII with ranges, check if we need preprocessing (tabs, newlines, etc.)
+    if let Some(ranges) = match_ranges {
+        if matched_string.is_ascii() {
+            // Only use fast path if no characters need preprocessing
+            if !matched_string
+                .chars()
+                .any(|c| c == '\t' || c == '\n' || c.is_control())
+            {
+                return (matched_string.to_string(), ranges.to_vec());
+            }
+        }
+    }
+
+    // Full processing for non-ASCII strings or strings that need preprocessing
     let (printable, transformation_offsets) = preprocess_line(matched_string);
     let mut match_indices = Vec::new();
 
     if let Some(ranges) = match_ranges {
+        // PERF: Pre-allocate with known capacity
+        match_indices.reserve(ranges.len());
+
         for (start, end) in ranges.iter().take_while(|(start, _)| {
             *start < u32::try_from(transformation_offsets.len()).unwrap()
         }) {

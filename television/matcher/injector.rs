@@ -31,7 +31,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
+    /// let matcher = Matcher::new(&config);
     ///
     /// let injector = matcher.injector();
     /// injector.push(

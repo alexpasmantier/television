@@ -86,23 +86,33 @@ impl<T> Picker<T> {
     fn inner_next(&mut self, total_items: usize, height: usize) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
-        self.select(Some(selected.saturating_add(1) % total_items));
-        self.relative_select(Some((relative_selected + 1).min(height - 1)));
-        if self.selected().unwrap() == 0 {
+
+        let new_selected = selected.wrapping_add(1) % total_items;
+        self.select(Some(new_selected));
+
+        if new_selected == 0 {
             self.relative_select(Some(0));
+        } else {
+            self.relative_select(Some(
+                (relative_selected + 1).min(height - 1),
+            ));
         }
     }
 
     fn inner_prev(&mut self, total_items: usize, height: usize) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
-        self.select(Some((selected + (total_items - 1)) % total_items));
-        self.relative_select(Some(relative_selected.saturating_sub(1)));
-        if self.selected().unwrap() == total_items - 1 {
+
+        let new_selected =
+            selected.wrapping_add(total_items - 1) % total_items;
+        self.select(Some(new_selected));
+
+        if new_selected == total_items - 1 {
             self.relative_select(Some((height - 1).min(total_items - 1)));
+        } else {
+            self.relative_select(Some(relative_selected.saturating_sub(1)));
         }
     }
-
     /// Generic cursor movement helper.
     pub fn move_cursor(
         &mut self,
@@ -111,6 +121,11 @@ impl<T> Picker<T> {
         total_items: usize,
         viewport_height: usize,
     ) {
+        // Early return for empty collections
+        if total_items == 0 {
+            return;
+        }
+
         match movement {
             Movement::Next => {
                 self.select_next(step, total_items, viewport_height);

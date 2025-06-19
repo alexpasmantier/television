@@ -57,7 +57,8 @@ const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
     pub fn new(cable_channels: Cable) -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+        let matcher =
+            Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
         for c in cable_channels.keys() {
             let () = injector.push(c.clone(), |e, cols| {
@@ -105,15 +106,14 @@ impl RemoteControl {
             .collect()
     }
 
-    pub fn get_result(&self, index: u32) -> Option<CableEntry> {
-        self.matcher.get_result(index).map(|item| {
-            CableEntry::new(
-                item.matched_string.clone(),
-                self.cable_channels
-                    .get_channel_shortcut(&item.matched_string),
-            )
-            .with_match_indices(&item.match_indices)
-        })
+    pub fn get_result(&self, index: u32) -> CableEntry {
+        let item = self.matcher.get_result(index).expect("Invalid index");
+        CableEntry::new(
+            item.matched_string.clone(),
+            self.cable_channels
+                .get_channel_shortcut(&item.matched_string),
+        )
+        .with_match_indices(&item.match_indices)
     }
 
     pub fn result_count(&self) -> u32 {
