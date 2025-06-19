@@ -106,15 +106,14 @@ impl RemoteControl {
             .collect()
     }
 
-    pub fn get_result(&self, index: u32) -> Option<CableEntry> {
-        self.matcher.get_result(index).map(|item| {
-            CableEntry::new(
-                item.matched_string.clone(),
-                self.cable_channels
-                    .get_channel_shortcut(&item.matched_string),
-            )
-            .with_match_indices(&item.match_indices)
-        })
+    pub fn get_result(&self, index: u32) -> CableEntry {
+        let item = self.matcher.get_result(index).expect("Invalid index");
+        CableEntry::new(
+            item.matched_string.clone(),
+            self.cable_channels
+                .get_channel_shortcut(&item.matched_string),
+        )
+        .with_match_indices(&item.match_indices)
     }
 
     pub fn result_count(&self) -> u32 {

@@ -40,7 +40,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     prefix: Option<bool>, // Some(true)=selected ●, Some(false)=unselected, None=no prefix
 ) -> Line<'a> {
     // PERF: Pre-allocate spans vector with estimated capacity
-    let mut spans = Vec::<Span<'a>>::with_capacity(8);
+    let mut spans = Vec::<Span<'a>>::with_capacity(16);
 
     // Optional selection prefix
     if let Some(selected) = prefix {
@@ -103,42 +103,40 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         match_ranges = ranges;
     }
 
-    // PERF: Early return for empty match ranges
+    // PERF: Early return for empty match ranges - common case optimization
     if match_ranges.is_empty() {
         spans.push(Span::styled(
             entry_name,
             Style::default().fg(colorscheme.result_name_fg),
         ));
     } else {
-        // Build highlighted spans
+        // PERF: Collect chars once to avoid repeated Unicode parsing
+        let chars: Vec<char> = entry_name.chars().collect();
+        let name_len = chars.len();
         let mut last_end = 0;
 
-        // PERF: Use byte indices for better performance, convert to chars only when needed
         for (start, end) in
             match_ranges.iter().map(|(s, e)| (*s as usize, *e as usize))
         {
             // Add unhighlighted text before match
-            if start > last_end {
-                let chars: String = entry_name
-                    .chars()
-                    .skip(last_end)
-                    .take(start - last_end)
-                    .collect();
-                if !chars.is_empty() {
+            if start > last_end && start <= name_len {
+                let text: String =
+                    chars[last_end..start.min(name_len)].iter().collect();
+                if !text.is_empty() {
                     spans.push(Span::styled(
-                        chars,
+                        text,
                         Style::default().fg(colorscheme.result_name_fg),
                     ));
                 }
             }
 
             // Add highlighted match
-            if end > start {
-                let chars: String =
-                    entry_name.chars().skip(start).take(end - start).collect();
-                if !chars.is_empty() {
+            if end > start && start < name_len {
+                let text: String =
+                    chars[start..end.min(name_len)].iter().collect();
+                if !text.is_empty() {
                     spans.push(Span::styled(
-                        chars,
+                        text,
                         Style::default()
                             .fg(colorscheme.match_foreground_color),
                     ));
@@ -149,12 +147,11 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         }
 
         // Add remaining unhighlighted text
-        let name_len = entry_name.chars().count();
         if last_end < name_len {
-            let chars: String = entry_name.chars().skip(last_end).collect();
-            if !chars.is_empty() {
+            let text: String = chars[last_end..].iter().collect();
+            if !text.is_empty() {
                 spans.push(Span::styled(
-                    chars,
+                    text,
                     Style::default().fg(colorscheme.result_name_fg),
                 ));
             }

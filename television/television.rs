@@ -358,14 +358,20 @@ impl Television {
             return None;
         }
         self.selected_index()
-            .and_then(|idx| self.channel.get_result(idx))
+            .map(|idx| self.channel.get_result(idx))
     }
 
     pub fn get_selected_cable_entry(&self) -> Option<CableEntry> {
+        if self
+            .remote_control
+            .as_ref()
+            .map_or(0, RemoteControl::result_count)
+            == 0
+        {
+            return None;
+        }
         self.selected_index().and_then(|idx| {
-            self.remote_control
-                .as_ref()
-                .and_then(|rc| rc.get_result(idx))
+            self.remote_control.as_ref().map(|rc| rc.get_result(idx))
         })
     }
 

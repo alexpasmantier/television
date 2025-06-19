@@ -50,8 +50,8 @@ where
     pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
-    /// Cache for reused vectors to reduce allocations
-    col_indices_cache: Vec<u32>,
+    /// Ephemeral vector to reduce allocations
+    col_indices_buffer: Vec<u32>,
 }
 
 impl<I> Matcher<I>
@@ -71,7 +71,7 @@ where
             matched_item_count: 0,
             status: Status::default(),
             last_pattern: String::new(),
-            col_indices_cache: Vec::with_capacity(64), // Pre-allocate for performance
+            col_indices_buffer: Vec::with_capacity(128), // Pre-allocate for performance
         }
     }
 
@@ -162,8 +162,8 @@ where
         self.total_item_count = snapshot.item_count();
         self.matched_item_count = snapshot.matched_item_count();
 
-        // Clear cached vector for reuse
-        self.col_indices_cache.clear();
+        // Clear ephemeral vector for reuse
+        self.col_indices_buffer.clear();
         let mut matcher = lazy::MATCHER.lock();
         let mut results = Vec::new();
 
@@ -173,16 +173,17 @@ where
             snapshot.pattern().column_pattern(0).indices(
                 item.matcher_columns[0].slice(..),
                 &mut matcher,
-                &mut self.col_indices_cache,
+                &mut self.col_indices_buffer,
             );
 
-            // PERF: Avoid unnecessary sorting if already sorted or small
-            if self.col_indices_cache.len() > 1 {
-                self.col_indices_cache.sort_unstable();
-                self.col_indices_cache.dedup();
+            // PERF: Avoid unnecessary sorting
+            if self.col_indices_buffer.len() > 1 {
+                self.col_indices_buffer.sort_unstable();
+                self.col_indices_buffer.dedup();
             }
 
-            let indices: Vec<u32> = self.col_indices_cache.drain(..).collect();
+            let indices: Vec<u32> =
+                self.col_indices_buffer.drain(..).collect();
             let matched_string = item.matcher_columns[0].to_string();
 
             results.push(matched_item::MatchedItem {
@@ -190,9 +191,6 @@ where
                 matched_string,
                 match_indices: indices,
             });
-
-            // Clear for next iteration
-            self.col_indices_cache.clear();
         }
 
         results
@@ -251,6 +249,6 @@ where
         self.matched_item_count = 0;
         self.status = Status::default();
         self.last_pattern.clear();
-        self.col_indices_cache.clear();
+        self.col_indices_buffer.clear();
     }
 }
