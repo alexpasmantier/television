@@ -175,22 +175,20 @@ async fn load_candidates(
         for line in reader.lines() {
             if let Ok(l) = line {
                 if !l.trim().is_empty() {
-                    // PERF: Optimize string handling - avoid unnecessary clones
-                    let entry_string = if let Some(display) = &source.display {
-                        display.format(&l).unwrap_or_else(|_| {
-                            panic!(
-                                "Failed to format display expression '{}' with entry '{}'",
-                                display.raw(),
-                                l
-                            )
-                        })
-                    } else {
-                        l
-                    };
-
-                    let () = injector.push(entry_string, |e, cols| {
-                        // PERF: Reduced cloning by handling the string more efficiently
-                        cols[0] = e.clone().into();
+                    let () = injector.push(l, |e, cols| {
+                        // PERF: maybe we can avoid cloning here by using &Utf32Str
+                        if let Some(display) = &source.display {
+                            let formatted = display.format(e).unwrap_or_else(|_| {
+                                panic!(
+                                    "Failed to format display expression '{}' with entry '{}'",
+                                    display.raw(),
+                                    e
+                                );
+                            });
+                            cols[0] = formatted.into();
+                        } else {
+                            cols[0] = e.clone().into();
+                        }
                     });
                     produced_output = true;
                 }
