@@ -12,8 +12,6 @@
 pub struct Config {
     /// Whether to prefer prefix matches.
     pub prefer_prefix: bool,
-    /// Whether to optimize for matching paths.
-    pub optimize_for_paths: bool,
     /// The number of threads to use for matching.
     pub n_threads: Option<usize>,
 }
@@ -22,7 +20,6 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             prefer_prefix: true,
-            optimize_for_paths: true,
             n_threads: Some(
                 std::thread::available_parallelism()
                     .map(std::num::NonZeroUsize::get)
@@ -42,12 +39,6 @@ impl Config {
     /// Set whether to prefer prefix matches.
     pub fn prefer_prefix(mut self, prefer_prefix: bool) -> Self {
         self.prefer_prefix = prefer_prefix;
-        self
-    }
-
-    /// Set whether to optimize for matching paths.
-    pub fn optimize_for_paths(mut self, optimize_for_paths: bool) -> Self {
-        self.optimize_for_paths = optimize_for_paths;
         self
     }
 

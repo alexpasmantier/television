@@ -21,9 +21,7 @@ pub struct Channel {
 
 impl Channel {
     pub fn new(prototype: ChannelPrototype) -> Self {
-        let config = Config::default()
-            .prefer_prefix(true)
-            .optimize_for_paths(true);
+        let config = Config::default().prefer_prefix(true);
         let matcher = Matcher::new(&config);
         let current_source_index = 0;
         Self {
