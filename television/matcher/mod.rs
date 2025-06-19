@@ -50,7 +50,8 @@ where
     pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
-    /// Ephemeral vector to reduce allocations
+    /// A pre-allocated buffer used to collect match indices when fetching the results
+    /// from the matcher. This avoids having to re-allocate on each pass.
     col_indices_buffer: Vec<u32>,
 }
 
@@ -162,7 +163,7 @@ where
         self.total_item_count = snapshot.item_count();
         self.matched_item_count = snapshot.matched_item_count();
 
-        // Clear ephemeral vector for reuse
+        // Clear the pre-allocated match indices buffer for safety
         self.col_indices_buffer.clear();
         let mut matcher = lazy::MATCHER.lock();
         let mut results = Vec::new();
