@@ -81,9 +81,9 @@ impl Cable {
     /// E.g. if the channel is "files" and the shortcut is "F1",
     /// this will return `Some(Binding::SingleKey("F1"))`.
     pub fn get_channel_shortcut(&self, channel_name: &str) -> Option<Binding> {
-        self.get_channel(channel_name)
-            .keybindings
-            .as_ref()
+        // Get only what we need, clone at the end
+        self.get(channel_name)
+            .and_then(|prototype| prototype.keybindings.as_ref())
             .and_then(|keybindings| keybindings.shortcut.as_ref())
             .cloned()
     }
