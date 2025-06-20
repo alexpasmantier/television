@@ -5,12 +5,15 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use rustc_hash::FxHashMap;
 use television::cable::load_cable;
 use television::cli::post_process;
 use television::gh::update_local_channels;
 use television::{
-    cable::Cable, channels::prototypes::ChannelPrototype,
-    channels::prototypes::Template, utils::clipboard::CLIPBOARD,
+    cable::Cable,
+    channels::prototypes::ChannelPrototype,
+    channels::prototypes::{CommandSpec, PreviewSpec, Template},
+    utils::clipboard::CLIPBOARD,
 };
 use tracing::{debug, error, info};
 
@@ -75,6 +78,8 @@ async fn main() -> Result<()> {
     let options = AppOptions::new(
         args.exact,
         args.select_1,
+        args.take_1,
+        args.take_1_fast,
         args.no_remote,
         args.no_help,
         args.no_preview,
@@ -150,6 +155,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
             config.ui.preview_footer = Some(t);
         }
     }
+    if let Some(layout) = args.layout {
+        config.ui.orientation = layout;
+    }
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
@@ -200,7 +208,18 @@ pub fn determine_channel(
 ) -> ChannelPrototype {
     if readable_stdin {
         debug!("Using stdin channel");
-        ChannelPrototype::stdin(args.preview_spec.clone())
+        let stdin_preview =
+            args.preview_command_override.as_ref().map(|preview_cmd| {
+                PreviewSpec::new(
+                    CommandSpec::new(
+                        vec![preview_cmd.clone()],
+                        false,
+                        FxHashMap::default(),
+                    ),
+                    args.preview_offset_override.clone(),
+                )
+            });
+        ChannelPrototype::stdin(stdin_preview)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let channel_prototype = guess_channel_from_prompt(
@@ -219,9 +238,54 @@ pub fn determine_channel(
             .clone();
 
         let mut prototype = cable.get_channel(&channel);
-        // use cli preview command if any
-        if let Some(pc) = &args.preview_spec {
-            prototype.preview = Some(pc.clone());
+
+        // Apply CLI overrides to the prototype
+
+        // Override individual source fields if provided
+        if let Some(source_cmd) = &args.source_command_override {
+            prototype.source.command = CommandSpec::new(
+                vec![source_cmd.clone()],
+                false,
+                FxHashMap::default(),
+            );
+        }
+        if let Some(source_display) = &args.source_display_override {
+            prototype.source.display = Some(source_display.clone());
+        }
+        if let Some(source_output) = &args.source_output_override {
+            prototype.source.output = Some(source_output.clone());
+        }
+
+        // Override individual preview fields if provided
+        if let Some(preview_cmd) = &args.preview_command_override {
+            if let Some(ref mut preview) = prototype.preview {
+                preview.command = CommandSpec::new(
+                    vec![preview_cmd.clone()],
+                    false,
+                    FxHashMap::default(),
+                );
+            } else {
+                // Create a new preview spec with just the command
+                prototype.preview = Some(PreviewSpec::new(
+                    CommandSpec::new(
+                        vec![preview_cmd.clone()],
+                        false,
+                        FxHashMap::default(),
+                    ),
+                    None,
+                ));
+            }
+        }
+        if let Some(preview_offset) = &args.preview_offset_override {
+            if let Some(ref mut preview) = prototype.preview {
+                preview.offset = Some(preview_offset.clone());
+            } else {
+                // Cannot set offset without a preview command
+                eprintln!(
+                    "Error: Cannot set preview offset without a preview command"
+                );
+                std::process::exit(1);
+            }
         }
 
         prototype
@@ -343,9 +407,10 @@ mod tests {
 
     #[test]
     fn test_determine_channel_with_cli_preview() {
+        let preview_command = Template::parse("echo hello").unwrap();
         let preview_spec = PreviewSpec::new(
             CommandSpec::new(
-                vec![Template::parse("echo hello").unwrap()],
+                vec![preview_command.clone()],
                 false,
                 FxHashMap::default(),
             ),
@@ -354,13 +419,13 @@ mod tests {
 
         let args = PostProcessedCli {
             channel: Some(String::from("dirs")),
-            preview_spec: Some(preview_spec),
+            preview_command_override: Some(preview_command),
             ..Default::default()
         };
         let config = Config::default();
 
         let expected_prototype = ChannelPrototype::new("dirs", "ls")
-            .with_preview(args.preview_spec.clone());
+            .with_preview(Some(preview_spec));
 
         assert_is_correct_channel(
             &args,

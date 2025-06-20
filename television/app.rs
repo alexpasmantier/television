@@ -23,6 +23,10 @@ pub struct AppOptions {
     /// Whether the application should automatically select the first entry if there is only one
     /// entry available.
     pub select_1: bool,
+    /// Whether the application should take the first entry after the channel has finished loading.
+    pub take_1: bool,
+    /// Whether the application should take the first entry as soon as it becomes available.
+    pub take_1_fast: bool,
     /// Whether the application should disable the remote control feature.
     pub no_remote: bool,
     /// Whether the application should disable the help panel feature.
@@ -40,6 +44,8 @@ impl Default for AppOptions {
         Self {
             exact: false,
             select_1: false,
+            take_1: false,
+            take_1_fast: false,
             no_remote: false,
             no_help: false,
             no_preview: false,
@@ -50,10 +56,13 @@ impl Default for AppOptions {
 }
 
 impl AppOptions {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::fn_params_excessive_bools)]
     pub fn new(
         exact: bool,
         select_1: bool,
+        take_1: bool,
+        take_1_fast: bool,
         no_remote: bool,
         no_help: bool,
         no_preview: bool,
@@ -63,6 +72,8 @@ impl AppOptions {
         Self {
             exact,
             select_1,
+            take_1,
+            take_1_fast,
             no_remote,
             no_help,
             no_preview,
@@ -297,6 +308,27 @@ impl App {
                 }
             }
 
+            // If `take_1` is true and the channel has finished loading,
+            // automatically take the first entry regardless of count.
+            if self.options.take_1
+                && !self.television.channel.running()
+                && self.television.channel.total_count() > 0
+            {
+                if let Some(outcome) = self.maybe_take_1() {
+                    action_outcome = outcome;
+                }
+            }
+
+            // If `take_1_fast` is true and there's at least one entry available,
+            // immediately take the first entry without waiting for loading to finish.
+            if self.options.take_1_fast
+                && self.television.channel.total_count() > 0
+            {
+                if let Some(outcome) = self.maybe_take_1() {
+                    action_outcome = outcome;
+                }
+            }
+
             if self.should_quit {
                 // send a termination signal to the event loop
                 if !headless {
@@ -488,6 +520,25 @@ impl App {
 
             return Some(ActionOutcome::Entries(FxHashSet::from_iter([
                 unique_entry.clone(),
+            ])));
+        }
+        None
+    }
+
+    /// Take the first entry from the list regardless of how many entries are available.
+    fn maybe_take_1(&mut self) -> Option<ActionOutcome> {
+        debug!("Automatically taking the first entry");
+        if let Some(first_entry) =
+            self.television.results_picker.entries.first()
+        {
+            self.should_quit = true;
+
+            if !self.render_tx.is_closed() {
+                let _ = self.render_tx.send(RenderingTask::Quit);
+            }
+
+            return Some(ActionOutcome::Entries(FxHashSet::from_iter([
+                first_entry.clone(),
             ])));
         }
         None
