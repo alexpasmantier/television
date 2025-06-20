@@ -56,6 +56,9 @@ impl PtyTester {
     }
 
     /// Spawns a command in the pty, returning a boxed child process.
+    ///
+    /// # Warning
+    /// **If the command is expected to produce a TUI use `spawn_command_tui` instead.**
     pub fn spawn_command(
         &mut self,
         mut cmd: CommandBuilder,
@@ -63,6 +66,23 @@ impl PtyTester {
         cmd.cwd(&self.cwd);
         let child = self.pair.slave.spawn_command(cmd).unwrap();
         sleep(self.delay);
+
+        child
+    }
+
+    /// Spawns a command for which we expect to get a TUI in the pty and returns a boxed child process.
+    ///
+    /// # Warning
+    /// **If the command is not expected to produce a TUI use `spawn_command` instead.**
+    pub fn spawn_command_tui(
+        &mut self,
+        mut cmd: CommandBuilder,
+    ) -> Box<dyn portable_pty::Child + Send + Sync> {
+        cmd.cwd(&self.cwd);
+        let mut child = self.pair.slave.spawn_command(cmd).unwrap();
+        sleep(self.delay * 2);
+
+        self.assert_tui_running(&mut child);
         child
     }
 
@@ -87,6 +107,27 @@ impl PtyTester {
         write!(self.writer, "{}", input).unwrap();
         self.writer.flush().unwrap();
         sleep(self.delay);
+    }
+
+    pub fn assert_tui_running(
+        &mut self,
+        child: &mut Box<dyn portable_pty::Child + Send + Sync>,
+    ) {
+        // Check if the child process is still running
+        match child.try_wait() {
+            Ok(Some(_)) => {
+                panic!(
+                    "Child process exited prematurely with output:\n{}",
+                    self.read_raw_output()
+                );
+            }
+            Ok(None) => {
+                // Process is still running, continue
+            }
+            Err(e) => {
+                panic!("Error checking child process status: {}", e);
+            }
+        }
     }
 
     /// Waits for the child process to exit, asserting that it exits with a success status.
@@ -150,6 +191,16 @@ impl PtyTester {
         );
     }
 
+    pub fn assert_not_tui_output_contains(&mut self, expected: &str) {
+        let frame = self.get_tui_frame();
+        assert!(
+            !frame.contains(expected),
+            "Expected output to contain\n'{}'\nbut got:\n{}",
+            expected,
+            frame
+        );
+    }
+
     pub fn assert_raw_output_contains(&mut self, expected: &str) {
         let output = self.read_raw_output();
         assert!(
@@ -166,6 +217,7 @@ fn ctrl(c: char) -> String {
 }
 
 const ENTER: &str = "\r";
+const ESC: &str = "\x1b";
 
 const TV_BIN_PATH: &str = "./target/debug/tv";
 const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
@@ -277,8 +329,8 @@ mod e2e {
         #[test]
         fn toggle_help() {
             let mut tester = PtyTester::new();
-            let mut child =
-                tester.spawn_command(tv_local_config_and_cable_with_args(&[]));
+            let mut child = tester
+                .spawn_command_tui(tv_local_config_and_cable_with_args(&[]));
 
             tester.write_input(&ctrl('g'));
 
@@ -293,8 +345,8 @@ mod e2e {
         // FIXME: was lazy, this should be more robust
         fn toggle_preview() {
             let mut tester = PtyTester::new();
-            let mut child =
-                tester.spawn_command(tv_local_config_and_cable_with_args(&[]));
+            let mut child = tester
+                .spawn_command_tui(tv_local_config_and_cable_with_args(&[]));
 
             let with_preview =
                 "╭───────────────────────── files ──────────────────────────╮";
@@ -323,10 +375,9 @@ mod e2e {
         #[test]
         fn tv_ctrl_c() {
             let mut tester = PtyTester::new();
-            let mut child =
-                tester.spawn_command(tv_local_config_and_cable_with_args(&[
-                    "files",
-                ]));
+            let mut child = tester.spawn_command_tui(
+                tv_local_config_and_cable_with_args(&["files"]),
+            );
 
             tester.write_input(&ctrl('c'));
 
@@ -342,7 +393,7 @@ mod e2e {
         #[test]
         fn $name() {
             let mut tester = PtyTester::new();
-            let mut child = tester.spawn_command(tv_local_config_and_cable_with_args(&[
+            let mut child = tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
                 $channel_name,
             ]));
 
@@ -376,8 +427,9 @@ mod e2e {
         #[test]
         fn tv_remote_control_shows() {
             let mut tester = PtyTester::new();
-            let mut child = tester
-                .spawn_command(tv_local_config_and_cable_with_args(&["dirs"]));
+            let mut child = tester.spawn_command_tui(
+                tv_local_config_and_cable_with_args(&["dirs"]),
+            );
 
             // open remote control mode
             tester.write_input(&ctrl('t'));
@@ -394,8 +446,9 @@ mod e2e {
         #[test]
         fn tv_remote_control_zaps() {
             let mut tester = PtyTester::new();
-            let mut child = tester
-                .spawn_command(tv_local_config_and_cable_with_args(&["dirs"]));
+            let mut child = tester.spawn_command_tui(
+                tv_local_config_and_cable_with_args(&["dirs"]),
+            );
 
             // open remote control mode
             tester.write_input(&ctrl('t'));
@@ -416,16 +469,101 @@ mod e2e {
         use super::*;
 
         #[test]
-        fn tv_custom_input_header_and_preview_size() {
+        fn custom_input_header_and_preview_size() {
             let mut tester = PtyTester::new();
             let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
             cmd.args(["--input-header", "toasted bagels"]);
-            let mut child = tester.spawn_command(cmd);
+            let mut child = tester.spawn_command_tui(cmd);
 
             tester.assert_tui_output_contains("── toasted bagels ──");
 
             tester.write_input(&ctrl('c'));
 
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+        }
+
+        #[test]
+        fn no_help() {
+            let mut tester = PtyTester::new();
+            let cmd = tv_local_config_and_cable_with_args(&["--no-help"]);
+            let mut child = tester.spawn_command_tui(cmd);
+
+            // Check that the help panel is not shown
+            tester.assert_not_tui_output_contains("current mode:");
+
+            // Exit the application
+            tester.write_input(&ctrl('c'));
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+        }
+
+        #[test]
+        fn no_preview() {
+            let mut tester = PtyTester::new();
+            let cmd = tv_local_config_and_cable_with_args(&["--no-preview"]);
+            let mut child = tester.spawn_command_tui(cmd);
+
+            // Check that the preview panel is not shown
+            // FIXME: this is a bit lazy, should be more robust
+            tester.assert_tui_output_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+
+            // Exit the application
+            tester.write_input(&ctrl('c'));
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+        }
+
+        #[test]
+        fn no_remote() {
+            let mut tester = PtyTester::new();
+            let cmd = tv_local_config_and_cable_with_args(&["--no-remote"]);
+            let mut child = tester.spawn_command_tui(cmd);
+
+            tester.write_input(&ctrl('t'));
+            // Check that the remote control is not shown
+            tester.assert_not_tui_output_contains("──Remote Control──");
+
+            // Exit the application
+            tester.write_input(&ctrl('c'));
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+        }
+
+        #[test]
+        fn keybindings() {
+            let mut tester = PtyTester::new();
+            let mut child =
+                tester.spawn_command_tui(tv_local_config_and_cable_with_args(
+                    &["--keybindings", "quit=\"a\""],
+                ));
+
+            // test that the default keybindings are overridden
+            tester.write_input(ESC);
+            tester.assert_tui_running(&mut child);
+
+            tester.write_input(&ctrl('c'));
+            tester.assert_tui_running(&mut child);
+
+            tester.write_input("a");
+
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+        }
+
+        #[test]
+        fn multiple_keybindings() {
+            let mut tester = PtyTester::new();
+            let mut child = tester.spawn_command_tui(
+                tv_local_config_and_cable_with_args(&[
+                    "--keybindings",
+                    "quit=\"a\";toggle_remote_control=\"ctrl-t\"",
+                ]),
+            );
+
+            tester.write_input(ESC);
+            tester.assert_tui_running(&mut child);
+
+            tester.write_input(&ctrl('t'));
+            tester.assert_tui_output_contains("──Remote Control──");
+
+            tester.write_input("a");
+            tester.write_input("a");
             PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
         }
     }
