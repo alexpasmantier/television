@@ -276,7 +276,7 @@ impl App {
             {
                 for event in event_buf.drain(..) {
                     if let Some(action) = self.convert_event_to_action(event) {
-                        if !matches!(action, Action::Tick) {
+                        if action != Action::Tick {
                             debug!("Queuing new action: {action:?}");
                         }
                         action_tx.send(action)?;
@@ -363,11 +363,11 @@ impl App {
             Event::Closed => Action::NoOp,
         };
 
-        if !matches!(action, Action::Tick) {
+        if action != Action::Tick {
             trace!("Converted event to action: {action:?}");
         }
 
-        if matches!(action, Action::NoOp) {
+        if action == Action::NoOp {
             None
         } else {
             Some(action)
@@ -395,7 +395,7 @@ impl App {
         }
         if self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0 {
             for action in buf.drain(..) {
-                if !matches!(action, Action::Tick) {
+                if action != Action::Tick {
                     trace!("{action:?}");
                 }
                 match action {
