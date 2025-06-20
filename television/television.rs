@@ -563,10 +563,18 @@ impl Television {
             self.results_picker.relative_select(Some(0));
         }
 
-        self.results_picker.entries = self.channel.results(
-            self.ui_state.layout.results.height.into(),
-            u32::try_from(self.results_picker.offset()).unwrap(),
-        );
+        {
+            // Capture immutable data (`offset`, `height`) first, then mutate
+            // the picker entries to satisfy the borrow-checker.
+            let offset = u32::try_from(self.results_picker.offset()).unwrap();
+            let height = self.ui_state.layout.results.height.into();
+
+            let entries = &mut self.results_picker.entries;
+            // Re-use the existing allocation instead of constructing a new
+            // `Vec` every tick:
+            entries.clear();
+            entries.extend(self.channel.results(height, offset));
+        }
         self.results_picker.total_items = self.channel.result_count();
     }
 
@@ -578,12 +586,23 @@ impl Television {
             self.rc_picker.relative_select(Some(0));
         }
 
-        self.rc_picker.entries =
-            self.remote_control.as_mut().unwrap().results(
-                // this'll be more than the actual rc height but it's fine
-                self.ui_state.layout.results.height.into(),
-                u32::try_from(self.rc_picker.offset()).unwrap(),
-            );
+        {
+            // Capture immutable data (`offset`, `height`) first, then mutate
+            // the picker entries to satisfy the borrow-checker.
+            let offset = u32::try_from(self.rc_picker.offset()).unwrap();
+            let height = self.ui_state.layout.results.height.into();
+            let new_entries = self
+                .remote_control
+                .as_mut()
+                .unwrap()
+                .results(height, offset);
+
+            let entries = &mut self.rc_picker.entries;
+            // Re-use the existing allocation instead of constructing a new
+            // `Vec` every tick:
+            entries.clear();
+            entries.extend(new_entries);
+        }
         self.rc_picker.total_items =
             self.remote_control.as_ref().unwrap().total_count();
     }

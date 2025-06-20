@@ -166,7 +166,9 @@ where
         // Clear the pre-allocated match indices buffer for safety
         self.col_indices_buffer.clear();
         let mut matcher = lazy::MATCHER.lock();
-        let mut results = Vec::new();
+
+        // PERF: Pre-allocate the results Vec so we avoid repeated reallocations
+        let mut results = Vec::with_capacity(num_entries as usize);
 
         for item in snapshot.matched_items(
             offset..(num_entries + offset).min(self.matched_item_count),
