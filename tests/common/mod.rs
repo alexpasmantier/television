@@ -105,7 +105,7 @@ impl PtyTester {
     }
 
     /// Writes input to the child process's stdin.
-    pub fn write_input(&mut self, input: &str) {
+    pub fn send(&mut self, input: &str) {
         write!(self.writer, "{}", input).unwrap();
         self.writer.flush().unwrap();
         sleep(self.delay);

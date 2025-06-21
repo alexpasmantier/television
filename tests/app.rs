@@ -1,3 +1,5 @@
+//! This module tests the inner `App` struct of the `television` crate.
+
 use std::{
     collections::HashSet, path::PathBuf, thread::sleep, time::Duration,
 };
