@@ -37,8 +37,6 @@ pub struct AppConfig {
     pub config_dir: PathBuf,
     #[serde(default = "default_cable_dir")]
     pub cable_dir: PathBuf,
-    #[serde(default = "default_frame_rate")]
-    pub frame_rate: f64,
     #[serde(default = "default_tick_rate")]
     pub tick_rate: f64,
     /// The default channel to use when no channel is specified
@@ -54,7 +52,6 @@ impl Hash for AppConfig {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.data_dir.hash(state);
         self.config_dir.hash(state);
-        self.frame_rate.to_bits().hash(state);
         self.tick_rate.to_bits().hash(state);
     }
 }
@@ -314,10 +311,6 @@ fn project_directory() -> Option<ProjectDirs> {
     ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
 }
 
-fn default_frame_rate() -> f64 {
-    60.0
-}
-
 pub fn default_tick_rate() -> f64 {
     50.0
 }
@@ -393,8 +386,6 @@ mod tests {
     }
 
     const USER_CONFIG_1: &str = r#"
-        frame_rate = 30.0
-        
         [ui]
         ui_scale = 40
         theme = "television"
@@ -431,7 +422,6 @@ mod tests {
 
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
-        default_config.application.frame_rate = 30.0;
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
         default_config.keybindings.extend({
