@@ -125,8 +125,6 @@ pub struct App {
     options: AppOptions,
     /// Watch timer task handle for periodic reloading
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
-    /// Flag to track if watch mode is active
-    watch_active: bool,
 }
 
 /// The outcome of an action.
@@ -211,7 +209,6 @@ impl App {
             render_task: None,
             options,
             watch_timer_task: None,
-            watch_active: false,
         };
 
         // populate keymap by going through all cable channels and adding their shortcuts if remote
@@ -221,9 +218,14 @@ impl App {
         app
     }
 
+    /// Check if the watch timer is currently active.
+    fn watch_active(&self) -> bool {
+        self.watch_timer_task.is_some()
+    }
+
     /// Start the watch timer if watch interval is configured
     fn start_watch_timer(&mut self) {
-        if self.options.watch_interval > 0.0 && !self.watch_active {
+        if self.options.watch_interval > 0.0 && !self.watch_active() {
             let action_tx = self.action_tx.clone();
             let interval = std::time::Duration::from_secs_f64(
                 self.options.watch_interval,
@@ -246,7 +248,6 @@ impl App {
             });
 
             self.watch_timer_task = Some(task);
-            self.watch_active = true;
         }
     }
 
@@ -255,7 +256,7 @@ impl App {
         if let Some(task) = self.watch_timer_task.take() {
             task.abort();
         }
-        self.watch_active = false;
+        self.watch_timer_task = None;
         debug!("Stopped watch timer");
     }
 
