@@ -1,5 +1,6 @@
 use std::fmt::Display;
 
+use clap::ValueEnum;
 use ratatui::layout;
 use ratatui::layout::{Constraint, Direction, Rect};
 use serde::{Deserialize, Serialize};
@@ -62,7 +63,15 @@ impl Display for InputPosition {
 }
 
 #[derive(
-    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
+    Debug,
+    Clone,
+    Copy,
+    Deserialize,
+    Serialize,
+    Default,
+    PartialEq,
+    Hash,
+    ValueEnum,
 )]
 pub enum Orientation {
     #[serde(rename = "landscape")]

@@ -57,6 +57,7 @@ pub struct PostProcessedCli {
     // Performance configuration
     pub tick_rate: Option<f64>,
     pub frame_rate: Option<f64>,
+    pub watch_interval: Option<f64>,
 
     // Configuration sources
     pub config_file: Option<PathBuf>,
@@ -105,6 +106,7 @@ impl Default for PostProcessedCli {
             // Performance configuration
             tick_rate: None,
             frame_rate: None,
+            watch_interval: None,
 
             // Configuration sources
             config_file: None,
@@ -180,18 +182,11 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         });
 
     // Determine layout
-    let layout: Option<Orientation> = cli.layout.map(|layout_str| {
-        match layout_str.to_lowercase().as_str() {
-            "landscape" => Orientation::Landscape,
-            "portrait" => Orientation::Portrait,
-            _ => {
-                cli_parsing_error_exit(&format!(
-                    "Invalid layout value '{}'. Valid options are 'landscape' or 'portrait'",
-                    layout_str
-                ));
-            }
-        }
-    });
+    let layout: Option<Orientation> =
+        cli.layout.map(|layout_enum| match layout_enum {
+            args::LayoutOrientation::Landscape => Orientation::Landscape,
+            args::LayoutOrientation::Portrait => Orientation::Portrait,
+        });
 
     PostProcessedCli {
         // Channel and source configuration
@@ -230,6 +225,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         // Performance configuration
         tick_rate: cli.tick_rate,
         frame_rate: cli.frame_rate,
+        watch_interval: cli.watch,
 
         // Configuration sources
         config_file: cli.config_file.map(expand_tilde),
