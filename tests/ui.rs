@@ -10,7 +10,7 @@ fn toggle_help() {
 
     tester.send(&ctrl('g'));
 
-    tester.assert_tui_output_contains("current mode:");
+    tester.assert_tui_frame_contains("current mode:");
 
     // Exit the application
     tester.send(&ctrl('c'));
@@ -26,18 +26,18 @@ fn toggle_preview() {
 
     let with_preview =
         "╭───────────────────────── files ──────────────────────────╮";
-    tester.assert_tui_output_contains(with_preview);
+    tester.assert_tui_frame_contains(with_preview);
 
     // Toggle preview
     tester.send(&ctrl('o'));
 
     let without_preview = "╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮";
-    tester.assert_tui_output_contains(without_preview);
+    tester.assert_tui_frame_contains(without_preview);
 
     // Toggle preview
     tester.send(&ctrl('o'));
 
-    tester.assert_tui_output_contains(with_preview);
+    tester.assert_tui_frame_contains(with_preview);
 
     // Exit the application
     tester.send(&ctrl('c'));

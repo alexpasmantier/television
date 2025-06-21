@@ -9,7 +9,7 @@ fn custom_input_header_and_preview_size() {
     cmd.args(["--input-header", "toasted bagels"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    tester.assert_tui_output_contains("── toasted bagels ──");
+    tester.assert_tui_frame_contains("── toasted bagels ──");
 
     tester.send(&ctrl('c'));
 
@@ -23,7 +23,7 @@ fn no_help() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Check that the help panel is not shown
-    tester.assert_not_tui_output_contains("current mode:");
+    tester.assert_not_tui_frame_contains("current mode:");
 
     // Exit the application
     tester.send(&ctrl('c'));
@@ -38,7 +38,7 @@ fn no_preview() {
 
     // Check that the preview panel is not shown
     // FIXME: this is a bit lazy, should be more robust
-    tester.assert_tui_output_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
 
     // Exit the application
     tester.send(&ctrl('c'));
@@ -53,7 +53,7 @@ fn no_remote() {
 
     tester.send(&ctrl('t'));
     // Check that the remote control is not shown
-    tester.assert_not_tui_output_contains("──Remote Control──");
+    tester.assert_not_tui_frame_contains("──Remote Control──");
 
     // Exit the application
     tester.send(&ctrl('c'));
@@ -94,7 +94,7 @@ fn multiple_keybindings() {
     tester.assert_tui_running(&mut child);
 
     tester.send(&ctrl('t'));
-    tester.assert_tui_output_contains("──Remote Control──");
+    tester.assert_tui_frame_contains("──Remote Control──");
 
     tester.send("a");
     tester.send("a");
@@ -116,13 +116,13 @@ fn watch() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Check that the files channel is shown and is populated
-    tester.assert_tui_output_contains("file1.txt");
+    tester.assert_tui_frame_contains("file1.txt");
 
     std::fs::write(tmp_dir.join("file3.txt"), "").unwrap();
     std::thread::sleep(std::time::Duration::from_millis(600));
 
     // Check that the new file is shown in the UI
-    tester.assert_tui_output_contains("file3.txt");
+    tester.assert_tui_frame_contains("file3.txt");
 
     // Exit the application
     tester.send(&ctrl('c'));
