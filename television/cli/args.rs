@@ -33,6 +33,14 @@ pub struct Cli {
     #[arg(short, long, value_name = "FLOAT", verbatim_doc_comment)]
     pub tick_rate: Option<f64>,
 
+    /// Watch mode: reload the source command every N seconds.
+    ///
+    /// When set to a positive number, the application will automatically
+    /// reload the source command at the specified interval. This is useful
+    /// for monitoring changing data sources. Set to 0 to disable (default).
+    #[arg(long, value_name = "FLOAT", verbatim_doc_comment)]
+    pub watch: Option<f64>,
+
     /// [DEPRECATED] Frame rate, i.e. number of frames to render per second.
     ///
     /// This option is deprecated and will be removed in a future release.
@@ -142,8 +150,8 @@ pub struct Cli {
     ///
     /// This overrides the layout/orientation defined in the channel prototype.
     /// Options are "landscape" or "portrait".
-    #[arg(long = "layout", value_name = "STRING", verbatim_doc_comment)]
-    pub layout: Option<String>,
+    #[arg(long = "layout", value_enum, verbatim_doc_comment)]
+    pub layout: Option<LayoutOrientation>,
 
     /// The working directory to start the application in.
     ///
@@ -179,7 +187,12 @@ pub struct Cli {
     ///
     /// For most channels and workloads this shouldn't be a problem since the
     /// loading times are usually very short and will go unnoticed by the user.
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    #[arg(
+        long,
+        default_value = "false",
+        group = "selection_mode",
+        verbatim_doc_comment
+    )]
     pub select_1: bool,
 
     /// Take the first entry from the list after the channel has finished loading.
@@ -187,7 +200,12 @@ pub struct Cli {
     /// This will wait for the channel to finish loading all entries and then
     /// automatically select and output the first entry. Unlike `select_1`, this
     /// will always take the first entry regardless of how many entries are available.
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    #[arg(
+        long,
+        default_value = "false",
+        group = "selection_mode",
+        verbatim_doc_comment
+    )]
     pub take_1: bool,
 
     /// Take the first entry from the list as soon as it becomes available.
@@ -195,7 +213,12 @@ pub struct Cli {
     /// This will immediately select and output the first entry as soon as it
     /// appears in the results, without waiting for the channel to finish loading.
     /// This is the fastest option when you just want the first result.
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    #[arg(
+        long,
+        default_value = "false",
+        group = "selection_mode",
+        verbatim_doc_comment
+    )]
     pub take_1_fast: bool,
 
     /// Disable the remote control.
@@ -271,4 +294,10 @@ pub enum Shell {
     Fish,
     PowerShell,
     Cmd,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
+pub enum LayoutOrientation {
+    Landscape,
+    Portrait,
 }

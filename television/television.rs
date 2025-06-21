@@ -794,7 +794,7 @@ impl Television {
             Action::CycleSources => {
                 self.cycle_sources();
             }
-            Action::ReloadSource => {
+            Action::ReloadSource | Action::WatchTimer => {
                 self.handle_reload_source();
             }
             Action::SwitchToChannel(channel_name) => {

@@ -76,6 +76,9 @@ async fn main() -> Result<()> {
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
+    // Determine the effective watch interval (CLI override takes precedence)
+    let watch_interval =
+        args.watch_interval.unwrap_or(channel_prototype.watch);
     let options = AppOptions::new(
         args.exact,
         args.select_1,
@@ -86,6 +89,7 @@ async fn main() -> Result<()> {
         args.no_preview,
         args.preview_size,
         config.application.tick_rate,
+        watch_interval,
     );
     let mut app = App::new(
         channel_prototype,
@@ -310,6 +314,11 @@ pub fn determine_channel(
             );
             std::process::exit(1);
         }
+    }
+
+    // Override watch interval if provided via CLI
+    if let Some(watch_interval) = args.watch_interval {
+        channel_prototype.watch = watch_interval;
     }
 
     channel_prototype
