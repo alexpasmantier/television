@@ -4,32 +4,20 @@
 .SH NAME
 television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-p\fR|\fB\-\-preview\fR] [\fB\-\-no\-preview\fR] [\fB\-\-delimiter\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-custom\-header\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-no\-remote\fR] [\fB\-\-no\-help\fR] [\fB\-\-ui\-scale\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-no\-help\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
 .TP
-\fB\-p\fR, \fB\-\-preview\fR=\fISTRING\fR
-A preview command to use with the stdin channel.
+\fB\-\-preview\-offset\fR=\fISTRING\fR
+A preview line number offset template to use to scroll the preview to for each
+entry.
 
-If provided, the preview command will be executed and formatted using
-the entry.
-Example: "bat \-n \-\-color=always {}" (where {} will be replaced with
-the entry)
-
-Parts of the entry can be extracted positionally using the `delimiter`
-option.
-Example: "echo {0} {1}" will split the entry by the delimiter and pass
-the first two fields to the command.
+This template uses the same syntax as the `preview` option and will be formatted
+using the currently selected entry.
 .TP
 \fB\-\-no\-preview\fR
 Disable the preview panel entirely on startup.
-.TP
-\fB\-\-delimiter\fR=\fISTRING\fR [default:  ]
-The delimiter used to extract fields from the entry to provide to the
-preview command.
-
-See the `preview` option for more information.
 .TP
 \fB\-t\fR, \fB\-\-tick\-rate\fR=\fIFLOAT\fR
 The application\*(Aqs tick rate.
@@ -59,12 +47,61 @@ Input text to pass to the channel to prefill the prompt.
 This can be used to provide a default value for the prompt upon
 startup.
 .TP
-\fB\-\-custom\-header\fR=\fISTRING\fR
-Input fields header title
+\fB\-\-input\-header\fR=\fISTRING\fR
+Input field header template.
 
-This can be used to give the input field a custom title e.g. the current
-working directory.
-The default value for the input header is the current channel.
+The given value is parsed as a `MultiTemplate`. It is evaluated against
+the current channel name and the resulting text is shown as the input
+field title. Defaults to the current channel name when omitted.
+.TP
+\fB\-\-preview\-header\fR=\fISTRING\fR
+Preview header template
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed above the preview panel.
+.TP
+\fB\-\-preview\-footer\fR=\fISTRING\fR
+Preview footer template
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed below the preview panel.
+.TP
+\fB\-\-source\-command\fR=\fISTRING\fR
+Source command to use for the current channel.
+
+This overrides the command defined in the channel prototype.
+Example: `find . \-name \*(Aq*.rs\*(Aq`
+.TP
+\fB\-\-source\-display\fR=\fISTRING\fR
+Source display template to use for the current channel.
+
+This overrides the display template defined in the channel prototype.
+The template is used to format each entry in the results list.
+Example: `{split:/:\-1}` (show only the last path segment)
+.TP
+\fB\-\-source\-output\fR=\fISTRING\fR
+Source output template to use for the current channel.
+
+This overrides the output template defined in the channel prototype.
+The template is used to format the final output when an entry is selected.
+Example: "{}" (output the full entry)
+.TP
+\fB\-p\fR, \fB\-\-preview\-command\fR=\fISTRING\fR
+Preview command to use for the current channel.
+
+This overrides the preview command defined in the channel prototype.
+Example: "cat {}" (where {} will be replaced with the entry)
+
+Parts of the entry can be extracted positionally using the `delimiter`
+option.
+Example: "echo {0} {1}" will split the entry by the delimiter and pass
+the first two fields to the command.
+.TP
+\fB\-\-layout\fR=\fISTRING\fR
+Layout orientation for the UI.
+
+This overrides the layout/orientation defined in the channel prototype.
+Options are "landscape" or "portrait".
 .TP
 \fB\-\-autocomplete\-prompt\fR=\fISTRING\fR
 Try to guess the channel from the provided input prompt.
@@ -91,6 +128,20 @@ to finish loading first.
 For most channels and workloads this shouldn\*(Aqt be a problem since the
 loading times are usually very short and will go unnoticed by the user.
 .TP
+\fB\-\-take\-1\fR
+Take the first entry from the list after the channel has finished loading.
+
+This will wait for the channel to finish loading all entries and then
+automatically select and output the first entry. Unlike `select_1`, this
+will always take the first entry regardless of how many entries are available.
+.TP
+\fB\-\-take\-1\-fast\fR
+Take the first entry from the list as soon as it becomes available.
+
+This will immediately select and output the first entry as soon as it
+appears in the results, without waiting for the channel to finish loading.
+This is the fastest option when you just want the first result.
+.TP
 \fB\-\-no\-remote\fR
 Disable the remote control.
 
@@ -114,6 +165,17 @@ Change the display size in relation to the available area.
 
 This will crop the UI to a centered rectangle of the specified
 percentage of the available area (e.g. 0.5 for 50% x 50%).
+.TP
+\fB\-\-preview\-size\fR=\fIINTEGER\fR
+Percentage of the screen to allocate to the preview panel (1\-99).
+
+This value overrides any `preview_size` defined in configuration files or channel prototypes.
+.TP
+\fB\-\-config\-file\fR=\fIPATH\fR
+Provide a custom configuration file to use.
+.TP
+\fB\-\-cable\-dir\fR=\fIPATH\fR
+Provide a custom cable directory to use.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)
@@ -142,6 +204,9 @@ Lists the available channels
 .TP
 television\-init(1)
 Initializes shell completion ("tv init zsh")
+.TP
+television\-update\-channels(1)
+Downloads the latest collection of default channel prototypes from github and saves them to the local configuration directory
 .TP
 television\-help(1)
 Print this message or the help of the given subcommand(s)
