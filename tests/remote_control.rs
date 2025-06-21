@@ -9,13 +9,13 @@ fn tv_remote_control_shows() {
         .spawn_command_tui(tv_local_config_and_cable_with_args(&["dirs"]));
 
     // open remote control mode
-    tester.write_input(&ctrl('t'));
+    tester.send(&ctrl('t'));
 
     tester.assert_tui_output_contains("──Remote Control──");
 
     // exit remote then app
-    tester.write_input(&ctrl('c'));
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
+    tester.send(&ctrl('c'));
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
@@ -27,15 +27,15 @@ fn tv_remote_control_zaps() {
         .spawn_command_tui(tv_local_config_and_cable_with_args(&["dirs"]));
 
     // open remote control mode
-    tester.write_input(&ctrl('t'));
-    tester.write_input("files");
-    tester.write_input(ENTER);
+    tester.send(&ctrl('t'));
+    tester.send("files");
+    tester.send(ENTER);
 
     tester.assert_tui_output_contains("── files ──");
 
     // exit remote then app
-    tester.write_input(&ctrl('c'));
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
+    tester.send(&ctrl('c'));
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

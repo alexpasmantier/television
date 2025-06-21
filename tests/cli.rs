@@ -11,7 +11,7 @@ fn custom_input_header_and_preview_size() {
 
     tester.assert_tui_output_contains("── toasted bagels ──");
 
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
@@ -26,7 +26,7 @@ fn no_help() {
     tester.assert_not_tui_output_contains("current mode:");
 
     // Exit the application
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
@@ -41,7 +41,7 @@ fn no_preview() {
     tester.assert_tui_output_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
 
     // Exit the application
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
@@ -51,12 +51,12 @@ fn no_remote() {
     let cmd = tv_local_config_and_cable_with_args(&["--no-remote"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    tester.write_input(&ctrl('t'));
+    tester.send(&ctrl('t'));
     // Check that the remote control is not shown
     tester.assert_not_tui_output_contains("──Remote Control──");
 
     // Exit the application
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
@@ -70,13 +70,13 @@ fn keybindings() {
         ]));
 
     // test that the default keybindings are overridden
-    tester.write_input(ESC);
+    tester.send(ESC);
     tester.assert_tui_running(&mut child);
 
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
     tester.assert_tui_running(&mut child);
 
-    tester.write_input("a");
+    tester.send("a");
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
@@ -90,13 +90,41 @@ fn multiple_keybindings() {
             "quit=\"a\";toggle_remote_control=\"ctrl-t\"",
         ]));
 
-    tester.write_input(ESC);
+    tester.send(ESC);
     tester.assert_tui_running(&mut child);
 
-    tester.write_input(&ctrl('t'));
+    tester.send(&ctrl('t'));
     tester.assert_tui_output_contains("──Remote Control──");
 
-    tester.write_input("a");
-    tester.write_input("a");
+    tester.send("a");
+    tester.send("a");
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+#[test]
+fn watch() {
+    let mut tester = PtyTester::new();
+    let mut cmd =
+        tv_local_config_and_cable_with_args(&["--watch", "0.5", "files"]);
+    // launch tv in a temporary directory
+    let tmp_dir = std::env::temp_dir();
+    cmd.args([tmp_dir.to_str().unwrap()]);
+    // write a couple of empty files to the temporary directory
+    std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
+    std::fs::write(tmp_dir.join("file2.txt"), "").unwrap();
+
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Check that the files channel is shown and is populated
+    tester.assert_tui_output_contains("file1.txt");
+
+    std::fs::write(tmp_dir.join("file3.txt"), "").unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(600));
+
+    // Check that the new file is shown in the UI
+    tester.assert_tui_output_contains("file3.txt");
+
+    // Exit the application
+    tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
