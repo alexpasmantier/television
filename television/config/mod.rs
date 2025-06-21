@@ -497,6 +497,8 @@ mod tests {
 
     #[test]
     fn test_shell_integration_keybindings_are_overwritten_by_user() {
+        use crate::config::parse_key;
+
         let user_config = r#"
             [shell_integration.keybindings]
             "smart_autocomplete" = "ctrl-t"
@@ -516,7 +518,6 @@ mod tests {
 
         let config = Config::new(&config_env, None).unwrap();
 
-        use crate::config::parse_key;
         let expected: rustc_hash::FxHashMap<String, Binding> = [
             (
                 "command_history".to_string(),

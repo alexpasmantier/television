@@ -5,12 +5,16 @@ use std::process::exit;
 
 use anyhow::Result;
 use clap::Parser;
+use rustc_hash::FxHashMap;
 use television::cable::load_cable;
 use television::cli::post_process;
 use television::gh::update_local_channels;
 use television::{
-    cable::Cable, channels::prototypes::ChannelPrototype,
-    channels::prototypes::Template, utils::clipboard::CLIPBOARD,
+    cable::Cable,
+    channels::prototypes::{
+        ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
+    },
+    utils::clipboard::CLIPBOARD,
 };
 use tracing::{debug, error, info};
 
@@ -75,6 +79,8 @@ async fn main() -> Result<()> {
     let options = AppOptions::new(
         args.exact,
         args.select_1,
+        args.take_1,
+        args.take_1_fast,
         args.no_remote,
         args.no_help,
         args.no_preview,
@@ -150,6 +156,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
             config.ui.preview_footer = Some(t);
         }
     }
+    if let Some(layout) = args.layout {
+        config.ui.orientation = layout;
+    }
 }
 
 pub fn set_current_dir(path: &String) -> Result<()> {
@@ -198,19 +207,51 @@ pub fn determine_channel(
     readable_stdin: bool,
     cable: &Cable,
 ) -> ChannelPrototype {
-    if readable_stdin {
+    let mut channel_prototype: ChannelPrototype = if readable_stdin {
         debug!("Using stdin channel");
-        ChannelPrototype::stdin(args.preview_spec.clone())
+        let stdin_preview =
+            args.preview_command_override.as_ref().map(|preview_cmd| {
+                PreviewSpec::new(
+                    CommandSpec::new(
+                        vec![preview_cmd.clone()],
+                        false,
+                        FxHashMap::default(),
+                    ),
+                    args.preview_offset_override.clone(),
+                )
+            });
+        ChannelPrototype::stdin(stdin_preview)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
-        let channel_prototype = guess_channel_from_prompt(
+        let prototype = guess_channel_from_prompt(
             prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
             cable,
         );
-        debug!("Using guessed channel: {:?}", channel_prototype);
-        channel_prototype
+        debug!("Using guessed channel: {:?}", prototype);
+        prototype
+    } else if args.channel.is_none() && args.source_command_override.is_some()
+    {
+        debug!("Creating ad-hoc channel with source command override");
+        let source_cmd = args.source_command_override.as_ref().unwrap();
+
+        // Create an ad-hoc channel prototype with hidden UI elements
+        let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
+
+        // Set UI spec to hide preview and help, and set input header to "Custom Channel"
+        prototype.ui = Some(UiSpec {
+            ui_scale: None,
+            show_help_bar: Some(false),
+            show_preview_panel: Some(false),
+            orientation: None,
+            input_bar_position: None,
+            preview_size: None,
+            input_header: Some(Template::parse("Custom Channel").unwrap()),
+            preview_header: None,
+            preview_footer: None,
+        });
+        prototype
     } else {
         let channel = args
             .channel
@@ -218,14 +259,60 @@ pub fn determine_channel(
             .unwrap_or(&config.application.default_channel)
             .clone();
 
-        let mut prototype = cable.get_channel(&channel);
-        // use cli preview command if any
-        if let Some(pc) = &args.preview_spec {
-            prototype.preview = Some(pc.clone());
-        }
+        debug!("Using channel: {:?}", &channel);
+        cable.get_channel(&channel)
+    };
 
-        prototype
+    // Apply CLI overrides to the prototype
+
+    // Override individual source fields if provided
+    if let Some(source_cmd) = &args.source_command_override {
+        channel_prototype.source.command = CommandSpec::new(
+            vec![source_cmd.clone()],
+            false,
+            FxHashMap::default(),
+        );
     }
+    if let Some(source_display) = &args.source_display_override {
+        channel_prototype.source.display = Some(source_display.clone());
+    }
+    if let Some(source_output) = &args.source_output_override {
+        channel_prototype.source.output = Some(source_output.clone());
+    }
+
+    // Override individual preview fields if provided
+    if let Some(preview_cmd) = &args.preview_command_override {
+        if let Some(ref mut preview) = channel_prototype.preview {
+            preview.command = CommandSpec::new(
+                vec![preview_cmd.clone()],
+                false,
+                FxHashMap::default(),
+            );
+        } else {
+            // Create a new preview spec with just the command
+            channel_prototype.preview = Some(PreviewSpec::new(
+                CommandSpec::new(
+                    vec![preview_cmd.clone()],
+                    false,
+                    FxHashMap::default(),
+                ),
+                None,
+            ));
+        }
+    }
+    if let Some(preview_offset) = &args.preview_offset_override {
+        if let Some(ref mut preview) = channel_prototype.preview {
+            preview.offset = Some(preview_offset.clone());
+        } else {
+            // Cannot set offset without a preview command
+            eprintln!(
+                "Error: Cannot set preview offset without a preview command"
+            );
+            std::process::exit(1);
+        }
+    }
+
+    channel_prototype
 }
 
 #[cfg(test)]
@@ -343,9 +430,10 @@ mod tests {
 
     #[test]
     fn test_determine_channel_with_cli_preview() {
+        let preview_command = Template::parse("echo hello").unwrap();
         let preview_spec = PreviewSpec::new(
             CommandSpec::new(
-                vec![Template::parse("echo hello").unwrap()],
+                vec![preview_command.clone()],
                 false,
                 FxHashMap::default(),
             ),
@@ -354,13 +442,13 @@ mod tests {
 
         let args = PostProcessedCli {
             channel: Some(String::from("dirs")),
-            preview_spec: Some(preview_spec),
+            preview_command_override: Some(preview_command),
             ..Default::default()
         };
         let config = Config::default();
 
         let expected_prototype = ChannelPrototype::new("dirs", "ls")
-            .with_preview(args.preview_spec.clone());
+            .with_preview(Some(preview_spec));
 
         assert_is_correct_channel(
             &args,
@@ -368,6 +456,38 @@ mod tests {
             false,
             &expected_prototype,
             None,
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_adhoc_with_source_command() {
+        let args = PostProcessedCli {
+            channel: None,
+            source_command_override: Some(
+                Template::parse("fd -t f -H").unwrap(),
+            ),
+            ..Default::default()
+        };
+        let config = Config::default();
+
+        let channel = determine_channel(
+            &args,
+            &config,
+            false,
+            &Cable::from_prototypes(vec![]),
+        );
+
+        assert_eq!(channel.metadata.name, "custom");
+        assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
+
+        // Check that UI options are set to hide preview and help
+        assert!(channel.ui.is_some());
+        let ui_spec = channel.ui.as_ref().unwrap();
+        assert_eq!(ui_spec.show_help_bar, Some(false));
+        assert_eq!(ui_spec.show_preview_panel, Some(false));
+        assert_eq!(
+            ui_spec.input_header,
+            Some(Template::parse("Custom Channel").unwrap())
         );
     }
 
