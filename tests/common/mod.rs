@@ -20,12 +20,40 @@ pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
 
 pub const DEFAULT_DELAY: Duration = Duration::from_millis(200);
 
+/// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
+///
+/// This struct provides methods to spawn commands in a pty, read their output, and send input to
+/// them.
+///
+/// # Example
+/// ```ignore
+/// fn test_custom_input_header_and_preview_size() {
+///     let mut tester = PtyTester::new();
+///
+///     // Create the tv command using a custom input header
+///     let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
+///     cmd.args(["--input-header", "toasted bagels"]);
+///
+///     // Spawn the command in the pty
+///     let mut child = tester.spawn_command_tui(cmd);
+///
+///     // Assert that the TUI contains the expected output
+///     tester.assert_tui_frame_contains("── toasted bagels ──");
+///
+///     // Send a Ctrl+C to exit the application
+///     tester.send(&ctrl('c'));
+///
+///     // Assert that the child process exits successfully
+///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+/// }
+/// ```
 pub struct PtyTester {
     pair: portable_pty::PtyPair,
     cwd: std::path::PathBuf,
     delay: Duration,
     reader: Box<dyn std::io::Read + Send>,
     writer: Box<dyn std::io::Write + Send + 'static>,
+    /// A large pre-allocated buffer to read from the pty.
     void_buffer: Vec<u8>,
     parser: vt100::Parser,
 }
@@ -61,6 +89,9 @@ impl PtyTester {
     ///
     /// # Warning
     /// **If the command is expected to produce a TUI use `spawn_command_tui` instead.**
+    ///
+    /// # Example
+    /// See [`PtyTester`]
     pub fn spawn_command(
         &mut self,
         mut cmd: CommandBuilder,
@@ -76,6 +107,9 @@ impl PtyTester {
     ///
     /// # Warning
     /// **If the command is not expected to produce a TUI use `spawn_command` instead.**
+    ///
+    /// # Example
+    /// See [`PtyTester`]
     pub fn spawn_command_tui(
         &mut self,
         mut cmd: CommandBuilder,
@@ -95,9 +129,10 @@ impl PtyTester {
     }
 
     /// Reads the output from the child process's pty.
+    ///
     /// This method processes the output using a vt100 parser to handle terminal escape
-    /// sequences.
-    pub fn read_tui_output(&mut self) -> String {
+    /// sequences and returns the contents of the screen as a string.
+    fn read_tui_output(&mut self) -> String {
         self.void_buffer.fill(0);
         let bytes_read = self.reader.read(&mut self.void_buffer).unwrap();
         self.parser.process(&self.void_buffer[..bytes_read]);
@@ -105,12 +140,19 @@ impl PtyTester {
     }
 
     /// Writes input to the child process's stdin.
+    ///
+    /// This method sends the input string to the pty's writer and flushes it to ensure
+    /// the input is sent immediately.
+    ///
+    /// Convenience methods and constants are provided for common control sequences like `ctrl`,
+    /// `ENTER`, and `ESC`. (See [`ctrl`], [`ENTER`], and [`ESC`])
     pub fn send(&mut self, input: &str) {
         write!(self.writer, "{}", input).unwrap();
         self.writer.flush().unwrap();
         sleep(self.delay);
     }
 
+    /// asserts that the TUI is running by checking if the child process is still active.
     pub fn assert_tui_running(
         &mut self,
         child: &mut Box<dyn portable_pty::Child + Send + Sync>,
@@ -160,8 +202,38 @@ impl PtyTester {
         panic!("Process did not exit in time");
     }
 
+    /// How long to wait for the TUI to stabilize before asserting its output.
     const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(1000);
 
+    /// Gets the current TUI frame, ensuring it has stabilized.
+    ///
+    /// # Example
+    /// ```ignore
+    /// let mut tester = PtyTester::new();
+    ///
+    /// let child = tester.spawn_command_tui(tv());
+    ///
+    /// let output = tester.get_tui_frame();
+    ///
+    /// println!("TUI Output:\n{}", output);
+    ///
+    /// /*
+    ///     ╭───────────────────────── files ──────────────────────────╮
+    ///     │>                                                1 / 138  │
+    ///     ╰──────────────────────────────────────────────────────────╯
+    ///     ╭──────────────────────── Results ─────────────────────────╮
+    ///     │> CHANGELOG.md                                            │
+    ///     │  CODE_OF_CONDUCT.md                                      │
+    ///     │  CONTRIBUTING.md                                         │
+    ///     │  Cargo.toml                                              │
+    ///     │  cable/unix/dotfiles.toml                                │
+    ///     │  cable/unix/env.toml                                     │
+    ///     │  cable/unix/files.toml                                   │
+    ///     │  cable/unix/fish-history.toml                            │
+    ///     │  cable/unix/git-branch.toml                              │
+    ///     ╰─────────── help: <Ctrl-g>  preview: <Ctrl-o> ────────────╯
+    /// */
+    /// ```
     pub fn get_tui_frame(&mut self) -> String {
         // wait for the UI to stabilize with a timeout
         let mut frame = String::new();
@@ -182,8 +254,8 @@ impl PtyTester {
         frame
     }
 
-    /// Asserts that the output contains the expected string.
-    pub fn assert_tui_output_contains(&mut self, expected: &str) {
+    /// Asserts that the frame contains the expected string.
+    pub fn assert_tui_frame_contains(&mut self, expected: &str) {
         let frame = self.get_tui_frame();
         assert!(
             frame.contains(expected),
@@ -193,7 +265,8 @@ impl PtyTester {
         );
     }
 
-    pub fn assert_not_tui_output_contains(&mut self, expected: &str) {
+    /// Asserts that the frame does not contain the expected string.
+    pub fn assert_not_tui_frame_contains(&mut self, expected: &str) {
         let frame = self.get_tui_frame();
         assert!(
             !frame.contains(expected),
@@ -229,16 +302,20 @@ pub const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
     DEFAULT_CONFIG_FILE,
 ];
 
+/// A command builder initialized with the tv binary path.
 pub fn tv() -> CommandBuilder {
     CommandBuilder::new(TV_BIN_PATH)
 }
 
+/// A command builder initialized with the tv binary path and the provided arguments.
 pub fn tv_with_args(args: &[&str]) -> CommandBuilder {
     let mut cmd = tv();
     cmd.args(args);
     cmd
 }
 
+/// A command builder initialized with the tv binary path, using the repository's local config and
+/// cable directory, and the provided arguments.
 pub fn tv_local_config_and_cable_with_args(args: &[&str]) -> CommandBuilder {
     let mut cmd = tv();
     cmd.args(LOCAL_CONFIG_AND_CABLE);

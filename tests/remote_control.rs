@@ -11,7 +11,7 @@ fn tv_remote_control_shows() {
     // open remote control mode
     tester.send(&ctrl('t'));
 
-    tester.assert_tui_output_contains("──Remote Control──");
+    tester.assert_tui_frame_contains("──Remote Control──");
 
     // exit remote then app
     tester.send(&ctrl('c'));
@@ -31,7 +31,7 @@ fn tv_remote_control_zaps() {
     tester.send("files");
     tester.send(ENTER);
 
-    tester.assert_tui_output_contains("── files ──");
+    tester.assert_tui_frame_contains("── files ──");
 
     // exit remote then app
     tester.send(&ctrl('c'));

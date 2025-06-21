@@ -26,7 +26,7 @@ macro_rules! test_channel {
                 $channel_name,
             ]));
 
-            tester.assert_tui_output_contains(&format!(
+            tester.assert_tui_frame_contains(&format!(
                 "── {} ──",
                 $channel_name
             ));
