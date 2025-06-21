@@ -12,19 +12,6 @@ pub struct Cli {
     #[arg(value_enum, index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
-    /// A preview command to use with the current channel.
-    ///
-    /// If provided, the preview command will be executed and formatted using
-    /// the entry.
-    /// Example: "cat {}" (where {} will be replaced with the entry)
-    ///
-    /// Parts of the entry can be extracted positionally using the `delimiter`
-    /// option.
-    /// Example: "echo {0} {1}" will split the entry by the delimiter and pass
-    /// the first two fields to the command.
-    #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
-    pub preview: Option<String>,
-
     /// A preview line number offset template to use to scroll the preview to for each
     /// entry.
     ///
@@ -99,6 +86,65 @@ pub struct Cli {
     )]
     pub preview_footer: Option<String>,
 
+    /// Source command to use for the current channel.
+    ///
+    /// This overrides the command defined in the channel prototype.
+    /// Example: `find . -name '*.rs'`
+    #[arg(
+        long = "source-command",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub source_command: Option<String>,
+
+    /// Source display template to use for the current channel.
+    ///
+    /// This overrides the display template defined in the channel prototype.
+    /// The template is used to format each entry in the results list.
+    /// Example: `{split:/:-1}` (show only the last path segment)
+    #[arg(
+        long = "source-display",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub source_display: Option<String>,
+
+    /// Source output template to use for the current channel.
+    ///
+    /// This overrides the output template defined in the channel prototype.
+    /// The template is used to format the final output when an entry is selected.
+    /// Example: "{}" (output the full entry)
+    #[arg(
+        long = "source-output",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub source_output: Option<String>,
+
+    /// Preview command to use for the current channel.
+    ///
+    /// This overrides the preview command defined in the channel prototype.
+    /// Example: "cat {}" (where {} will be replaced with the entry)
+    ///
+    /// Parts of the entry can be extracted positionally using the `delimiter`
+    /// option.
+    /// Example: "echo {0} {1}" will split the entry by the delimiter and pass
+    /// the first two fields to the command.
+    #[arg(
+        short,
+        long = "preview-command",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub preview_command: Option<String>,
+
+    /// Layout orientation for the UI.
+    ///
+    /// This overrides the layout/orientation defined in the channel prototype.
+    /// Options are "landscape" or "portrait".
+    #[arg(long = "layout", value_name = "STRING", verbatim_doc_comment)]
+    pub layout: Option<String>,
+
     /// The working directory to start the application in.
     ///
     /// This can be used to specify a different working directory for the
@@ -135,6 +181,22 @@ pub struct Cli {
     /// loading times are usually very short and will go unnoticed by the user.
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub select_1: bool,
+
+    /// Take the first entry from the list after the channel has finished loading.
+    ///
+    /// This will wait for the channel to finish loading all entries and then
+    /// automatically select and output the first entry. Unlike `select_1`, this
+    /// will always take the first entry regardless of how many entries are available.
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub take_1: bool,
+
+    /// Take the first entry from the list as soon as it becomes available.
+    ///
+    /// This will immediately select and output the first entry as soon as it
+    /// appears in the results, without waiting for the channel to finish loading.
+    /// This is the fastest option when you just want the first result.
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub take_1_fast: bool,
 
     /// Disable the remote control.
     ///
