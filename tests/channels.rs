@@ -8,7 +8,7 @@ fn tv_ctrl_c() {
     let mut child = tester
         .spawn_command_tui(tv_local_config_and_cable_with_args(&["files"]));
 
-    tester.write_input(&ctrl('c'));
+    tester.send(&ctrl('c'));
 
     // Check if the child process exited with a timeout
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
@@ -31,7 +31,7 @@ macro_rules! test_channel {
                 $channel_name
             ));
 
-            tester.write_input(&ctrl('c'));
+            tester.send(&ctrl('c'));
             PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
         }
     )*
