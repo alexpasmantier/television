@@ -172,6 +172,9 @@ pub struct ChannelPrototype {
     pub ui: Option<UiSpec>,
     #[serde(default)]
     pub keybindings: Option<ChannelKeyBindings>,
+    /// Watch interval in seconds for automatic reloading (0 = disabled)
+    #[serde(default)]
+    pub watch: f64,
     // actions: Vec<Action>,
 }
 
@@ -198,6 +201,7 @@ impl ChannelPrototype {
             preview: None,
             ui: None,
             keybindings: None,
+            watch: 0.0,
         }
     }
 
@@ -222,6 +226,7 @@ impl ChannelPrototype {
             preview,
             ui: None,
             keybindings: None,
+            watch: 0.0,
         }
     }
 

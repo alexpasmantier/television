@@ -129,4 +129,7 @@ pub enum Action {
     /// Switch to the specified channel directly via shortcut.
     #[serde(skip)]
     SwitchToChannel(String),
+    /// Timer action for watch mode to trigger periodic reloads.
+    #[serde(skip)]
+    WatchTimer,
 }

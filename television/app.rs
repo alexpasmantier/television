@@ -37,6 +37,8 @@ pub struct AppOptions {
     pub preview_size: Option<u16>,
     /// The tick rate of the application in ticks per second (Hz).
     pub tick_rate: f64,
+    /// Watch interval in seconds for automatic reloading (0 = disabled).
+    pub watch_interval: f64,
 }
 
 impl Default for AppOptions {
@@ -51,6 +53,7 @@ impl Default for AppOptions {
             no_preview: false,
             preview_size: Some(DEFAULT_PREVIEW_SIZE),
             tick_rate: default_tick_rate(),
+            watch_interval: 0.0,
         }
     }
 }
@@ -68,6 +71,7 @@ impl AppOptions {
         no_preview: bool,
         preview_size: Option<u16>,
         tick_rate: f64,
+        watch_interval: f64,
     ) -> Self {
         Self {
             exact,
@@ -79,6 +83,7 @@ impl AppOptions {
             no_preview,
             preview_size,
             tick_rate,
+            watch_interval,
         }
     }
 }
@@ -118,6 +123,8 @@ pub struct App {
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
     options: AppOptions,
+    /// Watch timer task handle for periodic reloading
+    watch_timer_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 /// The outcome of an action.
@@ -201,6 +208,7 @@ impl App {
             ui_state_tx,
             render_task: None,
             options,
+            watch_timer_task: None,
         };
 
         // populate keymap by going through all cable channels and adding their shortcuts if remote
@@ -208,6 +216,56 @@ impl App {
         app.update_keymap();
 
         app
+    }
+
+    /// Check if the watch timer is currently active.
+    fn watch_active(&self) -> bool {
+        self.watch_timer_task.is_some()
+    }
+
+    /// Start the watch timer if watch interval is configured
+    fn start_watch_timer(&mut self) {
+        if self.options.watch_interval > 0.0 && !self.watch_active() {
+            let action_tx = self.action_tx.clone();
+            let interval = std::time::Duration::from_secs_f64(
+                self.options.watch_interval,
+            );
+
+            debug!("Starting watch timer with interval: {:?}", interval);
+
+            let task = tokio::spawn(async move {
+                let mut timer = tokio::time::interval(interval);
+                timer.set_missed_tick_behavior(
+                    tokio::time::MissedTickBehavior::Skip,
+                );
+
+                loop {
+                    timer.tick().await;
+                    if action_tx.send(Action::WatchTimer).is_err() {
+                        break;
+                    }
+                }
+            });
+
+            self.watch_timer_task = Some(task);
+        }
+    }
+
+    /// Stop the watch timer
+    fn stop_watch_timer(&mut self) {
+        if let Some(task) = self.watch_timer_task.take() {
+            task.abort();
+        }
+        self.watch_timer_task = None;
+        debug!("Stopped watch timer");
+    }
+
+    /// Restart the watch timer based on current channel's watch configuration
+    fn restart_watch_timer(&mut self) {
+        self.stop_watch_timer();
+        // Update the watch interval from the current channel prototype
+        self.options.watch_interval = self.television.channel_prototype.watch;
+        self.start_watch_timer();
     }
 
     /// Update the keymap from the television's current config.
@@ -269,6 +327,9 @@ impl App {
                 .send(Action::Render)
                 .expect("Unable to send init render action.");
         }
+
+        // Start watch timer if configured
+        self.start_watch_timer();
 
         // Main loop
         debug!("Starting event handling loop");
@@ -425,6 +486,7 @@ impl App {
                             self.action_tx
                                 .send(Action::ToggleRemoteControl)?;
                         } else {
+                            self.stop_watch_timer();
                             self.should_quit = true;
                             self.render_tx.send(RenderingTask::Quit)?;
                         }
@@ -486,9 +548,11 @@ impl App {
                     && self.television.mode == Mode::Channel
                 {
                     self.update_keymap();
+                    self.restart_watch_timer();
                 } else if matches!(action, Action::SwitchToChannel(_)) {
-                    // Channel changed via shortcut, refresh keymap
+                    // Channel changed via shortcut, refresh keymap and watch timer
                     self.update_keymap();
+                    self.restart_watch_timer();
                 }
             }
         }
