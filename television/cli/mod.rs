@@ -6,14 +6,13 @@ use tracing::debug;
 
 use crate::{
     cable::{self, Cable},
-    channels::prototypes::{
-        ChannelPrototype, CommandSpec, PreviewSpec, Template,
-    },
+    channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
         DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE, KeyBindings, get_config_dir,
         get_data_dir,
     },
+    screen::layout::Orientation,
     utils::paths::expand_tilde,
 };
 
@@ -22,53 +21,97 @@ pub mod args;
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
+    // Channel and source configuration
     pub channel: Option<String>,
-    pub preview_spec: Option<PreviewSpec>,
-    pub no_preview: bool,
-    pub tick_rate: Option<f64>,
-    pub frame_rate: Option<f64>,
-    pub input: Option<String>,
-    pub input_header: Option<String>,
-    pub preview_header: Option<String>,
-    pub preview_footer: Option<String>,
-    pub command: Option<Command>,
+    pub source_command_override: Option<Template>,
+    pub source_display_override: Option<Template>,
+    pub source_output_override: Option<Template>,
     pub working_directory: Option<String>,
     pub autocomplete_prompt: Option<String>,
-    pub keybindings: Option<KeyBindings>,
-    pub exact: bool,
-    pub select_1: bool,
+
+    // Preview configuration
+    pub preview_command_override: Option<Template>,
+    pub preview_offset_override: Option<Template>,
+    pub no_preview: bool,
+    pub preview_size: Option<u16>,
+    pub preview_header: Option<String>,
+    pub preview_footer: Option<String>,
+
+    // Input configuration
+    pub input: Option<String>,
+    pub input_header: Option<String>,
+
+    // UI and layout configuration
+    pub layout: Option<Orientation>,
+    pub ui_scale: u16,
     pub no_remote: bool,
     pub no_help: bool,
-    pub ui_scale: u16,
-    pub preview_size: Option<u16>,
+
+    // Behavior and matching configuration
+    pub exact: bool,
+    pub select_1: bool,
+    pub take_1: bool,
+    pub take_1_fast: bool,
+    pub keybindings: Option<KeyBindings>,
+
+    // Performance configuration
+    pub tick_rate: Option<f64>,
+    pub frame_rate: Option<f64>,
+
+    // Configuration sources
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
+
+    // Command handling
+    pub command: Option<Command>,
 }
 
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
+            // Channel and source configuration
             channel: None,
-            preview_spec: None,
-            no_preview: false,
-            tick_rate: None,
-            frame_rate: None,
-            input: None,
-            input_header: None,
-            preview_header: None,
-            preview_footer: None,
-            command: None,
+            source_command_override: None,
+            source_display_override: None,
+            source_output_override: None,
             working_directory: None,
             autocomplete_prompt: None,
-            keybindings: None,
-            exact: false,
-            select_1: false,
+
+            // Preview configuration
+            preview_command_override: None,
+            preview_offset_override: None,
+            no_preview: false,
+            preview_size: Some(DEFAULT_PREVIEW_SIZE),
+            preview_header: None,
+            preview_footer: None,
+
+            // Input configuration
+            input: None,
+            input_header: None,
+
+            // UI and layout configuration
+            layout: None,
+            ui_scale: DEFAULT_UI_SCALE,
             no_remote: false,
             no_help: false,
-            ui_scale: DEFAULT_UI_SCALE,
-            preview_size: Some(DEFAULT_PREVIEW_SIZE),
+
+            // Behavior and matching configuration
+            exact: false,
+            select_1: false,
+            take_1: false,
+            take_1_fast: false,
+            keybindings: None,
+
+            // Performance configuration
+            tick_rate: None,
+            frame_rate: None,
+
+            // Configuration sources
             config_file: None,
             cable_dir: None,
+
+            // Command handling
+            command: None,
         }
     }
 }
@@ -80,28 +123,24 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
             .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
     });
 
-    // Parse the preview spec if provided
-    let preview_spec = cli.preview.as_ref().map(|preview| {
-        let command_spec = CommandSpec::new(
-            vec![Template::parse(preview).unwrap_or_else(|e| {
+    // Parse preview overrides if provided
+    let preview_command_override =
+        cli.preview_command.as_ref().map(|preview_cmd| {
+            Template::parse(preview_cmd).unwrap_or_else(|e| {
                 cli_parsing_error_exit(&format!(
                     "Error parsing preview command: {e}"
                 ))
-            })],
-            false,
-            FxHashMap::default(),
-        );
-        PreviewSpec::new(
-            command_spec,
-            cli.preview_offset.map(|offset_str| {
-                Template::parse(&offset_str).unwrap_or_else(|e| {
-                    cli_parsing_error_exit(&format!(
-                        "Error parsing preview offset: {e}"
-                    ))
-                })
-            }),
-        )
-    });
+            })
+        });
+
+    let preview_offset_override =
+        cli.preview_offset.as_ref().map(|offset_str| {
+            Template::parse(offset_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing preview offset: {e}"
+                ))
+            })
+        });
 
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
@@ -112,28 +151,92 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         _ => (cli.channel.clone(), cli.working_directory.clone()),
     };
 
+    // Parse source overrides if any source fields are provided
+    let source_command_override =
+        cli.source_command.as_ref().map(|source_cmd| {
+            Template::parse(source_cmd).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source command: {e}"
+                ))
+            })
+        });
+
+    let source_display_override =
+        cli.source_display.as_ref().map(|display_str| {
+            Template::parse(display_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source display: {e}"
+                ))
+            })
+        });
+
+    let source_output_override =
+        cli.source_output.as_ref().map(|output_str| {
+            Template::parse(output_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source output: {e}"
+                ))
+            })
+        });
+
+    // Determine layout
+    let layout: Option<Orientation> = cli.layout.map(|layout_str| {
+        match layout_str.to_lowercase().as_str() {
+            "landscape" => Orientation::Landscape,
+            "portrait" => Orientation::Portrait,
+            _ => {
+                cli_parsing_error_exit(&format!(
+                    "Invalid layout value '{}'. Valid options are 'landscape' or 'portrait'",
+                    layout_str
+                ));
+            }
+        }
+    });
+
     PostProcessedCli {
+        // Channel and source configuration
         channel,
-        preview_spec,
-        no_preview: cli.no_preview,
-        tick_rate: cli.tick_rate,
-        frame_rate: cli.frame_rate,
-        input: cli.input,
-        input_header: cli.input_header,
-        preview_header: cli.preview_header,
-        preview_footer: cli.preview_footer,
-        command: cli.command,
+        source_command_override,
+        source_display_override,
+        source_output_override,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
-        keybindings,
-        exact: cli.exact,
-        select_1: cli.select_1,
+
+        // Preview configuration
+        preview_command_override,
+        preview_offset_override,
+        no_preview: cli.no_preview,
+        preview_size: cli.preview_size,
+        preview_header: cli.preview_header,
+        preview_footer: cli.preview_footer,
+
+        // Input configuration
+        input: cli.input,
+        input_header: cli.input_header,
+
+        // UI and layout configuration
+        layout,
+        ui_scale: cli.ui_scale,
         no_remote: cli.no_remote,
         no_help: cli.no_help,
-        ui_scale: cli.ui_scale,
-        preview_size: cli.preview_size,
+
+        // Behavior and matching configuration
+        exact: cli.exact,
+        select_1: cli.select_1,
+        take_1: cli.take_1,
+        take_1_fast: cli.take_1_fast,
+        keybindings,
+
+        // Performance configuration
+        tick_rate: cli.tick_rate,
+        frame_rate: cli.frame_rate,
+
+        // Configuration sources
         config_file: cli.config_file.map(expand_tilde),
         cable_dir: cli.cable_dir.map(expand_tilde),
+
+        // Command handling
+        command: cli.command,
     }
 }
 
@@ -292,7 +395,7 @@ mod tests {
     fn test_from_cli() {
         let cli = Cli {
             channel: Some("files".to_string()),
-            preview: Some("bat -n --color=always {}".to_string()),
+            preview_command: Some("bat -n --color=always {}".to_string()),
             working_directory: Some("/home/user".to_string()),
             ..Default::default()
         };
@@ -300,12 +403,7 @@ mod tests {
         let post_processed_cli = post_process(cli);
 
         assert_eq!(
-            post_processed_cli
-                .preview_spec
-                .unwrap()
-                .command
-                .get_nth(0)
-                .raw(),
+            post_processed_cli.preview_command_override.unwrap().raw(),
             "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
@@ -337,7 +435,7 @@ mod tests {
     fn test_custom_keybindings() {
         let cli = Cli {
             channel: Some("files".to_string()),
-            preview: Some(":env_var:".to_string()),
+            preview_command: Some(":env_var:".to_string()),
             keybindings: Some(
                 "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
                     .to_string(),

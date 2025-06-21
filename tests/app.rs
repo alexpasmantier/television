@@ -49,6 +49,8 @@ fn setup_app(
         false,
         false,
         false,
+        false,
+        false,
         Some(50),
         config.application.tick_rate,
     );
