@@ -460,7 +460,7 @@ const RENDERING_INTERVAL_FAST: u64 = 3;
 
 impl Television {
     fn should_render(&self, action: &Action) -> bool {
-        self.ticks < FIRST_TICKS_TO_RENDER
+        (self.ticks < FIRST_TICKS_TO_RENDER
             || self.ticks % RENDERING_INTERVAL == 0
             || (self.channel.running()
                 && self.ticks % RENDERING_INTERVAL_FAST == 0)
@@ -492,7 +492,13 @@ impl Television {
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
-            )
+            ))
+            // We want to avoid too much rendering while the channel is reloading
+            // to prevent UI flickering.
+            && !self
+                .channel
+                .reloading
+                .load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn update_preview_state(

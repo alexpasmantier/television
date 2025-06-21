@@ -1,6 +1,9 @@
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
+use std::sync::Arc;
+use std::sync::atomic::AtomicBool;
+use std::time::Duration;
 
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
@@ -11,12 +14,17 @@ use crate::matcher::Matcher;
 use crate::matcher::{config::Config, injector::Injector};
 use crate::utils::command::shell_command;
 
+const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
+
 pub struct Channel {
     pub prototype: ChannelPrototype,
     matcher: Matcher<String>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
     current_source_index: usize,
+    /// Indicates if the channel is currently reloading to prevent UI flickering
+    /// by delaying the rendering of a new frame.
+    pub reloading: Arc<AtomicBool>,
 }
 
 impl Channel {
@@ -30,6 +38,7 @@ impl Channel {
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle: None,
             current_source_index,
+            reloading: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -44,6 +53,13 @@ impl Channel {
     }
 
     pub fn reload(&mut self) {
+        if self.reloading.load(std::sync::atomic::Ordering::Relaxed) {
+            debug!("Reload already in progress, skipping.");
+            return;
+        }
+        self.reloading
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+
         if let Some(handle) = self.crawl_handle.take() {
             if !handle.is_finished() {
                 handle.abort();
@@ -51,6 +67,13 @@ impl Channel {
         }
         self.matcher.restart();
         self.load();
+        // Spawn a thread that turns off reloading after a short delay
+        // to avoid UI flickering (this boolean is used by `Television::should_render`)
+        let reloading = self.reloading.clone();
+        tokio::spawn(async move {
+            tokio::time::sleep(RELOAD_RENDERING_DELAY).await;
+            reloading.store(false, std::sync::atomic::Ordering::Relaxed);
+        });
     }
 
     pub fn current_command(&self) -> &str {
