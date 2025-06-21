@@ -297,36 +297,25 @@ impl App {
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
 
-            // If `self.select_1` is true, the channel is not running, and there is
-            // only one entry available, automatically select the first entry.
             if self.options.select_1
                 && !self.television.channel.running()
                 && self.television.channel.total_count() == 1
             {
+                // If `self.select_1` is true, the channel is not running, and there is
+                // only one entry available, automatically select the first entry.
                 if let Some(outcome) = self.maybe_select_1() {
                     action_outcome = outcome;
                 }
-            }
-
-            // If `take_1` is true and the channel has finished loading,
-            // automatically take the first entry regardless of count.
-            if self.options.take_1
-                && !self.television.channel.running()
-                && self.television.channel.total_count() > 0
+            } else if self.options.take_1 && !self.television.channel.running()
             {
-                if let Some(outcome) = self.maybe_take_1() {
-                    action_outcome = outcome;
-                }
-            }
-
-            // If `take_1_fast` is true and there's at least one entry available,
-            // immediately take the first entry without waiting for loading to finish.
-            if self.options.take_1_fast
-                && self.television.channel.total_count() > 0
-            {
-                if let Some(outcome) = self.maybe_take_1() {
-                    action_outcome = outcome;
-                }
+                // If `take_1` is true and the channel has finished loading,
+                // automatically take the first entry regardless of count.
+                // If there are no entries, exit with None.
+                action_outcome = self.maybe_take_1();
+            } else if self.options.take_1_fast {
+                // If `take_1_fast` is true, immediately take the first entry without
+                // waiting for loading to finish. If there are no entries, exit with None.
+                action_outcome = self.maybe_take_1();
             }
 
             if self.should_quit {
@@ -526,21 +515,28 @@ impl App {
     }
 
     /// Take the first entry from the list regardless of how many entries are available.
-    fn maybe_take_1(&mut self) -> Option<ActionOutcome> {
-        debug!("Automatically taking the first entry");
+    /// If the list is empty, exit with None.
+    fn maybe_take_1(&mut self) -> ActionOutcome {
         if let Some(first_entry) =
             self.television.results_picker.entries.first()
         {
+            debug!("Automatically taking the first entry");
             self.should_quit = true;
 
             if !self.render_tx.is_closed() {
                 let _ = self.render_tx.send(RenderingTask::Quit);
             }
 
-            return Some(ActionOutcome::Entries(FxHashSet::from_iter([
-                first_entry.clone(),
-            ])));
+            ActionOutcome::Entries(FxHashSet::from_iter([first_entry.clone()]))
+        } else {
+            debug!("No entries available, exiting with None");
+            self.should_quit = true;
+
+            if !self.render_tx.is_closed() {
+                let _ = self.render_tx.send(RenderingTask::Quit);
+            }
+
+            ActionOutcome::None
         }
-        None
     }
 }
