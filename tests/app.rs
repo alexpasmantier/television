@@ -53,6 +53,7 @@ fn setup_app(
         false,
         Some(50),
         config.application.tick_rate,
+        0.0, // watch_interval
     );
     let mut app = App::new(
         chan,
