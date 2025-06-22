@@ -135,3 +135,11 @@ float_cmp = "allow"
 implicit_hasher = "allow"
 wildcard_imports = "allow"
 from_iter_instead_of_collect = "allow"
+
+[package.metadata.deb]
+maintainer = "Alexandre Pasmantier <alex.pasmant@gmail.com>"
+extended-description = """\
+Television is a cross-platform, fast and extensible fuzzy finder TUI.
+It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible."""
+section = "utility"
+priority = "optional"
