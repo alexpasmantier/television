@@ -1,6 +1,9 @@
 use crate::{
     cable::Cable,
-    channels::{entry::into_ranges, prototypes::ChannelPrototype},
+    channels::{
+        entry::into_ranges,
+        prototypes::{BinaryRequirement, ChannelPrototype},
+    },
     config::Binding,
     matcher::{Matcher, config::Config},
     screen::result_item::ResultItem,
@@ -12,19 +15,36 @@ pub struct CableEntry {
     pub channel_name: String,
     pub match_ranges: Option<Vec<(u32, u32)>>,
     pub shortcut: Option<Binding>,
+    pub description: Option<String>,
+    pub requirements: Vec<BinaryRequirement>,
 }
 
 impl CableEntry {
-    pub fn new(name: String, shortcut: Option<Binding>) -> Self {
+    pub fn new(name: String, shortcut: Option<&Binding>) -> Self {
         CableEntry {
             channel_name: name,
             match_ranges: None,
-            shortcut,
+            shortcut: shortcut.cloned(),
+            description: None,
+            requirements: Vec::new(),
         }
     }
 
     pub fn with_match_indices(mut self, indices: &[u32]) -> Self {
         self.match_ranges = Some(into_ranges(indices));
+        self
+    }
+
+    pub fn with_description(mut self, description: Option<String>) -> Self {
+        self.description = description;
+        self
+    }
+
+    pub fn with_requirements(
+        mut self,
+        requirements: Vec<BinaryRequirement>,
+    ) -> Self {
+        self.requirements = requirements;
         self
     }
 }
@@ -49,7 +69,7 @@ impl ResultItem for CableEntry {
 }
 
 pub struct RemoteControl {
-    matcher: Matcher<String>,
+    matcher: Matcher<CableEntry>,
     pub cable_channels: Cable,
 }
 
@@ -60,9 +80,30 @@ impl RemoteControl {
         let matcher =
             Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
-        for c in cable_channels.keys() {
-            let () = injector.push(c.clone(), |e, cols| {
-                cols[0] = e.to_string().into();
+        for (channel_name, prototype) in cable_channels.iter() {
+            let channel_shortcut = prototype
+                .keybindings
+                .as_ref()
+                .and_then(|kb| kb.channel_shortcut());
+            let cable_entry =
+                CableEntry::new(channel_name.to_string(), channel_shortcut)
+                    .with_description(prototype.metadata.description.clone())
+                    .with_requirements(
+                        // check if the prototype has binary requirements
+                        // and whether they are met
+                        prototype
+                            .metadata
+                            .requirements
+                            .iter()
+                            .cloned()
+                            .map(|mut r| {
+                                r.init();
+                                r
+                            })
+                            .collect(),
+                    );
+            let () = injector.push(cable_entry, |e, cols| {
+                cols[0] = e.channel_name.clone().into();
             });
         }
         RemoteControl {
@@ -95,25 +136,13 @@ impl RemoteControl {
         self.matcher
             .results(num_entries, offset)
             .into_iter()
-            .map(|item| {
-                CableEntry::new(
-                    item.matched_string.clone(),
-                    self.cable_channels
-                        .get_channel_shortcut(&item.matched_string),
-                )
-                .with_match_indices(&item.match_indices)
-            })
+            .map(|item| item.inner.with_match_indices(&item.match_indices))
             .collect()
     }
 
     pub fn get_result(&self, index: u32) -> CableEntry {
         let item = self.matcher.get_result(index).expect("Invalid index");
-        CableEntry::new(
-            item.matched_string.clone(),
-            self.cable_channels
-                .get_channel_shortcut(&item.matched_string),
-        )
-        .with_match_indices(&item.match_indices)
+        item.inner.with_match_indices(&item.match_indices)
     }
 
     pub fn result_count(&self) -> u32 {

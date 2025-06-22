@@ -53,7 +53,7 @@ fn no_remote() {
 
     tester.send(&ctrl('t'));
     // Check that the remote control is not shown
-    tester.assert_not_tui_frame_contains("──Remote Control──");
+    tester.assert_not_tui_frame_contains("(1) (2) (3)");
 
     // Exit the application
     tester.send(&ctrl('c'));
@@ -94,7 +94,7 @@ fn multiple_keybindings() {
     tester.assert_tui_running(&mut child);
 
     tester.send(&ctrl('t'));
-    tester.assert_tui_frame_contains("──Remote Control──");
+    tester.assert_tui_frame_contains("(1) (2) (3)");
 
     tester.send("a");
     tester.send("a");
