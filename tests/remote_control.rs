@@ -11,7 +11,8 @@ fn tv_remote_control_shows() {
     // open remote control mode
     tester.send(&ctrl('t'));
 
-    tester.assert_tui_frame_contains("──Remote Control──");
+    // FIXME: me being lazy
+    tester.assert_tui_frame_contains("(1) (2) (3)");
 
     // exit remote then app
     tester.send(&ctrl('c'));

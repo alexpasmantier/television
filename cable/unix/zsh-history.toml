@@ -1,6 +1,7 @@
 [metadata]
 name = "zsh-history"
 description = "A channel to select from your zsh history"
+requirements = ["zsh"]
 
 [source]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.zsh_history}"

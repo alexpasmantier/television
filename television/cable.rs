@@ -145,9 +145,10 @@ where
                         Some(prototype)
                     }
                     Err(e) => {
-                        error!(
-                            "Failed to parse cable channel file {:?}: {}",
-                            p, e
+                        eprintln!(
+                            "Failed to parse cable channel file {}: {}",
+                            p.display(),
+                            e
                         );
                         None
                     }

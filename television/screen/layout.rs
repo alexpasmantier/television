@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::UiConfig;
 use crate::screen::constants::LOGO_WIDTH;
+use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
 
 pub struct Dimensions {
     pub x: u16,
@@ -110,6 +111,8 @@ pub struct Layout {
     pub remote_control: Option<Rect>,
 }
 
+const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
+
 impl Default for Layout {
     /// Having a default layout with a non-zero height for the results area
     /// is important for the initial rendering of the application. For the first
@@ -182,22 +185,6 @@ impl Layout {
             help_bar_layout = None;
         }
 
-        let remote_constraints = if show_remote {
-            vec![Constraint::Fill(1), Constraint::Length(LOGO_WIDTH)]
-        } else {
-            vec![Constraint::Fill(1)]
-        };
-        let remote_chunks = layout::Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(remote_constraints)
-            .split(main_rect);
-
-        let remote_control = if show_remote {
-            Some(remote_chunks[1])
-        } else {
-            None
-        };
-
         // Define the constraints for the results area (results list + input bar).
         // We keep this near the top so we can derive the input-bar height before
         // calculating the preview/results split.
@@ -226,7 +213,7 @@ impl Layout {
             if ui_config.orientation == Orientation::Portrait
                 && input_bar_height > 0
             {
-                let total_height = remote_chunks[0].height;
+                let total_height = main_rect.height;
                 if total_height > input_bar_height {
                     let available_height = total_height - input_bar_height;
                     preview_percentage = raw_preview_percentage
@@ -266,7 +253,7 @@ impl Layout {
                 Orientation::Landscape => Direction::Horizontal,
             })
             .constraints(constraints)
-            .split(remote_chunks[0]);
+            .split(main_rect);
 
         // ------------------------------------------------------------------
         // Determine the rectangles for input, results list and optional preview
@@ -387,17 +374,31 @@ impl Layout {
                 }
 
                 // Perform the split now that we have the final constraints vector
-                let port_chunks = layout::Layout::default()
+                let portrait_chunks = layout::Layout::default()
                     .direction(Direction::Vertical)
                     .constraints(portrait_constraints)
-                    .split(remote_chunks[0]);
+                    .split(main_rect);
 
-                let input_rect = port_chunks[input_idx];
-                let results_rect = port_chunks[results_idx];
-                let preview_rect = preview_idx.map(|idx| port_chunks[idx]);
+                let input_rect = portrait_chunks[input_idx];
+                let results_rect = portrait_chunks[results_idx];
+                let preview_rect = preview_idx.map(|idx| portrait_chunks[idx]);
 
                 (input_rect, results_rect, preview_rect)
             }
+        };
+
+        // the remote control is a centered popup
+        let remote_control = if show_remote {
+            let remote_control_rect = centered_rect_with_dimensions(
+                &Dimensions::new(
+                    area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
+                    REMOTE_LOGO_HEIGHT_U16,
+                ),
+                area,
+            );
+            Some(remote_control_rect)
+        } else {
+            None
         };
 
         Self::new(
@@ -412,13 +413,20 @@ impl Layout {
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
+    let height = r.height.saturating_mul(percent_y) / 100;
+    let width = r.width.saturating_mul(percent_x) / 100;
+
+    centered_rect_with_dimensions(&Dimensions::new(width, height), r)
+}
+
+fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
     // Cut the given rectangle into three vertical pieces
     let popup_layout = layout::Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Percentage((100 - percent_y) / 2),
-            Constraint::Percentage(percent_y),
-            Constraint::Percentage((100 - percent_y) / 2),
+            Constraint::Fill(1),
+            Constraint::Length(dimensions.y),
+            Constraint::Fill(1),
         ])
         .split(r);
 
@@ -426,9 +434,9 @@ fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {
     layout::Layout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            Constraint::Percentage((100 - percent_x) / 2),
-            Constraint::Percentage(percent_x),
-            Constraint::Percentage((100 - percent_x) / 2),
+            Constraint::Fill(1),
+            Constraint::Length(dimensions.x),
+            Constraint::Fill(1),
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
 }

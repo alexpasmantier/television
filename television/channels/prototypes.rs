@@ -1,6 +1,7 @@
 use anyhow::Result;
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use which::which;
 
 use crate::config::Binding;
 use crate::{
@@ -161,6 +162,12 @@ pub struct ChannelKeyBindings {
     pub bindings: KeyBindings,
 }
 
+impl ChannelKeyBindings {
+    pub fn channel_shortcut(&self) -> Option<&Binding> {
+        self.shortcut.as_ref()
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
@@ -247,7 +254,39 @@ pub struct Metadata {
     pub name: String,
     pub description: Option<String>,
     #[serde(default)]
-    requirements: Vec<String>,
+    pub requirements: Vec<BinaryRequirement>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct BinaryRequirement {
+    pub bin_name: String,
+    #[serde(skip)]
+    met: bool,
+}
+
+impl BinaryRequirement {
+    pub fn new(bin_name: &str) -> Self {
+        Self {
+            bin_name: bin_name.to_string(),
+            met: false,
+        }
+    }
+
+    /// Check if the required binary is available in the system's PATH.
+    ///
+    /// This method updates the requirement's state in place to reflect whether the binary was
+    /// found.
+    pub fn init(&mut self) {
+        self.met = which(&self.bin_name).is_ok();
+    }
+
+    /// Whether the requirement is available in the system's PATH.
+    ///
+    /// This should be called after `init()`.
+    pub fn is_met(&self) -> bool {
+        self.met
+    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
