@@ -1,13 +1,17 @@
+use ratatui::layout::{
+    self, Constraint, Direction, Layout as RatatuiLayout, Rect,
+};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 use clap::ValueEnum;
-use ratatui::layout;
-use ratatui::layout::{Constraint, Direction, Rect};
-use serde::{Deserialize, Serialize};
 
-use crate::config::UiConfig;
+use crate::config::{KeyBindings, UiConfig};
+use crate::screen::colors::Colorscheme;
 use crate::screen::constants::LOGO_WIDTH;
+use crate::screen::keybinding_panel::calculate_keybinding_panel_size;
 use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
+use crate::television::Mode;
 
 pub struct Dimensions {
     pub x: u16,
@@ -109,6 +113,7 @@ pub struct Layout {
     pub input: Rect,
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
+    pub keybinding_panel: Option<Rect>,
 }
 
 const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
@@ -120,7 +125,14 @@ impl Default for Layout {
     /// depend on the height of the results area which is not known until the first
     /// frame is rendered.
     fn default() -> Self {
-        Self::new(None, Rect::new(0, 0, 0, 100), Rect::default(), None, None)
+        Self::new(
+            None,
+            Rect::new(0, 0, 0, 100),
+            Rect::default(),
+            None,
+            None,
+            None,
+        )
     }
 }
 
@@ -132,6 +144,7 @@ impl Layout {
         input: Rect,
         preview_window: Option<Rect>,
         remote_control: Option<Rect>,
+        keybinding_panel: Option<Rect>,
     ) -> Self {
         Self {
             help_bar,
@@ -139,6 +152,7 @@ impl Layout {
             input,
             preview_window,
             remote_control,
+            keybinding_panel,
         }
     }
 
@@ -147,6 +161,9 @@ impl Layout {
         ui_config: &UiConfig,
         show_remote: bool,
         show_preview: bool,
+        keybindings: Option<&KeyBindings>,
+        mode: Mode,
+        colorscheme: &Colorscheme,
     ) -> Self {
         let show_preview = show_preview && ui_config.show_preview_panel;
         let dimensions = Dimensions::from(ui_config.ui_scale);
@@ -156,14 +173,14 @@ impl Layout {
         let help_bar_layout: Option<HelpBarLayout>;
 
         if ui_config.show_help_bar {
-            let hz_chunks = layout::Layout::default()
+            let hz_chunks = RatatuiLayout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Max(9), Constraint::Fill(1)])
                 .split(main_block);
             main_rect = hz_chunks[1];
 
             // split the help bar into three horizontal chunks (left + center + right)
-            let help_bar_chunks = layout::Layout::default()
+            let help_bar_chunks = RatatuiLayout::default()
                 .direction(Direction::Horizontal)
                 .constraints([
                     // metadata
@@ -247,7 +264,7 @@ impl Layout {
             vec![Constraint::Fill(1)]
         };
 
-        let main_chunks = layout::Layout::default()
+        let main_chunks = RatatuiLayout::default()
             .direction(match ui_config.orientation {
                 Orientation::Portrait => Direction::Vertical,
                 Orientation::Landscape => Direction::Horizontal,
@@ -401,12 +418,27 @@ impl Layout {
             None
         };
 
+        // the keybinding panel is positioned at bottom-right
+        let keybinding_panel = if ui_config.show_keybinding_panel {
+            if let Some(kb) = keybindings {
+                let (width, height) =
+                    calculate_keybinding_panel_size(kb, mode, colorscheme);
+                Some(bottom_right_rect(width, height, area))
+            } else {
+                // Fallback to reasonable default if keybindings not available
+                Some(bottom_right_rect(45, 25, area))
+            }
+        } else {
+            None
+        };
+
         Self::new(
             help_bar_layout,
             results,
             input,
             preview_window,
             remote_control,
+            keybinding_panel,
         )
     }
 }
@@ -439,4 +471,17 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
             Constraint::Fill(1),
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
+}
+
+/// helper function to create a floating rect positioned at the bottom-right corner
+fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
+    let x = r.width.saturating_sub(width + 2); // 2 for padding from edge
+    let y = r.height.saturating_sub(height + 1); // 1 for padding from edge
+
+    Rect {
+        x: r.x + x,
+        y: r.y + y,
+        width: width.min(r.width.saturating_sub(2)),
+        height: height.min(r.height.saturating_sub(2)),
+    }
 }

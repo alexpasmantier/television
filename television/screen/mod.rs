@@ -3,6 +3,7 @@ pub mod colors;
 pub mod constants;
 pub mod help;
 pub mod input;
+pub mod keybinding_panel;
 pub mod keybindings;
 pub mod layout;
 pub mod logo;

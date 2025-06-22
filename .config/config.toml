@@ -48,6 +48,9 @@ show_help_bar = false
 # Whether to show the preview panel in the UI by default
 # This option can be toggled with the (default) `ctrl-o` keybinding
 show_preview_panel = true
+# Whether to show the keybinding panel in the UI by default
+# This option can be toggled with the (default) `ctrl-h` keybinding
+show_keybinding_panel = false
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
 # What orientation should tv be (landscape or portrait)
@@ -93,6 +96,8 @@ toggle_remote_control = "ctrl-t"
 toggle_help = "ctrl-g"
 # Toggle the preview panel
 toggle_preview = "ctrl-o"
+# Toggle the keybinding panel
+toggle_keybinding_panel = "ctrl-h"
 # Reload the current source
 reload_source = "ctrl-r"
 # Cycle through the available sources for the current channel

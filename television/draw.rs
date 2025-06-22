@@ -12,6 +12,7 @@ use crate::{
     previewer::state::PreviewState,
     screen::{
         colors::Colorscheme, help::draw_help_bar, input::draw_input_box,
+        keybinding_panel::draw_keybinding_panel,
         keybindings::build_keybindings_table, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
@@ -190,6 +191,9 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.ui,
         show_remote,
         ctx.tv_state.preview_state.enabled,
+        Some(&ctx.config.keybindings),
+        ctx.tv_state.mode,
+        &ctx.colorscheme,
     );
 
     // help bar (metadata, keymaps, logo)
@@ -272,6 +276,17 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
         )?;
+    }
+
+    // floating keybinding panel (rendered last to appear on top)
+    if let Some(keybinding_area) = layout.keybinding_panel {
+        draw_keybinding_panel(
+            f,
+            keybinding_area,
+            &ctx.config.keybindings,
+            ctx.tv_state.mode,
+            &ctx.colorscheme,
+        );
     }
 
     Ok(layout)

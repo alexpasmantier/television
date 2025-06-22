@@ -19,6 +19,7 @@ pub struct UiConfig {
     pub no_help: bool,
     pub show_help_bar: bool,
     pub show_preview_panel: bool,
+    pub show_keybinding_panel: bool,
     #[serde(default)]
     pub input_bar_position: InputPosition,
     pub orientation: Orientation,
@@ -41,6 +42,7 @@ impl Default for UiConfig {
             no_help: false,
             show_help_bar: false,
             show_preview_panel: true,
+            show_keybinding_panel: false,
             input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
             preview_title_position: None,

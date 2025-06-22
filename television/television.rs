@@ -489,6 +489,7 @@ impl Television {
                     | Action::ToggleSendToChannel
                     | Action::ToggleHelp
                     | Action::TogglePreview
+                    | Action::ToggleKeybindingPanel
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -812,6 +813,13 @@ impl Television {
             Action::TogglePreview => {
                 self.config.ui.show_preview_panel =
                     !self.config.ui.show_preview_panel;
+            }
+            Action::ToggleKeybindingPanel => {
+                if self.no_help {
+                    return Ok(());
+                }
+                self.config.ui.show_keybinding_panel =
+                    !self.config.ui.show_keybinding_panel;
             }
             _ => {}
         }

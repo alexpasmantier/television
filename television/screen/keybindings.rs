@@ -139,6 +139,10 @@ impl DisplayableKeybindings {
     pub fn new(bindings: FxHashMap<DisplayableAction, Vec<String>>) -> Self {
         Self { bindings }
     }
+
+    pub fn bindings(&self) -> &FxHashMap<DisplayableAction, Vec<String>> {
+        &self.bindings
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
