@@ -18,6 +18,27 @@ use crate::{
 
 pub mod args;
 
+/// # CLI Use Cases
+///
+/// The CLI interface supports two primary use cases:
+///
+/// ## 1. Channel-based mode (channel is specified)
+/// When a channel is provided, the CLI operates in **override mode**:
+/// - The channel provides the base configuration (source, preview, UI settings)
+/// - All CLI flags act as **overrides** to the channel's defaults
+/// - Most restrictions are enforced at the clap level using `conflicts_with`
+/// - Templates and keybindings are validated after clap parsing
+/// - More permissive - allows any combination of flags as they override channel defaults
+///
+/// ## 2. Ad-hoc mode (no channel specified)
+/// When no channel is provided, the CLI creates an **ad-hoc channel**:
+/// - Stricter validation rules apply for interdependent flags
+/// - `--preview-*` flags require `--preview-command` to be set
+/// - `--source-*` flags require `--source-command` to be set
+/// - This ensures the ad-hoc channel has all necessary components to function
+///
+/// The validation logic in `post_process()` enforces these constraints for ad-hoc mode
+/// while allowing full flexibility in channel-based mode.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
@@ -26,7 +47,7 @@ pub struct PostProcessedCli {
     pub source_command_override: Option<Template>,
     pub source_display_override: Option<Template>,
     pub source_output_override: Option<Template>,
-    pub working_directory: Option<String>,
+    pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
 
     // Preview configuration
@@ -56,7 +77,6 @@ pub struct PostProcessedCli {
 
     // Performance configuration
     pub tick_rate: Option<f64>,
-    pub frame_rate: Option<f64>,
     pub watch_interval: Option<f64>,
 
     // Configuration sources
@@ -105,7 +125,6 @@ impl Default for PostProcessedCli {
 
             // Performance configuration
             tick_rate: None,
-            frame_rate: None,
             watch_interval: None,
 
             // Configuration sources
@@ -118,6 +137,20 @@ impl Default for PostProcessedCli {
     }
 }
 
+/// Post-processes the raw CLI arguments into a structured format with validation.
+///
+/// This function handles the two main CLI use cases:
+///
+/// **Channel-based mode**: When `cli.channel` is provided, all flags are treated as
+/// overrides to the channel's configuration. Validation is minimal since the channel
+/// provides sensible defaults.
+///
+/// **Ad-hoc mode**: When no channel is specified, stricter validation ensures that
+/// interdependent flags are used correctly:
+/// - Preview flags (`--preview-offset`, `--preview-size`, etc.) require `--preview-command`
+/// - Source flags (`--source-display`, `--source-output`) require `--source-command`
+///
+/// This prevents creating broken ad-hoc channels that reference non-existent commands.
 pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
     let keybindings = cli.keybindings.as_ref().map(|kb| {
@@ -144,13 +177,20 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
             })
         });
 
+    // Validate interdependent flags for ad-hoc mode (when no channel is specified)
+    // This ensures ad-hoc channels have all necessary components to function properly
+    validate_adhoc_mode_constraints(&cli);
+
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
         Some(c) if Path::new(c).exists() => {
             // If the channel is a path, use it as the working directory
-            (None, Some(c.clone()))
+            (None, Some(PathBuf::from(c)))
         }
-        _ => (cli.channel.clone(), cli.working_directory.clone()),
+        _ => (
+            cli.channel.clone(),
+            cli.working_directory.as_ref().map(PathBuf::from),
+        ),
     };
 
     // Parse source overrides if any source fields are provided
@@ -224,15 +264,68 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
 
         // Performance configuration
         tick_rate: cli.tick_rate,
-        frame_rate: cli.frame_rate,
         watch_interval: cli.watch,
 
         // Configuration sources
-        config_file: cli.config_file.map(expand_tilde),
-        cable_dir: cli.cable_dir.map(expand_tilde),
+        config_file: cli.config_file.map(|p| expand_tilde(&p)),
+        cable_dir: cli.cable_dir.map(|p| expand_tilde(&p)),
 
         // Command handling
         command: cli.command,
+    }
+}
+
+/// Validates interdependent flags when operating in ad-hoc mode (no channel specified).
+///
+/// In ad-hoc mode, certain flags require their corresponding command to be specified:
+/// - Source-related flags (`--source-display`, `--source-output`) require `--source-command`
+/// - Preview-related flags (`--preview-offset`, `--preview-size`, etc.) require `--preview-command`
+///
+/// This validation ensures that ad-hoc channels have all necessary components to function.
+/// When a channel is specified, these validations are skipped as the channel provides defaults.
+fn validate_adhoc_mode_constraints(cli: &Cli) {
+    // Skip validation if a channel is specified (channel-based mode)
+    if cli.channel.is_some() {
+        return;
+    }
+
+    // Validate source-related flags in ad-hoc mode
+    if cli.source_command.is_none() {
+        let source_flags = [
+            ("--source-display", cli.source_display.is_some()),
+            ("--source-output", cli.source_output.is_some()),
+            ("--preview-command", cli.preview_command.is_some()),
+        ];
+
+        for (flag_name, is_set) in source_flags {
+            if is_set {
+                cli_parsing_error_exit(&format!(
+                    "{} requires a source command when no channel is specified. \
+                     Either specify a channel (which may have its own source command) or provide --source-command.",
+                    flag_name
+                ));
+            }
+        }
+    }
+
+    // Validate preview-related flags in ad-hoc mode
+    if cli.preview_command.is_none() {
+        let preview_flags = [
+            ("--preview-offset", cli.preview_offset.is_some()),
+            ("--preview-size", cli.preview_size.is_some()),
+            ("--preview-header", cli.preview_header.is_some()),
+            ("--preview-footer", cli.preview_footer.is_some()),
+        ];
+
+        for (flag_name, is_set) in preview_flags {
+            if is_set {
+                cli_parsing_error_exit(&format!(
+                    "{} requires a preview command when no channel is specified. \
+                     Either specify a channel (which may have its own preview command) or provide --preview-command.",
+                    flag_name
+                ));
+            }
+        }
     }
 }
 
@@ -369,7 +462,7 @@ pub fn version() -> String {
           |`-----------' |/
            ~~~~~~~~~~~~~~~
   __      __         _     _
- / /____ / /__ _  __(_)__ (_)__  ___ 
+ / /____ / /__ _  __(_)__ (_)__  ___
 / __/ -_) / -_) |/ / (_-</ / _ \\/ _ \\
 \\__/\\__/_/\\__/|___/_/___/_/\\___/_//_/
 
@@ -403,10 +496,9 @@ mod tests {
             "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
-        assert_eq!(post_processed_cli.frame_rate, None);
         assert_eq!(
             post_processed_cli.working_directory,
-            Some("/home/user".to_string())
+            Some(PathBuf::from("/home/user"))
         );
     }
 
@@ -422,7 +514,7 @@ mod tests {
 
         assert_eq!(
             post_processed_cli.working_directory,
-            Some(".".to_string())
+            Some(PathBuf::from("."))
         );
         assert_eq!(post_processed_cli.command, None);
     }

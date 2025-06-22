@@ -1,6 +1,6 @@
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
-use std::path::Path;
+use std::path::PathBuf;
 use std::process::exit;
 
 use anyhow::Result;
@@ -16,7 +16,7 @@ use television::{
     },
     utils::clipboard::CLIPBOARD,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use television::app::{App, AppOptions};
 use television::cli::{
@@ -66,7 +66,9 @@ async fn main() -> Result<()> {
         load_cable(&config.application.cable_dir).unwrap_or_else(|| exit(1));
 
     // optionally change the working directory
-    args.working_directory.as_ref().map(set_current_dir);
+    if let Some(ref working_dir) = args.working_directory {
+        set_current_dir(working_dir)?;
+    }
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
@@ -165,16 +167,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     }
 }
 
-pub fn set_current_dir(path: &String) -> Result<()> {
-    let path = Path::new(path);
-    if !path.exists() {
-        error!("Working directory \"{}\" does not exist", path.display());
-        println!(
-            "Error: Working directory \"{}\" does not exist",
-            path.display()
-        );
-        exit(1);
-    }
+pub fn set_current_dir(path: &PathBuf) -> Result<()> {
     env::set_current_dir(path)?;
     Ok(())
 }
@@ -240,14 +233,14 @@ pub fn determine_channel(
         debug!("Creating ad-hoc channel with source command override");
         let source_cmd = args.source_command_override.as_ref().unwrap();
 
-        // Create an ad-hoc channel prototype with hidden UI elements
+        // Create an ad-hoc channel prototype
         let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
 
-        // Set UI spec to hide preview and help, and set input header to "Custom Channel"
+        // Set UI spec - only hide preview if no preview command is provided
         prototype.ui = Some(UiSpec {
             ui_scale: None,
             show_help_bar: Some(false),
-            show_preview_panel: Some(false),
+            show_preview_panel: Some(args.preview_command_override.is_some()),
             orientation: None,
             input_bar_position: None,
             preview_size: None,
@@ -307,12 +300,6 @@ pub fn determine_channel(
     if let Some(preview_offset) = &args.preview_offset_override {
         if let Some(ref mut preview) = channel_prototype.preview {
             preview.offset = Some(preview_offset.clone());
-        } else {
-            // Cannot set offset without a preview command
-            eprintln!(
-                "Error: Cannot set preview offset without a preview command"
-            );
-            std::process::exit(1);
         }
     }
 
