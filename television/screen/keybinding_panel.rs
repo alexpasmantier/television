@@ -1,5 +1,7 @@
 use crate::{
-    action::Action, config::KeyBindings, screen::colors::Colorscheme,
+    config::KeyBindings,
+    screen::colors::Colorscheme,
+    screen::keybinding_utils::{ActionMapping, extract_keys_from_binding},
     television::Mode,
 };
 use ratatui::{
@@ -46,36 +48,26 @@ pub fn draw_keybinding_panel(
     f.render_widget(paragraph, area);
 }
 
-/// Helper function to extract keys from a binding and convert to strings
-fn extract_keys_from_binding(
-    binding: &crate::config::keybindings::Binding,
-) -> Vec<String> {
-    match binding {
-        crate::config::keybindings::Binding::SingleKey(key) => {
-            vec![key.to_string()]
-        }
-        crate::config::keybindings::Binding::MultipleKeys(keys) => {
-            keys.iter().map(ToString::to_string).collect()
-        }
-    }
-}
-
-/// Adds keybinding lines for a list of actions to the given lines vector
-fn add_keybinding_lines_for_actions(
+/// Adds keybinding lines for action mappings to the given lines vector
+fn add_keybinding_lines_for_mappings(
     lines: &mut Vec<Line<'static>>,
     keybindings: &KeyBindings,
-    actions: &[(Action, &str)],
+    mappings: &[ActionMapping],
+    mode: Mode,
     colorscheme: &Colorscheme,
 ) {
-    for (action, description) in actions {
-        if let Some(binding) = keybindings.get(action) {
-            let keys = extract_keys_from_binding(binding);
-            for key in keys {
-                lines.push(create_compact_keybinding_line(
-                    &key,
-                    description,
-                    colorscheme,
-                ));
+    for mapping in mappings {
+        for (action, description) in &mapping.actions {
+            if let Some(binding) = keybindings.get(action) {
+                let keys = extract_keys_from_binding(binding);
+                for key in keys {
+                    lines.push(create_compact_keybinding_line(
+                        &key,
+                        description,
+                        mode,
+                        colorscheme,
+                    ));
+                }
             }
         }
     }
@@ -101,18 +93,13 @@ fn generate_keybinding_content(
         ),
     ]));
 
-    // Global actions that work in all modes
-    let global_actions = [
-        (Action::Quit, "Quit"),
-        (Action::ToggleHelp, "Toggle help"),
-        (Action::TogglePreview, "Toggle preview"),
-        (Action::ToggleKeybindingPanel, "Toggle keys"),
-    ];
-
-    add_keybinding_lines_for_actions(
+    // Global actions using centralized system
+    let global_mappings = ActionMapping::global_actions();
+    add_keybinding_lines_for_mappings(
         &mut lines,
         keybindings,
-        &global_actions,
+        &global_mappings,
+        mode,
         colorscheme,
     );
 
@@ -136,55 +123,25 @@ fn generate_keybinding_content(
         ),
     ]));
 
-    // Navigation actions (common to both modes)
-    let nav_actions = [
-        (Action::SelectPrevEntry, "Navigate up"),
-        (Action::SelectNextEntry, "Navigate down"),
-        (Action::SelectPrevPage, "Page up"),
-        (Action::SelectNextPage, "Page down"),
-    ];
-
-    add_keybinding_lines_for_actions(
+    // Navigation actions (common to both modes) using centralized system
+    let nav_mappings = ActionMapping::navigation_actions();
+    add_keybinding_lines_for_mappings(
         &mut lines,
         keybindings,
-        &nav_actions,
+        &nav_mappings,
+        mode,
         colorscheme,
     );
 
-    // Mode-specific actions
-    match mode {
-        Mode::Channel => {
-            let channel_actions = [
-                (Action::ConfirmSelection, "Select entry"),
-                (Action::ToggleSelectionDown, "Toggle selection down"),
-                (Action::ToggleSelectionUp, "Toggle selection up"),
-                (Action::CopyEntryToClipboard, "Copy to clipboard"),
-                (Action::ScrollPreviewHalfPageUp, "Preview scroll up"),
-                (Action::ScrollPreviewHalfPageDown, "Preview scroll down"),
-                (Action::ToggleRemoteControl, "Toggle remote"),
-                (Action::CycleSources, "Cycle sources"),
-                (Action::ReloadSource, "Reload source"),
-            ];
-            add_keybinding_lines_for_actions(
-                &mut lines,
-                keybindings,
-                &channel_actions,
-                colorscheme,
-            );
-        }
-        Mode::RemoteControl => {
-            let remote_actions = [
-                (Action::ConfirmSelection, "Select entry"),
-                (Action::ToggleRemoteControl, "Back to channel"),
-            ];
-            add_keybinding_lines_for_actions(
-                &mut lines,
-                keybindings,
-                &remote_actions,
-                colorscheme,
-            );
-        }
-    }
+    // Mode-specific actions using centralized system
+    let mode_mappings = ActionMapping::mode_specific_actions(mode);
+    add_keybinding_lines_for_mappings(
+        &mut lines,
+        keybindings,
+        &mode_mappings,
+        mode,
+        colorscheme,
+    );
 
     lines
 }
@@ -193,8 +150,15 @@ fn generate_keybinding_content(
 fn create_compact_keybinding_line(
     key: &str,
     action: &str,
+    mode: Mode,
     colorscheme: &Colorscheme,
 ) -> Line<'static> {
+    // Use the appropriate mode color
+    let key_color = match mode {
+        Mode::Channel => colorscheme.mode.channel,
+        Mode::RemoteControl => colorscheme.mode.remote_control,
+    };
+
     Line::from(vec![
         Span::raw(" "), // Left padding
         Span::styled(
@@ -202,10 +166,7 @@ fn create_compact_keybinding_line(
             Style::default().fg(colorscheme.help.metadata_field_name_fg),
         ),
         Span::raw(" "), // Space between action and key
-        Span::styled(
-            key.to_string(),
-            Style::default().fg(colorscheme.mode.channel).bold(),
-        ),
+        Span::styled(key.to_string(), Style::default().fg(key_color).bold()),
     ])
 }
 

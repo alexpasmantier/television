@@ -1,7 +1,7 @@
-use rustc_hash::FxHashMap;
-use std::fmt::Display;
-
 use crate::action::Action;
+use crate::screen::keybinding_utils::{
+    ActionMapping, extract_keys_for_actions,
+};
 use crate::television::Mode;
 use crate::{config::KeyBindings, screen::colors::Colorscheme};
 use ratatui::{
@@ -11,353 +11,108 @@ use ratatui::{
     widgets::{Cell, Row, Table},
 };
 
-impl KeyBindings {
-    pub fn to_displayable(&self) -> FxHashMap<Mode, DisplayableKeybindings> {
-        // channel mode keybindings
-        let mut channel_bindings: FxHashMap<DisplayableAction, Vec<String>> =
-            FxHashMap::from_iter(vec![
-                (
-                    DisplayableAction::ResultsNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::SelectPrevEntry,
-                            Action::SelectNextEntry,
-                            Action::SelectPrevPage,
-                            Action::SelectNextPage,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::PreviewNavigation,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::ScrollPreviewHalfPageUp,
-                            Action::ScrollPreviewHalfPageDown,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::SelectEntry,
-                    serialized_keys_for_actions(
-                        self,
-                        &[
-                            Action::ConfirmSelection,
-                            Action::ToggleSelectionDown,
-                            Action::ToggleSelectionUp,
-                        ],
-                    ),
-                ),
-                (
-                    DisplayableAction::CopyEntryToClipboard,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::CopyEntryToClipboard],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleRemoteControl,
-                    serialized_keys_for_actions(
-                        self,
-                        &[Action::ToggleRemoteControl],
-                    ),
-                ),
-                (
-                    DisplayableAction::ToggleHelpBar,
-                    serialized_keys_for_actions(self, &[Action::ToggleHelp]),
-                ),
-            ]);
-
-        // Optional bindings only included if present in the configuration
-        if let Some(binding) = self.get(&Action::CycleSources) {
-            channel_bindings.insert(
-                DisplayableAction::CycleSources,
-                vec![binding.to_string()],
-            );
-        }
-
-        if let Some(binding) = self.get(&Action::ReloadSource) {
-            channel_bindings.insert(
-                DisplayableAction::ReloadSource,
-                vec![binding.to_string()],
-            );
-        }
-
-        // remote control mode keybindings
-        let remote_control_bindings: FxHashMap<
-            DisplayableAction,
-            Vec<String>,
-        > = FxHashMap::from_iter(vec![
-            (
-                DisplayableAction::ResultsNavigation,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::SelectPrevEntry, Action::SelectNextEntry],
-                ),
-            ),
-            (
-                DisplayableAction::SelectEntry,
-                serialized_keys_for_actions(self, &[Action::ConfirmSelection]),
-            ),
-            (
-                DisplayableAction::ToggleRemoteControl,
-                serialized_keys_for_actions(
-                    self,
-                    &[Action::ToggleRemoteControl],
-                ),
-            ),
-        ]);
-
-        FxHashMap::from_iter(vec![
-            (Mode::Channel, DisplayableKeybindings::new(channel_bindings)),
-            (
-                Mode::RemoteControl,
-                DisplayableKeybindings::new(remote_control_bindings),
-            ),
-        ])
-    }
-}
-
-fn serialized_keys_for_actions(
-    keybindings: &KeyBindings,
-    actions: &[Action],
-) -> Vec<String> {
-    actions
-        .iter()
-        .filter_map(|a| keybindings.get(a).cloned())
-        .map(|binding| binding.to_string())
-        .collect()
-}
-
-#[derive(Debug, Clone)]
-pub struct DisplayableKeybindings {
-    bindings: FxHashMap<DisplayableAction, Vec<String>>,
-}
-
-impl DisplayableKeybindings {
-    pub fn new(bindings: FxHashMap<DisplayableAction, Vec<String>>) -> Self {
-        Self { bindings }
-    }
-
-    pub fn bindings(&self) -> &FxHashMap<DisplayableAction, Vec<String>> {
-        &self.bindings
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum DisplayableAction {
-    ResultsNavigation,
-    PreviewNavigation,
-    SelectEntry,
-    CopyEntryToClipboard,
-    ToggleRemoteControl,
-    Cancel,
-    Quit,
-    ToggleHelpBar,
-    CycleSources,
-    ReloadSource,
-}
-
-impl Display for DisplayableAction {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let action = match self {
-            DisplayableAction::ResultsNavigation => "Results navigation",
-            DisplayableAction::PreviewNavigation => "Preview navigation",
-            DisplayableAction::SelectEntry => "Select entry",
-            DisplayableAction::CopyEntryToClipboard => {
-                "Copy entry to clipboard"
-            }
-            DisplayableAction::ToggleRemoteControl => "Toggle Remote control",
-            DisplayableAction::Cancel => "Cancel",
-            DisplayableAction::Quit => "Quit",
-            DisplayableAction::ToggleHelpBar => "Toggle help bar",
-            DisplayableAction::CycleSources => "Cycle through sources",
-            DisplayableAction::ReloadSource => "Reload source",
-        };
-        write!(f, "{action}")
-    }
-}
-
+/// Build a keybindings table for the help bar
 pub fn build_keybindings_table<'a>(
-    keybindings: &'a FxHashMap<Mode, DisplayableKeybindings>,
+    keybindings: &KeyBindings,
     mode: Mode,
     colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
     match mode {
-        Mode::Channel => build_keybindings_table_for_channel(
-            &keybindings[&mode],
-            colorscheme,
-        ),
-        Mode::RemoteControl => build_keybindings_table_for_channel_selection(
-            &keybindings[&mode],
-            colorscheme,
-        ),
+        Mode::Channel => {
+            build_help_bar_table_for_channel(keybindings, colorscheme)
+        }
+        Mode::RemoteControl => {
+            build_help_bar_table_for_remote(keybindings, colorscheme)
+        }
     }
 }
 
-fn build_keybindings_table_for_channel<'a>(
-    keybindings: &'a DisplayableKeybindings,
+fn build_help_bar_table_for_channel<'a>(
+    keybindings: &KeyBindings,
     colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
-    // Results navigation
-    let results_navigation_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ResultsNavigation)
-        .unwrap();
-    let results_row = Row::new(build_cells_for_group(
-        "Results navigation",
-        results_navigation_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
+    let mut rows = Vec::new();
 
-    // Preview navigation
-    let preview_navigation_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::PreviewNavigation)
-        .unwrap();
-    let preview_row = Row::new(build_cells_for_group(
-        "Preview navigation",
-        preview_navigation_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
+    // Get all relevant action mappings for channel mode
+    let mut all_mappings = ActionMapping::navigation_actions();
+    all_mappings.extend(ActionMapping::mode_specific_actions(Mode::Channel));
 
-    // Select entry
-    let select_entry_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::SelectEntry)
-        .unwrap();
-    let select_entry_row = Row::new(build_cells_for_group(
-        "Select entry",
-        select_entry_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
+    // Convert each mapping to a table row
+    for mapping in all_mappings {
+        let actions: Vec<Action> = mapping
+            .actions
+            .iter()
+            .map(|(action, _)| action.clone())
+            .collect();
+        let keys = extract_keys_for_actions(keybindings, &actions);
 
-    // Copy entry to clipboard
-    let copy_entry_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::CopyEntryToClipboard)
-        .unwrap();
-    let copy_entry_row = Row::new(build_cells_for_group(
-        "Copy entry to clipboard",
-        copy_entry_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
-
-    // Switch channels
-    let switch_channels_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ToggleRemoteControl)
-        .unwrap();
-    let switch_channels_row = Row::new(build_cells_for_group(
-        "Toggle Remote control",
-        switch_channels_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.channel,
-    ));
-
-    // Toggle source (optional)
-    let cycle_sources_row = keybindings
-        .bindings
-        .get(&DisplayableAction::CycleSources)
-        .map(|keys| {
-            Row::new(build_cells_for_group(
-                "Cycle through sources",
-                keys,
+        if !keys.is_empty() {
+            let category_string = mapping.category.to_string();
+            let row = Row::new(build_cells_for_group(
+                &category_string,
+                &keys,
                 colorscheme.help.metadata_field_name_fg,
                 colorscheme.mode.channel,
-            ))
-        });
-
-    // Reload source (optional)
-    let reload_source_row = keybindings
-        .bindings
-        .get(&DisplayableAction::ReloadSource)
-        .map(|reload_source_keys| {
-            Row::new(build_cells_for_group(
-                "Reload source",
-                reload_source_keys,
-                colorscheme.help.metadata_field_name_fg,
-                colorscheme.mode.channel,
-            ))
-        });
+            ));
+            rows.push(row);
+        }
+    }
 
     let widths = vec![Constraint::Fill(1), Constraint::Fill(2)];
-
-    let mut rows = vec![
-        results_row,
-        preview_row,
-        select_entry_row,
-        copy_entry_row,
-        switch_channels_row,
-    ];
-
-    if let Some(row) = cycle_sources_row {
-        rows.push(row);
-    }
-    if let Some(row) = reload_source_row {
-        rows.push(row);
-    }
-
     Table::new(rows, widths)
 }
 
-fn build_keybindings_table_for_channel_selection<'a>(
-    keybindings: &'a DisplayableKeybindings,
+fn build_help_bar_table_for_remote<'a>(
+    keybindings: &KeyBindings,
     colorscheme: &'a Colorscheme,
 ) -> Table<'a> {
-    // Results navigation
-    let navigation_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ResultsNavigation)
-        .unwrap();
-    let results_row = Row::new(build_cells_for_group(
-        "Browse channels",
-        navigation_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.remote_control,
-    ));
+    let mut rows = Vec::new();
 
-    // Select entry
-    let select_entry_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::SelectEntry)
-        .unwrap();
-    let select_entry_row = Row::new(build_cells_for_group(
-        "Select channel",
-        select_entry_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.remote_control,
-    ));
+    // Get all relevant action mappings for remote control mode
+    let mut all_mappings = ActionMapping::navigation_actions();
+    all_mappings
+        .extend(ActionMapping::mode_specific_actions(Mode::RemoteControl));
 
-    // Remote control
-    let switch_channels_keys = keybindings
-        .bindings
-        .get(&DisplayableAction::ToggleRemoteControl)
-        .unwrap();
-    let switch_channels_row = Row::new(build_cells_for_group(
-        "Toggle Remote control",
-        switch_channels_keys,
-        colorscheme.help.metadata_field_name_fg,
-        colorscheme.mode.remote_control,
-    ));
+    // Convert each mapping to a table row with custom labels
+    for mapping in all_mappings {
+        let actions: Vec<Action> = mapping
+            .actions
+            .iter()
+            .map(|(action, _)| action.clone())
+            .collect();
+        let keys = extract_keys_for_actions(keybindings, &actions);
 
-    Table::new(
-        vec![results_row, select_entry_row, switch_channels_row],
-        vec![Constraint::Fill(1), Constraint::Fill(2)],
-    )
+        if !keys.is_empty() {
+            let category_string = mapping.category.to_string();
+            let display_name = match category_string.as_str() {
+                "Results navigation" => "Browse channels",
+                "Select entry" => "Select channel",
+                other => other,
+            };
+
+            let row = Row::new(build_cells_for_group(
+                display_name,
+                &keys,
+                colorscheme.help.metadata_field_name_fg,
+                colorscheme.mode.remote_control,
+            ));
+            rows.push(row);
+        }
+    }
+
+    Table::new(rows, vec![Constraint::Fill(1), Constraint::Fill(2)])
 }
 
 fn build_cells_for_group<'a>(
     group_name: &str,
-    keys: &'a [String],
+    keys: &[String],
     key_color: Color,
     value_color: Color,
 ) -> Vec<Cell<'a>> {
+    if keys.is_empty() {
+        return vec![Cell::from(""), Cell::from("")];
+    }
+
     // group name
     let mut cells = vec![Cell::from(Span::styled(
         group_name.to_owned() + ": ",
@@ -380,6 +135,5 @@ fn build_cells_for_group<'a>(
     );
 
     cells.push(Cell::from(Line::from(spans)));
-
     cells
 }

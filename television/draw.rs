@@ -136,38 +136,6 @@ impl Ctx {
     }
 }
 
-// impl PartialEq for Ctx {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.tv_state == other.tv_state
-//             && self.config == other.config
-//             && self.colorscheme == other.colorscheme
-//             && self.app_metadata == other.app_metadata
-//     }
-// }
-//
-// impl Eq for Ctx {}
-//
-// impl Hash for Ctx {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.tv_state.hash(state);
-//         self.config.hash(state);
-//         self.colorscheme.hash(state);
-//         self.app_metadata.hash(state);
-//     }
-// }
-//
-// impl PartialOrd for Ctx {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Some(self.instant.cmp(&other.instant))
-//     }
-// }
-//
-// impl Ord for Ctx {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.instant.cmp(&other.instant)
-//     }
-// }
-
 /// Draw the current UI frame based on the given context.
 ///
 /// This function is responsible for drawing the entire UI frame based on the given context by
@@ -203,7 +171,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.channel_state.current_command,
         build_keybindings_table(
-            &ctx.config.keybindings.to_displayable(),
+            &ctx.config.keybindings,
             ctx.tv_state.mode,
             &ctx.colorscheme,
         ),

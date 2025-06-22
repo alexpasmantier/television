@@ -4,6 +4,7 @@ pub mod constants;
 pub mod help;
 pub mod input;
 pub mod keybinding_panel;
+pub mod keybinding_utils;
 pub mod keybindings;
 pub mod layout;
 pub mod logo;
