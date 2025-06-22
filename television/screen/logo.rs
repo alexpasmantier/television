@@ -24,7 +24,7 @@ pub fn build_logo_paragraph<'a>() -> Paragraph<'a> {
     Paragraph::new(lines)
 }
 
-const REMOTE_LOGO: &str = r"
+pub const REMOTE_LOGO: &str = r"
  _____________
 /             \
 | (*)     (#) |
@@ -32,18 +32,24 @@ const REMOTE_LOGO: &str = r"
 | (1) (2) (3) |
 | (4) (5) (6) |
 | (7) (8) (9) |
-|             |
 |      _      |
 |     | |     |
 |  (_¯(0)¯_)  |
 |     | |     |
 |      ¯      |
 |             |
-|             |
 | === === === |
 |             |
-|     T.V     |
-`-------------´";
+|     TV      |
+`-------------´
+";
+
+pub const REMOTE_LOGO_WIDTH: usize = 15;
+#[allow(clippy::cast_possible_truncation)]
+pub const REMOTE_LOGO_WIDTH_U16: u16 = REMOTE_LOGO_WIDTH as u16;
+pub const REMOTE_LOGO_HEIGHT: usize = 19;
+#[allow(clippy::cast_possible_truncation)]
+pub const REMOTE_LOGO_HEIGHT_U16: u16 = REMOTE_LOGO_HEIGHT as u16;
 
 pub fn build_remote_logo_paragraph<'a>() -> Paragraph<'a> {
     let lines = REMOTE_LOGO

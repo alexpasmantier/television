@@ -270,7 +270,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.ui.use_nerd_font_icons,
             &mut ctx.tv_state.rc_picker.state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
-            &ctx.tv_state.mode,
             &ctx.colorscheme,
         )?;
     }

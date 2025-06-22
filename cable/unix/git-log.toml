@@ -1,6 +1,7 @@
 [metadata]
 name = "git-log"
 description = "A channel to select from git log entries"
+requirements = ["git"]
 
 [source]
 command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""

@@ -1,6 +1,7 @@
 [metadata]
 name = "git-diff"
 description = "A channel to select files from git diff commands"
+requirements = ["git"]
 
 [source]
 command = "git diff --name-only HEAD"
