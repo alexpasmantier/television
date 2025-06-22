@@ -251,10 +251,8 @@ checksum = "c469d952047f47f91b68d1cba3f10d63c11d73e4636f24f08daf0278abf01c4d"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
- "js-sys",
  "num-traits",
  "serde",
- "wasm-bindgen",
  "windows-link",
 ]
 
@@ -1851,18 +1849,16 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "string_pipeline"
-version = "0.11.1"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0af3613597e31606b54dd5d62be86b8f50922b40d2b7d3d145146caf5c154c05"
+checksum = "8d7043de9eb4072c03851ec3682a133c26b91b9f8fcc4d52bf911abe2614de12"
 dependencies = [
- "chrono",
  "clap",
  "clap_mangen",
  "once_cell",
  "pest",
  "pest_derive",
  "regex",
- "serde_json",
  "strip-ansi-escapes",
 ]
 
