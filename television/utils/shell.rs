@@ -35,6 +35,7 @@ impl Display for Shell {
             Shell::Fish => write!(f, "fish"),
             Shell::PowerShell => write!(f, "powershell"),
             Shell::Cmd => write!(f, "cmd"),
+            Shell::Nu => write!(f, "nu"),
         }
     }
 }
