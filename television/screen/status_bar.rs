@@ -137,7 +137,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     if let Some(binding) =
         ctx.config.keybindings.get(&Action::ToggleKeybindingPanel)
     {
-        add_hint("Keysbindings", &binding.to_string());
+        add_hint("Keybindings", &binding.to_string());
     }
 
     // Build middle section if we have hints
