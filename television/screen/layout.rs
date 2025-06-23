@@ -114,6 +114,7 @@ pub struct Layout {
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
     pub keybinding_panel: Option<Rect>,
+    pub status_bar: Option<Rect>,
 }
 
 const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
@@ -132,6 +133,7 @@ impl Default for Layout {
             None,
             None,
             None,
+            None,
         )
     }
 }
@@ -145,6 +147,7 @@ impl Layout {
         preview_window: Option<Rect>,
         remote_control: Option<Rect>,
         keybinding_panel: Option<Rect>,
+        status_bar: Option<Rect>,
     ) -> Self {
         Self {
             help_bar,
@@ -153,6 +156,7 @@ impl Layout {
             preview_window,
             remote_control,
             keybinding_panel,
+            status_bar,
         }
     }
 
@@ -167,7 +171,21 @@ impl Layout {
     ) -> Self {
         let show_preview = show_preview && ui_config.show_preview_panel;
         let dimensions = Dimensions::from(ui_config.ui_scale);
-        let main_block = centered_rect(dimensions.x, dimensions.y, area);
+
+        // Reserve space for status bar if enabled
+        let working_area = if ui_config.show_status_bar {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: area.width,
+                height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
+            }
+        } else {
+            area
+        };
+
+        let main_block =
+            centered_rect(dimensions.x, dimensions.y, working_area);
         // split the main block into two vertical chunks (help bar + rest)
         let main_rect: Rect;
         let help_bar_layout: Option<HelpBarLayout>;
@@ -418,16 +436,40 @@ impl Layout {
             None
         };
 
-        // the keybinding panel is positioned at bottom-right
+        // the keybinding panel is positioned at bottom-right, accounting for status bar
         let keybinding_panel = if ui_config.show_keybinding_panel {
+            // Calculate available area for keybinding panel (excluding status bar if enabled)
+            let kb_area = if ui_config.show_status_bar {
+                Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: area.width,
+                    height: area.height.saturating_sub(1), // Account for single line status bar
+                }
+            } else {
+                area
+            };
+
             if let Some(kb) = keybindings {
                 let (width, height) =
                     calculate_keybinding_panel_size(kb, mode, colorscheme);
-                Some(bottom_right_rect(width, height, area))
+                Some(bottom_right_rect(width, height, kb_area))
             } else {
                 // Fallback to reasonable default if keybindings not available
-                Some(bottom_right_rect(45, 25, area))
+                Some(bottom_right_rect(45, 25, kb_area))
             }
+        } else {
+            None
+        };
+
+        // Create status bar at the bottom if enabled
+        let status_bar = if ui_config.show_status_bar {
+            Some(Rect {
+                x: area.x,
+                y: area.y + area.height - 1, // Position at the very last line
+                width: area.width,
+                height: 1, // Single line status bar
+            })
         } else {
             None
         };
@@ -439,6 +481,7 @@ impl Layout {
             preview_window,
             remote_control,
             keybinding_panel,
+            status_bar,
         )
     }
 }

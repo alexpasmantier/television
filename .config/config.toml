@@ -65,6 +65,16 @@ orientation = "landscape"
 theme = "default"
 # The default size of the preview panel (in percentage of the screen)
 preview_size = 50
+show_status_bar = true
+
+# Status bar separators (bubble):
+#status_separator_open = ""
+#status_separator_close = ""
+
+# Status bar separators (box):
+status_separator_open = ""
+status_separator_close = ""
+
 
 # Keybindings
 # ----------------------------------------------------------------------------

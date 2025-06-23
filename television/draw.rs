@@ -16,7 +16,7 @@ use crate::{
         keybindings::build_keybindings_table, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner,
+        spinner::Spinner, status_bar::draw_status_bar,
     },
     television::Mode,
     utils::metadata::AppMetadata,
@@ -214,7 +214,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         ctx.tv_state.results_picker.total_items,
         ctx.tv_state.channel_state.total_count,
         &ctx.tv_state.results_picker.input,
-        &ctx.tv_state.results_picker.state,
+        &ctx.tv_state.results_picker.relative_state,
         ctx.tv_state.channel_state.running,
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
@@ -254,6 +254,20 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.config.keybindings,
             ctx.tv_state.mode,
             &ctx.colorscheme,
+        );
+    }
+
+    // status bar at the bottom
+    if let Some(status_bar_area) = layout.status_bar {
+        draw_status_bar(
+            f,
+            status_bar_area,
+            ctx.tv_state.channel_state.selected_entries.len(),
+            &ctx.tv_state.channel_state.current_channel_name,
+            &ctx.app_metadata.version,
+            ctx.tv_state.mode,
+            &ctx.colorscheme,
+            &ctx.config.ui,
         );
     }
 

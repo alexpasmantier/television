@@ -20,6 +20,11 @@ pub struct UiConfig {
     pub show_help_bar: bool,
     pub show_preview_panel: bool,
     pub show_keybinding_panel: bool,
+    pub show_status_bar: bool,
+    #[serde(default)]
+    pub status_separator_open: String,
+    #[serde(default)]
+    pub status_separator_close: String,
     #[serde(default)]
     pub input_bar_position: InputPosition,
     pub orientation: Orientation,
@@ -43,6 +48,9 @@ impl Default for UiConfig {
             show_help_bar: false,
             show_preview_panel: true,
             show_keybinding_panel: false,
+            show_status_bar: true,
+            status_separator_open: String::new(),
+            status_separator_close: String::new(),
             input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
             preview_title_position: None,

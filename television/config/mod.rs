@@ -11,6 +11,7 @@ pub use keybindings::merge_keybindings;
 pub use keybindings::{Binding, KeyBindings, parse_key};
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
+
 pub use themes::Theme;
 use tracing::{debug, warn};
 pub use ui::UiConfig;
@@ -23,7 +24,7 @@ use crate::{
 pub mod keybindings;
 pub mod shell_integration;
 mod themes;
-mod ui;
+pub mod ui;
 
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
