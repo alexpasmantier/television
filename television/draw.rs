@@ -5,7 +5,6 @@ use ratatui::{Frame, layout::Rect};
 use rustc_hash::FxHashSet;
 
 use crate::{
-    action::Action,
     channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
@@ -173,14 +172,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         ctx.config.ui.input_bar_position,
         ctx.config.ui.use_nerd_font_icons,
         &ctx.colorscheme,
-        &ctx.config
-            .keybindings
-            .get(&Action::TogglePreview)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        // only show the preview keybinding hint if there's actually something to preview
-        ctx.tv_state.preview_state.enabled,
     )?;
 
     // input box
@@ -224,27 +215,12 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
 
     // floating keybinding panel (rendered last to appear on top)
     if let Some(keybinding_area) = layout.keybinding_panel {
-        draw_keybinding_panel(
-            f,
-            keybinding_area,
-            &ctx.config.keybindings,
-            ctx.tv_state.mode,
-            &ctx.colorscheme,
-        );
+        draw_keybinding_panel(f, keybinding_area, ctx);
     }
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
-        draw_status_bar(
-            f,
-            status_bar_area,
-            ctx.tv_state.channel_state.selected_entries.len(),
-            &ctx.tv_state.channel_state.current_channel_name,
-            &ctx.app_metadata.version,
-            ctx.tv_state.mode,
-            &ctx.colorscheme,
-            &ctx.config.ui,
-        );
+        draw_status_bar(f, status_bar_area, ctx);
     }
 
     Ok(layout)

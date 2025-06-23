@@ -1,5 +1,6 @@
 use crate::{
     config::KeyBindings,
+    draw::Ctx,
     screen::colors::Colorscheme,
     screen::keybinding_utils::{ActionMapping, extract_keys_from_binding},
     television::Mode,
@@ -13,19 +14,17 @@ use ratatui::{
 };
 
 /// Draws a Helix-style floating keybinding panel in the bottom-right corner
-pub fn draw_keybinding_panel(
-    f: &mut Frame<'_>,
-    area: Rect,
-    keybindings: &KeyBindings,
-    mode: Mode,
-    colorscheme: &Colorscheme,
-) {
+pub fn draw_keybinding_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     if area.width < 15 || area.height < 5 {
         return; // Too small to display anything meaningful
     }
 
     // Generate content
-    let content = generate_keybinding_content(keybindings, mode, colorscheme);
+    let content = generate_keybinding_content(
+        &ctx.config.keybindings,
+        ctx.tv_state.mode,
+        &ctx.colorscheme,
+    );
 
     // Clear the area first to create the floating effect
     f.render_widget(Clear, area);
@@ -34,11 +33,14 @@ pub fn draw_keybinding_panel(
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .border_style(Style::default().fg(ctx.colorscheme.general.border_fg))
         .title_top(Line::from(" Keybindings ").alignment(Alignment::Center))
         .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
+            Style::default().bg(ctx
+                .colorscheme
+                .general
+                .background
+                .unwrap_or_default()),
         );
 
     let paragraph = Paragraph::new(content)
