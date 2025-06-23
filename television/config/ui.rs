@@ -16,8 +16,6 @@ pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
-    pub no_help: bool,
-    pub show_help_bar: bool,
     pub show_preview_panel: bool,
     pub show_keybinding_panel: bool,
     pub show_status_bar: bool,
@@ -44,8 +42,6 @@ impl Default for UiConfig {
         Self {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
-            no_help: false,
-            show_help_bar: false,
             show_preview_panel: true,
             show_keybinding_panel: false,
             show_status_bar: true,

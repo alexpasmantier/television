@@ -6,7 +6,6 @@ use std::fmt::Display;
 pub enum ActionCategory {
     // Global actions
     Quit,
-    ToggleHelp,
     TogglePreview,
     ToggleKeybindingPanel,
 
@@ -29,7 +28,6 @@ impl Display for ActionCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let description = match self {
             ActionCategory::Quit => "Quit",
-            ActionCategory::ToggleHelp => "Toggle help",
             ActionCategory::TogglePreview => "Toggle preview",
             ActionCategory::ToggleKeybindingPanel => "Toggle keys",
             ActionCategory::ResultsNavigation => "Results navigation",
@@ -58,10 +56,6 @@ impl ActionMapping {
             ActionMapping {
                 category: ActionCategory::Quit,
                 actions: vec![(Action::Quit, "Quit")],
-            },
-            ActionMapping {
-                category: ActionCategory::ToggleHelp,
-                actions: vec![(Action::ToggleHelp, "Toggle help")],
             },
             ActionMapping {
                 category: ActionCategory::TogglePreview,

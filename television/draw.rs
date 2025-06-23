@@ -11,9 +11,8 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        colors::Colorscheme, help::draw_help_bar, input::draw_input_box,
-        keybinding_panel::draw_keybinding_panel,
-        keybindings::build_keybindings_table, layout::Layout,
+        colors::Colorscheme, input::draw_input_box,
+        keybinding_panel::draw_keybinding_panel, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
         spinner::Spinner, status_bar::draw_status_bar,
@@ -144,8 +143,8 @@ impl Ctx {
 /// This function is executed by the UI thread whenever it receives a render message from the main
 /// thread.
 ///
-/// It will draw the help bar, the results list, the input box, the preview content block, and the
-/// remote control.
+/// It will draw the results list, the input box, the preview content block, the remote control,
+/// the keybinding panel, and the status bar.
 ///
 /// # Returns
 /// A `Result` containing the layout of the current frame if the drawing was successful.
@@ -164,22 +163,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.colorscheme,
     );
 
-    // help bar (metadata, keymaps, logo)
-    draw_help_bar(
-        f,
-        &layout.help_bar,
-        &ctx.tv_state.channel_state.current_channel_name,
-        &ctx.tv_state.channel_state.current_command,
-        build_keybindings_table(
-            &ctx.config.keybindings,
-            ctx.tv_state.mode,
-            &ctx.colorscheme,
-        ),
-        ctx.tv_state.mode,
-        &ctx.app_metadata,
-        &ctx.colorscheme,
-    );
-
     // results list
     draw_results_list(
         f,
@@ -192,19 +175,12 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.colorscheme,
         &ctx.config
             .keybindings
-            .get(&Action::ToggleHelp)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        &ctx.config
-            .keybindings
             .get(&Action::TogglePreview)
             // just display the first keybinding
             .unwrap()
             .to_string(),
         // only show the preview keybinding hint if there's actually something to preview
         ctx.tv_state.preview_state.enabled,
-        ctx.config.ui.no_help,
     )?;
 
     // input box

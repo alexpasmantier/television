@@ -1,17 +1,14 @@
+use crate::config::{KeyBindings, UiConfig};
+use crate::screen::colors::Colorscheme;
+use crate::screen::keybinding_panel::calculate_keybinding_panel_size;
+use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
+use crate::television::Mode;
+use clap::ValueEnum;
 use ratatui::layout::{
     self, Constraint, Direction, Layout as RatatuiLayout, Rect,
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
-
-use clap::ValueEnum;
-
-use crate::config::{KeyBindings, UiConfig};
-use crate::screen::colors::Colorscheme;
-use crate::screen::constants::LOGO_WIDTH;
-use crate::screen::keybinding_panel::calculate_keybinding_panel_size;
-use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
-use crate::television::Mode;
 
 pub struct Dimensions {
     pub x: u16,
@@ -27,23 +24,6 @@ impl Dimensions {
 impl From<u16> for Dimensions {
     fn from(x: u16) -> Self {
         Self::new(x, x)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct HelpBarLayout {
-    pub left: Rect,
-    pub middle: Rect,
-    pub right: Rect,
-}
-
-impl HelpBarLayout {
-    pub fn new(left: Rect, middle: Rect, right: Rect) -> Self {
-        Self {
-            left,
-            middle,
-            right,
-        }
     }
 }
 
@@ -108,7 +88,6 @@ impl Display for PreviewTitlePosition {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
-    pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
     pub input: Rect,
     pub preview_window: Option<Rect>,
@@ -127,7 +106,6 @@ impl Default for Layout {
     /// frame is rendered.
     fn default() -> Self {
         Self::new(
-            None,
             Rect::new(0, 0, 0, 100),
             Rect::default(),
             None,
@@ -139,9 +117,7 @@ impl Default for Layout {
 }
 
 impl Layout {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        help_bar: Option<HelpBarLayout>,
         results: Rect,
         input: Rect,
         preview_window: Option<Rect>,
@@ -150,7 +126,6 @@ impl Layout {
         status_bar: Option<Rect>,
     ) -> Self {
         Self {
-            help_bar,
             results,
             input,
             preview_window,
@@ -186,39 +161,9 @@ impl Layout {
 
         let main_block =
             centered_rect(dimensions.x, dimensions.y, working_area);
-        // split the main block into two vertical chunks (help bar + rest)
-        let main_rect: Rect;
-        let help_bar_layout: Option<HelpBarLayout>;
 
-        if ui_config.show_help_bar {
-            let hz_chunks = RatatuiLayout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Max(9), Constraint::Fill(1)])
-                .split(main_block);
-            main_rect = hz_chunks[1];
-
-            // split the help bar into three horizontal chunks (left + center + right)
-            let help_bar_chunks = RatatuiLayout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    // metadata
-                    Constraint::Fill(1),
-                    // keymaps
-                    Constraint::Fill(1),
-                    // logo
-                    Constraint::Length(LOGO_WIDTH),
-                ])
-                .split(hz_chunks[0]);
-
-            help_bar_layout = Some(HelpBarLayout {
-                left: help_bar_chunks[0],
-                middle: help_bar_chunks[1],
-                right: help_bar_chunks[2],
-            });
-        } else {
-            main_rect = main_block;
-            help_bar_layout = None;
-        }
+        // Use the entire main block since help bar is removed
+        let main_rect = main_block;
 
         // Define the constraints for the results area (results list + input bar).
         // We keep this near the top so we can derive the input-bar height before
@@ -475,7 +420,6 @@ impl Layout {
         };
 
         Self::new(
-            help_bar_layout,
             results,
             input,
             preview_window,

@@ -225,9 +225,6 @@ impl Config {
         if let Some(ui_scale) = &ui_spec.ui_scale {
             self.ui.ui_scale = *ui_scale;
         }
-        if let Some(show_help_bar) = &ui_spec.show_help_bar {
-            self.ui.show_help_bar = *show_help_bar;
-        }
         if let Some(show_preview_panel) = &ui_spec.show_preview_panel {
             self.ui.show_preview_panel = *show_preview_panel;
         }
@@ -395,7 +392,6 @@ mod tests {
         theme = "something"
 
         [keybindings]
-        toggle_help = ["ctrl-a", "ctrl-b"]
         confirm_selection = "ctrl-enter"
 
         [shell_integration.commands]
@@ -427,10 +423,6 @@ mod tests {
         default_config.ui.theme = "television".to_string();
         default_config.keybindings.extend({
             let mut map = FxHashMap::default();
-            map.insert(
-                Action::ToggleHelp,
-                Binding::MultipleKeys(vec![Key::Ctrl('a'), Key::Ctrl('b')]),
-            );
             map.insert(
                 Action::ConfirmSelection,
                 Binding::SingleKey(Key::CtrlEnter),

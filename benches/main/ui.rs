@@ -450,7 +450,6 @@ pub fn draw(c: &mut Criterion) {
                     None,
                     false,
                     false,
-                    false,
                     Some(50),
                     false,
                     cable.clone(),

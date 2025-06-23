@@ -24,12 +24,8 @@ pub fn draw_results_list(
     help_keybinding: &str,
     preview_keybinding: &str,
     preview_togglable: bool,
-    no_help: bool,
 ) -> Result<()> {
     let mut toggle_hints = String::new();
-    if !no_help {
-        write!(toggle_hints, " help: <{}> ", help_keybinding)?;
-    }
     if preview_togglable {
         write!(toggle_hints, " preview: <{}> ", preview_keybinding)?;
     }
