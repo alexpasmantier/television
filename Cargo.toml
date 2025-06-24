@@ -129,8 +129,11 @@ from_iter_instead_of_collect = "allow"
 
 [package.metadata.deb]
 maintainer = "Alexandre Pasmantier <alex.pasmant@gmail.com>"
+copyright = "Alexandre Pasmantier <alex.pasmant@gmail.com>"
 extended-description = """\
 Television is a cross-platform, fast and extensible fuzzy finder TUI.
 It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible."""
-section = "utility"
+section = "utils"
 priority = "optional"
+depends = "$auto"
+description = "Cross-platform, fast and extensible general purpose fuzzy finder TUI."
