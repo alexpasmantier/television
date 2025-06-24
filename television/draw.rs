@@ -181,7 +181,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         ctx.tv_state.results_picker.total_items,
         ctx.tv_state.channel_state.total_count,
         &ctx.tv_state.results_picker.input,
-        &ctx.tv_state.results_picker.relative_state,
+        &ctx.tv_state.results_picker.state,
         ctx.tv_state.channel_state.running,
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
