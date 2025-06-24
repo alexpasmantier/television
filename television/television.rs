@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     action::Action,
     cable::Cable,
@@ -37,6 +39,15 @@ use tracing::debug;
 pub enum Mode {
     Channel,
     RemoteControl,
+}
+
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::Channel => write!(f, "Channel"),
+            Mode::RemoteControl => write!(f, "Remote Control"),
+        }
+    }
 }
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]

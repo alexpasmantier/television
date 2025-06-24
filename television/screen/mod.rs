@@ -1,4 +1,3 @@
-pub mod cache;
 pub mod colors;
 pub mod constants;
 pub mod input;
@@ -6,7 +5,6 @@ pub mod keybinding_panel;
 pub mod keybinding_utils;
 pub mod layout;
 pub mod logo;
-pub mod metadata;
 pub mod mode;
 pub mod preview;
 pub mod remote_control;
