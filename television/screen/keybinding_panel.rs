@@ -10,12 +10,15 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::{Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Paragraph},
+    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
 };
+
+const MIN_PANEL_WIDTH: u16 = 25;
+const MIN_PANEL_HEIGHT: u16 = 5;
 
 /// Draws a Helix-style floating keybinding panel in the bottom-right corner
 pub fn draw_keybinding_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
-    if area.width < 15 || area.height < 5 {
+    if area.width < MIN_PANEL_WIDTH || area.height < MIN_PANEL_HEIGHT {
         return; // Too small to display anything meaningful
     }
 
@@ -41,7 +44,8 @@ pub fn draw_keybinding_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
                 .general
                 .background
                 .unwrap_or_default()),
-        );
+        )
+        .padding(Padding::horizontal(1));
 
     let paragraph = Paragraph::new(content)
         .block(block)
@@ -84,16 +88,13 @@ fn generate_keybinding_content(
     let mut lines = Vec::new();
 
     // Global keybindings section header
-    lines.push(Line::from(vec![
-        Span::raw(" "), // Left padding
-        Span::styled(
-            "Global",
-            Style::default()
-                .fg(colorscheme.help.metadata_field_name_fg)
-                .bold()
-                .underlined(),
-        ),
-    ]));
+    lines.push(Line::from(vec![Span::styled(
+        "Global",
+        Style::default()
+            .fg(colorscheme.help.metadata_field_name_fg)
+            .bold()
+            .underlined(),
+    )]));
 
     // Global actions using centralized system
     let global_mappings = ActionMapping::global_actions();
@@ -114,16 +115,13 @@ fn generate_keybinding_content(
         Mode::RemoteControl => "Remote",
     };
 
-    lines.push(Line::from(vec![
-        Span::raw(" "), // Left padding
-        Span::styled(
-            mode_name,
-            Style::default()
-                .fg(colorscheme.help.metadata_field_name_fg)
-                .bold()
-                .underlined(),
-        ),
-    ]));
+    lines.push(Line::from(vec![Span::styled(
+        mode_name,
+        Style::default()
+            .fg(colorscheme.help.metadata_field_name_fg)
+            .bold()
+            .underlined(),
+    )]));
 
     // Navigation actions (common to both modes) using centralized system
     let nav_mappings = ActionMapping::navigation_actions();
@@ -162,7 +160,6 @@ fn create_compact_keybinding_line(
     };
 
     Line::from(vec![
-        Span::raw(" "), // Left padding
         Span::styled(
             format!("{}:", action),
             Style::default().fg(colorscheme.help.metadata_field_name_fg),
