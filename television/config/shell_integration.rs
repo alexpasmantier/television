@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use crate::config::Binding;
-use crate::event::Key;
-use crate::utils::hashmaps;
+use crate::{config::Binding, event::Key, utils::hashmaps};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 

@@ -1,18 +1,18 @@
-use rustc_hash::FxHashSet;
-use std::fmt::Debug;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::io::Read;
-use std::path::Path;
-use std::sync::OnceLock;
-
-use tracing::{debug, warn};
-
-use crate::utils::strings::{
-    PRINTABLE_ASCII_THRESHOLD, proportion_of_printable_ascii_characters,
+use crate::utils::{
+    strings::{
+        PRINTABLE_ASCII_THRESHOLD, proportion_of_printable_ascii_characters,
+    },
+    threads::default_num_threads,
 };
-use crate::utils::threads::default_num_threads;
+use rustc_hash::FxHashSet;
+use std::{
+    fmt::Debug,
+    fs::File,
+    io::{BufRead, BufReader, Read},
+    path::Path,
+    sync::OnceLock,
+};
+use tracing::{debug, warn};
 
 pub struct PartialReadResult {
     pub lines: Vec<String>,
