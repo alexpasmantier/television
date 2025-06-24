@@ -87,7 +87,6 @@ async fn main() -> Result<()> {
         args.take_1,
         args.take_1_fast,
         args.no_remote,
-        args.no_help,
         args.no_preview,
         args.preview_size,
         config.application.tick_rate,
@@ -131,10 +130,6 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     }
     if let Some(tick_rate) = args.tick_rate {
         config.application.tick_rate = tick_rate;
-    }
-    if args.no_help {
-        config.ui.show_help_bar = false;
-        config.ui.no_help = true;
     }
     if args.no_preview {
         config.ui.show_preview_panel = false;
@@ -239,7 +234,6 @@ pub fn determine_channel(
         // Set UI spec - only hide preview if no preview command is provided
         prototype.ui = Some(UiSpec {
             ui_scale: None,
-            show_help_bar: Some(false),
             show_preview_panel: Some(args.preview_command_override.is_some()),
             orientation: None,
             input_bar_position: None,
@@ -476,10 +470,9 @@ mod tests {
         assert_eq!(channel.metadata.name, "custom");
         assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
 
-        // Check that UI options are set to hide preview and help
+        // Check that UI options are set to hide preview
         assert!(channel.ui.is_some());
         let ui_spec = channel.ui.as_ref().unwrap();
-        assert_eq!(ui_spec.show_help_bar, Some(false));
         assert_eq!(ui_spec.show_preview_panel, Some(false));
         assert_eq!(
             ui_spec.input_header,

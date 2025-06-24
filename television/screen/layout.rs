@@ -1,13 +1,14 @@
-use std::fmt::Display;
-
-use clap::ValueEnum;
-use ratatui::layout;
-use ratatui::layout::{Constraint, Direction, Rect};
-use serde::{Deserialize, Serialize};
-
-use crate::config::UiConfig;
-use crate::screen::constants::LOGO_WIDTH;
+use crate::config::{KeyBindings, UiConfig};
+use crate::screen::colors::Colorscheme;
+use crate::screen::keybinding_panel::calculate_keybinding_panel_size;
 use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
+use crate::television::Mode;
+use clap::ValueEnum;
+use ratatui::layout::{
+    self, Constraint, Direction, Layout as RatatuiLayout, Rect,
+};
+use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 pub struct Dimensions {
     pub x: u16,
@@ -23,23 +24,6 @@ impl Dimensions {
 impl From<u16> for Dimensions {
     fn from(x: u16) -> Self {
         Self::new(x, x)
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub struct HelpBarLayout {
-    pub left: Rect,
-    pub middle: Rect,
-    pub right: Rect,
-}
-
-impl HelpBarLayout {
-    pub fn new(left: Rect, middle: Rect, right: Rect) -> Self {
-        Self {
-            left,
-            middle,
-            right,
-        }
     }
 }
 
@@ -104,11 +88,12 @@ impl Display for PreviewTitlePosition {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
-    pub help_bar: Option<HelpBarLayout>,
     pub results: Rect,
     pub input: Rect,
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
+    pub keybinding_panel: Option<Rect>,
+    pub status_bar: Option<Rect>,
 }
 
 const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
@@ -120,25 +105,33 @@ impl Default for Layout {
     /// depend on the height of the results area which is not known until the first
     /// frame is rendered.
     fn default() -> Self {
-        Self::new(None, Rect::new(0, 0, 0, 100), Rect::default(), None, None)
+        Self::new(
+            Rect::new(0, 0, 0, 100),
+            Rect::default(),
+            None,
+            None,
+            None,
+            None,
+        )
     }
 }
 
 impl Layout {
-    #[allow(clippy::too_many_arguments)]
     pub fn new(
-        help_bar: Option<HelpBarLayout>,
         results: Rect,
         input: Rect,
         preview_window: Option<Rect>,
         remote_control: Option<Rect>,
+        keybinding_panel: Option<Rect>,
+        status_bar: Option<Rect>,
     ) -> Self {
         Self {
-            help_bar,
             results,
             input,
             preview_window,
             remote_control,
+            keybinding_panel,
+            status_bar,
         }
     }
 
@@ -147,43 +140,30 @@ impl Layout {
         ui_config: &UiConfig,
         show_remote: bool,
         show_preview: bool,
+        keybindings: Option<&KeyBindings>,
+        mode: Mode,
+        colorscheme: &Colorscheme,
     ) -> Self {
         let show_preview = show_preview && ui_config.show_preview_panel;
         let dimensions = Dimensions::from(ui_config.ui_scale);
-        let main_block = centered_rect(dimensions.x, dimensions.y, area);
-        // split the main block into two vertical chunks (help bar + rest)
-        let main_rect: Rect;
-        let help_bar_layout: Option<HelpBarLayout>;
 
-        if ui_config.show_help_bar {
-            let hz_chunks = layout::Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Max(9), Constraint::Fill(1)])
-                .split(main_block);
-            main_rect = hz_chunks[1];
-
-            // split the help bar into three horizontal chunks (left + center + right)
-            let help_bar_chunks = layout::Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    // metadata
-                    Constraint::Fill(1),
-                    // keymaps
-                    Constraint::Fill(1),
-                    // logo
-                    Constraint::Length(LOGO_WIDTH),
-                ])
-                .split(hz_chunks[0]);
-
-            help_bar_layout = Some(HelpBarLayout {
-                left: help_bar_chunks[0],
-                middle: help_bar_chunks[1],
-                right: help_bar_chunks[2],
-            });
+        // Reserve space for status bar if enabled
+        let working_area = if ui_config.show_status_bar {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: area.width,
+                height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
+            }
         } else {
-            main_rect = main_block;
-            help_bar_layout = None;
-        }
+            area
+        };
+
+        let main_block =
+            centered_rect(dimensions.x, dimensions.y, working_area);
+
+        // Use the entire main block since help bar is removed
+        let main_rect = main_block;
 
         // Define the constraints for the results area (results list + input bar).
         // We keep this near the top so we can derive the input-bar height before
@@ -247,7 +227,7 @@ impl Layout {
             vec![Constraint::Fill(1)]
         };
 
-        let main_chunks = layout::Layout::default()
+        let main_chunks = RatatuiLayout::default()
             .direction(match ui_config.orientation {
                 Orientation::Portrait => Direction::Vertical,
                 Orientation::Landscape => Direction::Horizontal,
@@ -401,12 +381,51 @@ impl Layout {
             None
         };
 
+        // the keybinding panel is positioned at bottom-right, accounting for status bar
+        let keybinding_panel = if ui_config.show_keybinding_panel {
+            // Calculate available area for keybinding panel (excluding status bar if enabled)
+            let kb_area = if ui_config.show_status_bar {
+                Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: area.width,
+                    height: area.height.saturating_sub(1), // Account for single line status bar
+                }
+            } else {
+                area
+            };
+
+            if let Some(kb) = keybindings {
+                let (width, height) =
+                    calculate_keybinding_panel_size(kb, mode, colorscheme);
+                Some(bottom_right_rect(width, height, kb_area))
+            } else {
+                // Fallback to reasonable default if keybindings not available
+                Some(bottom_right_rect(45, 25, kb_area))
+            }
+        } else {
+            None
+        };
+
+        // Create status bar at the bottom if enabled
+        let status_bar = if ui_config.show_status_bar {
+            Some(Rect {
+                x: area.x,
+                y: area.y + area.height - 1, // Position at the very last line
+                width: area.width,
+                height: 1, // Single line status bar
+            })
+        } else {
+            None
+        };
+
         Self::new(
-            help_bar_layout,
             results,
             input,
             preview_window,
             remote_control,
+            keybinding_panel,
+            status_bar,
         )
     }
 }
@@ -439,4 +458,17 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
             Constraint::Fill(1),
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
+}
+
+/// helper function to create a floating rect positioned at the bottom-right corner
+fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
+    let x = r.width.saturating_sub(width + 2); // 2 for padding from edge
+    let y = r.height.saturating_sub(height + 1); // 1 for padding from edge
+
+    Rect {
+        x: r.x + x,
+        y: r.y + y,
+        width: width.min(r.width.saturating_sub(2)),
+        height: height.min(r.height.saturating_sub(2)),
+    }
 }

@@ -42,19 +42,16 @@ use_nerd_font_icons = false
 # │                                       │
 # └───────────────────────────────────────┘
 ui_scale = 100
-# Whether to show the top help bar in the UI by default
-# This option can be toggled with the (default) `ctrl-g` keybinding
-show_help_bar = false
 # Whether to show the preview panel in the UI by default
 # This option can be toggled with the (default) `ctrl-o` keybinding
 show_preview_panel = true
+# Whether to show the keybinding panel in the UI by default
+# This option can be toggled with the (default) `ctrl-h` keybinding
+show_keybinding_panel = false
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
 # What orientation should tv be (landscape or portrait)
 orientation = "landscape"
-# DEPRECATED: title is now always displayed at the top as part of the border
-# Where to place the preview title in the UI (top or bottom)
-# preview_title_position = "top"
 # The theme to use for the UI
 # A list of builtin themes can be found in the `themes` directory of the television
 # repository. You may also create your own theme by creating a new file in a `themes`
@@ -62,6 +59,16 @@ orientation = "landscape"
 theme = "default"
 # The default size of the preview panel (in percentage of the screen)
 preview_size = 50
+show_status_bar = true
+
+# Status bar separators (bubble):
+#status_separator_open = ""
+#status_separator_close = ""
+
+# Status bar separators (box):
+status_separator_open = ""
+status_separator_close = ""
+
 
 # Keybindings
 # ----------------------------------------------------------------------------
@@ -89,10 +96,10 @@ confirm_selection = "enter"
 copy_entry_to_clipboard = "ctrl-y"
 # Toggle the remote control mode
 toggle_remote_control = "ctrl-t"
-# Toggle the help bar
-toggle_help = "ctrl-g"
 # Toggle the preview panel
 toggle_preview = "ctrl-o"
+# Toggle the keybinding panel
+toggle_help = "ctrl-h"
 # Reload the current source
 reload_source = "ctrl-r"
 # Cycle through the available sources for the current channel
