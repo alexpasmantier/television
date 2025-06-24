@@ -60,6 +60,12 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["preview_offset", "preview_header", "preview_footer", "preview_size", "preview_command"])]
     pub no_preview: bool,
 
+    /// Disable the status bar on startup.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub no_status_bar: bool,
+
     /// The application's tick rate.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.

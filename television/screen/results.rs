@@ -1,13 +1,15 @@
-use crate::channels::entry::Entry;
-use crate::screen::colors::Colorscheme;
-use crate::screen::layout::InputPosition;
-use crate::screen::result_item;
+use crate::{
+    channels::entry::Entry,
+    screen::{colors::Colorscheme, layout::InputPosition, result_item},
+};
 use anyhow::Result;
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Rect};
-use ratatui::prelude::Style;
-use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, ListState, Padding};
+use ratatui::{
+    Frame,
+    layout::{Alignment, Rect},
+    prelude::Style,
+    text::Line,
+    widgets::{Block, BorderType, Borders, ListState, Padding},
+};
 use rustc_hash::FxHashSet;
 
 #[allow(clippy::too_many_arguments)]

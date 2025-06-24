@@ -2,7 +2,7 @@ use crate::{
     config::KeyBindings,
     draw::Ctx,
     screen::colors::Colorscheme,
-    screen::keybinding_utils::{ActionMapping, extract_keys_from_binding},
+    screen::keybindings::{ActionMapping, extract_keys_from_binding},
     television::Mode,
 };
 use ratatui::{
@@ -16,14 +16,14 @@ use ratatui::{
 const MIN_PANEL_WIDTH: u16 = 25;
 const MIN_PANEL_HEIGHT: u16 = 5;
 
-/// Draws a Helix-style floating keybinding panel in the bottom-right corner
-pub fn draw_keybinding_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
+/// Draws a Helix-style floating help panel in the bottom-right corner
+pub fn draw_help_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     if area.width < MIN_PANEL_WIDTH || area.height < MIN_PANEL_HEIGHT {
         return; // Too small to display anything meaningful
     }
 
     // Generate content
-    let content = generate_keybinding_content(
+    let content = generate_help_content(
         &ctx.config.keybindings,
         ctx.tv_state.mode,
         &ctx.colorscheme,
@@ -37,7 +37,7 @@ pub fn draw_keybinding_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(ctx.colorscheme.general.border_fg))
-        .title_top(Line::from(" Keybindings ").alignment(Alignment::Center))
+        .title_top(Line::from(" Help ").alignment(Alignment::Center))
         .style(
             Style::default().bg(ctx
                 .colorscheme
@@ -79,8 +79,8 @@ fn add_keybinding_lines_for_mappings(
     }
 }
 
-/// Generates the keybinding content organized into global and mode-specific groups
-fn generate_keybinding_content(
+/// Generates the help content organized into global and mode-specific groups
+fn generate_help_content(
     keybindings: &KeyBindings,
     mode: Mode,
     colorscheme: &Colorscheme,
@@ -169,15 +169,15 @@ fn create_compact_keybinding_line(
     ])
 }
 
-/// Calculates the required dimensions for the keybinding panel based on content
+/// Calculates the required dimensions for the help panel based on content
 #[allow(clippy::cast_possible_truncation)]
-pub fn calculate_keybinding_panel_size(
+pub fn calculate_help_panel_size(
     keybindings: &KeyBindings,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> (u16, u16) {
     // Generate content to count items and calculate width
-    let content = generate_keybinding_content(keybindings, mode, colorscheme);
+    let content = generate_help_content(keybindings, mode, colorscheme);
 
     // Calculate required width based on actual content
     let max_content_width = content

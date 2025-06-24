@@ -4,7 +4,7 @@
 .SH NAME
 television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-no\-help\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
@@ -25,6 +25,11 @@ Disable the preview panel entirely on startup.
 This flag works identically in both channel mode and ad\-hoc mode.
 When set, no preview panel will be shown regardless of channel configuration
 or preview\-related flags.
+.TP
+\fB\-\-no\-status\-bar\fR
+Disable the status bar on startup.
+
+Useful on very small terminals or when the extra information is not required.
 .TP
 \fB\-t\fR, \fB\-\-tick\-rate\fR=\fIFLOAT\fR
 The application\*(Aqs tick rate.
@@ -202,17 +207,6 @@ This flag works identically in both channel mode and ad\-hoc mode.
 This will disable the remote control panel and associated actions
 entirely. This is useful when the remote control is not needed or
 when the user wants `tv` to run in single\-channel mode (e.g. when
-using it as a file picker for a script or embedding it in a larger
-application).
-.TP
-\fB\-\-no\-help\fR
-Disable the help panel.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-This will disable the help panel and associated toggling actions
-entirely. This is useful when the help panel is not needed or
-when the user wants `tv` to run with a minimal interface (e.g. when
 using it as a file picker for a script or embedding it in a larger
 application).
 .TP

@@ -203,6 +203,12 @@ Television's options are organized by functionality. Each option behaves differe
 - **Conflicts**: Cannot use with any `--preview-*` flags
 - **Use Case**: Faster performance, simpler interface
 
+#### `--no-status-bar`
+**Purpose**: Disables the bottom status bar on startup
+
+- **Both Modes**: Hides the single-line status information bar
+- **Use Case**: Minimal interface or very small terminals
+
 ### 🎨 Interface and Layout Options
 
 #### `--layout <LAYOUT>`

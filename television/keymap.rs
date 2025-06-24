@@ -1,9 +1,10 @@
+use crate::{
+    action::Action,
+    config::{Binding, KeyBindings},
+    event::Key,
+};
 use rustc_hash::FxHashMap;
 use std::ops::Deref;
-
-use crate::action::Action;
-use crate::config::{Binding, KeyBindings};
-use crate::event::Key;
 
 #[derive(Default, Debug)]
 /// A keymap is a set of mappings of keys to actions for every mode.

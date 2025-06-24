@@ -1,5 +1,8 @@
-use crate::channels::prototypes::Template;
-use crate::utils::input::Input;
+use crate::{
+    channels::prototypes::Template,
+    screen::{colors::Colorscheme, layout::InputPosition, spinner::Spinner},
+    utils::input::Input,
+};
 use anyhow::Result;
 use ratatui::{
     Frame,
@@ -12,10 +15,6 @@ use ratatui::{
         Block, BorderType, Borders, ListState, Paragraph, block::Position,
     },
 };
-
-use crate::screen::{colors::Colorscheme, spinner::Spinner};
-
-use super::layout::InputPosition;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(

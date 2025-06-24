@@ -1,8 +1,8 @@
 pub mod colors;
 pub mod constants;
+pub mod help_panel;
 pub mod input;
-pub mod keybinding_panel;
-pub mod keybinding_utils;
+pub mod keybindings;
 pub mod layout;
 pub mod logo;
 pub mod mode;

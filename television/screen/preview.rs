@@ -1,17 +1,19 @@
-use crate::previewer::state::PreviewState;
-use crate::screen::colors::Colorscheme;
-use crate::utils::strings::{
-    EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
-    shrink_with_ellipsis,
+use crate::{
+    previewer::state::PreviewState,
+    screen::colors::Colorscheme,
+    utils::strings::{
+        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+        shrink_with_ellipsis,
+    },
 };
 use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::Frame;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::{
+    Frame,
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
+    widgets::{Block, BorderType, Borders, Padding, Paragraph},
 };
 use std::str::FromStr;
 

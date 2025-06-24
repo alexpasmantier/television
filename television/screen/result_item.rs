@@ -1,10 +1,20 @@
-use crate::config::Binding;
-use crate::screen::colors::ResultsColorscheme;
-use crate::screen::constants::POINTER_SYMBOL;
+use crate::{
+    config::Binding,
+    screen::{
+        colors::ResultsColorscheme,
+        constants::{DESELECTED_SYMBOL, POINTER_SYMBOL, SELECTED_SYMBOL},
+    },
+    utils::{
+        indices::truncate_highlighted_string,
+        strings::make_matched_string_printable,
+    },
+};
 use devicons::FileIcon;
-use ratatui::prelude::{Color, Line, Span, Style};
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, List, ListDirection};
+use ratatui::{
+    prelude::{Color, Line, Span, Style},
+    style::Stylize,
+    widgets::{Block, List, ListDirection},
+};
 use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;
 
@@ -46,11 +56,11 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     if let Some(selected) = prefix {
         if selected {
             spans.push(Span::styled(
-                crate::screen::constants::SELECTED_SYMBOL,
+                SELECTED_SYMBOL,
                 Style::default().fg(colorscheme.result_selected_fg),
             ));
         } else {
-            spans.push(Span::raw(crate::screen::constants::DESELECTED_SYMBOL));
+            spans.push(Span::raw(DESELECTED_SYMBOL));
         }
     }
 
@@ -86,19 +96,15 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     }
 
     let (mut entry_name, mut match_ranges) =
-        crate::utils::strings::make_matched_string_printable(
-            item.display(),
-            item.match_ranges(),
-        );
+        make_matched_string_printable(item.display(), item.match_ranges());
 
     // Truncate if too long.
     if UnicodeWidthStr::width(entry_name.as_str()) > name_max_width as usize {
-        let (name, ranges) =
-            crate::utils::indices::truncate_highlighted_string(
-                &entry_name,
-                &match_ranges,
-                name_max_width,
-            );
+        let (name, ranges) = truncate_highlighted_string(
+            &entry_name,
+            &match_ranges,
+            name_max_width,
+        );
         entry_name = name;
         match_ranges = ranges;
     }

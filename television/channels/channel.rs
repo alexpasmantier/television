@@ -1,18 +1,19 @@
+use crate::{
+    channels::{
+        entry::Entry,
+        prototypes::{ChannelPrototype, SourceSpec},
+    },
+    matcher::{Matcher, config::Config, injector::Injector},
+    utils::command::shell_command,
+};
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
-
-use rustc_hash::{FxBuildHasher, FxHashSet};
 use tracing::debug;
-
-use crate::channels::prototypes::SourceSpec;
-use crate::channels::{entry::Entry, prototypes::ChannelPrototype};
-use crate::matcher::Matcher;
-use crate::matcher::{config::Config, injector::Injector};
-use crate::utils::command::shell_command;
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 

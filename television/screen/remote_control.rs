@@ -1,20 +1,23 @@
-use crate::channels::prototypes::BinaryRequirement;
-use crate::channels::remote_control::CableEntry;
-use crate::screen::colors::{Colorscheme, GeneralColorscheme};
-use crate::screen::logo::{
-    REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph,
+use crate::{
+    channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
+    config::ui::RemoteControlConfig,
+    screen::{
+        colors::{Colorscheme, GeneralColorscheme},
+        logo::{REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph},
+        result_item,
+    },
+    utils::input::Input,
 };
-use crate::utils::input::Input;
-
-use crate::screen::result_item;
 use anyhow::Result;
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::prelude::{Color, Line, Span, Style};
-use ratatui::style::Stylize;
-use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, ListDirection, ListState, Padding,
-    Paragraph, Wrap,
+use ratatui::{
+    Frame,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    prelude::{Color, Line, Span, Style},
+    style::Stylize,
+    widgets::{
+        Block, BorderType, Borders, Clear, ListDirection, ListState, Padding,
+        Paragraph, Wrap,
+    },
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -26,25 +29,39 @@ pub fn draw_remote_control(
     picker_state: &mut ListState,
     input_state: &mut Input,
     colorscheme: &Colorscheme,
+    remote_config: &RemoteControlConfig,
 ) -> Result<()> {
-    let layout = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints(
-            [
-                Constraint::Fill(1),
-                Constraint::Fill(1),
-                Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
-            ]
-            .as_ref(),
-        )
-        .split(rect);
+    let layout = if remote_config.show_channel_descriptions {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Fill(1),
+                    Constraint::Fill(1),
+                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
+                ]
+                .as_ref(),
+            )
+            .split(rect)
+    } else {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Fill(1),
+                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
+                ]
+                .as_ref(),
+            )
+            .split(rect)
+    };
 
     // Clear the popup area
     f.render_widget(Clear, rect);
 
     let selected_entry = entries.get(picker_state.selected().unwrap_or(0));
 
-    draw_rc_logo(f, layout[2], &colorscheme.general);
+    draw_rc_logo(f, layout[layout.len() - 1], &colorscheme.general);
     draw_search_panel(
         f,
         layout[0],
@@ -54,7 +71,11 @@ pub fn draw_remote_control(
         colorscheme,
         input_state,
     )?;
-    draw_information_panel(f, layout[1], selected_entry, colorscheme);
+
+    if remote_config.show_channel_descriptions {
+        draw_information_panel(f, layout[1], selected_entry, colorscheme);
+    }
+
     Ok(())
 }
 
