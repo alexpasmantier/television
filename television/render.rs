@@ -1,15 +1,18 @@
+use crate::{
+    action::Action,
+    draw::{Ctx, draw},
+    screen::layout::Layout,
+    tui::Tui,
+};
 use anyhow::Result;
-use crossterm::terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate};
-use crossterm::{execute, queue};
+use crossterm::{
+    execute, queue,
+    terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate},
+};
 use ratatui::layout::Rect;
 use std::io::{LineWriter, stderr, stdout};
-use tracing::{debug, warn};
-
 use tokio::sync::mpsc;
-
-use crate::draw::Ctx;
-use crate::screen::layout::Layout;
-use crate::{action::Action, draw::draw, tui::Tui};
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone)]
 pub enum RenderingTask {

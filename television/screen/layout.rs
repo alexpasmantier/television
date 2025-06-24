@@ -1,8 +1,11 @@
-use crate::config::{KeyBindings, UiConfig};
-use crate::screen::colors::Colorscheme;
-use crate::screen::keybinding_panel::calculate_keybinding_panel_size;
-use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
-use crate::television::Mode;
+use crate::{
+    config::{KeyBindings, UiConfig},
+    screen::{
+        colors::Colorscheme, help_panel::calculate_help_panel_size,
+        logo::REMOTE_LOGO_HEIGHT_U16,
+    },
+    television::Mode,
+};
 use clap::ValueEnum;
 use ratatui::layout::{
     self, Constraint, Direction, Layout as RatatuiLayout, Rect,
@@ -92,7 +95,7 @@ pub struct Layout {
     pub input: Rect,
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
-    pub keybinding_panel: Option<Rect>,
+    pub help_panel: Option<Rect>,
     pub status_bar: Option<Rect>,
 }
 
@@ -122,7 +125,7 @@ impl Layout {
         input: Rect,
         preview_window: Option<Rect>,
         remote_control: Option<Rect>,
-        keybinding_panel: Option<Rect>,
+        help_panel: Option<Rect>,
         status_bar: Option<Rect>,
     ) -> Self {
         Self {
@@ -130,7 +133,7 @@ impl Layout {
             input,
             preview_window,
             remote_control,
-            keybinding_panel,
+            help_panel,
             status_bar,
         }
     }
@@ -144,11 +147,11 @@ impl Layout {
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
-        let show_preview = show_preview && ui_config.show_preview_panel;
+        let show_preview = show_preview && ui_config.preview_enabled();
         let dimensions = Dimensions::from(ui_config.ui_scale);
 
         // Reserve space for status bar if enabled
-        let working_area = if ui_config.show_status_bar {
+        let working_area = if ui_config.status_bar_enabled() {
             Rect {
                 x: area.x,
                 y: area.y,
@@ -184,7 +187,8 @@ impl Layout {
         // split the main block into 1 or 2 chunks (results + preview)
         let constraints = if show_preview {
             // Determine the desired preview percentage (as configured by the user)
-            let raw_preview_percentage = ui_config.preview_size.clamp(1, 99); // ensure sane value
+            let raw_preview_percentage =
+                ui_config.preview_panel.size.clamp(1, 99); // ensure sane value
 
             // In portrait orientation, reserve the input bar height from the total
             // vertical space before applying the percentage split so the preview
@@ -338,7 +342,8 @@ impl Layout {
                 // If preview is enabled, calculate the concrete percentages now
                 if let Some(p_idx) = preview_idx {
                     // Determine preview percentage from config
-                    let preview_pct = ui_config.preview_size.clamp(1, 99);
+                    let preview_pct =
+                        ui_config.preview_panel.size.clamp(1, 99);
 
                     // Remaining for results
                     let results_pct = 100u16.saturating_sub(preview_pct);
@@ -381,10 +386,10 @@ impl Layout {
             None
         };
 
-        // the keybinding panel is positioned at bottom-right, accounting for status bar
-        let keybinding_panel = if ui_config.show_keybinding_panel {
-            // Calculate available area for keybinding panel (excluding status bar if enabled)
-            let kb_area = if ui_config.show_status_bar {
+        // the help panel is positioned at bottom-right, accounting for status bar
+        let help_panel = if ui_config.help_panel_enabled() {
+            // Calculate available area for help panel (excluding status bar if enabled)
+            let hp_area = if ui_config.status_bar_enabled() {
                 Rect {
                     x: area.x,
                     y: area.y,
@@ -397,18 +402,18 @@ impl Layout {
 
             if let Some(kb) = keybindings {
                 let (width, height) =
-                    calculate_keybinding_panel_size(kb, mode, colorscheme);
-                Some(bottom_right_rect(width, height, kb_area))
+                    calculate_help_panel_size(kb, mode, colorscheme);
+                Some(bottom_right_rect(width, height, hp_area))
             } else {
                 // Fallback to reasonable default if keybindings not available
-                Some(bottom_right_rect(45, 25, kb_area))
+                Some(bottom_right_rect(45, 25, hp_area))
             }
         } else {
             None
         };
 
         // Create status bar at the bottom if enabled
-        let status_bar = if ui_config.show_status_bar {
+        let status_bar = if ui_config.status_bar_enabled() {
             Some(Rect {
                 x: area.x,
                 y: area.y + area.height - 1, // Position at the very last line
@@ -424,7 +429,7 @@ impl Layout {
             input,
             preview_window,
             remote_control,
-            keybinding_panel,
+            help_panel,
             status_bar,
         )
     }

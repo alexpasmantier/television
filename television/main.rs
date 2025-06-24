@@ -1,36 +1,33 @@
+use anyhow::Result;
+use clap::Parser;
+use rustc_hash::FxHashMap;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
-
-use anyhow::Result;
-use clap::Parser;
-use rustc_hash::FxHashMap;
-use television::cable::load_cable;
+use television::app::{App, AppOptions};
 use television::cli::post_process;
+use television::cli::{
+    PostProcessedCli,
+    args::{Cli, Command},
+    guess_channel_from_prompt, list_channels,
+};
+use television::config::{Config, ConfigEnv, merge_keybindings};
+use television::features::Features;
 use television::gh::update_local_channels;
+use television::utils::shell::render_autocomplete_script_template;
+use television::utils::{
+    shell::{Shell, completion_script},
+    stdin::is_readable_stdin,
+};
 use television::{
-    cable::Cable,
+    cable::{Cable, load_cable},
     channels::prototypes::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
     },
     utils::clipboard::CLIPBOARD,
 };
 use tracing::{debug, info};
-
-use television::app::{App, AppOptions};
-use television::cli::{
-    PostProcessedCli,
-    args::{Cli, Command},
-    guess_channel_from_prompt, list_channels,
-};
-
-use television::config::{Config, ConfigEnv, merge_keybindings};
-use television::utils::shell::render_autocomplete_script_template;
-use television::utils::{
-    shell::{Shell, completion_script},
-    stdin::is_readable_stdin,
-};
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
@@ -132,10 +129,13 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.application.tick_rate = tick_rate;
     }
     if args.no_preview {
-        config.ui.show_preview_panel = false;
+        config.ui.features.remove(Features::PREVIEW_PANEL);
+    }
+    if args.no_status_bar {
+        config.ui.features.remove(Features::STATUS_BAR);
     }
     if let Some(ps) = args.preview_size {
-        config.ui.preview_size = ps;
+        config.ui.preview_panel.size = ps;
     }
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
@@ -149,12 +149,12 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     }
     if let Some(preview_header) = &args.preview_header {
         if let Ok(t) = Template::parse(preview_header) {
-            config.ui.preview_header = Some(t);
+            config.ui.preview_panel.header = Some(t);
         }
     }
     if let Some(preview_footer) = &args.preview_footer {
         if let Ok(t) = Template::parse(preview_footer) {
-            config.ui.preview_footer = Some(t);
+            config.ui.preview_panel.footer = Some(t);
         }
     }
     if let Some(layout) = args.layout {
@@ -232,16 +232,18 @@ pub fn determine_channel(
         let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
 
         // Set UI spec - only hide preview if no preview command is provided
-        prototype.ui = Some(UiSpec {
+        let ui_spec = UiSpec {
             ui_scale: None,
             show_preview_panel: Some(args.preview_command_override.is_some()),
             orientation: None,
             input_bar_position: None,
-            preview_size: None,
             input_header: Some(Template::parse("Custom Channel").unwrap()),
-            preview_header: None,
-            preview_footer: None,
-        });
+            status_bar: None,
+            preview_panel: None,
+            help_panel: None,
+            remote_control: None,
+        };
+        prototype.ui = Some(ui_spec);
         prototype
     } else {
         let channel = args
@@ -494,17 +496,17 @@ mod tests {
         apply_cli_overrides(&args, &mut config);
 
         assert_eq!(config.application.tick_rate, 100_f64);
-        assert!(!config.ui.show_preview_panel);
+        assert!(!config.ui.preview_enabled());
         assert_eq!(
             config.ui.input_header,
             Some(Template::parse("Input Header").unwrap())
         );
         assert_eq!(
-            config.ui.preview_header,
+            config.ui.preview_panel.header,
             Some(Template::parse("Preview Header").unwrap())
         );
         assert_eq!(
-            config.ui.preview_footer,
+            config.ui.preview_panel.footer,
             Some(Template::parse("Preview Footer").unwrap())
         );
     }

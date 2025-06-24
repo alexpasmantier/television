@@ -1,10 +1,9 @@
-use std::hash::{Hash, Hasher};
-
+use crate::{
+    channels::prototypes::Template, config::Binding,
+    screen::result_item::ResultItem,
+};
 use devicons::FileIcon;
-
-use crate::channels::prototypes::Template;
-use crate::config::Binding;
-use crate::screen::result_item::ResultItem;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq)]
 pub struct Entry {

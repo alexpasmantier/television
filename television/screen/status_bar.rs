@@ -46,9 +46,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .add_modifier(Modifier::BOLD);
 
     // Add opening separator
-    if !ctx.config.ui.status_separator_open.is_empty() {
+    if !ctx.config.ui.status_bar.separator_open.is_empty() {
         left_spans.push(Span::styled(
-            ctx.config.ui.status_separator_open.clone(),
+            ctx.config.ui.status_bar.separator_open.clone(),
             separator_style,
         ));
     }
@@ -57,9 +57,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     left_spans.push(Span::styled(format!(" {} ", mode_text), mode_style));
 
     // Add closing separator
-    if !ctx.config.ui.status_separator_close.is_empty() {
+    if !ctx.config.ui.status_bar.separator_close.is_empty() {
         left_spans.push(Span::styled(
-            ctx.config.ui.status_separator_close.clone(),
+            ctx.config.ui.status_bar.separator_close.clone(),
             separator_style,
         ));
     }
@@ -123,22 +123,28 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         ]);
     };
 
-    // Add remote control hint (Channel mode only)
-    if ctx.tv_state.mode == Mode::Channel {
-        if let Some(binding) =
-            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
-        {
-            add_hint("Remote Control", &binding.to_string());
-        }
+    // Add remote control hint (available in both modes)
+    if let Some(binding) =
+        ctx.config.keybindings.get(&Action::ToggleRemoteControl)
+    {
+        let hint_text = match ctx.tv_state.mode {
+            Mode::Channel => "Remote Control",
+            Mode::RemoteControl => "Back to Channel",
+        };
+        add_hint(hint_text, &binding.to_string());
     }
 
-    // Add preview hint (Channel mode only, when enabled)
-    if ctx.tv_state.mode == Mode::Channel && ctx.tv_state.preview_state.enabled
-    {
+    // Add preview hint (Channel mode only)
+    if ctx.tv_state.mode == Mode::Channel {
         if let Some(binding) =
             ctx.config.keybindings.get(&Action::TogglePreview)
         {
-            add_hint("Preview", &binding.to_string());
+            let hint_text = if ctx.config.ui.preview_enabled() {
+                "Hide Preview"
+            } else {
+                "Show Preview"
+            };
+            add_hint(hint_text, &binding.to_string());
         }
     }
 
