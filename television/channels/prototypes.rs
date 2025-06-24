@@ -1,6 +1,5 @@
-use crate::config::Binding;
 use crate::{
-    config::KeyBindings,
+    config::{Binding, KeyBindings, ui},
     screen::layout::{InputPosition, Orientation},
 };
 use anyhow::Result;
@@ -341,23 +340,20 @@ pub struct UiSpec {
     pub input_header: Option<Template>,
     // Feature-specific configurations
     #[serde(default)]
-    pub preview_panel: Option<crate::config::ui::PreviewPanelConfig>,
+    pub preview_panel: Option<ui::PreviewPanelConfig>,
     #[serde(default)]
-    pub status_bar: Option<crate::config::ui::StatusBarConfig>,
+    pub status_bar: Option<ui::StatusBarConfig>,
     #[serde(default)]
-    pub help_panel: Option<crate::config::ui::HelpPanelConfig>,
+    pub help_panel: Option<ui::HelpPanelConfig>,
     #[serde(default)]
-    pub remote_control: Option<crate::config::ui::RemoteControlConfig>,
+    pub remote_control: Option<ui::RemoteControlConfig>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        action::Action, config::Binding, config::ui::PreviewPosition,
-        event::Key,
-    };
+    use crate::{action::Action, config::Binding, event::Key};
 
     use super::*;
     use toml::from_str;
@@ -490,10 +486,6 @@ mod tests {
         assert!(ui.show_preview_panel.unwrap());
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
         assert_eq!(ui.preview_panel.as_ref().unwrap().size, 66);
-        assert_eq!(
-            ui.preview_panel.as_ref().unwrap().position,
-            PreviewPosition::Right
-        );
         assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
         assert_eq!(
             ui.preview_panel

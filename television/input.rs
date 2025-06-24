@@ -1,5 +1,4 @@
-use crate::action::Action;
-use crate::utils::input::InputRequest;
+use crate::{action::Action, utils::input::InputRequest};
 
 pub fn convert_action_to_input_request(
     action: &Action,

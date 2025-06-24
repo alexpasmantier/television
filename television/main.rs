@@ -131,6 +131,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if args.no_preview {
         config.ui.features.remove(Features::PREVIEW_PANEL);
     }
+    if args.no_status_bar {
+        config.ui.features.remove(Features::STATUS_BAR);
+    }
     if let Some(ps) = args.preview_size {
         config.ui.preview_panel.size = ps;
     }

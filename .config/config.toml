@@ -78,6 +78,8 @@ separator_close = ""
 [ui.preview_panel]
 # Preview panel size (percentage of screen width/height)
 size = 50
+#header = "{}"
+#footer = ""
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode
@@ -118,6 +120,7 @@ cycle_sources = "ctrl-s"
 toggle_remote_control = "ctrl-t"
 toggle_preview = "ctrl-o"
 toggle_help = "ctrl-h"
+toggle_status_bar = "f12"
 
 # Shell integration
 # ----------------------------------------------------------------------------

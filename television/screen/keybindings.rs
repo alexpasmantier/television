@@ -1,4 +1,8 @@
-use crate::{action::Action, config::KeyBindings, television::Mode};
+use crate::{
+    action::Action,
+    config::{Binding, KeyBindings},
+    television::Mode,
+};
 use std::fmt::Display;
 
 /// Centralized action descriptions to avoid duplication between keybinding panel and help bar
@@ -60,6 +64,7 @@ impl ActionMapping {
                 actions: vec![
                     (Action::TogglePreview, "Toggle preview"),
                     (Action::ToggleHelp, "Toggle help"),
+                    (Action::ToggleStatusBar, "Toggle status bar"),
                 ],
             },
         ]
@@ -147,14 +152,12 @@ impl ActionMapping {
 }
 
 /// Unified key extraction function that works for both systems
-pub fn extract_keys_from_binding(
-    binding: &crate::config::keybindings::Binding,
-) -> Vec<String> {
+pub fn extract_keys_from_binding(binding: &Binding) -> Vec<String> {
     match binding {
-        crate::config::keybindings::Binding::SingleKey(key) => {
+        Binding::SingleKey(key) => {
             vec![key.to_string()]
         }
-        crate::config::keybindings::Binding::MultipleKeys(keys) => {
+        Binding::MultipleKeys(keys) => {
             keys.iter().map(ToString::to_string).collect()
         }
     }

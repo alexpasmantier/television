@@ -1,9 +1,9 @@
-use crate::screen::status_bar;
 use crate::{
     channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
     previewer::state::PreviewState,
+    screen::status_bar,
     screen::{
         colors::Colorscheme, help_panel::draw_help_panel,
         input::draw_input_box, layout::Layout,

@@ -52,7 +52,7 @@ impl CableEntry {
 impl ResultItem for CableEntry {
     fn icon(&self) -> Option<&devicons::FileIcon> {
         // Remote control entries always share the same popcorn icon
-        Some(&crate::channels::remote_control::CABLE_ICON)
+        Some(&CABLE_ICON)
     }
 
     fn display(&self) -> &str {

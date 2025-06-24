@@ -1,8 +1,11 @@
-use crate::config::{KeyBindings, UiConfig};
-use crate::screen::colors::Colorscheme;
-use crate::screen::help_panel::calculate_help_panel_size;
-use crate::screen::logo::REMOTE_LOGO_HEIGHT_U16;
-use crate::television::Mode;
+use crate::{
+    config::{KeyBindings, UiConfig},
+    screen::{
+        colors::Colorscheme, help_panel::calculate_help_panel_size,
+        logo::REMOTE_LOGO_HEIGHT_U16,
+    },
+    television::Mode,
+};
 use clap::ValueEnum;
 use ratatui::layout::{
     self, Constraint, Direction, Layout as RatatuiLayout, Rect,

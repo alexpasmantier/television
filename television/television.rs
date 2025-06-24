@@ -497,6 +497,7 @@ impl Television {
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
+                    | Action::ToggleStatusBar
             ))
             // We want to avoid too much rendering while the channel is reloading
             // to prevent UI flickering.
@@ -810,9 +811,8 @@ impl Television {
                             self.mode = Mode::Channel;
                         }
                     }
-                } else {
-                    self.config.ui.toggle_feature(*feature);
                 }
+                self.config.ui.toggle_feature(*feature);
             }
             Action::TogglePreview => {
                 if self.mode == Mode::Channel {
@@ -824,6 +824,11 @@ impl Television {
             Action::ToggleHelp => {
                 self.handle_action(&Action::ToggleFeature(
                     Features::HELP_PANEL,
+                ))?;
+            }
+            Action::ToggleStatusBar => {
+                self.handle_action(&Action::ToggleFeature(
+                    Features::STATUS_BAR,
                 ))?;
             }
             Action::ToggleRemoteControl => {

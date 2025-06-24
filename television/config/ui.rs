@@ -1,8 +1,8 @@
-use super::themes::DEFAULT_THEME;
-use crate::channels::prototypes::Template;
-use crate::features::Features;
-use crate::screen::layout::{
-    InputPosition, Orientation, PreviewTitlePosition,
+use crate::{
+    channels::prototypes::Template,
+    config::themes::DEFAULT_THEME,
+    features::Features,
+    screen::layout::{InputPosition, Orientation, PreviewTitlePosition},
 };
 use serde::{Deserialize, Serialize};
 
@@ -20,34 +20,14 @@ pub struct StatusBarConfig {
 #[serde(default)]
 pub struct PreviewPanelConfig {
     pub size: u16,
-    pub position: PreviewPosition,
     pub header: Option<Template>,
     pub footer: Option<Template>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
-pub enum PreviewPosition {
-    #[serde(alias = "right")]
-    Right,
-    #[serde(alias = "left")]
-    Left,
-    #[serde(alias = "top")]
-    Top,
-    #[serde(alias = "bottom")]
-    Bottom,
-}
-
-impl Default for PreviewPosition {
-    fn default() -> Self {
-        Self::Right
-    }
 }
 
 impl Default for PreviewPanelConfig {
     fn default() -> Self {
         Self {
             size: DEFAULT_PREVIEW_SIZE,
-            position: PreviewPosition::default(),
             header: None,
             footer: None,
         }

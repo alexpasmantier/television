@@ -1,21 +1,23 @@
-use crate::channels::prototypes::BinaryRequirement;
-use crate::channels::remote_control::CableEntry;
-use crate::config::ui::RemoteControlConfig;
-use crate::screen::colors::{Colorscheme, GeneralColorscheme};
-use crate::screen::logo::{
-    REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph,
+use crate::{
+    channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
+    config::ui::RemoteControlConfig,
+    screen::{
+        colors::{Colorscheme, GeneralColorscheme},
+        logo::{REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph},
+        result_item,
+    },
+    utils::input::Input,
 };
-use crate::utils::input::Input;
-
-use crate::screen::result_item;
 use anyhow::Result;
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::prelude::{Color, Line, Span, Style};
-use ratatui::style::Stylize;
-use ratatui::widgets::{
-    Block, BorderType, Borders, Clear, ListDirection, ListState, Padding,
-    Paragraph, Wrap,
+use ratatui::{
+    Frame,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    prelude::{Color, Line, Span, Style},
+    style::Stylize,
+    widgets::{
+        Block, BorderType, Borders, Clear, ListDirection, ListState, Padding,
+        Paragraph, Wrap,
+    },
 };
 
 #[allow(clippy::too_many_arguments)]
