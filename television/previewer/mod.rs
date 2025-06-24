@@ -3,6 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::{Context, Result};
 use devicons::FileIcon;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -182,11 +183,17 @@ impl Previewer {
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
-                                try_preview(
+                                if let Err(e) = try_preview(
                                     &preview_command,
                                     &ticket.entry,
                                     &results_handle,
-                                );
+                                ) {
+                                    debug!(
+                                        "Failed to generate preview for entry '{}': {}",
+                                        ticket.entry.raw,
+                                        e
+                                    );
+                                }
                             }),
                         )
                         .await
@@ -220,19 +227,14 @@ pub fn try_preview(
     command: &CommandSpec,
     entry: &Entry,
     results_handle: &UnboundedSender<Preview>,
-) {
+) -> Result<()> {
     debug!("Preview command: {}", command);
 
-    let child = shell_command(
-        &command
-            .get_nth(0)
-            .format(&entry.raw)
-            .expect("Failed to format command"),
-        command.interactive,
-        &command.env,
-    )
-    .output()
-    .expect("failed to execute process");
+    let formatted_command = command.get_nth(0).format(&entry.raw)?;
+
+    let child =
+        shell_command(&formatted_command, command.interactive, &command.env)
+            .output()?;
 
     let preview: Preview = {
         if child.status.success() {
@@ -267,5 +269,5 @@ pub fn try_preview(
     };
     results_handle
         .send(preview)
-        .expect("Unable to send preview result to main thread.");
+        .with_context(|| "Failed to send preview result to main thread.")
 }
