@@ -345,7 +345,7 @@ pub struct UiSpec {
     #[serde(default)]
     pub status_bar: Option<crate::config::ui::StatusBarConfig>,
     #[serde(default)]
-    pub keybinding_panel: Option<crate::config::ui::KeybindingPanelConfig>,
+    pub help_panel: Option<crate::config::ui::HelpPanelConfig>,
     #[serde(default)]
     pub remote_control: Option<crate::config::ui::RemoteControlConfig>,
 }
@@ -663,7 +663,7 @@ mod tests {
             "Press 'q' to quit"
         );
         assert!(ui.status_bar.is_none());
-        assert!(ui.keybinding_panel.is_none());
+        assert!(ui.help_panel.is_none());
         assert!(ui.remote_control.is_none());
     }
 }

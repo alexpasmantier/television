@@ -56,11 +56,11 @@ impl Default for PreviewPanelConfig {
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
-pub struct KeybindingPanelConfig {
+pub struct HelpPanelConfig {
     pub show_categories: bool,
 }
 
-impl Default for KeybindingPanelConfig {
+impl Default for HelpPanelConfig {
     fn default() -> Self {
         Self {
             show_categories: true,
@@ -99,7 +99,7 @@ pub struct UiConfig {
     // Feature-specific configurations
     pub status_bar: StatusBarConfig,
     pub preview_panel: PreviewPanelConfig,
-    pub keybinding_panel: KeybindingPanelConfig,
+    pub help_panel: HelpPanelConfig,
     pub remote_control: RemoteControlConfig,
 }
 
@@ -116,7 +116,7 @@ impl Default for UiConfig {
             features: Features::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),
-            keybinding_panel: KeybindingPanelConfig::default(),
+            help_panel: HelpPanelConfig::default(),
             remote_control: RemoteControlConfig::default(),
         }
     }
@@ -127,8 +127,8 @@ impl UiConfig {
         self.features.contains(Features::PREVIEW_PANEL)
     }
 
-    pub fn keybinding_panel_enabled(&self) -> bool {
-        self.features.contains(Features::KEYBINDING_PANEL)
+    pub fn help_panel_enabled(&self) -> bool {
+        self.features.contains(Features::HELP_PANEL)
     }
 
     pub fn status_bar_enabled(&self) -> bool {

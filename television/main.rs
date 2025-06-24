@@ -237,7 +237,7 @@ pub fn determine_channel(
             input_header: Some(Template::parse("Custom Channel").unwrap()),
             status_bar: None,
             preview_panel: None,
-            keybinding_panel: None,
+            help_panel: None,
             remote_control: None,
         };
         prototype.ui = Some(ui_spec);

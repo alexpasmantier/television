@@ -58,7 +58,7 @@ preview_size = 50
 # -------------
 # Available features:
 # - "preview_panel"     - File/content preview panel
-# - "keybinding_panel"  - Help/keybinding reference panel
+# - "help_panel"        - Help/keybinding reference panel
 # - "status_bar"        - Bottom status information bar  
 # - "remote_control"    - Remote control mode switching
 features = ["preview_panel", "status_bar"]

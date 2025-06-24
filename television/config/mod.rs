@@ -260,8 +260,8 @@ impl Config {
         if let Some(preview_panel) = &ui_spec.preview_panel {
             self.ui.preview_panel = preview_panel.clone();
         }
-        if let Some(keybinding_panel) = &ui_spec.keybinding_panel {
-            self.ui.keybinding_panel = keybinding_panel.clone();
+        if let Some(help_panel) = &ui_spec.help_panel {
+            self.ui.help_panel = help_panel.clone();
         }
         if let Some(remote_control) = &ui_spec.remote_control {
             self.ui.remote_control = remote_control.clone();

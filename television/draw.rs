@@ -5,8 +5,8 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        colors::Colorscheme, input::draw_input_box,
-        keybinding_panel::draw_keybinding_panel, layout::Layout,
+        colors::Colorscheme, help_panel::draw_help_panel,
+        input::draw_input_box, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
         spinner::Spinner,
@@ -165,7 +165,7 @@ impl UiComponent for StatusBarComponent<'_> {
 /// thread.
 ///
 /// It will draw the results list, the input box, the preview content block, the remote control,
-/// the keybinding panel, and the status bar.
+/// the help panel, and the status bar.
 ///
 /// # Returns
 /// A `Result` containing the layout of the current frame if the drawing was successful.
@@ -236,9 +236,9 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         )?;
     }
 
-    // floating keybinding panel (rendered last to appear on top)
-    if let Some(keybinding_area) = layout.keybinding_panel {
-        draw_keybinding_panel(f, keybinding_area, ctx);
+    // floating help panel (rendered last to appear on top)
+    if let Some(help_area) = layout.help_panel {
+        draw_help_panel(f, help_area, ctx);
     }
 
     // status bar at the bottom

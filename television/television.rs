@@ -823,7 +823,7 @@ impl Television {
             }
             Action::ToggleHelp => {
                 self.handle_action(&Action::ToggleFeature(
-                    Features::KEYBINDING_PANEL,
+                    Features::HELP_PANEL,
                 ))?;
             }
             Action::ToggleRemoteControl => {

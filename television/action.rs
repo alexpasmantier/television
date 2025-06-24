@@ -106,7 +106,7 @@ pub enum Action {
     /// Backwards compatibility: maps to `ToggleFeature(Features::PREVIEW_PANEL)`
     #[serde(alias = "toggle_preview")]
     TogglePreview,
-    /// Backwards compatibility: maps to `ToggleFeature(Features::KEYBINDING_PANEL)`
+    /// Backwards compatibility: maps to `ToggleFeature(Features::HELP_PANEL)`
     #[serde(alias = "toggle_help")]
     ToggleHelp,
     /// Backwards compatibility: maps to `ToggleFeature(Features::REMOTE_CONTROL)`

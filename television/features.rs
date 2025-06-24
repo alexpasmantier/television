@@ -4,7 +4,7 @@ bitflags::bitflags! {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
     pub struct Features: u32 {
         const PREVIEW_PANEL      = 0b0001;
-        const KEYBINDING_PANEL   = 0b0010;
+        const HELP_PANEL         = 0b0010;
         const STATUS_BAR         = 0b0100;
         const REMOTE_CONTROL     = 0b1000;
     }
@@ -22,7 +22,7 @@ impl Features {
     pub fn to_name(&self) -> Option<&'static str> {
         match *self {
             Features::PREVIEW_PANEL => Some("preview_panel"),
-            Features::KEYBINDING_PANEL => Some("keybinding_panel"),
+            Features::HELP_PANEL => Some("help_panel"),
             Features::STATUS_BAR => Some("status_bar"),
             Features::REMOTE_CONTROL => Some("remote_control"),
             _ => None,
@@ -33,7 +33,7 @@ impl Features {
     pub fn parse_name(name: &str) -> Option<Features> {
         match name {
             "preview_panel" => Some(Features::PREVIEW_PANEL),
-            "keybinding_panel" => Some(Features::KEYBINDING_PANEL),
+            "help_panel" => Some(Features::HELP_PANEL),
             "status_bar" => Some(Features::STATUS_BAR),
             "remote_control" => Some(Features::REMOTE_CONTROL),
             _ => None,
@@ -45,7 +45,7 @@ impl Features {
         let mut names = Vec::new();
         for feature in [
             Features::PREVIEW_PANEL,
-            Features::KEYBINDING_PANEL,
+            Features::HELP_PANEL,
             Features::STATUS_BAR,
             Features::REMOTE_CONTROL,
         ] {
@@ -105,10 +105,7 @@ mod tests {
     #[test]
     fn test_feature_names() {
         assert_eq!(Features::PREVIEW_PANEL.to_name(), Some("preview_panel"));
-        assert_eq!(
-            Features::KEYBINDING_PANEL.to_name(),
-            Some("keybinding_panel")
-        );
+        assert_eq!(Features::HELP_PANEL.to_name(), Some("help_panel"));
         assert_eq!(Features::STATUS_BAR.to_name(), Some("status_bar"));
         assert_eq!(Features::REMOTE_CONTROL.to_name(), Some("remote_control"));
     }
@@ -132,7 +129,7 @@ mod tests {
             Features::from_names(["preview_panel", "status_bar"]).unwrap();
         assert!(features.contains(Features::PREVIEW_PANEL));
         assert!(features.contains(Features::STATUS_BAR));
-        assert!(!features.contains(Features::KEYBINDING_PANEL));
+        assert!(!features.contains(Features::HELP_PANEL));
         assert!(!features.contains(Features::REMOTE_CONTROL));
     }
 
@@ -171,6 +168,6 @@ mod tests {
         let config: TestConfig = toml::from_str(toml_data).unwrap();
         assert!(config.features.contains(Features::PREVIEW_PANEL));
         assert!(config.features.contains(Features::STATUS_BAR));
-        assert!(!config.features.contains(Features::KEYBINDING_PANEL));
+        assert!(!config.features.contains(Features::HELP_PANEL));
     }
 }
