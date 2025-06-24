@@ -80,7 +80,12 @@ impl RemoteControl {
         let matcher =
             Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
-        for (channel_name, prototype) in cable_channels.iter() {
+
+        // Sort channels alphabetically by name for consistent ordering
+        let mut sorted_channels: Vec<_> = cable_channels.iter().collect();
+        sorted_channels.sort_by(|a, b| a.0.cmp(b.0));
+
+        for (channel_name, prototype) in sorted_channels {
             let channel_shortcut = prototype
                 .keybindings
                 .as_ref()
