@@ -1,6 +1,5 @@
-use ratatui::style::Color;
-
 use crate::{screen::colors::ModeColorscheme, television::Mode};
+use ratatui::style::Color;
 
 pub fn mode_color(mode: Mode, colorscheme: &ModeColorscheme) -> Color {
     match mode {

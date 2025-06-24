@@ -1,8 +1,9 @@
-use std::fmt::Display;
-
-use crate::cli::args::Shell as CliShell;
-use crate::config::shell_integration::ShellIntegrationConfig;
+use crate::{
+    cli::args::Shell as CliShell,
+    config::shell_integration::ShellIntegrationConfig,
+};
 use anyhow::Result;
+use std::fmt::Display;
 use tracing::debug;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

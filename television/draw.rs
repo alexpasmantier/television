@@ -1,24 +1,23 @@
-use std::{hash::Hash, time::Instant};
-
-use anyhow::Result;
-use ratatui::{Frame, layout::Rect};
-use rustc_hash::FxHashSet;
-
 use crate::{
     channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
     previewer::state::PreviewState,
+    screen::status_bar,
     screen::{
-        colors::Colorscheme, input::draw_input_box,
-        keybinding_panel::draw_keybinding_panel, layout::Layout,
+        colors::Colorscheme, help_panel::draw_help_panel,
+        input::draw_input_box, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner, status_bar::draw_status_bar,
+        spinner::Spinner,
     },
     television::Mode,
     utils::metadata::AppMetadata,
 };
+use anyhow::Result;
+use ratatui::{Frame, layout::Rect};
+use rustc_hash::FxHashSet;
+use std::{hash::Hash, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
 /// The state of the current television channel.
@@ -134,6 +133,29 @@ impl Ctx {
     }
 }
 
+/// Trait implemented by every drawable UI component.
+pub trait UiComponent {
+    /// Draw the component inside the given area.
+    fn draw(&self, f: &mut Frame<'_>, area: Rect);
+}
+
+/// Wrapper around the existing `status_bar` drawing logic so it can be treated as a `UiComponent`.
+pub struct StatusBarComponent<'a> {
+    pub ctx: &'a Ctx,
+}
+
+impl<'a> StatusBarComponent<'a> {
+    pub fn new(ctx: &'a Ctx) -> Self {
+        Self { ctx }
+    }
+}
+
+impl UiComponent for StatusBarComponent<'_> {
+    fn draw(&self, f: &mut Frame<'_>, area: Rect) {
+        status_bar::draw_status_bar(f, area, self.ctx);
+    }
+}
+
 /// Draw the current UI frame based on the given context.
 ///
 /// This function is responsible for drawing the entire UI frame based on the given context by
@@ -143,7 +165,7 @@ impl Ctx {
 /// thread.
 ///
 /// It will draw the results list, the input box, the preview content block, the remote control,
-/// the keybinding panel, and the status bar.
+/// the help panel, and the status bar.
 ///
 /// # Returns
 /// A `Result` containing the layout of the current frame if the drawing was successful.
@@ -210,17 +232,19 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
+            &ctx.config.ui.remote_control,
         )?;
     }
 
-    // floating keybinding panel (rendered last to appear on top)
-    if let Some(keybinding_area) = layout.keybinding_panel {
-        draw_keybinding_panel(f, keybinding_area, ctx);
+    // floating help panel (rendered last to appear on top)
+    if let Some(help_area) = layout.help_panel {
+        draw_help_panel(f, help_area, ctx);
     }
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
-        draw_status_bar(f, status_bar_area, ctx);
+        let status_component = StatusBarComponent::new(ctx);
+        status_component.draw(f, status_bar_area);
     }
 
     Ok(layout)

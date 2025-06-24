@@ -1,3 +1,4 @@
+use crate::features::Features;
 use serde::{Deserialize, Serialize};
 
 /// The different actions that can be performed by the application.
@@ -101,12 +102,20 @@ pub enum Action {
     /// Quit the application.
     #[serde(alias = "quit")]
     Quit,
-    /// Toggle the preview panel.
+    /// Toggle a UI feature.
+    ToggleFeature(Features),
+    /// Backwards compatibility: maps to `ToggleFeature(Features::PREVIEW_PANEL)`
     #[serde(alias = "toggle_preview")]
     TogglePreview,
-    /// Toggle the keybinding panel.
+    /// Backwards compatibility: maps to `ToggleFeature(Features::HELP_PANEL)`
     #[serde(alias = "toggle_help")]
     ToggleHelp,
+    /// Backwards compatibility: maps to `ToggleFeature(Features::REMOTE_CONTROL)`
+    #[serde(alias = "toggle_remote_control")]
+    ToggleRemoteControl,
+    /// Backwards compatibility: maps to `ToggleFeature(Features::STATUS_BAR)`
+    #[serde(alias = "toggle_status_bar")]
+    ToggleStatusBar,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),
@@ -114,10 +123,6 @@ pub enum Action {
     #[serde(skip)]
     NoOp,
     // channel actions
-    /// Toggle the remote control channel.
-    #[serde(alias = "toggle_remote_control")]
-    ToggleRemoteControl,
-    /// Toggle the remote control in `send to channel` mode.
     #[serde(alias = "toggle_send_to_channel")]
     ToggleSendToChannel,
     /// Toggle between different source commands.
