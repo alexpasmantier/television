@@ -1,26 +1,23 @@
 #![allow(clippy::module_name_repetitions, clippy::ref_option)]
-use std::{
-    env,
-    hash::Hash,
-    path::{Path, PathBuf},
+use crate::features::Features;
+use crate::{
+    cable::CABLE_DIR_NAME,
+    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
 };
-
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
 pub use keybindings::merge_keybindings;
 pub use keybindings::{Binding, KeyBindings, parse_key};
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
-
+use std::{
+    env,
+    hash::Hash,
+    path::{Path, PathBuf},
+};
 pub use themes::Theme;
 use tracing::{debug, warn};
 pub use ui::UiConfig;
-
-use crate::{
-    cable::CABLE_DIR_NAME,
-    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
-};
-
 pub mod keybindings;
 pub mod shell_integration;
 mod themes;
@@ -209,6 +206,11 @@ impl Config {
             merge_keybindings(default.keybindings.clone(), &new.keybindings);
         new.keybindings = keybindings;
 
+        // merge Features with default Features
+        if new.ui.features != default.ui.features {
+            default.ui.features = new.ui.features;
+        }
+
         Config {
             application: new.application,
             keybindings: new.keybindings,
@@ -226,7 +228,11 @@ impl Config {
             self.ui.ui_scale = *ui_scale;
         }
         if let Some(show_preview_panel) = &ui_spec.show_preview_panel {
-            self.ui.show_preview_panel = *show_preview_panel;
+            if *show_preview_panel {
+                self.ui.features.insert(Features::PREVIEW_PANEL);
+            } else {
+                self.ui.features.remove(Features::PREVIEW_PANEL);
+            }
         }
         if let Some(orientation) = &ui_spec.orientation {
             self.ui.orientation = *orientation;
@@ -234,19 +240,31 @@ impl Config {
         if let Some(input_position) = &ui_spec.input_bar_position {
             self.ui.input_bar_position = *input_position;
         }
-        if let Some(preview_size) = &ui_spec.preview_size {
-            self.ui.preview_size = *preview_size;
-        }
         if let Some(input_header) = &ui_spec.input_header {
             self.ui.input_header = Some(input_header.clone());
         }
 
-        if let Some(preview_header) = &ui_spec.preview_header {
-            self.ui.preview_header = Some(preview_header.clone());
+        if let Some(preview_panel) = &ui_spec.preview_panel {
+            if let Some(preview_header) = &preview_panel.header {
+                self.ui.preview_panel.header = Some(preview_header.clone());
+            }
+            if let Some(preview_footer) = &preview_panel.footer {
+                self.ui.preview_panel.footer = Some(preview_footer.clone());
+            }
         }
 
-        if let Some(preview_footer) = &ui_spec.preview_footer {
-            self.ui.preview_footer = Some(preview_footer.clone());
+        // Apply feature-specific configurations
+        if let Some(status_bar) = &ui_spec.status_bar {
+            self.ui.status_bar = status_bar.clone();
+        }
+        if let Some(preview_panel) = &ui_spec.preview_panel {
+            self.ui.preview_panel = preview_panel.clone();
+        }
+        if let Some(keybinding_panel) = &ui_spec.keybinding_panel {
+            self.ui.keybinding_panel = keybinding_panel.clone();
+        }
+        if let Some(remote_control) = &ui_spec.remote_control {
+            self.ui.remote_control = remote_control.clone();
         }
     }
 }

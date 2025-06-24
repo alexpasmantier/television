@@ -15,7 +15,6 @@
 
 # General settings
 # ----------------------------------------------------------------------------
-frame_rate = 60           # DEPRECATED: this option is no longer used
 tick_rate = 50
 default_channel = "files"
 
@@ -42,12 +41,7 @@ use_nerd_font_icons = false
 # │                                       │
 # └───────────────────────────────────────┘
 ui_scale = 100
-# Whether to show the preview panel in the UI by default
-# This option can be toggled with the (default) `ctrl-o` keybinding
-show_preview_panel = true
-# Whether to show the keybinding panel in the UI by default
-# This option can be toggled with the (default) `ctrl-h` keybinding
-show_keybinding_panel = false
+
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
 # What orientation should tv be (landscape or portrait)
@@ -59,16 +53,37 @@ orientation = "landscape"
 theme = "default"
 # The default size of the preview panel (in percentage of the screen)
 preview_size = 50
-show_status_bar = true
 
+# UI Features
+# -------------
+# Available features:
+# - "preview_panel"     - File/content preview panel
+# - "keybinding_panel"  - Help/keybinding reference panel
+# - "status_bar"        - Bottom status information bar  
+# - "remote_control"    - Remote control mode switching
+features = ["preview_panel", "status_bar"]
+
+# Feature-specific configurations
+# Each feature can have its own configuration section
+
+[ui.status_bar]
 # Status bar separators (bubble):
-#status_separator_open = ""
-#status_separator_close = ""
+#separator_open = ""
+#separator_close = ""
 
 # Status bar separators (box):
-status_separator_open = ""
-status_separator_close = ""
+separator_open = ""
+separator_close = ""
 
+[ui.preview_panel]
+# Preview panel size (percentage of screen width/height)
+size = 50
+
+[ui.remote_control]
+# Whether to show channel descriptions in remote control mode
+show_channel_descriptions = true
+# Whether to sort channels alphabetically
+sort_alphabetically = true
 
 # Keybindings
 # ----------------------------------------------------------------------------
@@ -94,17 +109,15 @@ toggle_selection_up = "backtab"
 confirm_selection = "enter"
 # Copy the selected entry to the clipboard
 copy_entry_to_clipboard = "ctrl-y"
-# Toggle the remote control mode
-toggle_remote_control = "ctrl-t"
-# Toggle the preview panel
-toggle_preview = "ctrl-o"
-# Toggle the keybinding panel
-toggle_help = "ctrl-h"
 # Reload the current source
 reload_source = "ctrl-r"
 # Cycle through the available sources for the current channel
 cycle_sources = "ctrl-s"
 
+# UI Features
+toggle_remote_control = "ctrl-t"
+toggle_preview = "ctrl-o"
+toggle_help = "ctrl-h"
 
 # Shell integration
 # ----------------------------------------------------------------------------

@@ -144,11 +144,11 @@ impl Layout {
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
-        let show_preview = show_preview && ui_config.show_preview_panel;
+        let show_preview = show_preview && ui_config.preview_enabled();
         let dimensions = Dimensions::from(ui_config.ui_scale);
 
         // Reserve space for status bar if enabled
-        let working_area = if ui_config.show_status_bar {
+        let working_area = if ui_config.status_bar_enabled() {
             Rect {
                 x: area.x,
                 y: area.y,
@@ -184,7 +184,8 @@ impl Layout {
         // split the main block into 1 or 2 chunks (results + preview)
         let constraints = if show_preview {
             // Determine the desired preview percentage (as configured by the user)
-            let raw_preview_percentage = ui_config.preview_size.clamp(1, 99); // ensure sane value
+            let raw_preview_percentage =
+                ui_config.preview_panel.size.clamp(1, 99); // ensure sane value
 
             // In portrait orientation, reserve the input bar height from the total
             // vertical space before applying the percentage split so the preview
@@ -338,7 +339,8 @@ impl Layout {
                 // If preview is enabled, calculate the concrete percentages now
                 if let Some(p_idx) = preview_idx {
                     // Determine preview percentage from config
-                    let preview_pct = ui_config.preview_size.clamp(1, 99);
+                    let preview_pct =
+                        ui_config.preview_panel.size.clamp(1, 99);
 
                     // Remaining for results
                     let results_pct = 100u16.saturating_sub(preview_pct);
@@ -382,9 +384,9 @@ impl Layout {
         };
 
         // the keybinding panel is positioned at bottom-right, accounting for status bar
-        let keybinding_panel = if ui_config.show_keybinding_panel {
+        let keybinding_panel = if ui_config.keybinding_panel_enabled() {
             // Calculate available area for keybinding panel (excluding status bar if enabled)
-            let kb_area = if ui_config.show_status_bar {
+            let kb_area = if ui_config.status_bar_enabled() {
                 Rect {
                     x: area.x,
                     y: area.y,
@@ -408,7 +410,7 @@ impl Layout {
         };
 
         // Create status bar at the bottom if enabled
-        let status_bar = if ui_config.show_status_bar {
+        let status_bar = if ui_config.status_bar_enabled() {
             Some(Rect {
                 x: area.x,
                 y: area.y + area.height - 1, // Position at the very last line

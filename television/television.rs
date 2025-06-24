@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use crate::{
     action::Action,
     cable::Cable,
@@ -11,6 +9,7 @@ use crate::{
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
+    features::Features,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -30,6 +29,7 @@ use crate::{
 use anyhow::Result;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -141,7 +141,10 @@ impl Television {
         let remote_control = if no_remote {
             None
         } else {
-            Some(RemoteControl::new(cable_channels))
+            Some(RemoteControl::new(
+                cable_channels,
+                &config.ui.remote_control,
+            ))
         };
 
         let matching_mode = if exact {
@@ -194,14 +197,18 @@ impl Television {
                     config.ui.input_header = Some(header_tpl.clone());
                 }
             }
-            if config.ui.preview_header.is_none() {
-                if let Some(ph) = &ui_spec.preview_header {
-                    config.ui.preview_header = Some(ph.clone());
+            if config.ui.preview_panel.header.is_none() {
+                if let Some(preview_panel) = &ui_spec.preview_panel {
+                    if let Some(ph) = &preview_panel.header {
+                        config.ui.preview_panel.header = Some(ph.clone());
+                    }
                 }
             }
-            if config.ui.preview_footer.is_none() {
-                if let Some(pf) = &ui_spec.preview_footer {
-                    config.ui.preview_footer = Some(pf.clone());
+            if config.ui.preview_panel.footer.is_none() {
+                if let Some(preview_panel) = &ui_spec.preview_panel {
+                    if let Some(pf) = &preview_panel.footer {
+                        config.ui.preview_panel.footer = Some(pf.clone());
+                    }
                 }
             }
         }
@@ -215,10 +222,10 @@ impl Television {
         preview_size: Option<u16>,
     ) {
         if no_preview {
-            config.ui.show_preview_panel = false;
+            config.ui.features.remove(Features::PREVIEW_PANEL);
         }
         if let Some(ps) = preview_size {
-            config.ui.preview_size = ps;
+            config.ui.preview_panel.size = ps;
         }
     }
 
@@ -482,10 +489,11 @@ impl Television {
                     | Action::ScrollPreviewUp
                     | Action::ScrollPreviewHalfPageDown
                     | Action::ScrollPreviewHalfPageUp
-                    | Action::ToggleRemoteControl
                     | Action::ToggleSendToChannel
+                    | Action::ToggleFeature(_)
                     | Action::TogglePreview
                     | Action::ToggleHelp
+                    | Action::ToggleRemoteControl
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -516,7 +524,7 @@ impl Television {
             // available previews
             let entry = selected_entry.as_ref().unwrap();
             if let Ok(mut preview) = receiver.try_recv() {
-                if let Some(tpl) = &self.config.ui.preview_header {
+                if let Some(tpl) = &self.config.ui.preview_panel.header {
                     preview.title = tpl
                         .format(&entry.raw)
                         .unwrap_or_else(|_| entry.raw.clone());
@@ -524,7 +532,7 @@ impl Television {
                     preview.title.clone_from(&entry.raw);
                 }
 
-                if let Some(ftpl) = &self.config.ui.preview_footer {
+                if let Some(ftpl) = &self.config.ui.preview_panel.footer {
                     preview.footer = ftpl
                         .format(&entry.raw)
                         .unwrap_or_else(|_| String::new());
@@ -630,24 +638,6 @@ impl Television {
                 }
             }
             _ => {}
-        }
-    }
-
-    pub fn handle_toggle_rc(&mut self) {
-        if self.remote_control.is_none() {
-            return;
-        }
-        match self.mode {
-            Mode::Channel => {
-                self.mode = Mode::RemoteControl;
-            }
-            Mode::RemoteControl => {
-                // this resets the RC picker
-                self.reset_picker_input();
-                self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
-                self.reset_picker_selection();
-                self.mode = Mode::Channel;
-            }
         }
     }
 
@@ -776,9 +766,7 @@ impl Television {
             Action::ScrollPreviewHalfPageUp => {
                 self.preview_state.scroll_up(20);
             }
-            Action::ToggleRemoteControl => {
-                self.handle_toggle_rc();
-            }
+
             Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
                 self.handle_toggle_selection(action);
             }
@@ -800,14 +788,50 @@ impl Television {
                     self.change_channel(prototype);
                 }
             }
+            Action::ToggleFeature(feature) => {
+                // Special handling for remote control feature
+                if *feature == Features::REMOTE_CONTROL {
+                    // Remote control toggle requires mode switching and state management
+                    if self.remote_control.is_none() {
+                        return Ok(());
+                    }
+                    match self.mode {
+                        Mode::Channel => {
+                            self.mode = Mode::RemoteControl;
+                        }
+                        Mode::RemoteControl => {
+                            // Reset the RC picker when leaving remote control mode
+                            self.reset_picker_input();
+                            self.remote_control
+                                .as_mut()
+                                .unwrap()
+                                .find(EMPTY_STRING);
+                            self.reset_picker_selection();
+                            self.mode = Mode::Channel;
+                        }
+                    }
+                } else {
+                    self.config.ui.toggle_feature(*feature);
+                }
+            }
             Action::TogglePreview => {
-                self.config.ui.show_preview_panel =
-                    !self.config.ui.show_preview_panel;
+                if self.mode == Mode::Channel {
+                    self.handle_action(&Action::ToggleFeature(
+                        Features::PREVIEW_PANEL,
+                    ))?;
+                }
             }
             Action::ToggleHelp => {
-                self.config.ui.show_keybinding_panel =
-                    !self.config.ui.show_keybinding_panel;
+                self.handle_action(&Action::ToggleFeature(
+                    Features::KEYBINDING_PANEL,
+                ))?;
             }
+            Action::ToggleRemoteControl => {
+                self.handle_action(&Action::ToggleFeature(
+                    Features::REMOTE_CONTROL,
+                ))?;
+            }
+
             _ => {}
         }
         Ok(())

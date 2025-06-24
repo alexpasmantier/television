@@ -1,17 +1,16 @@
-use anyhow::Result;
-use std::fmt::{self, Display, Formatter};
-use std::hash::{Hash, Hasher};
-use which::which;
-
 use crate::config::Binding;
 use crate::{
     config::KeyBindings,
     screen::layout::{InputPosition, Orientation},
 };
+use anyhow::Result;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
+use std::fmt::{self, Display, Formatter};
+use std::hash::{Hash, Hasher};
 use string_pipeline::MultiTemplate;
+use which::which;
 
 #[derive(Debug, Clone)]
 pub enum Template {
@@ -339,20 +338,26 @@ pub struct UiSpec {
     #[serde(default)]
     pub input_bar_position: Option<InputPosition>,
     #[serde(default)]
-    pub preview_size: Option<u16>,
-    #[serde(default)]
     pub input_header: Option<Template>,
+    // Feature-specific configurations
     #[serde(default)]
-    pub preview_header: Option<Template>,
+    pub preview_panel: Option<crate::config::ui::PreviewPanelConfig>,
     #[serde(default)]
-    pub preview_footer: Option<Template>,
+    pub status_bar: Option<crate::config::ui::StatusBarConfig>,
+    #[serde(default)]
+    pub keybinding_panel: Option<crate::config::ui::KeybindingPanelConfig>,
+    #[serde(default)]
+    pub remote_control: Option<crate::config::ui::RemoteControlConfig>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
 
 #[cfg(test)]
 mod tests {
-    use crate::{action::Action, config::Binding, event::Key};
+    use crate::{
+        action::Action, config::Binding, config::ui::PreviewPosition,
+        event::Key,
+    };
 
     use super::*;
     use toml::from_str;
@@ -437,10 +442,12 @@ mod tests {
         ui_scale = 100
         show_preview_panel = true
         input_bar_position = "bottom"
-        preview_size = 66
         input_header = "Input: {}"
-        preview_header = "Preview: {}"
-        preview_footer = "Press 'q' to quit"
+
+        [ui.preview_panel]
+        size = 66
+        header = "Preview: {}"
+        footer = "Press 'q' to quit"
 
         [keybindings]
         quit = ["esc", "ctrl-c"]
@@ -482,11 +489,30 @@ mod tests {
         assert_eq!(ui.ui_scale, Some(100));
         assert!(ui.show_preview_panel.unwrap());
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
-        assert_eq!(ui.preview_size, Some(66));
-        assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
-        assert_eq!(ui.preview_header.as_ref().unwrap().raw(), "Preview: {}");
+        assert_eq!(ui.preview_panel.as_ref().unwrap().size, 66);
         assert_eq!(
-            ui.preview_footer.as_ref().unwrap().raw(),
+            ui.preview_panel.as_ref().unwrap().position,
+            PreviewPosition::Right
+        );
+        assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(
+            ui.preview_panel
+                .as_ref()
+                .unwrap()
+                .header
+                .as_ref()
+                .unwrap()
+                .raw(),
+            "Preview: {}"
+        );
+        assert_eq!(
+            ui.preview_panel
+                .as_ref()
+                .unwrap()
+                .footer
+                .as_ref()
+                .unwrap()
+                .raw(),
             "Press 'q' to quit"
         );
 
@@ -598,7 +624,9 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 40
-        preview_footer = "Press 'q' to quit"
+
+        [ui.preview_panel]
+        footer = "Press 'q' to quit"
         "#;
 
         let prototype: ChannelPrototype = from_str(toml_data).unwrap();
@@ -622,12 +650,20 @@ mod tests {
         assert_eq!(ui.ui_scale, Some(40));
         assert!(ui.show_preview_panel.is_none());
         assert!(ui.input_bar_position.is_none());
-        assert!(ui.preview_size.is_none());
+        assert!(ui.preview_panel.is_some());
         assert!(ui.input_header.is_none());
-        assert!(ui.preview_header.is_none());
         assert_eq!(
-            ui.preview_footer.as_ref().unwrap().raw(),
+            ui.preview_panel
+                .as_ref()
+                .unwrap()
+                .footer
+                .as_ref()
+                .unwrap()
+                .raw(),
             "Press 'q' to quit"
         );
+        assert!(ui.status_bar.is_none());
+        assert!(ui.keybinding_panel.is_none());
+        assert!(ui.remote_control.is_none());
     }
 }

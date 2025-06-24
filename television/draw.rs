@@ -1,9 +1,4 @@
-use std::{hash::Hash, time::Instant};
-
-use anyhow::Result;
-use ratatui::{Frame, layout::Rect};
-use rustc_hash::FxHashSet;
-
+use crate::screen::status_bar;
 use crate::{
     channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
@@ -14,11 +9,15 @@ use crate::{
         keybinding_panel::draw_keybinding_panel, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner, status_bar::draw_status_bar,
+        spinner::Spinner,
     },
     television::Mode,
     utils::metadata::AppMetadata,
 };
+use anyhow::Result;
+use ratatui::{Frame, layout::Rect};
+use rustc_hash::FxHashSet;
+use std::{hash::Hash, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
 /// The state of the current television channel.
@@ -134,6 +133,29 @@ impl Ctx {
     }
 }
 
+/// Trait implemented by every drawable UI component.
+pub trait UiComponent {
+    /// Draw the component inside the given area.
+    fn draw(&self, f: &mut Frame<'_>, area: Rect);
+}
+
+/// Wrapper around the existing `status_bar` drawing logic so it can be treated as a `UiComponent`.
+pub struct StatusBarComponent<'a> {
+    pub ctx: &'a Ctx,
+}
+
+impl<'a> StatusBarComponent<'a> {
+    pub fn new(ctx: &'a Ctx) -> Self {
+        Self { ctx }
+    }
+}
+
+impl UiComponent for StatusBarComponent<'_> {
+    fn draw(&self, f: &mut Frame<'_>, area: Rect) {
+        status_bar::draw_status_bar(f, area, self.ctx);
+    }
+}
+
 /// Draw the current UI frame based on the given context.
 ///
 /// This function is responsible for drawing the entire UI frame based on the given context by
@@ -210,6 +232,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
+            &ctx.config.ui.remote_control,
         )?;
     }
 
@@ -220,7 +243,8 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
-        draw_status_bar(f, status_bar_area, ctx);
+        let status_component = StatusBarComponent::new(ctx);
+        status_component.draw(f, status_bar_area);
     }
 
     Ok(layout)

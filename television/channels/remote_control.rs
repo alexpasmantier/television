@@ -4,7 +4,7 @@ use crate::{
         entry::into_ranges,
         prototypes::{BinaryRequirement, ChannelPrototype},
     },
-    config::Binding,
+    config::{Binding, ui::RemoteControlConfig},
     matcher::{Matcher, config::Config},
     screen::result_item::ResultItem,
 };
@@ -76,14 +76,19 @@ pub struct RemoteControl {
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Cable) -> Self {
+    pub fn new(
+        cable_channels: Cable,
+        remote_config: &RemoteControlConfig,
+    ) -> Self {
         let matcher =
             Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
 
-        // Sort channels alphabetically by name for consistent ordering
+        // Sort channels based on configuration
         let mut sorted_channels: Vec<_> = cable_channels.iter().collect();
-        sorted_channels.sort_by(|a, b| a.0.cmp(b.0));
+        if remote_config.sort_alphabetically {
+            sorted_channels.sort_by(|a, b| a.0.cmp(b.0));
+        }
 
         for (channel_name, prototype) in sorted_channels {
             let channel_shortcut = prototype

@@ -1,40 +1,106 @@
+use super::themes::DEFAULT_THEME;
 use crate::channels::prototypes::Template;
-use serde::{Deserialize, Serialize};
-
+use crate::features::Features;
 use crate::screen::layout::{
     InputPosition, Orientation, PreviewTitlePosition,
 };
-
-use super::themes::DEFAULT_THEME;
+use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_UI_SCALE: u16 = 100;
 pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 
-#[allow(clippy::struct_excessive_bools)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[serde(default)]
+pub struct StatusBarConfig {
+    pub separator_open: String,
+    pub separator_close: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+#[serde(default)]
+pub struct PreviewPanelConfig {
+    pub size: u16,
+    pub position: PreviewPosition,
+    pub header: Option<Template>,
+    pub footer: Option<Template>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+pub enum PreviewPosition {
+    #[serde(alias = "right")]
+    Right,
+    #[serde(alias = "left")]
+    Left,
+    #[serde(alias = "top")]
+    Top,
+    #[serde(alias = "bottom")]
+    Bottom,
+}
+
+impl Default for PreviewPosition {
+    fn default() -> Self {
+        Self::Right
+    }
+}
+
+impl Default for PreviewPanelConfig {
+    fn default() -> Self {
+        Self {
+            size: DEFAULT_PREVIEW_SIZE,
+            position: PreviewPosition::default(),
+            header: None,
+            footer: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+#[serde(default)]
+pub struct KeybindingPanelConfig {
+    pub show_categories: bool,
+}
+
+impl Default for KeybindingPanelConfig {
+    fn default() -> Self {
+        Self {
+            show_categories: true,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+#[serde(default)]
+pub struct RemoteControlConfig {
+    pub show_channel_descriptions: bool,
+    pub sort_alphabetically: bool,
+}
+
+impl Default for RemoteControlConfig {
+    fn default() -> Self {
+        Self {
+            show_channel_descriptions: true,
+            sort_alphabetically: true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
-    pub show_preview_panel: bool,
-    pub show_keybinding_panel: bool,
-    pub show_status_bar: bool,
-    #[serde(default)]
-    pub status_separator_open: String,
-    #[serde(default)]
-    pub status_separator_close: String,
-    #[serde(default)]
     pub input_bar_position: InputPosition,
     pub orientation: Orientation,
     pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
-    pub preview_size: u16,
-    #[serde(default)]
     pub input_header: Option<Template>,
-    #[serde(default)]
-    pub preview_header: Option<Template>,
-    #[serde(default)]
-    pub preview_footer: Option<Template>,
+    pub features: Features,
+
+    // Feature-specific configurations
+    pub status_bar: StatusBarConfig,
+    pub preview_panel: PreviewPanelConfig,
+    pub keybinding_panel: KeybindingPanelConfig,
+    pub remote_control: RemoteControlConfig,
 }
 
 impl Default for UiConfig {
@@ -42,19 +108,38 @@ impl Default for UiConfig {
         Self {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
-            show_preview_panel: true,
-            show_keybinding_panel: false,
-            show_status_bar: true,
-            status_separator_open: String::new(),
-            status_separator_close: String::new(),
             input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
             preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
-            preview_size: DEFAULT_PREVIEW_SIZE,
             input_header: None,
-            preview_header: None,
-            preview_footer: None,
+            features: Features::default(),
+            status_bar: StatusBarConfig::default(),
+            preview_panel: PreviewPanelConfig::default(),
+            keybinding_panel: KeybindingPanelConfig::default(),
+            remote_control: RemoteControlConfig::default(),
         }
+    }
+}
+
+impl UiConfig {
+    pub fn preview_enabled(&self) -> bool {
+        self.features.contains(Features::PREVIEW_PANEL)
+    }
+
+    pub fn keybinding_panel_enabled(&self) -> bool {
+        self.features.contains(Features::KEYBINDING_PANEL)
+    }
+
+    pub fn status_bar_enabled(&self) -> bool {
+        self.features.contains(Features::STATUS_BAR)
+    }
+
+    pub fn remote_control_enabled(&self) -> bool {
+        self.features.contains(Features::REMOTE_CONTROL)
+    }
+
+    pub fn toggle_feature(&mut self, feat: Features) {
+        self.features.toggle(feat);
     }
 }

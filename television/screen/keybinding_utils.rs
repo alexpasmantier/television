@@ -6,8 +6,7 @@ use std::fmt::Display;
 pub enum ActionCategory {
     // Global actions
     Quit,
-    TogglePreview,
-    ToggleHelp,
+    ToggleFeature,
 
     // Navigation actions (common to both modes)
     ResultsNavigation,
@@ -28,8 +27,7 @@ impl Display for ActionCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let description = match self {
             ActionCategory::Quit => "Quit",
-            ActionCategory::TogglePreview => "Toggle preview",
-            ActionCategory::ToggleHelp => "Toggle help",
+            ActionCategory::ToggleFeature => "Toggle features",
             ActionCategory::ResultsNavigation => "Results navigation",
             ActionCategory::PreviewNavigation => "Preview navigation",
             ActionCategory::SelectEntry => "Select entry",
@@ -58,12 +56,11 @@ impl ActionMapping {
                 actions: vec![(Action::Quit, "Quit")],
             },
             ActionMapping {
-                category: ActionCategory::TogglePreview,
-                actions: vec![(Action::TogglePreview, "Toggle preview")],
-            },
-            ActionMapping {
-                category: ActionCategory::ToggleHelp,
-                actions: vec![(Action::ToggleHelp, "Toggle help")],
+                category: ActionCategory::ToggleFeature,
+                actions: vec![
+                    (Action::TogglePreview, "Toggle preview"),
+                    (Action::ToggleHelp, "Toggle help"),
+                ],
             },
         ]
     }
@@ -113,7 +110,7 @@ impl ActionMapping {
                     category: ActionCategory::ToggleRemoteControl,
                     actions: vec![(
                         Action::ToggleRemoteControl,
-                        "Toggle remote",
+                        "Remote Control",
                     )],
                 },
                 ActionMapping {
@@ -134,7 +131,7 @@ impl ActionMapping {
                     category: ActionCategory::ToggleRemoteControl,
                     actions: vec![(
                         Action::ToggleRemoteControl,
-                        "Back to channel",
+                        "Back to Channel",
                     )],
                 },
             ],
