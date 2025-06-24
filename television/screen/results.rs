@@ -9,7 +9,6 @@ use ratatui::prelude::Style;
 use ratatui::text::Line;
 use ratatui::widgets::{Block, BorderType, Borders, ListState, Padding};
 use rustc_hash::FxHashSet;
-use std::fmt::Write;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_results_list(
@@ -21,22 +20,9 @@ pub fn draw_results_list(
     input_bar_position: InputPosition,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
-    help_keybinding: &str,
-    preview_keybinding: &str,
-    preview_togglable: bool,
-    no_help: bool,
 ) -> Result<()> {
-    let mut toggle_hints = String::new();
-    if !no_help {
-        write!(toggle_hints, " help: <{}> ", help_keybinding)?;
-    }
-    if preview_togglable {
-        write!(toggle_hints, " preview: <{}> ", preview_keybinding)?;
-    }
-
     let results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
-        .title_bottom(Line::from(toggle_hints).alignment(Alignment::Center))
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))

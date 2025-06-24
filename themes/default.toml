@@ -16,6 +16,8 @@ match_fg = 'bright-red'
 # preview
 preview_title_fg = 'bright-magenta'
 # modes
-channel_mode_fg = 'green'
-remote_control_mode_fg = 'yellow'
+channel_mode_fg = 'black'
+channel_mode_bg = 'green'
+remote_control_mode_fg = 'black'
+remote_control_mode_bg = 'yellow'
 send_to_channel_mode_fg = 'cyan'

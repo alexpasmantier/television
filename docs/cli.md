@@ -229,12 +229,6 @@ Television's options are organized by functionality. Each option behaves differe
 - **Range**: 10-100%
 - **Use Case**: Adapt to different screen sizes or preferences
 
-#### `--no-help`
-**Purpose**: Hides the help panel showing keyboard shortcuts
-
-- **Both Modes**: Removes help information from display
-- **Use Case**: More screen space, cleaner interface for experienced users
-
 #### `--no-remote`
 **Purpose**: Hides the remote control panel
 
