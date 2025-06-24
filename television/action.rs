@@ -105,8 +105,8 @@ pub enum Action {
     #[serde(alias = "toggle_preview")]
     TogglePreview,
     /// Toggle the keybinding panel.
-    #[serde(alias = "toggle_keybinding_panel")]
-    ToggleKeybindingPanel,
+    #[serde(alias = "toggle_help")]
+    ToggleHelp,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),

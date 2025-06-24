@@ -485,7 +485,7 @@ impl Television {
                     | Action::ToggleRemoteControl
                     | Action::ToggleSendToChannel
                     | Action::TogglePreview
-                    | Action::ToggleKeybindingPanel
+                    | Action::ToggleHelp
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -804,7 +804,7 @@ impl Television {
                 self.config.ui.show_preview_panel =
                     !self.config.ui.show_preview_panel;
             }
-            Action::ToggleKeybindingPanel => {
+            Action::ToggleHelp => {
                 self.config.ui.show_keybinding_panel =
                     !self.config.ui.show_keybinding_panel;
             }

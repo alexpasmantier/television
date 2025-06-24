@@ -99,7 +99,7 @@ toggle_remote_control = "ctrl-t"
 # Toggle the preview panel
 toggle_preview = "ctrl-o"
 # Toggle the keybinding panel
-toggle_keybinding_panel = "ctrl-h"
+toggle_help = "ctrl-h"
 # Reload the current source
 reload_source = "ctrl-r"
 # Cycle through the available sources for the current channel

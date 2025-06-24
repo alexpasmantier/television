@@ -7,7 +7,7 @@ pub enum ActionCategory {
     // Global actions
     Quit,
     TogglePreview,
-    ToggleKeybindingPanel,
+    ToggleHelp,
 
     // Navigation actions (common to both modes)
     ResultsNavigation,
@@ -29,7 +29,7 @@ impl Display for ActionCategory {
         let description = match self {
             ActionCategory::Quit => "Quit",
             ActionCategory::TogglePreview => "Toggle preview",
-            ActionCategory::ToggleKeybindingPanel => "Toggle keys",
+            ActionCategory::ToggleHelp => "Toggle help",
             ActionCategory::ResultsNavigation => "Results navigation",
             ActionCategory::PreviewNavigation => "Preview navigation",
             ActionCategory::SelectEntry => "Select entry",
@@ -62,8 +62,8 @@ impl ActionMapping {
                 actions: vec![(Action::TogglePreview, "Toggle preview")],
             },
             ActionMapping {
-                category: ActionCategory::ToggleKeybindingPanel,
-                actions: vec![(Action::ToggleKeybindingPanel, "Toggle keys")],
+                category: ActionCategory::ToggleHelp,
+                actions: vec![(Action::ToggleHelp, "Toggle help")],
             },
         ]
     }

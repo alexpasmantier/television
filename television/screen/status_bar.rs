@@ -143,10 +143,8 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     }
 
     // Add keybinding help hint (available in both modes)
-    if let Some(binding) =
-        ctx.config.keybindings.get(&Action::ToggleKeybindingPanel)
-    {
-        add_hint("Keybindings", &binding.to_string());
+    if let Some(binding) = ctx.config.keybindings.get(&Action::ToggleHelp) {
+        add_hint("Help", &binding.to_string());
     }
 
     // Build middle section if we have hints
