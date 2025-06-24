@@ -66,7 +66,6 @@ pub struct PostProcessedCli {
     pub layout: Option<Orientation>,
     pub ui_scale: u16,
     pub no_remote: bool,
-    pub no_help: bool,
 
     // Behavior and matching configuration
     pub exact: bool,
@@ -114,7 +113,6 @@ impl Default for PostProcessedCli {
             layout: None,
             ui_scale: DEFAULT_UI_SCALE,
             no_remote: false,
-            no_help: false,
 
             // Behavior and matching configuration
             exact: false,
@@ -253,7 +251,6 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         layout,
         ui_scale: cli.ui_scale,
         no_remote: cli.no_remote,
-        no_help: cli.no_help,
 
         // Behavior and matching configuration
         exact: cli.exact,

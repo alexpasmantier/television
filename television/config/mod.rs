@@ -11,6 +11,7 @@ pub use keybindings::merge_keybindings;
 pub use keybindings::{Binding, KeyBindings, parse_key};
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
+
 pub use themes::Theme;
 use tracing::{debug, warn};
 pub use ui::UiConfig;
@@ -23,7 +24,7 @@ use crate::{
 pub mod keybindings;
 pub mod shell_integration;
 mod themes;
-mod ui;
+pub mod ui;
 
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
@@ -224,9 +225,6 @@ impl Config {
         if let Some(ui_scale) = &ui_spec.ui_scale {
             self.ui.ui_scale = *ui_scale;
         }
-        if let Some(show_help_bar) = &ui_spec.show_help_bar {
-            self.ui.show_help_bar = *show_help_bar;
-        }
         if let Some(show_preview_panel) = &ui_spec.show_preview_panel {
             self.ui.show_preview_panel = *show_preview_panel;
         }
@@ -394,7 +392,6 @@ mod tests {
         theme = "something"
 
         [keybindings]
-        toggle_help = ["ctrl-a", "ctrl-b"]
         confirm_selection = "ctrl-enter"
 
         [shell_integration.commands]
@@ -426,10 +423,6 @@ mod tests {
         default_config.ui.theme = "television".to_string();
         default_config.keybindings.extend({
             let mut map = FxHashMap::default();
-            map.insert(
-                Action::ToggleHelp,
-                Binding::MultipleKeys(vec![Key::Ctrl('a'), Key::Ctrl('b')]),
-            );
             map.insert(
                 Action::ConfirmSelection,
                 Binding::SingleKey(Key::CtrlEnter),

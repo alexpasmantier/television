@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::{
     action::Action,
     cable::Cable,
@@ -39,6 +41,15 @@ pub enum Mode {
     RemoteControl,
 }
 
+impl Display for Mode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Mode::Channel => write!(f, "Channel"),
+            Mode::RemoteControl => write!(f, "Remote Control"),
+        }
+    }
+}
+
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum MatchingMode {
     Substring,
@@ -66,7 +77,6 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
-    pub no_help: bool,
     pub no_preview: bool,
     pub preview_size: Option<u16>,
     pub current_command_index: usize,
@@ -83,7 +93,6 @@ impl Television {
         base_config: Config,
         input: Option<String>,
         no_remote: bool,
-        no_help: bool,
         no_preview: bool,
         preview_size: Option<u16>,
         exact: bool,
@@ -95,12 +104,7 @@ impl Television {
         );
 
         // Apply CLI overrides after prototype merging to ensure they take precedence
-        Self::apply_cli_overrides(
-            &mut config,
-            no_help,
-            no_preview,
-            preview_size,
-        );
+        Self::apply_cli_overrides(&mut config, no_preview, preview_size);
 
         debug!("Merged config: {:?}", config);
 
@@ -166,7 +170,6 @@ impl Television {
             colorscheme,
             ticks: 0,
             ui_state: UiState::default(),
-            no_help,
             no_preview,
             preview_size,
             current_command_index: 0,
@@ -208,14 +211,9 @@ impl Television {
     /// Apply CLI overrides to ensure they take precedence over channel prototype settings
     fn apply_cli_overrides(
         config: &mut Config,
-        no_help: bool,
         no_preview: bool,
         preview_size: Option<u16>,
     ) {
-        if no_help {
-            config.ui.show_help_bar = false;
-            config.ui.no_help = true;
-        }
         if no_preview {
             config.ui.show_preview_panel = false;
         }
@@ -303,7 +301,6 @@ impl Television {
         // Reapply CLI overrides to ensure they persist across channel changes
         Self::apply_cli_overrides(
             &mut self.config,
-            self.no_help,
             self.no_preview,
             self.preview_size,
         );
@@ -487,8 +484,8 @@ impl Television {
                     | Action::ScrollPreviewHalfPageUp
                     | Action::ToggleRemoteControl
                     | Action::ToggleSendToChannel
-                    | Action::ToggleHelp
                     | Action::TogglePreview
+                    | Action::ToggleHelp
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -803,15 +800,13 @@ impl Television {
                     self.change_channel(prototype);
                 }
             }
-            Action::ToggleHelp => {
-                if self.no_help {
-                    return Ok(());
-                }
-                self.config.ui.show_help_bar = !self.config.ui.show_help_bar;
-            }
             Action::TogglePreview => {
                 self.config.ui.show_preview_panel =
                     !self.config.ui.show_preview_panel;
+            }
+            Action::ToggleHelp => {
+                self.config.ui.show_keybinding_panel =
+                    !self.config.ui.show_keybinding_panel;
             }
             _ => {}
         }
@@ -889,14 +884,12 @@ mod test {
             None,
             true,
             false,
-            false,
             Some(50),
             true,
             Cable::from_prototypes(vec![]),
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
-        assert!(!tv.no_help);
         assert!(!tv.no_preview);
         assert!(tv.remote_control.is_none());
     }
@@ -930,7 +923,6 @@ mod test {
             config.clone(),
             None,
             true,
-            false,
             false,
             Some(50),
             true,

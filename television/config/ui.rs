@@ -16,9 +16,13 @@ pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
-    pub no_help: bool,
-    pub show_help_bar: bool,
     pub show_preview_panel: bool,
+    pub show_keybinding_panel: bool,
+    pub show_status_bar: bool,
+    #[serde(default)]
+    pub status_separator_open: String,
+    #[serde(default)]
+    pub status_separator_close: String,
     #[serde(default)]
     pub input_bar_position: InputPosition,
     pub orientation: Orientation,
@@ -38,9 +42,11 @@ impl Default for UiConfig {
         Self {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
-            no_help: false,
-            show_help_bar: false,
             show_preview_panel: true,
+            show_keybinding_panel: false,
+            show_status_bar: true,
+            status_separator_open: String::new(),
+            status_separator_close: String::new(),
             input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
             preview_title_position: None,

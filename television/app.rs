@@ -29,8 +29,6 @@ pub struct AppOptions {
     pub take_1_fast: bool,
     /// Whether the application should disable the remote control feature.
     pub no_remote: bool,
-    /// Whether the application should disable the help panel feature.
-    pub no_help: bool,
     /// Whether the application should disable the preview panel feature.
     pub no_preview: bool,
     /// The size of the preview panel in lines/columns.
@@ -49,7 +47,6 @@ impl Default for AppOptions {
             take_1: false,
             take_1_fast: false,
             no_remote: false,
-            no_help: false,
             no_preview: false,
             preview_size: Some(DEFAULT_PREVIEW_SIZE),
             tick_rate: default_tick_rate(),
@@ -67,7 +64,6 @@ impl AppOptions {
         take_1: bool,
         take_1_fast: bool,
         no_remote: bool,
-        no_help: bool,
         no_preview: bool,
         preview_size: Option<u16>,
         tick_rate: f64,
@@ -79,7 +75,6 @@ impl AppOptions {
             take_1,
             take_1_fast,
             no_remote,
-            no_help,
             no_preview,
             preview_size,
             tick_rate,
@@ -182,7 +177,6 @@ impl App {
             config,
             input,
             options.no_remote,
-            options.no_help,
             options.no_preview,
             options.preview_size,
             options.exact,

@@ -312,18 +312,6 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub no_remote: bool,
 
-    /// Disable the help panel.
-    ///
-    /// This flag works identically in both channel mode and ad-hoc mode.
-    ///
-    /// This will disable the help panel and associated toggling actions
-    /// entirely. This is useful when the help panel is not needed or
-    /// when the user wants `tv` to run with a minimal interface (e.g. when
-    /// using it as a file picker for a script or embedding it in a larger
-    /// application).
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
-    pub no_help: bool,
-
     /// Change the display size in relation to the available area.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.

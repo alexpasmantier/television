@@ -332,8 +332,6 @@ pub struct UiSpec {
     #[serde(default)]
     pub ui_scale: Option<u16>,
     #[serde(default)]
-    pub show_help_bar: Option<bool>,
-    #[serde(default)]
     pub show_preview_panel: Option<bool>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
     #[serde(rename = "layout", alias = "orientation", default)]
@@ -437,7 +435,6 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 100
-        show_help_bar = false
         show_preview_panel = true
         input_bar_position = "bottom"
         preview_size = 66
@@ -483,7 +480,6 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(100));
-        assert!(!(ui.show_help_bar.unwrap()));
         assert!(ui.show_preview_panel.unwrap());
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
         assert_eq!(ui.preview_size, Some(66));
@@ -624,7 +620,6 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
-        assert!(ui.show_help_bar.is_none());
         assert!(ui.show_preview_panel.is_none());
         assert!(ui.input_bar_position.is_none());
         assert!(ui.preview_size.is_none());

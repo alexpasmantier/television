@@ -359,8 +359,6 @@ mod tests {
                 toggle_remote_control = "ctrl-r"
                 # Toggle the send to channel mode
                 toggle_send_to_channel = "ctrl-s"
-                # Toggle the help bar
-                toggle_help = "ctrl-g"
                 # Toggle the preview panel
                 toggle_preview = "ctrl-o"
             "#,
@@ -415,7 +413,6 @@ mod tests {
                     Action::ToggleSendToChannel,
                     Binding::SingleKey(Key::Ctrl('s'))
                 ),
-                (Action::ToggleHelp, Binding::SingleKey(Key::Ctrl('g'))),
                 (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
             ])
         );

@@ -5,17 +5,16 @@ use ratatui::{Frame, layout::Rect};
 use rustc_hash::FxHashSet;
 
 use crate::{
-    action::Action,
     channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        colors::Colorscheme, help::draw_help_bar, input::draw_input_box,
-        keybindings::build_keybindings_table, layout::Layout,
+        colors::Colorscheme, input::draw_input_box,
+        keybinding_panel::draw_keybinding_panel, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner,
+        spinner::Spinner, status_bar::draw_status_bar,
     },
     television::Mode,
     utils::metadata::AppMetadata,
@@ -135,38 +134,6 @@ impl Ctx {
     }
 }
 
-// impl PartialEq for Ctx {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.tv_state == other.tv_state
-//             && self.config == other.config
-//             && self.colorscheme == other.colorscheme
-//             && self.app_metadata == other.app_metadata
-//     }
-// }
-//
-// impl Eq for Ctx {}
-//
-// impl Hash for Ctx {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.tv_state.hash(state);
-//         self.config.hash(state);
-//         self.colorscheme.hash(state);
-//         self.app_metadata.hash(state);
-//     }
-// }
-//
-// impl PartialOrd for Ctx {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Some(self.instant.cmp(&other.instant))
-//     }
-// }
-//
-// impl Ord for Ctx {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.instant.cmp(&other.instant)
-//     }
-// }
-
 /// Draw the current UI frame based on the given context.
 ///
 /// This function is responsible for drawing the entire UI frame based on the given context by
@@ -175,8 +142,8 @@ impl Ctx {
 /// This function is executed by the UI thread whenever it receives a render message from the main
 /// thread.
 ///
-/// It will draw the help bar, the results list, the input box, the preview content block, and the
-/// remote control.
+/// It will draw the results list, the input box, the preview content block, the remote control,
+/// the keybinding panel, and the status bar.
 ///
 /// # Returns
 /// A `Result` containing the layout of the current frame if the drawing was successful.
@@ -190,21 +157,8 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.ui,
         show_remote,
         ctx.tv_state.preview_state.enabled,
-    );
-
-    // help bar (metadata, keymaps, logo)
-    draw_help_bar(
-        f,
-        &layout.help_bar,
-        &ctx.tv_state.channel_state.current_channel_name,
-        &ctx.tv_state.channel_state.current_command,
-        build_keybindings_table(
-            &ctx.config.keybindings.to_displayable(),
-            ctx.tv_state.mode,
-            &ctx.colorscheme,
-        ),
+        Some(&ctx.config.keybindings),
         ctx.tv_state.mode,
-        &ctx.app_metadata,
         &ctx.colorscheme,
     );
 
@@ -218,21 +172,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         ctx.config.ui.input_bar_position,
         ctx.config.ui.use_nerd_font_icons,
         &ctx.colorscheme,
-        &ctx.config
-            .keybindings
-            .get(&Action::ToggleHelp)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        &ctx.config
-            .keybindings
-            .get(&Action::TogglePreview)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        // only show the preview keybinding hint if there's actually something to preview
-        ctx.tv_state.preview_state.enabled,
-        ctx.config.ui.no_help,
     )?;
 
     // input box
@@ -272,6 +211,16 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
         )?;
+    }
+
+    // floating keybinding panel (rendered last to appear on top)
+    if let Some(keybinding_area) = layout.keybinding_panel {
+        draw_keybinding_panel(f, keybinding_area, ctx);
+    }
+
+    // status bar at the bottom
+    if let Some(status_bar_area) = layout.status_bar {
+        draw_status_bar(f, status_bar_area, ctx);
     }
 
     Ok(layout)

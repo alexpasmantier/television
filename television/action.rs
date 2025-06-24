@@ -101,12 +101,12 @@ pub enum Action {
     /// Quit the application.
     #[serde(alias = "quit")]
     Quit,
-    /// Toggle the help bar.
-    #[serde(alias = "toggle_help")]
-    ToggleHelp,
     /// Toggle the preview panel.
     #[serde(alias = "toggle_preview")]
     TogglePreview,
+    /// Toggle the keybinding panel.
+    #[serde(alias = "toggle_help")]
+    ToggleHelp,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),

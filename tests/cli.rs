@@ -17,20 +17,6 @@ fn custom_input_header_and_preview_size() {
 }
 
 #[test]
-fn no_help() {
-    let mut tester = PtyTester::new();
-    let cmd = tv_local_config_and_cable_with_args(&["--no-help"]);
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Check that the help panel is not shown
-    tester.assert_not_tui_frame_contains("current mode:");
-
-    // Exit the application
-    tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-}
-
-#[test]
 fn no_preview() {
     let mut tester = PtyTester::new();
     let cmd = tv_local_config_and_cable_with_args(&["--no-preview"]);
