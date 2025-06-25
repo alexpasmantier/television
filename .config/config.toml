@@ -80,7 +80,7 @@ separator_close = ""
 size = 50
 #header = "{}"
 #footer = ""
-scrollbar = false
+scrollbar = true
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode
@@ -115,8 +115,8 @@ quit = ["esc", "ctrl-c"]
 # Scrolling through entries
 select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-select_next_page = "pagedown"
-select_prev_page = "pageup"
+#select_next_page = "pagedown"
+#select_prev_page = "pageup"
 
 # Multi-selection
 # --------------
@@ -130,10 +130,8 @@ confirm_selection = "enter"
 # Preview panel control
 # --------------------
 # Scrolling the preview pane
-scroll_preview_half_page_down = ["ctrl-d"]
-scroll_preview_half_page_up = ["ctrl-u"]  # CONFLICT: Ctrl+u is hardcoded for delete line
-#scroll_preview_half_page_down = ["ctrl-d", "mousescrolldown"]  # Optional mouse support
-#scroll_preview_half_page_up = ["ctrl-u", "mousescrollup"]  # Optional mouse support
+scroll_preview_half_page_down = ["pagedown", "mousescrolldown"]
+scroll_preview_half_page_up = ["pageup", "mousescrollup"]
 
 # Data operations
 # --------------

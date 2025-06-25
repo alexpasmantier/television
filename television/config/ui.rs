@@ -31,7 +31,7 @@ impl Default for PreviewPanelConfig {
             size: DEFAULT_PREVIEW_SIZE,
             header: None,
             footer: None,
-            scrollbar: false,
+            scrollbar: true,
         }
     }
 }
