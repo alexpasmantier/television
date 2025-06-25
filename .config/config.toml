@@ -80,6 +80,7 @@ separator_close = ""
 size = 50
 #header = "{}"
 #footer = ""
+scrollbar = false
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode
