@@ -13,7 +13,10 @@ use ratatui::{
     Frame,
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
-    widgets::{Block, BorderType, Borders, Padding, Paragraph},
+    widgets::{
+        Block, BorderType, Borders, Padding, Paragraph, Scrollbar,
+        ScrollbarOrientation, ScrollbarState, StatefulWidget,
+    },
 };
 use std::str::FromStr;
 
@@ -24,6 +27,7 @@ pub fn draw_preview_content_block(
     preview_state: &PreviewState,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
+    scrollbar_enabled: bool,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
@@ -40,6 +44,27 @@ pub fn draw_preview_content_block(
         colorscheme.preview.highlight_bg,
     );
     f.render_widget(rp, inner);
+
+    // render scrollbar if enabled
+    if scrollbar_enabled {
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .style(Style::default().fg(colorscheme.general.border_fg));
+
+        let mut scrollbar_state = ScrollbarState::new(
+            preview_state.preview.total_lines.saturating_sub(1) as usize,
+        )
+        .position(preview_state.scroll as usize);
+
+        // Create a separate area for the scrollbar that accounts for text padding
+        let scrollbar_rect = Rect {
+            x: inner.x + inner.width,
+            y: inner.y,
+            width: 1, // Scrollbar width
+            height: inner.height,
+        };
+
+        scrollbar.render(scrollbar_rect, f.buffer_mut(), &mut scrollbar_state);
+    }
 
     Ok(())
 }
