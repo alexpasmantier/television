@@ -11,8 +11,8 @@ use walkdir::WalkDir;
 use crate::{
     action::Action,
     channels::prototypes::ChannelPrototype,
-    cli::unknown_channel_exit,
     config::{Binding, KeyBindings},
+    errors::unknown_channel_exit,
     keymap::Keymap,
 };
 

@@ -13,6 +13,7 @@ use television::cli::{
     guess_channel_from_prompt, list_channels,
 };
 use television::config::{Config, ConfigEnv, merge_keybindings};
+use television::errors::os_error_exit;
 use television::features::Features;
 use television::gh::update_local_channels;
 use television::utils::shell::render_autocomplete_script_template;
@@ -64,7 +65,8 @@ async fn main() -> Result<()> {
 
     // optionally change the working directory
     if let Some(ref working_dir) = args.working_directory {
-        set_current_dir(working_dir)?;
+        set_current_dir(working_dir)
+            .unwrap_or_else(|e| os_error_exit(&e.to_string()));
     }
 
     // determine the channel to use based on the CLI arguments and configuration

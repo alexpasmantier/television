@@ -38,3 +38,18 @@ pub fn init() -> Result<()> {
 
     Ok(())
 }
+
+pub fn cli_parsing_error_exit(message: &str) -> ! {
+    eprintln!("Error parsing CLI arguments: {message}\n");
+    std::process::exit(1);
+}
+
+pub fn unknown_channel_exit(channel: &str) -> ! {
+    eprintln!("Channel not found: {channel}\n");
+    std::process::exit(1);
+}
+
+pub fn os_error_exit(message: &str) -> ! {
+    eprintln!("OS error: {message}\n");
+    std::process::exit(1);
+}

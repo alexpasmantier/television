@@ -9,6 +9,7 @@ use crate::{
     },
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
+    errors::os_error_exit,
     features::Features,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
@@ -122,7 +123,7 @@ impl Television {
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
             std::env::current_dir()
-                .expect("Could not get current directory")
+                .unwrap_or_else(|e| os_error_exit(&e.to_string()))
                 .to_string_lossy()
                 .to_string(),
         );
