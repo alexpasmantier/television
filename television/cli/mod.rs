@@ -12,6 +12,7 @@ use crate::{
         DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE, KeyBindings, get_config_dir,
         get_data_dir,
     },
+    errors::cli_parsing_error_exit,
     screen::layout::Orientation,
     utils::paths::expand_tilde,
 };
@@ -327,16 +328,6 @@ fn validate_adhoc_mode_constraints(cli: &Cli) {
             }
         }
     }
-}
-
-fn cli_parsing_error_exit(message: &str) -> ! {
-    eprintln!("Error parsing CLI arguments: {message}\n");
-    std::process::exit(1);
-}
-
-pub fn unknown_channel_exit(channel: &str) -> ! {
-    eprintln!("Channel not found: {channel}\n");
-    std::process::exit(1);
 }
 
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
