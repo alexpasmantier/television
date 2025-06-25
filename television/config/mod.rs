@@ -256,6 +256,7 @@ impl Config {
             if let Some(footer) = &preview_panel.footer {
                 self.ui.preview_panel.footer = Some(footer.clone());
             }
+            self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
         }
 
         if let Some(help_panel) = &ui_spec.help_panel {

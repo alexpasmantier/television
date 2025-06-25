@@ -6,7 +6,7 @@ use std::{
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::DisableMouseCapture,
+    event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{
         EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode,
@@ -43,10 +43,8 @@ where
         enable_raw_mode()?;
         let mut buffered_stderr = LineWriter::new(stderr());
         execute!(buffered_stderr, EnterAlternateScreen)?;
+        execute!(buffered_stderr, EnableMouseCapture)?;
         self.terminal.clear()?;
-        if cfg!(not(windows)) {
-            execute!(buffered_stderr, DisableMouseCapture)?;
-        }
         Ok(())
     }
 
@@ -57,6 +55,7 @@ where
             disable_raw_mode()?;
             let mut buffered_stderr = LineWriter::new(stderr());
             execute!(buffered_stderr, cursor::Show)?;
+            execute!(buffered_stderr, DisableMouseCapture)?;
             execute!(buffered_stderr, LeaveAlternateScreen)?;
         }
 

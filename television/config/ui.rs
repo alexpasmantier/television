@@ -22,6 +22,7 @@ pub struct PreviewPanelConfig {
     pub size: u16,
     pub header: Option<Template>,
     pub footer: Option<Template>,
+    pub scrollbar: bool,
 }
 
 impl Default for PreviewPanelConfig {
@@ -30,6 +31,7 @@ impl Default for PreviewPanelConfig {
             size: DEFAULT_PREVIEW_SIZE,
             header: None,
             footer: None,
+            scrollbar: true,
         }
     }
 }
