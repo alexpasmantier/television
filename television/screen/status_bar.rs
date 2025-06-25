@@ -123,18 +123,20 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         ]);
     };
 
-    // Add remote control hint (available in both modes)
-    if let Some(binding) =
-        ctx.config.keybindings.get(&Action::ToggleRemoteControl)
-    {
-        let hint_text = match ctx.tv_state.mode {
-            Mode::Channel => "Remote Control",
-            Mode::RemoteControl => "Back to Channel",
-        };
-        add_hint(hint_text, &binding.to_string());
+    // Add remote control hint (available in both modes, but only if remote control is enabled)
+    if ctx.config.ui.remote_control_enabled() {
+        if let Some(binding) =
+            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
+        {
+            let hint_text = match ctx.tv_state.mode {
+                Mode::Channel => "Remote Control",
+                Mode::RemoteControl => "Back to Channel",
+            };
+            add_hint(hint_text, &binding.to_string());
+        }
     }
 
-    // Add preview hint (Channel mode only)
+    // Add preview hint (Channel mode only, but only if preview is enabled)
     if ctx.tv_state.mode == Mode::Channel {
         if let Some(binding) =
             ctx.config.keybindings.get(&Action::TogglePreview)

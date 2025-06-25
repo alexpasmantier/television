@@ -18,7 +18,7 @@ pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
     pixel_height: 0,
 };
 
-pub const DEFAULT_DELAY: Duration = Duration::from_millis(200);
+pub const DEFAULT_DELAY: Duration = Duration::from_millis(300);
 
 /// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
 ///
@@ -270,7 +270,7 @@ impl PtyTester {
         let frame = self.get_tui_frame();
         assert!(
             !frame.contains(expected),
-            "Expected output to contain\n'{}'\nbut got:\n{}",
+            "Expected output to not contain\n'{}'\nbut got:\n{}",
             expected,
             frame
         );

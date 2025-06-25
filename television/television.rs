@@ -224,8 +224,8 @@ impl Television {
     ) {
         if no_preview {
             config.ui.features.remove(Features::PREVIEW_PANEL);
-        }
-        if let Some(ps) = preview_size {
+            config.keybindings.remove(&Action::TogglePreview);
+        } else if let Some(ps) = preview_size {
             config.ui.preview_panel.size = ps;
         }
     }
@@ -289,7 +289,6 @@ impl Television {
     pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
         // shutdown the current channel and reset state
         self.preview_state.reset();
-        self.preview_state.enabled = channel_prototype.preview.is_some();
         self.reset_picker_selection();
         self.reset_picker_input();
         self.current_pattern = EMPTY_STRING.to_string();
@@ -312,6 +311,9 @@ impl Television {
             self.no_preview,
             self.preview_size,
         );
+        // Set preview state enabled based on both channel capability and UI configuration
+        self.preview_state.enabled = channel_prototype.preview.is_some()
+            && self.config.ui.preview_enabled();
         self.channel_prototype = channel_prototype.clone();
         self.current_command_index = 0;
         self.channel = CableChannel::new(channel_prototype);
@@ -800,6 +802,19 @@ impl Television {
                     match self.mode {
                         Mode::Channel => {
                             self.mode = Mode::RemoteControl;
+                            // // Preselect the current channel in remote control mode
+                            // let current_channel_name = self.current_channel();
+                            // if let Some(rc) = self.remote_control.as_mut() {
+                            //     rc.find(EMPTY_STRING); // Clear any existing filter
+                            //     if let Some(index) = rc.find_channel_index(&current_channel_name) {
+                            //         let index = index as usize;
+                            //         self.rc_picker.select(Some(index));
+                            //         // Also set relative selection for proper viewport positioning
+                            //         let viewport_height = self.ui_state.layout.results.height.saturating_sub(2) as usize;
+                            //         let relative_index = index.min(viewport_height - 1);
+                            //         self.rc_picker.relative_select(Some(relative_index));
+                            //     }
+                            // }
                         }
                         Mode::RemoteControl => {
                             // Reset the RC picker when leaving remote control mode

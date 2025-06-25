@@ -211,6 +211,7 @@ fallback_channel = "files"
   "git pull",
   "git push",
 ]
+"git-log" = ["git log", "git show"]
 "docker-images" = ["docker run"]
 "git-repos" = ["nvim", "code", "hx", "git clone"]
 

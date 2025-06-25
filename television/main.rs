@@ -22,6 +22,7 @@ use television::utils::{
     stdin::is_readable_stdin,
 };
 use television::{
+    action::Action,
     cable::{Cable, load_cable},
     channels::prototypes::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
@@ -132,12 +133,13 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     }
     if args.no_preview {
         config.ui.features.remove(Features::PREVIEW_PANEL);
+        config.keybindings.remove(&Action::TogglePreview);
+    } else if let Some(ps) = args.preview_size {
+        config.ui.preview_panel.size = ps;
     }
     if args.no_status_bar {
         config.ui.features.remove(Features::STATUS_BAR);
-    }
-    if let Some(ps) = args.preview_size {
-        config.ui.preview_panel.size = ps;
+        config.keybindings.remove(&Action::ToggleStatusBar);
     }
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
@@ -233,13 +235,18 @@ pub fn determine_channel(
         // Create an ad-hoc channel prototype
         let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
 
+        let mut input_header = Template::parse("Custom Channel");
+        if let Some(ih) = &args.input_header {
+            input_header = Template::parse(ih);
+        }
+
         // Set UI spec - only hide preview if no preview command is provided
         let ui_spec = UiSpec {
             ui_scale: None,
             show_preview_panel: Some(args.preview_command_override.is_some()),
             orientation: None,
             input_bar_position: None,
-            input_header: Some(Template::parse("Custom Channel").unwrap()),
+            input_header: input_header.ok(),
             status_bar: None,
             preview_panel: None,
             help_panel: None,

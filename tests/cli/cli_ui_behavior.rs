@@ -1,0 +1,185 @@
+//! Tests for CLI UI/behavioral integration: toggling panels, scrolling, clipboard, reload, etc.
+//!
+//! These tests verify Television's interactive UI behaviors and keyboard shortcuts,
+//! ensuring users can effectively navigate and control the interface during operation.
+//! These are integration tests that combine CLI setup with interactive behavior.
+
+#[path = "../common/mod.rs"]
+mod common;
+use common::*;
+
+/// Tests that the toggle preview keybinding functionality works correctly.
+#[test]
+fn test_toggle_preview_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel which has preview enabled by default
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify preview is initially visible (shows "Hide Preview:" option)
+    tester.assert_tui_frame_contains("Hide Preview:");
+
+    // Send Ctrl+O to toggle preview off
+    tester.send(&ctrl('o'));
+
+    // Verify preview is now hidden (shows "Show Preview:" option)
+    tester.assert_tui_frame_contains("Show Preview:");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the toggle remote control keybinding functionality works correctly.
+#[test]
+fn test_toggle_remote_control_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+T to open remote control panel
+    tester.send(&ctrl('t'));
+
+    // Verify remote control panel is displayed with channel indicators
+    tester.assert_tui_frame_contains("(1) (2) (3)");
+
+    // Send Ctrl+C to exit remote control mode
+    tester.send(&ctrl('c'));
+
+    // Send Ctrl+C again to exit the application
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the toggle status bar keybinding functionality works correctly.
+#[test]
+fn test_toggle_status_bar_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel which shows status bar by default
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--keybindings",
+        "toggle_status_bar=\"ctrl-k\"",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+K to toggle status bar off
+    tester.send(&ctrl('k'));
+
+    // Verify status bar is hidden
+    tester.assert_not_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the toggle help keybinding functionality works correctly.
+#[test]
+fn test_toggle_help_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+H to open help panel
+    tester.send(&ctrl('h'));
+
+    // Verify help panel is displayed
+    tester.assert_tui_frame_contains("───── Help ─────");
+
+    // Send Ctrl+C to exit (help panel should close and app should exit)
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the preview scrolling keybindings functionality works correctly.
+#[test]
+fn test_scroll_preview_keybindings() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel which has preview enabled
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Page Down to scroll preview down
+    tester.send("\x1b[6~");
+    tester.send("\x1b[6~");
+
+    // Verify preview panel has moved
+    tester.assert_not_tui_frame_contains("││   1");
+
+    // Send Page Up to scroll preview up
+    tester.send("\x1b[5~");
+    tester.send("\x1b[5~");
+
+    // Verify preview panel has moved
+    tester.assert_tui_frame_contains("││   1");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the reload source keybinding functionality works correctly.
+#[test]
+fn test_reload_source_keybinding() {
+    let mut tester = PtyTester::new();
+    let tmp_dir = std::env::temp_dir();
+
+    // Create initial files to be detected
+    std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
+    std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    // Start with the files channel
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        tmp_dir.to_str().unwrap(),
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify both files are initially detected
+    tester.assert_tui_frame_contains("file1.txt");
+    tester.assert_tui_frame_contains("control.txt");
+
+    // Remove the control file while the TUI is running
+    std::fs::remove_file(tmp_dir.join("control.txt")).unwrap();
+
+    // Send Ctrl+R to reload the source command
+    tester.send(&ctrl('r'));
+
+    // Verify the removed file no longer appears after the reload
+    tester.assert_not_tui_frame_contains("control.txt");
+    // Verify the other file is still there
+    tester.assert_tui_frame_contains("file1.txt");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the cycle sources keybinding functionality works correctly.
+#[test]
+fn test_cycle_sources_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+S to cycle to next source
+    tester.send(&ctrl('s'));
+
+    // Verify a different source is active (shows config file from different source)
+    tester.assert_tui_frame_contains(".config/config.toml");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}

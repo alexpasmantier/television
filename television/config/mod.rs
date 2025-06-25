@@ -1,5 +1,6 @@
 #![allow(clippy::module_name_repetitions, clippy::ref_option)]
 use crate::{
+    action::Action,
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
     features::Features,
@@ -230,6 +231,7 @@ impl Config {
                 self.ui.features.insert(Features::PREVIEW_PANEL);
             } else {
                 self.ui.features.remove(Features::PREVIEW_PANEL);
+                self.keybindings.remove(&Action::TogglePreview);
             }
         }
         if let Some(orientation) = &ui_spec.orientation {
