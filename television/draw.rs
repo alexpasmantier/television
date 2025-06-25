@@ -219,6 +219,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.tv_state.preview_state,
             ctx.config.ui.use_nerd_font_icons,
             &ctx.colorscheme,
+            ctx.config.ui.preview_panel.scrollbar,
         )?;
     }
 

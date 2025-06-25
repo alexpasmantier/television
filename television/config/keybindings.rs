@@ -242,6 +242,14 @@ pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
         let raw = raw.strip_prefix('<').unwrap_or(raw);
         raw.strip_suffix('>').unwrap_or(raw)
     };
+
+    // Handle mouse scroll keys as special cases
+    match raw.to_ascii_lowercase().as_str() {
+        "mousescrollup" => return Ok(Key::MouseScrollUp),
+        "mousescrolldown" => return Ok(Key::MouseScrollDown),
+        _ => {}
+    }
+
     let key_event = parse_key_event(raw)?;
     Ok(convert_raw_event_to_key(key_event))
 }

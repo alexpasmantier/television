@@ -80,6 +80,7 @@ separator_close = ""
 size = 50
 #header = "{}"
 #footer = ""
+scrollbar = true
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode
@@ -87,28 +88,53 @@ show_channel_descriptions = true
 # Whether to sort channels alphabetically
 sort_alphabetically = true
 
+
 # Keybindings
 # ----------------------------------------------------------------------------
 #
-# Channel mode
-# ------------------------
+# HARDCODED KEYBINDINGS (cannot be changed via config):
+# Input field actions (always active):
+#   Backspace          - Delete previous character
+#   Ctrl+w             - Delete previous word
+#   Ctrl+u             - Delete entire line
+#   Delete             - Delete next character
+#   Left/Right         - Move cursor left/right
+#   Home / Ctrl+a      - Go to input start
+#   End / Ctrl+e       - Go to input end
+#
+# CONFIGURABLE KEYBINDINGS (can be customized below):
+# --------------------------------------------------
 [keybindings]
+# Application control
+# ------------------
 # Quit the application
 quit = ["esc", "ctrl-c"]
+
+# Navigation and selection
+# -----------------------
 # Scrolling through entries
 select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-select_next_page = "pagedown"
-select_prev_page = "pageup"
-# Scrolling the preview pane
-scroll_preview_half_page_down = "ctrl-d"
-scroll_preview_half_page_up = "ctrl-u"
+#select_next_page = "pagedown"
+#select_prev_page = "pageup"
+
+# Multi-selection
+# --------------
 # Add entry to selection and move to the next entry
 toggle_selection_down = "tab"
 # Add entry to selection and move to the previous entry
 toggle_selection_up = "backtab"
 # Confirm selection
 confirm_selection = "enter"
+
+# Preview panel control
+# --------------------
+# Scrolling the preview pane
+scroll_preview_half_page_down = ["pagedown", "mousescrolldown"]
+scroll_preview_half_page_up = ["pageup", "mousescrollup"]
+
+# Data operations
+# --------------
 # Copy the selected entry to the clipboard
 copy_entry_to_clipboard = "ctrl-y"
 # Reload the current source
@@ -117,6 +143,7 @@ reload_source = "ctrl-r"
 cycle_sources = "ctrl-s"
 
 # UI Features
+# ----------
 toggle_remote_control = "ctrl-t"
 toggle_preview = "ctrl-o"
 toggle_help = "ctrl-h"

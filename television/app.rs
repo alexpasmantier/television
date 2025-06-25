@@ -10,6 +10,7 @@ use crate::{
     television::{Mode, Television},
 };
 use anyhow::Result;
+use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, trace};
@@ -428,6 +429,35 @@ impl App {
                         Key::Char(c) => Action::AddInputChar(c),
                         _ => Action::NoOp,
                     }
+                }
+            }
+            Event::Mouse(mouse_event) => {
+                // Handle mouse scroll events for preview panel, if keybindings are configured
+                // Only works in channel mode, regardless of mouse position
+                if self.television.mode == Mode::Channel {
+                    match mouse_event.kind {
+                        MouseEventKind::ScrollUp => {
+                            if let Some(action) =
+                                self.keymap.get(&Key::MouseScrollUp)
+                            {
+                                action.clone()
+                            } else {
+                                Action::NoOp
+                            }
+                        }
+                        MouseEventKind::ScrollDown => {
+                            if let Some(action) =
+                                self.keymap.get(&Key::MouseScrollDown)
+                            {
+                                action.clone()
+                            } else {
+                                Action::NoOp
+                            }
+                        }
+                        _ => Action::NoOp,
+                    }
+                } else {
+                    Action::NoOp
                 }
             }
             // terminal events
