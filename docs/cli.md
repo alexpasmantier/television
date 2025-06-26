@@ -537,17 +537,20 @@ Television uses a layered configuration system where each layer can override the
 
 Television features support dual control: **enabled/disabled** and **visible/not visible**. This allows granular control over functionality and interface presentation.
 
-#### Configuration Specification
+> **📖 For comprehensive feature documentation**, including architecture details, advanced configuration, and integration examples, see [`features.md`](features.md).
 
-```toml
-[ui.features]
-preview_panel = { enabled = true, visible = true }    # Fully active
-help_panel = { enabled = false }                      # Completely disabled
-status_bar = { enabled = true, visible = true }       # Fully active
-remote_control = { enabled = true, visible = false }  # Enabled but hidden
-```
+#### Quick Feature Overview
 
-#### Feature States Explained
+Television supports four main UI features:
+
+| Feature | Purpose | Default State | CLI Controls |
+|---------|---------|---------------|--------------|
+| **Preview Panel** | Shows contextual information for selected entries | Enabled & Visible | `--no-preview`, `--hide-preview`, `--show-preview` |
+| **Status Bar** | Displays application status and available actions | Enabled & Visible | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
+| **Help Panel** | Shows contextual help and keyboard shortcuts | Enabled but Hidden | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
+| **Remote Control** | Provides channel switching interface | Enabled but Hidden | `--no-remote`, `--hide-remote`, `--show-remote` |
+
+#### Feature States
 
 | State | `enabled` | `visible` | Description |
 |-------|-----------|-----------|-------------|
@@ -555,13 +558,14 @@ remote_control = { enabled = true, visible = false }  # Enabled but hidden
 | **Hidden** | `true` | `false` | Feature works but is not displayed (can be toggled visible) |
 | **Disabled** | `false` | `Any` | Feature is completely turned off (visibility has no impact) |
 
-#### Channel-Level Feature Configuration
+#### Basic Configuration
 
 ```toml
-# In channel prototype files
 [ui.features]
-preview_panel = { enabled = true, visible = true }
-status_bar = { enabled = true, visible = false }  # Channel starts with hidden status bar
+preview_panel = { enabled = true, visible = true }    # Fully active
+help_panel = { enabled = true, visible = false }      # Enabled but hidden
+status_bar = { enabled = true, visible = true }       # Fully active
+remote_control = { enabled = true, visible = false }  # Enabled but hidden
 ```
 
 #### CLI Feature Override Examples
