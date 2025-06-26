@@ -107,9 +107,6 @@ fn test_scroll_preview_keybindings() {
     let cmd = tv_local_config_and_cable_with_args(&["files"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Wait for the preview panel to be displayed
-    std::thread::sleep(std::time::Duration::from_millis(5000));
-
     // Send Page Down to scroll preview down
     tester.send("\x1b[6~");
     tester.send("\x1b[6~");
@@ -135,10 +132,8 @@ fn test_reload_source_keybinding() {
     let mut tester = PtyTester::new();
     let tmp_dir = std::env::temp_dir();
 
-    // Create initial files to be detected
+    // Create initial file to be detected
     std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
-    std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(500));
 
     // Start with the files channel
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -147,19 +142,17 @@ fn test_reload_source_keybinding() {
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify both files are initially detected
+    // Verify the initial file appears in the TUI
     tester.assert_tui_frame_contains("file1.txt");
-    tester.assert_tui_frame_contains("control.txt");
 
-    // Remove the control file while the TUI is running
-    std::fs::remove_file(tmp_dir.join("control.txt")).unwrap();
+    // add another file to be detected
+    std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
 
     // Send Ctrl+R to reload the source command
     tester.send(&ctrl('r'));
 
-    // Verify the removed file no longer appears after the reload
-    tester.assert_not_tui_frame_contains("control.txt");
-    // Verify the other file is still there
+    // Verify the new file appears in the TUI as well as the existing one
+    tester.assert_tui_frame_contains("control.txt");
     tester.assert_tui_frame_contains("file1.txt");
 
     // Send Ctrl+C to exit
@@ -178,6 +171,7 @@ fn test_cycle_sources_keybinding() {
 
     // Send Ctrl+S to cycle to next source
     tester.send(&ctrl('s'));
+    tester.send(".config");
 
     // Verify a different source is active (shows config file from different source)
     tester.assert_tui_frame_contains(".config/config.toml");

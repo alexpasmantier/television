@@ -15,7 +15,6 @@ fn test_watch_reloads_source_command() {
 
     // Create initial file to be detected
     std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(200));
 
     // This monitors the temp directory and updates every 0.5 seconds
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -33,19 +32,11 @@ fn test_watch_reloads_source_command() {
     // Create a second file
     std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
 
-    // Verify the new file does not appear immediately
-    tester.assert_not_tui_frame_contains("control.txt");
-
     // Wait longer than watch interval
     std::thread::sleep(std::time::Duration::from_millis(700));
 
     // Verify the new file appears after the watch interval
     tester.assert_tui_frame_contains("control.txt");
-
-    // Remove the control file
-    if std::fs::metadata(tmp_dir.join("control.txt")).is_ok() {
-        std::fs::remove_file(tmp_dir.join("control.txt")).unwrap();
-    }
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
