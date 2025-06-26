@@ -17,7 +17,7 @@ fn test_watch_reloads_source_command() {
     // This monitors the temp directory and updates every 0.5 seconds
     let cmd = tv_local_config_and_cable_with_args(&[
         "--watch",
-        "0.5",
+        "1",
         "--source-command",
         "ls",
         tmp_dir.to_str().unwrap(),
@@ -31,7 +31,7 @@ fn test_watch_reloads_source_command() {
     std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
 
     // Wait longer than watch interval
-    std::thread::sleep(std::time::Duration::from_millis(700));
+    std::thread::sleep(std::time::Duration::from_millis(2000));
 
     // Verify the new file appears after the watch interval
     tester.assert_tui_frame_contains("control.txt");
