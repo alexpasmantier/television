@@ -284,6 +284,32 @@ Television's options are organized by functionality. Each option behaves differe
 - **Conflicts**: Cannot be used with `--no-remote` or `--hide-remote`
 - **Use Case**: Ensure channel switching is always available
 
+### ❓ Help Panel Options
+
+#### `--no-help-panel`
+
+**Purpose**: Disable help panel feature, toggling is not possible
+
+- **Both Modes**: Same behavior
+- **Conflicts**: Cannot be used with `--hide-help-panel` or `--show-help-panel`
+- **Use Case**: Minimal interface
+
+#### `--hide-help-panel`
+
+**Purpose**: Starts the interface with the help panel hidden
+
+- **Both Modes**: Same behavior
+- **Conflicts**: Cannot be used with `--no-help-panel` or `--show-help-panel`
+- **Use Case**: Clean interface with option to show help later
+
+#### `--show-help-panel`
+
+**Purpose**: Starts the interface with the help panel visible
+
+- **Both Modes**: Same behavior
+- **Conflicts**: Cannot be used with `--no-help-panel` or `--hide-help-panel`
+- **Use Case**: Ensure help information is always available
+
 ### 🎨 Interface and Layout Options
 
 #### `--layout <LAYOUT>`
@@ -470,6 +496,7 @@ These option groups cannot be used together:
 - **Preview visibility**: Only one of `--no-preview`, `--hide-preview`, or `--show-preview`
 - **Status bar control**: Only one of `--no-status-bar`, `--hide-status-bar`, or `--show-status-bar`
 - **Remote control**: Only one of `--no-remote`, `--hide-remote`, or `--show-remote`
+- **Help panel control**: Only one of `--no-help-panel`, `--hide-help-panel`, or `--show-help-panel`
 - **Channel selection**: Cannot use both `[CHANNEL]` argument and `--autocomplete-prompt`
 - **Watch vs selection**: `--watch` cannot be used with auto-selection flags
 

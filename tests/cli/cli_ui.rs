@@ -284,3 +284,114 @@ fn test_hide_and_show_remote_conflict_errors() {
     // CLI should exit with error message, not show TUI
     tester.assert_raw_output_contains("cannot be used with");
 }
+
+/// Tests that --no-help-panel disables the help panel entirely.
+#[test]
+fn test_no_help_panel_disables_help_panel() {
+    let mut tester = PtyTester::new();
+
+    // This disables the help panel entirely
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--no-help-panel"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+H to try to open help panel (should not work)
+    tester.send(&ctrl('h'));
+
+    // Verify help panel is not displayed
+    tester.assert_not_tui_frame_contains("───── Help ─────");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-help-panel starts the interface with the help panel hidden.
+#[test]
+fn test_hide_help_panel_starts_with_help_hidden() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and hide the help panel
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--hide-help-panel"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+H to open help panel (should still work since it's just hidden)
+    tester.send(&ctrl('h'));
+
+    // Verify help panel can be toggled visible
+    tester.assert_tui_frame_contains("───── Help ─────");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --show-help-panel ensures the help panel is visible.
+#[test]
+fn test_show_help_panel_starts_with_help_visible() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and force the help panel visible
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--show-help-panel"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify help panel is initially visible
+    tester.assert_tui_frame_contains("───── Help ─────");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-help-panel conflicts with --no-help-panel.
+#[test]
+fn test_hide_help_panel_conflicts_with_no_help_panel() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-help-panel",
+        "--no-help-panel",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --hide-help-panel and --show-help-panel cannot be used together.
+#[test]
+fn test_hide_and_show_help_panel_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-help-panel",
+        "--show-help-panel",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --no-help-panel conflicts with --show-help-panel.
+#[test]
+fn test_no_help_panel_conflicts_with_show_help_panel() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--no-help-panel",
+        "--show-help-panel",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}

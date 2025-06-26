@@ -69,6 +69,11 @@ pub struct PostProcessedCli {
     pub hide_remote: bool,
     pub show_remote: bool,
 
+    // Help panel configuration
+    pub no_help_panel: bool,
+    pub hide_help_panel: bool,
+    pub show_help_panel: bool,
+
     // Input configuration
     pub input: Option<String>,
     pub input_header: Option<String>,
@@ -126,6 +131,11 @@ impl Default for PostProcessedCli {
             no_remote: false,
             hide_remote: false,
             show_remote: false,
+
+            // Help panel configuration
+            no_help_panel: false,
+            hide_help_panel: false,
+            show_help_panel: false,
 
             // Input configuration
             input: None,
@@ -262,12 +272,24 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         no_preview: cli.no_preview,
         hide_preview: cli.hide_preview,
         show_preview: cli.show_preview,
-        no_status_bar: cli.no_status_bar,
-        hide_status_bar: cli.hide_status_bar,
-        show_status_bar: cli.show_status_bar,
         preview_size: cli.preview_size,
         preview_header: cli.preview_header,
         preview_footer: cli.preview_footer,
+
+        // Status bar configuration
+        no_status_bar: cli.no_status_bar,
+        hide_status_bar: cli.hide_status_bar,
+        show_status_bar: cli.show_status_bar,
+
+        // Remote configuration
+        no_remote: cli.no_remote,
+        hide_remote: cli.hide_remote,
+        show_remote: cli.show_remote,
+
+        // Help panel configuration
+        no_help_panel: cli.no_help_panel,
+        hide_help_panel: cli.hide_help_panel,
+        show_help_panel: cli.show_help_panel,
 
         // Input configuration
         input: cli.input,
@@ -276,9 +298,6 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         // UI and layout configuration
         layout,
         ui_scale: cli.ui_scale,
-        no_remote: cli.no_remote,
-        hide_remote: cli.hide_remote,
-        show_remote: cli.show_remote,
 
         // Behavior and matching configuration
         exact: cli.exact,

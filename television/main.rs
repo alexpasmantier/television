@@ -182,6 +182,19 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     } else if args.show_remote {
         config.ui.features.enable(FeatureFlags::RemoteControl);
     }
+
+    // Handle help panel flags
+    if args.no_help_panel {
+        config.ui.features.disable(FeatureFlags::HelpPanel);
+        config
+            .keybindings
+            .remove(&Action::ToggleFeature(FeatureFlags::HelpPanel));
+    } else if args.hide_help_panel {
+        config.ui.features.hide(FeatureFlags::HelpPanel);
+    } else if args.show_help_panel {
+        config.ui.features.enable(FeatureFlags::HelpPanel);
+    }
+
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
             merge_keybindings(config.keybindings.clone(), keybindings);
