@@ -3,9 +3,7 @@
 //! These tests verify Television's live monitoring capabilities,
 //! ensuring users can enable real-time data updates.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --watch enables live monitoring with automatic source command re-execution.
 #[test]

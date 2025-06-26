@@ -4,9 +4,7 @@
 //! error messages when users specify incompatible or invalid flag combinations.
 //! This is critical for user experience and preventing unexpected behavior.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that preview flags without --preview-command fail in Ad-hoc Mode.
 #[test]

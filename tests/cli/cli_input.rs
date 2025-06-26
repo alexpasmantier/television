@@ -3,9 +3,7 @@
 //! These tests verify Television's input handling and user interaction features,
 //! ensuring users can customize their interaction experience and search behavior.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that the --input flag pre-fills the search box with specified text.
 #[test]

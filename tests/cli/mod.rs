@@ -13,6 +13,9 @@
 //! - UI behavioral integration
 //! - Error handling and validation
 
+#[path = "../common/mod.rs"]
+mod common;
+
 pub mod cli_config;
 pub mod cli_errors;
 pub mod cli_input;

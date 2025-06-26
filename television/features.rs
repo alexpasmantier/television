@@ -378,7 +378,7 @@ mod tests {
 
     #[test]
     fn test_serde_deserialization() {
-        let toml_data = r#"
+        let toml_data = r"
         [preview_panel]
         enabled = true
         visible = false
@@ -386,7 +386,7 @@ mod tests {
         [status_bar]
         enabled = true
         visible = true
-        "#;
+        ";
 
         let features: Features = toml::from_str(toml_data).unwrap();
         assert!(features.is_enabled(FeatureFlags::PreviewPanel));

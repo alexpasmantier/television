@@ -1,10 +1,10 @@
-use crate::features::FeatureFlags;
 use serde::{Deserialize, Serialize};
 
 /// The different actions that can be performed by the application.
 #[derive(
     Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
 )]
+#[serde(rename_all = "snake_case")]
 pub enum Action {
     // input actions
     /// Add a character to the input buffer.
@@ -29,10 +29,8 @@ pub enum Action {
     #[serde(skip)]
     GoToNextChar,
     /// Move the cursor to the start of the input buffer.
-    #[serde(alias = "go_to_input_start")]
     GoToInputStart,
     /// Move the cursor to the end of the input buffer.
-    #[serde(alias = "go_to_input_end")]
     GoToInputEnd,
     // rendering actions
     /// Render the terminal user interface screen.
@@ -46,45 +44,31 @@ pub enum Action {
     ClearScreen,
     // results actions
     /// Add entry under cursor to the list of selected entries and move the cursor down.
-    #[serde(alias = "toggle_selection_down")]
     ToggleSelectionDown,
     /// Add entry under cursor to the list of selected entries and move the cursor up.
-    #[serde(alias = "toggle_selection_up")]
     ToggleSelectionUp,
     /// Confirm current selection (multi select or entry under cursor).
-    #[serde(alias = "select_entry")]
-    #[serde(alias = "confirm_selection")]
     ConfirmSelection,
     /// Select the entry currently under the cursor and exit the application.
-    #[serde(alias = "select_and_exit")]
     SelectAndExit,
     /// Select the next entry in the currently focused list.
-    #[serde(alias = "select_next_entry")]
     SelectNextEntry,
     /// Select the previous entry in the currently focused list.
-    #[serde(alias = "select_prev_entry")]
     SelectPrevEntry,
     /// Select the next page of entries in the currently focused list.
-    #[serde(alias = "select_next_page")]
     SelectNextPage,
     /// Select the previous page of entries in the currently focused list.
-    #[serde(alias = "select_prev_page")]
     SelectPrevPage,
     /// Copy the currently selected entry to the clipboard.
-    #[serde(alias = "copy_entry_to_clipboard")]
     CopyEntryToClipboard,
     // preview actions
     /// Scroll the preview up by one line.
-    #[serde(alias = "scroll_preview_up")]
     ScrollPreviewUp,
     /// Scroll the preview down by one line.
-    #[serde(alias = "scroll_preview_down")]
     ScrollPreviewDown,
     /// Scroll the preview up by half a page.
-    #[serde(alias = "scroll_preview_half_page_up")]
     ScrollPreviewHalfPageUp,
     /// Scroll the preview down by half a page.
-    #[serde(alias = "scroll_preview_half_page_down")]
     ScrollPreviewHalfPageDown,
     /// Open the currently selected entry in the default application.
     #[serde(skip)]
@@ -100,24 +84,24 @@ pub enum Action {
     #[serde(skip)]
     Resume,
     /// Quit the application.
-    #[serde(alias = "quit")]
     Quit,
     /// Toggle a UI feature.
-    ToggleFeature(FeatureFlags),
+    ToggleRemoteControl,
+    ToggleHelp,
+    ToggleStatusBar,
+    TogglePreview,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),
     /// No operation.
     #[serde(skip)]
     NoOp,
-    // channel actions
-    #[serde(alias = "toggle_send_to_channel")]
+    // Channel actions
+    /// FIXME: clean this up
     ToggleSendToChannel,
     /// Toggle between different source commands.
-    #[serde(alias = "cycle_sources")]
     CycleSources,
     /// Reload the current source command.
-    #[serde(alias = "reload_source")]
     ReloadSource,
     /// Switch to the specified channel directly via shortcut.
     #[serde(skip)]

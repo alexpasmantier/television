@@ -3,9 +3,7 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --layout landscape arranges panels side-by-side.
 #[test]

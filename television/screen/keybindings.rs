@@ -1,7 +1,6 @@
 use crate::{
     action::Action,
     config::{Binding, KeyBindings},
-    features::FeatureFlags,
     television::Mode,
 };
 use std::fmt::Display;
@@ -63,18 +62,9 @@ impl ActionMapping {
             ActionMapping {
                 category: ActionCategory::ToggleFeature,
                 actions: vec![
-                    (
-                        Action::ToggleFeature(FeatureFlags::PreviewPanel),
-                        "Toggle preview",
-                    ),
-                    (
-                        Action::ToggleFeature(FeatureFlags::HelpPanel),
-                        "Toggle help",
-                    ),
-                    (
-                        Action::ToggleFeature(FeatureFlags::StatusBar),
-                        "Toggle status bar",
-                    ),
+                    (Action::TogglePreview, "Toggle preview"),
+                    (Action::ToggleHelp, "Toggle help"),
+                    (Action::ToggleStatusBar, "Toggle status bar"),
                 ],
             },
         ]
@@ -124,7 +114,7 @@ impl ActionMapping {
                 ActionMapping {
                     category: ActionCategory::ToggleRemoteControl,
                     actions: vec![(
-                        Action::ToggleFeature(FeatureFlags::RemoteControl),
+                        Action::ToggleRemoteControl,
                         "Remote Control",
                     )],
                 },
@@ -145,7 +135,7 @@ impl ActionMapping {
                 ActionMapping {
                     category: ActionCategory::ToggleRemoteControl,
                     actions: vec![(
-                        Action::ToggleFeature(FeatureFlags::RemoteControl),
+                        Action::ToggleRemoteControl,
                         "Back to Channel",
                     )],
                 },

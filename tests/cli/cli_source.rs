@@ -4,9 +4,7 @@
 //! generating and formatting the data that users interact with. Source commands define
 //! what entries are available for selection and how they're processed.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --source-command works properly in Ad-hoc Mode.
 #[test]

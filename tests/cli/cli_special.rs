@@ -4,9 +4,7 @@
 //! features, ensuring that the autocomplete prompt can automatically select appropriate
 //! channels based on command analysis.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --autocomplete-prompt automatically detects and activates the appropriate channel.
 #[test]

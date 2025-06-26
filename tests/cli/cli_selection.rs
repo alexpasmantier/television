@@ -4,9 +4,7 @@
 //! automated workflows to get results without user interaction. They also ensure that
 //! conflicting selection modes are properly detected and rejected.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --select-1 automatically selects and returns when only one entry matches.
 #[test]

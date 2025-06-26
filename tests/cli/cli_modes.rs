@@ -4,9 +4,7 @@
 //! and the intelligent path detection logic that automatically switches between them.
 //! This is fundamental to how Television interprets CLI arguments.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that basic Channel Mode activation works with a channel name.
 #[test]

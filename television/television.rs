@@ -226,9 +226,7 @@ impl Television {
         // of flags that Television manages directly
         if no_preview {
             config.ui.features.disable(FeatureFlags::PreviewPanel);
-            config
-                .keybindings
-                .remove(&Action::ToggleFeature(FeatureFlags::PreviewPanel));
+            config.keybindings.remove(&Action::TogglePreview);
         }
 
         // Apply preview size regardless of preview state
@@ -503,8 +501,10 @@ impl Television {
                     | Action::ScrollPreviewUp
                     | Action::ScrollPreviewHalfPageDown
                     | Action::ScrollPreviewHalfPageUp
-                    | Action::ToggleSendToChannel
-                    | Action::ToggleFeature(_)
+                    | Action::ToggleHelp
+                    | Action::TogglePreview
+                    | Action::ToggleStatusBar
+                    | Action::ToggleRemoteControl
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -799,30 +799,51 @@ impl Television {
                     self.change_channel(prototype);
                 }
             }
-            Action::ToggleFeature(feature) => {
-                // Special handling for remote control feature
-                if *feature == FeatureFlags::RemoteControl {
-                    // Remote control toggle requires mode switching and state management
-                    if self.remote_control.is_none() {
-                        return Ok(());
+            Action::ToggleRemoteControl => {
+                if self.remote_control.is_none() {
+                    return Ok(());
+                }
+                match self.mode {
+                    Mode::Channel => {
+                        self.mode = Mode::RemoteControl;
+                        self.remote_control
+                            .as_mut()
+                            .unwrap()
+                            .find(EMPTY_STRING);
                     }
-                    match self.mode {
-                        Mode::Channel => {
-                            self.mode = Mode::RemoteControl;
-                        }
-                        Mode::RemoteControl => {
-                            // Reset the RC picker when leaving remote control mode
-                            self.reset_picker_input();
-                            self.remote_control
-                                .as_mut()
-                                .unwrap()
-                                .find(EMPTY_STRING);
-                            self.reset_picker_selection();
-                            self.mode = Mode::Channel;
-                        }
+                    Mode::RemoteControl => {
+                        // Reset the RC picker when leaving remote control mode
+                        self.reset_picker_input();
+                        self.remote_control
+                            .as_mut()
+                            .unwrap()
+                            .find(EMPTY_STRING);
+                        self.reset_picker_selection();
+                        self.mode = Mode::Channel;
                     }
                 }
-                self.config.ui.features.toggle_visible(*feature);
+                self.config
+                    .ui
+                    .features
+                    .toggle_visible(FeatureFlags::RemoteControl);
+            }
+            Action::ToggleHelp => {
+                self.config
+                    .ui
+                    .features
+                    .toggle_visible(FeatureFlags::HelpPanel);
+            }
+            Action::TogglePreview => {
+                self.config
+                    .ui
+                    .features
+                    .toggle_visible(FeatureFlags::PreviewPanel);
+            }
+            Action::ToggleStatusBar => {
+                self.config
+                    .ui
+                    .features
+                    .toggle_visible(FeatureFlags::StatusBar);
             }
             _ => {}
         }

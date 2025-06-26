@@ -3,9 +3,7 @@
 //! These tests verify Television's configuration and directory handling capabilities,
 //! ensuring that users can customize their setup and work in different directories.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that the PATH positional argument correctly sets the working directory.
 #[test]

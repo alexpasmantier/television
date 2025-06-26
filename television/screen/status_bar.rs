@@ -132,10 +132,8 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .features
         .is_enabled(FeatureFlags::RemoteControl)
     {
-        if let Some(binding) = ctx
-            .config
-            .keybindings
-            .get(&Action::ToggleFeature(FeatureFlags::RemoteControl))
+        if let Some(binding) =
+            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
         {
             let hint_text = match ctx.tv_state.mode {
                 Mode::Channel => "Remote Control",
@@ -147,10 +145,8 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
 
     // Add preview hint (Channel mode only, but only if preview is enabled)
     if ctx.tv_state.mode == Mode::Channel {
-        if let Some(binding) = ctx
-            .config
-            .keybindings
-            .get(&Action::ToggleFeature(FeatureFlags::PreviewPanel))
+        if let Some(binding) =
+            ctx.config.keybindings.get(&Action::TogglePreview)
         {
             let hint_text = if ctx
                 .config
@@ -167,11 +163,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     }
 
     // Add keybinding help hint (available in both modes)
-    if let Some(binding) = ctx
-        .config
-        .keybindings
-        .get(&Action::ToggleFeature(FeatureFlags::HelpPanel))
-    {
+    if let Some(binding) = ctx.config.keybindings.get(&Action::ToggleHelp) {
         add_hint("Help", &binding.to_string());
     }
 

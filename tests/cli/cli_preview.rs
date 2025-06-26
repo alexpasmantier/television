@@ -4,9 +4,7 @@
 //! customize preview behavior and that conflicting options are properly detected.
 //! Preview features are essential for examining file contents and command outputs.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that --preview-command works in Ad-hoc Mode.
 #[test]

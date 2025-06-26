@@ -4,9 +4,7 @@
 //! ensuring users can effectively navigate and control the interface during operation.
 //! These are integration tests that combine CLI setup with interactive behavior.
 
-#[path = "../common/mod.rs"]
-mod common;
-use common::*;
+use super::common::*;
 
 /// Tests that the toggle preview keybinding functionality works correctly.
 #[test]
