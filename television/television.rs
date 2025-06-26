@@ -834,10 +834,12 @@ impl Television {
                     .toggle_visible(FeatureFlags::HelpPanel);
             }
             Action::TogglePreview => {
-                self.config
-                    .ui
-                    .features
-                    .toggle_visible(FeatureFlags::PreviewPanel);
+                if self.mode == Mode::Channel {
+                    self.config
+                        .ui
+                        .features
+                        .toggle_visible(FeatureFlags::PreviewPanel);
+                }
             }
             Action::ToggleStatusBar => {
                 self.config

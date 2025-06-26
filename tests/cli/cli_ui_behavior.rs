@@ -178,3 +178,56 @@ fn test_cycle_sources_keybinding() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
+
+/// Tests that preview toggle is disabled when in remote control mode.
+#[test]
+fn test_toggle_preview_disabled_in_remote_control_mode() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel which has preview enabled by default
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify preview is initially visible
+    tester.assert_tui_frame_contains(
+        "╭───────────────────────── files ──────────────────────────╮╭─",
+    );
+    tester.assert_tui_frame_contains("Hide Preview:");
+
+    // Enter remote control mode
+    tester.send(&ctrl('t'));
+
+    // Verify we're in remote control mode (shows channel indicators and "Back to Channel")
+    tester.assert_tui_frame_contains("(1) (2) (3)");
+    tester.assert_tui_frame_contains("Back to Channel:");
+
+    // Verify the preview hint is correctly hidden in remote control mode
+    tester.assert_not_tui_frame_contains("Hide Preview:");
+    tester.assert_not_tui_frame_contains("Show Preview:");
+
+    // Try to toggle preview - this should NOT work in remote control mode
+    tester.send(&ctrl('o'));
+
+    // Verify we're still in remote control mode and preview is still visible
+    // (the toggle should have been ignored)
+    tester.assert_tui_frame_contains("(1) (2) (3)");
+    tester.assert_tui_frame_contains("Back to Channel:");
+    tester.assert_tui_frame_contains(
+        "╭───────────────────────── files ──────────────────────────╮╭─",
+    );
+
+    // Exit remote control mode
+    tester.send(&ctrl('t'));
+
+    // Verify we're back in channel mode and preview hint is shown again
+    tester.assert_tui_frame_contains("Hide Preview:");
+    tester.assert_not_tui_frame_contains("Back to Channel:");
+
+    // Verify preview toggle works again in channel mode
+    tester.send(&ctrl('o'));
+    tester.assert_tui_frame_contains("Show Preview:");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
