@@ -114,6 +114,9 @@ fn test_preview_offset_with_preview_command() {
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
+    // Wait for the preview panel to be displayed
+    std::thread::sleep(std::time::Duration::from_millis(5000));
+
     // Verify the preview panel is active
     tester.assert_tui_frame_contains("││  500 ");
 

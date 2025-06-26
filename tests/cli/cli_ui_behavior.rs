@@ -107,6 +107,9 @@ fn test_scroll_preview_keybindings() {
     let cmd = tv_local_config_and_cable_with_args(&["files"]);
     let mut child = tester.spawn_command_tui(cmd);
 
+    // Wait for the preview panel to be displayed
+    std::thread::sleep(std::time::Duration::from_millis(5000));
+
     // Send Page Down to scroll preview down
     tester.send("\x1b[6~");
     tester.send("\x1b[6~");
@@ -135,7 +138,7 @@ fn test_reload_source_keybinding() {
     // Create initial files to be detected
     std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
     std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
-    std::thread::sleep(std::time::Duration::from_millis(200));
+    std::thread::sleep(std::time::Duration::from_millis(500));
 
     // Start with the files channel
     let cmd = tv_local_config_and_cable_with_args(&[
