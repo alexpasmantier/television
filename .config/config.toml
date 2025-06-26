@@ -56,21 +56,26 @@ preview_size = 50
 
 # UI Features
 # -------------
-# Available features:
-# - "preview_panel"     - File/content preview panel
-# - "help_panel"        - Help/keybinding reference panel
-# - "status_bar"        - Bottom status information bar  
-# - "remote_control"    - Remote control mode switching
-features = ["preview_panel", "status_bar"]
+# Each feature can have two states: enabled/disabled and visible/not visible
+# - enabled: controls whether the feature is functional
+# - visible: controls whether the feature is displayed (only works if enabled)
+#
+# You can use the old array format for backward compatibility:
+# features = ["preview_panel", "status_bar", "remote_control"]
+#
+# Or use the new detailed format:
+[ui.features]
+preview_panel = { enabled = true, visible = true }
+help_panel = { enabled = true, visible = false }
+status_bar = { enabled = true, visible = true }
+remote_control = { enabled = true, visible = false }
 
 # Feature-specific configurations
 # Each feature can have its own configuration section
-
 [ui.status_bar]
 # Status bar separators (bubble):
 #separator_open = ""
 #separator_close = ""
-
 # Status bar separators (box):
 separator_open = ""
 separator_close = ""

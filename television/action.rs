@@ -1,4 +1,4 @@
-use crate::features::Features;
+use crate::features::FeatureFlags;
 use serde::{Deserialize, Serialize};
 
 /// The different actions that can be performed by the application.
@@ -103,19 +103,7 @@ pub enum Action {
     #[serde(alias = "quit")]
     Quit,
     /// Toggle a UI feature.
-    ToggleFeature(Features),
-    /// Backwards compatibility: maps to `ToggleFeature(Features::PREVIEW_PANEL)`
-    #[serde(alias = "toggle_preview")]
-    TogglePreview,
-    /// Backwards compatibility: maps to `ToggleFeature(Features::HELP_PANEL)`
-    #[serde(alias = "toggle_help")]
-    ToggleHelp,
-    /// Backwards compatibility: maps to `ToggleFeature(Features::REMOTE_CONTROL)`
-    #[serde(alias = "toggle_remote_control")]
-    ToggleRemoteControl,
-    /// Backwards compatibility: maps to `ToggleFeature(Features::STATUS_BAR)`
-    #[serde(alias = "toggle_status_bar")]
-    ToggleStatusBar,
+    ToggleFeature(FeatureFlags),
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),

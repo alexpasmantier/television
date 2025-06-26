@@ -1,13 +1,9 @@
-#![allow(clippy::module_name_repetitions, clippy::ref_option)]
 use crate::{
-    action::Action,
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
-    features::Features,
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
-
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 use std::{
@@ -223,34 +219,38 @@ impl Config {
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
-        if let Some(ui_scale) = &ui_spec.ui_scale {
-            self.ui.ui_scale = *ui_scale;
+        // Apply simple copy fields (Copy types)
+        if let Some(value) = ui_spec.ui_scale {
+            self.ui.ui_scale = value;
         }
-        if let Some(show_preview_panel) = &ui_spec.show_preview_panel {
-            if *show_preview_panel {
-                self.ui.features.insert(Features::PREVIEW_PANEL);
-            } else {
-                self.ui.features.remove(Features::PREVIEW_PANEL);
-                self.keybindings.remove(&Action::TogglePreview);
-            }
+        if let Some(value) = ui_spec.orientation {
+            self.ui.orientation = value;
         }
-        if let Some(orientation) = &ui_spec.orientation {
-            self.ui.orientation = *orientation;
-        }
-        if let Some(input_position) = &ui_spec.input_bar_position {
-            self.ui.input_bar_position = *input_position;
-        }
-        if let Some(input_header) = &ui_spec.input_header {
-            self.ui.input_header = Some(input_header.clone());
+        if let Some(value) = ui_spec.input_bar_position {
+            self.ui.input_bar_position = value;
         }
 
-        // Apply feature-specific configurations
-        if let Some(status_bar) = &ui_spec.status_bar {
-            self.ui.status_bar = status_bar.clone();
+        // Apply clone fields
+        if let Some(value) = &ui_spec.features {
+            self.ui.features = value.clone();
+        }
+        if let Some(value) = &ui_spec.status_bar {
+            self.ui.status_bar = value.clone();
+        }
+        if let Some(value) = &ui_spec.help_panel {
+            self.ui.help_panel = value.clone();
+        }
+        if let Some(value) = &ui_spec.remote_control {
+            self.ui.remote_control = value.clone();
         }
 
+        // Apply input_header
+        if let Some(value) = &ui_spec.input_header {
+            self.ui.input_header = Some(value.clone());
+        }
+
+        // Handle preview_panel with field merging
         if let Some(preview_panel) = &ui_spec.preview_panel {
-            // Merge preview panel fields
             self.ui.preview_panel.size = preview_panel.size;
             if let Some(header) = &preview_panel.header {
                 self.ui.preview_panel.header = Some(header.clone());
@@ -259,13 +259,6 @@ impl Config {
                 self.ui.preview_panel.footer = Some(footer.clone());
             }
             self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
-        }
-
-        if let Some(help_panel) = &ui_spec.help_panel {
-            self.ui.help_panel = help_panel.clone();
-        }
-        if let Some(remote_control) = &ui_spec.remote_control {
-            self.ui.remote_control = remote_control.clone();
         }
     }
 }

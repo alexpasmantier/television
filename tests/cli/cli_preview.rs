@@ -279,3 +279,76 @@ fn test_preview_flags_without_preview_command_errors_in_adhoc_mode() {
         "preview-header requires a preview command",
     );
 }
+
+/// Tests that --hide-preview starts the interface with the preview panel hidden.
+#[test]
+fn test_hide_preview_flag_starts_with_preview_hidden() {
+    let mut tester = PtyTester::new();
+
+    // Start the files channel with the preview panel hidden
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--hide-preview"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the preview panel is hidden (shows "Show Preview:" prompt)
+    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+    tester.assert_tui_frame_contains("Show Preview:");
+    tester.assert_not_tui_frame_contains("Hide Preview:");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --show-preview starts the interface with the preview panel visible.
+#[test]
+fn test_show_preview_flag_starts_with_preview_visible() {
+    let mut tester = PtyTester::new();
+
+    // Start the files channel with the preview panel explicitly visible
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--show-preview"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the preview panel is visible (shows "Hide Preview:" prompt)
+    tester.assert_tui_frame_contains("Hide Preview:");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-preview and --show-preview cannot be used together.
+#[test]
+fn test_hide_and_show_preview_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-preview",
+        "--show-preview",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --hide-preview conflicts with --no-preview.
+#[test]
+fn test_hide_preview_conflicts_with_no_preview() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "ls",
+        "--hide-preview",
+        "--no-preview",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message
+    tester.assert_raw_output_contains("cannot be used with");
+}

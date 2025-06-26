@@ -1,4 +1,6 @@
-use crate::{action::Action, draw::Ctx, television::Mode};
+use crate::{
+    action::Action, draw::Ctx, features::FeatureFlags, television::Mode,
+};
 use ratatui::{
     Frame,
     layout::{
@@ -124,9 +126,16 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     };
 
     // Add remote control hint (available in both modes, but only if remote control is enabled)
-    if ctx.config.ui.remote_control_enabled() {
-        if let Some(binding) =
-            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
+    if ctx
+        .config
+        .ui
+        .features
+        .is_enabled(FeatureFlags::RemoteControl)
+    {
+        if let Some(binding) = ctx
+            .config
+            .keybindings
+            .get(&Action::ToggleFeature(FeatureFlags::RemoteControl))
         {
             let hint_text = match ctx.tv_state.mode {
                 Mode::Channel => "Remote Control",
@@ -138,10 +147,17 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
 
     // Add preview hint (Channel mode only, but only if preview is enabled)
     if ctx.tv_state.mode == Mode::Channel {
-        if let Some(binding) =
-            ctx.config.keybindings.get(&Action::TogglePreview)
+        if let Some(binding) = ctx
+            .config
+            .keybindings
+            .get(&Action::ToggleFeature(FeatureFlags::PreviewPanel))
         {
-            let hint_text = if ctx.config.ui.preview_enabled() {
+            let hint_text = if ctx
+                .config
+                .ui
+                .features
+                .is_visible(FeatureFlags::PreviewPanel)
+            {
                 "Hide Preview"
             } else {
                 "Show Preview"
@@ -151,7 +167,11 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     }
 
     // Add keybinding help hint (available in both modes)
-    if let Some(binding) = ctx.config.keybindings.get(&Action::ToggleHelp) {
+    if let Some(binding) = ctx
+        .config
+        .keybindings
+        .get(&Action::ToggleFeature(FeatureFlags::HelpPanel))
+    {
         add_hint("Help", &binding.to_string());
     }
 

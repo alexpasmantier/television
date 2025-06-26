@@ -10,7 +10,7 @@ use crate::{
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
-    features::Features,
+    features::FeatureFlags,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -222,10 +222,17 @@ impl Television {
         no_preview: bool,
         preview_size: Option<u16>,
     ) {
+        // Handle preview panel flags - this mirrors the logic in main.rs but only for the subset
+        // of flags that Television manages directly
         if no_preview {
-            config.ui.features.remove(Features::PREVIEW_PANEL);
-            config.keybindings.remove(&Action::TogglePreview);
-        } else if let Some(ps) = preview_size {
+            config.ui.features.disable(FeatureFlags::PreviewPanel);
+            config
+                .keybindings
+                .remove(&Action::ToggleFeature(FeatureFlags::PreviewPanel));
+        }
+
+        // Apply preview size regardless of preview state
+        if let Some(ps) = preview_size {
             config.ui.preview_panel.size = ps;
         }
     }
@@ -313,7 +320,11 @@ impl Television {
         );
         // Set preview state enabled based on both channel capability and UI configuration
         self.preview_state.enabled = channel_prototype.preview.is_some()
-            && self.config.ui.preview_enabled();
+            && self
+                .config
+                .ui
+                .features
+                .is_enabled(FeatureFlags::PreviewPanel);
         self.channel_prototype = channel_prototype.clone();
         self.current_command_index = 0;
         self.channel = CableChannel::new(channel_prototype);
@@ -494,13 +505,9 @@ impl Television {
                     | Action::ScrollPreviewHalfPageUp
                     | Action::ToggleSendToChannel
                     | Action::ToggleFeature(_)
-                    | Action::TogglePreview
-                    | Action::ToggleHelp
-                    | Action::ToggleRemoteControl
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
-                    | Action::ToggleStatusBar
             ))
             // We want to avoid too much rendering while the channel is reloading
             // to prevent UI flickering.
@@ -794,7 +801,7 @@ impl Television {
             }
             Action::ToggleFeature(feature) => {
                 // Special handling for remote control feature
-                if *feature == Features::REMOTE_CONTROL {
+                if *feature == FeatureFlags::RemoteControl {
                     // Remote control toggle requires mode switching and state management
                     if self.remote_control.is_none() {
                         return Ok(());
@@ -802,19 +809,6 @@ impl Television {
                     match self.mode {
                         Mode::Channel => {
                             self.mode = Mode::RemoteControl;
-                            // // Preselect the current channel in remote control mode
-                            // let current_channel_name = self.current_channel();
-                            // if let Some(rc) = self.remote_control.as_mut() {
-                            //     rc.find(EMPTY_STRING); // Clear any existing filter
-                            //     if let Some(index) = rc.find_channel_index(&current_channel_name) {
-                            //         let index = index as usize;
-                            //         self.rc_picker.select(Some(index));
-                            //         // Also set relative selection for proper viewport positioning
-                            //         let viewport_height = self.ui_state.layout.results.height.saturating_sub(2) as usize;
-                            //         let relative_index = index.min(viewport_height - 1);
-                            //         self.rc_picker.relative_select(Some(relative_index));
-                            //     }
-                            // }
                         }
                         Mode::RemoteControl => {
                             // Reset the RC picker when leaving remote control mode
@@ -828,31 +822,8 @@ impl Television {
                         }
                     }
                 }
-                self.config.ui.toggle_feature(*feature);
+                self.config.ui.features.toggle_visible(*feature);
             }
-            Action::TogglePreview => {
-                if self.mode == Mode::Channel {
-                    self.handle_action(&Action::ToggleFeature(
-                        Features::PREVIEW_PANEL,
-                    ))?;
-                }
-            }
-            Action::ToggleHelp => {
-                self.handle_action(&Action::ToggleFeature(
-                    Features::HELP_PANEL,
-                ))?;
-            }
-            Action::ToggleStatusBar => {
-                self.handle_action(&Action::ToggleFeature(
-                    Features::STATUS_BAR,
-                ))?;
-            }
-            Action::ToggleRemoteControl => {
-                self.handle_action(&Action::ToggleFeature(
-                    Features::REMOTE_CONTROL,
-                ))?;
-            }
-
             _ => {}
         }
         Ok(())

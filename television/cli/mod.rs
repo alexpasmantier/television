@@ -1,9 +1,3 @@
-use rustc_hash::FxHashMap;
-use std::path::{Path, PathBuf};
-
-use anyhow::{Result, anyhow};
-use tracing::debug;
-
 use crate::{
     cable::{self, Cable},
     channels::prototypes::{ChannelPrototype, Template},
@@ -16,6 +10,10 @@ use crate::{
     screen::layout::Orientation,
     utils::paths::expand_tilde,
 };
+use anyhow::{Result, anyhow};
+use rustc_hash::FxHashMap;
+use std::path::{Path, PathBuf};
+use tracing::debug;
 
 pub mod args;
 
@@ -55,10 +53,21 @@ pub struct PostProcessedCli {
     pub preview_command_override: Option<Template>,
     pub preview_offset_override: Option<Template>,
     pub no_preview: bool,
-    pub no_status_bar: bool,
+    pub hide_preview: bool,
+    pub show_preview: bool,
     pub preview_size: Option<u16>,
     pub preview_header: Option<String>,
     pub preview_footer: Option<String>,
+
+    // Status bar configuration
+    pub no_status_bar: bool,
+    pub hide_status_bar: bool,
+    pub show_status_bar: bool,
+
+    // Remote configuration
+    pub no_remote: bool,
+    pub hide_remote: bool,
+    pub show_remote: bool,
 
     // Input configuration
     pub input: Option<String>,
@@ -67,7 +76,6 @@ pub struct PostProcessedCli {
     // UI and layout configuration
     pub layout: Option<Orientation>,
     pub ui_scale: u16,
-    pub no_remote: bool,
 
     // Behavior and matching configuration
     pub exact: bool,
@@ -103,10 +111,21 @@ impl Default for PostProcessedCli {
             preview_command_override: None,
             preview_offset_override: None,
             no_preview: false,
-            no_status_bar: false,
+            hide_preview: false,
+            show_preview: false,
             preview_size: Some(DEFAULT_PREVIEW_SIZE),
             preview_header: None,
             preview_footer: None,
+
+            // Status bar configuration
+            no_status_bar: false,
+            hide_status_bar: false,
+            show_status_bar: false,
+
+            // Remote configuration
+            no_remote: false,
+            hide_remote: false,
+            show_remote: false,
 
             // Input configuration
             input: None,
@@ -115,7 +134,6 @@ impl Default for PostProcessedCli {
             // UI and layout configuration
             layout: None,
             ui_scale: DEFAULT_UI_SCALE,
-            no_remote: false,
 
             // Behavior and matching configuration
             exact: false,
@@ -242,7 +260,11 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         preview_command_override,
         preview_offset_override,
         no_preview: cli.no_preview,
+        hide_preview: cli.hide_preview,
+        show_preview: cli.show_preview,
         no_status_bar: cli.no_status_bar,
+        hide_status_bar: cli.hide_status_bar,
+        show_status_bar: cli.show_status_bar,
         preview_size: cli.preview_size,
         preview_header: cli.preview_header,
         preview_footer: cli.preview_footer,
@@ -255,6 +277,8 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         layout,
         ui_scale: cli.ui_scale,
         no_remote: cli.no_remote,
+        hide_remote: cli.hide_remote,
+        show_remote: cli.show_remote,
 
         // Behavior and matching configuration
         exact: cli.exact,

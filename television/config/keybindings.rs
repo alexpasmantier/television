@@ -1,6 +1,7 @@
 use crate::{
     action::Action,
     event::{Key, convert_raw_event_to_key},
+    features::FeatureFlags,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
@@ -31,13 +32,75 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize)]
 /// A set of keybindings for various actions in the application.
 ///
 /// This struct is a wrapper around a `FxHashMap` that maps `Action`s to their corresponding
 /// `Binding`s. It's main use is to provide a convenient way to manage and serialize/deserialize
 /// keybindings from the configuration file as well as channel prototypes.
 pub struct KeyBindings(pub FxHashMap<Action, Binding>);
+
+impl<'de> Deserialize<'de> for KeyBindings {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{MapAccess, Visitor};
+        use std::fmt;
+
+        struct KeyBindingsVisitor;
+
+        impl<'de> Visitor<'de> for KeyBindingsVisitor {
+            type Value = KeyBindings;
+
+            fn expecting(
+                &self,
+                formatter: &mut fmt::Formatter,
+            ) -> fmt::Result {
+                formatter.write_str("a map of action names to key bindings")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<KeyBindings, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                let mut bindings = FxHashMap::default();
+
+                while let Some(key) = map.next_key::<String>()? {
+                    let binding = map.next_value::<Binding>()?;
+
+                    // Handle special toggle feature keys
+                    let action = match key.as_str() {
+                        "toggle_remote_control" => {
+                            Action::ToggleFeature(FeatureFlags::RemoteControl)
+                        }
+                        "toggle_preview" => {
+                            Action::ToggleFeature(FeatureFlags::PreviewPanel)
+                        }
+                        "toggle_help" => {
+                            Action::ToggleFeature(FeatureFlags::HelpPanel)
+                        }
+                        "toggle_status_bar" => {
+                            Action::ToggleFeature(FeatureFlags::StatusBar)
+                        }
+                        _ => {
+                            // Try to deserialize as regular Action enum using TOML value
+                            let action_str = toml::Value::String(key.clone());
+                            Action::deserialize(action_str)
+                                .map_err(serde::de::Error::custom)?
+                        }
+                    };
+
+                    bindings.insert(action, binding);
+                }
+
+                Ok(KeyBindings(bindings))
+            }
+        }
+
+        deserializer.deserialize_map(KeyBindingsVisitor)
+    }
+}
 
 impl<I> From<I> for KeyBindings
 where
@@ -345,6 +408,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_keybindings() {
+        use crate::features::FeatureFlags;
         let keybindings: KeyBindings = toml::from_str(
             r#"
                 # Quit the application
@@ -416,14 +480,17 @@ mod tests {
                     Binding::SingleKey(Key::Ctrl('y'))
                 ),
                 (
-                    Action::ToggleRemoteControl,
+                    Action::ToggleFeature(FeatureFlags::RemoteControl),
                     Binding::SingleKey(Key::Ctrl('r'))
                 ),
                 (
                     Action::ToggleSendToChannel,
                     Binding::SingleKey(Key::Ctrl('s'))
                 ),
-                (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
+                (
+                    Action::ToggleFeature(FeatureFlags::PreviewPanel),
+                    Binding::SingleKey(Key::Ctrl('o'))
+                ),
             ])
         );
     }

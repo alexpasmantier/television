@@ -51,3 +51,35 @@ fn test_watch_reloads_source_command() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
+
+/// Tests that --tick-rate accepts a valid positive number.
+#[test]
+fn test_tick_rate_valid_value_starts_application() {
+    let mut tester = PtyTester::new();
+
+    // Start Television with a custom tick rate
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "30"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the TUI launched successfully
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --tick-rate rejects non-positive numbers.
+#[test]
+fn test_tick_rate_invalid_value_errors() {
+    let mut tester = PtyTester::new();
+
+    // Use an invalid tick rate value
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "-5"]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("unexpected argument");
+}

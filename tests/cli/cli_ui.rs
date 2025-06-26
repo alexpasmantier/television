@@ -143,3 +143,144 @@ fn test_no_status_bar_hides_status_bar() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
+
+/// Tests that --hide-status-bar starts the interface with the status bar hidden.
+#[test]
+fn test_hide_status_bar_flag_hides_status_bar() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and hide the status bar
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--hide-status-bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the status bar is hidden
+    tester.assert_not_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --show-status-bar ensures the status bar is visible.
+#[test]
+fn test_show_status_bar_flag_shows_status_bar() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and force the status bar visible
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--show-status-bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the status bar is visible
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-status-bar conflicts with --no-status-bar.
+#[test]
+fn test_hide_status_bar_conflicts_with_no_status_bar() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-status-bar",
+        "--no-status-bar",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --hide-status-bar and --show-status-bar cannot be used together.
+#[test]
+fn test_hide_and_show_status_bar_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-status-bar",
+        "--show-status-bar",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --show-remote starts the interface with the remote control panel visible.
+#[test]
+fn test_show_remote_flag_shows_remote_panel() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and show the remote control panel
+    let cmd = tv_local_config_and_cable_with_args(&["files", "--show-remote"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the remote control panel is visible (channel indicators)
+    tester.assert_tui_frame_contains("(1) (2) (3)");
+
+    // Send Ctrl+C to remote control
+    tester.send(&ctrl('c'));
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-remote prevents the remote control panel from showing at startup.
+#[test]
+fn test_hide_remote_flag_hides_remote_panel() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and hide the remote control panel
+    let cmd = tv_local_config_and_cable_with_args(&["files", "--hide-remote"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    tester.assert_not_tui_frame_contains("(1) (2) (3)");
+    tester.assert_not_tui_frame_contains("remote");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --hide-remote conflicts with --no-remote.
+#[test]
+fn test_hide_remote_conflicts_with_no_remote() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-remote",
+        "--no-remote",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --hide-remote and --show-remote cannot be used together.
+#[test]
+fn test_hide_and_show_remote_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because the flags are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-remote",
+        "--show-remote",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
