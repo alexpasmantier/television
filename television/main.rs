@@ -5,28 +5,31 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
-use television::app::{App, AppOptions};
-use television::cli::post_process;
-use television::cli::{
-    PostProcessedCli,
-    args::{Cli, Command},
-    guess_channel_from_prompt, list_channels,
-};
-use television::config::{Config, ConfigEnv, merge_keybindings};
-use television::errors::os_error_exit;
-use television::features::Features;
-use television::gh::update_local_channels;
-use television::utils::shell::render_autocomplete_script_template;
-use television::utils::{
-    shell::{Shell, completion_script},
-    stdin::is_readable_stdin,
-};
 use television::{
+    action::Action,
+    app::{App, AppOptions},
     cable::{Cable, load_cable},
     channels::prototypes::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
     },
+    cli::post_process,
+    cli::{
+        PostProcessedCli,
+        args::{Cli, Command},
+        guess_channel_from_prompt, list_channels,
+    },
+    config::{Config, ConfigEnv, merge_keybindings},
+    errors::os_error_exit,
+    features::{FeatureFlags, Features},
+    gh::update_local_channels,
+    television::Mode,
     utils::clipboard::CLIPBOARD,
+    utils::{
+        shell::{
+            Shell, completion_script, render_autocomplete_script_template,
+        },
+        stdin::is_readable_stdin,
+    },
 };
 use tracing::{debug, info};
 
@@ -99,6 +102,16 @@ async fn main() -> Result<()> {
         cable,
     );
 
+    // If the user requested to show the remote control on startup, switch the
+    // television into Remote Control mode before the application event loop
+    // begins. This mirrors the behaviour of toggling the remote control via
+    // the corresponding keybinding after launch, ensuring the panel is
+    // visible from the start.
+    // TODO: This is a hack, preview is not initialised yet, find a better way to do it.
+    if args.show_remote && app.television.remote_control.is_some() {
+        app.television.mode = Mode::RemoteControl;
+    }
+
     stdout().flush()?;
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
@@ -130,15 +143,50 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(tick_rate) = args.tick_rate {
         config.application.tick_rate = tick_rate;
     }
+    // Handle preview panel flags
     if args.no_preview {
-        config.ui.features.remove(Features::PREVIEW_PANEL);
+        config.ui.features.disable(FeatureFlags::PreviewPanel);
+        config.keybindings.remove(&Action::TogglePreview);
+    } else if args.hide_preview {
+        config.ui.features.hide(FeatureFlags::PreviewPanel);
+    } else if args.show_preview {
+        config.ui.features.enable(FeatureFlags::PreviewPanel);
     }
-    if args.no_status_bar {
-        config.ui.features.remove(Features::STATUS_BAR);
-    }
+
     if let Some(ps) = args.preview_size {
         config.ui.preview_panel.size = ps;
     }
+
+    // Handle status bar flags
+    if args.no_status_bar {
+        config.ui.features.disable(FeatureFlags::StatusBar);
+        config.keybindings.remove(&Action::ToggleStatusBar);
+    } else if args.hide_status_bar {
+        config.ui.features.hide(FeatureFlags::StatusBar);
+    } else if args.show_status_bar {
+        config.ui.features.enable(FeatureFlags::StatusBar);
+    }
+
+    // Handle remote control flags
+    if args.no_remote {
+        config.ui.features.disable(FeatureFlags::RemoteControl);
+        config.keybindings.remove(&Action::ToggleRemoteControl);
+    } else if args.hide_remote {
+        config.ui.features.hide(FeatureFlags::RemoteControl);
+    } else if args.show_remote {
+        config.ui.features.enable(FeatureFlags::RemoteControl);
+    }
+
+    // Handle help panel flags
+    if args.no_help_panel {
+        config.ui.features.disable(FeatureFlags::HelpPanel);
+        config.keybindings.remove(&Action::ToggleHelp);
+    } else if args.hide_help_panel {
+        config.ui.features.hide(FeatureFlags::HelpPanel);
+    } else if args.show_help_panel {
+        config.ui.features.enable(FeatureFlags::HelpPanel);
+    }
+
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
             merge_keybindings(config.keybindings.clone(), keybindings);
@@ -233,13 +281,27 @@ pub fn determine_channel(
         // Create an ad-hoc channel prototype
         let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
 
-        // Set UI spec - only hide preview if no preview command is provided
+        let mut input_header = Template::parse("Custom Channel");
+        if let Some(ih) = &args.input_header {
+            input_header = Template::parse(ih);
+        }
+
+        // Create features configuration for ad-hoc channel
+        let mut features = Features::default();
+        // Only enable preview if a preview command is provided
+        if args.preview_command_override.is_some() {
+            features.enable(FeatureFlags::PreviewPanel);
+        } else {
+            features.disable(FeatureFlags::PreviewPanel);
+        }
+
+        // Set UI spec using the new features system
         let ui_spec = UiSpec {
             ui_scale: None,
-            show_preview_panel: Some(args.preview_command_override.is_some()),
+            features: Some(features),
             orientation: None,
             input_bar_position: None,
-            input_header: Some(Template::parse("Custom Channel").unwrap()),
+            input_header: input_header.ok(),
             status_bar: None,
             preview_panel: None,
             help_panel: None,
@@ -474,10 +536,13 @@ mod tests {
         assert_eq!(channel.metadata.name, "custom");
         assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
 
-        // Check that UI options are set to hide preview
+        // Check that UI options are set using the new features system
         assert!(channel.ui.is_some());
         let ui_spec = channel.ui.as_ref().unwrap();
-        assert_eq!(ui_spec.show_preview_panel, Some(false));
+        assert!(ui_spec.features.is_some());
+        let features = ui_spec.features.as_ref().unwrap();
+        // Preview should be disabled since no preview command was provided
+        assert!(!features.is_enabled(FeatureFlags::PreviewPanel));
         assert_eq!(
             ui_spec.input_header,
             Some(Template::parse("Custom Channel").unwrap())
@@ -498,7 +563,7 @@ mod tests {
         apply_cli_overrides(&args, &mut config);
 
         assert_eq!(config.application.tick_rate, 100_f64);
-        assert!(!config.ui.preview_enabled());
+        assert!(!config.ui.features.is_enabled(FeatureFlags::PreviewPanel));
         assert_eq!(
             config.ui.input_header,
             Some(Template::parse("Input Header").unwrap())

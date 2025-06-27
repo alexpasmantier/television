@@ -2,7 +2,7 @@ use crate::{
     channels::prototypes::Template,
     config::themes::DEFAULT_THEME,
     features::Features,
-    screen::layout::{InputPosition, Orientation, PreviewTitlePosition},
+    screen::layout::{InputPosition, Orientation},
 };
 use serde::{Deserialize, Serialize};
 
@@ -73,7 +73,6 @@ pub struct UiConfig {
     pub ui_scale: u16,
     pub input_bar_position: InputPosition,
     pub orientation: Orientation,
-    pub preview_title_position: Option<PreviewTitlePosition>,
     pub theme: String,
     pub input_header: Option<Template>,
     pub features: Features,
@@ -92,7 +91,6 @@ impl Default for UiConfig {
             ui_scale: DEFAULT_UI_SCALE,
             input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
-            preview_title_position: None,
             theme: String::from(DEFAULT_THEME),
             input_header: None,
             features: Features::default(),
@@ -101,27 +99,5 @@ impl Default for UiConfig {
             help_panel: HelpPanelConfig::default(),
             remote_control: RemoteControlConfig::default(),
         }
-    }
-}
-
-impl UiConfig {
-    pub fn preview_enabled(&self) -> bool {
-        self.features.contains(Features::PREVIEW_PANEL)
-    }
-
-    pub fn help_panel_enabled(&self) -> bool {
-        self.features.contains(Features::HELP_PANEL)
-    }
-
-    pub fn status_bar_enabled(&self) -> bool {
-        self.features.contains(Features::STATUS_BAR)
-    }
-
-    pub fn remote_control_enabled(&self) -> bool {
-        self.features.contains(Features::REMOTE_CONTROL)
-    }
-
-    pub fn toggle_feature(&mut self, feat: Features) {
-        self.features.toggle(feat);
     }
 }

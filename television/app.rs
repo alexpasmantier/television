@@ -4,7 +4,6 @@ use crate::{
     channels::{entry::Entry, prototypes::ChannelPrototype},
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, Key},
-    features::Features,
     keymap::Keymap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
@@ -506,9 +505,8 @@ impl App {
                 match action {
                     Action::Quit => {
                         if self.television.mode == Mode::RemoteControl {
-                            self.action_tx.send(Action::ToggleFeature(
-                                Features::REMOTE_CONTROL,
-                            ))?;
+                            self.action_tx
+                                .send(Action::ToggleRemoteControl)?;
                         } else {
                             self.stop_watch_timer();
                             self.should_quit = true;

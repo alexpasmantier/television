@@ -1,4 +1,6 @@
-use crate::{action::Action, draw::Ctx, television::Mode};
+use crate::{
+    action::Action, draw::Ctx, features::FeatureFlags, television::Mode,
+};
 use ratatui::{
     Frame,
     layout::{
@@ -123,23 +125,35 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         ]);
     };
 
-    // Add remote control hint (available in both modes)
-    if let Some(binding) =
-        ctx.config.keybindings.get(&Action::ToggleRemoteControl)
+    // Add remote control hint (available in both modes, but only if remote control is enabled)
+    if ctx
+        .config
+        .ui
+        .features
+        .is_enabled(FeatureFlags::RemoteControl)
     {
-        let hint_text = match ctx.tv_state.mode {
-            Mode::Channel => "Remote Control",
-            Mode::RemoteControl => "Back to Channel",
-        };
-        add_hint(hint_text, &binding.to_string());
+        if let Some(binding) =
+            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
+        {
+            let hint_text = match ctx.tv_state.mode {
+                Mode::Channel => "Remote Control",
+                Mode::RemoteControl => "Back to Channel",
+            };
+            add_hint(hint_text, &binding.to_string());
+        }
     }
 
-    // Add preview hint (Channel mode only)
+    // Add preview hint (Channel mode only, but only if preview is enabled)
     if ctx.tv_state.mode == Mode::Channel {
         if let Some(binding) =
             ctx.config.keybindings.get(&Action::TogglePreview)
         {
-            let hint_text = if ctx.config.ui.preview_enabled() {
+            let hint_text = if ctx
+                .config
+                .ui
+                .features
+                .is_visible(FeatureFlags::PreviewPanel)
+            {
                 "Hide Preview"
             } else {
                 "Show Preview"

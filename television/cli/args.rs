@@ -57,14 +57,40 @@ pub struct Cli {
     /// This flag works identically in both channel mode and ad-hoc mode.
     /// When set, no preview panel will be shown regardless of channel configuration
     /// or preview-related flags.
-    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["preview_offset", "preview_header", "preview_footer", "preview_size", "preview_command"])]
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["preview_offset", "preview_header", "preview_footer", "preview_size", "preview_command", "hide_preview", "show_preview"])]
     pub no_preview: bool,
+
+    /// Hide the preview panel on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// The preview remains functional and can be toggled visible later.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_preview", "show_preview"])]
+    pub hide_preview: bool,
+
+    /// Show the preview panel on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// This overrides any channel configuration that might have it disabled.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_preview", "hide_preview"])]
+    pub show_preview: bool,
 
     /// Disable the status bar on startup.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["hide_status_bar", "show_status_bar"])]
     pub no_status_bar: bool,
+
+    /// Hide the status bar on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_status_bar", "show_status_bar"])]
+    pub hide_status_bar: bool,
+
+    /// Show the status bar on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_status_bar", "hide_status_bar"])]
+    pub show_status_bar: bool,
 
     /// The application's tick rate.
     ///
@@ -315,8 +341,43 @@ pub struct Cli {
     /// when the user wants `tv` to run in single-channel mode (e.g. when
     /// using it as a file picker for a script or embedding it in a larger
     /// application).
-    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["hide_remote", "show_remote"])]
     pub no_remote: bool,
+
+    /// Hide the remote control on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// The remote control remains functional and can be toggled visible later.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_remote", "show_remote"])]
+    pub hide_remote: bool,
+
+    /// Show the remote control on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_remote", "hide_remote"])]
+    pub show_remote: bool,
+
+    /// Disable the help panel entirely on startup.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// When set, no help panel will be shown regardless of channel configuration
+    /// or help panel-related flags.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["hide_help_panel", "show_help_panel"])]
+    pub no_help_panel: bool,
+
+    /// Hide the help panel on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// The help panel remains functional and can be toggled visible later.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_help_panel", "show_help_panel"])]
+    pub hide_help_panel: bool,
+
+    /// Show the help panel on startup (only works if feature is enabled).
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    /// This overrides any channel configuration that might have it disabled.
+    #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_help_panel", "hide_help_panel"])]
+    pub show_help_panel: bool,
 
     /// Change the display size in relation to the available area.
     ///
