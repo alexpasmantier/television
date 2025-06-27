@@ -1,5 +1,6 @@
 use crate::{
     config::{Binding, KeyBindings, ui},
+    features::Features,
     screen::layout::{InputPosition, Orientation},
 };
 use anyhow::Result;
@@ -330,7 +331,7 @@ pub struct UiSpec {
     #[serde(default)]
     pub ui_scale: Option<u16>,
     #[serde(default)]
-    pub show_preview_panel: Option<bool>,
+    pub features: Option<Features>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
     #[serde(rename = "layout", alias = "orientation", default)]
     pub orientation: Option<Orientation>,
@@ -436,9 +437,11 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 100
-        show_preview_panel = true
         input_bar_position = "bottom"
         input_header = "Input: {}"
+
+        [ui.features]
+        preview_panel = { enabled = true, visible = true }
 
         [ui.preview_panel]
         size = 66
@@ -483,7 +486,9 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(100));
-        assert!(ui.show_preview_panel.unwrap());
+        assert!(ui.features.is_some());
+        let features = ui.features.as_ref().unwrap();
+        assert!(features.preview_panel.enabled);
         assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
         assert_eq!(ui.preview_panel.as_ref().unwrap().size, 66);
         assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
@@ -640,7 +645,7 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
-        assert!(ui.show_preview_panel.is_none());
+        assert!(ui.features.is_none());
         assert!(ui.input_bar_position.is_none());
         assert!(ui.preview_panel.is_some());
         assert!(ui.input_header.is_none());

@@ -1,5 +1,6 @@
 use crate::{
     config::{KeyBindings, UiConfig},
+    features::FeatureFlags,
     screen::{
         colors::Colorscheme, help_panel::calculate_help_panel_size,
         logo::REMOTE_LOGO_HEIGHT_U16,
@@ -69,26 +70,6 @@ pub enum Orientation {
     Portrait,
 }
 
-#[derive(
-    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
-)]
-pub enum PreviewTitlePosition {
-    #[serde(rename = "top")]
-    #[default]
-    Top,
-    #[serde(rename = "bottom")]
-    Bottom,
-}
-
-impl Display for PreviewTitlePosition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PreviewTitlePosition::Top => write!(f, "top"),
-            PreviewTitlePosition::Bottom => write!(f, "bottom"),
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,
@@ -147,20 +128,22 @@ impl Layout {
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
-        let show_preview = show_preview && ui_config.preview_enabled();
+        let show_preview = show_preview
+            && ui_config.features.is_visible(FeatureFlags::PreviewPanel);
         let dimensions = Dimensions::from(ui_config.ui_scale);
 
         // Reserve space for status bar if enabled
-        let working_area = if ui_config.status_bar_enabled() {
-            Rect {
-                x: area.x,
-                y: area.y,
-                width: area.width,
-                height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
-            }
-        } else {
-            area
-        };
+        let working_area =
+            if ui_config.features.is_visible(FeatureFlags::StatusBar) {
+                Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: area.width,
+                    height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
+                }
+            } else {
+                area
+            };
 
         let main_block =
             centered_rect(dimensions.x, dimensions.y, working_area);
@@ -387,18 +370,22 @@ impl Layout {
         };
 
         // the help panel is positioned at bottom-right, accounting for status bar
-        let help_panel = if ui_config.help_panel_enabled() {
+        let help_panel = if ui_config
+            .features
+            .is_visible(FeatureFlags::HelpPanel)
+        {
             // Calculate available area for help panel (excluding status bar if enabled)
-            let hp_area = if ui_config.status_bar_enabled() {
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.height.saturating_sub(1), // Account for single line status bar
-                }
-            } else {
-                area
-            };
+            let hp_area =
+                if ui_config.features.is_visible(FeatureFlags::StatusBar) {
+                    Rect {
+                        x: area.x,
+                        y: area.y,
+                        width: area.width,
+                        height: area.height.saturating_sub(1), // Account for single line status bar
+                    }
+                } else {
+                    area
+                };
 
             if let Some(kb) = keybindings {
                 let (width, height) =
@@ -413,16 +400,17 @@ impl Layout {
         };
 
         // Create status bar at the bottom if enabled
-        let status_bar = if ui_config.status_bar_enabled() {
-            Some(Rect {
-                x: area.x,
-                y: area.y + area.height - 1, // Position at the very last line
-                width: area.width,
-                height: 1, // Single line status bar
-            })
-        } else {
-            None
-        };
+        let status_bar =
+            if ui_config.features.is_visible(FeatureFlags::StatusBar) {
+                Some(Rect {
+                    x: area.x,
+                    y: area.y + area.height - 1, // Position at the very last line
+                    width: area.width,
+                    height: 1, // Single line status bar
+                })
+            } else {
+                None
+            };
 
         Self::new(
             results,
