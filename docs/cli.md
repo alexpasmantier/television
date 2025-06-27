@@ -535,9 +535,9 @@ Television uses a layered configuration system where each layer can override the
 
 ### 🎛️ Feature Configuration
 
-Television features support dual control: **enabled/disabled** and **visible/not visible**. This allows granular control over functionality and interface presentation.
+Television features support dual-state control: **enabled/disabled** and **visible/not visible**.
 
-> **📖 For comprehensive feature documentation**, including architecture details, advanced configuration, and integration examples, see [`features.md`](features.md).
+> **📖 For more details on the ui feature documentation**, see [`ui-features.md`](ui-features.md).
 
 #### Quick Feature Overview
 
@@ -549,24 +549,6 @@ Television supports four main UI features:
 | **Status Bar** | Displays application status and available actions | Enabled & Visible | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
 | **Help Panel** | Shows contextual help and keyboard shortcuts | Enabled but Hidden | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
 | **Remote Control** | Provides channel switching interface | Enabled but Hidden | `--no-remote`, `--hide-remote`, `--show-remote` |
-
-#### Feature States
-
-| State | `enabled` | `visible` | Description |
-|-------|-----------|-----------|-------------|
-| **Active** | `true` | `true` | Feature is functional and visible |
-| **Hidden** | `true` | `false` | Feature works but is not displayed (can be toggled visible) |
-| **Disabled** | `false` | `Any` | Feature is completely turned off (visibility has no impact) |
-
-#### Basic Configuration
-
-```toml
-[ui.features]
-preview_panel = { enabled = true, visible = true }    # Fully active
-help_panel = { enabled = true, visible = false }      # Enabled but hidden
-status_bar = { enabled = true, visible = true }       # Fully active
-remote_control = { enabled = true, visible = false }  # Enabled but hidden
-```
 
 #### CLI Feature Override Examples
 
