@@ -1,0 +1,7 @@
+[metadata]
+name = "alias"
+description = "A channel to select from shell aliases"
+
+[source]
+command = "Get-Alias | %{ \"{0,-10} = {1,-10}\" -f $_.Name,$_.Definition }"
+output = "{split:=:0|trim}"
