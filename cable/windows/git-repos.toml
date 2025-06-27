@@ -1,0 +1,15 @@
+[metadata]
+name = "git-repos"
+requirements = ["fd", "git"]
+description = """
+A channel to select from git repositories on your local machine.
+
+This channel uses `fd` to find directories that contain a `.git` subdirectory, and then allows you to preview the git log of the selected repository.
+"""
+
+[source]
+command = "fd -g .git -HL -t d -d 10 --prune 'C:\\Users' --exec dirname '{}'"
+display = "{split:\\\\:-1}"
+
+[preview]
+command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
