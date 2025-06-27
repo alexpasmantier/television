@@ -706,6 +706,7 @@ impl Television {
     pub fn cycle_sources(&mut self) {
         if self.mode == Mode::Channel {
             self.channel.cycle_sources();
+            self.reset_picker_selection();
         }
     }
 
