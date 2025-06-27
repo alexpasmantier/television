@@ -18,7 +18,7 @@ pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
     pixel_height: 0,
 };
 
-pub const DEFAULT_DELAY: Duration = Duration::from_millis(200);
+pub const DEFAULT_DELAY: Duration = Duration::from_millis(300);
 
 /// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
 ///
@@ -119,6 +119,8 @@ impl PtyTester {
         sleep(self.delay * 2);
 
         self.assert_tui_running(&mut child);
+        // wait for the TUI to stabilize
+        let _ = self.get_tui_frame();
         child
     }
 
@@ -192,7 +194,7 @@ impl PtyTester {
                 }
                 Ok(None) => {
                     // Process is still running, continue waiting
-                    sleep(Duration::from_millis(50));
+                    sleep(DEFAULT_DELAY / 6);
                 }
                 Err(e) => {
                     panic!("Error waiting for process: {}", e);
@@ -250,6 +252,8 @@ impl PtyTester {
                 Self::FRAME_STABILITY_TIMEOUT,
                 frame
             );
+            // Sleep briefly to allow the UI to update
+            sleep(DEFAULT_DELAY / 6);
         }
         frame
     }
@@ -270,7 +274,7 @@ impl PtyTester {
         let frame = self.get_tui_frame();
         assert!(
             !frame.contains(expected),
-            "Expected output to contain\n'{}'\nbut got:\n{}",
+            "Expected output to not contain\n'{}'\nbut got:\n{}",
             expected,
             frame
         );

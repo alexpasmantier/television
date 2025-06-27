@@ -367,8 +367,6 @@ mod tests {
                 copy_entry_to_clipboard = "ctrl-y"
                 # Toggle the remote control mode
                 toggle_remote_control = "ctrl-r"
-                # Toggle the send to channel mode
-                toggle_send_to_channel = "ctrl-s"
                 # Toggle the preview panel
                 toggle_preview = "ctrl-o"
             "#,
@@ -418,10 +416,6 @@ mod tests {
                 (
                     Action::ToggleRemoteControl,
                     Binding::SingleKey(Key::Ctrl('r'))
-                ),
-                (
-                    Action::ToggleSendToChannel,
-                    Binding::SingleKey(Key::Ctrl('s'))
                 ),
                 (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
             ])
