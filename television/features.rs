@@ -338,6 +338,8 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 /// Represents the state of a feature in the UI, namely whether it is enabled and visible.
+///
+/// TODO: This could be a good candidate for a typestate but let's keep it simple for now.
 pub struct FeatureState {
     pub enabled: bool,
     pub visible: bool,
