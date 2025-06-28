@@ -163,6 +163,17 @@ where
         self.total_item_count = snapshot.item_count();
         self.matched_item_count = snapshot.matched_item_count();
 
+        // If the offset is greater than the number of matched items, return an empty Vec
+        if offset >= self.matched_item_count {
+            return Vec::new();
+        }
+        // If we're asking for more entries than available, adjust the count
+        let num_entries = if offset + num_entries > self.matched_item_count {
+            self.matched_item_count - offset
+        } else {
+            num_entries
+        };
+
         // Clear the pre-allocated match indices buffer for safety
         self.col_indices_buffer.clear();
         let mut matcher = lazy::MATCHER.lock();
@@ -222,7 +233,7 @@ where
         let mut col_indices = Vec::new();
         let mut matcher = lazy::MATCHER.lock();
 
-        snapshot.matched_items(index..=index).next().map(|item| {
+        snapshot.get_matched_item(index).map(|item| {
             snapshot.pattern().column_pattern(0).indices(
                 item.matcher_columns[0].slice(..),
                 &mut matcher,
