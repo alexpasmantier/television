@@ -51,8 +51,8 @@ jobs:
           xargs curl -LO | \
           awk '{print $2}')
 
-          # mkdir -p apt/deb/stable >> /dev/null 2>&1
-          # mv $FILE_NAME apt/deb/stable/
+          mkdir -p apt/deb/stable >> /dev/null 2>&1
+          mv $FILE_NAME apt/deb/stable/
 
           # echo "download complete, file name: $FILE_NAME"
 
