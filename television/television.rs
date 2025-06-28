@@ -375,6 +375,7 @@ impl Television {
         }
         self.selected_index()
             .map(|idx| self.channel.get_result(idx))
+            .and_then(|entry| entry)
     }
 
     pub fn get_selected_cable_entry(&self) -> Option<CableEntry> {
@@ -716,7 +717,6 @@ impl Television {
             self.channel.reload();
             // Preserve the current pattern and re-run the search
             self.find(&current_pattern);
-            self.reset_picker_selection();
         }
     }
 

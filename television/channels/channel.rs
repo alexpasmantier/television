@@ -106,24 +106,27 @@ impl Channel {
         entries
     }
 
-    pub fn get_result(&self, index: u32) -> Entry {
-        let item = self.matcher.get_result(index).expect("Invalid index");
-        let mut entry = Entry::new(item.inner.clone())
-            .with_display(item.matched_string)
-            .with_match_indices(&item.match_indices);
-        if let Some(p) = &self.prototype.preview {
-            // FIXME: this should be done by the previewer instead
-            if let Some(offset_expr) = &p.offset {
-                let offset_str = offset_expr
+    pub fn get_result(&self, index: u32) -> Option<Entry> {
+        if let Some(item) = self.matcher.get_result(index) {
+            let mut entry = Entry::new(item.inner.clone())
+                .with_display(item.matched_string)
+                .with_match_indices(&item.match_indices);
+            if let Some(p) = &self.prototype.preview {
+                // FIXME: this should be done by the previewer instead
+                if let Some(offset_expr) = &p.offset {
+                    let offset_str = offset_expr
                     .format(&item.inner)
                     .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.raw(), item.inner));
 
-                entry = entry.with_line_number(
-                    offset_str.parse::<usize>().unwrap_or(0),
-                );
+                    entry = entry.with_line_number(
+                        offset_str.parse::<usize>().unwrap_or(0),
+                    );
+                }
             }
+            Some(entry)
+        } else {
+            None
         }
-        entry
     }
 
     pub fn selected_entries(&self) -> &FxHashSet<Entry> {
