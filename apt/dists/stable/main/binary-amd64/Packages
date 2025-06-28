@@ -1,0 +1,21 @@
+Package: television
+Version: 0.11.9-1
+Architecture: amd64
+Homepage: https://github.com/alexpasmantier/television
+Maintainer: Alexandre Pasmantier <alex.pasmant@gmail.com>
+Installed-Size: 4923
+Depends: 
+Priority: optional
+Section: utils
+Filename: pool/main/t/television/television_0.11.9-1_amd64.deb
+Size: 1506056
+SHA256: 497e99def6addafc61ca9bfdaf125aa5403796aee35ff162235f06bef29a00d3
+SHA1: 731581bef05bb06c3d207640a83cb270ea313ab9
+MD5sum: a2b836e2d33297cd0e442ad67849cb88
+Description: Cross-platform, fast and extensible general purpose fuzzy finder TUI.
+ Television is a cross-platform, fast and extensible fuzzy finder TUI.
+ It integrates with your shell and lets you quickly search through any kind of
+ data source (files, git repositories, environment variables, docker images, you
+ name it) using a fuzzy matching algorithm and is designed to be easily
+ extensible.
+

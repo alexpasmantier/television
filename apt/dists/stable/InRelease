@@ -1,0 +1,36 @@
+-----BEGIN PGP SIGNED MESSAGE-----
+Hash: SHA512
+
+Codename: stable
+Date: Sat, 28 Jun 2025 07:39:52 UTC
+Architectures: amd64
+Components: main
+Description: Cross-platform, fast and extensible general purpose fuzzy finder
+MD5Sum:
+ 297215550eacf798cf901363118bb257 874 main/binary-amd64/Packages
+ 42af63684d49eae2c746ba2378f1e0cc 567 main/binary-amd64/Packages.gz
+ 68bf389ba549b00b25a76cf9ed7c39a0 114 main/binary-amd64/Release
+SHA1:
+ b915d3198ea4c225a64ac7ec6e55228f8a895f29 874 main/binary-amd64/Packages
+ c43afcf01f2531f31ce1ec33709b9a36b396bda8 567 main/binary-amd64/Packages.gz
+ bebb0993a743356f2e72c7062d36d0e04125f32f 114 main/binary-amd64/Release
+SHA256:
+ dcd709eb6c4dba7bdcdedd1a1a23850b57ddb97ab0d674dfdf393f2cd16c1708 874 main/binary-amd64/Packages
+ 2f57387839b5aa778859dbb72f7d1d3cae5bf1e74bea3c258b3898555aeebfb6 567 main/binary-amd64/Packages.gz
+ 6a1dfac31d78b56d037ff55af8658af74bc09f80ffae729c433b3bf4f7bee1e1 114 main/binary-amd64/Release
+-----BEGIN PGP SIGNATURE-----
+
+iQIzBAEBCgAdFiEEGZeCq9NntZEW1ER+Q71VEAVV2/IFAmhfnEoACgkQQ71VEAVV
+2/KOqRAAzPTi12zZxvI3R3yZlnaJ7avW7+1KYE7RHtchXwHsNBh+yjly4NieI+yW
+AbSzU1PYStLtOJWVQ1zWm6GYK9MsBDdr4qy+1pp25LGK0QvCcvUgEuFoTPs2rb7T
+HTCdQ1TS9e6cWDDoHWlLCAcgYY9k6Rdo76mANEoeA8Z0tFiBm0ymBynfRVi93bTy
+W5TnX4DEj6o8oSBdhZZeXnHiQlbrPYj/QUANydWcMALcF6UBrNO+mJOIbnW7LZEo
+yRBVCdjX5Wtc5GDWnF0/xs5TNSZMiuAUwkFVn+3FtGli3Kzq8mhZzI6cj1su/rEh
+lzm+FZ3exDSKSvXcuAIhhRp3XHLlU/P9zqA0QjwPmWUQyo657Xr1yv95kcbkPp1T
+vlMtgjXRxB/2QlwmU5HlACmnMEd1337lZNNNxDyXzaDcEaw4rNseB8Z83ie5WyoZ
+GirSPNK/NAphgwK4+h2uOj0j/037cgi4Bs3goq6iZDq/bfw+386y9lqT2mN2UFCE
+0Frp1T59CrJv/hh8Y/wEzddjUlCX0vsXhnUVZOvgnEVO8yefKdGfW+Zic1h6eb3Y
+rnnY0i+3Blax4rhM2u4vFXi3X5zpDkJGsOkl7yzAz6hrqsgnn83y/6oc34rqmYY2
+xBN9KJ5zJp+0TeJCaNp8RPqMqzoSuHDtWpumS3Rhuqsi/nO/g4g=
+=a1B3
+-----END PGP SIGNATURE-----
