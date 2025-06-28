@@ -31,13 +31,57 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Run repository update
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y reprepro
+
+          echo "downloading latest release of television package..."
+
+          # Download the latest release of the television package and store it in a variable
+          FILE_NAME=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest | \
+          grep "browser_download_url" | \
+          grep "unknown-linux-musl.deb" | \
+          cut -d '"' -f 4 | \
+          xargs curl -LO | \
+          awk '{print $2}')
+
+          echo "downloading complete, file name: $FILE_NAME"
+
+          # Get the gpg key ID used to sign the release
+          GPG_KEY_ID=$(gpg --list-keys --keyid-format LONG | grep '^pub' | awk -F'/' '{print $2}' | awk '{print $1}')
+
+          echo "generate reprepro repository..."
+
+          cd apt
+          CURRENT_DIR=`pwd`
+          REPREPRO_DIR=$CURRENT_DIR/reprepro
+          reprepro --dbdir $REPREPRO_DIR/db --confdir $REPREPRO_DIR/conf -C main includedeb stable $CURRENT_DIR/deb/stable/*deb
+
+          echo "reprepro repository generated successfully"
+
+          cd dists/stable
+          cat Release | gpg -s --default-key GPG_KEY_ID -abs > Release.gpg
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git commit -m "feat: [bot] update apt package repository" || echo "No changes to commit"
+          git push origin main
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           # Upload entire repository
-          path: '.'
+          path: "."
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
