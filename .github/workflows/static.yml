@@ -44,12 +44,12 @@ jobs:
           echo "downloading latest release of television package..."
 
           # Download the latest release of the television package and store it in a variable
-          # FILE_NAME=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest | \
-          # grep "browser_download_url" | \
-          # grep "unknown-linux-musl.deb" | \
-          # cut -d '"' -f 4 | \
-          # xargs curl -LO | \
-          # awk '{print $2}')
+          FILE_NAME=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest | \
+          grep "browser_download_url" | \
+          grep "unknown-linux-musl.deb" | \
+          cut -d '"' -f 4 | \
+          xargs curl -LO | \
+          awk '{print $2}')
 
           # mkdir -p apt/deb/stable >> /dev/null 2>&1
           # mv $FILE_NAME apt/deb/stable/
