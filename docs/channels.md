@@ -88,6 +88,42 @@ tv my-awesome-channel
 
 The complete channel format spec can be found below.
 
+## Templating syntax
+Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
+
+Here's a quick TLDR if you're feeling lazy:
+
+**Basic transformations:**
+
+```bash
+# Extract middle items: "a,b,c,d,e"
+"{split:,:1..3}"
+# Output: "b,c"
+
+# Clean and format names: "  john  , jane , bob  "
+'{split:,:..|map:{trim|upper|append:!}}' 
+# Output: "JOHN!,JANE!,BOB!"
+
+# Extract numbers and pad with zeros: "item1,thing22,stuff333"
+'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}' 
+# Output: "001,022,333"
+```
+
+**More niche use-cases:**
+
+```bash
+# Filter files, format as list: "app.py,readme.md,test.py,data.json"
+'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}' 
+# Output: "• app.py\n• test.py"
+
+# Extract domains from URLs: "https://github.com,https://google.com"
+'{split:,:..|map:{regex_extract://([^/]+):1|upper}}' 
+# Output: "GITHUB.COM,GOOGLE.COM"
+
+# Debug complex processing: "apple Banana cherry Date"
+"{split: :..|filter:^[A-Z]|sort:desc}" 
+# Output: Date,Banana
+```
 ## Channel specification
 #### high-level sections
 

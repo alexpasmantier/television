@@ -8,7 +8,7 @@
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 
-![tv on the curl codebase](https://github.com/user-attachments/assets/7d329ef3-4efe-4908-bbf8-e02744508eaf)
+![tv running on the curl codebase](./assets/tv-curl.png)
 
 </div>
 
@@ -58,6 +58,9 @@ tv files
 Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable):
 
 ![tv remote](./assets/tv-files-remote.png)
+
+See the [channels docs](https://github.com/alexpasmantier/television/blob/main/docs/channels.md) for more info on how to set these up.
+
 ## Usage
 ```bash
 tv  # default channel
