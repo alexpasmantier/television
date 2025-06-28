@@ -2,7 +2,7 @@
 Hash: SHA512
 
 Codename: stable
-Date: Sat, 28 Jun 2025 07:39:52 UTC
+Date: Sat, 28 Jun 2025 07:44:52 UTC
 Architectures: amd64
 Components: main
 Description: Cross-platform, fast and extensible general purpose fuzzy finder
@@ -20,17 +20,17 @@ SHA256:
  6a1dfac31d78b56d037ff55af8658af74bc09f80ffae729c433b3bf4f7bee1e1 114 main/binary-amd64/Release
 -----BEGIN PGP SIGNATURE-----
 
-iQIzBAEBCgAdFiEEGZeCq9NntZEW1ER+Q71VEAVV2/IFAmhfnEoACgkQQ71VEAVV
-2/KOqRAAzPTi12zZxvI3R3yZlnaJ7avW7+1KYE7RHtchXwHsNBh+yjly4NieI+yW
-AbSzU1PYStLtOJWVQ1zWm6GYK9MsBDdr4qy+1pp25LGK0QvCcvUgEuFoTPs2rb7T
-HTCdQ1TS9e6cWDDoHWlLCAcgYY9k6Rdo76mANEoeA8Z0tFiBm0ymBynfRVi93bTy
-W5TnX4DEj6o8oSBdhZZeXnHiQlbrPYj/QUANydWcMALcF6UBrNO+mJOIbnW7LZEo
-yRBVCdjX5Wtc5GDWnF0/xs5TNSZMiuAUwkFVn+3FtGli3Kzq8mhZzI6cj1su/rEh
-lzm+FZ3exDSKSvXcuAIhhRp3XHLlU/P9zqA0QjwPmWUQyo657Xr1yv95kcbkPp1T
-vlMtgjXRxB/2QlwmU5HlACmnMEd1337lZNNNxDyXzaDcEaw4rNseB8Z83ie5WyoZ
-GirSPNK/NAphgwK4+h2uOj0j/037cgi4Bs3goq6iZDq/bfw+386y9lqT2mN2UFCE
-0Frp1T59CrJv/hh8Y/wEzddjUlCX0vsXhnUVZOvgnEVO8yefKdGfW+Zic1h6eb3Y
-rnnY0i+3Blax4rhM2u4vFXi3X5zpDkJGsOkl7yzAz6hrqsgnn83y/6oc34rqmYY2
-xBN9KJ5zJp+0TeJCaNp8RPqMqzoSuHDtWpumS3Rhuqsi/nO/g4g=
-=a1B3
+iQIzBAEBCgAdFiEEGZeCq9NntZEW1ER+Q71VEAVV2/IFAmhfnXUACgkQQ71VEAVV
+2/ICkA//Zd4AJuzgRhrzArG8JQd7lYQYFtXn/vIQ91IJ6UDNYnIEDSV3fQsRFQFq
+Y2/om4QduBkiB2EJ+/5TvQX/POXtW8hPZtnyWl5bUE2pgfTsRR9zG81mLKLxW4o9
+6OCgicFUj2r0RtX+drtElaN7NjddvKNTaTkFMQzWbrMi1P1ozcLtWPG5ek8+kC4V
+a34/iugqkzgTEE0n4/01weBCdj02n+SKtHBwxuJrZSd9HVvqvacDEWqpb6ZJbQpp
+YcnrwSLB6qHqDN3ym4cAwAHnZ8OKp5NmkUK9GyNOx4Q3NoPptkkD9oDdf+Dkwcir
+qAA7LQ+xWpV0dNfl6/4FsthkWT1fso3J1vrag7Ifp05a+8zwsq8X6ukzZxpwj0ye
+FtPlWDybLOdvIquItHgdYcUgG70ZNUgHnNC9885vafznoscokkBKQzOSPeFJrDj1
+HPTXrhCbbHWtdU1+gvgcMJCqbAcdxZb+Tla2eO1JCA4QuWtd2cZOdliX0Y/vxOiH
+inNPTHnK0xsNP86in6t0/JSWTRE9MjENzlEZxDN1a/M7276ijL8pI7wSfXj3JZFb
+c1FG99zpYWg3HZnF2fGbF1Ost2K+bXYp/jNzTxkP5GBg93+M3HAp4Um29wguliE/
+ROX8z31Q7aAezDdNA+TOfSijdb7NPBeiwqUzJSu4JIe7I8BnG7Q=
+=suel
 -----END PGP SIGNATURE-----
