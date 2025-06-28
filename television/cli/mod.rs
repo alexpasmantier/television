@@ -11,6 +11,9 @@ use crate::{
     utils::paths::expand_tilde,
 };
 use anyhow::{Result, anyhow};
+use clap::CommandFactory;
+use clap::error::ErrorKind;
+use colored::Colorize;
 use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -205,6 +208,21 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
                 ))
             })
         });
+
+    if cli.autocomplete_prompt.is_some() {
+        if let Some(ch) = &cli.channel {
+            if !Path::new(ch).exists() {
+                let mut cmd = Cli::command();
+                let arg1 = "'--autocomplete-prompt <STRING>'".yellow();
+                let arg2 = "'[CHANNEL]'".yellow();
+                let msg = format!(
+                    "The argument {} cannot be used with {}",
+                    arg1, arg2
+                );
+                cmd.error(ErrorKind::ArgumentConflict, msg).exit();
+            }
+        }
+    }
 
     // Validate interdependent flags for ad-hoc mode (when no channel is specified)
     // This ensures ad-hoc channels have all necessary components to function properly

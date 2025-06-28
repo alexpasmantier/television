@@ -33,12 +33,7 @@ pub struct Cli {
     /// A list of the available channels can be displayed using the
     /// `list-channels` command. The channel can also be changed from within
     /// the application.
-    #[arg(
-        value_enum,
-        index = 1,
-        verbatim_doc_comment,
-        conflicts_with = "autocomplete_prompt"
-    )]
+    #[arg(value_enum, index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
     /// A preview line number offset template to use to scroll the preview to for each
@@ -265,12 +260,7 @@ pub struct Cli {
     /// This can be used to automatically select a channel based on the input
     /// prompt by using the `shell_integration` mapping in the configuration
     /// file.
-    #[arg(
-        long,
-        value_name = "STRING",
-        verbatim_doc_comment,
-        conflicts_with = "channel"
-    )]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub autocomplete_prompt: Option<String>,
 
     /// Use substring matching instead of fuzzy matching.

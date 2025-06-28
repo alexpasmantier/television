@@ -43,6 +43,24 @@ fn test_autocomplete_prompt_and_channel_argument_conflict_errors() {
     tester.assert_raw_output_contains("cannot be used with");
 }
 
+/// Tests that --autocomplete-prompt works with a working directory path argument.
+#[test]
+fn test_autocomplete_prompt_with_working_directory() {
+    let mut tester = PtyTester::new();
+
+    // This should work: --autocomplete-prompt with a path argument
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--autocomplete-prompt",
+        "ls",
+        "/etc",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Send Ctrl+C to exit (the test is mainly to ensure no CLI parsing error)
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
 /// Tests that the `list-channels` subcommand lists available channels.
 #[test]
 fn test_list_channels_subcommand_lists_channels() {
