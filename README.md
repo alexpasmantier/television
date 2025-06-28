@@ -58,6 +58,9 @@ tv files
 Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable):
 
 ![tv remote](./assets/tv-files-remote.png)
+
+See the [channels docs](https://github.com/alexpasmantier/television/blob/main/docs/channels.md) for more info on how to set these up.
+
 ## Usage
 ```bash
 tv  # default channel
