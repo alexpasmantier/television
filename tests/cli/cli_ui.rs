@@ -117,7 +117,7 @@ fn test_no_remote_hides_remote_panel() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the remote control panel is hidden
-    tester.assert_not_tui_frame_contains("remote");
+    tester.assert_not_tui_frame_contains("── Channels ──");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -242,7 +242,7 @@ fn test_hide_remote_flag_hides_remote_panel() {
     let mut child = tester.spawn_command_tui(cmd);
 
     tester.assert_not_tui_frame_contains("(1) (2) (3)");
-    tester.assert_not_tui_frame_contains("remote");
+    tester.assert_not_tui_frame_contains("── Channels ──");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));

@@ -21,3 +21,10 @@ Cargo.lock
 # Direnv (Nix Shell)
 .direnv/
 .DS_Store
+
+# obsidian
+.obsidian/
+
+# Visual Studio Code
+.vscode/
+
