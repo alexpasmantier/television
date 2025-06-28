@@ -114,6 +114,12 @@ impl Television {
             results_picker = results_picker.inverted();
         }
 
+        let matching_mode = if exact {
+            MatchingMode::Substring
+        } else {
+            MatchingMode::Fuzzy
+        };
+
         // previewer
         let preview_handles = Self::setup_previewer(&channel_prototype);
 
@@ -129,7 +135,12 @@ impl Television {
         );
         let colorscheme = (&Theme::from_name(&config.ui.theme)).into();
 
-        channel.find(&input.unwrap_or(EMPTY_STRING.to_string()));
+        let patrnn = Television::preprocess_pattern(
+            matching_mode,
+            &input.unwrap_or(EMPTY_STRING.to_string()),
+        );
+
+        channel.find(&patrnn);
         let spinner = Spinner::default();
 
         let preview_state = PreviewState::new(
@@ -146,12 +157,6 @@ impl Television {
                 cable_channels,
                 &config.ui.remote_control,
             ))
-        };
-
-        let matching_mode = if exact {
-            MatchingMode::Substring
-        } else {
-            MatchingMode::Fuzzy
         };
 
         Self {
