@@ -18,7 +18,7 @@ fn tv_help() {
     let mut tester = PtyTester::new();
     let mut child = tester.spawn_command(tv_with_args(&["--help"]));
 
-    tester.assert_raw_output_contains("A cross-platform");
+    tester.assert_raw_output_contains("Cross-platform");
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
