@@ -25,10 +25,10 @@ default_channel = "files"
 # Set to 0 to disable history functionality entirely
 history_size = 100
 
-# Whether to use global history mode (default: false)
+# Whether to use global history (default: false)
 # When true: history navigation shows entries from all channels
 # When false: history navigation is scoped to the current channel
-global_history_mode = false
+global_history = false
 
 [ui]
 # Whether to use nerd font icons in the UI

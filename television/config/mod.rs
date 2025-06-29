@@ -44,9 +44,9 @@ pub struct AppConfig {
     /// Maximum number of entries to keep in the global history
     #[serde(default = "default_history_size")]
     pub history_size: usize,
-    /// Whether to use global history mode (all channels) or channel-specific history (default)
-    #[serde(default = "default_global_history_mode")]
-    pub global_history_mode: bool,
+    /// Whether to use global history (all channels) or channel-specific history (default)
+    #[serde(default = "default_global_history")]
+    pub global_history: bool,
 }
 
 fn default_channel() -> String {
@@ -57,7 +57,7 @@ fn default_history_size() -> usize {
     DEFAULT_HISTORY_SIZE
 }
 
-fn default_global_history_mode() -> bool {
+fn default_global_history() -> bool {
     false
 }
 
@@ -67,7 +67,7 @@ impl Hash for AppConfig {
         self.config_dir.hash(state);
         self.tick_rate.to_bits().hash(state);
         self.history_size.hash(state);
-        self.global_history_mode.hash(state);
+        self.global_history.hash(state);
     }
 }
 
