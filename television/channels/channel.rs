@@ -195,15 +195,36 @@ async fn load_candidates(
     .expect("failed to execute process");
 
     if let Some(out) = child.stdout.take() {
-        let reader = BufReader::new(out);
         let mut produced_output = false;
+        let mut reader = BufReader::new(out);
+        let mut buf = Vec::new();
 
-        #[allow(clippy::manual_flatten)]
-        for line in reader.lines() {
-            if let Ok(l) = line {
+        let delimiter = source
+            .entry_delimiter
+            .as_ref()
+            .map(|d| *d as u8)
+            .unwrap_or(b'\n');
+
+        loop {
+            buf.clear();
+            let n = reader.read_until(delimiter, &mut buf).unwrap();
+            if n == 0 {
+                break; // EOF
+            }
+
+            // Remove trailing delimiter
+            if buf.last() == Some(&delimiter) {
+                buf.pop();
+            }
+
+            if buf.is_empty() {
+                continue;
+            }
+
+            if let Ok(l) = std::str::from_utf8(&buf) {
+                debug!("Read line: {}", l);
                 if !l.trim().is_empty() {
-                    let () = injector.push(l, |e, cols| {
-                        // PERF: maybe we can avoid cloning here by using &Utf32Str
+                    let () = injector.push(l.to_string(), |e, cols| {
                         if let Some(display) = &source.display {
                             let formatted = display.format(e).unwrap_or_else(|_| {
                                 panic!(
@@ -236,4 +257,79 @@ async fn load_candidates(
         }
     }
     let _ = child.wait();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::matcher::config::Config;
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_load_candidates_default_delimiter() {
+        let source_spec: SourceSpec = toml::from_str(
+            r#"
+            command = "echo 'test1\ntest2\ntest3'"
+            "#,
+        )
+        .unwrap();
+
+        let mut matcher = Matcher::<String>::new(&Config::default());
+        let injector = matcher.injector();
+
+        load_candidates(source_spec, 0, injector).await;
+
+        // Check if the matcher has the expected results
+        matcher.find("test");
+        matcher.tick();
+        let results = matcher.results(10, 0);
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].inner, "test1");
+        assert_eq!(results[1].inner, "test2");
+        assert_eq!(results[2].inner, "test3");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_load_candidates_null_byte_delimiter() {
+        let source_spec: SourceSpec = toml::from_str(
+            r#"command = "printf 'test1\\0test2\\0test3\\0'"
+            entry_delimiter = "\\0""#,
+        )
+        .unwrap();
+
+        let mut matcher = Matcher::<String>::new(&Config::default());
+        let injector = matcher.injector();
+
+        load_candidates(source_spec, 0, injector).await;
+
+        // Check if the matcher has the expected results
+        matcher.find("test");
+        matcher.tick();
+        let results = matcher.results(10, 0);
+        assert_eq!(results.len(), 3);
+        assert_eq!(results[0].inner, "test1");
+        assert_eq!(results[1].inner, "test2");
+        assert_eq!(results[2].inner, "test3");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_load_candidates_null_byte_and_newlines() {
+        let source_spec: SourceSpec = toml::from_str(
+            r#"command = "printf 'test1\\0test2\\ntest3\\0'"
+            entry_delimiter = "\\0""#,
+        )
+        .unwrap();
+
+        let mut matcher = Matcher::<String>::new(&Config::default());
+        let injector = matcher.injector();
+
+        load_candidates(source_spec, 0, injector).await;
+
+        // Check if the matcher has the expected results
+        matcher.find("test");
+        matcher.tick();
+        let results = matcher.results(10, 0);
+        assert_eq!(results.len(), 2);
+        assert_eq!(results[0].inner, "test1");
+        assert_eq!(results[1].inner, "test2\ntest3");
+    }
 }

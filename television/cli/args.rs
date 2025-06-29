@@ -212,6 +212,17 @@ pub struct Cli {
     )]
     pub source_output: Option<String>,
 
+    /// The delimiter byte to use for splitting the source's command output into entries.
+    ///
+    /// This can be useful when the source command outputs multiline entries and you want to
+    /// rely on another delimiter to split the entries such a null byte or a custom character.
+    #[arg(
+        long = "source-delimiter",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub source_entry_delimiter: Option<String>,
+
     /// Preview command to use for the current channel.
     ///
     /// When a channel is specified: This overrides the preview command defined in the channel prototype.
