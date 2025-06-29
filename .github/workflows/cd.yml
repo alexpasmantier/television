@@ -200,9 +200,9 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: linux
             arch: x86_64
-          # - target: aarch64-unknown-linux-gnu
-          #   os: linux
-          #   arch: arm64
+          - target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: arm64
 
     env:
       # Emit backtraces on panics.
@@ -314,37 +314,42 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y reprepro
 
-          echo "downloading latest release of television package..."
-
-          # Download the latest release of the television package and store it in a variable
-          FILE_NAME=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest | \
-          grep "browser_download_url" | \
-          grep "unknown-linux-gnu.deb" | \
-          cut -d '"' -f 4 | \
-          xargs curl -LO | \
-          awk '{print $2}')
-
           mkdir -p apt/deb/stable >> /dev/null 2>&1
-          mv $FILE_NAME apt/deb/stable/
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest)
 
-          # echo "download complete: $FILE_NAME"
+          ARCHITECTURES=(
+            "x86_64-unknown-linux-gnu:amd64"
+            "aarch64-unknown-linux-gnu:arm64"
+          )
+          ROOT_DIR=$(pwd)
+          APT_DIR=$ROOT_DIR/apt
+          REPREPRO_DIR=$APT_DIR/reprepro
+          DISTS_STABLE_DIR=$APT_DIR/dists/stable
+          DEB_STABLE_DIR=$APT_DIR/deb/stable
 
-          # Get the gpg key ID used to sign the release
-          GPG_KEY_ID=$(gpg --list-keys --keyid-format LONG | grep '^pub' | awk -F'/' '{print $2}' | awk '{print $1}')
+          for ARCH_MAPPING in "${ARCHITECTURES[@]}"; do
+            ARCH_PATTERN="${ARCH_MAPPING%:*}"
+            ARCH_NAME="${ARCH_MAPPING#*:}"
 
-          echo "generate reprepro repository..."
+            echo "Processing $ARCH_PATTERN architecture..."
+            URL=$(echo "$RELEASE_DATA" | grep "browser_download_url" | grep "$ARCH_PATTERN.deb" | cut -d '"' -f 4)
 
-          cd apt
-          CURRENT_DIR=`pwd`
-          REPREPRO_DIR=$CURRENT_DIR/reprepro
-          reprepro --dbdir $REPREPRO_DIR/db --confdir $REPREPRO_DIR/conf -C main includedeb stable $CURRENT_DIR/deb/stable/*deb
+            if [ -n "$URL" ]; then
+              echo "Found $ARCH_PATTERN package, downloading..."
+              FILE_NAME=$(curl -LO $URL | awk '{print $2}')
+              mv $FILE_NAME $DEB_STABLE_DIR/
 
-          echo "reprepro repository generated successfully"
+              echo "Downloaded $FILE_NAME to $DEB_STABLE_DIR"
+              reprepro --dbdir $REPREPRO_DIR/db --confdir $REPREPRO_DIR/conf -C main includedeb stable $DEB_STABLE_DIR/*deb
 
-          cd dists/stable
-          cat Release | gpg -s --default-key GPG_KEY_ID -abs > Release.gpg
+              GPG_KEY_ID=$(gpg --list-keys --keyid-format LONG | grep '^pub' | awk -F'/' '{print $2}' | awk '{print $1}')
+              cat $DISTS_STABLE_DIR/Release | gpg -s --default-key GPG_KEY_ID -abs > $DISTS_STABLE_DIR/Release.gpg
 
-          echo "release file signed successfully"
+              echo "$ARCH_PATTERN package added successfully"
+            else
+              echo "No $ARCH_PATTERN package found in release"
+            fi
+          done
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
