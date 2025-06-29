@@ -98,7 +98,7 @@ pub struct PostProcessedCli {
     pub watch_interval: Option<f64>,
 
     // History configuration
-    pub global_history_mode: bool,
+    pub global_history: bool,
 
     // Configuration sources
     pub config_file: Option<PathBuf>,
@@ -165,7 +165,7 @@ impl Default for PostProcessedCli {
             watch_interval: None,
 
             // History configuration
-            global_history_mode: false,
+            global_history: false,
 
             // Configuration sources
             config_file: None,
@@ -345,7 +345,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         watch_interval: cli.watch,
 
         // History configuration
-        global_history_mode: cli.global_history_mode,
+        global_history: cli.global_history,
 
         // Configuration sources
         config_file: cli.config_file.map(|p| expand_tilde(&p)),

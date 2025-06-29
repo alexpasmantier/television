@@ -197,7 +197,7 @@ impl App {
                 History::new(
                     Some(channel_history_size),
                     &television.channel_prototype.metadata.name,
-                    television.config.application.global_history_mode,
+                    television.config.application.global_history,
                 )
                 .ok()
             } else {
@@ -304,10 +304,11 @@ impl App {
         let channel_history_size = channel_prototype.history.size;
 
         if channel_history_size > 0 {
-            // Determine the effective global_history_mode (channel overrides global config)
-            let global_mode = channel_prototype.history.global_mode.unwrap_or(
-                self.television.config.application.global_history_mode,
-            );
+            // Determine the effective global_history (channel overrides global config)
+            let global_mode = channel_prototype
+                .history
+                .global_mode
+                .unwrap_or(self.television.config.application.global_history);
 
             match History::new(
                 Some(channel_history_size),

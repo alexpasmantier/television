@@ -12,8 +12,11 @@ pub const DEFAULT_HISTORY_SIZE: usize = 100;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
-    pub entry: String, // The search query/pattern that was typed
+    /// The search query/pattern that was typed
+    pub entry: String,
+    /// The channel that the entry belongs to
     pub channel: String,
+    /// The timestamp of the entry
     pub timestamp: u64,
 }
 

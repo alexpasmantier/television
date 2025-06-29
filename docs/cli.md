@@ -439,7 +439,7 @@ Television's options are organized by functionality. Each option behaves differe
 
 #### `--global-history-mode`
 
-**Purpose**: Enables global history mode for the current session
+**Purpose**: Enables global history for the current session
 
 - **Both Modes**: Same behavior
 - **Default**: Channel-specific history (scoped to current channel)

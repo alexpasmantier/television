@@ -173,7 +173,7 @@ pub struct HistoryConfig {
     /// Maximum number of entries to keep in history for this channel (0 = disabled)
     #[serde(default = "default_channel_history_size")]
     pub size: usize,
-    /// Whether to use global history mode for this channel (overrides global setting)
+    /// Whether to use global history for this channel (overrides global setting)
     #[serde(default)]
     pub global_mode: Option<bool>,
 }
