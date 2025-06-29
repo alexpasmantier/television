@@ -1,8 +1,6 @@
 use std::hash::Hash;
 
-use crate::config::parse_key;
-use crate::event::Key;
-use crate::utils::hashmaps;
+use crate::{config::Binding, event::Key, utils::hashmaps};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -16,7 +14,7 @@ pub struct ShellIntegrationConfig {
     /// {channel: [commands]}
     pub channel_triggers: FxHashMap<String, Vec<String>>,
     pub fallback_channel: String,
-    pub keybindings: FxHashMap<String, String>,
+    pub keybindings: FxHashMap<String, Binding>,
 }
 
 impl Hash for ShellIntegrationConfig {
@@ -51,11 +49,8 @@ impl ShellIntegrationConfig {
     // (if any), extract the character triggers shell autocomplete
     pub fn get_shell_autocomplete_keybinding_character(&self) -> char {
         match self.keybindings.get(SMART_AUTOCOMPLETE_CONFIGURATION_KEY) {
-            Some(s) => match parse_key(s) {
-                Ok(Key::Ctrl(c)) => c.to_uppercase().next().unwrap(),
-                Ok(Key::CtrlSpace) => ' ',
-                _ => DEFAULT_SHELL_AUTOCOMPLETE_KEY,
-            },
+            Some(binding) => extract_ctrl_char(binding)
+                .unwrap_or(DEFAULT_SHELL_AUTOCOMPLETE_KEY),
             None => DEFAULT_SHELL_AUTOCOMPLETE_KEY,
         }
     }
@@ -64,12 +59,24 @@ impl ShellIntegrationConfig {
     // through tv
     pub fn get_command_history_keybinding_character(&self) -> char {
         match self.keybindings.get(COMMAND_HISTORY_CONFIGURATION_KEY) {
-            Some(s) => match parse_key(s) {
-                Ok(Key::Ctrl(c)) => c.to_uppercase().next().unwrap(),
-                Ok(Key::CtrlSpace) => ' ',
-                _ => DEFAULT_COMMAND_HISTORY_KEY,
-            },
+            Some(binding) => extract_ctrl_char(binding)
+                .unwrap_or(DEFAULT_COMMAND_HISTORY_KEY),
             None => DEFAULT_COMMAND_HISTORY_KEY,
         }
+    }
+}
+
+/// Extract an upper-case character from a `Binding` if it is a single CTRL key
+/// (or CTRL-Space).  Returns `None` otherwise.
+fn extract_ctrl_char(binding: &Binding) -> Option<char> {
+    let key = match binding {
+        Binding::SingleKey(k) => Some(k),
+        Binding::MultipleKeys(keys) => keys.first(),
+    }?;
+
+    match key {
+        Key::Ctrl(c) => Some(c.to_ascii_uppercase()),
+        Key::CtrlSpace => Some(' '),
+        _ => None,
     }
 }

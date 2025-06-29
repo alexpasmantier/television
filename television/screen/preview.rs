@@ -1,17 +1,22 @@
-use crate::previewer::state::PreviewState;
-use crate::screen::colors::Colorscheme;
-use crate::utils::strings::{
-    EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
-    shrink_with_ellipsis,
+use crate::{
+    previewer::state::PreviewState,
+    screen::colors::Colorscheme,
+    utils::strings::{
+        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+        shrink_with_ellipsis,
+    },
 };
 use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
-use ratatui::Frame;
-use ratatui::widgets::{Block, BorderType, Borders, Padding, Paragraph};
 use ratatui::{
+    Frame,
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
+    widgets::{
+        Block, BorderType, Borders, Padding, Paragraph, Scrollbar,
+        ScrollbarOrientation, ScrollbarState, StatefulWidget,
+    },
 };
 use std::str::FromStr;
 
@@ -22,6 +27,7 @@ pub fn draw_preview_content_block(
     preview_state: &PreviewState,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
+    scrollbar_enabled: bool,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
@@ -29,6 +35,7 @@ pub fn draw_preview_content_block(
         colorscheme,
         preview_state.preview.icon,
         &preview_state.preview.title,
+        &preview_state.preview.footer,
         use_nerd_font_icons,
     )?;
     // render the preview content
@@ -37,6 +44,27 @@ pub fn draw_preview_content_block(
         colorscheme.preview.highlight_bg,
     );
     f.render_widget(rp, inner);
+
+    // render scrollbar if enabled
+    if scrollbar_enabled {
+        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
+            .style(Style::default().fg(colorscheme.general.border_fg));
+
+        let mut scrollbar_state = ScrollbarState::new(
+            preview_state.preview.total_lines.saturating_sub(1) as usize,
+        )
+        .position(preview_state.scroll as usize);
+
+        // Create a separate area for the scrollbar that accounts for text padding
+        let scrollbar_rect = Rect {
+            x: inner.x + inner.width,
+            y: inner.y,
+            width: 1, // Scrollbar width
+            height: inner.height,
+        };
+
+        scrollbar.render(scrollbar_rect, f.buffer_mut(), &mut scrollbar_state);
+    }
 
     Ok(())
 }
@@ -138,6 +166,7 @@ fn draw_content_outer_block(
     colorscheme: &Colorscheme,
     icon: Option<FileIcon>,
     title: &str,
+    footer: &str,
     use_nerd_font_icons: bool,
 ) -> Result<Rect> {
     let mut preview_title_spans = vec![Span::from(" ")];
@@ -153,7 +182,7 @@ fn draw_content_outer_block(
             Style::default().fg(Color::from_str(icon.color)?),
         ));
     }
-    // preview title
+    // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable(
@@ -167,13 +196,26 @@ fn draw_content_outer_block(
     ));
     preview_title_spans.push(Span::from(" "));
 
-    // build the preview block
-    let preview_outer_block = Block::default()
-        .title_top(
-            Line::from(preview_title_spans)
-                .alignment(Alignment::Center)
-                .style(Style::default().fg(colorscheme.preview.title_fg)),
-        )
+    let mut block = Block::default();
+    block = block.title_top(
+        Line::from(preview_title_spans)
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(colorscheme.preview.title_fg)),
+    );
+
+    // preview footer
+    if !footer.is_empty() {
+        let footer_line = Line::from(vec![
+            Span::from(" "),
+            Span::from(footer),
+            Span::from(" "),
+        ])
+        .alignment(Alignment::Center)
+        .style(Style::default().fg(colorscheme.preview.title_fg));
+        block = block.title_bottom(footer_line);
+    }
+
+    let preview_outer_block = block
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))

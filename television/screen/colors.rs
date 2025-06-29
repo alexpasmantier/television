@@ -50,5 +50,7 @@ pub struct InputColorscheme {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ModeColorscheme {
     pub channel: Color,
+    pub channel_fg: Color,
     pub remote_control: Color,
+    pub remote_control_fg: Color,
 }

@@ -53,6 +53,13 @@ lazy-regex = { version = "3.4.1", features = [
   "lite",
 ], default-features = false }
 ansi-to-tui = "7.0.0"
+walkdir = "2.5.0"
+string_pipeline = "0.12.0"
+ureq = "3.0.11"
+serde_json = "1.0.140"
+colored = "3.0.0"
+serde_with = "3.13.0"
+which = "8.0.0"
 
 
 # target specific dependencies
@@ -70,6 +77,8 @@ clipboard-win = "5.4.0"
 [dev-dependencies]
 criterion = { version = "0.5", features = ["async_tokio"] }
 tempfile = "3.16.0"
+portable-pty = "0.9.0"
+vt100 = "0.15"
 
 
 [build-dependencies]

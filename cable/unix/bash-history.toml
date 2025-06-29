@@ -1,0 +1,8 @@
+# UNTESTED
+[metadata]
+name = "bash-history"
+description = "A channel to select from your bash history"
+requirements = ["bash"]
+
+[source]
+command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"

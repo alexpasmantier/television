@@ -1,0 +1,11 @@
+[metadata]
+name = "git-log"
+description = "A channel to select from git log entries"
+requirements = ["git"]
+
+[source]
+command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
+output = "{split: :0}"
+
+[preview]
+command = "git show -p --stat --pretty=fuller --color=always {0}"

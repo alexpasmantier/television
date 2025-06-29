@@ -1,70 +1,141 @@
-use crate::channels::entry::Entry;
-use crate::screen::colors::{Colorscheme, GeneralColorscheme};
-use crate::screen::logo::build_remote_logo_paragraph;
-use crate::screen::mode::mode_color;
-use crate::screen::results::build_results_list;
-use crate::television::Mode;
-use crate::utils::input::Input;
-
+use crate::{
+    channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
+    config::ui::RemoteControlConfig,
+    screen::{
+        colors::{Colorscheme, GeneralColorscheme},
+        logo::{REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph},
+        result_item,
+    },
+    utils::input::Input,
+};
 use anyhow::Result;
-use ratatui::Frame;
-use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect};
-use ratatui::prelude::Style;
-use ratatui::style::{Color, Stylize};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{
-    Block, BorderType, Borders, ListDirection, ListState, Padding, Paragraph,
+use ratatui::{
+    Frame,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    prelude::{Color, Line, Span, Style},
+    style::Stylize,
+    widgets::{
+        Block, BorderType, Borders, Clear, ListDirection, ListState, Padding,
+        Paragraph, Wrap,
+    },
 };
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_remote_control(
     f: &mut Frame,
     rect: Rect,
-    entries: &[Entry],
+    entries: &[CableEntry],
     use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     input_state: &mut Input,
-    mode: &Mode,
     colorscheme: &Colorscheme,
+    remote_config: &RemoteControlConfig,
 ) -> Result<()> {
-    let layout = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints(
-            [
-                Constraint::Min(3),
-                Constraint::Length(3),
-                Constraint::Length(20),
-            ]
-            .as_ref(),
-        )
-        .split(rect);
-    draw_rc_channels(
+    let layout = if remote_config.show_channel_descriptions {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Fill(1),
+                    Constraint::Fill(1),
+                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
+                ]
+                .as_ref(),
+            )
+            .split(rect)
+    } else {
+        Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints(
+                [
+                    Constraint::Fill(1),
+                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
+                ]
+                .as_ref(),
+            )
+            .split(rect)
+    };
+
+    // Clear the popup area
+    f.render_widget(Clear, rect);
+
+    let selected_entry = entries.get(picker_state.selected().unwrap_or(0));
+
+    draw_rc_logo(f, layout[layout.len() - 1], &colorscheme.general);
+    draw_search_panel(
         f,
         layout[0],
         entries,
         use_nerd_font_icons,
         picker_state,
         colorscheme,
-    );
-    draw_rc_input(f, layout[1], input_state, colorscheme)?;
-    draw_rc_logo(
-        f,
-        layout[2],
-        mode_color(*mode, &colorscheme.mode),
-        &colorscheme.general,
-    );
+        input_state,
+    )?;
+
+    if remote_config.show_channel_descriptions {
+        draw_information_panel(f, layout[1], selected_entry, colorscheme);
+    }
+
     Ok(())
 }
 
-fn draw_rc_channels(
+fn draw_information_panel(
     f: &mut Frame,
-    area: Rect,
-    entries: &[Entry],
-    use_nerd_font_icons: bool,
-    picker_state: &mut ListState,
+    rect: Rect,
+    selected_entry: Option<&CableEntry>,
     colorscheme: &Colorscheme,
 ) {
-    let rc_block = Block::default()
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Fill(1), Constraint::Length(3)].as_ref())
+        .split(rect);
+
+    draw_description_block(f, layout[0], selected_entry, colorscheme);
+    draw_requirements_block(f, layout[1], selected_entry, colorscheme);
+}
+
+fn draw_description_block(
+    f: &mut Frame,
+    area: Rect,
+    selected_entry: Option<&CableEntry>,
+    colorscheme: &Colorscheme,
+) {
+    let description_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .title_top(Line::from(" Description ").alignment(Alignment::Center))
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        )
+        .padding(Padding::right(1));
+
+    let description = if let Some(entry) = selected_entry {
+        entry
+            .description
+            .clone()
+            .unwrap_or_else(|| "No description available.".to_string())
+    } else {
+        String::new()
+    };
+
+    let description_paragraph = Paragraph::new(description)
+        .block(description_block)
+        .style(Style::default().italic())
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(description_paragraph, area);
+}
+
+fn draw_requirements_block(
+    f: &mut Frame,
+    area: Rect,
+    selected_entry: Option<&CableEntry>,
+    colorscheme: &Colorscheme,
+) {
+    let mut requirements_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
@@ -74,14 +145,121 @@ fn draw_rc_channels(
         )
         .padding(Padding::right(1));
 
-    let channel_list = build_results_list(
+    if selected_entry.is_none() {
+        // If no entry is selected, just render an empty block
+        let title = Line::from(" Requirements ")
+            .alignment(Alignment::Center)
+            .italic();
+        f.render_widget(requirements_block.title_top(title), area);
+        return;
+    }
+    let selected_entry = selected_entry.unwrap();
+    let spans = selected_entry.requirements.iter().fold(
+        Vec::new(),
+        |mut acc, requirement| {
+            acc.push(Span::styled(
+                format!("{} ", &requirement.bin_name),
+                Style::default()
+                    .fg(if requirement.is_met() {
+                        Color::Green
+                    } else {
+                        Color::Red
+                    })
+                    .bold()
+                    .italic(),
+            ));
+            acc
+        },
+    );
+
+    requirements_block = requirements_block.title_top(
+        Line::from({
+            let mut title = vec![Span::from(" Requirements ")];
+            if spans.is_empty()
+                || selected_entry
+                    .requirements
+                    .iter()
+                    .all(BinaryRequirement::is_met)
+            {
+                title.push(Span::styled(
+                    "[OK] ",
+                    Style::default().fg(Color::Green),
+                ));
+            } else {
+                title.push(Span::styled(
+                    "[MISSING] ",
+                    Style::default().fg(Color::Red),
+                ));
+            }
+            title
+        })
+        .style(Style::default().italic())
+        .alignment(Alignment::Center),
+    );
+
+    let requirements_paragraph = Paragraph::new(Line::from(spans))
+        .block(requirements_block)
+        .alignment(Alignment::Center);
+
+    f.render_widget(requirements_paragraph, area);
+}
+
+fn draw_search_panel(
+    f: &mut Frame,
+    area: Rect,
+    entries: &[CableEntry],
+    use_nerd_font_icons: bool,
+    picker_state: &mut ListState,
+    colorscheme: &Colorscheme,
+    input: &mut Input,
+) -> Result<()> {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Fill(1), Constraint::Length(3)].as_ref())
+        .split(area);
+
+    draw_rc_channels(
+        f,
+        layout[0],
+        entries,
+        use_nerd_font_icons,
+        picker_state,
+        colorscheme,
+    );
+    draw_rc_input(f, layout[1], input, colorscheme)
+}
+
+fn draw_rc_channels(
+    f: &mut Frame,
+    area: Rect,
+    entries: &[CableEntry],
+    use_nerd_font_icons: bool,
+    picker_state: &mut ListState,
+    colorscheme: &Colorscheme,
+) {
+    let rc_block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .title_top(
+            Line::from(" Channels ")
+                .alignment(Alignment::Center)
+                .italic(),
+        )
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        )
+        .padding(Padding::right(1));
+
+    let channel_list = result_item::build_results_list(
         rc_block,
         entries,
-        None,
         ListDirection::TopToBottom,
         use_nerd_font_icons,
         &colorscheme.results,
         area.width,
+        |_| None,
     );
 
     f.render_stateful_widget(channel_list, area, picker_state);
@@ -94,7 +272,9 @@ fn draw_rc_input(
     colorscheme: &Colorscheme,
 ) -> Result<()> {
     let input_block = Block::default()
-        .title_top(Line::from("Remote Control").alignment(Alignment::Center))
+        .title_top(
+            Line::from(" Search ").alignment(Alignment::Center).italic(),
+        )
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
@@ -153,17 +333,11 @@ fn draw_rc_input(
     ));
     Ok(())
 }
-fn draw_rc_logo(
-    f: &mut Frame,
-    area: Rect,
-    mode_color: Color,
-    colorscheme: &GeneralColorscheme,
-) {
-    let logo_block = Block::default().style(
-        Style::default()
-            .fg(mode_color)
-            .bg(colorscheme.background.unwrap_or_default()),
-    );
+
+fn draw_rc_logo(f: &mut Frame, area: Rect, colorscheme: &GeneralColorscheme) {
+    let logo_block = Block::default()
+        .style(Style::default().bg(colorscheme.background.unwrap_or_default()))
+        .padding(Padding::horizontal(1));
 
     let logo_paragraph = build_remote_logo_paragraph()
         .alignment(Alignment::Center)

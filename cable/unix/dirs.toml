@@ -1,0 +1,13 @@
+[metadata]
+name = "dirs"
+description = "A channel to select from directories"
+requirements = ["fd"]
+
+[source]
+command = ["fd -t d", "fd -t d --hidden"]
+
+[preview]
+command = "ls -la --color=always {}"
+
+[keybindings]
+shortcut = "f2"

@@ -108,7 +108,9 @@ pub struct Theme {
     pub preview_title_fg: Color,
     // modes
     pub channel_mode_fg: Color,
+    pub channel_mode_bg: Color,
     pub remote_control_mode_fg: Color,
+    pub remote_control_mode_bg: Color,
 }
 
 impl Theme {
@@ -178,7 +180,9 @@ struct Inner {
     preview_title_fg: String,
     //modes
     channel_mode_fg: String,
+    channel_mode_bg: String,
     remote_control_mode_fg: String,
+    remote_control_mode_bg: String,
 }
 
 impl<'de> Deserialize<'de> for Theme {
@@ -297,6 +301,13 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.channel_mode_fg
                     ))
                 })?,
+            channel_mode_bg: Color::from_str(&inner.channel_mode_bg)
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid color {}",
+                        &inner.channel_mode_bg
+                    ))
+                })?,
             remote_control_mode_fg: Color::from_str(
                 &inner.remote_control_mode_fg,
             )
@@ -304,6 +315,15 @@ impl<'de> Deserialize<'de> for Theme {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
                     &inner.remote_control_mode_fg
+                ))
+            })?,
+            remote_control_mode_bg: Color::from_str(
+                &inner.remote_control_mode_bg,
+            )
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid color {}",
+                    &inner.remote_control_mode_bg
                 ))
             })?,
         })
@@ -426,8 +446,10 @@ impl Into<InputColorscheme> for &Theme {
 impl Into<ModeColorscheme> for &Theme {
     fn into(self) -> ModeColorscheme {
         ModeColorscheme {
-            channel: (&self.channel_mode_fg).into(),
-            remote_control: (&self.remote_control_mode_fg).into(),
+            channel: (&self.channel_mode_bg).into(),
+            channel_fg: (&self.channel_mode_fg).into(),
+            remote_control: (&self.remote_control_mode_bg).into(),
+            remote_control_fg: (&self.remote_control_mode_fg).into(),
         }
     }
 }
@@ -453,7 +475,9 @@ mod tests {
             match_fg = "bright-white"
             preview_title_fg = "bright-white"
             channel_mode_fg = "bright-white"
+            channel_mode_bg = "bright-black"
             remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
         "##;
         let theme: Theme = toml::from_str(theme_content).unwrap();
         assert_eq!(
@@ -501,7 +525,9 @@ mod tests {
             match_fg = "bright-white"
             preview_title_fg = "bright-white"
             channel_mode_fg = "bright-white"
+            channel_mode_bg = "bright-black"
             remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
         "##;
         let theme: Theme = toml::from_str(theme_content).unwrap();
         assert_eq!(theme.background, None);

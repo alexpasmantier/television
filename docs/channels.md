@@ -1,57 +1,219 @@
-## 📺 Built-in Channels
-The following built-in channels are currently available:
-- `files`: search through files in a directory tree.
-- `text`: search through textual content in a directory tree.
-- `git-repos`: search through git repositories anywhere on the file system.
-- `env`: search through environment variables and their values.
-- `alias`: search through shell aliases and their values.
-- `stdin`: search through lines of text from stdin.
 
-## 🍿 Cable channels
-*Tired of broadcast television? Want to watch your favorite shows on demand? `television` has you covered with cable channels. Cable channels are channels that are not built-in to `television` but are instead provided by the community.*
+# TV channels
+```table-of-contents
+title: 
+style: nestedList
+minLevel: 2
+maxLevel: 3
+includeLinks: true
+hideWhenEmpty: false
+```
+## Quick start
+Channels are short configuration recipes that typically dictate what `tv` should search through and what's displayed on the screen along with various other options.
 
-You can find a list of cable channels ideas [on the wiki](https://github.com/alexpasmantier/television/wiki/Cable-channels).
+Any given channel consists of a single TOML file.
 
-### Installing cable channels
-Installing cable channels is as simple as creating provider files in your configuration folder.
-
-A provider file is a `*channels.toml` file that contains cable channel prototypes defined as follows:
-
-**my-custom-channels.toml**
+**Example**: the default `files` channel
 ```toml
-[[cable_channel]]
-name = "git-log"
-source_command = 'git log --oneline --date=short --pretty="format:%h %s %an %cd" "$@"'
-preview_command = 'git show -p --stat --pretty=fuller --color=always {0}'
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
 
-[[cable_channel]]
-name = "my-dotfiles"
-source_command = 'fd -t f . $HOME/.config'
-preview_command = 'bat -n --color=always {0}'
+[source]
+command = "fd -t f"
+
+[preview]
+command = "bat -n --color=always {}"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+shortcut = "f1"
 ```
 
-This would add two new cable channels to `television` available:
-- using the remote control mode
-- through the cli (e.g. `tv git-log`, `tv my-dotfiles`)
+## Default location on your system
+Channels live in the `cable` directory inside your [television configuration directory](https://github.com/alexpasmantier/television/wiki/Configuration-file).
 
-![cable channels](../assets/cable_channels.png "Cable channels")
+**Example**:
+```
+/home/user/.config/television
+├── config.toml
+└── cable
+    ├── files.toml
+    ├── env.toml
+    ├── alias.toml
+    ├── git-repos.toml
+    └── text.toml
+```
 
-<details>
+## Community-maintained channels
+The repository hosts a list of community-maintained channels which you can get and install to your cable directory using:
+```sh
+tv update-channels
+```
 
-  <summary>Deciding which part of the source command output to pass to the previewer:</summary>
+## Invocation
+Channels may be invoked:
+1. directly from the cli:
+```
+tv files
+```
+2. using the remote control:
+![tv remote](../assets/tv-files-remote.png)
 
-  By default, each line of the source command can be passed to the previewer using `{}`. 
+3. on the fly:
+```
+tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --preview-size 70
+```
 
-  If you wish to pass only a part of the output to the previewer, you may do so by specifying the `preview_delimiter` to use as a separator and refering to the desired part using the corresponding index.
+## Creating your own channels
+Create a new TOML file in your cable directory:
+```sh
+touch ~/.config/television/cable/my-awesome-channel.toml
+```
 
-  **Example:**
-  ```toml
-  [[cable_channel]]
-  name = "Disney channel"
-  source_command = 'echo "one:two:three:four" && echo "five:six:seven:eight"'
-  preview_command = 'echo {2}'
-  preview_delimiter = ':'
-  # which will pass "three" and "seven" to the preview command
-  ```
+Fill out the minimum required fields:
+```toml
+[metadata]
+name = "my-awesome-channel"
 
-</details>
+[source]
+command = "aws s3 ls my-bucket"
+```
+
+Launch `tv` with your new channel (or select it via the remote control):
+```sh
+tv my-awesome-channel
+```
+
+The complete channel format spec can be found below.
+
+## Templating syntax
+Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
+
+Here's a quick TLDR if you're feeling lazy:
+
+**Basic transformations:**
+
+```bash
+# Extract middle items: "a,b,c,d,e"
+"{split:,:1..3}"
+# Output: "b,c"
+
+# Clean and format names: "  john  , jane , bob  "
+'{split:,:..|map:{trim|upper|append:!}}' 
+# Output: "JOHN!,JANE!,BOB!"
+
+# Extract numbers and pad with zeros: "item1,thing22,stuff333"
+'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}' 
+# Output: "001,022,333"
+```
+
+**More niche use-cases:**
+
+```bash
+# Filter files, format as list: "app.py,readme.md,test.py,data.json"
+'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}' 
+# Output: "• app.py\n• test.py"
+
+# Extract domains from URLs: "https://github.com,https://google.com"
+'{split:,:..|map:{regex_extract://([^/]+):1|upper}}' 
+# Output: "GITHUB.COM,GOOGLE.COM"
+
+# Debug complex processing: "apple Banana cherry Date"
+"{split: :..|filter:^[A-Z]|sort:desc}" 
+# Output: Date,Banana
+```
+## Channel specification
+#### high-level sections
+
+```toml
+[metadata]
+# general channel information
+
+[source]
+# this defines what we're searching through
+
+[preview]
+# for each result, maybe display a preview
+
+[ui]
+# customize the UI
+
+[keybindings]
+# customize keybindings
+```
+
+#### `[metadata]`
+
+```toml
+[metadata]
+name = "text"
+description = "A short description about what my channel does"
+requirements = ["rg", "bat"]  # any binary requirements my channel needs 
+```
+
+#### `[source]`
+
+```toml
+[source]
+command = "rg . --no-heading --line-number"
+display = "[{split:\\::..2}]\t{split:\\::2}"  # what's displayed in the UI
+output = "{split:\\::..2}"  # what's outputed on selection
+```
+
+#### `[preview]`
+
+```toml
+[preview]
+command = 'bat -n --color=always {split:\::0}'
+env = { BAT_THEME = "ansi" }  # extra envs to use when generating preview
+offset = '{split:\::1}'  # extracts preview offset information from the entry
+```
+
+#### `[ui]`
+
+```toml
+[ui]
+ui_scale = 80  # use 80% of available screen
+layout = "portrait"
+input_bar_position = "bottom"
+input_header = "Search:"
+
+[ui.preview_panel]
+size = 40  # 40%
+header = "{}"  # show the currently selected entry
+footer = "my awesome footer"
+scrollbar = false
+
+[ui.status_bar]
+separator_open = "<"
+separator_close = ">"
+
+[ui.help_panel]
+show_categories = true
+
+[ui.remote_control]
+show_channel_descriptions = true
+sort_alphabetically = true
+
+[ui.features]
+preview_panel = { enabled = true, visible = true }
+remote_control = { enabled = true, visible = false }
+help_panel = { enabled = true, visible = false }
+status_bar = { enabled =true, visible = true }
+```
+
+#### `[keybindings]`
+
+```toml
+[keybindings]
+shortcut = "f1"  # `f1` will automatically switch to this channel
+
+quit = ["esc", "ctrl-c"]
+select_next_entry = "ctrl-j"
+select_prev_entry = "ctrl-k"
+confirm_selection = "ctrl-y"
+```
+
+See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.

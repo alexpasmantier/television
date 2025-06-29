@@ -15,7 +15,6 @@
 
 # General settings
 # ----------------------------------------------------------------------------
-frame_rate = 60           # DEPRECATED: this option is no longer used
 tick_rate = 50
 default_channel = "files"
 
@@ -42,58 +41,118 @@ use_nerd_font_icons = false
 # │                                       │
 # └───────────────────────────────────────┘
 ui_scale = 100
-# Whether to show the top help bar in the UI by default
-# This option can be toggled with the (default) `ctrl-g` keybinding
-show_help_bar = false
-# Whether to show the preview panel in the UI by default
-# This option can be toggled with the (default) `ctrl-o` keybinding
-show_preview_panel = true
+
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
 # What orientation should tv be (landscape or portrait)
 orientation = "landscape"
-# DEPRECATED: title is now always displayed at the top as part of the border
-# Where to place the preview title in the UI (top or bottom)
-# preview_title_position = "top"
 # The theme to use for the UI
 # A list of builtin themes can be found in the `themes` directory of the television
 # repository. You may also create your own theme by creating a new file in a `themes`
 # directory in your configuration directory (see the `config.toml` location above).
 theme = "default"
+# The default size of the preview panel (in percentage of the screen)
+preview_size = 50
+
+# UI Features
+# -------------
+# Each feature can have two states: enabled/disabled and visible/not visible
+# - enabled: controls whether the feature is functional
+# - visible: controls whether the feature is displayed (only works if enabled)
+#
+# You can use the old array format for backward compatibility:
+# features = ["preview_panel", "status_bar", "remote_control"]
+#
+# Or use the new detailed format:
+[ui.features]
+preview_panel = { enabled = true, visible = true }
+help_panel = { enabled = true, visible = false }
+status_bar = { enabled = true, visible = true }
+remote_control = { enabled = true, visible = false }
+
+# Feature-specific configurations
+# Each feature can have its own configuration section
+[ui.status_bar]
+# Status bar separators (bubble):
+#separator_open = ""
+#separator_close = ""
+# Status bar separators (box):
+separator_open = ""
+separator_close = ""
+
+[ui.preview_panel]
+# Preview panel size (percentage of screen width/height)
+size = 50
+#header = "{}"
+#footer = ""
+scrollbar = true
+
+[ui.remote_control]
+# Whether to show channel descriptions in remote control mode
+show_channel_descriptions = true
+# Whether to sort channels alphabetically
+sort_alphabetically = true
+
 
 # Keybindings
 # ----------------------------------------------------------------------------
 #
-# Channel mode
-# ------------------------
+# HARDCODED KEYBINDINGS (cannot be changed via config):
+# Input field actions (always active):
+#   Backspace          - Delete previous character
+#   Ctrl+w             - Delete previous word
+#   Ctrl+u             - Delete entire line
+#   Delete             - Delete next character
+#   Left/Right         - Move cursor left/right
+#   Home / Ctrl+a      - Go to input start
+#   End / Ctrl+e       - Go to input end
+#
+# CONFIGURABLE KEYBINDINGS (can be customized below):
+# --------------------------------------------------
 [keybindings]
+# Application control
+# ------------------
 # Quit the application
 quit = ["esc", "ctrl-c"]
+
+# Navigation and selection
+# -----------------------
 # Scrolling through entries
 select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-select_next_page = "pagedown"
-select_prev_page = "pageup"
-# Scrolling the preview pane
-scroll_preview_half_page_down = "ctrl-d"
-scroll_preview_half_page_up = "ctrl-u"
+#select_next_page = "pagedown"
+#select_prev_page = "pageup"
+
+# Multi-selection
+# --------------
 # Add entry to selection and move to the next entry
 toggle_selection_down = "tab"
 # Add entry to selection and move to the previous entry
 toggle_selection_up = "backtab"
 # Confirm selection
 confirm_selection = "enter"
+
+# Preview panel control
+# --------------------
+# Scrolling the preview pane
+scroll_preview_half_page_down = ["pagedown", "mousescrolldown"]
+scroll_preview_half_page_up = ["pageup", "mousescrollup"]
+
+# Data operations
+# --------------
 # Copy the selected entry to the clipboard
 copy_entry_to_clipboard = "ctrl-y"
-# Toggle the remote control mode
-toggle_remote_control = "ctrl-r"
-# Toggle the send to channel mode
-toggle_send_to_channel = "ctrl-s"
-# Toggle the help bar
-toggle_help = "ctrl-g"
-# Toggle the preview panel
-toggle_preview = "ctrl-o"
+# Reload the current source
+reload_source = "ctrl-r"
+# Cycle through the available sources for the current channel
+cycle_sources = "ctrl-s"
 
+# UI Features
+# ----------
+toggle_remote_control = "ctrl-t"
+toggle_preview = "ctrl-o"
+toggle_help = "ctrl-h"
+toggle_status_bar = "f12"
 
 # Shell integration
 # ----------------------------------------------------------------------------
@@ -157,6 +216,7 @@ fallback_channel = "files"
   "git pull",
   "git push",
 ]
+"git-log" = ["git log", "git show"]
 "docker-images" = ["docker run"]
 "git-repos" = ["nvim", "code", "hx", "git clone"]
 

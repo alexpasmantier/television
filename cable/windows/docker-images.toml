@@ -1,0 +1,13 @@
+# UNTESTED
+[metadata]
+name = "docker-images"
+description = "A channel to select from Docker images"
+requirements = ["docker", "jq"]
+
+[source]
+command = "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
+output = "{split: :-1}"
+
+
+[preview]
+command = "docker image inspect {split: :-1} | jq -C"

@@ -1,27 +1,119 @@
 use crate::{
+    cable::Cable,
     channels::{
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
+        entry::into_ranges,
+        prototypes::{BinaryRequirement, ChannelPrototype},
     },
+    config::{Binding, ui::RemoteControlConfig},
     matcher::{Matcher, config::Config},
+    screen::result_item::ResultItem,
 };
-use anyhow::Result;
 use devicons::FileIcon;
 
+#[derive(Debug, Clone)]
+pub struct CableEntry {
+    pub channel_name: String,
+    pub match_ranges: Option<Vec<(u32, u32)>>,
+    pub shortcut: Option<Binding>,
+    pub description: Option<String>,
+    pub requirements: Vec<BinaryRequirement>,
+}
+
+impl CableEntry {
+    pub fn new(name: String, shortcut: Option<&Binding>) -> Self {
+        CableEntry {
+            channel_name: name,
+            match_ranges: None,
+            shortcut: shortcut.cloned(),
+            description: None,
+            requirements: Vec::new(),
+        }
+    }
+
+    pub fn with_match_indices(mut self, indices: &[u32]) -> Self {
+        self.match_ranges = Some(into_ranges(indices));
+        self
+    }
+
+    pub fn with_description(mut self, description: Option<String>) -> Self {
+        self.description = description;
+        self
+    }
+
+    pub fn with_requirements(
+        mut self,
+        requirements: Vec<BinaryRequirement>,
+    ) -> Self {
+        self.requirements = requirements;
+        self
+    }
+}
+
+impl ResultItem for CableEntry {
+    fn icon(&self) -> Option<&devicons::FileIcon> {
+        // Remote control entries always share the same popcorn icon
+        Some(&CABLE_ICON)
+    }
+
+    fn display(&self) -> &str {
+        &self.channel_name
+    }
+
+    fn match_ranges(&self) -> Option<&[(u32, u32)]> {
+        self.match_ranges.as_deref()
+    }
+
+    fn shortcut(&self) -> Option<&crate::config::Binding> {
+        self.shortcut.as_ref()
+    }
+}
+
 pub struct RemoteControl {
-    matcher: Matcher<String>,
-    cable_channels: Option<Cable>,
+    matcher: Matcher<CableEntry>,
+    pub cable_channels: Cable,
 }
 
 const NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Option<Cable>) -> Self {
-        let matcher = Matcher::new(Config::default().n_threads(NUM_THREADS));
+    pub fn new(
+        cable_channels: Cable,
+        remote_config: &RemoteControlConfig,
+    ) -> Self {
+        let matcher =
+            Matcher::new(&Config::default().n_threads(Some(NUM_THREADS)));
         let injector = matcher.injector();
-        for c in cable_channels.as_ref().unwrap_or(&Cable::default()).keys() {
-            let () = injector.push(c.clone(), |e, cols| {
-                cols[0] = e.to_string().into();
+
+        // Sort channels based on configuration
+        let mut sorted_channels: Vec<_> = cable_channels.iter().collect();
+        if remote_config.sort_alphabetically {
+            sorted_channels.sort_by(|a, b| a.0.cmp(b.0));
+        }
+
+        for (channel_name, prototype) in sorted_channels {
+            let channel_shortcut = prototype
+                .keybindings
+                .as_ref()
+                .and_then(|kb| kb.channel_shortcut());
+            let cable_entry =
+                CableEntry::new(channel_name.to_string(), channel_shortcut)
+                    .with_description(prototype.metadata.description.clone())
+                    .with_requirements(
+                        // check if the prototype has binary requirements
+                        // and whether they are met
+                        prototype
+                            .metadata
+                            .requirements
+                            .iter()
+                            .cloned()
+                            .map(|mut r| {
+                                r.init();
+                                r
+                            })
+                            .collect(),
+                    );
+            let () = injector.push(cable_entry, |e, cols| {
+                cols[0] = e.channel_name.clone().into();
             });
         }
         RemoteControl {
@@ -30,33 +122,12 @@ impl RemoteControl {
         }
     }
 
-    pub fn zap(&self, channel_name: &str) -> Result<ChannelPrototype> {
-        match self
-            .cable_channels
-            .as_ref()
-            .and_then(|channels| channels.get(channel_name).cloned())
-        {
-            Some(prototype) => Ok(prototype),
-            None => Err(anyhow::anyhow!(
-                "No channel or cable channel prototype found for {}",
-                channel_name
-            )),
-        }
+    pub fn zap(&self, channel_name: &str) -> ChannelPrototype {
+        self.cable_channels.get_channel(channel_name)
     }
 }
 
-impl Default for RemoteControl {
-    fn default() -> Self {
-        Self::new(None)
-    }
-}
-
-const TV_ICON: FileIcon = FileIcon {
-    icon: '📺',
-    color: "#000000",
-};
-
-const CABLE_ICON: FileIcon = FileIcon {
+pub const CABLE_ICON: FileIcon = FileIcon {
     icon: '🍿',
     color: "#000000",
 };
@@ -66,25 +137,22 @@ impl RemoteControl {
         self.matcher.find(pattern);
     }
 
-    pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
+    pub fn results(
+        &mut self,
+        num_entries: u32,
+        offset: u32,
+    ) -> Vec<CableEntry> {
         self.matcher.tick();
         self.matcher
             .results(num_entries, offset)
             .into_iter()
-            .map(|item| {
-                let path = item.matched_string;
-                Entry::new(path)
-                    .with_name_match_indices(&item.match_indices)
-                    .with_icon(CABLE_ICON)
-            })
+            .map(|item| item.inner.with_match_indices(&item.match_indices))
             .collect()
     }
 
-    pub fn get_result(&self, index: u32) -> Option<Entry> {
-        self.matcher.get_result(index).map(|item| {
-            let path = item.matched_string;
-            Entry::new(path).with_icon(TV_ICON)
-        })
+    pub fn get_result(&self, index: u32) -> CableEntry {
+        let item = self.matcher.get_result(index).expect("Invalid index");
+        item.inner.with_match_indices(&item.match_indices)
     }
 
     pub fn result_count(&self) -> u32 {

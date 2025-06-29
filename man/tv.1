@@ -4,50 +4,81 @@
 .SH NAME
 television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-p\fR|\fB\-\-preview\fR] [\fB\-\-no\-preview\fR] [\fB\-\-delimiter\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-f\fR|\fB\-\-frame\-rate\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-custom\-header\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-no\-remote\fR] [\fB\-\-no\-help\fR] [\fB\-\-ui\-scale\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
 .TP
-\fB\-p\fR, \fB\-\-preview\fR=\fISTRING\fR
-A preview command to use with the stdin channel.
+\fB\-\-preview\-offset\fR=\fISTRING\fR
+A preview line number offset template to use to scroll the preview to for each
+entry.
 
-If provided, the preview command will be executed and formatted using
-the entry.
-Example: "bat \-n \-\-color=always {}" (where {} will be replaced with
-the entry)
+When a channel is specified: This overrides the offset defined in the channel prototype.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
 
-Parts of the entry can be extracted positionally using the `delimiter`
-option.
-Example: "echo {0} {1}" will split the entry by the delimiter and pass
-the first two fields to the command.
+This template uses the same syntax as the `preview` option and will be formatted
+using the currently selected entry.
 .TP
 \fB\-\-no\-preview\fR
 Disable the preview panel entirely on startup.
-.TP
-\fB\-\-delimiter\fR=\fISTRING\fR [default:  ]
-The delimiter used to extract fields from the entry to provide to the
-preview command.
 
-See the `preview` option for more information.
+This flag works identically in both channel mode and ad\-hoc mode.
+When set, no preview panel will be shown regardless of channel configuration
+or preview\-related flags.
+.TP
+\fB\-\-hide\-preview\fR
+Hide the preview panel on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+The preview remains functional and can be toggled visible later.
+.TP
+\fB\-\-show\-preview\fR
+Show the preview panel on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+This overrides any channel configuration that might have it disabled.
+.TP
+\fB\-\-no\-status\-bar\fR
+Disable the status bar on startup.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-hide\-status\-bar\fR
+Hide the status bar on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-show\-status\-bar\fR
+Show the status bar on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
 .TP
 \fB\-t\fR, \fB\-\-tick\-rate\fR=\fIFLOAT\fR
 The application\*(Aqs tick rate.
+
+This flag works identically in both channel mode and ad\-hoc mode.
 
 The tick rate is the number of times the application will update per
 second. This can be used to control responsiveness and CPU usage on
 very slow machines or very fast ones but the default should be a good
 compromise for most users.
 .TP
-\fB\-f\fR, \fB\-\-frame\-rate\fR=\fIFLOAT\fR
-[DEPRECATED] Frame rate, i.e. number of frames to render per second.
+\fB\-\-watch\fR=\fIFLOAT\fR
+Watch mode: reload the source command every N seconds.
 
-This option is deprecated and will be removed in a future release.
+When a channel is specified: Overrides the watch interval defined in the channel prototype.
+When no channel is specified: Sets the watch interval for the ad\-hoc channel.
+
+When set to a positive number, the application will automatically
+reload the source command at the specified interval. This is useful
+for monitoring changing data sources. Set to 0 to disable (default).
 .TP
 \fB\-k\fR, \fB\-\-keybindings\fR=\fISTRING\fR
 Keybindings to override the default keybindings.
 
-This can be used to override the default keybindings with a custom subset
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This can be used to override the default keybindings with a custom subset.
 The keybindings are specified as a semicolon separated list of keybinding
 expressions using the configuration file formalism.
 
@@ -56,18 +87,95 @@ Example: `tv \-\-keybindings=\*(Aqquit="esc";select_next_entry=["down","ctrl\-j"
 \fB\-i\fR, \fB\-\-input\fR=\fISTRING\fR
 Input text to pass to the channel to prefill the prompt.
 
+This flag works identically in both channel mode and ad\-hoc mode.
+
 This can be used to provide a default value for the prompt upon
 startup.
 .TP
-\fB\-\-custom\-header\fR=\fISTRING\fR
-Input fields header title
+\fB\-\-input\-header\fR=\fISTRING\fR
+Input field header template.
 
-This can be used to give the input field a custom title e.g. the current
-working directory.
-The default value for the input header is the current channel.
+When a channel is specified: Overrides the input header defined in the channel prototype.
+When no channel is specified: Sets the input header for the ad\-hoc channel.
+
+The given value is parsed as a `MultiTemplate`. It is evaluated against
+the current channel name and the resulting text is shown as the input
+field title. Defaults to the current channel name when omitted.
+.TP
+\fB\-\-preview\-header\fR=\fISTRING\fR
+Preview header template
+
+When a channel is specified: This overrides the header defined in the channel prototype.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed above the preview panel.
+.TP
+\fB\-\-preview\-footer\fR=\fISTRING\fR
+Preview footer template
+
+When a channel is specified: This overrides the footer defined in the channel prototype.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed below the preview panel.
+.TP
+\fB\-\-source\-command\fR=\fISTRING\fR
+Source command to use for the current channel.
+
+When a channel is specified: This overrides the command defined in the channel prototype.
+When no channel is specified: This creates an ad\-hoc channel with the given command.
+
+Example: `find . \-name \*(Aq*.rs\*(Aq`
+.TP
+\fB\-\-source\-display\fR=\fISTRING\fR
+Source display template to use for the current channel.
+
+When a channel is specified: This overrides the display template defined in the channel prototype.
+When no channel is specified: This flag requires \-\-source\-command to be set.
+
+The template is used to format each entry in the results list.
+Example: `{split:/:\-1}` (show only the last path segment)
+.TP
+\fB\-\-source\-output\fR=\fISTRING\fR
+Source output template to use for the current channel.
+
+When a channel is specified: This overrides the output template defined in the channel prototype.
+When no channel is specified: This flag requires \-\-source\-command to be set.
+
+The template is used to format the final output when an entry is selected.
+Example: "{}" (output the full entry)
+.TP
+\fB\-p\fR, \fB\-\-preview\-command\fR=\fISTRING\fR
+Preview command to use for the current channel.
+
+When a channel is specified: This overrides the preview command defined in the channel prototype.
+When no channel is specified: This enables preview functionality for the ad\-hoc channel.
+
+Example: "cat {}" (where {} will be replaced with the entry)
+
+Parts of the entry can be extracted positionally using the `delimiter`
+option.
+Example: "echo {0} {1}" will split the entry by the delimiter and pass
+the first two fields to the command.
+.TP
+\fB\-\-layout\fR=\fILAYOUT\fR
+Layout orientation for the UI.
+
+When a channel is specified: Overrides the layout/orientation defined in the channel prototype.
+When no channel is specified: Sets the layout orientation for the ad\-hoc channel.
+
+Options are "landscape" or "portrait".
+.br
+
+.br
+[\fIpossible values: \fRlandscape, portrait]
 .TP
 \fB\-\-autocomplete\-prompt\fR=\fISTRING\fR
 Try to guess the channel from the provided input prompt.
+
+This flag automatically selects channel mode by guessing the appropriate channel.
+It conflicts with manually specifying a channel since it determines the channel automatically.
 
 This can be used to automatically select a channel based on the input
 prompt by using the `shell_integration` mapping in the configuration
@@ -75,6 +183,8 @@ file.
 .TP
 \fB\-\-exact\fR
 Use substring matching instead of fuzzy matching.
+
+This flag works identically in both channel mode and ad\-hoc mode.
 
 This will use substring matching instead of fuzzy matching when
 searching for entries. This is useful when the user wants to search for
@@ -84,6 +194,8 @@ an exact match instead of a fuzzy match e.g. to improve performance.
 Automatically select and output the first entry if there is only one
 entry.
 
+This flag works identically in both channel mode and ad\-hoc mode.
+
 Note that most channels stream entries asynchronously which means that
 knowing if there\*(Aqs only one entry will require waiting for the channel
 to finish loading first.
@@ -91,8 +203,28 @@ to finish loading first.
 For most channels and workloads this shouldn\*(Aqt be a problem since the
 loading times are usually very short and will go unnoticed by the user.
 .TP
+\fB\-\-take\-1\fR
+Take the first entry from the list after the channel has finished loading.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This will wait for the channel to finish loading all entries and then
+automatically select and output the first entry. Unlike `select_1`, this
+will always take the first entry regardless of how many entries are available.
+.TP
+\fB\-\-take\-1\-fast\fR
+Take the first entry from the list as soon as it becomes available.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This will immediately select and output the first entry as soon as it
+appears in the results, without waiting for the channel to finish loading.
+This is the fastest option when you just want the first result.
+.TP
 \fB\-\-no\-remote\fR
 Disable the remote control.
+
+This flag works identically in both channel mode and ad\-hoc mode.
 
 This will disable the remote control panel and associated actions
 entirely. This is useful when the remote control is not needed or
@@ -100,20 +232,59 @@ when the user wants `tv` to run in single\-channel mode (e.g. when
 using it as a file picker for a script or embedding it in a larger
 application).
 .TP
-\fB\-\-no\-help\fR
-Disable the help panel.
+\fB\-\-hide\-remote\fR
+Hide the remote control on startup (only works if feature is enabled).
 
-This will disable the help panel and associated toggling actions
-entirely. This is useful when the help panel is not needed or
-when the user wants `tv` to run with a minimal interface (e.g. when
-using it as a file picker for a script or embedding it in a larger
-application).
+This flag works identically in both channel mode and ad\-hoc mode.
+The remote control remains functional and can be toggled visible later.
+.TP
+\fB\-\-show\-remote\fR
+Show the remote control on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-no\-help\-panel\fR
+Disable the help panel entirely on startup.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+When set, no help panel will be shown regardless of channel configuration
+or help panel\-related flags.
+.TP
+\fB\-\-hide\-help\-panel\fR
+Hide the help panel on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+The help panel remains functional and can be toggled visible later.
+.TP
+\fB\-\-show\-help\-panel\fR
+Show the help panel on startup (only works if feature is enabled).
+
+This flag works identically in both channel mode and ad\-hoc mode.
+This overrides any channel configuration that might have it disabled.
 .TP
 \fB\-\-ui\-scale\fR=\fIINTEGER\fR [default: 100]
 Change the display size in relation to the available area.
 
+This flag works identically in both channel mode and ad\-hoc mode.
+
 This will crop the UI to a centered rectangle of the specified
-percentage of the available area (e.g. 0.5 for 50% x 50%).
+percentage of the available area.
+.TP
+\fB\-\-preview\-size\fR=\fIINTEGER\fR
+Percentage of the screen to allocate to the preview panel (1\-99).
+
+When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+.TP
+\fB\-\-config\-file\fR=\fIPATH\fR
+Provide a custom configuration file to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-cable\-dir\fR=\fIPATH\fR
+Provide a custom cable directory to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)
@@ -124,12 +295,21 @@ Print version
 [\fICHANNEL\fR]
 Which channel shall we watch?
 
+When specified: The application operates in \*(Aqchannel mode\*(Aq where the selected
+channel provides the base configuration, and CLI flags act as overrides.
+
+When omitted: The application operates in \*(Aqad\-hoc mode\*(Aq where you must provide
+at least \-\-source\-command to create a custom channel. In this mode, preview
+and source flags have stricter validation rules.
+
 A list of the available channels can be displayed using the
 `list\-channels` command. The channel can also be changed from within
 the application.
 .TP
 [\fIPATH\fR]
 The working directory to start the application in.
+
+This flag works identically in both channel mode and ad\-hoc mode.
 
 This can be used to specify a different working directory for the
 application to start in. This is useful when the application is
@@ -142,6 +322,9 @@ Lists the available channels
 .TP
 television\-init(1)
 Initializes shell completion ("tv init zsh")
+.TP
+television\-update\-channels(1)
+Downloads the latest collection of default channel prototypes from github and saves them to the local configuration directory
 .TP
 television\-help(1)
 Print this message or the help of the given subcommand(s)

@@ -3,6 +3,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use anyhow::{Context, Result};
 use devicons::FileIcon;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -11,7 +12,10 @@ use tokio::{
 use tracing::debug;
 
 use crate::{
-    channels::{entry::Entry, preview::PreviewCommand},
+    channels::{
+        entry::Entry,
+        prototypes::{CommandSpec, PreviewSpec},
+    },
     utils::{
         command::shell_command,
         strings::{ReplaceNonPrintableConfig, replace_non_printable},
@@ -98,6 +102,7 @@ pub struct Preview {
     pub content: String,
     pub icon: Option<FileIcon>,
     pub total_lines: u16,
+    pub footer: String,
 }
 
 const DEFAULT_PREVIEW_TITLE: &str = "Select an entry to preview";
@@ -109,6 +114,7 @@ impl Default for Preview {
             content: String::new(),
             icon: None,
             total_lines: 1,
+            footer: String::new(),
         }
     }
 }
@@ -119,12 +125,14 @@ impl Preview {
         content: String,
         icon: Option<FileIcon>,
         total_lines: u16,
+        footer: String,
     ) -> Self {
         Self {
             title: title.to_string(),
             content,
             icon,
             total_lines,
+            footer,
         }
     }
 }
@@ -134,13 +142,13 @@ pub struct Previewer {
     // FIXME: maybe use a bounded channel here with a single slot
     requests: UnboundedReceiver<Request>,
     last_job_entry: Option<Entry>,
-    preview_command: PreviewCommand,
+    preview_spec: PreviewSpec,
     results: UnboundedSender<Preview>,
 }
 
 impl Previewer {
     pub fn new(
-        preview_command: PreviewCommand,
+        preview_command: &PreviewSpec,
         config: Config,
         receiver: UnboundedReceiver<Request>,
         sender: UnboundedSender<Preview>,
@@ -149,7 +157,7 @@ impl Previewer {
             config,
             requests: receiver,
             last_job_entry: None,
-            preview_command,
+            preview_spec: preview_command.clone(),
             results: sender,
         }
     }
@@ -168,18 +176,24 @@ impl Previewer {
                             continue;
                         }
                         let results_handle = self.results.clone();
-                        let command =
-                            self.preview_command.format_with(&ticket.entry);
                         self.last_job_entry = Some(ticket.entry.clone());
                         // try to execute the preview with a timeout
+                        let preview_command =
+                            self.preview_spec.command.clone();
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
-                                try_preview(
-                                    &command,
+                                if let Err(e) = try_preview(
+                                    &preview_command,
                                     &ticket.entry,
                                     &results_handle,
-                                );
+                                ) {
+                                    debug!(
+                                        "Failed to generate preview for entry '{}': {}",
+                                        ticket.entry.raw,
+                                        e
+                                    );
+                                }
                             }),
                         )
                         .await
@@ -210,16 +224,17 @@ impl Previewer {
 }
 
 pub fn try_preview(
-    command: &str,
+    command: &CommandSpec,
     entry: &Entry,
     results_handle: &UnboundedSender<Preview>,
-) {
+) -> Result<()> {
     debug!("Preview command: {}", command);
 
-    let child = shell_command(false)
-        .arg(command)
-        .output()
-        .expect("failed to execute process");
+    let formatted_command = command.get_nth(0).format(&entry.raw)?;
+
+    let child =
+        shell_command(&formatted_command, command.interactive, &command.env)
+            .output()?;
 
     let preview: Preview = {
         if child.status.success() {
@@ -230,10 +245,11 @@ pub fn try_preview(
                     .keep_control_characters(),
             );
             Preview::new(
-                &entry.name,
+                &entry.raw,
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+                String::new(),
             )
         } else {
             let (content, _) = replace_non_printable(
@@ -243,14 +259,15 @@ pub fn try_preview(
                     .keep_control_characters(),
             );
             Preview::new(
-                &entry.name,
+                &entry.raw,
                 content.to_string(),
                 None,
                 u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
+                String::new(),
             )
         }
     };
     results_handle
         .send(preview)
-        .expect("Unable to send preview result to main thread.");
+        .with_context(|| "Failed to send preview result to main thread.")
 }

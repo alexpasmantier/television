@@ -1,21 +1,18 @@
-use rustc_hash::FxHashSet;
-
-use anyhow::Result;
-use tokio::sync::mpsc;
-use tracing::{debug, trace};
-
 use crate::{
     action::Action,
-    channels::{
-        entry::Entry,
-        prototypes::{Cable, ChannelPrototype},
-    },
-    config::{Config, default_tick_rate},
+    cable::Cable,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
+    config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, Key},
     keymap::Keymap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
 };
+use anyhow::Result;
+use crossterm::event::MouseEventKind;
+use rustc_hash::FxHashSet;
+use tokio::sync::mpsc;
+use tracing::{debug, trace};
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppOptions {
@@ -25,11 +22,20 @@ pub struct AppOptions {
     /// Whether the application should automatically select the first entry if there is only one
     /// entry available.
     pub select_1: bool,
+    /// Whether the application should take the first entry after the channel has finished loading.
+    pub take_1: bool,
+    /// Whether the application should take the first entry as soon as it becomes available.
+    pub take_1_fast: bool,
     /// Whether the application should disable the remote control feature.
     pub no_remote: bool,
-    /// Whether the application should disable the help panel feature.
-    pub no_help: bool,
+    /// Whether the application should disable the preview panel feature.
+    pub no_preview: bool,
+    /// The size of the preview panel in lines/columns.
+    pub preview_size: Option<u16>,
+    /// The tick rate of the application in ticks per second (Hz).
     pub tick_rate: f64,
+    /// Watch interval in seconds for automatic reloading (0 = disabled).
+    pub watch_interval: f64,
 }
 
 impl Default for AppOptions {
@@ -37,28 +43,41 @@ impl Default for AppOptions {
         Self {
             exact: false,
             select_1: false,
+            take_1: false,
+            take_1_fast: false,
             no_remote: false,
-            no_help: false,
+            no_preview: false,
+            preview_size: Some(DEFAULT_PREVIEW_SIZE),
             tick_rate: default_tick_rate(),
+            watch_interval: 0.0,
         }
     }
 }
 
 impl AppOptions {
+    #[allow(clippy::too_many_arguments)]
     #[allow(clippy::fn_params_excessive_bools)]
     pub fn new(
         exact: bool,
         select_1: bool,
+        take_1: bool,
+        take_1_fast: bool,
         no_remote: bool,
-        no_help: bool,
+        no_preview: bool,
+        preview_size: Option<u16>,
         tick_rate: f64,
+        watch_interval: f64,
     ) -> Self {
         Self {
             exact,
             select_1,
+            take_1,
+            take_1_fast,
             no_remote,
-            no_help,
+            no_preview,
+            preview_size,
             tick_rate,
+            watch_interval,
         }
     }
 }
@@ -67,7 +86,7 @@ impl AppOptions {
 pub struct App {
     keymap: Keymap,
     /// The television instance that handles channels and entries.
-    television: Television,
+    pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
     /// A flag that indicates whether the application should suspend during the next frame.
@@ -98,6 +117,8 @@ pub struct App {
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
     options: AppOptions,
+    /// Watch timer task handle for periodic reloading
+    watch_timer_task: Option<tokio::task::JoinHandle<()>>,
 }
 
 /// The outcome of an action.
@@ -114,9 +135,9 @@ pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
 }
 
-impl From<ActionOutcome> for AppOutput {
-    fn from(outcome: ActionOutcome) -> Self {
-        match outcome {
+impl AppOutput {
+    pub fn new(action_outcome: ActionOutcome) -> Self {
+        match action_outcome {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
             },
@@ -137,19 +158,17 @@ const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
     pub fn new(
-        channel_prototype: &ChannelPrototype,
+        channel_prototype: ChannelPrototype,
         config: Config,
         input: Option<String>,
         options: AppOptions,
-        cable_channels: &Cable,
+        cable_channels: Cable,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
-        let keymap = Keymap::from(&config.keybindings);
 
-        debug!("{:?}", keymap);
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
         let television = Television::new(
             action_tx.clone(),
@@ -157,12 +176,17 @@ impl App {
             config,
             input,
             options.no_remote,
-            options.no_help,
+            options.no_preview,
+            options.preview_size,
             options.exact,
-            cable_channels.clone(),
+            cable_channels,
         );
 
-        Self {
+        // Create keymap from the merged config that includes channel prototype keybindings
+        let keymap = Keymap::from(&television.config.keybindings);
+        debug!("{:?}", keymap);
+
+        let mut app = Self {
             keymap,
             television,
             should_quit: false,
@@ -177,7 +201,81 @@ impl App {
             ui_state_tx,
             render_task: None,
             options,
+            watch_timer_task: None,
+        };
+
+        // populate keymap by going through all cable channels and adding their shortcuts if remote
+        // control is present
+        app.update_keymap();
+
+        app
+    }
+
+    /// Check if the watch timer is currently active.
+    fn watch_active(&self) -> bool {
+        self.watch_timer_task.is_some()
+    }
+
+    /// Start the watch timer if watch interval is configured
+    fn start_watch_timer(&mut self) {
+        if self.options.watch_interval > 0.0 && !self.watch_active() {
+            let action_tx = self.action_tx.clone();
+            let interval = std::time::Duration::from_secs_f64(
+                self.options.watch_interval,
+            );
+
+            debug!("Starting watch timer with interval: {:?}", interval);
+
+            let task = tokio::spawn(async move {
+                let mut timer = tokio::time::interval(interval);
+                timer.set_missed_tick_behavior(
+                    tokio::time::MissedTickBehavior::Skip,
+                );
+
+                loop {
+                    timer.tick().await;
+                    if action_tx.send(Action::WatchTimer).is_err() {
+                        break;
+                    }
+                }
+            });
+
+            self.watch_timer_task = Some(task);
         }
+    }
+
+    /// Stop the watch timer
+    fn stop_watch_timer(&mut self) {
+        if let Some(task) = self.watch_timer_task.take() {
+            task.abort();
+        }
+        self.watch_timer_task = None;
+        debug!("Stopped watch timer");
+    }
+
+    /// Restart the watch timer based on current channel's watch configuration
+    fn restart_watch_timer(&mut self) {
+        self.stop_watch_timer();
+        // Update the watch interval from the current channel prototype
+        self.options.watch_interval = self.television.channel_prototype.watch;
+        self.start_watch_timer();
+    }
+
+    /// Update the keymap from the television's current config.
+    ///
+    /// This should be called whenever the channel changes to ensure the keymap includes the
+    /// channel's keybindings and shortcuts for all other channels if the remote control is
+    /// enabled.
+    fn update_keymap(&mut self) {
+        let mut keymap = Keymap::from(&self.television.config.keybindings);
+
+        // Add channel specific shortcuts
+        if let Some(rc) = &self.television.remote_control {
+            keymap.merge(&rc.cable_channels.shortcut_keymap());
+        }
+
+        self.keymap = keymap;
+        debug!("Updated keymap (with shortcuts): {:?}", self.keymap);
     }
 
     /// Run the application main loop.
@@ -223,6 +321,9 @@ impl App {
                 .expect("Unable to send init render action.");
         }
 
+        // Start watch timer if configured
+        self.start_watch_timer();
+
         // Main loop
         debug!("Starting event handling loop");
         let action_tx = self.action_tx.clone();
@@ -250,15 +351,25 @@ impl App {
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
 
-            // If `self.select_1` is true, the channel is not running, and there is
-            // only one entry available, automatically select the first entry.
             if self.options.select_1
                 && !self.television.channel.running()
                 && self.television.channel.total_count() == 1
             {
+                // If `self.select_1` is true, the channel is not running, and there is
+                // only one entry available, automatically select the first entry.
                 if let Some(outcome) = self.maybe_select_1() {
                     action_outcome = outcome;
                 }
+            } else if self.options.take_1 && !self.television.channel.running()
+            {
+                // If `take_1` is true and the channel has finished loading,
+                // automatically take the first entry regardless of count.
+                // If there are no entries, exit with None.
+                action_outcome = self.maybe_take_1();
+            } else if self.options.take_1_fast {
+                // If `take_1_fast` is true, immediately take the first entry without
+                // waiting for loading to finish. If there are no entries, exit with None.
+                action_outcome = self.maybe_take_1();
             }
 
             if self.should_quit {
@@ -272,7 +383,7 @@ impl App {
                     rendering_task.await??;
                 }
 
-                return Ok(AppOutput::from(action_outcome));
+                return Ok(AppOutput::new(action_outcome));
             }
         }
     }
@@ -317,6 +428,35 @@ impl App {
                         Key::Char(c) => Action::AddInputChar(c),
                         _ => Action::NoOp,
                     }
+                }
+            }
+            Event::Mouse(mouse_event) => {
+                // Handle mouse scroll events for preview panel, if keybindings are configured
+                // Only works in channel mode, regardless of mouse position
+                if self.television.mode == Mode::Channel {
+                    match mouse_event.kind {
+                        MouseEventKind::ScrollUp => {
+                            if let Some(action) =
+                                self.keymap.get(&Key::MouseScrollUp)
+                            {
+                                action.clone()
+                            } else {
+                                Action::NoOp
+                            }
+                        }
+                        MouseEventKind::ScrollDown => {
+                            if let Some(action) =
+                                self.keymap.get(&Key::MouseScrollDown)
+                            {
+                                action.clone()
+                            } else {
+                                Action::NoOp
+                            }
+                        }
+                        _ => Action::NoOp,
+                    }
+                } else {
+                    Action::NoOp
                 }
             }
             // terminal events
@@ -368,6 +508,7 @@ impl App {
                             self.action_tx
                                 .send(Action::ToggleRemoteControl)?;
                         } else {
+                            self.stop_watch_timer();
                             self.should_quit = true;
                             self.render_tx.send(RenderingTask::Quit)?;
                         }
@@ -385,9 +526,8 @@ impl App {
                         if !self.render_tx.is_closed() {
                             self.render_tx.send(RenderingTask::Quit)?;
                         }
-                        if let Some(entries) = self
-                            .television
-                            .get_selected_entries(Some(Mode::Channel))
+                        if let Some(entries) =
+                            self.television.get_selected_entries()
                         {
                             return Ok(ActionOutcome::Entries(entries));
                         }
@@ -414,9 +554,27 @@ impl App {
                     }
                     _ => {}
                 }
+                // Check if we're switching from remote control to channel mode
+                let was_remote_control =
+                    self.television.mode == Mode::RemoteControl;
+
                 // forward action to the television handler
                 if let Some(action) = self.television.update(&action)? {
                     self.action_tx.send(action)?;
+                }
+
+                // Update keymap if channel changed (remote control to channel mode transition)
+                // This ensures channel-specific keybindings are properly loaded
+                if was_remote_control
+                    && matches!(action, Action::ConfirmSelection)
+                    && self.television.mode == Mode::Channel
+                {
+                    self.update_keymap();
+                    self.restart_watch_timer();
+                } else if matches!(action, Action::SwitchToChannel(_)) {
+                    // Channel changed via shortcut, refresh keymap and watch timer
+                    self.update_keymap();
+                    self.restart_watch_timer();
                 }
             }
         }
@@ -440,5 +598,31 @@ impl App {
             ])));
         }
         None
+    }
+
+    /// Take the first entry from the list regardless of how many entries are available.
+    /// If the list is empty, exit with None.
+    fn maybe_take_1(&mut self) -> ActionOutcome {
+        if let Some(first_entry) =
+            self.television.results_picker.entries.first()
+        {
+            debug!("Automatically taking the first entry");
+            self.should_quit = true;
+
+            if !self.render_tx.is_closed() {
+                let _ = self.render_tx.send(RenderingTask::Quit);
+            }
+
+            ActionOutcome::Entries(FxHashSet::from_iter([first_entry.clone()]))
+        } else {
+            debug!("No entries available, exiting with None");
+            self.should_quit = true;
+
+            if !self.render_tx.is_closed() {
+                let _ = self.render_tx.send(RenderingTask::Quit);
+            }
+
+            ActionOutcome::None
+        }
     }
 }

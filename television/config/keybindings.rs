@@ -1,13 +1,16 @@
-use crate::action::Action;
-use crate::event::{Key, convert_raw_event_to_key};
+use crate::{
+    action::Action,
+    event::{Key, convert_raw_event_to_key},
+};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
+#[serde(untagged)]
 pub enum Binding {
     SingleKey(Key),
     MultipleKeys(Vec<Key>),
@@ -28,7 +31,12 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+/// A set of keybindings for various actions in the application.
+///
+/// This struct is a wrapper around a `FxHashMap` that maps `Action`s to their corresponding
+/// `Binding`s. It's main use is to provide a convenient way to manage and serialize/deserialize
+/// keybindings from the configuration file as well as channel prototypes.
 pub struct KeyBindings(pub FxHashMap<Action, Binding>);
 
 impl<I> From<I> for KeyBindings
@@ -76,47 +84,6 @@ pub fn merge_keybindings(
         keybindings.insert(action.clone(), binding.clone());
     }
     keybindings
-}
-
-#[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
-pub enum SerializedBinding {
-    SingleKey(String),
-    MultipleKeys(Vec<String>),
-}
-
-impl<'de> Deserialize<'de> for KeyBindings {
-    fn deserialize<D>(deserializer: D) -> anyhow::Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let parsed_map =
-            FxHashMap::<Action, SerializedBinding>::deserialize(deserializer)?;
-
-        let keybindings: FxHashMap<Action, Binding> = parsed_map
-            .into_iter()
-            .map(|(cmd, binding)| {
-                (
-                    cmd,
-                    match binding {
-                        SerializedBinding::SingleKey(key_str) => {
-                            Binding::SingleKey(parse_key(&key_str).unwrap())
-                        }
-                        SerializedBinding::MultipleKeys(keys_str) => {
-                            Binding::MultipleKeys(
-                                keys_str
-                                    .iter()
-                                    .map(|key_str| parse_key(key_str).unwrap())
-                                    .collect(),
-                            )
-                        }
-                    },
-                )
-            })
-            .collect();
-
-        Ok(KeyBindings(keybindings))
-    }
 }
 
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
@@ -275,6 +242,14 @@ pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
         let raw = raw.strip_prefix('<').unwrap_or(raw);
         raw.strip_suffix('>').unwrap_or(raw)
     };
+
+    // Handle mouse scroll keys as special cases
+    match raw.to_ascii_lowercase().as_str() {
+        "mousescrollup" => return Ok(Key::MouseScrollUp),
+        "mousescrolldown" => return Ok(Key::MouseScrollDown),
+        _ => {}
+    }
+
     let key_event = parse_key_event(raw)?;
     Ok(convert_raw_event_to_key(key_event))
 }
@@ -392,10 +367,6 @@ mod tests {
                 copy_entry_to_clipboard = "ctrl-y"
                 # Toggle the remote control mode
                 toggle_remote_control = "ctrl-r"
-                # Toggle the send to channel mode
-                toggle_send_to_channel = "ctrl-s"
-                # Toggle the help bar
-                toggle_help = "ctrl-g"
                 # Toggle the preview panel
                 toggle_preview = "ctrl-o"
             "#,
@@ -446,11 +417,6 @@ mod tests {
                     Action::ToggleRemoteControl,
                     Binding::SingleKey(Key::Ctrl('r'))
                 ),
-                (
-                    Action::ToggleSendToChannel,
-                    Binding::SingleKey(Key::Ctrl('s'))
-                ),
-                (Action::ToggleHelp, Binding::SingleKey(Key::Ctrl('g'))),
                 (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
             ])
         );

@@ -1,119 +1,376 @@
-use rustc_hash::FxHashMap;
-use std::path::Path;
-
-use anyhow::{Result, anyhow};
-use tracing::debug;
-
 use crate::{
-    cable,
-    channels::{
-        preview::PreviewCommand,
-        prototypes::{Cable, ChannelPrototype},
-    },
+    cable::{self, Cable},
+    channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
-    config::{KeyBindings, get_config_dir, get_data_dir},
+    config::{
+        DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE, KeyBindings, get_config_dir,
+        get_data_dir,
+    },
+    errors::cli_parsing_error_exit,
+    screen::layout::Orientation,
+    utils::paths::expand_tilde,
 };
+use anyhow::{Result, anyhow};
+use rustc_hash::FxHashMap;
+use std::path::{Path, PathBuf};
+use tracing::debug;
 
 pub mod args;
 
+/// # CLI Use Cases
+///
+/// The CLI interface supports two primary use cases:
+///
+/// ## 1. Channel-based mode (channel is specified)
+/// When a channel is provided, the CLI operates in **override mode**:
+/// - The channel provides the base configuration (source, preview, UI settings)
+/// - All CLI flags act as **overrides** to the channel's defaults
+/// - Most restrictions are enforced at the clap level using `conflicts_with`
+/// - Templates and keybindings are validated after clap parsing
+/// - More permissive - allows any combination of flags as they override channel defaults
+///
+/// ## 2. Ad-hoc mode (no channel specified)
+/// When no channel is provided, the CLI creates an **ad-hoc channel**:
+/// - Stricter validation rules apply for interdependent flags
+/// - `--preview-*` flags require `--preview-command` to be set
+/// - `--source-*` flags require `--source-command` to be set
+/// - This ensures the ad-hoc channel has all necessary components to function
+///
+/// The validation logic in `post_process()` enforces these constraints for ad-hoc mode
+/// while allowing full flexibility in channel-based mode.
 #[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone)]
 pub struct PostProcessedCli {
+    // Channel and source configuration
     pub channel: Option<String>,
-    pub preview_command: Option<PreviewCommand>,
-    pub no_preview: bool,
-    pub tick_rate: Option<f64>,
-    pub frame_rate: Option<f64>,
-    pub input: Option<String>,
-    pub custom_header: Option<String>,
-    pub command: Option<Command>,
-    pub working_directory: Option<String>,
+    pub source_command_override: Option<Template>,
+    pub source_display_override: Option<Template>,
+    pub source_output_override: Option<Template>,
+    pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
-    pub keybindings: Option<KeyBindings>,
+
+    // Preview configuration
+    pub preview_command_override: Option<Template>,
+    pub preview_offset_override: Option<Template>,
+    pub no_preview: bool,
+    pub hide_preview: bool,
+    pub show_preview: bool,
+    pub preview_size: Option<u16>,
+    pub preview_header: Option<String>,
+    pub preview_footer: Option<String>,
+
+    // Status bar configuration
+    pub no_status_bar: bool,
+    pub hide_status_bar: bool,
+    pub show_status_bar: bool,
+
+    // Remote configuration
+    pub no_remote: bool,
+    pub hide_remote: bool,
+    pub show_remote: bool,
+
+    // Help panel configuration
+    pub no_help_panel: bool,
+    pub hide_help_panel: bool,
+    pub show_help_panel: bool,
+
+    // Input configuration
+    pub input: Option<String>,
+    pub input_header: Option<String>,
+
+    // UI and layout configuration
+    pub layout: Option<Orientation>,
+    pub ui_scale: u16,
+
+    // Behavior and matching configuration
     pub exact: bool,
     pub select_1: bool,
-    pub no_remote: bool,
-    pub no_help: bool,
-    pub ui_scale: u16,
+    pub take_1: bool,
+    pub take_1_fast: bool,
+    pub keybindings: Option<KeyBindings>,
+
+    // Performance configuration
+    pub tick_rate: Option<f64>,
+    pub watch_interval: Option<f64>,
+
+    // Configuration sources
+    pub config_file: Option<PathBuf>,
+    pub cable_dir: Option<PathBuf>,
+
+    // Command handling
+    pub command: Option<Command>,
 }
 
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
+            // Channel and source configuration
             channel: None,
-            preview_command: None,
-            no_preview: false,
-            tick_rate: None,
-            frame_rate: None,
-            input: None,
-            custom_header: None,
-            command: None,
+            source_command_override: None,
+            source_display_override: None,
+            source_output_override: None,
             working_directory: None,
             autocomplete_prompt: None,
-            keybindings: None,
+
+            // Preview configuration
+            preview_command_override: None,
+            preview_offset_override: None,
+            no_preview: false,
+            hide_preview: false,
+            show_preview: false,
+            preview_size: Some(DEFAULT_PREVIEW_SIZE),
+            preview_header: None,
+            preview_footer: None,
+
+            // Status bar configuration
+            no_status_bar: false,
+            hide_status_bar: false,
+            show_status_bar: false,
+
+            // Remote configuration
+            no_remote: false,
+            hide_remote: false,
+            show_remote: false,
+
+            // Help panel configuration
+            no_help_panel: false,
+            hide_help_panel: false,
+            show_help_panel: false,
+
+            // Input configuration
+            input: None,
+            input_header: None,
+
+            // UI and layout configuration
+            layout: None,
+            ui_scale: DEFAULT_UI_SCALE,
+
+            // Behavior and matching configuration
             exact: false,
             select_1: false,
-            no_remote: false,
-            no_help: false,
-            ui_scale: 100,
+            take_1: false,
+            take_1_fast: false,
+            keybindings: None,
+
+            // Performance configuration
+            tick_rate: None,
+            watch_interval: None,
+
+            // Configuration sources
+            config_file: None,
+            cable_dir: None,
+
+            // Command handling
+            command: None,
         }
     }
 }
 
-pub fn post_process(cli: Cli, cable: &Cable) -> PostProcessedCli {
+/// Post-processes the raw CLI arguments into a structured format with validation.
+///
+/// This function handles the two main CLI use cases:
+///
+/// **Channel-based mode**: When `cli.channel` is provided, all flags are treated as
+/// overrides to the channel's configuration. Validation is minimal since the channel
+/// provides sensible defaults.
+///
+/// **Ad-hoc mode**: When no channel is specified, stricter validation ensures that
+/// interdependent flags are used correctly:
+/// - Preview flags (`--preview-offset`, `--preview-size`, etc.) require `--preview-command`
+/// - Source flags (`--source-display`, `--source-output`) require `--source-command`
+///
+/// This prevents creating broken ad-hoc channels that reference non-existent commands.
+pub fn post_process(cli: Cli) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
     let keybindings = cli.keybindings.as_ref().map(|kb| {
         parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
             .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
     });
 
-    // Parse the preview command if provided
-    let preview_command = cli.preview.as_ref().map(|preview| PreviewCommand {
-        command: preview.clone(),
-        delimiter: cli.delimiter.clone(),
-        offset_expr: cli.preview_offset.clone(),
-    });
+    // Parse preview overrides if provided
+    let preview_command_override =
+        cli.preview_command.as_ref().map(|preview_cmd| {
+            Template::parse(preview_cmd).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing preview command: {e}"
+                ))
+            })
+        });
+
+    let preview_offset_override =
+        cli.preview_offset.as_ref().map(|offset_str| {
+            Template::parse(offset_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing preview offset: {e}"
+                ))
+            })
+        });
+
+    // Validate interdependent flags for ad-hoc mode (when no channel is specified)
+    // This ensures ad-hoc channels have all necessary components to function properly
+    validate_adhoc_mode_constraints(&cli);
 
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
-        Some(c) if !cable.has_channel(c) => {
-            if cli.working_directory.is_none() && Path::new(c).exists() {
-                (None, Some(c.clone()))
-            } else {
-                unknown_channel_exit(c);
-            }
+        Some(c) if Path::new(c).exists() => {
+            // If the channel is a path, use it as the working directory
+            (None, Some(PathBuf::from(c)))
         }
-        _ => (cli.channel.clone(), cli.working_directory.clone()),
+        _ => (
+            cli.channel.clone(),
+            cli.working_directory.as_ref().map(PathBuf::from),
+        ),
     };
 
+    // Parse source overrides if any source fields are provided
+    let source_command_override =
+        cli.source_command.as_ref().map(|source_cmd| {
+            Template::parse(source_cmd).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source command: {e}"
+                ))
+            })
+        });
+
+    let source_display_override =
+        cli.source_display.as_ref().map(|display_str| {
+            Template::parse(display_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source display: {e}"
+                ))
+            })
+        });
+
+    let source_output_override =
+        cli.source_output.as_ref().map(|output_str| {
+            Template::parse(output_str).unwrap_or_else(|e| {
+                cli_parsing_error_exit(&format!(
+                    "Error parsing source output: {e}"
+                ))
+            })
+        });
+
+    // Determine layout
+    let layout: Option<Orientation> =
+        cli.layout.map(|layout_enum| match layout_enum {
+            args::LayoutOrientation::Landscape => Orientation::Landscape,
+            args::LayoutOrientation::Portrait => Orientation::Portrait,
+        });
+
     PostProcessedCli {
+        // Channel and source configuration
         channel,
-        preview_command,
-        no_preview: cli.no_preview,
-        tick_rate: cli.tick_rate,
-        frame_rate: cli.frame_rate,
-        input: cli.input,
-        custom_header: cli.custom_header,
-        command: cli.command,
+        source_command_override,
+        source_display_override,
+        source_output_override,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
-        keybindings,
+
+        // Preview configuration
+        preview_command_override,
+        preview_offset_override,
+        no_preview: cli.no_preview,
+        hide_preview: cli.hide_preview,
+        show_preview: cli.show_preview,
+        preview_size: cli.preview_size,
+        preview_header: cli.preview_header,
+        preview_footer: cli.preview_footer,
+
+        // Status bar configuration
+        no_status_bar: cli.no_status_bar,
+        hide_status_bar: cli.hide_status_bar,
+        show_status_bar: cli.show_status_bar,
+
+        // Remote configuration
+        no_remote: cli.no_remote,
+        hide_remote: cli.hide_remote,
+        show_remote: cli.show_remote,
+
+        // Help panel configuration
+        no_help_panel: cli.no_help_panel,
+        hide_help_panel: cli.hide_help_panel,
+        show_help_panel: cli.show_help_panel,
+
+        // Input configuration
+        input: cli.input,
+        input_header: cli.input_header,
+
+        // UI and layout configuration
+        layout,
+        ui_scale: cli.ui_scale,
+
+        // Behavior and matching configuration
         exact: cli.exact,
         select_1: cli.select_1,
-        no_remote: cli.no_remote,
-        no_help: cli.no_help,
-        ui_scale: cli.ui_scale,
+        take_1: cli.take_1,
+        take_1_fast: cli.take_1_fast,
+        keybindings,
+
+        // Performance configuration
+        tick_rate: cli.tick_rate,
+        watch_interval: cli.watch,
+
+        // Configuration sources
+        config_file: cli.config_file.map(|p| expand_tilde(&p)),
+        cable_dir: cli.cable_dir.map(|p| expand_tilde(&p)),
+
+        // Command handling
+        command: cli.command,
     }
 }
 
-fn cli_parsing_error_exit(message: &str) -> ! {
-    eprintln!("Error parsing CLI arguments: {message}\n");
-    std::process::exit(1);
-}
+/// Validates interdependent flags when operating in ad-hoc mode (no channel specified).
+///
+/// In ad-hoc mode, certain flags require their corresponding command to be specified:
+/// - Source-related flags (`--source-display`, `--source-output`) require `--source-command`
+/// - Preview-related flags (`--preview-offset`, `--preview-size`, etc.) require `--preview-command`
+///
+/// This validation ensures that ad-hoc channels have all necessary components to function.
+/// When a channel is specified, these validations are skipped as the channel provides defaults.
+fn validate_adhoc_mode_constraints(cli: &Cli) {
+    // Skip validation if a channel is specified (channel-based mode)
+    if cli.channel.is_some() {
+        return;
+    }
 
-pub fn unknown_channel_exit(channel: &str) -> ! {
-    eprintln!("Channel not found: {channel}\n");
-    std::process::exit(1);
+    // Validate source-related flags in ad-hoc mode
+    if cli.source_command.is_none() {
+        let source_flags = [
+            ("--source-display", cli.source_display.is_some()),
+            ("--source-output", cli.source_output.is_some()),
+            ("--preview-command", cli.preview_command.is_some()),
+        ];
+
+        for (flag_name, is_set) in source_flags {
+            if is_set {
+                cli_parsing_error_exit(&format!(
+                    "{} requires a source command when no channel is specified. \
+                     Either specify a channel (which may have its own source command) or provide --source-command.",
+                    flag_name
+                ));
+            }
+        }
+    }
+
+    // Validate preview-related flags in ad-hoc mode
+    if cli.preview_command.is_none() {
+        let preview_flags = [
+            ("--preview-offset", cli.preview_offset.is_some()),
+            ("--preview-size", cli.preview_size.is_some()),
+            ("--preview-header", cli.preview_header.is_some()),
+            ("--preview-footer", cli.preview_footer.is_some()),
+        ];
+
+        for (flag_name, is_set) in preview_flags {
+            if is_set {
+                cli_parsing_error_exit(&format!(
+                    "{} requires a preview command when no channel is specified. \
+                     Either specify a channel (which may have its own preview command) or provide --preview-command.",
+                    flag_name
+                ));
+            }
+        }
+    }
 }
 
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
@@ -137,8 +394,13 @@ fn parse_keybindings_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn list_channels() {
-    for c in cable::load_cable().unwrap_or_default().keys() {
+pub fn list_channels<P>(cable_dir: P)
+where
+    P: AsRef<Path>,
+{
+    let channels =
+        cable::load_cable(cable_dir).expect("Failed to load cable channels");
+    for c in channels.keys() {
         println!("\t{c}");
     }
 }
@@ -234,7 +496,7 @@ pub fn version() -> String {
           |`-----------' |/
            ~~~~~~~~~~~~~~~
   __      __         _     _
- / /____ / /__ _  __(_)__ (_)__  ___ 
+ / /____ / /__ _  __(_)__ (_)__  ___
 / __/ -_) / -_) |/ / (_-</ / _ \\/ _ \\
 \\__/\\__/_/\\__/|___/_/___/_/\\___/_//_/
 
@@ -256,28 +518,21 @@ mod tests {
     fn test_from_cli() {
         let cli = Cli {
             channel: Some("files".to_string()),
-            preview: Some("bat -n --color=always {}".to_string()),
-            delimiter: ":".to_string(),
+            preview_command: Some("bat -n --color=always {}".to_string()),
             working_directory: Some("/home/user".to_string()),
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         assert_eq!(
-            post_processed_cli.preview_command,
-            Some(PreviewCommand {
-                command: "bat -n --color=always {}".to_string(),
-                delimiter: ":".to_string(),
-                offset_expr: None,
-            })
+            post_processed_cli.preview_command_override.unwrap().raw(),
+            "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
-        assert_eq!(post_processed_cli.frame_rate, None);
         assert_eq!(
             post_processed_cli.working_directory,
-            Some("/home/user".to_string())
+            Some(PathBuf::from("/home/user"))
         );
     }
 
@@ -286,16 +541,14 @@ mod tests {
     fn test_from_cli_no_args() {
         let cli = Cli {
             channel: Some(".".to_string()),
-            delimiter: ":".to_string(),
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         assert_eq!(
             post_processed_cli.working_directory,
-            Some(".".to_string())
+            Some(PathBuf::from("."))
         );
         assert_eq!(post_processed_cli.command, None);
     }
@@ -304,8 +557,7 @@ mod tests {
     fn test_custom_keybindings() {
         let cli = Cli {
             channel: Some("files".to_string()),
-            preview: Some(":env_var:".to_string()),
-            delimiter: ":".to_string(),
+            preview_command: Some(":env_var:".to_string()),
             keybindings: Some(
                 "quit=\"esc\";select_next_entry=[\"down\",\"ctrl-j\"]"
                     .to_string(),
@@ -313,8 +565,7 @@ mod tests {
             ..Default::default()
         };
 
-        let cable = cable::load_cable().unwrap_or_default();
-        let post_processed_cli = post_process(cli, &cable);
+        let post_processed_cli = post_process(cli);
 
         let mut expected = KeyBindings::default();
         expected.insert(Action::Quit, Binding::SingleKey(Key::Esc));
@@ -336,7 +587,11 @@ mod tests {
         (
             command_mapping,
             "env",
-            cable::load_cable().unwrap_or_default(),
+            Cable::from_prototypes(vec![
+                ChannelPrototype::new("files", "fd -t f"),
+                ChannelPrototype::new("env", "env"),
+                ChannelPrototype::new("git", "git status"),
+            ]),
         )
     }
 
@@ -354,7 +609,7 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, "files");
+        assert_eq!(channel.metadata.name, "files");
     }
 
     #[test]
@@ -371,7 +626,7 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, fallback);
+        assert_eq!(channel.metadata.name, fallback);
     }
 
     #[test]
@@ -388,6 +643,6 @@ mod tests {
             &channels,
         );
 
-        assert_eq!(channel.name, fallback);
+        assert_eq!(channel.metadata.name, fallback);
     }
 }

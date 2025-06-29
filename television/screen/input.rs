@@ -1,4 +1,8 @@
-use crate::utils::input::Input;
+use crate::{
+    channels::prototypes::Template,
+    screen::{colors::Colorscheme, layout::InputPosition, spinner::Spinner},
+    utils::input::Input,
+};
 use anyhow::Result;
 use ratatui::{
     Frame,
@@ -12,10 +16,6 @@ use ratatui::{
     },
 };
 
-use crate::screen::{colors::Colorscheme, spinner::Spinner};
-
-use super::layout::InputPosition;
-
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
     f: &mut Frame,
@@ -28,10 +28,13 @@ pub fn draw_input_box(
     channel_name: &str,
     spinner: &Spinner,
     colorscheme: &Colorscheme,
-    custom_header: &Option<String>,
+    input_header: &Option<Template>,
     input_bar_position: &InputPosition,
 ) -> Result<()> {
-    let header = custom_header.as_deref().unwrap_or(channel_name);
+    let header = input_header
+        .as_ref()
+        .and_then(|tpl| tpl.format(channel_name).ok())
+        .unwrap_or_else(|| channel_name.to_string());
     let input_block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
@@ -41,7 +44,7 @@ pub fn draw_input_box(
             InputPosition::Bottom => Position::Bottom,
         })
         .title(
-            Line::from(String::from(" ") + header + " ")
+            Line::from(format!(" {} ", header))
                 .style(Style::default().fg(colorscheme.mode.channel).bold())
                 .centered(),
         )

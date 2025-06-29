@@ -50,6 +50,9 @@ where
     pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
+    /// A pre-allocated buffer used to collect match indices when fetching the results
+    /// from the matcher. This avoids having to re-allocate on each pass.
+    col_indices_buffer: Vec<u32>,
 }
 
 impl<I> Matcher<I>
@@ -57,10 +60,10 @@ where
     I: Sync + Send + Clone + 'static,
 {
     /// Create a new fuzzy matcher with the given configuration.
-    pub fn new(config: config::Config) -> Self {
+    pub fn new(config: &config::Config) -> Self {
         Self {
             inner: nucleo::Nucleo::new(
-                (&config).into(),
+                config.into(),
                 Arc::new(|| {}),
                 config.n_threads,
                 1,
@@ -69,6 +72,7 @@ where
             matched_item_count: 0,
             status: Status::default(),
             last_pattern: String::new(),
+            col_indices_buffer: Vec::with_capacity(128), // Pre-allocate for performance
         }
     }
 
@@ -88,7 +92,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(config);
+    /// let matcher = Matcher::new(&config);
     /// let injector = matcher.injector();
     ///
     /// injector.push(
@@ -138,7 +142,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config);
     /// matcher.find("some pattern");
     ///
     /// let results = matcher.results(10, 0);
@@ -159,32 +163,51 @@ where
         self.total_item_count = snapshot.item_count();
         self.matched_item_count = snapshot.matched_item_count();
 
-        let mut col_indices = Vec::new();
+        // If the offset is greater than the number of matched items, return an empty Vec
+        if offset >= self.matched_item_count {
+            return Vec::new();
+        }
+        // If we're asking for more entries than available, adjust the count
+        let num_entries = if offset + num_entries > self.matched_item_count {
+            self.matched_item_count - offset
+        } else {
+            num_entries
+        };
+
+        // Clear the pre-allocated match indices buffer for safety
+        self.col_indices_buffer.clear();
         let mut matcher = lazy::MATCHER.lock();
 
-        snapshot
-            .matched_items(
-                offset..(num_entries + offset).min(self.matched_item_count),
-            )
-            .map(move |item| {
-                snapshot.pattern().column_pattern(0).indices(
-                    item.matcher_columns[0].slice(..),
-                    &mut matcher,
-                    &mut col_indices,
-                );
-                col_indices.sort_unstable();
-                col_indices.dedup();
+        // PERF: Pre-allocate the results Vec so we avoid repeated reallocations
+        let mut results = Vec::with_capacity(num_entries as usize);
 
-                let indices = col_indices.drain(..);
+        for item in snapshot.matched_items(
+            offset..(num_entries + offset).min(self.matched_item_count),
+        ) {
+            snapshot.pattern().column_pattern(0).indices(
+                item.matcher_columns[0].slice(..),
+                &mut matcher,
+                &mut self.col_indices_buffer,
+            );
 
-                let matched_string = item.matcher_columns[0].to_string();
-                matched_item::MatchedItem {
-                    inner: item.data.clone(),
-                    matched_string,
-                    match_indices: indices.collect(),
-                }
-            })
-            .collect()
+            // PERF: Avoid unnecessary sorting
+            if self.col_indices_buffer.len() > 1 {
+                self.col_indices_buffer.sort_unstable();
+                self.col_indices_buffer.dedup();
+            }
+
+            let indices: Vec<u32> =
+                self.col_indices_buffer.drain(..).collect();
+            let matched_string = item.matcher_columns[0].to_string();
+
+            results.push(matched_item::MatchedItem {
+                inner: item.data.clone(),
+                matched_string,
+                match_indices: indices,
+            });
+        }
+
+        results
     }
 
     /// Get a single matched item.
@@ -194,7 +217,7 @@ where
     /// use television::matcher::{config::Config, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config);
     /// matcher.find("some pattern");
     ///
     /// if let Some(item) = matcher.get_result(0) {
@@ -207,13 +230,39 @@ where
         index: u32,
     ) -> Option<matched_item::MatchedItem<I>> {
         let snapshot = self.inner.snapshot();
+        let mut col_indices = Vec::new();
+        let mut matcher = lazy::MATCHER.lock();
+
         snapshot.get_matched_item(index).map(|item| {
+            snapshot.pattern().column_pattern(0).indices(
+                item.matcher_columns[0].slice(..),
+                &mut matcher,
+                &mut col_indices,
+            );
+            col_indices.sort_unstable();
+            col_indices.dedup();
+
+            let indices = col_indices.drain(..);
             let matched_string = item.matcher_columns[0].to_string();
+
             matched_item::MatchedItem {
                 inner: item.data.clone(),
                 matched_string,
-                match_indices: Vec::new(),
+                match_indices: indices.collect(),
             }
         })
+    }
+
+    /// Restart the matcher.
+    ///
+    /// This will reset the matcher to its initial state, clearing all
+    /// matched items and the last pattern.
+    pub fn restart(&mut self) {
+        self.inner.restart(true);
+        self.total_item_count = 0;
+        self.matched_item_count = 0;
+        self.status = Status::default();
+        self.last_pattern.clear();
+        self.col_indices_buffer.clear();
     }
 }

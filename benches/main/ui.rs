@@ -8,14 +8,14 @@ use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
 use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
+use television::channels::prototypes::ChannelPrototype;
+use television::picker::Movement;
 use television::{
     action::Action,
-    channels::{
-        entry::{Entry, into_ranges},
-        prototypes::Cable,
-    },
+    cable::Cable,
+    channels::entry::{Entry, into_ranges},
     config::{Config, ConfigEnv},
-    screen::{colors::ResultsColorscheme, results::build_results_list},
+    screen::{colors::ResultsColorscheme, result_item::build_results_list},
     television::Television,
 };
 use tokio::runtime::Runtime;
@@ -27,10 +27,9 @@ pub fn draw_results_list(c: &mut Criterion) {
     // I don't know how exactly right now just having it here instead
     let entries = [
         Entry {
-            name: "typeshed/LICENSE".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/LICENSE".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{f016}',
                 color: "#7e8e91",
@@ -38,10 +37,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/README.md".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/README.md".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{f48a}',
                 color: "#dddddd",
@@ -49,10 +47,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/re.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/re.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -60,10 +57,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/io.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/io.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -71,10 +67,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/gc.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/gc.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -82,10 +77,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/uu.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/uu.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -93,10 +87,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/nt.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/nt.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -104,10 +97,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/dis.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/dis.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -115,10 +107,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/imp.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/imp.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -126,10 +117,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/bdb.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/bdb.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -137,10 +127,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/abc.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/abc.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -148,10 +137,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/cgi.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/cgi.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -159,10 +147,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/bz2.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/bz2.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -170,10 +157,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/grp.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/grp.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -181,10 +167,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/ast.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/ast.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -192,10 +177,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/csv.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/csv.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -203,10 +187,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/pdb.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/pdb.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -214,10 +197,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/pwd.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/pwd.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -225,10 +207,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/ssl.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/ssl.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -236,10 +217,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/tty.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/tty.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -247,10 +227,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/nis.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/nis.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -258,10 +237,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/pty.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/pty.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -269,10 +247,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/cmd.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/cmd.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -280,10 +257,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/tests/utils.py".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/tests/utils.py".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -291,10 +267,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/pyproject.toml".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/pyproject.toml".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e6b2}',
                 color: "#9c4221",
@@ -302,10 +277,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/MAINTAINERS.md".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/MAINTAINERS.md".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{f48a}',
                 color: "#dddddd",
@@ -313,10 +287,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/enum.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/enum.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -324,10 +297,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/hmac.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/hmac.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -335,10 +307,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/uuid.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/uuid.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -346,10 +317,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/glob.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/glob.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -357,10 +327,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/_ast.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/_ast.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -368,10 +337,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/_csv.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/_csv.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -379,10 +347,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/code.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/code.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -390,10 +357,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/spwd.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/spwd.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -401,10 +367,9 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/_msi.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/_msi.pyi".to_string(),
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
             icon: Some(FileIcon {
                 icon: '\u{e606}',
                 color: "#ffbc03",
@@ -412,8 +377,8 @@ pub fn draw_results_list(c: &mut Criterion) {
             line_number: None,
         },
         Entry {
-            name: "typeshed/stdlib/time.pyi".to_string(),
-            value: None,
+            display: None,
+            raw: "typeshed/stdlib/time.pyi".to_string(),
 
             icon: Some(FileIcon {
                 icon: '\u{e606}',
@@ -421,7 +386,6 @@ pub fn draw_results_list(c: &mut Criterion) {
             }),
             line_number: None,
             name_match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
-            value_match_ranges: None,
         },
     ];
 
@@ -447,11 +411,11 @@ pub fn draw_results_list(c: &mut Criterion) {
                     .style(Style::default())
                     .padding(Padding::right(1)),
                 &entries,
-                None,
                 ListDirection::BottomToTop,
                 false,
                 &colorscheme,
                 100,
+                |_| None,
             );
         });
     });
@@ -464,13 +428,16 @@ pub fn draw(c: &mut Criterion) {
 
     let rt = Runtime::new().unwrap();
 
-    let cable = Cable::default();
+    let cable = Cable::from_prototypes(vec![ChannelPrototype::new(
+        "files", "fd -t f",
+    )]);
 
     c.bench_function("draw", |b| {
         b.to_async(&rt).iter_batched(
             // FIXME: this is kind of hacky
             || {
-                let config = Config::new(&ConfigEnv::init().unwrap()).unwrap();
+                let config =
+                    Config::new(&ConfigEnv::init().unwrap(), None).unwrap();
                 let backend = TestBackend::new(width, height);
                 let terminal = Terminal::new(backend).unwrap();
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
@@ -478,13 +445,14 @@ pub fn draw(c: &mut Criterion) {
                 // Wait for the channel to finish loading
                 let mut tv = Television::new(
                     tx,
-                    &channel_prototype,
+                    channel_prototype,
                     config,
                     None,
                     false,
                     false,
+                    Some(50),
                     false,
-                    Cable::default(),
+                    cable.clone(),
                 );
                 tv.find("television");
                 for _ in 0..5 {
@@ -492,8 +460,8 @@ pub fn draw(c: &mut Criterion) {
                     let _ = tv.channel.results(10, 0);
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
-                tv.select_next_entry(10);
-                let _ = tv.update_preview_state(&tv.get_selected_entry(None));
+                tv.move_cursor(Movement::Next, 10);
+                let _ = tv.update_preview_state(&tv.get_selected_entry());
                 let _ = tv.update(&Action::Tick);
                 (tv, terminal)
             },

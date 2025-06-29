@@ -1,18 +1,12 @@
-use std::{hash::Hash, time::Instant};
-
-use anyhow::Result;
-use ratatui::{Frame, layout::Rect};
-use rustc_hash::FxHashSet;
-
 use crate::{
-    action::Action,
-    channels::entry::Entry,
+    channels::{entry::Entry, remote_control::CableEntry},
     config::Config,
     picker::Picker,
     previewer::state::PreviewState,
+    screen::status_bar,
     screen::{
-        colors::Colorscheme, help::draw_help_bar, input::draw_input_box,
-        keybindings::build_keybindings_table, layout::Layout,
+        colors::Colorscheme, help_panel::draw_help_panel,
+        input::draw_input_box, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
         spinner::Spinner,
@@ -20,6 +14,10 @@ use crate::{
     television::Mode,
     utils::metadata::AppMetadata,
 };
+use anyhow::Result;
+use ratatui::{Frame, layout::Rect};
+use rustc_hash::FxHashSet;
+use std::{hash::Hash, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
 /// The state of the current television channel.
@@ -30,6 +28,7 @@ pub struct ChannelState {
     pub selected_entries: FxHashSet<Entry>,
     pub total_count: u32,
     pub running: bool,
+    pub current_command: String,
 }
 
 impl ChannelState {
@@ -38,12 +37,14 @@ impl ChannelState {
         selected_entries: FxHashSet<Entry>,
         total_count: u32,
         running: bool,
+        current_command: String,
     ) -> Self {
         Self {
             current_channel_name,
             selected_entries,
             total_count,
             running,
+            current_command,
         }
     }
 }
@@ -56,6 +57,7 @@ impl Hash for ChannelState {
             .for_each(|entry| entry.hash(state));
         self.total_count.hash(state);
         self.running.hash(state);
+        self.current_command.hash(state);
     }
 }
 
@@ -66,8 +68,8 @@ impl Hash for ChannelState {
 pub struct TvState {
     pub mode: Mode,
     pub selected_entry: Option<Entry>,
-    pub results_picker: Picker,
-    pub rc_picker: Picker,
+    pub results_picker: Picker<Entry>,
+    pub rc_picker: Picker<CableEntry>,
     pub channel_state: ChannelState,
     pub spinner: Spinner,
     pub preview_state: PreviewState,
@@ -78,8 +80,8 @@ impl TvState {
     pub fn new(
         mode: Mode,
         selected_entry: Option<Entry>,
-        results_picker: Picker,
-        rc_picker: Picker,
+        results_picker: Picker<Entry>,
+        rc_picker: Picker<CableEntry>,
         channel_state: ChannelState,
         spinner: Spinner,
         preview_state: PreviewState,
@@ -131,37 +133,28 @@ impl Ctx {
     }
 }
 
-// impl PartialEq for Ctx {
-//     fn eq(&self, other: &Self) -> bool {
-//         self.tv_state == other.tv_state
-//             && self.config == other.config
-//             && self.colorscheme == other.colorscheme
-//             && self.app_metadata == other.app_metadata
-//     }
-// }
-//
-// impl Eq for Ctx {}
-//
-// impl Hash for Ctx {
-//     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-//         self.tv_state.hash(state);
-//         self.config.hash(state);
-//         self.colorscheme.hash(state);
-//         self.app_metadata.hash(state);
-//     }
-// }
-//
-// impl PartialOrd for Ctx {
-//     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-//         Some(self.instant.cmp(&other.instant))
-//     }
-// }
-//
-// impl Ord for Ctx {
-//     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-//         self.instant.cmp(&other.instant)
-//     }
-// }
+/// Trait implemented by every drawable UI component.
+pub trait UiComponent {
+    /// Draw the component inside the given area.
+    fn draw(&self, f: &mut Frame<'_>, area: Rect);
+}
+
+/// Wrapper around the existing `status_bar` drawing logic so it can be treated as a `UiComponent`.
+pub struct StatusBarComponent<'a> {
+    pub ctx: &'a Ctx,
+}
+
+impl<'a> StatusBarComponent<'a> {
+    pub fn new(ctx: &'a Ctx) -> Self {
+        Self { ctx }
+    }
+}
+
+impl UiComponent for StatusBarComponent<'_> {
+    fn draw(&self, f: &mut Frame<'_>, area: Rect) {
+        status_bar::draw_status_bar(f, area, self.ctx);
+    }
+}
 
 /// Draw the current UI frame based on the given context.
 ///
@@ -171,35 +164,23 @@ impl Ctx {
 /// This function is executed by the UI thread whenever it receives a render message from the main
 /// thread.
 ///
-/// It will draw the help bar, the results list, the input box, the preview content block, and the
-/// remote control.
+/// It will draw the results list, the input box, the preview content block, the remote control,
+/// the help panel, and the status bar.
 ///
 /// # Returns
 /// A `Result` containing the layout of the current frame if the drawing was successful.
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
 pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
-    let show_remote = !matches!(ctx.tv_state.mode, Mode::Channel);
+    let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
 
     let layout = Layout::build(
         area,
         &ctx.config.ui,
         show_remote,
         ctx.tv_state.preview_state.enabled,
-    );
-
-    // help bar (metadata, keymaps, logo)
-    draw_help_bar(
-        f,
-        &layout.help_bar,
-        &ctx.tv_state.channel_state.current_channel_name,
-        build_keybindings_table(
-            &ctx.config.keybindings.to_displayable(),
-            ctx.tv_state.mode,
-            &ctx.colorscheme,
-        ),
+        Some(&ctx.config.keybindings),
         ctx.tv_state.mode,
-        &ctx.app_metadata,
         &ctx.colorscheme,
     );
 
@@ -213,21 +194,6 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         ctx.config.ui.input_bar_position,
         ctx.config.ui.use_nerd_font_icons,
         &ctx.colorscheme,
-        &ctx.config
-            .keybindings
-            .get(&Action::ToggleHelp)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        &ctx.config
-            .keybindings
-            .get(&Action::TogglePreview)
-            // just display the first keybinding
-            .unwrap()
-            .to_string(),
-        // only show the preview keybinding hint if there's actually something to preview
-        ctx.tv_state.preview_state.enabled,
-        ctx.config.ui.no_help,
     )?;
 
     // input box
@@ -242,7 +208,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
-        &ctx.config.ui.custom_header,
+        &ctx.config.ui.input_header,
         &ctx.config.ui.input_bar_position,
     )?;
 
@@ -253,6 +219,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.tv_state.preview_state,
             ctx.config.ui.use_nerd_font_icons,
             &ctx.colorscheme,
+            ctx.config.ui.preview_panel.scrollbar,
         )?;
     }
 
@@ -265,9 +232,20 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.ui.use_nerd_font_icons,
             &mut ctx.tv_state.rc_picker.state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
-            &ctx.tv_state.mode,
             &ctx.colorscheme,
+            &ctx.config.ui.remote_control,
         )?;
+    }
+
+    // floating help panel (rendered last to appear on top)
+    if let Some(help_area) = layout.help_panel {
+        draw_help_panel(f, help_area, ctx);
+    }
+
+    // status bar at the bottom
+    if let Some(status_bar_area) = layout.status_bar {
+        let status_component = StatusBarComponent::new(ctx);
+        status_component.draw(f, status_bar_area);
     }
 
     Ok(layout)

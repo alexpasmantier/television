@@ -1,7 +1,7 @@
 <div align="center">
 
 # 📺  television
-**A cross-platform, fast and extensible general purpose fuzzy finder TUI.**
+**A cross-platform, fast and extensible general purpose fuzzy finder for the terminal.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
@@ -13,96 +13,86 @@
 </div>
 
 ## About
-`Television` is a cross-platform, fast and extensible fuzzy finder TUI.
+`Television` is a cross-platform, fast and extensible fuzzy finder for the terminal.
 
 It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
-images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible.
-
-![tv-shell-integration](https://github.com/user-attachments/assets/d11c4d3c-2f1f-457c-9a0f-a56aebfefddd)
-
+images, you name it) using a fuzzy matching algorithm and is designed to be extensible.
 
 It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the [nucleo](https://github.com/helix-editor/nucleo) matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
-
-
-## Features
-- ⚡️ **High Speed**: asynchronous I/O and multithreading to ensure a smooth and responsive UI.
-
-- 🧠 **Fuzzy Matching**: cutting-edge fuzzy matching library for efficiently filtering through lists of entries.
-
-- 🔋 **Batteries Included**: comes with a set of builtin channels and previewers that you can start using out of the box.
-
-- 🐚 **Shell Integration**: benefit from smart completion anywhere using `television`'s shell integration.
-
-- 📺 **Channels**: designed around the concept of channels, which are a set of builtin data sources that you can search through (e.g. files, git repositories, environment variables, etc).
-
-- 📡 **Cable Channels**: users may add their own custom channels to tv using a simple and centralized configuration file.
-
-- 📜 **Previewers**: allows you to preview the contents of an entry in a separate pane.
-
-- 🖼️ **Builtin Syntax Highlighting**: comes with builtin asynchronous syntax highlighting for a wide variety of file types.
-
-- 🎛️ **Keybindings**: includes a set of intuitive default keybindings inspired by vim and other popular terminal shortcuts.
-
-- 🌈 **Themes**: either use one of the 10 builtin themes or create your own easily.
-
-- 📦 **Cross-platform**: works on Linux, MacOS and Windows.
-
-- ✅ **Terminal Emulator Compatibility**: television works flawlessly on all major terminal emulators.
-
 
 ## Installation
 See the [installation docs](https://github.com/alexpasmantier/television/wiki/Installation).
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions?columns=4)
+
+Or [build from source](https://github.com/alexpasmantier/television/wiki/Installation#--building-from-source)
+
+## Quick start
+Create a channel:  *~/.config/television/cable/files.toml*
+```toml
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
+
+[source]
+command = "fd -t f"
+
+[preview]
+command = "bat -n --color=always {}"
+env = { BAT_THEME = "Catppuccin Mocha" }
+
+[ui]
+preview_panel = { "size" = 70, "scrollbar" = true }
+
+[keybindings]
+shortcut = "f1"
+```
+
+Start searching:
+```sh
+tv files
+```
+![tv files](./assets/tv-files.png)
+
+Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable):
+
+![tv remote](./assets/tv-files-remote.png)
+
+See the [channels docs](https://github.com/alexpasmantier/television/blob/main/docs/channels.md) for more info on how to set these up.
 
 ## Usage
 ```bash
-tv [channel] #[default: files] [possible values: env, files, git-repos, text, alias]
+tv  # default channel
 
-# e.g. to search through environment variables
-tv env
+tv [channel]  # e.g. `tv files`, `tv env`, `tv git-repos`, etc.
 
-# piping into tv (e.g. logs)
+# pipe the output of your program into tv
 my_program | tv
 
-# piping into tv with a custom preview command
-fd -t f . | tv --preview 'bat -n --color=always {0}'
+fd -t f . | tv --preview 'bat -n --color=always {}'
 
+# or build your own channel on the fly
+tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --preview-size 70
 ```
-*For more information on the different channels, see the [channels](./docs/channels.md) documentation.*
 
 > [!TIP] 
-> 🐚 *Television provides smart autocompletion based on the commands you start typing out of the box.*
+> 🐚 *Television provides smart autocompletion based on the commands you start typing in your shell.*
 > 
 > *Take a look at [this page](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion) for how to set it up for your shell.*
 
-
-
 ## Keybindings
-
-For information about available keybindings, check the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Keybindings)
+See [keybindings](https://github.com/alexpasmantier/television/wiki/Keybindings)
 
 
 ## Configuration
-
-For information about tv's configuration file, check the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Configuration-file)
+See [configuration](https://github.com/alexpasmantier/television/wiki/Configuration-file)
 
 ## Themes
-Builtin themes are available in the [themes](./themes) directory. Feel free to experiment and maybe even contribute your own!
-
-| ![catppuccin](./assets/catppuccin.png "catppuccin") catppuccin | ![gruvbox](./assets/gruvbox.png "gruvbox") gruvbox-dark |
-|:--:|:--:|
-| ![solarized-dark](./assets/solarized-dark.png "gruvbox-light") **solarized-dark** | ![nord](./assets/nord.png "nord") **nord** |
-
-You may create your own custom themes by adding them to the `themes` directory in your configuration folder and then referring to them by file name (without the extension) in the configuration file.
-```
-config_location/
-├── themes/
-│   └── my_theme.toml
-└── config.toml
-```
+See [themes](./themes)
 
 ## Search Patterns
-For information on how to use search patterns with tv, refer to the [associated page of the wiki](https://github.com/alexpasmantier/television/wiki/Search-patterns)
+See [search patterns](https://github.com/alexpasmantier/television/wiki/Search-patterns)
 
 ## Contributions
 

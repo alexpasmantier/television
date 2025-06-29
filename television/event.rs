@@ -11,25 +11,26 @@ use crossterm::event::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
         Insert, Left, PageDown, PageUp, Right, Tab, Up,
     },
-    KeyEvent, KeyEventKind, KeyModifiers,
+    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
 };
 use serde::{Deserialize, Serialize};
 use tokio::{signal, sync::mpsc};
 use tracing::{debug, trace, warn};
 
+use crate::config::parse_key;
+
 #[derive(Debug, Clone, Copy)]
 pub enum Event<I> {
     Closed,
     Input(I),
+    Mouse(MouseEvent),
     FocusLost,
     FocusGained,
     Resize(u16, u16),
     Tick,
 }
 
-#[derive(
-    Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd, Eq, Hash,
-)]
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, PartialOrd, Eq, Hash)]
 pub enum Key {
     Backspace,
     Enter,
@@ -67,6 +68,18 @@ pub enum Key {
     Null,
     Esc,
     Tab,
+    MouseScrollUp,
+    MouseScrollDown,
+}
+
+impl<'de> Deserialize<'de> for Key {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        parse_key(&s).map_err(serde::de::Error::custom)
+    }
 }
 
 impl Display for Key {
@@ -108,6 +121,8 @@ impl Display for Key {
             Key::Null => write!(f, "Null"),
             Key::Esc => write!(f, "Esc"),
             Key::Tab => write!(f, "Tab"),
+            Key::MouseScrollUp => write!(f, "MouseScrollUp"),
+            Key::MouseScrollDown => write!(f, "MouseScrollDown"),
         }
     }
 }
@@ -197,6 +212,9 @@ impl EventLoop {
                             Ok(crossterm::event::Event::Key(key)) => {
                                 let key = convert_raw_event_to_key(key);
                                 tx.send(Event::Input(key)).unwrap_or_else(|_| warn!("Unable to send {:?} event", key));
+                            },
+                            Ok(crossterm::event::Event::Mouse(mouse)) => {
+                                tx.send(Event::Mouse(mouse)).unwrap_or_else(|_| warn!("Unable to send Mouse event"));
                             },
                             Ok(crossterm::event::Event::FocusLost) => {
                                 tx.send(Event::FocusLost).unwrap_or_else(|_| warn!("Unable to send FocusLost event"));

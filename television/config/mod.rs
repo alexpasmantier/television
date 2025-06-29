@@ -1,26 +1,27 @@
-#![allow(clippy::module_name_repetitions, clippy::ref_option)]
+use crate::{
+    cable::CABLE_DIR_NAME,
+    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
+};
+use anyhow::{Context, Result};
+use directories::ProjectDirs;
+use serde::{Deserialize, Serialize};
+use shell_integration::ShellIntegrationConfig;
 use std::{
     env,
     hash::Hash,
     path::{Path, PathBuf},
 };
-
-use anyhow::{Context, Result};
-use directories::ProjectDirs;
-pub use keybindings::merge_keybindings;
-pub use keybindings::{Binding, KeyBindings, parse_key};
-use serde::{Deserialize, Serialize};
-use shell_integration::ShellIntegrationConfig;
-pub use themes::Theme;
 use tracing::{debug, warn};
+
+pub use keybindings::{Binding, KeyBindings, merge_keybindings, parse_key};
+pub use themes::Theme;
 pub use ui::UiConfig;
 
-use crate::channels::prototypes::DEFAULT_PROTOTYPE_NAME;
-
-mod keybindings;
-pub mod shell_integration;
 mod themes;
-mod ui;
+
+pub mod keybindings;
+pub mod shell_integration;
+pub mod ui;
 
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
@@ -32,8 +33,8 @@ pub struct AppConfig {
     pub data_dir: PathBuf,
     #[serde(default = "get_config_dir")]
     pub config_dir: PathBuf,
-    #[serde(default = "default_frame_rate")]
-    pub frame_rate: f64,
+    #[serde(default = "default_cable_dir")]
+    pub cable_dir: PathBuf,
     #[serde(default = "default_tick_rate")]
     pub tick_rate: f64,
     /// The default channel to use when no channel is specified
@@ -49,7 +50,6 @@ impl Hash for AppConfig {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.data_dir.hash(state);
         self.config_dir.hash(state);
-        self.frame_rate.to_bits().hash(state);
         self.tick_rate.to_bits().hash(state);
     }
 }
@@ -84,9 +84,12 @@ impl ConfigEnv {
     pub fn init() -> Result<Self> {
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
+        let cable_dir = config_dir.join(CABLE_DIR_NAME);
 
         std::fs::create_dir_all(&config_dir)
             .context("Failed creating configuration directory")?;
+        std::fs::create_dir_all(&cable_dir)
+            .context("Failed creating cable directory")?;
         std::fs::create_dir_all(&data_dir)
             .context("Failed creating data directory")?;
 
@@ -116,20 +119,33 @@ const USER_CONFIG_ERROR_MSG: &str = "
 
 impl Config {
     #[allow(clippy::missing_panics_doc, clippy::missing_errors_doc)]
-    pub fn new(config_env: &ConfigEnv) -> Result<Self> {
+    pub fn new(
+        config_env: &ConfigEnv,
+        custom_config_file: Option<&Path>,
+    ) -> Result<Self> {
         // Load the default_config values as base defaults
         let default_config: Config = default_config_from_file()?;
 
         // if a config file exists, load it and merge it with the default configuration
-        if config_env.config_dir.join(CONFIG_FILE_NAME).is_file() {
-            debug!("Found config file at {:?}", config_env.config_dir);
+        if config_env.config_dir.join(CONFIG_FILE_NAME).is_file()
+            || custom_config_file.is_some()
+        {
+            let config_file = if let Some(path) = custom_config_file {
+                debug!("Using custom configuration file at: {:?}", path);
+                path.to_path_buf()
+            } else {
+                let config_file = config_env.config_dir.join(CONFIG_FILE_NAME);
+                debug!(
+                    "Using default configuration file at: {:?}",
+                    config_file
+                );
+                config_file
+            };
 
-            let user_cfg: Config =
-                Self::load_user_config(&config_env.config_dir)?;
+            let user_cfg: Config = Self::load_user_config(&config_file)?;
 
             // merge the user configuration with the default configuration
-            let final_cfg =
-                Self::merge_user_with_default(default_config, user_cfg);
+            let final_cfg = Self::merge_with_default(default_config, user_cfg);
 
             debug!(
                 "Configuration: \n{}",
@@ -151,34 +167,30 @@ impl Config {
         }
     }
 
-    fn load_user_config(config_dir: &Path) -> Result<Self> {
-        let path = config_dir.join(CONFIG_FILE_NAME);
-        let contents = std::fs::read_to_string(&path)?;
+    fn load_user_config(config_file: &Path) -> Result<Self> {
+        let contents = std::fs::read_to_string(config_file)?;
         let user_cfg: Config = toml::from_str(&contents).context(format!(
             "Error parsing configuration file: {}\n{}",
-            path.display(),
+            config_file.display(),
             USER_CONFIG_ERROR_MSG,
         ))?;
         Ok(user_cfg)
     }
 
-    fn merge_user_with_default(
-        mut default: Config,
-        mut user: Config,
-    ) -> Config {
+    fn merge_with_default(mut default: Config, mut new: Config) -> Config {
         // use default fallback channel as a fallback if user hasn't specified one
-        if user.shell_integration.fallback_channel.is_empty() {
-            user.shell_integration
+        if new.shell_integration.fallback_channel.is_empty() {
+            new.shell_integration
                 .fallback_channel
                 .clone_from(&default.shell_integration.fallback_channel);
         }
 
         // merge shell integration triggers with commands
         default.shell_integration.merge_triggers();
-        user.shell_integration.merge_triggers();
+        new.shell_integration.merge_triggers();
         // merge shell integration commands with default commands
-        if user.shell_integration.commands.is_empty() {
-            user.shell_integration
+        if new.shell_integration.commands.is_empty() {
+            new.shell_integration
                 .commands
                 .clone_from(&default.shell_integration.commands);
         }
@@ -186,19 +198,67 @@ impl Config {
         // merge shell integration keybindings with default keybindings
         let mut merged_keybindings =
             default.shell_integration.keybindings.clone();
-        merged_keybindings.extend(user.shell_integration.keybindings.clone());
-        user.shell_integration.keybindings = merged_keybindings;
+        merged_keybindings.extend(new.shell_integration.keybindings.clone());
+        new.shell_integration.keybindings = merged_keybindings;
 
         // merge keybindings with default keybindings
         let keybindings =
-            merge_keybindings(default.keybindings.clone(), &user.keybindings);
-        user.keybindings = keybindings;
+            merge_keybindings(default.keybindings.clone(), &new.keybindings);
+        new.keybindings = keybindings;
 
         Config {
-            application: user.application,
-            keybindings: user.keybindings,
-            ui: user.ui,
-            shell_integration: user.shell_integration,
+            application: new.application,
+            keybindings: new.keybindings,
+            ui: new.ui,
+            shell_integration: new.shell_integration,
+        }
+    }
+
+    pub fn merge_keybindings(&mut self, other: &KeyBindings) {
+        self.keybindings = merge_keybindings(self.keybindings.clone(), other);
+    }
+
+    pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
+        // Apply simple copy fields (Copy types)
+        if let Some(value) = ui_spec.ui_scale {
+            self.ui.ui_scale = value;
+        }
+        if let Some(value) = ui_spec.orientation {
+            self.ui.orientation = value;
+        }
+        if let Some(value) = ui_spec.input_bar_position {
+            self.ui.input_bar_position = value;
+        }
+
+        // Apply clone fields
+        if let Some(value) = &ui_spec.features {
+            self.ui.features = value.clone();
+        }
+        if let Some(value) = &ui_spec.status_bar {
+            self.ui.status_bar = value.clone();
+        }
+        if let Some(value) = &ui_spec.help_panel {
+            self.ui.help_panel = value.clone();
+        }
+        if let Some(value) = &ui_spec.remote_control {
+            self.ui.remote_control = value.clone();
+        }
+
+        // Apply input_header
+        if let Some(value) = &ui_spec.input_header {
+            self.ui.input_header = Some(value.clone());
+        }
+
+        // Handle preview_panel with field merging
+        if let Some(preview_panel) = &ui_spec.preview_panel {
+            self.ui.preview_panel.size = preview_panel.size;
+            if let Some(header) = &preview_panel.header {
+                self.ui.preview_panel.header = Some(header.clone());
+            }
+            if let Some(footer) = &preview_panel.footer {
+                self.ui.preview_panel.footer = Some(footer.clone());
+            }
+            self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
         }
     }
 }
@@ -253,17 +313,19 @@ pub fn get_config_dir() -> PathBuf {
     }
 }
 
-fn project_directory() -> Option<ProjectDirs> {
-    ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
+fn default_cable_dir() -> PathBuf {
+    get_config_dir().join(CABLE_DIR_NAME)
 }
 
-fn default_frame_rate() -> f64 {
-    60.0
+fn project_directory() -> Option<ProjectDirs> {
+    ProjectDirs::from("com", "", env!("CARGO_PKG_NAME"))
 }
 
 pub fn default_tick_rate() -> f64 {
     50.0
 }
+
+pub use ui::{DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE};
 
 #[cfg(test)]
 mod tests {
@@ -296,7 +358,7 @@ mod tests {
         let mut file = File::create(&config_file).unwrap();
         file.write_all(DEFAULT_CONFIG.as_bytes()).unwrap();
 
-        let config = Config::load_user_config(config_dir).unwrap();
+        let config = Config::load_user_config(&config_file).unwrap();
         assert_eq!(config.application.data_dir, get_data_dir());
         assert_eq!(config.application.config_dir, get_config_dir());
         assert_eq!(config, toml::from_str(DEFAULT_CONFIG).unwrap());
@@ -314,7 +376,7 @@ mod tests {
             _data_dir: get_data_dir(),
             config_dir: config_dir.to_path_buf(),
         };
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.shell_integration.merge_triggers();
@@ -334,8 +396,6 @@ mod tests {
     }
 
     const USER_CONFIG_1: &str = r#"
-        frame_rate = 30.0
-        
         [ui]
         ui_scale = 40
         theme = "television"
@@ -344,7 +404,6 @@ mod tests {
         theme = "something"
 
         [keybindings]
-        toggle_help = ["ctrl-a", "ctrl-b"]
         confirm_selection = "ctrl-enter"
 
         [shell_integration.commands]
@@ -368,19 +427,14 @@ mod tests {
             _data_dir: get_data_dir(),
             config_dir: config_dir.to_path_buf(),
         };
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
         let mut default_config: Config =
             toml::from_str(DEFAULT_CONFIG).unwrap();
-        default_config.application.frame_rate = 30.0;
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
         default_config.keybindings.extend({
             let mut map = FxHashMap::default();
-            map.insert(
-                Action::ToggleHelp,
-                Binding::MultipleKeys(vec![Key::Ctrl('a'), Key::Ctrl('b')]),
-            );
             map.insert(
                 Action::ConfirmSelection,
                 Binding::SingleKey(Key::CtrlEnter),
@@ -388,10 +442,10 @@ mod tests {
             map
         });
 
-        default_config
-            .shell_integration
-            .keybindings
-            .insert("command_history".to_string(), "ctrl-h".to_string());
+        default_config.shell_integration.keybindings.insert(
+            "command_history".to_string(),
+            Binding::SingleKey(parse_key("ctrl-h").unwrap()),
+        );
         default_config.shell_integration.merge_triggers();
 
         assert_eq!(config.application, default_config.application);
@@ -428,7 +482,7 @@ mod tests {
             config_dir: config_dir.to_path_buf(),
         };
 
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
         assert_eq!(
             config.shell_integration.commands.iter().collect::<Vec<_>>(),
@@ -438,6 +492,8 @@ mod tests {
 
     #[test]
     fn test_shell_integration_keybindings_are_overwritten_by_user() {
+        use crate::config::parse_key;
+
         let user_config = r#"
             [shell_integration.keybindings]
             "smart_autocomplete" = "ctrl-t"
@@ -455,17 +511,22 @@ mod tests {
             config_dir: config_dir.to_path_buf(),
         };
 
-        let config = Config::new(&config_env).unwrap();
+        let config = Config::new(&config_env, None).unwrap();
 
-        assert_eq!(
-            config.shell_integration.keybindings,
-            [
-                (&String::from("command_history"), &String::from("ctrl-[")),
-                (&String::from("smart_autocomplete"), &String::from("ctrl-t"))
-            ]
-            .iter()
-            .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
-            .collect()
-        );
+        let expected: rustc_hash::FxHashMap<String, Binding> = [
+            (
+                "command_history".to_string(),
+                Binding::SingleKey(parse_key("ctrl-[").unwrap()),
+            ),
+            (
+                "smart_autocomplete".to_string(),
+                Binding::SingleKey(parse_key("ctrl-t").unwrap()),
+            ),
+        ]
+        .iter()
+        .cloned()
+        .collect();
+
+        assert_eq!(config.shell_integration.keybindings, expected);
     }
 }

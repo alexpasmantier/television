@@ -1,0 +1,11 @@
+[metadata]
+name = "git-reflog"
+description = "A channel to select from git reflog entries"
+requirements = ["git"]
+
+[source]
+command = "git reflog"
+output = "{split: :0}"
+
+[preview]
+command = "git show -p --stat --pretty=fuller --color=always {0}"
