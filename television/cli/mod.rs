@@ -96,6 +96,9 @@ pub struct PostProcessedCli {
     pub tick_rate: Option<f64>,
     pub watch_interval: Option<f64>,
 
+    // History configuration
+    pub global_history_mode: bool,
+
     // Configuration sources
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
@@ -158,6 +161,9 @@ impl Default for PostProcessedCli {
             // Performance configuration
             tick_rate: None,
             watch_interval: None,
+
+            // History configuration
+            global_history_mode: false,
 
             // Configuration sources
             config_file: None,
@@ -327,6 +333,9 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         // Performance configuration
         tick_rate: cli.tick_rate,
         watch_interval: cli.watch,
+
+        // History configuration
+        global_history_mode: cli.global_history_mode,
 
         // Configuration sources
         config_file: cli.config_file.map(|p| expand_tilde(&p)),

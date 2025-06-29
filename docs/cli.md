@@ -435,6 +435,17 @@ Television's options are organized by functionality. Each option behaves differe
 - **Default**: `~/.config/tv/cable/` (Linux/macOS) or `%APPDATA%\tv\cable\` (Windows)
 - **Use Case**: Custom channel collections or shared team channels
 
+### 📚 History Options
+
+#### `--global-history-mode`
+
+**Purpose**: Enables global history mode for the current session
+
+- **Both Modes**: Same behavior
+- **Default**: Channel-specific history (scoped to current channel)
+- **Use Case**: Cross-channel workflow when you want to see all recent searches
+- **Example**: `tv files --global-history-mode`
+
 ### 🔧 Special Mode Options
 
 #### `--autocomplete-prompt <STRING>`

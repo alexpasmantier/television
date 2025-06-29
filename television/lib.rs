@@ -9,6 +9,7 @@ pub mod errors;
 pub mod event;
 pub mod features;
 pub mod gh;
+pub mod history;
 pub mod input;
 pub mod keymap;
 pub mod logging;
