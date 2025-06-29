@@ -117,6 +117,11 @@ fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
             current = rest;
             continue;
         }
+        if let Some(rest) = current.strip_prefix("super-") {
+            modifiers.insert(KeyModifiers::SUPER);
+            current = rest;
+            continue;
+        }
         break;
     }
 
@@ -222,8 +227,14 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         modifiers.push("shift");
     }
 
+    #[cfg(target_os = "macos")]
     if key_event.modifiers.intersects(KeyModifiers::SUPER) {
         modifiers.push("cmd");
+    }
+
+    #[cfg(not(target_os = "macos"))]
+    if key_event.modifiers.intersects(KeyModifiers::SUPER) {
+        modifiers.push("super");
     }
 
     if key_event.modifiers.intersects(KeyModifiers::ALT) {
@@ -314,8 +325,18 @@ mod tests {
             )
         );
 
+        #[cfg(target_os = "macos")]
         assert_eq!(
             parse_key_event("cmd-alt-a").unwrap(),
+            KeyEvent::new(
+                KeyCode::Char('a'),
+                KeyModifiers::SUPER | KeyModifiers::ALT
+            )
+        );
+
+        #[cfg(not(target_os = "macos"))]
+        assert_eq!(
+            parse_key_event("super-alt-a").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::SUPER | KeyModifiers::ALT
