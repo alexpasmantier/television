@@ -46,7 +46,7 @@ jobs:
           # Download the latest release of the television package and store it in a variable
           FILE_NAME=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest | \
           grep "browser_download_url" | \
-          grep "unknown-linux-musl.deb" | \
+          grep "unknown-linux-gnu.deb" | \
           cut -d '"' -f 4 | \
           xargs curl -LO | \
           awk '{print $2}')
