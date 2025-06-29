@@ -2,6 +2,7 @@ use crate::cli::parse_source_entry_delimiter;
 use crate::{
     config::{Binding, KeyBindings, ui},
     features::Features,
+    history::DEFAULT_HISTORY_SIZE,
     screen::layout::{InputPosition, Orientation},
 };
 use anyhow::Result;
@@ -170,9 +171,10 @@ impl ChannelKeyBindings {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct HistoryConfig {
-    /// Maximum number of entries to keep in history for this channel (0 = disabled)
-    #[serde(default = "default_channel_history_size")]
-    pub size: usize,
+    /// Maximum number of entries to keep in history for this channel
+    /// None = use global config, Some(0) = disabled, Some(n) = use n entries
+    #[serde(default)]
+    pub size: Option<usize>,
     /// Whether to use global history for this channel (overrides global setting)
     #[serde(default)]
     pub global_mode: Option<bool>,
@@ -181,14 +183,10 @@ pub struct HistoryConfig {
 impl Default for HistoryConfig {
     fn default() -> Self {
         Self {
-            size: default_channel_history_size(),
+            size: Some(DEFAULT_HISTORY_SIZE),
             global_mode: None,
         }
     }
-}
-
-fn default_channel_history_size() -> usize {
-    100
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

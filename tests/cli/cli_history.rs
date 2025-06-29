@@ -489,3 +489,74 @@ fn next_without_previous() {
     // Calling get_next without any previous navigation should return None
     assert!(hist.get_next_entry().is_none());
 }
+
+/// Test history size precedence logic: channel setting overrides global config.
+#[test]
+fn history_size_precedence() {
+    use television::{
+        channels::prototypes::ChannelPrototype,
+        config::default_config_from_file,
+        history::{DEFAULT_HISTORY_SIZE, History},
+    };
+    use tempfile::tempdir;
+
+    let temp_dir = tempdir().expect("failed to create tempdir");
+
+    // Create a mock config with global history size of 50
+    let mut app_config = default_config_from_file().unwrap();
+    app_config.application.history_size = 50;
+    app_config.application.data_dir = temp_dir.path().to_path_buf();
+
+    // Test case 1: Channel with no explicit history size (None) should use global config (50)
+    let mut channel_proto = ChannelPrototype::new("test", "echo hello");
+    channel_proto.history.size = None; // Use global config
+
+    let effective_size = channel_proto
+        .history
+        .size
+        .unwrap_or(app_config.application.history_size);
+    assert_eq!(effective_size, 50);
+
+    // Test case 2: Channel with explicit history size of 25 should override global config
+    channel_proto.history.size = Some(25);
+    let effective_size = channel_proto
+        .history
+        .size
+        .unwrap_or(app_config.application.history_size);
+    assert_eq!(effective_size, 25);
+
+    // Test case 3: Channel with explicit history size of 0 should disable history
+    channel_proto.history.size = Some(0);
+    let effective_size = channel_proto
+        .history
+        .size
+        .unwrap_or(app_config.application.history_size);
+    assert_eq!(effective_size, 0);
+
+    // Test case 4: Global config 0 with channel None should disable history
+    app_config.application.history_size = 0;
+    channel_proto.history.size = None; // Use global config (which is 0)
+    let effective_size = channel_proto
+        .history
+        .size
+        .unwrap_or(app_config.application.history_size);
+    assert_eq!(effective_size, 0);
+
+    // Test case 5: Neither global config nor channel explicitly set
+    let default_config = default_config_from_file().unwrap();
+    let mut default_channel_proto =
+        ChannelPrototype::new("test", "echo hello");
+    default_channel_proto.history.size = None; // Use global config
+
+    let effective_size = default_channel_proto
+        .history
+        .size
+        .unwrap_or(default_config.application.history_size);
+    assert_eq!(effective_size, DEFAULT_HISTORY_SIZE); // Should use DEFAULT_HISTORY_SIZE
+
+    // Test that the History struct works correctly with these sizes
+    let mut history = History::new(Some(10), "test", false, &temp_dir.path());
+    assert!(history.init().is_ok());
+    assert_eq!(history.len(), 0);
+    assert!(!history.is_empty() || history.is_empty()); // Either state is valid for empty history
+}

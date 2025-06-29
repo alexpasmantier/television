@@ -191,11 +191,16 @@ impl App {
 
         // Initialize history if enabled
         let history = {
-            let channel_history_size =
-                television.channel_prototype.history.size;
-            if channel_history_size > 0 {
+            // Apply precedence: channel setting overrides global config
+            let effective_history_size = television
+                .channel_prototype
+                .history
+                .size
+                .unwrap_or(television.config.application.history_size);
+
+            if effective_history_size > 0 {
                 let mut h = History::new(
-                    Some(channel_history_size),
+                    Some(effective_history_size),
                     &television.channel_prototype.metadata.name,
                     television.config.application.global_history,
                     &television.config.application.data_dir.clone(),
@@ -307,9 +312,14 @@ impl App {
     /// Updates the history configuration to match the current channel.
     fn update_history(&mut self) {
         let channel_prototype = &self.television.channel_prototype;
-        let channel_history_size = channel_prototype.history.size;
 
-        if channel_history_size > 0 {
+        // Apply precedence: channel setting overrides global config
+        let effective_history_size = channel_prototype
+            .history
+            .size
+            .unwrap_or(self.television.config.application.history_size);
+
+        if effective_history_size > 0 {
             // Determine the effective global_history (channel overrides global config)
             let global_mode = channel_prototype
                 .history
@@ -317,7 +327,7 @@ impl App {
                 .unwrap_or(self.television.config.application.global_history);
 
             let mut h = History::new(
-                Some(channel_history_size),
+                Some(effective_history_size),
                 &channel_prototype.metadata.name,
                 global_mode,
                 &self.television.config.application.data_dir.clone(),
@@ -332,7 +342,7 @@ impl App {
                 self.history = Some(h);
             }
         } else {
-            // History disabled for this channel
+            // History disabled (either global config is 0 or channel explicitly disabled)
             self.history = None;
         }
     }

@@ -23,7 +23,7 @@ default_channel = "files"
 # Maximum number of entries to keep in the global history (default: 100)
 # The history tracks search queries across all channels and sessions
 # Set to 0 to disable history functionality entirely
-history_size = 100
+# history_size = 100
 
 # Whether to use global history (default: false)
 # When true: history navigation shows entries from all channels
