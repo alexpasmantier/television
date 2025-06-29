@@ -194,12 +194,17 @@ impl App {
             let channel_history_size =
                 television.channel_prototype.history.size;
             if channel_history_size > 0 {
-                History::new(
+                let mut h = History::new(
                     Some(channel_history_size),
                     &television.channel_prototype.metadata.name,
                     television.config.application.global_history,
-                )
-                .ok()
+                );
+                if let Err(e) = h.init() {
+                    error!("Failed to initialize history: {}", e);
+                    None
+                } else {
+                    Some(h)
+                }
             } else {
                 None
             }
@@ -310,21 +315,19 @@ impl App {
                 .global_mode
                 .unwrap_or(self.television.config.application.global_history);
 
-            match History::new(
+            let mut h = History::new(
                 Some(channel_history_size),
                 &channel_prototype.metadata.name,
                 global_mode,
-            ) {
-                Ok(new_history) => {
-                    self.history = Some(new_history);
-                }
-                Err(e) => {
-                    error!(
-                        "Failed to create history for channel {}: {}",
-                        channel_prototype.metadata.name, e
-                    );
-                    self.history = None;
-                }
+            );
+            if let Err(e) = h.init() {
+                error!(
+                    "Failed to create history for channel {}: {}",
+                    channel_prototype.metadata.name, e
+                );
+                self.history = None;
+            } else {
+                self.history = Some(h);
             }
         } else {
             // History disabled for this channel
