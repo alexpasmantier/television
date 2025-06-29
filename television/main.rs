@@ -264,7 +264,7 @@ pub fn determine_channel(
                     args.preview_offset_override.clone(),
                 )
             });
-        ChannelPrototype::stdin(stdin_preview)
+        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(

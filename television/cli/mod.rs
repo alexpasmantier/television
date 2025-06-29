@@ -49,6 +49,7 @@ pub struct PostProcessedCli {
     pub source_command_override: Option<Template>,
     pub source_display_override: Option<Template>,
     pub source_output_override: Option<Template>,
+    pub source_entry_delimiter: Option<char>,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
 
@@ -112,6 +113,7 @@ impl Default for PostProcessedCli {
             source_command_override: None,
             source_display_override: None,
             source_output_override: None,
+            source_entry_delimiter: None,
             working_directory: None,
             autocomplete_prompt: None,
 
@@ -268,6 +270,13 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             })
         });
 
+    // Validate that the source entry delimiter is a single character
+    let source_entry_delimiter =
+        cli.source_entry_delimiter.as_ref().map(|delimiter| {
+            parse_source_entry_delimiter(delimiter)
+                .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+        });
+
     // Determine layout
     let layout: Option<Orientation> =
         cli.layout.map(|layout_enum| match layout_enum {
@@ -281,6 +290,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         source_command_override,
         source_display_override,
         source_output_override,
+        source_entry_delimiter,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
 
@@ -421,6 +431,33 @@ where
     for c in channels.keys() {
         println!("\t{c}");
     }
+}
+
+pub fn parse_source_entry_delimiter(delimiter: &str) -> Result<char> {
+    if delimiter.is_empty() {
+        return Err(anyhow!("Source entry delimiter cannot be empty"));
+    }
+    if let Some(b) = delimiter.strip_prefix(r"\") {
+        match b {
+            "n" => return Ok('\n'),
+            "t" => return Ok('\t'),
+            "r" => return Ok('\r'),
+            "0" => return Ok('\0'),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid escape sequence for source entry delimiter: '{}'",
+                    b
+                ));
+            }
+        }
+    }
+    if delimiter.len() != 1 {
+        return Err(anyhow!(
+            "Source entry delimiter must be a single character, got '{}'",
+            delimiter
+        ));
+    }
+    Ok(delimiter.chars().next().unwrap())
 }
 
 /// Backtrack from the end of the prompt and try to match each word to a known command
