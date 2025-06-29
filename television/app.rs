@@ -198,6 +198,7 @@ impl App {
                     Some(channel_history_size),
                     &television.channel_prototype.metadata.name,
                     television.config.application.global_history,
+                    &television.config.application.data_dir.clone(),
                 );
                 if let Err(e) = h.init() {
                     error!("Failed to initialize history: {}", e);
@@ -319,6 +320,7 @@ impl App {
                 Some(channel_history_size),
                 &channel_prototype.metadata.name,
                 global_mode,
+                &self.television.config.application.data_dir.clone(),
             );
             if let Err(e) = h.init() {
                 error!(
