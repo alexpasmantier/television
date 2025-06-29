@@ -326,20 +326,30 @@ impl App {
                 .global_mode
                 .unwrap_or(self.television.config.application.global_history);
 
-            let mut h = History::new(
-                Some(effective_history_size),
-                &channel_prototype.metadata.name,
-                global_mode,
-                &self.television.config.application.data_dir.clone(),
-            );
-            if let Err(e) = h.init() {
-                error!(
-                    "Failed to create history for channel {}: {}",
-                    channel_prototype.metadata.name, e
+            if let Some(ref mut history) = self.history {
+                // Update existing history with new channel context
+                history.update_channel_context(
+                    &channel_prototype.metadata.name,
+                    global_mode,
+                    effective_history_size,
                 );
-                self.history = None;
             } else {
-                self.history = Some(h);
+                // Create new history instance if none exists
+                let mut h = History::new(
+                    Some(effective_history_size),
+                    &channel_prototype.metadata.name,
+                    global_mode,
+                    &self.television.config.application.data_dir.clone(),
+                );
+                if let Err(e) = h.init() {
+                    error!(
+                        "Failed to create history for channel {}: {}",
+                        channel_prototype.metadata.name, e
+                    );
+                    self.history = None;
+                } else {
+                    self.history = Some(h);
+                }
             }
         } else {
             // History disabled (either global config is 0 or channel explicitly disabled)

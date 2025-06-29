@@ -267,6 +267,28 @@ impl History {
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
     }
+
+    /// Update the current channel context for this history instance.
+    pub fn update_channel_context(
+        &mut self,
+        channel_name: &str,
+        global_mode: bool,
+        max_size: usize,
+    ) {
+        self.current_channel = channel_name.to_string();
+        self.global_mode = global_mode;
+
+        // Update max_size and trim if necessary
+        if max_size != self.max_size {
+            self.max_size = max_size;
+            if self.entries.len() > self.max_size {
+                self.entries.drain(0..self.entries.len() - self.max_size);
+            }
+        }
+
+        // Reset navigation state when switching channels
+        self.current_index = None;
+    }
 }
 
 impl Default for History {
