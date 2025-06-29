@@ -1,3 +1,4 @@
+use crate::cli::parse_source_entry_delimiter;
 use crate::{
     config::{Binding, KeyBindings, ui},
     features::Features,
@@ -201,6 +202,7 @@ impl ChannelPrototype {
                     interactive: false,
                     env: FxHashMap::default(),
                 },
+                entry_delimiter: None,
                 display: None,
                 output: None,
             },
@@ -211,7 +213,10 @@ impl ChannelPrototype {
         }
     }
 
-    pub fn stdin(preview: Option<PreviewSpec>) -> Self {
+    pub fn stdin(
+        preview: Option<PreviewSpec>,
+        entry_delimiter: Option<char>,
+    ) -> Self {
         Self {
             metadata: Metadata {
                 name: "stdin".to_string(),
@@ -226,6 +231,7 @@ impl ChannelPrototype {
                     interactive: false,
                     env: FxHashMap::default(),
                 },
+                entry_delimiter,
                 display: None,
                 output: None,
             },
@@ -292,10 +298,28 @@ impl BinaryRequirement {
 pub struct SourceSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
+    #[serde(deserialize_with = "deserialize_entry_delimiter", default)]
+    pub entry_delimiter: Option<char>,
     #[serde(default)]
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
+}
+
+/// Just a helper function to adapt cli parsing to serde deserialization.
+fn deserialize_entry_delimiter<'de, D>(
+    deserializer: D,
+) -> Result<Option<char>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    if let Ok(Some(delimiter)) = Option::<String>::deserialize(deserializer) {
+        parse_source_entry_delimiter(&delimiter)
+            .map(Some)
+            .map_err(serde::de::Error::custom)
+    } else {
+        Ok(None)
+    }
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

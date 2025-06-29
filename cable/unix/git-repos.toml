@@ -13,4 +13,4 @@ command = "fd -g .git -HL -t d -d 10 --prune ~ -E 'Library' -E 'Application Supp
 display = "{split:/:-1}"
 
 [preview]
-command = "cd {} && git log -n 200 --pretty=medium --all --graph --color"
+command = "cd {}; git log -n 200 --pretty=medium --all --graph --color"
