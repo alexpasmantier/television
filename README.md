@@ -8,7 +8,7 @@
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 
-![tv on the curl codebase](https://github.com/user-attachments/assets/7d329ef3-4efe-4908-bbf8-e02744508eaf)
+![tv running on the curl codebase](./assets/tv-curl.png)
 
 </div>
 

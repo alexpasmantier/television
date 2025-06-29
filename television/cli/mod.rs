@@ -11,6 +11,9 @@ use crate::{
     utils::paths::expand_tilde,
 };
 use anyhow::{Result, anyhow};
+use clap::CommandFactory;
+use clap::error::ErrorKind;
+use colored::Colorize;
 use rustc_hash::FxHashMap;
 use std::path::{Path, PathBuf};
 use tracing::debug;
@@ -46,6 +49,7 @@ pub struct PostProcessedCli {
     pub source_command_override: Option<Template>,
     pub source_display_override: Option<Template>,
     pub source_output_override: Option<Template>,
+    pub source_entry_delimiter: Option<char>,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
 
@@ -109,6 +113,7 @@ impl Default for PostProcessedCli {
             source_command_override: None,
             source_display_override: None,
             source_output_override: None,
+            source_entry_delimiter: None,
             working_directory: None,
             autocomplete_prompt: None,
 
@@ -180,7 +185,7 @@ impl Default for PostProcessedCli {
 /// - Source flags (`--source-display`, `--source-output`) require `--source-command`
 ///
 /// This prevents creating broken ad-hoc channels that reference non-existent commands.
-pub fn post_process(cli: Cli) -> PostProcessedCli {
+pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
     let keybindings = cli.keybindings.as_ref().map(|kb| {
         parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
@@ -206,9 +211,24 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
             })
         });
 
+    if cli.autocomplete_prompt.is_some() {
+        if let Some(ch) = &cli.channel {
+            if !Path::new(ch).exists() {
+                let mut cmd = Cli::command();
+                let arg1 = "'--autocomplete-prompt <STRING>'".yellow();
+                let arg2 = "'[CHANNEL]'".yellow();
+                let msg = format!(
+                    "The argument {} cannot be used with {}",
+                    arg1, arg2
+                );
+                cmd.error(ErrorKind::ArgumentConflict, msg).exit();
+            }
+        }
+    }
+
     // Validate interdependent flags for ad-hoc mode (when no channel is specified)
     // This ensures ad-hoc channels have all necessary components to function properly
-    validate_adhoc_mode_constraints(&cli);
+    validate_adhoc_mode_constraints(&cli, readable_stdin);
 
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
@@ -250,6 +270,13 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
             })
         });
 
+    // Validate that the source entry delimiter is a single character
+    let source_entry_delimiter =
+        cli.source_entry_delimiter.as_ref().map(|delimiter| {
+            parse_source_entry_delimiter(delimiter)
+                .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+        });
+
     // Determine layout
     let layout: Option<Orientation> =
         cli.layout.map(|layout_enum| match layout_enum {
@@ -263,6 +290,7 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
         source_command_override,
         source_display_override,
         source_output_override,
+        source_entry_delimiter,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
 
@@ -327,14 +355,14 @@ pub fn post_process(cli: Cli) -> PostProcessedCli {
 ///
 /// This validation ensures that ad-hoc channels have all necessary components to function.
 /// When a channel is specified, these validations are skipped as the channel provides defaults.
-fn validate_adhoc_mode_constraints(cli: &Cli) {
+fn validate_adhoc_mode_constraints(cli: &Cli, readable_stdin: bool) {
     // Skip validation if a channel is specified (channel-based mode)
     if cli.channel.is_some() {
         return;
     }
 
     // Validate source-related flags in ad-hoc mode
-    if cli.source_command.is_none() {
+    if cli.source_command.is_none() && !readable_stdin {
         let source_flags = [
             ("--source-display", cli.source_display.is_some()),
             ("--source-output", cli.source_output.is_some()),
@@ -403,6 +431,33 @@ where
     for c in channels.keys() {
         println!("\t{c}");
     }
+}
+
+pub fn parse_source_entry_delimiter(delimiter: &str) -> Result<char> {
+    if delimiter.is_empty() {
+        return Err(anyhow!("Source entry delimiter cannot be empty"));
+    }
+    if let Some(b) = delimiter.strip_prefix(r"\") {
+        match b {
+            "n" => return Ok('\n'),
+            "t" => return Ok('\t'),
+            "r" => return Ok('\r'),
+            "0" => return Ok('\0'),
+            _ => {
+                return Err(anyhow!(
+                    "Invalid escape sequence for source entry delimiter: '{}'",
+                    b
+                ));
+            }
+        }
+    }
+    if delimiter.len() != 1 {
+        return Err(anyhow!(
+            "Source entry delimiter must be a single character, got '{}'",
+            delimiter
+        ));
+    }
+    Ok(delimiter.chars().next().unwrap())
 }
 
 /// Backtrack from the end of the prompt and try to match each word to a known command
@@ -523,7 +578,7 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli);
+        let post_processed_cli = post_process(cli, false);
 
         assert_eq!(
             post_processed_cli.preview_command_override.unwrap().raw(),
@@ -544,7 +599,7 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli);
+        let post_processed_cli = post_process(cli, false);
 
         assert_eq!(
             post_processed_cli.working_directory,
@@ -565,7 +620,7 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli);
+        let post_processed_cli = post_process(cli, false);
 
         let mut expected = KeyBindings::default();
         expected.insert(Action::Quit, Binding::SingleKey(Key::Esc));
@@ -644,5 +699,22 @@ mod tests {
         );
 
         assert_eq!(channel.metadata.name, fallback);
+    }
+
+    #[test]
+    /// We should be able to use a custom preview and custom headers/footers with stdin
+    fn test_validate_adhoc_mode_constraints_stdin() {
+        let cli = Cli {
+            source_display: Some("display".to_string()),
+            source_output: Some("output".to_string()),
+            preview_command: Some("preview".to_string()),
+            preview_offset: Some("offset".to_string()),
+            preview_size: Some(10),
+            preview_header: Some("header".to_string()),
+            preview_footer: Some("footer".to_string()),
+            ..Default::default()
+        };
+
+        validate_adhoc_mode_constraints(&cli, true);
     }
 }

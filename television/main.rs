@@ -44,7 +44,9 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
     debug!("CLI: {:?}", cli);
 
-    let args = post_process(cli);
+    let readable_stdin = is_readable_stdin();
+
+    let args = post_process(cli, readable_stdin);
     debug!("PostProcessedCli: {:?}", args);
 
     // load the configuration file
@@ -75,7 +77,7 @@ async fn main() -> Result<()> {
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
     let channel_prototype =
-        determine_channel(&args, &config, is_readable_stdin(), &cable);
+        determine_channel(&args, &config, readable_stdin, &cable);
 
     CLIPBOARD.with(<_>::default);
 
@@ -262,7 +264,7 @@ pub fn determine_channel(
                     args.preview_offset_override.clone(),
                 )
             });
-        ChannelPrototype::stdin(stdin_preview)
+        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(

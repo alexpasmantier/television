@@ -33,12 +33,7 @@ pub struct Cli {
     /// A list of the available channels can be displayed using the
     /// `list-channels` command. The channel can also be changed from within
     /// the application.
-    #[arg(
-        value_enum,
-        index = 1,
-        verbatim_doc_comment,
-        conflicts_with = "autocomplete_prompt"
-    )]
+    #[arg(value_enum, index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
     /// A preview line number offset template to use to scroll the preview to for each
@@ -217,6 +212,17 @@ pub struct Cli {
     )]
     pub source_output: Option<String>,
 
+    /// The delimiter byte to use for splitting the source's command output into entries.
+    ///
+    /// This can be useful when the source command outputs multiline entries and you want to
+    /// rely on another delimiter to split the entries such a null byte or a custom character.
+    #[arg(
+        long = "source-delimiter",
+        value_name = "STRING",
+        verbatim_doc_comment
+    )]
+    pub source_entry_delimiter: Option<String>,
+
     /// Preview command to use for the current channel.
     ///
     /// When a channel is specified: This overrides the preview command defined in the channel prototype.
@@ -265,12 +271,7 @@ pub struct Cli {
     /// This can be used to automatically select a channel based on the input
     /// prompt by using the `shell_integration` mapping in the configuration
     /// file.
-    #[arg(
-        long,
-        value_name = "STRING",
-        verbatim_doc_comment,
-        conflicts_with = "channel"
-    )]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub autocomplete_prompt: Option<String>,
 
     /// Use substring matching instead of fuzzy matching.
