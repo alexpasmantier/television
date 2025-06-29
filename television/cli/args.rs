@@ -414,6 +414,15 @@ pub struct Cli {
     #[arg(long, value_name = "PATH", verbatim_doc_comment, value_parser = validate_directory_path)]
     pub cable_dir: Option<String>,
 
+    /// Use global history mode instead of channel-specific history.
+    ///
+    /// This flag only works in channel mode.
+    ///
+    /// When enabled, history navigation will show entries from all channels.
+    /// When disabled (default), history navigation is scoped to the current channel.
+    #[arg(long, verbatim_doc_comment)]
+    pub global_history_mode: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

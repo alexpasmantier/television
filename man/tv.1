@@ -4,7 +4,7 @@
 .SH NAME
 television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\-mode\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
@@ -285,6 +285,14 @@ This flag works identically in both channel mode and ad\-hoc mode.
 Provide a custom cable directory to use.
 
 This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-global\-history\-mode\fR
+Enable global history mode for the current session.
+
+This flag only works in channel mode.
+
+When enabled, history navigation will show entries from all channels.
+When disabled (default), history navigation is scoped to the current channel.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)

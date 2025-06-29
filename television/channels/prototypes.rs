@@ -169,6 +169,29 @@ impl ChannelKeyBindings {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct HistoryConfig {
+    /// Maximum number of entries to keep in history for this channel (0 = disabled)
+    #[serde(default = "default_channel_history_size")]
+    pub size: usize,
+    /// Whether to use global history mode for this channel (overrides global setting)
+    #[serde(default)]
+    pub global_mode: Option<bool>,
+}
+
+impl Default for HistoryConfig {
+    fn default() -> Self {
+        Self {
+            size: default_channel_history_size(),
+            global_mode: None,
+        }
+    }
+}
+
+fn default_channel_history_size() -> usize {
+    100
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
     #[serde(rename = "source")]
@@ -182,6 +205,8 @@ pub struct ChannelPrototype {
     /// Watch interval in seconds for automatic reloading (0 = disabled)
     #[serde(default)]
     pub watch: f64,
+    #[serde(default)]
+    pub history: HistoryConfig,
     // actions: Vec<Action>,
 }
 
@@ -210,6 +235,7 @@ impl ChannelPrototype {
             ui: None,
             keybindings: None,
             watch: 0.0,
+            history: HistoryConfig::default(),
         }
     }
 
@@ -239,6 +265,7 @@ impl ChannelPrototype {
             ui: None,
             keybindings: None,
             watch: 0.0,
+            history: HistoryConfig::default(),
         }
     }
 
