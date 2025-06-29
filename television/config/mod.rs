@@ -1,6 +1,7 @@
 use crate::{
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
+    history::DEFAULT_HISTORY_SIZE,
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
@@ -40,10 +41,24 @@ pub struct AppConfig {
     /// The default channel to use when no channel is specified
     #[serde(default = "default_channel")]
     pub default_channel: String,
+    /// Maximum number of entries to keep in the global history
+    #[serde(default = "default_history_size")]
+    pub history_size: usize,
+    /// Whether to use global history (all channels) or channel-specific history (default)
+    #[serde(default = "default_global_history")]
+    pub global_history: bool,
 }
 
 fn default_channel() -> String {
     DEFAULT_PROTOTYPE_NAME.to_string()
+}
+
+fn default_history_size() -> usize {
+    DEFAULT_HISTORY_SIZE
+}
+
+fn default_global_history() -> bool {
+    false
 }
 
 impl Hash for AppConfig {
@@ -51,6 +66,8 @@ impl Hash for AppConfig {
         self.data_dir.hash(state);
         self.config_dir.hash(state);
         self.tick_rate.to_bits().hash(state);
+        self.history_size.hash(state);
+        self.global_history.hash(state);
     }
 }
 
