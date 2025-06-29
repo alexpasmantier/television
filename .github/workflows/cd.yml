@@ -5,13 +5,13 @@ permissions:
 on:
   push:
     tags:
-      - '[v]?[0-9]+.[0-9]+.[0-9]+'
+      - "[v]?[0-9]+.[0-9]+.[0-9]+"
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to deploy'
+        description: "Tag to deploy"
         required: true
-        default: '0.0.0'
+        default: "0.0.0"
 
 jobs:
   create-release:
@@ -39,9 +39,7 @@ jobs:
           prerelease: false
           bodyFile: BODY.md
 
-
   publish-release:
-
     name: Publishing for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
@@ -124,7 +122,6 @@ jobs:
 
           args: --release --target ${{ matrix.target }}
 
-
       - name: install strip command
         shell: bash
         run: |
@@ -187,7 +184,6 @@ jobs:
             tv-*.sha256
 
         env:
-
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-release-deb:
@@ -204,9 +200,9 @@ jobs:
           - target: x86_64-unknown-linux-gnu
             os: linux
             arch: x86_64
-          # - target: aarch64-unknown-linux-gnu
-          #   os: linux
-          #   arch: arm64
+          - target: aarch64-unknown-linux-gnu
+            os: linux
+            arch: arm64
 
     env:
       # Emit backtraces on panics.
@@ -216,84 +212,148 @@ jobs:
       PCRE2_SYS_STATIC: 1
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install packages (Ubuntu)
-      shell: bash
-      run: |
-       if ! command -V sudo; then
-        apt-get update
-        apt-get install -y --no-install-recommends sudo
-       fi
-       sudo apt-get update
-       sudo apt-get install -y --no-install-recommends \
-        zsh xz-utils liblz4-tool musl-tools brotli zstd 
+      - name: Install packages (Ubuntu)
+        shell: bash
+        run: |
+          if ! command -V sudo; then
+           apt-get update
+           apt-get install -y --no-install-recommends sudo
+          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+           zsh xz-utils liblz4-tool musl-tools brotli zstd
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@master
-      with:
-        toolchain: nightly
-        target: ${{ matrix.target }}
-        
-    # for some reason, the above action doesn't seem to set the target correctly
-    - name: Add rustup target
-      shell: bash
-      run: |
-        rustup target add ${{ matrix.target }}
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          target: ${{ matrix.target }}
 
-    - name: Install cargo-deb and cross
-      shell: bash
-      run: |
-        cargo install cargo-deb cross
+      # for some reason, the above action doesn't seem to set the target correctly
+      - name: Add rustup target
+        shell: bash
+        run: |
+          rustup target add ${{ matrix.target }}
 
-    - name: Create deployment directory
-      shell: bash
-      run: |
-        dir=deployment/deb
-        mkdir -p "$dir"
-        echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
+      - name: Install cargo-deb and cross
+        shell: bash
+        run: |
+          cargo install cargo-deb cross
 
-    - name: Copy man page
-      shell: bash
-      run: |
-        cp man/tv.1 "$DEPLOY_DIR/"
+      - name: Create deployment directory
+        shell: bash
+        run: |
+          dir=deployment/deb
+          mkdir -p "$dir"
+          echo "DEPLOY_DIR=$dir" >> $GITHUB_ENV
 
-    - name: Build release binary
-      shell: bash
-      run: |
-        version="${{ github.ref_name }}"
-        DEB_NAME="tv-$version-${{ matrix.target }}.deb"
-        DEB_DIR="target/${{ matrix.target }}/debian"
+      - name: Copy man page
+        shell: bash
+        run: |
+          cp man/tv.1 "$DEPLOY_DIR/"
 
-        # Build the actual binary
-        # if aarch64, we need to install the cross compiler since we're running x86_64
-        if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
-          sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+      - name: Build release binary
+        shell: bash
+        run: |
+          version="${{ github.ref_name }}"
+          DEB_NAME="tv-$version-${{ matrix.target }}.deb"
+          DEB_DIR="target/${{ matrix.target }}/debian"
 
-          cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME" \
-            --cargo-build cross
-            -- --no-default-features --features zero-copy,simd,fancy
-        else
-          cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME"
-        fi
+          # Build the actual binary
+          # if aarch64, we need to install the cross compiler since we're running x86_64
+          if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
+            sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
 
-        echo "DEB_DIR=$DEB_DIR" >> $GITHUB_ENV
-        echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
+            cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME" \
+              --cargo-build cross
+              -- --no-default-features --features zero-copy,simd,fancy
+          else
+            cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME"
+          fi
 
-    - name: Create sha256 sum of deb file
-      shell: bash
-      run: |
-        cd "$DEB_DIR"
-        sum="$DEB_NAME.sha256"
-        shasum -a 256 "$DEB_NAME" > "$sum"
-        echo "SUM=$sum" >> $GITHUB_ENV
+          echo "DEB_DIR=$DEB_DIR" >> $GITHUB_ENV
+          echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
 
-    - name: Upload release archive
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      shell: bash
-      run: |
-        cd "$DEB_DIR"
-        version="${{ github.ref_name }}"
-        gh release upload "$version" "$DEB_NAME" "$SUM"
+      - name: Create sha256 sum of deb file
+        shell: bash
+        run: |
+          cd "$DEB_DIR"
+          sum="$DEB_NAME.sha256"
+          shasum -a 256 "$DEB_NAME" > "$sum"
+          echo "SUM=$sum" >> $GITHUB_ENV
+
+      - name: Upload release archive
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          cd "$DEB_DIR"
+          version="${{ github.ref_name }}"
+          gh release upload "$version" "$DEB_NAME" "$SUM"
+
+  packaging:
+    name: Packaging
+    runs-on: ubuntu-latest
+    needs: [create-release, publish-release, publish-release-deb]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Import GPG key
+        uses: crazy-max/ghaction-import-gpg@v5
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Run repository update
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y reprepro
+
+          mkdir -p apt/deb/stable >> /dev/null 2>&1
+          RELEASE_DATA=$(curl -s https://api.github.com/repos/alexpasmantier/television/releases/latest)
+
+          ARCHITECTURES=(
+            "x86_64-unknown-linux-gnu:amd64"
+            "aarch64-unknown-linux-gnu:arm64"
+          )
+          ROOT_DIR=$(pwd)
+          APT_DIR=$ROOT_DIR/apt
+          REPREPRO_DIR=$APT_DIR/reprepro
+          DISTS_STABLE_DIR=$APT_DIR/dists/stable
+          DEB_STABLE_DIR=$APT_DIR/deb/stable
+
+          for ARCH_MAPPING in "${ARCHITECTURES[@]}"; do
+            ARCH_PATTERN="${ARCH_MAPPING%:*}"
+            ARCH_NAME="${ARCH_MAPPING#*:}"
+
+            echo "Processing $ARCH_PATTERN architecture..."
+            URL=$(echo "$RELEASE_DATA" | grep "browser_download_url" | grep "$ARCH_PATTERN.deb" | cut -d '"' -f 4)
+
+            if [ -n "$URL" ]; then
+              echo "Found $ARCH_PATTERN package, downloading..."
+              FILE_NAME=$(curl -LO $URL | awk '{print $2}')
+              mv $FILE_NAME $DEB_STABLE_DIR/
+
+              echo "Downloaded $FILE_NAME to $DEB_STABLE_DIR"
+              reprepro --dbdir $REPREPRO_DIR/db --confdir $REPREPRO_DIR/conf -C main includedeb stable $DEB_STABLE_DIR/*deb
+
+              GPG_KEY_ID=$(gpg --list-keys --keyid-format LONG | grep '^pub' | awk -F'/' '{print $2}' | awk '{print $1}')
+              cat $DISTS_STABLE_DIR/Release | gpg -s --default-key GPG_KEY_ID -abs > $DISTS_STABLE_DIR/Release.gpg
+
+              echo "$ARCH_PATTERN package added successfully"
+            else
+              echo "No $ARCH_PATTERN package found in release"
+            fi
+          done
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+          git commit -m "feat: [bot] update apt package repository" || echo "No changes to commit"
+          git push origin main

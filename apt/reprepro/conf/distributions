@@ -1,0 +1,5 @@
+Codename: stable
+Architectures: amd64 arm64
+Components: main 
+Description: Cross-platform, fast and extensible general purpose fuzzy finder 
+SignWith: 1BA454BAB45CDE67
