@@ -56,21 +56,23 @@ impl History {
         max_size: Option<usize>,
         channel_name: &str,
         global_mode: bool,
-    ) -> Result<Self> {
+    ) -> Self {
         let max_size = max_size.unwrap_or(DEFAULT_HISTORY_SIZE);
         let file_path = get_data_dir().join(HISTORY_FILE_NAME);
 
-        let mut history = Self {
+        Self {
             entries: Vec::new(),
             current_index: None,
             max_size,
             file_path,
             current_channel: channel_name.to_string(),
             global_mode,
-        };
+        }
+    }
 
-        history.load_from_file()?;
-        Ok(history)
+    /// Initialize the history by loading previously persisted entries from disk.
+    pub fn init(&mut self) -> Result<()> {
+        self.load_from_file()
     }
 
     /// Add a new history entry, if it's not a duplicate.
@@ -123,7 +125,7 @@ impl History {
     }
 
     /// Get the previous history entry.
-    pub fn get_previous(&mut self) -> Option<&HistoryEntry> {
+    fn get_previous(&mut self) -> Option<&HistoryEntry> {
         if self.entries.is_empty() {
             return None;
         }
@@ -142,7 +144,7 @@ impl History {
     ///
     /// This skips entries from other channels, so navigation is scoped to the
     /// currently active channel.
-    pub fn get_previous_in_channel(
+    fn get_previous_in_channel(
         &mut self,
         channel: &str,
     ) -> Option<&HistoryEntry> {
@@ -177,7 +179,7 @@ impl History {
     }
 
     /// Get the next history entry.
-    pub fn get_next(&mut self) -> Option<&HistoryEntry> {
+    fn get_next(&mut self) -> Option<&HistoryEntry> {
         if self.entries.is_empty() {
             return None;
         }
@@ -199,10 +201,7 @@ impl History {
     /// Get the next history entry for the given channel.
     ///
     /// Skips entries from other channels.
-    pub fn get_next_in_channel(
-        &mut self,
-        channel: &str,
-    ) -> Option<&HistoryEntry> {
+    fn get_next_in_channel(&mut self, channel: &str) -> Option<&HistoryEntry> {
         if self.entries.is_empty() {
             return None;
         }
@@ -263,16 +262,10 @@ impl History {
 
 impl Default for History {
     fn default() -> Self {
-        Self::new(None, "", false).unwrap_or_else(|e| {
+        let mut history = Self::new(None, "", false);
+        if let Err(e) = history.init() {
             error!("Failed to create default history: {}", e);
-            Self {
-                entries: Vec::new(),
-                current_index: None,
-                max_size: DEFAULT_HISTORY_SIZE,
-                file_path: get_data_dir().join(HISTORY_FILE_NAME),
-                current_channel: String::new(),
-                global_mode: false,
-            }
-        })
+        }
+        history
     }
 }
