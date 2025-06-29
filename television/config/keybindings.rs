@@ -97,21 +97,27 @@ fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
     let mut current = raw;
 
     loop {
-        match current {
-            rest if rest.starts_with("ctrl-") => {
-                modifiers.insert(KeyModifiers::CONTROL);
-                current = &rest[5..];
-            }
-            rest if rest.starts_with("alt-") => {
-                modifiers.insert(KeyModifiers::ALT);
-                current = &rest[4..];
-            }
-            rest if rest.starts_with("shift-") => {
-                modifiers.insert(KeyModifiers::SHIFT);
-                current = &rest[6..];
-            }
-            _ => break, // break out of the loop if no known prefix is detected
+        if let Some(rest) = current.strip_prefix("ctrl-") {
+            modifiers.insert(KeyModifiers::CONTROL);
+            current = rest;
+            continue;
         }
+        if let Some(rest) = current.strip_prefix("shift-") {
+            modifiers.insert(KeyModifiers::SHIFT);
+            current = rest;
+            continue;
+        }
+        if let Some(rest) = current.strip_prefix("alt-") {
+            modifiers.insert(KeyModifiers::ALT);
+            current = rest;
+            continue;
+        }
+        if let Some(rest) = current.strip_prefix("cmd-") {
+            modifiers.insert(KeyModifiers::SUPER);
+            current = rest;
+            continue;
+        }
+        break;
     }
 
     (current, modifiers)
@@ -216,6 +222,10 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         modifiers.push("shift");
     }
 
+    if key_event.modifiers.intersects(KeyModifiers::SUPER) {
+        modifiers.push("cmd");
+    }
+
     if key_event.modifiers.intersects(KeyModifiers::ALT) {
         modifiers.push("alt");
     }
@@ -301,6 +311,14 @@ mod tests {
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::CONTROL | KeyModifiers::ALT
+            )
+        );
+
+        assert_eq!(
+            parse_key_event("cmd-alt-a").unwrap(),
+            KeyEvent::new(
+                KeyCode::Char('a'),
+                KeyModifiers::SUPER | KeyModifiers::ALT
             )
         );
 
