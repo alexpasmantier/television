@@ -2,7 +2,7 @@ use crate::config::get_data_dir;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
 use tracing::error;
@@ -56,9 +56,10 @@ impl History {
         max_size: Option<usize>,
         channel_name: &str,
         global_mode: bool,
+        data_dir: &Path,
     ) -> Self {
         let max_size = max_size.unwrap_or(DEFAULT_HISTORY_SIZE);
-        let file_path = get_data_dir().join(HISTORY_FILE_NAME);
+        let file_path = data_dir.join(HISTORY_FILE_NAME);
 
         Self {
             entries: Vec::new(),
@@ -258,11 +259,19 @@ impl History {
         std::fs::write(&self.file_path, json_content)?;
         Ok(())
     }
+
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
 }
 
 impl Default for History {
     fn default() -> Self {
-        let mut history = Self::new(None, "", false);
+        let mut history = Self::new(None, "", false, &get_data_dir());
         if let Err(e) = history.init() {
             error!("Failed to create default history: {}", e);
         }
