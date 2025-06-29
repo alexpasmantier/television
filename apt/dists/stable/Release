@@ -1,0 +1,17 @@
+Codename: stable
+Date: Sat, 28 Jun 2025 07:44:52 UTC
+Architectures: amd64
+Components: main
+Description: Cross-platform, fast and extensible general purpose fuzzy finder
+MD5Sum:
+ 297215550eacf798cf901363118bb257 874 main/binary-amd64/Packages
+ 42af63684d49eae2c746ba2378f1e0cc 567 main/binary-amd64/Packages.gz
+ 68bf389ba549b00b25a76cf9ed7c39a0 114 main/binary-amd64/Release
+SHA1:
+ b915d3198ea4c225a64ac7ec6e55228f8a895f29 874 main/binary-amd64/Packages
+ c43afcf01f2531f31ce1ec33709b9a36b396bda8 567 main/binary-amd64/Packages.gz
+ bebb0993a743356f2e72c7062d36d0e04125f32f 114 main/binary-amd64/Release
+SHA256:
+ dcd709eb6c4dba7bdcdedd1a1a23850b57ddb97ab0d674dfdf393f2cd16c1708 874 main/binary-amd64/Packages
+ 2f57387839b5aa778859dbb72f7d1d3cae5bf1e74bea3c258b3898555aeebfb6 567 main/binary-amd64/Packages.gz
+ 6a1dfac31d78b56d037ff55af8658af74bc09f80ffae729c433b3bf4f7bee1e1 114 main/binary-amd64/Release
