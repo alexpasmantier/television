@@ -437,14 +437,14 @@ Television's options are organized by functionality. Each option behaves differe
 
 ### 📚 History Options
 
-#### `--global-history-mode`
+#### `--global-history`
 
 **Purpose**: Enables global history for the current session
 
 - **Both Modes**: Same behavior
 - **Default**: Channel-specific history (scoped to current channel)
 - **Use Case**: Cross-channel workflow when you want to see all recent searches
-- **Example**: `tv files --global-history-mode`
+- **Example**: `tv files --global-history`
 
 ### 🔧 Special Mode Options
 
