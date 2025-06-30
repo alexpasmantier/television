@@ -106,124 +106,54 @@ impl History {
 
     /// Get the previous history entry based on the configured mode.
     pub fn get_previous_entry(&mut self) -> Option<&HistoryEntry> {
-        if self.global_mode {
-            self.get_previous()
-        } else {
-            let channel = self.current_channel.clone();
-            self.get_previous_in_channel(&channel)
-        }
-    }
+        let channel_filter =
+            (!self.global_mode).then_some(self.current_channel.as_str());
 
-    /// Get the next history entry based on the configured mode.
-    pub fn get_next_entry(&mut self) -> Option<&HistoryEntry> {
-        if self.global_mode {
-            self.get_next()
-        } else {
-            let channel = self.current_channel.clone();
-            self.get_next_in_channel(&channel)
-        }
-    }
-
-    /// Get the previous history entry.
-    fn get_previous(&mut self) -> Option<&HistoryEntry> {
-        if self.entries.is_empty() {
-            return None;
-        }
-
-        let new_index = match self.current_index {
-            None => self.entries.len() - 1,
-            Some(0) => 0, // Stay at beginning
-            Some(i) => i - 1,
-        };
-
-        self.current_index = Some(new_index);
-        self.entries.get(new_index)
-    }
-
-    /// Get the previous history entry for the given channel.
-    ///
-    /// This skips entries from other channels, so navigation is scoped to the
-    /// currently active channel.
-    fn get_previous_in_channel(
-        &mut self,
-        channel: &str,
-    ) -> Option<&HistoryEntry> {
-        if self.entries.is_empty() {
-            return None;
-        }
-
-        let search_start = match self.current_index {
+        let search_end = match self.current_index {
             None => self.entries.len(),
             Some(0) => {
-                // Already at beginning - return current entry if it matches channel
-                return if self.entries[0].channel == channel {
-                    Some(&self.entries[0])
-                } else {
-                    None
-                };
+                return self.entries.first().filter(|entry| {
+                    channel_filter.is_none_or(|ch| entry.channel == ch)
+                });
             }
             Some(i) => i,
         };
 
-        // Search backwards from the starting point
-        for (idx, entry) in
-            self.entries[..search_start].iter().enumerate().rev()
-        {
-            if entry.channel == channel {
+        self.entries
+            .get(..search_end)?
+            .iter()
+            .enumerate()
+            .rev()
+            .find(|(_, entry)| {
+                channel_filter.is_none_or(|ch| entry.channel == ch)
+            })
+            .map(|(idx, entry)| {
                 self.current_index = Some(idx);
-                return Some(entry);
-            }
-        }
-
-        None
+                entry
+            })
     }
 
-    /// Get the next history entry.
-    fn get_next(&mut self) -> Option<&HistoryEntry> {
-        if self.entries.is_empty() {
-            return None;
-        }
+    /// Get the next history entry based on the configured mode.
+    pub fn get_next_entry(&mut self) -> Option<&HistoryEntry> {
+        let channel_filter =
+            (!self.global_mode).then_some(self.current_channel.as_str());
+        let search_start = self.current_index? + 1;
 
-        match self.current_index {
-            None => None, // No navigation started yet
-            Some(index) if index < self.entries.len() - 1 => {
-                self.current_index = Some(index + 1);
-                self.entries.get(index + 1)
-            }
-            Some(_) => {
-                // At the end, reset to allow new input
-                self.current_index = None;
+        self.entries
+            .get(search_start..)?
+            .iter()
+            .enumerate()
+            .find(|(_, entry)| {
+                channel_filter.is_none_or(|ch| entry.channel == ch)
+            })
+            .map(|(offset, entry)| {
+                self.current_index = Some(search_start + offset);
+                entry
+            })
+            .or_else(|| {
+                self.current_index = None; // Reset navigation at end
                 None
-            }
-        }
-    }
-
-    /// Get the next history entry for the given channel.
-    ///
-    /// Skips entries from other channels.
-    fn get_next_in_channel(&mut self, channel: &str) -> Option<&HistoryEntry> {
-        if self.entries.is_empty() {
-            return None;
-        }
-
-        let search_start = match self.current_index {
-            None => return None, // Navigation not started
-            Some(i) => i + 1,
-        };
-
-        // Search forward from the starting point
-        for (offset, entry) in self.entries[search_start..].iter().enumerate()
-        {
-            if entry.channel == channel {
-                let idx = search_start + offset;
-                self.current_index = Some(idx);
-                return Some(entry);
-            }
-        }
-
-        // Reached the end, reset navigation
-        self.current_index = None;
-        None
+            })
     }
 
     fn load_from_file(&mut self) -> Result<()> {
