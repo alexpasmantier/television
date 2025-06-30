@@ -423,6 +423,19 @@ pub struct Cli {
     #[arg(long, verbatim_doc_comment)]
     pub global_history: bool,
 
+    /// Height in lines for non-fullscreen mode.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// When specified, the picker will be displayed as a non-fullscreen interface.
+    #[arg(
+        long,
+        value_name = "INTEGER",
+        verbatim_doc_comment,
+        value_parser = clap::value_parser!(u16).range(3..=100)
+    )]
+    pub height: Option<u16>,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

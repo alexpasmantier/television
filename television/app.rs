@@ -37,6 +37,8 @@ pub struct AppOptions {
     pub tick_rate: f64,
     /// Watch interval in seconds for automatic reloading (0 = disabled).
     pub watch_interval: f64,
+    /// Height in lines for non-fullscreen mode.
+    pub height: Option<u16>,
 }
 
 impl Default for AppOptions {
@@ -51,6 +53,7 @@ impl Default for AppOptions {
             preview_size: Some(DEFAULT_PREVIEW_SIZE),
             tick_rate: default_tick_rate(),
             watch_interval: 0.0,
+            height: None,
         }
     }
 }
@@ -68,6 +71,7 @@ impl AppOptions {
         preview_size: Option<u16>,
         tick_rate: f64,
         watch_interval: f64,
+        height: Option<u16>,
     ) -> Self {
         Self {
             exact,
@@ -79,6 +83,7 @@ impl AppOptions {
             preview_size,
             tick_rate,
             watch_interval,
+            height,
         }
     }
 }
@@ -343,9 +348,16 @@ impl App {
             self.render_tx = render_tx.clone();
             let ui_state_tx = self.ui_state_tx.clone();
             let action_tx_r = self.action_tx.clone();
+            let height = self.options.height;
             self.render_task = Some(tokio::spawn(async move {
-                render(render_rx, action_tx_r, ui_state_tx, is_output_tty)
-                    .await
+                render(
+                    render_rx,
+                    action_tx_r,
+                    ui_state_tx,
+                    is_output_tty,
+                    height,
+                )
+                .await
             }));
             self.action_tx
                 .send(Action::Render)

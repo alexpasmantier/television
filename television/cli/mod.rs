@@ -85,6 +85,7 @@ pub struct PostProcessedCli {
     // UI and layout configuration
     pub layout: Option<Orientation>,
     pub ui_scale: u16,
+    pub height: Option<u16>,
 
     // Behavior and matching configuration
     pub exact: bool,
@@ -152,6 +153,7 @@ impl Default for PostProcessedCli {
             // UI and layout configuration
             layout: None,
             ui_scale: DEFAULT_UI_SCALE,
+            height: None,
 
             // Behavior and matching configuration
             exact: false,
@@ -332,6 +334,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         // UI and layout configuration
         layout,
         ui_scale: cli.ui_scale,
+        height: cli.height,
 
         // Behavior and matching configuration
         exact: cli.exact,
