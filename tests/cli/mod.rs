@@ -18,7 +18,6 @@ mod common;
 
 pub mod cli_config;
 pub mod cli_errors;
-pub mod cli_history;
 pub mod cli_input;
 pub mod cli_modes;
 pub mod cli_monitoring;
