@@ -432,7 +432,10 @@ pub struct Cli {
         long,
         value_name = "INTEGER",
         verbatim_doc_comment,
-        value_parser = clap::value_parser!(u16).range(3..=100)
+        // minimum value with status-bar disabled is 6
+        // TODO: revisit if/when input can be toggled
+        // TODO: upper bound is set to a high value. Can we know deterministically a better value?
+        value_parser = clap::value_parser!(u16).range(6..=100)
     )]
     pub height: Option<u16>,
 
