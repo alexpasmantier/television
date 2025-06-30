@@ -613,10 +613,13 @@ impl App {
                                 let query =
                                     self.television.current_pattern.clone();
                                 if !query.trim().is_empty() {
-                                    let _ = history.add_entry(
-                                        query,
-                                        self.television.current_channel(),
-                                    );
+                                    history
+                                        .add_entry(
+                                            query,
+                                            self.television.current_channel(),
+                                        )
+                                        .unwrap();
+                                    history.save_to_file().unwrap();
                                 }
                             }
                             return Ok(ActionOutcome::Entries(entries));

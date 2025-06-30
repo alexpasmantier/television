@@ -101,7 +101,6 @@ impl History {
             self.entries.drain(0..self.entries.len() - self.max_size);
         }
 
-        self.save_to_file()?;
         Ok(())
     }
 
@@ -250,7 +249,7 @@ impl History {
         Ok(())
     }
 
-    fn save_to_file(&self) -> Result<()> {
+    pub fn save_to_file(&self) -> Result<()> {
         if let Some(parent) = self.file_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -266,6 +265,11 @@ impl History {
 
     pub fn is_empty(&self) -> bool {
         self.entries.is_empty()
+    }
+
+    /// Get all entries in the history.
+    pub fn get_entries(&self) -> &[HistoryEntry] {
+        &self.entries
     }
 
     /// Update the current channel context for this history instance.

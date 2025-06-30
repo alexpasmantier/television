@@ -1,8 +1,7 @@
 //! Tests for History navigation helpers (channel vs. global mode).
 
 use serde_json;
-use std::fs;
-use std::path::Path;
+use std::{fs, path::Path};
 use television::history::{History, HistoryEntry};
 use tempfile::tempdir;
 
@@ -41,7 +40,7 @@ fn dump_entries(hist: &History) -> Vec<String> {
 
 #[allow(dead_code)]
 fn print_entries(hist: &History) {
-    println!("{:?}", dump_entries(hist)); // uncomment for debug
+    println!("{:?}", dump_entries(hist));
 }
 
 /// Read all entries currently stored in history.json for a data dir
@@ -51,11 +50,23 @@ fn entries_in_file(dir: &Path) -> Vec<String> {
     vec.into_iter().map(|e| e.entry).collect()
 }
 
-fn assert_entries(dir: &Path, expected: &[&str]) {
+#[allow(dead_code)]
+fn assert_entries_in_file(dir: &Path, expected: &[&str]) {
     let mut got = entries_in_file(dir);
     got.sort();
     let mut exp: Vec<String> =
-        expected.iter().map(|s| s.to_string()).collect();
+        expected.iter().map(|&s| s.to_string()).collect();
+    exp.sort();
+    assert_eq!(got, exp);
+}
+
+#[allow(dead_code)]
+fn assert_entries(hist: &History, expected: &[&str]) {
+    let mut got: Vec<String> =
+        hist.get_entries().iter().map(|e| e.entry.clone()).collect();
+    got.sort();
+    let mut exp: Vec<String> =
+        expected.iter().map(|&s| s.to_string()).collect();
     exp.sort();
     assert_eq!(got, exp);
 }
@@ -185,7 +196,7 @@ fn global_mode_single_nonmatching_entry() {
     );
 }
 
-/// Ensure add_entry respects deduplication and size trimming.
+/// Ensure `add_entry` respects deduplication and size trimming.
 /// Adding entries should skip consecutive duplicates and trim to max size.
 #[test]
 fn add_entry_dedup_and_trim() {
@@ -194,28 +205,28 @@ fn add_entry_dedup_and_trim() {
 
     // add first two unique entries
     hist.add_entry("file1".into(), "files".into()).unwrap();
-    assert_entries(dir.path(), &["file1"]);
+    assert_entries(&hist, &["file1"]);
     hist.add_entry("file2".into(), "files".into()).unwrap();
-    assert_entries(dir.path(), &["file1", "file2"]);
+    assert_entries(&hist, &["file1", "file2"]);
 
     // consecutive duplicate should be ignored
     hist.add_entry("file2".into(), "files".into()).unwrap();
-    assert_entries(dir.path(), &["file1", "file2"]);
+    assert_entries(&hist, &["file1", "file2"]);
     assert_eq!(hist.len(), 2);
 
     // let's add a third unique entry
     hist.add_entry("file3".into(), "files".into()).unwrap();
-    assert_entries(dir.path(), &["file1", "file2", "file3"]);
+    assert_entries(&hist, &["file1", "file2", "file3"]);
     assert_eq!(hist.len(), 3);
 
     // let's add a fourth unique entry, we should still have 3 entries
     hist.add_entry("file4".into(), "files".into()).unwrap();
-    assert_entries(dir.path(), &["file2", "file3", "file4"]);
+    assert_entries(&hist, &["file2", "file3", "file4"]);
     assert_eq!(hist.len(), 3);
 
     // non-consecutive duplicate counts as new
     hist.add_entry("dir1".into(), "dirs".into()).unwrap();
-    assert_entries(dir.path(), &["file3", "file4", "dir1"]);
+    assert_entries(&hist, &["file3", "file4", "dir1"]);
     assert_eq!(hist.len(), 3);
 
     // In channel mode (files) the newest matching is file4
@@ -224,11 +235,14 @@ fn add_entry_dedup_and_trim() {
         Some(&"file4".to_string())
     );
 
+    // Persist so we can load later
+    hist.save_to_file().unwrap();
+
     // Switch to global view to verify "dir1" exists
     // let's init the history with channel only mode for dirs
     let mut hist = History::new(Some(3), "dirs", false, dir.path());
     hist.init().unwrap();
-    assert_entries(dir.path(), &["file3", "file4", "dir1"]);
+    assert_entries(&hist, &["file3", "file4", "dir1"]);
     assert_eq!(hist.len(), 3);
     assert_eq!(
         hist.get_previous_entry().map(|e| &e.entry),
@@ -236,7 +250,7 @@ fn add_entry_dedup_and_trim() {
     );
 }
 
-/// Global mode: initializing with smaller max_size trims older entries.
+/// Global mode: initializing with smaller `max_size` trims older entries.
 #[test]
 fn init_trim_global_mode() {
     let dir = setup_history_file(&make_entries());
@@ -286,7 +300,7 @@ fn add_entry_ignores_empty_queries() {
     let mut hist = History::new(Some(10), "files", false, dir.path());
 
     // Try to add empty and whitespace-only queries
-    hist.add_entry("".into(), "files".into()).unwrap();
+    hist.add_entry(String::new(), "files".into()).unwrap();
     hist.add_entry("  ".into(), "files".into()).unwrap();
     hist.add_entry("\t\n".into(), "files".into()).unwrap();
 
@@ -296,7 +310,7 @@ fn add_entry_ignores_empty_queries() {
     // Add a real entry to confirm it works
     hist.add_entry("real_entry".into(), "files".into()).unwrap();
     assert_eq!(hist.len(), 1);
-    assert_entries(dir.path(), &["real_entry"]);
+    assert_entries(&hist, &["real_entry"]);
 }
 
 /// Test navigation on completely empty history.
@@ -355,7 +369,7 @@ fn non_consecutive_duplicates() {
     hist.add_entry("file1".into(), "files".into()).unwrap(); // Non-consecutive duplicate
 
     assert_eq!(hist.len(), 3);
-    assert_entries(dir.path(), &["file1", "file2", "file1"]);
+    assert_entries(&hist, &["file1", "file2", "file1"]);
 
     // Both instances should be navigable
     assert_eq!(
@@ -383,7 +397,7 @@ fn cross_channel_duplicates() {
     hist.add_entry("same_name".into(), "files".into()).unwrap();
 
     assert_eq!(hist.len(), 3);
-    assert_entries(dir.path(), &["same_name", "same_name", "same_name"]);
+    assert_entries(&hist, &["same_name", "same_name", "same_name"]);
 
     // In channel mode, should only see the files entries
     assert_eq!(
@@ -394,6 +408,9 @@ fn cross_channel_duplicates() {
         hist.get_previous_entry().map(|e| &e.entry),
         Some(&"same_name".to_string())
     );
+
+    // Persist so we can load later
+    hist.save_to_file().unwrap();
 
     // In global mode, should see all three
     let mut hist_global = History::new(Some(10), "files", true, dir.path());
@@ -479,7 +496,7 @@ fn mixed_navigation_patterns() {
     );
 }
 
-/// Test get_next without previous navigation.
+/// Test `get_next` without previous navigation.
 #[test]
 fn next_without_previous() {
     let dir = setup_history_file(&make_entries());
@@ -495,8 +512,7 @@ fn next_without_previous() {
 fn history_size_precedence() {
     use television::{
         channels::prototypes::ChannelPrototype,
-        config::default_config_from_file,
-        history::{DEFAULT_HISTORY_SIZE, History},
+        config::default_config_from_file, history::DEFAULT_HISTORY_SIZE,
     };
     use tempfile::tempdir;
 
@@ -553,10 +569,4 @@ fn history_size_precedence() {
         .size
         .unwrap_or(default_config.application.history_size);
     assert_eq!(effective_size, DEFAULT_HISTORY_SIZE); // Should use DEFAULT_HISTORY_SIZE
-
-    // Test that the History struct works correctly with these sizes
-    let mut history = History::new(Some(10), "test", false, &temp_dir.path());
-    assert!(history.init().is_ok());
-    assert_eq!(history.len(), 0);
-    assert!(!history.is_empty() || history.is_empty()); // Either state is valid for empty history
 }
