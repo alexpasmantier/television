@@ -114,9 +114,8 @@ impl Channel {
             if let Some(p) = &self.prototype.preview {
                 // FIXME: this should be done by the previewer instead
                 if let Some(offset_expr) = &p.offset {
-                    let offset_str = offset_expr
-                    .format(&item.inner)
-                    .unwrap_or_else(|_| panic!("Failed to format offset expression '{}' with name '{}'", offset_expr.raw(), item.inner));
+                    let offset_str =
+                        offset_expr.format(&item.inner).unwrap_or_default();
 
                     entry = entry.with_line_number(
                         offset_str.parse::<usize>().unwrap_or(0),
