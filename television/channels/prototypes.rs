@@ -168,6 +168,13 @@ impl ChannelKeyBindings {
     }
 }
 
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct HistoryConfig {
+    /// Whether to use global history for this channel (overrides global setting)
+    #[serde(default)]
+    pub global_mode: Option<bool>,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
@@ -182,6 +189,8 @@ pub struct ChannelPrototype {
     /// Watch interval in seconds for automatic reloading (0 = disabled)
     #[serde(default)]
     pub watch: f64,
+    #[serde(default)]
+    pub history: HistoryConfig,
     // actions: Vec<Action>,
 }
 
@@ -210,6 +219,7 @@ impl ChannelPrototype {
             ui: None,
             keybindings: None,
             watch: 0.0,
+            history: HistoryConfig::default(),
         }
     }
 
@@ -239,6 +249,7 @@ impl ChannelPrototype {
             ui: None,
             keybindings: None,
             watch: 0.0,
+            history: HistoryConfig::default(),
         }
     }
 

@@ -18,6 +18,18 @@
 tick_rate = 50
 default_channel = "files"
 
+# History settings
+# ---------------
+# Maximum number of entries to keep in the global history (default: 100)
+# The history tracks search queries across all channels and sessions
+# Set to 0 to disable history functionality entirely
+history_size = 200
+
+# Whether to use global history (default: false)
+# When true: history navigation shows entries from all channels
+# When false: history navigation is scoped to the current channel
+global_history = false
+
 [ui]
 # Whether to use nerd font icons in the UI
 # This option requires a font patched with Nerd Font in order to properly
@@ -122,6 +134,12 @@ select_next_entry = ["down", "ctrl-n", "ctrl-j"]
 select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
 #select_next_page = "pagedown"
 #select_prev_page = "pageup"
+
+# History navigation
+# -----------------
+# Navigate through search query history
+select_prev_history = "ctrl-up"
+select_next_history = "ctrl-down"
 
 # Multi-selection
 # --------------
