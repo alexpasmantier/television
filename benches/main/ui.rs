@@ -468,7 +468,7 @@ pub fn draw(c: &mut Criterion) {
             // Measurement
             |(tv, mut terminal)| async move {
                 television::draw::draw(
-                    black_box(&tv.dump_context()),
+                    black_box(Box::new(tv.dump_context())),
                     black_box(&mut terminal.get_frame()),
                     black_box(Rect::new(0, 0, width, height)),
                 )

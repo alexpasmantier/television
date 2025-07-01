@@ -555,16 +555,16 @@ impl Television {
             // available previews
             let entry = selected_entry.as_ref().unwrap();
             if let Ok(mut preview) = receiver.try_recv() {
-                if let Some(tpl) = &self.config.ui.preview_panel.header {
-                    preview.title = tpl
+                if let Some(template) = &self.config.ui.preview_panel.header {
+                    preview.title = template
                         .format(&entry.raw)
                         .unwrap_or_else(|_| entry.raw.clone());
                 } else {
                     preview.title.clone_from(&entry.raw);
                 }
 
-                if let Some(ftpl) = &self.config.ui.preview_panel.footer {
-                    preview.footer = ftpl
+                if let Some(template) = &self.config.ui.preview_panel.footer {
+                    preview.footer = template
                         .format(&entry.raw)
                         .unwrap_or_else(|_| String::new());
                 }
