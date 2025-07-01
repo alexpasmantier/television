@@ -158,6 +158,7 @@ pub const TAB_WIDTH: usize = 4;
 const NULL_SYMBOL: char = '\u{2400}';
 const TAB_CHARACTER: char = '\t';
 const LINE_FEED_CHARACTER: char = '\x0A';
+const CARRIAGE_RETURN_CHARACTER: char = '\r';
 const DELETE_CHARACTER: char = '\x7F';
 const BOM_CHARACTER: char = '\u{FEFF}';
 const NULL_CHARACTER: char = '\x00';
@@ -302,7 +303,15 @@ pub fn replace_non_printable(
                         i16::try_from(config.tab_width).unwrap() - 1;
                 }
                 // line feed
-                LINE_FEED_CHARACTER if config.replace_line_feed => {
+                LINE_FEED_CHARACTER | CARRIAGE_RETURN_CHARACTER
+                    if config.replace_line_feed =>
+                {
+                    cumulative_offset -= 1;
+                }
+
+                // Carriage return
+                '\r' if config.replace_line_feed => {
+                    // Do not add to output, just adjust offset
                     cumulative_offset -= 1;
                 }
 

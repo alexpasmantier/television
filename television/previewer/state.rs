@@ -1,3 +1,5 @@
+use ratatui::text::Text;
+
 use crate::previewer::Preview;
 
 #[derive(Debug, Clone, Default)]
@@ -10,7 +12,7 @@ pub struct PreviewState {
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
 pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 3;
-const ANSI_CONTEXT_SIZE: usize = 500;
+const ANSI_CONTEXT_SIZE: u16 = 500;
 
 impl PreviewState {
     pub fn new(
@@ -65,20 +67,21 @@ impl PreviewState {
     pub fn for_render_context(&self) -> Self {
         let num_skipped_lines =
             self.scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE);
+
         let cropped_content = self
             .preview
             .content
-            .lines()
+            .lines
+            .iter()
             .skip(num_skipped_lines as usize)
-            .take(ANSI_CONTEXT_SIZE)
-            .collect::<Vec<_>>()
-            .join("\n");
+            .take(ANSI_CONTEXT_SIZE as usize)
+            .cloned()
+            .collect::<Vec<_>>();
 
         let target_line: Option<u16> =
             if let Some(target_line) = self.target_line {
                 if num_skipped_lines < target_line
-                    && (target_line - num_skipped_lines)
-                        <= u16::try_from(ANSI_CONTEXT_SIZE).unwrap()
+                    && (target_line - num_skipped_lines) <= ANSI_CONTEXT_SIZE
                 {
                     Some(target_line.saturating_sub(num_skipped_lines))
                 } else {
@@ -92,7 +95,7 @@ impl PreviewState {
             self.enabled,
             Preview::new(
                 &self.preview.title,
-                cropped_content,
+                Text::from(cropped_content),
                 self.preview.icon,
                 self.preview.total_lines,
                 self.preview.footer.clone(),

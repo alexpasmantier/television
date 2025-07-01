@@ -171,7 +171,7 @@ impl UiComponent for StatusBarComponent<'_> {
 /// A `Result` containing the layout of the current frame if the drawing was successful.
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
-pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
+pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
 
     let layout = Layout::build(
@@ -212,11 +212,17 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.ui.input_bar_position,
     )?;
 
+    // status bar at the bottom
+    if let Some(status_bar_area) = layout.status_bar {
+        let status_component = StatusBarComponent::new(&ctx);
+        status_component.draw(f, status_bar_area);
+    }
+
     if let Some(preview_rect) = layout.preview_window {
         draw_preview_content_block(
             f,
             preview_rect,
-            &ctx.tv_state.preview_state,
+            ctx.tv_state.preview_state,
             ctx.config.ui.use_nerd_font_icons,
             &ctx.colorscheme,
             ctx.config.ui.preview_panel.scrollbar,
@@ -239,13 +245,13 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
 
     // floating help panel (rendered last to appear on top)
     if let Some(help_area) = layout.help_panel {
-        draw_help_panel(f, help_area, ctx);
-    }
-
-    // status bar at the bottom
-    if let Some(status_bar_area) = layout.status_bar {
-        let status_component = StatusBarComponent::new(ctx);
-        status_component.draw(f, status_bar_area);
+        draw_help_panel(
+            f,
+            help_area,
+            &ctx.config.keybindings,
+            ctx.tv_state.mode,
+            &ctx.colorscheme,
+        );
     }
 
     Ok(layout)

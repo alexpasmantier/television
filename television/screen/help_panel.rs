@@ -1,6 +1,5 @@
 use crate::{
     config::KeyBindings,
-    draw::Ctx,
     screen::colors::Colorscheme,
     screen::keybindings::{ActionMapping, extract_keys_from_binding},
     television::Mode,
@@ -17,17 +16,19 @@ const MIN_PANEL_WIDTH: u16 = 25;
 const MIN_PANEL_HEIGHT: u16 = 5;
 
 /// Draws a Helix-style floating help panel in the bottom-right corner
-pub fn draw_help_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
+pub fn draw_help_panel(
+    f: &mut Frame<'_>,
+    area: Rect,
+    keybindings: &KeyBindings,
+    tv_mode: Mode,
+    colorscheme: &Colorscheme,
+) {
     if area.width < MIN_PANEL_WIDTH || area.height < MIN_PANEL_HEIGHT {
         return; // Too small to display anything meaningful
     }
 
     // Generate content
-    let content = generate_help_content(
-        &ctx.config.keybindings,
-        ctx.tv_state.mode,
-        &ctx.colorscheme,
-    );
+    let content = generate_help_content(keybindings, tv_mode, colorscheme);
 
     // Clear the area first to create the floating effect
     f.render_widget(Clear, area);
@@ -36,14 +37,11 @@ pub fn draw_help_panel(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(ctx.colorscheme.general.border_fg))
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .title_top(Line::from(" Help ").alignment(Alignment::Center))
         .style(
-            Style::default().bg(ctx
-                .colorscheme
-                .general
-                .background
-                .unwrap_or_default()),
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::horizontal(1));
 
