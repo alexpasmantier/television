@@ -438,6 +438,21 @@ pub struct Cli {
     )]
     pub height: Option<u16>,
 
+    /// Use all available empty space at the bottom of the terminal as an inline interface.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// When enabled, the picker will be displayed as an inline interface that uses
+    /// all available empty space at the bottom of the terminal. If there is insufficient
+    /// space to meet the minimum height the terminal will scroll.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "height"
+    )]
+    pub inline: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }

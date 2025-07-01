@@ -96,6 +96,7 @@ async fn main() -> Result<()> {
         config.application.tick_rate,
         watch_interval,
         args.height,
+        args.inline,
     );
     let mut app = App::new(
         channel_prototype,

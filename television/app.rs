@@ -10,7 +10,9 @@ use crate::{
     television::{Mode, Television},
 };
 use anyhow::Result;
-use crossterm::event::MouseEventKind;
+use crossterm::{
+    cursor, event::MouseEventKind, terminal::size as terminal_size,
+};
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
@@ -39,6 +41,8 @@ pub struct AppOptions {
     pub watch_interval: f64,
     /// Height in lines for non-fullscreen mode.
     pub height: Option<u16>,
+    /// Use all available empty space at the bottom of the terminal as an inline interface.
+    pub inline: bool,
 }
 
 impl Default for AppOptions {
@@ -54,6 +58,7 @@ impl Default for AppOptions {
             tick_rate: default_tick_rate(),
             watch_interval: 0.0,
             height: None,
+            inline: false,
         }
     }
 }
@@ -72,6 +77,7 @@ impl AppOptions {
         tick_rate: f64,
         watch_interval: f64,
         height: Option<u16>,
+        inline: bool,
     ) -> Self {
         Self {
             exact,
@@ -84,6 +90,7 @@ impl AppOptions {
             tick_rate,
             watch_interval,
             height,
+            inline,
         }
     }
 }
@@ -348,7 +355,12 @@ impl App {
             self.render_tx = render_tx.clone();
             let ui_state_tx = self.ui_state_tx.clone();
             let action_tx_r = self.action_tx.clone();
-            let height = self.options.height;
+            let height = if self.options.inline {
+                // Calculate available space for inline mode
+                Self::calculate_inline_height()?
+            } else {
+                self.options.height
+            };
             self.render_task = Some(tokio::spawn(async move {
                 render(
                     render_rx,
@@ -698,5 +710,28 @@ impl App {
 
             ActionOutcome::None
         }
+    }
+
+    /// Calculate the height for inline mode.
+    ///
+    /// This method determines the available space at the bottom of the terminal
+    // TODO: revisit minimum height if/when input can be toggled
+    fn calculate_inline_height() -> Result<Option<u16>> {
+        const MIN_HEIGHT: u16 = 6;
+
+        // Get current cursor position and terminal size
+        let (_, current_row) = cursor::position()?;
+        let (_, terminal_height) = terminal_size()?;
+
+        // Calculate available space from next line to bottom of terminal
+        let available_space = terminal_height.saturating_sub(current_row + 1);
+        let ui_height = available_space.max(MIN_HEIGHT);
+
+        debug!(
+            "Inline mode: using {} lines (available: {}, minimum: {})",
+            ui_height, available_space, MIN_HEIGHT
+        );
+
+        Ok(Some(ui_height))
     }
 }
