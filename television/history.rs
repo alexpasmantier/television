@@ -1,19 +1,18 @@
-use crate::config::get_data_dir;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::{
     path::{Path, PathBuf},
     time::{SystemTime, UNIX_EPOCH},
 };
-use tracing::error;
+use tracing::debug;
 
 const HISTORY_FILE_NAME: &str = "history.json";
-pub const DEFAULT_HISTORY_SIZE: usize = 100;
+pub const DEFAULT_HISTORY_SIZE: usize = 200;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
     /// The search query/pattern that was typed
-    pub entry: String,
+    pub query: String,
     /// The channel that the entry belongs to
     pub channel: String,
     /// The timestamp of the entry
@@ -22,7 +21,7 @@ pub struct HistoryEntry {
 
 impl PartialEq for HistoryEntry {
     fn eq(&self, other: &Self) -> bool {
-        self.entry == other.entry && self.channel == other.channel
+        self.query == other.query && self.channel == other.channel
     }
 }
 
@@ -34,7 +33,7 @@ impl HistoryEntry {
             .as_secs();
 
         Self {
-            entry,
+            query: entry,
             channel,
             timestamp,
         }
@@ -53,16 +52,15 @@ pub struct History {
 
 impl History {
     pub fn new(
-        max_size: Option<usize>,
+        max_size: usize,
         channel_name: &str,
         global_mode: bool,
         data_dir: &Path,
     ) -> Self {
-        let max_size = max_size.unwrap_or(DEFAULT_HISTORY_SIZE);
         let file_path = data_dir.join(HISTORY_FILE_NAME);
 
         Self {
-            entries: Vec::new(),
+            entries: Vec::with_capacity(max_size),
             current_index: None,
             max_size,
             file_path,
@@ -73,7 +71,11 @@ impl History {
 
     /// Initialize the history by loading previously persisted entries from disk.
     pub fn init(&mut self) -> Result<()> {
-        self.load_from_file()
+        // if max_size is 0, history is disabled
+        if self.max_size > 0 {
+            self.load_from_file()?;
+        }
+        Ok(())
     }
 
     /// Add a new history entry, if it's not a duplicate.
@@ -85,9 +87,14 @@ impl History {
 
         // Don't add duplicate consecutive queries
         if let Some(last_entry) = self.entries.last() {
-            if last_entry.entry == query && last_entry.channel == channel {
+            if last_entry.query == query && last_entry.channel == channel {
                 return Ok(());
             }
+        }
+
+        // Trim history if it's going to exceed `max_size`
+        if self.entries.len() + 1 > self.max_size {
+            self.entries.drain(0..=self.entries.len() - self.max_size);
         }
 
         let history_entry = HistoryEntry::new(query, channel);
@@ -95,11 +102,6 @@ impl History {
 
         // Reset current index when adding new entry
         self.current_index = None;
-
-        // Trim history if it exceeds max size
-        if self.entries.len() > self.max_size {
-            self.entries.drain(0..self.entries.len() - self.max_size);
-        }
 
         Ok(())
     }
@@ -158,28 +160,33 @@ impl History {
 
     fn load_from_file(&mut self) -> Result<()> {
         if !self.file_path.exists() {
+            debug!("History file not found: {}", self.file_path.display());
             return Ok(());
         }
 
         let content = std::fs::read_to_string(&self.file_path)?;
         if content.trim().is_empty() {
+            debug!("History file is empty: {}", self.file_path.display());
             return Ok(());
         }
 
-        let loaded_entries: Vec<HistoryEntry> =
+        let mut loaded_entries: Vec<HistoryEntry> =
             serde_json::from_str(&content)?;
 
         // Keep only the most recent entries if file is too large
-        let mut entries = loaded_entries;
-        if entries.len() > self.max_size {
-            entries.drain(0..entries.len() - self.max_size);
+        if loaded_entries.len() > self.max_size {
+            loaded_entries.drain(0..loaded_entries.len() - self.max_size);
         }
 
-        self.entries = entries;
+        self.entries = loaded_entries;
         Ok(())
     }
 
     pub fn save_to_file(&self) -> Result<()> {
+        if self.max_size == 0 {
+            debug!("History is disabled, not saving to file.");
+            return Ok(());
+        }
         if let Some(parent) = self.file_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -207,31 +214,12 @@ impl History {
         &mut self,
         channel_name: &str,
         global_mode: bool,
-        max_size: usize,
     ) {
         self.current_channel = channel_name.to_string();
         self.global_mode = global_mode;
 
-        // Update max_size and trim if necessary
-        if max_size != self.max_size {
-            self.max_size = max_size;
-            if self.entries.len() > self.max_size {
-                self.entries.drain(0..self.entries.len() - self.max_size);
-            }
-        }
-
         // Reset navigation state when switching channels
         self.current_index = None;
-    }
-}
-
-impl Default for History {
-    fn default() -> Self {
-        let mut history = Self::new(None, "", false, &get_data_dir());
-        if let Err(e) = history.init() {
-            error!("Failed to create default history: {}", e);
-        }
-        history
     }
 }
 
@@ -271,7 +259,7 @@ mod tests {
         let max = h.len();
         for _ in 0..max {
             match h.get_previous_entry() {
-                Some(e) => acc.push(e.entry.clone()),
+                Some(e) => acc.push(e.query.clone()),
                 None => break,
             }
         }
@@ -287,7 +275,7 @@ mod tests {
     fn entries_in_file(dir: &Path) -> Vec<String> {
         let raw = fs::read_to_string(dir.join("history.json")).unwrap();
         let vec: Vec<HistoryEntry> = serde_json::from_str(&raw).unwrap();
-        vec.into_iter().map(|e| e.entry).collect()
+        vec.into_iter().map(|e| e.query).collect()
     }
 
     #[allow(dead_code)]
@@ -303,7 +291,7 @@ mod tests {
     #[allow(dead_code)]
     fn assert_entries(hist: &History, expected: &[&str]) {
         let mut got: Vec<String> =
-            hist.get_entries().iter().map(|e| e.entry.clone()).collect();
+            hist.get_entries().iter().map(|e| e.query.clone()).collect();
         got.sort();
         let mut exp: Vec<String> =
             expected.iter().map(|&s| s.to_string()).collect();
@@ -315,35 +303,35 @@ mod tests {
     #[test]
     fn prev_next_channel_mode() {
         let dir = setup_history_file(&make_entries());
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         // channel mode prev navigation (should skip non-matching channels)
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
         // further calls stay at oldest matching
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
 
         // Next navigation forward in channel scope
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
 
@@ -355,50 +343,50 @@ mod tests {
     #[test]
     fn prev_next_global_mode() {
         let dir = setup_history_file(&make_entries());
-        let mut hist = History::new(Some(10), "files", true, dir.path());
+        let mut hist = History::new(10, "files", true, dir.path());
         hist.init().unwrap();
 
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"dir2".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"dir1".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
         // further calls stay at oldest matching
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
 
         // Next navigation forward in channel scope
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"dir1".to_string())
         );
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"dir2".to_string())
         );
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
 
@@ -413,7 +401,7 @@ mod tests {
         let only_b = vec![HistoryEntry::new("dir1".into(), "dirs".into())];
         let dir = setup_history_file(&only_b);
 
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         assert!(hist.get_previous_entry().is_none());
@@ -427,11 +415,11 @@ mod tests {
         let only_b = vec![HistoryEntry::new("dir1".into(), "dirs".into())];
         let dir = setup_history_file(&only_b);
 
-        let mut hist = History::new(Some(10), "files", true, dir.path());
+        let mut hist = History::new(10, "files", true, dir.path());
         hist.init().unwrap();
 
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"dir1".to_string())
         );
     }
@@ -441,7 +429,7 @@ mod tests {
     #[test]
     fn add_entry_dedup_and_trim() {
         let dir = setup_history_file(&[]);
-        let mut hist = History::new(Some(3), "files", false, dir.path());
+        let mut hist = History::new(3, "files", false, dir.path());
 
         // add first two unique entries
         hist.add_entry("file1".into(), "files".into()).unwrap();
@@ -449,7 +437,7 @@ mod tests {
         hist.add_entry("file2".into(), "files".into()).unwrap();
         assert_entries(&hist, &["file1", "file2"]);
 
-        // consecutive duplicate should be ignored
+        // consecutive duplicates should be ignored
         hist.add_entry("file2".into(), "files".into()).unwrap();
         assert_entries(&hist, &["file1", "file2"]);
         assert_eq!(hist.len(), 2);
@@ -471,7 +459,7 @@ mod tests {
 
         // In channel mode (files) the newest matching is file4
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file4".to_string())
         );
 
@@ -480,12 +468,12 @@ mod tests {
 
         // Switch to global view to verify "dir1" exists
         // let's init the history with channel only mode for dirs
-        let mut hist = History::new(Some(3), "dirs", false, dir.path());
+        let mut hist = History::new(3, "dirs", false, dir.path());
         hist.init().unwrap();
         assert_entries(&hist, &["file3", "file4", "dir1"]);
         assert_eq!(hist.len(), 3);
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"dir1".to_string())
         );
     }
@@ -496,7 +484,7 @@ mod tests {
         let dir = setup_history_file(&make_entries());
 
         // max size 3, global mode
-        let mut hist = History::new(Some(3), "files", true, dir.path());
+        let mut hist = History::new(3, "files", true, dir.path());
         hist.init().unwrap();
 
         // Should keep only the 3 newest entries (file2, dir2, file3)
@@ -508,7 +496,7 @@ mod tests {
     #[test]
     fn init_from_nonexistent_file() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         // Should succeed and have empty entries
         hist.init().unwrap();
@@ -526,7 +514,7 @@ mod tests {
         let dir = tempdir().expect("failed to create tempdir");
         fs::write(dir.path().join("history.json"), "").unwrap();
 
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         assert_eq!(hist.len(), 0);
@@ -537,7 +525,7 @@ mod tests {
     #[test]
     fn add_entry_ignores_empty_queries() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         // Try to add empty and whitespace-only queries
         hist.add_entry(String::new(), "files".into()).unwrap();
@@ -557,15 +545,14 @@ mod tests {
     #[test]
     fn navigation_empty_history() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         // Both modes should return None on empty history
         assert!(hist.get_previous_entry().is_none());
         assert!(hist.get_next_entry().is_none());
 
         // Global mode should also return None
-        let mut hist_global =
-            History::new(Some(10), "files", true, dir.path());
+        let mut hist_global = History::new(10, "files", true, dir.path());
         assert!(hist_global.get_previous_entry().is_none());
         assert!(hist_global.get_next_entry().is_none());
     }
@@ -574,14 +561,14 @@ mod tests {
     #[test]
     fn navigation_after_adding_entries() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         // Add first file
         hist.add_entry("file1".into(), "files".into()).unwrap();
 
         // Should be able to navigate to it
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
 
@@ -590,11 +577,11 @@ mod tests {
 
         // Should now get the newest file first
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
     }
@@ -603,7 +590,7 @@ mod tests {
     #[test]
     fn non_consecutive_duplicates() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         hist.add_entry("file1".into(), "files".into()).unwrap();
         hist.add_entry("file2".into(), "files".into()).unwrap();
@@ -614,15 +601,15 @@ mod tests {
 
         // Both instances should be navigable
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
     }
@@ -631,7 +618,7 @@ mod tests {
     #[test]
     fn cross_channel_duplicates() {
         let dir = tempdir().expect("failed to create tempdir");
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
 
         hist.add_entry("same_name".into(), "files".into()).unwrap();
         hist.add_entry("same_name".into(), "dirs".into()).unwrap();
@@ -642,11 +629,11 @@ mod tests {
 
         // In channel mode, should only see the files entries
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"same_name".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"same_name".to_string())
         );
 
@@ -654,19 +641,18 @@ mod tests {
         hist.save_to_file().unwrap();
 
         // In global mode, should see all three
-        let mut hist_global =
-            History::new(Some(10), "files", true, dir.path());
+        let mut hist_global = History::new(10, "files", true, dir.path());
         hist_global.init().unwrap();
         assert_eq!(
-            hist_global.get_previous_entry().map(|e| &e.entry),
+            hist_global.get_previous_entry().map(|e| &e.query),
             Some(&"same_name".to_string())
         );
         assert_eq!(
-            hist_global.get_previous_entry().map(|e| &e.entry),
+            hist_global.get_previous_entry().map(|e| &e.query),
             Some(&"same_name".to_string())
         );
         assert_eq!(
-            hist_global.get_previous_entry().map(|e| &e.entry),
+            hist_global.get_previous_entry().map(|e| &e.query),
             Some(&"same_name".to_string())
         );
     }
@@ -675,16 +661,16 @@ mod tests {
     #[test]
     fn navigation_state_preservation() {
         let dir = setup_history_file(&make_entries());
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         // Start navigation
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
 
@@ -693,11 +679,11 @@ mod tests {
 
         // Should start from newest again
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"new_file".to_string())
         );
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
     }
@@ -706,7 +692,7 @@ mod tests {
     #[test]
     fn mixed_navigation_patterns() {
         let dir = setup_history_file(&make_entries());
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         // Go back three times
@@ -716,13 +702,13 @@ mod tests {
 
         // Go forward once
         assert_eq!(
-            hist.get_next_entry().map(|e| &e.entry),
+            hist.get_next_entry().map(|e| &e.query),
             Some(&"file2".to_string())
         );
 
         // Go back again
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file1".to_string())
         );
 
@@ -733,7 +719,7 @@ mod tests {
 
         // After reset, should be able to start navigation again
         assert_eq!(
-            hist.get_previous_entry().map(|e| &e.entry),
+            hist.get_previous_entry().map(|e| &e.query),
             Some(&"file3".to_string())
         );
     }
@@ -742,74 +728,10 @@ mod tests {
     #[test]
     fn next_without_previous() {
         let dir = setup_history_file(&make_entries());
-        let mut hist = History::new(Some(10), "files", false, dir.path());
+        let mut hist = History::new(10, "files", false, dir.path());
         hist.init().unwrap();
 
         // Calling get_next without any previous navigation should return None
         assert!(hist.get_next_entry().is_none());
-    }
-
-    /// Test history size precedence logic: channel setting overrides global config.
-    #[test]
-    fn history_size_precedence() {
-        use crate::{
-            channels::prototypes::ChannelPrototype,
-            config::default_config_from_file, history::DEFAULT_HISTORY_SIZE,
-        };
-        use tempfile::tempdir;
-
-        let temp_dir = tempdir().expect("failed to create tempdir");
-
-        // Create a mock config with global history size of 50
-        let mut app_config = default_config_from_file().unwrap();
-        app_config.application.history_size = 50;
-        app_config.application.data_dir = temp_dir.path().to_path_buf();
-
-        // Test case 1: Channel with no explicit history size (None) should use global config (50)
-        let mut channel_proto = ChannelPrototype::new("test", "echo hello");
-        channel_proto.history.size = None; // Use global config
-
-        let effective_size = channel_proto
-            .history
-            .size
-            .unwrap_or(app_config.application.history_size);
-        assert_eq!(effective_size, 50);
-
-        // Test case 2: Channel with explicit history size of 25 should override global config
-        channel_proto.history.size = Some(25);
-        let effective_size = channel_proto
-            .history
-            .size
-            .unwrap_or(app_config.application.history_size);
-        assert_eq!(effective_size, 25);
-
-        // Test case 3: Channel with explicit history size of 0 should disable history
-        channel_proto.history.size = Some(0);
-        let effective_size = channel_proto
-            .history
-            .size
-            .unwrap_or(app_config.application.history_size);
-        assert_eq!(effective_size, 0);
-
-        // Test case 4: Global config 0 with channel None should disable history
-        app_config.application.history_size = 0;
-        channel_proto.history.size = None; // Use global config (which is 0)
-        let effective_size = channel_proto
-            .history
-            .size
-            .unwrap_or(app_config.application.history_size);
-        assert_eq!(effective_size, 0);
-
-        // Test case 5: Neither global config nor channel explicitly set
-        let default_config = default_config_from_file().unwrap();
-        let mut default_channel_proto =
-            ChannelPrototype::new("test", "echo hello");
-        default_channel_proto.history.size = None; // Use global config
-
-        let effective_size = default_channel_proto
-            .history
-            .size
-            .unwrap_or(default_config.application.history_size);
-        assert_eq!(effective_size, DEFAULT_HISTORY_SIZE); // Should use DEFAULT_HISTORY_SIZE
     }
 }

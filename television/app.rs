@@ -121,7 +121,7 @@ pub struct App {
     /// Watch timer task handle for periodic reloading
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
-    history: Option<History>,
+    history: History,
 }
 
 /// The outcome of an action.
@@ -189,32 +189,15 @@ impl App {
         let keymap = Keymap::from(&television.config.keybindings);
         debug!("{:?}", keymap);
 
-        // Initialize history if enabled
-        let history = {
-            // Apply precedence: channel setting overrides global config
-            let effective_history_size = television
-                .channel_prototype
-                .history
-                .size
-                .unwrap_or(television.config.application.history_size);
-
-            if effective_history_size > 0 {
-                let mut h = History::new(
-                    Some(effective_history_size),
-                    &television.channel_prototype.metadata.name,
-                    television.config.application.global_history,
-                    &television.config.application.data_dir.clone(),
-                );
-                if let Err(e) = h.init() {
-                    error!("Failed to initialize history: {}", e);
-                    None
-                } else {
-                    Some(h)
-                }
-            } else {
-                None
-            }
-        };
+        let mut history = History::new(
+            television.config.application.history_size,
+            &television.channel_prototype.metadata.name,
+            television.config.application.global_history,
+            &television.config.application.data_dir.clone(),
+        );
+        if let Err(e) = history.init() {
+            error!("Failed to initialize history: {}", e);
+        }
 
         let mut app = Self {
             keymap,
@@ -313,48 +296,17 @@ impl App {
     fn update_history(&mut self) {
         let channel_prototype = &self.television.channel_prototype;
 
-        // Apply precedence: channel setting overrides global config
-        let effective_history_size = channel_prototype
+        // Determine the effective global_history (channel overrides global config)
+        let global_mode = channel_prototype
             .history
-            .size
-            .unwrap_or(self.television.config.application.history_size);
+            .global_mode
+            .unwrap_or(self.television.config.application.global_history);
 
-        if effective_history_size > 0 {
-            // Determine the effective global_history (channel overrides global config)
-            let global_mode = channel_prototype
-                .history
-                .global_mode
-                .unwrap_or(self.television.config.application.global_history);
-
-            if let Some(ref mut history) = self.history {
-                // Update existing history with new channel context
-                history.update_channel_context(
-                    &channel_prototype.metadata.name,
-                    global_mode,
-                    effective_history_size,
-                );
-            } else {
-                // Create new history instance if none exists
-                let mut h = History::new(
-                    Some(effective_history_size),
-                    &channel_prototype.metadata.name,
-                    global_mode,
-                    &self.television.config.application.data_dir.clone(),
-                );
-                if let Err(e) = h.init() {
-                    error!(
-                        "Failed to create history for channel {}: {}",
-                        channel_prototype.metadata.name, e
-                    );
-                    self.history = None;
-                } else {
-                    self.history = Some(h);
-                }
-            }
-        } else {
-            // History disabled (either global config is 0 or channel explicitly disabled)
-            self.history = None;
-        }
+        // Update existing history with new channel context
+        self.history.update_channel_context(
+            &channel_prototype.metadata.name,
+            global_mode,
+        );
     }
 
     /// Run the application main loop.
@@ -455,6 +407,11 @@ impl App {
                 // send a termination signal to the event loop
                 if !headless {
                     self.event_abort_tx.send(())?;
+                }
+
+                // persist search history
+                if let Err(e) = self.history.save_to_file() {
+                    error!("Failed to persist history: {}", e);
                 }
 
                 // wait for the rendering task to finish
@@ -609,19 +566,12 @@ impl App {
                             self.television.get_selected_entries()
                         {
                             // Add current query to history
-                            if let Some(history) = self.history.as_mut() {
-                                let query =
-                                    self.television.current_pattern.clone();
-                                if !query.trim().is_empty() {
-                                    history
-                                        .add_entry(
-                                            query,
-                                            self.television.current_channel(),
-                                        )
-                                        .unwrap();
-                                    history.save_to_file().unwrap();
-                                }
-                            }
+                            let query =
+                                self.television.current_pattern.clone();
+                            self.history.add_entry(
+                                query,
+                                self.television.current_channel(),
+                            )?;
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -646,21 +596,17 @@ impl App {
                         }
                     }
                     Action::SelectPrevHistory => {
-                        if let Some(history_entry) = self
-                            .history
-                            .as_mut()
-                            .and_then(|h| h.get_previous_entry())
+                        if let Some(history_entry) =
+                            self.history.get_previous_entry()
                         {
-                            self.television.set_pattern(&history_entry.entry);
+                            self.television.set_pattern(&history_entry.query);
                         }
                     }
                     Action::SelectNextHistory => {
-                        if let Some(history_entry) = self
-                            .history
-                            .as_mut()
-                            .and_then(|h| h.get_next_entry())
+                        if let Some(history_entry) =
+                            self.history.get_next_entry()
                         {
-                            self.television.set_pattern(&history_entry.entry);
+                            self.television.set_pattern(&history_entry.query);
                         } else {
                             // At the end of history, clear the input
                             self.television.set_pattern("");
