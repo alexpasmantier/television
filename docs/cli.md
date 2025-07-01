@@ -337,6 +337,33 @@ Television's options are organized by functionality. Each option behaves differe
 - **Range**: 10-100%
 - **Use Case**: Adapt to different screen sizes or preferences
 
+#### `--height <INTEGER>`
+
+**Purpose**: Sets a fixed height for non-fullscreen mode
+
+- **Both Modes**: Same behavior
+- **Range**: 6 or higher (minimum UI height required)
+- **Conflicts**: Cannot be used with `--inline`
+- **Use Case**: Precise control over interface height
+
+#### `--width <INTEGER>`
+
+**Purpose**: Sets a fixed width for non-fullscreen mode
+
+- **Both Modes**: Same behavior
+- **Range**: 10 or higher (minimum UI width required)
+- **Requires**: Must be used with `--inline` or `--height`
+- **Use Case**: Precise control over interface width
+
+#### `--inline`
+
+**Purpose**: Uses all available empty space at the bottom of the terminal
+
+- **Both Modes**: Same behavior
+- **Behavior**: Automatically uses all available space below the cursor, minimum height is ensured
+- **Conflicts**: Cannot be used with `--height`
+- **Use Case**: Use of all available space without entering fullscreen mode
+
 ### ⌨️ Input and Interaction Options
 
 #### `-i, --input <STRING>`

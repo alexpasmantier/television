@@ -78,6 +78,8 @@ pub async fn render(
     action_tx: mpsc::UnboundedSender<Action>,
     ui_state_tx: mpsc::UnboundedSender<UiState>,
     is_output_tty: bool,
+    height: Option<u16>,
+    width: Option<u16>,
 ) -> Result<()> {
     let stream = if is_output_tty {
         debug!("Rendering to stdout");
@@ -86,7 +88,7 @@ pub async fn render(
         debug!("Rendering to stderr");
         IoStream::BufferedStderr.to_stream()
     };
-    let mut tui = Tui::new(stream)?;
+    let mut tui = Tui::new(stream, height)?;
 
     debug!("Entering tui");
     tui.enter()?;
@@ -127,9 +129,27 @@ pub async fn render(
                         // terminal areas larger than `u16::MAX`.
                         if size.width.checked_mul(size.height).is_some() {
                             queue!(stderr(), BeginSynchronizedUpdate).ok();
+                            let overlay_row = tui.base_row();
                             tui.terminal.draw(|frame| {
+                                let drawing_area = if let Some(h) = height {
+                                    let terminal_area = frame.area();
+                                    let ui_height =
+                                        h.min(terminal_area.height);
+                                    let ui_width = width
+                                        .map(|w| w.min(terminal_area.width))
+                                        .unwrap_or(terminal_area.width);
+                                    Rect {
+                                        x: 0,
+                                        y: overlay_row,
+                                        width: ui_width,
+                                        height: ui_height,
+                                    }
+                                } else {
+                                    frame.area()
+                                };
+
                                 let current_layout = context.layout;
-                                match draw(context, frame, frame.area()) {
+                                match draw(context, frame, drawing_area) {
                                     Ok(layout) => {
                                         if layout != current_layout {
                                             let _ = ui_state_tx
