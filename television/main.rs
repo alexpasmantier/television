@@ -145,6 +145,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(tick_rate) = args.tick_rate {
         config.application.tick_rate = tick_rate;
     }
+    if args.global_history {
+        config.application.global_history = true;
+    }
     // Handle preview panel flags
     if args.no_preview {
         config.ui.features.disable(FeatureFlags::PreviewPanel);

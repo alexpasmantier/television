@@ -109,4 +109,8 @@ pub enum Action {
     /// Timer action for watch mode to trigger periodic reloads.
     #[serde(skip)]
     WatchTimer,
+    /// Navigate to the previous entry in the history.
+    SelectPrevHistory,
+    /// Navigate to the next entry in the history.
+    SelectNextHistory,
 }

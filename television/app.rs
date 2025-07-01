@@ -4,6 +4,7 @@ use crate::{
     channels::{entry::Entry, prototypes::ChannelPrototype},
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, Key},
+    history::History,
     keymap::Keymap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
@@ -12,7 +13,7 @@ use anyhow::Result;
 use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
-use tracing::{debug, trace};
+use tracing::{debug, error, trace};
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppOptions {
@@ -119,6 +120,8 @@ pub struct App {
     options: AppOptions,
     /// Watch timer task handle for periodic reloading
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
+    /// Global history for selected entries
+    history: History,
 }
 
 /// The outcome of an action.
@@ -186,6 +189,16 @@ impl App {
         let keymap = Keymap::from(&television.config.keybindings);
         debug!("{:?}", keymap);
 
+        let mut history = History::new(
+            television.config.application.history_size,
+            &television.channel_prototype.metadata.name,
+            television.config.application.global_history,
+            &television.config.application.data_dir.clone(),
+        );
+        if let Err(e) = history.init() {
+            error!("Failed to initialize history: {}", e);
+        }
+
         let mut app = Self {
             keymap,
             television,
@@ -202,6 +215,7 @@ impl App {
             render_task: None,
             options,
             watch_timer_task: None,
+            history,
         };
 
         // populate keymap by going through all cable channels and adding their shortcuts if remote
@@ -276,6 +290,23 @@ impl App {
 
         self.keymap = keymap;
         debug!("Updated keymap (with shortcuts): {:?}", self.keymap);
+    }
+
+    /// Updates the history configuration to match the current channel.
+    fn update_history(&mut self) {
+        let channel_prototype = &self.television.channel_prototype;
+
+        // Determine the effective global_history (channel overrides global config)
+        let global_mode = channel_prototype
+            .history
+            .global_mode
+            .unwrap_or(self.television.config.application.global_history);
+
+        // Update existing history with new channel context
+        self.history.update_channel_context(
+            &channel_prototype.metadata.name,
+            global_mode,
+        );
     }
 
     /// Run the application main loop.
@@ -376,6 +407,11 @@ impl App {
                 // send a termination signal to the event loop
                 if !headless {
                     self.event_abort_tx.send(())?;
+                }
+
+                // persist search history
+                if let Err(e) = self.history.save_to_file() {
+                    error!("Failed to persist history: {}", e);
                 }
 
                 // wait for the rendering task to finish
@@ -529,6 +565,13 @@ impl App {
                         if let Some(entries) =
                             self.television.get_selected_entries()
                         {
+                            // Add current query to history
+                            let query =
+                                self.television.current_pattern.clone();
+                            self.history.add_entry(
+                                query,
+                                self.television.current_channel(),
+                            )?;
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -552,6 +595,23 @@ impl App {
                             self.television.update_ui_state(ui_state);
                         }
                     }
+                    Action::SelectPrevHistory => {
+                        if let Some(history_entry) =
+                            self.history.get_previous_entry()
+                        {
+                            self.television.set_pattern(&history_entry.query);
+                        }
+                    }
+                    Action::SelectNextHistory => {
+                        if let Some(history_entry) =
+                            self.history.get_next_entry()
+                        {
+                            self.television.set_pattern(&history_entry.query);
+                        } else {
+                            // At the end of history, clear the input
+                            self.television.set_pattern("");
+                        }
+                    }
                     _ => {}
                 }
                 // Check if we're switching from remote control to channel mode
@@ -570,10 +630,12 @@ impl App {
                     && self.television.mode == Mode::Channel
                 {
                     self.update_keymap();
+                    self.update_history();
                     self.restart_watch_timer();
                 } else if matches!(action, Action::SwitchToChannel(_)) {
                     // Channel changed via shortcut, refresh keymap and watch timer
                     self.update_keymap();
+                    self.update_history();
                     self.restart_watch_timer();
                 }
             }

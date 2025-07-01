@@ -463,6 +463,20 @@ impl Television {
             }
         }
     }
+
+    /// Update the current pattern and input field (used for history navigation)
+    pub fn set_pattern(&mut self, pattern: &str) {
+        self.current_pattern = pattern.to_string();
+        if self.mode == Mode::Channel {
+            self.results_picker.input = self
+                .results_picker
+                .input
+                .clone()
+                .with_value(pattern.to_string());
+            self.find(pattern);
+            self.reset_picker_selection();
+        }
+    }
 }
 
 /// Always render the first N ticks.
