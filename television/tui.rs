@@ -57,20 +57,22 @@ where
             execute!(buffered_stderr, EnableMouseCapture)?;
             self.terminal.clear()?;
         } else {
-            // print `height` new-lines on stdout – this may cause scroll
-            let h = self
+            let ui_height = self
                 .height
-                .expect("`height` should be set when not in fullscreen mode");
+                .expect("`height` should be set when not in fullscreen mode")
+                .min(self.terminal.size()?.height);
+
+            // print `ui_height` new-lines on stdout – this may cause scroll
             {
                 let mut out: StdoutLock<'_> = stdout().lock();
-                for _ in 0..h {
+                for _ in 0..ui_height {
                     writeln!(out)?;
                 }
                 out.flush()?;
             }
 
-            // move cursor back up <h> rows so we can draw overlay.
-            execute!(buffered_stderr, cursor::MoveUp(h))?;
+            // move cursor back up `ui_height` rows so we can draw overlay.
+            execute!(buffered_stderr, cursor::MoveUp(ui_height))?;
             execute!(buffered_stderr, cursor::SavePosition)?;
 
             // record the row where overlay starts (after move-up)

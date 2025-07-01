@@ -434,8 +434,7 @@ pub struct Cli {
         verbatim_doc_comment,
         // minimum value with status-bar disabled is 6
         // TODO: revisit if/when input can be toggled
-        // TODO: upper bound is set to a high value. Can we know deterministically a better value?
-        value_parser = clap::value_parser!(u16).range(6..=100)
+        value_parser = clap::value_parser!(u16).range(6..)
     )]
     pub height: Option<u16>,
 
