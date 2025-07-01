@@ -128,9 +128,10 @@ pub async fn render(
                         if size.width.checked_mul(size.height).is_some() {
                             queue!(stderr(), BeginSynchronizedUpdate).ok();
                             tui.terminal.draw(|frame| {
-                                match draw(&context, frame, frame.area()) {
+                                let current_layout = context.layout;
+                                match draw(context, frame, frame.area()) {
                                     Ok(layout) => {
-                                        if layout != context.layout {
+                                        if layout != current_layout {
                                             let _ = ui_state_tx
                                                 .send(UiState::new(layout));
                                         }

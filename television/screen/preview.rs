@@ -6,7 +6,6 @@ use crate::{
         shrink_with_ellipsis,
     },
 };
-use ansi_to_tui::IntoText;
 use anyhow::Result;
 use devicons::FileIcon;
 use ratatui::{
@@ -14,7 +13,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
     widgets::{
-        Block, BorderType, Borders, Padding, Paragraph, Scrollbar,
+        Block, BorderType, Borders, Clear, Padding, Paragraph, Scrollbar,
         ScrollbarOrientation, ScrollbarState, StatefulWidget,
     },
 };
@@ -24,7 +23,7 @@ use std::str::FromStr;
 pub fn draw_preview_content_block(
     f: &mut Frame,
     rect: Rect,
-    preview_state: &PreviewState,
+    preview_state: PreviewState,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
     scrollbar_enabled: bool,
@@ -38,11 +37,16 @@ pub fn draw_preview_content_block(
         &preview_state.preview.footer,
         use_nerd_font_icons,
     )?;
+    let scroll = preview_state.scroll as usize;
+    let total_lines =
+        preview_state.preview.total_lines.saturating_sub(1) as usize;
+
     // render the preview content
     let rp = build_preview_paragraph(
         preview_state,
         colorscheme.preview.highlight_bg,
     );
+    f.render_widget(Clear, inner);
     f.render_widget(rp, inner);
 
     // render scrollbar if enabled
@@ -50,10 +54,8 @@ pub fn draw_preview_content_block(
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .style(Style::default().fg(colorscheme.general.border_fg));
 
-        let mut scrollbar_state = ScrollbarState::new(
-            preview_state.preview.total_lines.saturating_sub(1) as usize,
-        )
-        .position(preview_state.scroll as usize);
+        let mut scrollbar_state =
+            ScrollbarState::new(total_lines).position(scroll);
 
         // Create a separate area for the scrollbar that accounts for text padding
         let scrollbar_rect = Rect {
@@ -70,9 +72,9 @@ pub fn draw_preview_content_block(
 }
 
 pub fn build_preview_paragraph(
-    preview_state: &PreviewState,
+    preview_state: PreviewState,
     highlight_bg: Color,
-) -> Paragraph<'_> {
+) -> Paragraph<'static> {
     let preview_block =
         Block::default().style(Style::default()).padding(Padding {
             top: 0,
@@ -82,7 +84,7 @@ pub fn build_preview_paragraph(
         });
 
     build_ansi_text_paragraph(
-        &preview_state.preview.content,
+        preview_state.preview.content,
         preview_block,
         preview_state.target_line,
         highlight_bg,
@@ -90,21 +92,20 @@ pub fn build_preview_paragraph(
 }
 
 fn build_ansi_text_paragraph<'a>(
-    text: &'a str,
+    mut text: Text<'a>,
     preview_block: Block<'a>,
     target_line: Option<u16>,
     highlight_bg: Color,
 ) -> Paragraph<'a> {
-    let mut t = text.into_text().unwrap();
     if let Some(target_line) = target_line {
         // Highlight the target line
-        if let Some(line) = t.lines.get_mut((target_line - 1) as usize) {
+        if let Some(line) = text.lines.get_mut((target_line - 1) as usize) {
             for span in &mut line.spans {
                 span.style = span.style.bg(highlight_bg);
             }
         }
     }
-    Paragraph::new(t).block(preview_block)
+    Paragraph::new(text).block(preview_block)
 }
 
 pub fn build_meta_preview_paragraph<'a>(

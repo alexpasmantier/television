@@ -3,8 +3,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use ansi_to_tui::IntoText;
 use anyhow::{Context, Result};
 use devicons::FileIcon;
+use ratatui::text::Text;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
     time::timeout,
@@ -18,7 +20,9 @@ use crate::{
     },
     utils::{
         command::shell_command,
-        strings::{ReplaceNonPrintableConfig, replace_non_printable},
+        strings::{
+            EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+        },
     },
 };
 
@@ -99,7 +103,9 @@ impl Ticket {
 #[derive(Debug, Clone)]
 pub struct Preview {
     pub title: String,
-    pub content: String,
+    // NOTE: this does couple the previewer with ratatui but allows
+    // to only parse ansi text once and reuse it in the UI.
+    pub content: Text<'static>,
     pub icon: Option<FileIcon>,
     pub total_lines: u16,
     pub footer: String,
@@ -111,7 +117,7 @@ impl Default for Preview {
     fn default() -> Self {
         Self {
             title: DEFAULT_PREVIEW_TITLE.to_string(),
-            content: String::new(),
+            content: Text::from(EMPTY_STRING),
             icon: None,
             total_lines: 1,
             footer: String::new(),
@@ -122,7 +128,7 @@ impl Default for Preview {
 impl Preview {
     fn new(
         title: &str,
-        content: String,
+        content: Text<'static>,
         icon: Option<FileIcon>,
         total_lines: u16,
         footer: String,
@@ -238,33 +244,47 @@ pub fn try_preview(
 
     let preview: Preview = {
         if child.status.success() {
-            let (content, _) = replace_non_printable(
-                &child.stdout,
-                ReplaceNonPrintableConfig::default()
-                    .keep_line_feed()
-                    .keep_control_characters(),
-            );
-            Preview::new(
-                &entry.raw,
-                content.to_string(),
-                None,
-                u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
-                String::new(),
-            )
+            let mut text = child
+                .stdout
+                .into_text()
+                .unwrap_or_else(|_| Text::from(EMPTY_STRING));
+
+            text.lines.iter_mut().for_each(|line| {
+                // replace non-printable characters
+                line.spans.iter_mut().for_each(|span| {
+                    span.content = replace_non_printable(
+                        &span.content.bytes().collect::<Vec<_>>(),
+                        &ReplaceNonPrintableConfig::default(),
+                    )
+                    .0
+                    .into();
+                });
+            });
+
+            let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
+
+            Preview::new(&entry.raw, text, None, total_lines, String::new())
         } else {
-            let (content, _) = replace_non_printable(
-                &child.stderr,
-                ReplaceNonPrintableConfig::default()
-                    .keep_line_feed()
-                    .keep_control_characters(),
-            );
-            Preview::new(
-                &entry.raw,
-                content.to_string(),
-                None,
-                u16::try_from(content.lines().count()).unwrap_or(u16::MAX),
-                String::new(),
-            )
+            let mut text = child
+                .stderr
+                .into_text()
+                .unwrap_or_else(|_| Text::from(EMPTY_STRING));
+
+            text.lines.iter_mut().for_each(|line| {
+                // replace non-printable characters
+                line.spans.iter_mut().for_each(|span| {
+                    span.content = replace_non_printable(
+                        &span.content.bytes().collect::<Vec<_>>(),
+                        &ReplaceNonPrintableConfig::default(),
+                    )
+                    .0
+                    .into();
+                });
+            });
+
+            let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
+
+            Preview::new(&entry.raw, text, None, total_lines, String::new())
         }
     };
     results_handle
