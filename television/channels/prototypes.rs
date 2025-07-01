@@ -178,11 +178,10 @@ pub struct HistoryConfig {
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
-    #[serde(rename = "source")]
     pub source: SourceSpec,
-    #[serde(default, rename = "preview")]
+    #[serde(default)]
     pub preview: Option<PreviewSpec>,
-    #[serde(default, rename = "ui")]
+    #[serde(default)]
     pub ui: Option<UiSpec>,
     #[serde(default)]
     pub keybindings: Option<ChannelKeyBindings>,
