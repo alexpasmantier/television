@@ -423,6 +423,49 @@ pub struct Cli {
     #[arg(long, verbatim_doc_comment)]
     pub global_history: bool,
 
+    /// Height in lines for non-fullscreen mode.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// When specified, the picker will be displayed as a non-fullscreen interface.
+    #[arg(
+        long,
+        value_name = "INTEGER",
+        verbatim_doc_comment,
+        conflicts_with = "inline",
+        // minimum value with status-bar disabled is 6
+        // TODO: revisit if/when input can be toggled
+        value_parser = clap::value_parser!(u16).range(6..)
+    )]
+    pub height: Option<u16>,
+
+    /// Width in columns for non-fullscreen mode.
+    ///
+    /// This flag can only be used in combination with --inline or --height.
+    /// When specified, the picker will be constrained to the specified width.
+    #[arg(
+        long,
+        value_name = "INTEGER",
+        verbatim_doc_comment,
+        value_parser = clap::value_parser!(u16).range(20..)
+    )]
+    pub width: Option<u16>,
+
+    /// Use all available empty space at the bottom of the terminal as an inline interface.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// When enabled, the picker will be displayed as an inline interface that uses
+    /// all available empty space at the bottom of the terminal. If there is insufficient
+    /// space to meet the minimum height the terminal will scroll.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "height"
+    )]
+    pub inline: bool,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }
