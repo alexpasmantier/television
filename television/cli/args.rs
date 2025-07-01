@@ -432,11 +432,24 @@ pub struct Cli {
         long,
         value_name = "INTEGER",
         verbatim_doc_comment,
+        conflicts_with = "inline",
         // minimum value with status-bar disabled is 6
         // TODO: revisit if/when input can be toggled
         value_parser = clap::value_parser!(u16).range(6..)
     )]
     pub height: Option<u16>,
+
+    /// Width in columns for non-fullscreen mode.
+    ///
+    /// This flag can only be used in combination with --inline or --height.
+    /// When specified, the picker will be constrained to the specified width.
+    #[arg(
+        long,
+        value_name = "INTEGER",
+        verbatim_doc_comment,
+        value_parser = clap::value_parser!(u16).range(20..)
+    )]
+    pub width: Option<u16>,
 
     /// Use all available empty space at the bottom of the terminal as an inline interface.
     ///

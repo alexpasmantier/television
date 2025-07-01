@@ -86,6 +86,7 @@ pub struct PostProcessedCli {
     pub layout: Option<Orientation>,
     pub ui_scale: u16,
     pub height: Option<u16>,
+    pub width: Option<u16>,
     pub inline: bool,
 
     // Behavior and matching configuration
@@ -155,6 +156,7 @@ impl Default for PostProcessedCli {
             layout: None,
             ui_scale: DEFAULT_UI_SCALE,
             height: None,
+            width: None,
             inline: false,
 
             // Behavior and matching configuration
@@ -239,6 +241,13 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     // Validate interdependent flags for ad-hoc mode (when no channel is specified)
     // This ensures ad-hoc channels have all necessary components to function properly
     validate_adhoc_mode_constraints(&cli, readable_stdin);
+
+    // Validate width flag requires inline or height
+    if cli.width.is_some() && !cli.inline && cli.height.is_none() {
+        cli_parsing_error_exit(
+            "--width can only be used in combination with --inline or --height",
+        );
+    }
 
     // Determine channel and working_directory
     let (channel, working_directory) = match &cli.channel {
@@ -337,6 +346,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         layout,
         ui_scale: cli.ui_scale,
         height: cli.height,
+        width: cli.width,
         inline: cli.inline,
 
         // Behavior and matching configuration

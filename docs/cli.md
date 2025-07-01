@@ -346,6 +346,15 @@ Television's options are organized by functionality. Each option behaves differe
 - **Conflicts**: Cannot be used with `--inline`
 - **Use Case**: Precise control over interface height
 
+#### `--width <INTEGER>`
+
+**Purpose**: Sets a fixed width for non-fullscreen mode
+
+- **Both Modes**: Same behavior
+- **Range**: 10 or higher (minimum UI width required)
+- **Requires**: Must be used with `--inline` or `--height`
+- **Use Case**: Precise control over interface width
+
 #### `--inline`
 
 **Purpose**: Uses all available empty space at the bottom of the terminal

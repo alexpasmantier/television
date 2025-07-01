@@ -41,6 +41,8 @@ pub struct AppOptions {
     pub watch_interval: f64,
     /// Height in lines for non-fullscreen mode.
     pub height: Option<u16>,
+    /// Width in columns for non-fullscreen mode.
+    pub width: Option<u16>,
     /// Use all available empty space at the bottom of the terminal as an inline interface.
     pub inline: bool,
 }
@@ -58,6 +60,7 @@ impl Default for AppOptions {
             tick_rate: default_tick_rate(),
             watch_interval: 0.0,
             height: None,
+            width: None,
             inline: false,
         }
     }
@@ -77,6 +80,7 @@ impl AppOptions {
         tick_rate: f64,
         watch_interval: f64,
         height: Option<u16>,
+        width: Option<u16>,
         inline: bool,
     ) -> Self {
         Self {
@@ -90,6 +94,7 @@ impl AppOptions {
             tick_rate,
             watch_interval,
             height,
+            width,
             inline,
         }
     }
@@ -361,6 +366,7 @@ impl App {
             } else {
                 self.options.height
             };
+            let width = self.options.width;
             self.render_task = Some(tokio::spawn(async move {
                 render(
                     render_rx,
@@ -368,6 +374,7 @@ impl App {
                     ui_state_tx,
                     is_output_tty,
                     height,
+                    width,
                 )
                 .await
             }));

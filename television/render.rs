@@ -79,6 +79,7 @@ pub async fn render(
     ui_state_tx: mpsc::UnboundedSender<UiState>,
     is_output_tty: bool,
     height: Option<u16>,
+    width: Option<u16>,
 ) -> Result<()> {
     let stream = if is_output_tty {
         debug!("Rendering to stdout");
@@ -134,10 +135,13 @@ pub async fn render(
                                     let terminal_area = frame.area();
                                     let ui_height =
                                         h.min(terminal_area.height);
+                                    let ui_width = width
+                                        .map(|w| w.min(terminal_area.width))
+                                        .unwrap_or(terminal_area.width);
                                     Rect {
                                         x: 0,
                                         y: overlay_row,
-                                        width: terminal_area.width,
+                                        width: ui_width,
                                         height: ui_height,
                                     }
                                 } else {

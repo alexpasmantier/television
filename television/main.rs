@@ -96,6 +96,7 @@ async fn main() -> Result<()> {
         config.application.tick_rate,
         watch_interval,
         args.height,
+        args.width,
         args.inline,
     );
     let mut app = App::new(
