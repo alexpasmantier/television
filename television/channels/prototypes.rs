@@ -121,6 +121,12 @@ impl Display for CommandSpec {
     }
 }
 
+impl From<Template> for CommandSpec {
+    fn from(template: Template) -> Self {
+        Self::new(vec![template], false, FxHashMap::default())
+    }
+}
+
 impl CommandSpec {
     pub fn new(
         inner: Vec<Template>,

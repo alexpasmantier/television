@@ -1,6 +1,5 @@
 use anyhow::Result;
 use clap::Parser;
-use rustc_hash::FxHashMap;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
@@ -251,18 +250,13 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
     }
 }
 
-/// Creates a `CommandSpec` from a `Template` with default settings
-fn create_command_spec(template: Template) -> CommandSpec {
-    CommandSpec::new(vec![template], false, FxHashMap::default())
-}
-
 /// Creates a stdin channel prototype with optional preview configuration
 fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
     debug!("Using stdin channel");
     let stdin_preview =
         args.preview_command_override.as_ref().map(|preview_cmd| {
             PreviewSpec::new(
-                create_command_spec(preview_cmd.clone()),
+                CommandSpec::from(preview_cmd.clone()),
                 args.preview_offset_override.clone(),
             )
         });
@@ -344,7 +338,7 @@ fn apply_source_overrides(
     args: &PostProcessedCli,
 ) {
     if let Some(source_cmd) = &args.source_command_override {
-        prototype.source.command = create_command_spec(source_cmd.clone());
+        prototype.source.command = CommandSpec::from(source_cmd.clone());
     }
     if let Some(source_display) = &args.source_display_override {
         prototype.source.display = Some(source_display.clone());
@@ -361,10 +355,10 @@ fn apply_preview_overrides(
 ) {
     if let Some(preview_cmd) = &args.preview_command_override {
         if let Some(ref mut preview) = prototype.preview {
-            preview.command = create_command_spec(preview_cmd.clone());
+            preview.command = CommandSpec::from(preview_cmd.clone());
         } else {
             prototype.preview = Some(PreviewSpec::new(
-                create_command_spec(preview_cmd.clone()),
+                CommandSpec::from(preview_cmd.clone()),
                 None,
             ));
         }
