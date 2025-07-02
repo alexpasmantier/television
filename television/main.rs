@@ -376,6 +376,59 @@ pub fn determine_channel(
         channel_prototype.watch = watch_interval;
     }
 
+    // Apply UI-related CLI overrides to the channel prototype
+    let mut ui_override_needed = false;
+    let mut ui_spec = channel_prototype.ui.clone().unwrap_or(UiSpec {
+        ui_scale: None,
+        features: None,
+        orientation: None,
+        input_bar_position: None,
+        input_header: None,
+        preview_panel: None,
+        status_bar: None,
+        help_panel: None,
+        remote_control: None,
+    });
+
+    // Override input header if provided
+    if let Some(input_header_str) = &args.input_header {
+        if let Ok(template) = Template::parse(input_header_str) {
+            ui_spec.input_header = Some(template);
+            ui_override_needed = true;
+        }
+    }
+
+    // Override layout/orientation if provided
+    if let Some(layout) = args.layout {
+        ui_spec.orientation = Some(layout);
+        ui_override_needed = true;
+    }
+
+    // Override preview header and footer if provided
+    if args.preview_header.is_some() || args.preview_footer.is_some() {
+        let mut preview_panel = ui_spec.preview_panel.clone().unwrap_or_default();
+        
+        if let Some(preview_header_str) = &args.preview_header {
+            if let Ok(template) = Template::parse(preview_header_str) {
+                preview_panel.header = Some(template);
+            }
+        }
+        
+        if let Some(preview_footer_str) = &args.preview_footer {
+            if let Ok(template) = Template::parse(preview_footer_str) {
+                preview_panel.footer = Some(template);
+            }
+        }
+        
+        ui_spec.preview_panel = Some(preview_panel);
+        ui_override_needed = true;
+    }
+
+    // Apply the UI spec if any overrides were made
+    if ui_override_needed {
+        channel_prototype.ui = Some(ui_spec);
+    }
+
     channel_prototype
 }
 
@@ -583,6 +636,67 @@ mod tests {
         assert_eq!(
             config.ui.preview_panel.footer,
             Some(Template::parse("Preview Footer").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_cli_ui_overrides() {
+        use television::screen::layout::Orientation;
+
+        // Create a channel with default UI settings
+        let mut channel_prototype = ChannelPrototype::new("test", "ls");
+        // Set some initial UI values that should be overridden
+        channel_prototype.ui = Some(UiSpec {
+            ui_scale: None,
+            features: None,
+            orientation: Some(Orientation::Portrait),
+            input_bar_position: None,
+            input_header: Some(Template::parse("Original Header").unwrap()),
+            preview_panel: Some(television::config::ui::PreviewPanelConfig {
+                size: 50,
+                header: Some(Template::parse("Original Preview Header").unwrap()),
+                footer: Some(Template::parse("Original Preview Footer").unwrap()),
+                scrollbar: false,
+            }),
+            status_bar: None,
+            help_panel: None,
+            remote_control: None,
+        });
+
+        let cable = Cable::from_prototypes(vec![channel_prototype]);
+
+        // Test CLI arguments that should override channel settings
+        let args = PostProcessedCli {
+            channel: Some("test".to_string()),
+            input_header: Some("CLI Input Header".to_string()),
+            preview_header: Some("CLI Preview Header".to_string()),
+            preview_footer: Some("CLI Preview Footer".to_string()),
+            layout: Some(Orientation::Landscape),
+            ..Default::default()
+        };
+        let config = Config::default();
+
+        let result_channel = determine_channel(&args, &config, false, &cable);
+
+        // Verify that CLI arguments overrode the channel prototype's UI settings
+        assert!(result_channel.ui.is_some());
+        let ui_spec = result_channel.ui.as_ref().unwrap();
+
+        assert_eq!(
+            ui_spec.input_header,
+            Some(Template::parse("CLI Input Header").unwrap())
+        );
+        assert_eq!(ui_spec.orientation, Some(Orientation::Landscape));
+
+        assert!(ui_spec.preview_panel.is_some());
+        let preview_panel = ui_spec.preview_panel.as_ref().unwrap();
+        assert_eq!(
+            preview_panel.header,
+            Some(Template::parse("CLI Preview Header").unwrap())
+        );
+        assert_eq!(
+            preview_panel.footer,
+            Some(Template::parse("CLI Preview Footer").unwrap())
         );
     }
 }
