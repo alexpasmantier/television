@@ -251,26 +251,209 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
     }
 }
 
+/// Creates a `CommandSpec` from a `Template` with default settings
+fn create_command_spec(template: Template) -> CommandSpec {
+    CommandSpec::new(vec![template], false, FxHashMap::default())
+}
+
+/// Creates a stdin channel prototype with optional preview configuration
+fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
+    debug!("Using stdin channel");
+    let stdin_preview =
+        args.preview_command_override.as_ref().map(|preview_cmd| {
+            PreviewSpec::new(
+                create_command_spec(preview_cmd.clone()),
+                args.preview_offset_override.clone(),
+            )
+        });
+
+    let mut prototype =
+        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter);
+
+    // Configure UI features based on whether preview command is available
+    let mut features = Features::default();
+    if args.preview_command_override.is_some() {
+        features.enable(FeatureFlags::PreviewPanel);
+    } else {
+        features.disable(FeatureFlags::PreviewPanel);
+    }
+
+    // Set UI specification to properly control feature visibility
+    prototype.ui = Some(UiSpec {
+        ui_scale: None,
+        features: Some(features),
+        orientation: None,
+        input_bar_position: None,
+        input_header: None,
+        status_bar: None,
+        preview_panel: None,
+        help_panel: None,
+        remote_control: None,
+    });
+
+    prototype
+}
+
+/// Default header for ad-hoc channels when no custom header is provided
+const DEFAULT_ADHOC_CHANNEL_HEADER: &str = "Custom Channel";
+
+/// Creates an ad-hoc channel prototype from CLI arguments
+fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
+    debug!("Creating ad-hoc channel with source command override");
+    let source_cmd = args.source_command_override.as_ref().unwrap();
+
+    // Create base prototype
+    let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
+
+    // Determine input header
+    let input_header = args
+        .input_header
+        .as_ref()
+        .and_then(|ih| Template::parse(ih).ok())
+        .unwrap_or_else(|| {
+            Template::parse(DEFAULT_ADHOC_CHANNEL_HEADER).unwrap()
+        });
+
+    // Configure features based on available commands
+    let mut features = Features::default();
+    if args.preview_command_override.is_some() {
+        features.enable(FeatureFlags::PreviewPanel);
+    } else {
+        features.disable(FeatureFlags::PreviewPanel);
+    }
+
+    // Set UI specification
+    prototype.ui = Some(UiSpec {
+        ui_scale: None,
+        features: Some(features),
+        orientation: None,
+        input_bar_position: None,
+        input_header: Some(input_header),
+        status_bar: None,
+        preview_panel: None,
+        help_panel: None,
+        remote_control: None,
+    });
+
+    prototype
+}
+
+/// Applies source-related CLI overrides to the channel prototype
+fn apply_source_overrides(
+    prototype: &mut ChannelPrototype,
+    args: &PostProcessedCli,
+) {
+    if let Some(source_cmd) = &args.source_command_override {
+        prototype.source.command = create_command_spec(source_cmd.clone());
+    }
+    if let Some(source_display) = &args.source_display_override {
+        prototype.source.display = Some(source_display.clone());
+    }
+    if let Some(source_output) = &args.source_output_override {
+        prototype.source.output = Some(source_output.clone());
+    }
+}
+
+/// Applies preview-related CLI overrides to the channel prototype
+fn apply_preview_overrides(
+    prototype: &mut ChannelPrototype,
+    args: &PostProcessedCli,
+) {
+    if let Some(preview_cmd) = &args.preview_command_override {
+        if let Some(ref mut preview) = prototype.preview {
+            preview.command = create_command_spec(preview_cmd.clone());
+        } else {
+            prototype.preview = Some(PreviewSpec::new(
+                create_command_spec(preview_cmd.clone()),
+                None,
+            ));
+        }
+    }
+
+    if let Some(preview_offset) = &args.preview_offset_override {
+        if let Some(ref mut preview) = prototype.preview {
+            preview.offset = Some(preview_offset.clone());
+        }
+    }
+}
+
+/// Applies UI-related CLI overrides to the channel prototype
+fn apply_ui_overrides(
+    prototype: &mut ChannelPrototype,
+    args: &PostProcessedCli,
+) {
+    let mut ui_changes_needed = false;
+    let mut ui_spec = prototype.ui.clone().unwrap_or(UiSpec {
+        ui_scale: None,
+        features: None,
+        orientation: None,
+        input_bar_position: None,
+        input_header: None,
+        preview_panel: None,
+        status_bar: None,
+        help_panel: None,
+        remote_control: None,
+    });
+
+    // Apply input header override
+    if let Some(input_header_str) = &args.input_header {
+        if let Ok(template) = Template::parse(input_header_str) {
+            ui_spec.input_header = Some(template);
+            ui_changes_needed = true;
+        }
+    }
+
+    // Apply layout/orientation override
+    if let Some(layout) = args.layout {
+        ui_spec.orientation = Some(layout);
+        ui_changes_needed = true;
+    }
+
+    // Apply preview panel overrides (header and footer)
+    if args.preview_header.is_some() || args.preview_footer.is_some() {
+        let mut preview_panel =
+            ui_spec.preview_panel.clone().unwrap_or_default();
+
+        if let Some(preview_header_str) = &args.preview_header {
+            if let Ok(template) = Template::parse(preview_header_str) {
+                preview_panel.header = Some(template);
+            }
+        }
+
+        if let Some(preview_footer_str) = &args.preview_footer {
+            if let Ok(template) = Template::parse(preview_footer_str) {
+                preview_panel.footer = Some(template);
+            }
+        }
+
+        ui_spec.preview_panel = Some(preview_panel);
+        ui_changes_needed = true;
+    }
+
+    // Apply the UI specification if any changes were made
+    if ui_changes_needed {
+        prototype.ui = Some(ui_spec);
+    }
+}
+
+/// Determines which channel prototype to use based on CLI arguments and configuration.
+///
+/// This function handles multiple modes of operation:
+/// 1. **Stdin mode**: When stdin is readable, creates a stdin channel
+/// 2. **Autocomplete mode**: When autocomplete prompt is provided, guesses channel from prompt
+/// 3. **Ad-hoc mode**: When no channel is specified but source command is provided
+/// 4. **Channel mode**: Uses a named channel from CLI args or config default
+///
+/// After determining the base channel, it applies all relevant CLI overrides.
 pub fn determine_channel(
     args: &PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
     cable: &Cable,
 ) -> ChannelPrototype {
-    let mut channel_prototype: ChannelPrototype = if readable_stdin {
-        debug!("Using stdin channel");
-        let stdin_preview =
-            args.preview_command_override.as_ref().map(|preview_cmd| {
-                PreviewSpec::new(
-                    CommandSpec::new(
-                        vec![preview_cmd.clone()],
-                        false,
-                        FxHashMap::default(),
-                    ),
-                    args.preview_offset_override.clone(),
-                )
-            });
-        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter)
+    // Determine the base channel prototype
+    let mut channel_prototype = if readable_stdin {
+        create_stdin_channel(args)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(
@@ -283,150 +466,24 @@ pub fn determine_channel(
         prototype
     } else if args.channel.is_none() && args.source_command_override.is_some()
     {
-        debug!("Creating ad-hoc channel with source command override");
-        let source_cmd = args.source_command_override.as_ref().unwrap();
-
-        // Create an ad-hoc channel prototype
-        let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
-
-        let mut input_header = Template::parse("Custom Channel");
-        if let Some(ih) = &args.input_header {
-            input_header = Template::parse(ih);
-        }
-
-        // Create features configuration for ad-hoc channel
-        let mut features = Features::default();
-        // Only enable preview if a preview command is provided
-        if args.preview_command_override.is_some() {
-            features.enable(FeatureFlags::PreviewPanel);
-        } else {
-            features.disable(FeatureFlags::PreviewPanel);
-        }
-
-        // Set UI spec using the new features system
-        let ui_spec = UiSpec {
-            ui_scale: None,
-            features: Some(features),
-            orientation: None,
-            input_bar_position: None,
-            input_header: input_header.ok(),
-            status_bar: None,
-            preview_panel: None,
-            help_panel: None,
-            remote_control: None,
-        };
-        prototype.ui = Some(ui_spec);
-        prototype
+        create_adhoc_channel(args)
     } else {
-        let channel = args
+        let channel_name = args
             .channel
             .as_ref()
-            .unwrap_or(&config.application.default_channel)
-            .clone();
-
-        debug!("Using channel: {:?}", &channel);
-        cable.get_channel(&channel)
+            .unwrap_or(&config.application.default_channel);
+        debug!("Using channel: {:?}", channel_name);
+        cable.get_channel(channel_name)
     };
 
     // Apply CLI overrides to the prototype
+    apply_source_overrides(&mut channel_prototype, args);
+    apply_preview_overrides(&mut channel_prototype, args);
+    apply_ui_overrides(&mut channel_prototype, args);
 
-    // Override individual source fields if provided
-    if let Some(source_cmd) = &args.source_command_override {
-        channel_prototype.source.command = CommandSpec::new(
-            vec![source_cmd.clone()],
-            false,
-            FxHashMap::default(),
-        );
-    }
-    if let Some(source_display) = &args.source_display_override {
-        channel_prototype.source.display = Some(source_display.clone());
-    }
-    if let Some(source_output) = &args.source_output_override {
-        channel_prototype.source.output = Some(source_output.clone());
-    }
-
-    // Override individual preview fields if provided
-    if let Some(preview_cmd) = &args.preview_command_override {
-        if let Some(ref mut preview) = channel_prototype.preview {
-            preview.command = CommandSpec::new(
-                vec![preview_cmd.clone()],
-                false,
-                FxHashMap::default(),
-            );
-        } else {
-            // Create a new preview spec with just the command
-            channel_prototype.preview = Some(PreviewSpec::new(
-                CommandSpec::new(
-                    vec![preview_cmd.clone()],
-                    false,
-                    FxHashMap::default(),
-                ),
-                None,
-            ));
-        }
-    }
-    if let Some(preview_offset) = &args.preview_offset_override {
-        if let Some(ref mut preview) = channel_prototype.preview {
-            preview.offset = Some(preview_offset.clone());
-        }
-    }
-
-    // Override watch interval if provided via CLI
+    // Apply watch interval override
     if let Some(watch_interval) = args.watch_interval {
         channel_prototype.watch = watch_interval;
-    }
-
-    // Apply UI-related CLI overrides to the channel prototype
-    let mut ui_override_needed = false;
-    let mut ui_spec = channel_prototype.ui.clone().unwrap_or(UiSpec {
-        ui_scale: None,
-        features: None,
-        orientation: None,
-        input_bar_position: None,
-        input_header: None,
-        preview_panel: None,
-        status_bar: None,
-        help_panel: None,
-        remote_control: None,
-    });
-
-    // Override input header if provided
-    if let Some(input_header_str) = &args.input_header {
-        if let Ok(template) = Template::parse(input_header_str) {
-            ui_spec.input_header = Some(template);
-            ui_override_needed = true;
-        }
-    }
-
-    // Override layout/orientation if provided
-    if let Some(layout) = args.layout {
-        ui_spec.orientation = Some(layout);
-        ui_override_needed = true;
-    }
-
-    // Override preview header and footer if provided
-    if args.preview_header.is_some() || args.preview_footer.is_some() {
-        let mut preview_panel = ui_spec.preview_panel.clone().unwrap_or_default();
-        
-        if let Some(preview_header_str) = &args.preview_header {
-            if let Ok(template) = Template::parse(preview_header_str) {
-                preview_panel.header = Some(template);
-            }
-        }
-        
-        if let Some(preview_footer_str) = &args.preview_footer {
-            if let Ok(template) = Template::parse(preview_footer_str) {
-                preview_panel.footer = Some(template);
-            }
-        }
-        
-        ui_spec.preview_panel = Some(preview_panel);
-        ui_override_needed = true;
-    }
-
-    // Apply the UI spec if any overrides were made
-    if ui_override_needed {
-        channel_prototype.ui = Some(ui_spec);
     }
 
     channel_prototype
@@ -697,8 +754,12 @@ mod tests {
             input_header: Some(Template::parse("Original Header").unwrap()),
             preview_panel: Some(television::config::ui::PreviewPanelConfig {
                 size: 50,
-                header: Some(Template::parse("Original Preview Header").unwrap()),
-                footer: Some(Template::parse("Original Preview Footer").unwrap()),
+                header: Some(
+                    Template::parse("Original Preview Header").unwrap(),
+                ),
+                footer: Some(
+                    Template::parse("Original Preview Footer").unwrap(),
+                ),
                 scrollbar: false,
             }),
             status_bar: None,
