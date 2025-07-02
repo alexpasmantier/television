@@ -143,8 +143,14 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         }
     }
 
-    // Add preview hint (Channel mode only, but only if preview is enabled)
-    if ctx.tv_state.mode == Mode::Channel {
+    // Add preview hint (Channel mode only, and only if preview feature is enabled)
+    if ctx.tv_state.mode == Mode::Channel
+        && ctx
+            .config
+            .ui
+            .features
+            .is_enabled(FeatureFlags::PreviewPanel)
+    {
         if let Some(binding) =
             ctx.config.keybindings.get(&Action::TogglePreview)
         {
