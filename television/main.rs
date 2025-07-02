@@ -479,6 +479,49 @@ mod tests {
     }
 
     #[test]
+    fn test_determine_channel_stdin_disables_preview_without_command() {
+        let args = PostProcessedCli::default();
+        let config = Config::default();
+        let cable = Cable::from_prototypes(vec![]);
+
+        let channel = determine_channel(&args, &config, true, &cable);
+
+        assert_eq!(channel.metadata.name, "stdin");
+        assert!(channel.preview.is_none()); // No preview spec should be created
+
+        // Check that preview feature is explicitly disabled
+        assert!(channel.ui.is_some());
+        let ui_spec = channel.ui.as_ref().unwrap();
+        assert!(ui_spec.features.is_some());
+        let features = ui_spec.features.as_ref().unwrap();
+        assert!(!features.is_enabled(FeatureFlags::PreviewPanel));
+        assert!(!features.is_visible(FeatureFlags::PreviewPanel));
+    }
+
+    #[test]
+    fn test_determine_channel_stdin_enables_preview_with_command() {
+        let args = PostProcessedCli {
+            preview_command_override: Some(Template::parse("cat {}").unwrap()),
+            ..Default::default()
+        };
+        let config = Config::default();
+        let cable = Cable::from_prototypes(vec![]);
+
+        let channel = determine_channel(&args, &config, true, &cable);
+
+        assert_eq!(channel.metadata.name, "stdin");
+        assert!(channel.preview.is_some()); // Preview spec should be created
+
+        // Check that preview feature is enabled and visible
+        assert!(channel.ui.is_some());
+        let ui_spec = channel.ui.as_ref().unwrap();
+        assert!(ui_spec.features.is_some());
+        let features = ui_spec.features.as_ref().unwrap();
+        assert!(features.is_enabled(FeatureFlags::PreviewPanel));
+        assert!(features.is_visible(FeatureFlags::PreviewPanel));
+    }
+
+    #[test]
     fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
         let expected_channel = ChannelPrototype::new("dirs", "ls {}");
