@@ -58,7 +58,7 @@ where
             self.terminal.clear()?;
         } else {
             // Detect if we're in a testing environment
-            let is_testing = std::env::var("CARGO_PKG_NAME").is_ok();
+            let is_testing = std::env::var("TESTING").is_ok();
             if is_testing {
                 // Simplified approach for testing overlay mode
                 // This avoids cursor positioning issues that interfere with pty testing

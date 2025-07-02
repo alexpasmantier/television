@@ -396,6 +396,7 @@ fn test_no_help_panel_conflicts_with_show_help_panel() {
 
 #[test]
 fn test_tui_with_height_and_width() {
+    unsafe { std::env::set_var("TESTING", "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with height 20 and width 80
@@ -427,10 +428,12 @@ fn test_tui_with_height_and_width() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    unsafe { std::env::remove_var("TESTING") };
 }
 
 #[test]
 fn test_tui_with_height_only() {
+    unsafe { std::env::set_var("TESTING", "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with only height specified
@@ -456,4 +459,5 @@ fn test_tui_with_height_only() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    unsafe { std::env::remove_var("TESTING") };
 }
