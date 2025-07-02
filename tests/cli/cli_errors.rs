@@ -126,3 +126,31 @@ fn test_watch_and_selection_flags_conflict_errors() {
     // Confirm the logical incompatibility is detected
     tester.assert_raw_output_contains("cannot be used with");
 }
+
+/// Tests that --inline conflicts with --height.
+#[test]
+fn test_inline_and_height_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because --inline and --height are mutually exclusive
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files", "--inline", "--height", "20",
+    ]);
+    tester.spawn_command(cmd);
+
+    // Confirm the logical incompatibility is detected
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --width cannot be used without --height or --inline.
+#[test]
+fn test_width_without_height_or_inline_errors() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because --width requires --height or --inline
+    let cmd = tv_local_config_and_cable_with_args(&["files", "--width", "80"]);
+    tester.spawn_command(cmd);
+
+    // Confirm the logical incompatibility is detected
+    tester.assert_raw_output_contains("can only be used");
+}
