@@ -172,6 +172,9 @@ pub async fn render(
                 }
                 RenderingTask::Resize(w, h) => {
                     tui.resize(Rect::new(0, 0, w, h))?;
+                    if !tui.fullscreen {
+                        tui.init_overlay()?;
+                    }
                     action_tx.send(Action::Render)?;
                 }
                 RenderingTask::Suspend => {
