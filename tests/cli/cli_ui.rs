@@ -3,6 +3,8 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
+use television::tui::TESTING_ENV_VAR;
+
 use super::common::*;
 
 /// Tests that --layout landscape arranges panels side-by-side.
@@ -392,4 +394,72 @@ fn test_no_help_panel_conflicts_with_show_help_panel() {
 
     // CLI should exit with error message, not show TUI
     tester.assert_raw_output_contains("cannot be used with");
+}
+
+#[test]
+fn test_tui_with_height_and_width() {
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
+    let mut tester = PtyTester::new();
+
+    // Test TUI with height 20 and width 80
+    let mut child =
+        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
+            "files", "--height", "20", "--width", "80",
+        ]));
+
+    // Check that 'files' appears in the frame content
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Validate frame dimensions (20 rows × 80 columns)
+    let frame = tester.get_tui_frame();
+    let non_empty_lines: Vec<&str> =
+        frame.lines().filter(|l| !l.trim().is_empty()).collect();
+    assert_eq!(
+        non_empty_lines.len(),
+        20,
+        "Expected 20 rows, got {}",
+        non_empty_lines.len()
+    );
+    let max_width = non_empty_lines
+        .iter()
+        .map(|l| l.chars().count())
+        .max()
+        .unwrap_or(0);
+    assert_eq!(max_width, 80, "Expected 80 columns, got {}", max_width);
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
+}
+
+#[test]
+fn test_tui_with_height_only() {
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
+    let mut tester = PtyTester::new();
+
+    // Test TUI with only height specified
+    let mut child =
+        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
+            "files", "--height", "15",
+        ]));
+
+    // Check that 'files' appears in the frame content
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Validate frame height (15 rows)
+    let frame = tester.get_tui_frame();
+    let non_empty_lines: Vec<&str> =
+        frame.lines().filter(|l| !l.trim().is_empty()).collect();
+    assert_eq!(
+        non_empty_lines.len(),
+        15,
+        "Expected 15 rows, got {}",
+        non_empty_lines.len()
+    );
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
