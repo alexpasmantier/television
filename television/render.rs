@@ -9,7 +9,6 @@ use crossterm::{
     execute, queue,
     terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate},
 };
-use ratatui::layout::Rect;
 use std::io::{LineWriter, stderr, stdout};
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
@@ -55,7 +54,7 @@ impl UiState {
     }
 }
 
-/// The maximum frame rate for the UI rendering loop.
+/// The maximum frame rate for the UI rendering loop (in milliseconds).
 ///
 /// This is used to limit the frame rate of the UI rendering loop to avoid consuming
 /// unnecessary CPU resources.
@@ -88,7 +87,7 @@ pub async fn render(
         debug!("Rendering to stderr");
         IoStream::BufferedStderr.to_stream()
     };
-    let mut tui = Tui::new(stream, height)?;
+    let mut tui = Tui::new(stream, height, width)?;
 
     debug!("Entering tui");
     tui.enter()?;
@@ -129,27 +128,9 @@ pub async fn render(
                         // terminal areas larger than `u16::MAX`.
                         if size.width.checked_mul(size.height).is_some() {
                             queue!(stderr(), BeginSynchronizedUpdate).ok();
-                            let overlay_row = tui.base_row();
                             tui.terminal.draw(|frame| {
-                                let drawing_area = if let Some(h) = height {
-                                    let terminal_area = frame.area();
-                                    let ui_height =
-                                        h.min(terminal_area.height);
-                                    let ui_width = width
-                                        .map(|w| w.min(terminal_area.width))
-                                        .unwrap_or(terminal_area.width);
-                                    Rect {
-                                        x: 0,
-                                        y: overlay_row,
-                                        width: ui_width,
-                                        height: ui_height,
-                                    }
-                                } else {
-                                    frame.area()
-                                };
-
                                 let current_layout = context.layout;
-                                match draw(context, frame, drawing_area) {
+                                match draw(context, frame, frame.area()) {
                                     Ok(layout) => {
                                         if layout != current_layout {
                                             let _ = ui_state_tx
@@ -171,10 +152,7 @@ pub async fn render(
                     }
                 }
                 RenderingTask::Resize(w, h) => {
-                    tui.resize(Rect::new(0, 0, w, h))?;
-                    if !tui.fullscreen {
-                        tui.init_overlay()?;
-                    }
+                    tui.resize_viewport(w, h)?;
                     action_tx.send(Action::Render)?;
                 }
                 RenderingTask::Suspend => {
