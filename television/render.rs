@@ -87,10 +87,11 @@ pub async fn render(
         debug!("Rendering to stderr");
         IoStream::BufferedStderr.to_stream()
     };
-    let mut tui = Tui::new(stream, height, width)?;
+    let mut tui =
+        Tui::new(stream, height, width).expect("Failed to create TUI");
 
     debug!("Entering tui");
-    tui.enter()?;
+    tui.enter().expect("Failed to enter TUI mode");
 
     let mut buffer = Vec::with_capacity(256);
     let mut num_instructions;

@@ -52,13 +52,9 @@ where
             }
             (Some(w), Some(h)) => {
                 // get cursor position
-                let mut cursor_pos = crossterm::cursor::position()?;
+                let mut cursor_pos = Self::cursor_position()?;
                 let term_size = crossterm::terminal::size()?;
                 // scroll if we don't have enough space
-                debug!(
-                    "Cursor position: {:?}, Terminal size: {:?}, Width: {:?}, Height: {:?}",
-                    cursor_pos, term_size, w, h
-                );
                 if cursor_pos.1 + h > term_size.1 {
                     execute!(
                         backend,
@@ -76,9 +72,7 @@ where
             }
             _ => {
                 return Err(anyhow::anyhow!(
-                    "Invalid combination of width and height: width: {:?}, height: {:?}",
-                    width,
-                    height
+                    "TUI viewport: Width cannot be set without a given height.",
                 ));
             }
         }
@@ -86,6 +80,16 @@ where
         let viewport = options.viewport.clone();
         let terminal = Terminal::with_options(backend, options)?;
         Ok(Self { terminal, viewport })
+    }
+
+    pub fn cursor_position() -> Result<(u16, u16)> {
+        if std::env::var(TESTING_ENV_VAR).is_ok() {
+            // For testing purposes, return a fixed position
+            return Ok((0, 0));
+        }
+        crossterm::cursor::position().map_err(|e| {
+            anyhow::anyhow!("Failed to get cursor position: {}", e)
+        })
     }
 
     pub fn size(&self) -> Result<Size> {
