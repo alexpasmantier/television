@@ -115,6 +115,34 @@ function tv_smart_autocomplete
     commandline -f repaint
 end
 
+function tv_smart_autocomplete_inline
+    set -l commandline (__tv_parse_commandline)
+    set -lx dir $commandline[1]
+    set -l tv_query $commandline[2]
+
+    # prefix (lhs of cursor)
+    set -l current_prompt (commandline --current-process)
+
+    if set -l result (tv $dir --autocomplete-prompt "$current_prompt" --input $tv_query --height 20 3>&1 1>&2 2>&3)
+        # Remove last token from commandline.
+        commandline -t ''
+
+        # If dir is the current directory, i.e. './' , clear it.
+        # If the pattern './foo' './bar' instead of 'foo' 'bar' is desired then comment out the check below
+        if test "$dir" = "./"
+            set dir ""
+        end
+
+        for i in $result
+            commandline -it -- $dir(string escape -- $i)' '
+            # optional, if you want to replace '/home/foo/' with '~/', comment out above and uncomment below
+            # commandline -it -- (string replace --all $HOME '~' $dir(string escape -- $i))' '
+        end
+    end
+
+    commandline -f repaint
+end
+
 function tv_shell_history
     set -l current_prompt (commandline -cp)
 
