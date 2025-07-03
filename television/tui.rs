@@ -60,6 +60,7 @@ where
             self.terminal.clear()?;
         } else {
             // Detect if we're in a testing environment
+            // FIXME: find a better way to do this
             let is_testing = std::env::var(TESTING_ENV_VAR).is_ok();
             if is_testing {
                 // Simplified approach for testing overlay mode
