@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::env;
-use std::io::{BufWriter, IsTerminal, Write, stdout};
+use std::io::{BufWriter, IsTerminal, Write, stderr, stdout};
 use std::path::PathBuf;
 use std::process::exit;
 use television::{
@@ -120,16 +120,15 @@ async fn main() -> Result<()> {
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
     info!("App output: {:?}", output);
-    let stdout_handle = stdout().lock();
-    let mut bufwriter = BufWriter::new(stdout_handle);
+    let stderr_handle = stderr().lock();
+    let mut bufwriter = BufWriter::new(stderr_handle);
     if let Some(entries) = output.selected_entries {
         for entry in &entries {
             writeln!(
                 bufwriter,
                 "{}",
-                entry.stdout_repr(
-                    &app.television.channel.prototype.source.output
-                )
+                entry
+                    .std_repr(&app.television.channel.prototype.source.output)
             )?;
         }
     }
