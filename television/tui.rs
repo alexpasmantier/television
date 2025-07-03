@@ -56,7 +56,6 @@ where
 
         if self.fullscreen {
             execute!(buffered_stderr, EnterAlternateScreen)?;
-            execute!(buffered_stderr, EnableMouseCapture)?;
             self.terminal.clear()?;
         } else {
             // Detect if we're in a testing environment
@@ -69,34 +68,38 @@ where
                 self.terminal.clear()?;
                 self.base_row = 0;
             } else {
-                let ui_height = self
-                    .height
-                    .expect(
-                        "`height` should be set when not in fullscreen mode",
-                    )
-                    .min(self.terminal.size()?.height);
-
-                // print `ui_height` new-lines on stdout – this may cause scroll
-                {
-                    let mut out: StdoutLock<'_> = stdout().lock();
-                    for _ in 0..ui_height {
-                        writeln!(out)?;
-                    }
-                    out.flush()?;
-                }
-
-                // move cursor back up `ui_height` rows so we can draw overlay.
-                execute!(buffered_stderr, cursor::MoveUp(ui_height))?;
-                execute!(buffered_stderr, cursor::SavePosition)?;
-
-                // record the row where overlay starts (after move-up)
-                let (_, row_after_up) = cursor::position()?;
-                self.base_row = row_after_up;
-
-                execute!(buffered_stderr, EnableMouseCapture)?;
+                self.init_overlay()?;
             }
         }
 
+        execute!(buffered_stderr, EnableMouseCapture)?;
+
+        Ok(())
+    }
+
+    pub fn init_overlay(&mut self) -> Result<()> {
+        let ui_height = self
+            .height
+            .expect("`height` should be set when not in fullscreen mode")
+            .min(self.terminal.size()?.height);
+
+        // print `ui_height` new-lines on stdout – this may cause scroll
+        {
+            let mut out: StdoutLock<'_> = stdout().lock();
+            for _ in 0..ui_height {
+                writeln!(out)?;
+            }
+            out.flush()?;
+        }
+
+        // move cursor back up `ui_height` rows so we can draw overlay.
+        let mut b = LineWriter::new(stderr());
+        execute!(b, cursor::MoveUp(ui_height))?;
+        execute!(b, cursor::SavePosition)?;
+
+        // record the row where overlay starts (after move-up)
+        let (_, row_after_up) = cursor::position()?;
+        self.base_row = row_after_up;
         Ok(())
     }
 
