@@ -3,6 +3,8 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
+use television::tui::TESTING_ENV_VAR;
+
 use super::common::*;
 
 /// Tests that --layout landscape arranges panels side-by-side.
@@ -396,7 +398,7 @@ fn test_no_help_panel_conflicts_with_show_help_panel() {
 
 #[test]
 fn test_tui_with_height_and_width() {
-    unsafe { std::env::set_var("TESTING", "1") };
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with height 20 and width 80
@@ -428,12 +430,12 @@ fn test_tui_with_height_and_width() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-    unsafe { std::env::remove_var("TESTING") };
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
 #[test]
 fn test_tui_with_height_only() {
-    unsafe { std::env::set_var("TESTING", "1") };
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with only height specified
@@ -459,5 +461,5 @@ fn test_tui_with_height_only() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-    unsafe { std::env::remove_var("TESTING") };
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }

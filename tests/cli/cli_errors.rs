@@ -4,6 +4,8 @@
 //! error messages when users specify incompatible or invalid flag combinations.
 //! This is critical for user experience and preventing unexpected behavior.
 
+use television::tui::TESTING_ENV_VAR;
+
 use super::common::*;
 
 /// Tests that preview flags without --preview-command fail in Ad-hoc Mode.
@@ -130,7 +132,7 @@ fn test_watch_and_selection_flags_conflict_errors() {
 /// Tests that --inline conflicts with --height.
 #[test]
 fn test_inline_and_height_conflict_errors() {
-    unsafe { std::env::set_var("TESTING", "1") };
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // This should fail because --inline and --height are mutually exclusive
@@ -141,13 +143,13 @@ fn test_inline_and_height_conflict_errors() {
 
     // Confirm the logical incompatibility is detected
     tester.assert_raw_output_contains("cannot be used with");
-    unsafe { std::env::remove_var("TESTING") };
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
 /// Tests that --width cannot be used without --height or --inline.
 #[test]
 fn test_width_without_height_or_inline_errors() {
-    unsafe { std::env::set_var("TESTING", "1") };
+    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // This should fail because --width requires --height or --inline
@@ -156,5 +158,5 @@ fn test_width_without_height_or_inline_errors() {
 
     // Confirm the logical incompatibility is detected
     tester.assert_raw_output_contains("can only be used");
-    unsafe { std::env::remove_var("TESTING") };
+    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
