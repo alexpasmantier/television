@@ -24,7 +24,7 @@ jobs:
       - name: Install bat
         run: sudo apt install -y bat && sudo ln -sf $(which batcat) /usr/bin/bat
       - name: Run tests
-        run: cargo test --locked --all-features --workspace -- --nocapture
+        run: TV_CI=1 cargo test --locked --all-features --workspace -- --nocapture
 
   rustfmt:
     name: Rustfmt

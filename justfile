@@ -62,7 +62,7 @@ alias t := test
 # Run the tests for the project
 @test:
 	echo "Running {{ NAME }}'s test suite..."
-	cargo test --all
+	cargo test --all --all-features -- --nocapture
 	echo "Done"
 
 alias b := build
