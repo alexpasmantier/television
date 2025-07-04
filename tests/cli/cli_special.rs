@@ -4,6 +4,11 @@
 //! features, ensuring that the autocomplete prompt can automatically select appropriate
 //! channels based on command analysis.
 
+use std::{
+    io,
+    process::{Command, Stdio},
+};
+
 use super::common::*;
 
 /// Tests that --autocomplete-prompt automatically detects and activates the appropriate channel.
@@ -98,4 +103,60 @@ fn test_init_subcommand_invalid_shell_errors() {
 
     // CLI should exit with error message, not show TUI
     tester.assert_raw_output_contains("invalid value");
+}
+
+#[test]
+fn test_tv_pipes_correctly() -> io::Result<()> {
+    if is_ci() {
+        // Skip this test in CI environments (where we don't have a proper TTY
+        // and subprocess handling with portable-pty isn't available yet).
+        dbg!("Skipping test_tv_pipes_correctly in CI environment");
+        return Ok(());
+    }
+    let mut tv_command = Command::new(TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["--input", "Cargo.toml"])
+        .arg("--take-1")
+        .stderr(Stdio::null())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    let tv_stdout =
+        tv_command.stdout.take().expect("Failed to capture stdout");
+
+    // Pipe tv stdout into cat stdin
+    let mut cat = Command::new("cat")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    // Write tv output to cat stdin in a separate thread to avoid deadlock
+    let mut subprocess_stdin = cat
+        .stdin
+        .take()
+        .expect("Failed to capture subprocess stdin");
+    std::thread::spawn(move || {
+        let _ = io::copy(
+            &mut io::BufReader::new(tv_stdout),
+            &mut subprocess_stdin,
+        );
+    });
+
+    let subprocess_output = cat.wait_with_output()?; // Waits for cat to finish
+
+    assert!(
+        subprocess_output.status.success(),
+        "cat failed: {}",
+        String::from_utf8_lossy(&subprocess_output.stderr)
+    );
+
+    let output = String::from_utf8_lossy(&subprocess_output.stdout);
+    assert!(!output.trim().is_empty(), "Output should not be empty");
+    assert_eq!(
+        output.trim(),
+        "Cargo.toml",
+        "Output should match input file name"
+    );
+
+    Ok(())
 }

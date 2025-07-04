@@ -5,6 +5,13 @@ use std::{io::Write, thread::sleep};
 
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
 
+pub const CI_ENV_VAR: &str = "TV_CI";
+
+pub fn is_ci() -> bool {
+    // Check if the environment variable indicates a CI environment
+    std::env::var("TV_CI").is_ok()
+}
+
 pub const DEFAULT_CONFIG_FILE: &str = "./.config/config.toml";
 #[cfg(unix)]
 pub const DEFAULT_CABLE_DIR: &str = "./cable/unix";
