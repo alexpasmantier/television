@@ -128,7 +128,8 @@ pub async fn render(
                         // buffer with a `u16` index which means we can't support
                         // terminal areas larger than `u16::MAX`.
                         if size.width.checked_mul(size.height).is_some() {
-                            queue!(stderr(), BeginSynchronizedUpdate).ok();
+                            queue!(tui.backend_mut(), BeginSynchronizedUpdate)
+                                .ok();
                             tui.terminal.draw(|frame| {
                                 let current_layout = context.layout;
                                 match draw(context, frame, frame.area()) {
@@ -146,7 +147,8 @@ pub async fn render(
                                     }
                                 }
                             })?;
-                            execute!(stderr(), EndSynchronizedUpdate).ok();
+                            execute!(tui.backend_mut(), EndSynchronizedUpdate)
+                                .ok();
                         } else {
                             warn!("Terminal area too large");
                         }

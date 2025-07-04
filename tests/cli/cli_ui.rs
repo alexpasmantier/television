@@ -434,6 +434,8 @@ fn test_tui_with_height_and_width() {
 }
 
 #[test]
+// FIXME: needs https://github.com/crossterm-rs/crossterm/pull/957
+#[ignore]
 fn test_tui_with_height_only() {
     unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();

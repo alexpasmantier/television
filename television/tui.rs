@@ -1,5 +1,5 @@
 use std::{
-    io::{LineWriter, Write, stderr},
+    io::Write,
     ops::{Deref, DerefMut},
 };
 
@@ -116,15 +116,14 @@ where
 
     pub fn enter(&mut self) -> Result<()> {
         enable_raw_mode()?;
-        let mut buffered_stderr = LineWriter::new(stderr());
+        let backend = self.terminal.backend_mut();
+
+        execute!(backend, EnableMouseCapture)?;
 
         if self.viewport == Viewport::Fullscreen {
-            execute!(buffered_stderr, EnterAlternateScreen)?;
+            execute!(backend, EnterAlternateScreen)?;
             self.terminal.clear()?;
         }
-
-        execute!(buffered_stderr, EnableMouseCapture)?;
-
         Ok(())
     }
 
