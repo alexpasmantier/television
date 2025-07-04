@@ -6,7 +6,7 @@ use tracing::error;
 pub fn init() -> Result<()> {
     panic::set_hook(Box::new(move |panic_info| {
         // Clean up the terminal
-        if let Ok(mut t) = Tui::new(std::io::stderr(), None) {
+        if let Ok(mut t) = Tui::new(std::io::stderr(), None, None) {
             if let Err(err) = t.exit() {
                 error!("Unable to exit terminal: {:?}", err);
             }

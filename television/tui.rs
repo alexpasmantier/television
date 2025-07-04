@@ -1,5 +1,5 @@
 use std::{
-    io::{LineWriter, StdoutLock, Write, stderr, stdout},
+    io::Write,
     ops::{Deref, DerefMut},
 };
 
@@ -9,11 +9,14 @@ use crossterm::{
     event::{DisableMouseCapture, EnableMouseCapture},
     execute,
     terminal::{
-        ClearType, EnterAlternateScreen, LeaveAlternateScreen,
+        ClearType, EnterAlternateScreen, LeaveAlternateScreen, ScrollUp,
         disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
     },
 };
-use ratatui::{backend::CrosstermBackend, layout::Size};
+use ratatui::{
+    Terminal, TerminalOptions, Viewport, backend::CrosstermBackend,
+    layout::Size,
+};
 use tracing::debug;
 
 #[allow(dead_code)]
@@ -22,11 +25,7 @@ where
     W: Write,
 {
     pub terminal: ratatui::Terminal<CrosstermBackend<W>>,
-    pub fullscreen: bool,
-    pub height: Option<u16>,
-    /// Row (0-based) where the overlay begins when running in non-fullscreen
-    /// mode. Defaults to 0 in fullscreen.
-    base_row: u16,
+    pub viewport: Viewport,
 }
 
 pub const TESTING_ENV_VAR: &str = "TV_TEST";
@@ -36,13 +35,60 @@ impl<W> Tui<W>
 where
     W: Write,
 {
-    pub fn new(writer: W, height: Option<u16>) -> Result<Self> {
-        let fullscreen = height.is_none();
-        Ok(Self {
-            terminal: ratatui::Terminal::new(CrosstermBackend::new(writer))?,
-            fullscreen,
-            height,
-            base_row: 0,
+    pub fn new(
+        writer: W,
+        height: Option<u16>,
+        width: Option<u16>,
+    ) -> Result<Self> {
+        let mut backend = CrosstermBackend::new(writer);
+        let mut options = TerminalOptions::default();
+
+        match (width, height) {
+            (None, None) => {
+                options.viewport = Viewport::Fullscreen;
+            }
+            (None, Some(h)) => {
+                options.viewport = Viewport::Inline(h);
+            }
+            (Some(w), Some(h)) => {
+                // get cursor position
+                let mut cursor_pos = Self::cursor_position()?;
+                let term_size = crossterm::terminal::size()?;
+                // scroll if we don't have enough space
+                if cursor_pos.1 + h > term_size.1 {
+                    execute!(
+                        backend,
+                        ScrollUp(cursor_pos.1 + h - term_size.1)
+                    )?;
+                    cursor_pos.1 = term_size.1.saturating_sub(h);
+                }
+                options.viewport =
+                    Viewport::Fixed(ratatui::layout::Rect::new(
+                        cursor_pos.0,
+                        cursor_pos.1,
+                        w.min(term_size.0 - cursor_pos.0),
+                        h.min(term_size.1 - cursor_pos.1),
+                    ));
+            }
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "TUI viewport: Width cannot be set without a given height.",
+                ));
+            }
+        }
+
+        let viewport = options.viewport.clone();
+        let terminal = Terminal::with_options(backend, options)?;
+        Ok(Self { terminal, viewport })
+    }
+
+    pub fn cursor_position() -> Result<(u16, u16)> {
+        if std::env::var(TESTING_ENV_VAR).is_ok() {
+            // For testing purposes, return a fixed position
+            return Ok((0, 0));
+        }
+        crossterm::cursor::position().map_err(|e| {
+            anyhow::anyhow!("Failed to get cursor position: {}", e)
         })
     }
 
@@ -50,80 +96,56 @@ where
         Ok(self.terminal.size()?)
     }
 
-    pub fn enter(&mut self) -> Result<()> {
-        enable_raw_mode()?;
-        let mut buffered_stderr = LineWriter::new(stderr());
-
-        if self.fullscreen {
-            execute!(buffered_stderr, EnterAlternateScreen)?;
-            self.terminal.clear()?;
-        } else {
-            // Detect if we're in a testing environment
-            // FIXME: find a better way to do this
-            let is_testing = std::env::var(TESTING_ENV_VAR).is_ok();
-            if is_testing {
-                // Simplified approach for testing overlay mode
-                // This avoids cursor positioning issues that interfere with pty testing
-                execute!(buffered_stderr, EnableMouseCapture)?;
-                self.terminal.clear()?;
-                self.base_row = 0;
-            } else {
-                self.init_overlay()?;
+    pub fn resize_viewport(&mut self, w: u16, h: u16) -> Result<()> {
+        debug!("Resizing viewport to: {:?}", (w, h));
+        let layout = match self.viewport {
+            Viewport::Fullscreen | Viewport::Inline(_) => {
+                ratatui::layout::Rect::new(0, 0, w, h)
             }
-        }
+            Viewport::Fixed(rect) => ratatui::layout::Rect::new(
+                rect.x,
+                rect.y,
+                w.min(rect.width),
+                h.min(rect.height),
+            ),
+        };
 
-        execute!(buffered_stderr, EnableMouseCapture)?;
-
+        self.resize(layout)?;
         Ok(())
     }
 
-    pub fn init_overlay(&mut self) -> Result<()> {
-        let ui_height = self
-            .height
-            .expect("`height` should be set when not in fullscreen mode")
-            .min(self.terminal.size()?.height);
+    pub fn enter(&mut self) -> Result<()> {
+        enable_raw_mode()?;
+        let backend = self.terminal.backend_mut();
 
-        // print `ui_height` new-lines on stdout – this may cause scroll
-        {
-            let mut out: StdoutLock<'_> = stdout().lock();
-            for _ in 0..ui_height {
-                writeln!(out)?;
-            }
-            out.flush()?;
+        execute!(backend, EnableMouseCapture)?;
+
+        if self.viewport == Viewport::Fullscreen {
+            execute!(backend, EnterAlternateScreen)?;
+            self.terminal.clear()?;
         }
-
-        // move cursor back up `ui_height` rows so we can draw overlay.
-        let mut b = LineWriter::new(stderr());
-        execute!(b, cursor::MoveUp(ui_height))?;
-        execute!(b, cursor::SavePosition)?;
-
-        // record the row where overlay starts (after move-up)
-        let (_, row_after_up) = cursor::position()?;
-        self.base_row = row_after_up;
         Ok(())
     }
 
     pub fn exit(&mut self) -> Result<()> {
         if is_raw_mode_enabled()? {
             debug!("Exiting terminal");
-
-            let mut buffered_stderr = LineWriter::new(stderr());
-
-            if !self.fullscreen {
-                // Restore cursor to saved position, then clear overlay area (erase below)
-                execute!(buffered_stderr, cursor::RestorePosition)?;
-                execute!(
-                    buffered_stderr,
-                    crossterm::terminal::Clear(ClearType::FromCursorDown)
-                )?;
-            }
+            let backend = self.terminal.backend_mut();
 
             disable_raw_mode()?;
-            execute!(buffered_stderr, cursor::Show)?;
-            execute!(buffered_stderr, DisableMouseCapture)?;
 
-            if self.fullscreen {
-                execute!(buffered_stderr, LeaveAlternateScreen)?;
+            // Move cursor up one line to avoid leaving artefacts on the top border
+            execute!(backend, cursor::MoveToPreviousLine(1))?;
+            execute!(
+                backend,
+                crossterm::terminal::Clear(ClearType::FromCursorDown)
+            )?;
+
+            execute!(backend, cursor::Show)?;
+            execute!(backend, DisableMouseCapture)?;
+
+            if self.viewport == Viewport::Fullscreen {
+                execute!(backend, LeaveAlternateScreen)?;
             }
         }
 
@@ -140,10 +162,6 @@ where
     pub fn resume(&mut self) -> Result<()> {
         self.enter()?;
         Ok(())
-    }
-
-    pub fn base_row(&self) -> u16 {
-        self.base_row
     }
 }
 
