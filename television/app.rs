@@ -746,3 +746,53 @@ impl App {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_determine_tui_mode() {
+        // Test inline mode
+        assert_eq!(
+            App::determine_tui_mode(None, None, true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(0), None, true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(0), Some(0), true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
+        );
+
+        // Test fixed mode
+        assert_eq!(
+            App::determine_tui_mode(Some(20), Some(80), false).unwrap(),
+            TuiMode::Fixed {
+                width: Some(80),
+                height: 20
+            }
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(20), None, false).unwrap(),
+            TuiMode::Fixed {
+                width: None,
+                height: 20
+            }
+        );
+
+        // Test fullscreen mode
+        assert_eq!(
+            App::determine_tui_mode(None, None, false).unwrap(),
+            TuiMode::Fullscreen
+        );
+
+        // Test error case for width without height
+        assert!(App::determine_tui_mode(None, Some(80), false).is_err());
+    }
+}

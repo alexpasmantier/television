@@ -22,6 +22,7 @@ use ratatui::{
 };
 use tracing::debug;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiMode {
     Fullscreen,
     Inline,
