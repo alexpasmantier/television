@@ -1,19 +1,13 @@
-
 # TV channels
-```table-of-contents
-title: 
-style: nestedList
-minLevel: 2
-maxLevel: 3
-includeLinks: true
-hideWhenEmpty: false
-```
+
 ## Quick start
+
 Channels are short configuration recipes that typically dictate what `tv` should search through and what's displayed on the screen along with various other options.
 
 Any given channel consists of a single TOML file.
 
 **Example**: the default `files` channel
+
 ```toml
 [metadata]
 name = "files"
@@ -32,9 +26,11 @@ shortcut = "f1"
 ```
 
 ## Default location on your system
+
 Channels live in the `cable` directory inside your [television configuration directory](https://github.com/alexpasmantier/television/wiki/Configuration-file).
 
 **Example**:
+
 ```
 /home/user/.config/television
 ├── config.toml
@@ -47,32 +43,42 @@ Channels live in the `cable` directory inside your [television configuration dir
 ```
 
 ## Community-maintained channels
+
 The repository hosts a list of community-maintained channels which you can get and install to your cable directory using:
+
 ```sh
 tv update-channels
 ```
 
 ## Invocation
+
 Channels may be invoked:
+
 1. directly from the cli:
+
 ```
 tv files
 ```
+
 2. using the remote control:
-![tv remote](../assets/tv-files-remote.png)
+   ![tv remote](../assets/tv-files-remote.png)
 
 3. on the fly:
+
 ```
 tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --preview-size 70
 ```
 
 ## Creating your own channels
+
 Create a new TOML file in your cable directory:
+
 ```sh
 touch ~/.config/television/cable/my-awesome-channel.toml
 ```
 
 Fill out the minimum required fields:
+
 ```toml
 [metadata]
 name = "my-awesome-channel"
@@ -82,6 +88,7 @@ command = "aws s3 ls my-bucket"
 ```
 
 Launch `tv` with your new channel (or select it via the remote control):
+
 ```sh
 tv my-awesome-channel
 ```
@@ -89,6 +96,7 @@ tv my-awesome-channel
 The complete channel format spec can be found below.
 
 ## Templating syntax
+
 Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
 
 Here's a quick TLDR if you're feeling lazy:
@@ -101,11 +109,11 @@ Here's a quick TLDR if you're feeling lazy:
 # Output: "b,c"
 
 # Clean and format names: "  john  , jane , bob  "
-'{split:,:..|map:{trim|upper|append:!}}' 
+'{split:,:..|map:{trim|upper|append:!}}'
 # Output: "JOHN!,JANE!,BOB!"
 
 # Extract numbers and pad with zeros: "item1,thing22,stuff333"
-'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}' 
+'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}'
 # Output: "001,022,333"
 ```
 
@@ -113,18 +121,20 @@ Here's a quick TLDR if you're feeling lazy:
 
 ```bash
 # Filter files, format as list: "app.py,readme.md,test.py,data.json"
-'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}' 
+'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}'
 # Output: "• app.py\n• test.py"
 
 # Extract domains from URLs: "https://github.com,https://google.com"
-'{split:,:..|map:{regex_extract://([^/]+):1|upper}}' 
+'{split:,:..|map:{regex_extract://([^/]+):1|upper}}'
 # Output: "GITHUB.COM,GOOGLE.COM"
 
 # Debug complex processing: "apple Banana cherry Date"
-"{split: :..|filter:^[A-Z]|sort:desc}" 
+"{split: :..|filter:^[A-Z]|sort:desc}"
 # Output: Date,Banana
 ```
+
 ## Channel specification
+
 #### high-level sections
 
 ```toml
@@ -150,7 +160,7 @@ Here's a quick TLDR if you're feeling lazy:
 [metadata]
 name = "text"
 description = "A short description about what my channel does"
-requirements = ["rg", "bat"]  # any binary requirements my channel needs 
+requirements = ["rg", "bat"]  # any binary requirements my channel needs
 ```
 
 #### `[source]`
@@ -217,3 +227,4 @@ confirm_selection = "ctrl-y"
 ```
 
 See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.
+
