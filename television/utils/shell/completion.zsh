@@ -66,7 +66,9 @@ __tv_path_completion_inline() {
       leftover=${leftover/#\/}
       [ -z "$dir" ] && dir='.'
       [ "$dir" != "/" ] && dir="${dir/%\//}"
-      RESULT=$(tv "$dir" --autocomplete-prompt "$lbuf" --height 20 --input "$leftover" 3>&1 1>&2 2>&3)
+      # move cursor down one line to avoid overwriting the prompt
+      echo -ne "\033[E"
+      RESULT=$(tv "$dir" --autocomplete-prompt "$lbuf" --inline --input "$leftover")
       matches=$(
         shift
         echo $RESULT | while read -r item; do
@@ -113,7 +115,7 @@ _tv_smart_autocomplete() {
   prefix=${tokens[-1]}
   [ -n "${tokens[-1]}" ] && lbuf=${lbuf:0:-${#tokens[-1]}}
 
-  __tv_path_completion "$prefix" "$lbuf"
+  __tv_path_completion_inline "$prefix" "$lbuf"
 
   _enable_bracketed_paste
 }

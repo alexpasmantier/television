@@ -1,3 +1,5 @@
+use std::io::Write;
+
 use crate::{
     action::Action,
     draw::{Ctx, draw},
@@ -9,7 +11,6 @@ use crossterm::{
     execute, queue,
     terminal::{BeginSynchronizedUpdate, EndSynchronizedUpdate},
 };
-use std::io::{LineWriter, stderr, stdout};
 use tokio::sync::mpsc;
 use tracing::{debug, warn};
 
@@ -21,21 +22,6 @@ pub enum RenderingTask {
     Resume,
     Suspend,
     Quit,
-}
-
-#[derive(Debug, Clone)]
-enum IoStream {
-    Stdout,
-    BufferedStderr,
-}
-
-impl IoStream {
-    fn to_stream(&self) -> Box<dyn std::io::Write + Send> {
-        match self {
-            IoStream::Stdout => Box::new(stdout()),
-            IoStream::BufferedStderr => Box::new(LineWriter::new(stderr())),
-        }
-    }
 }
 
 #[derive(Default)]
@@ -72,27 +58,12 @@ const MAX_FRAME_RATE: u128 = 1000 / 60; // 60 FPS
 ///
 /// When starting the rendering loop, a choice is made to either render to stdout or stderr based
 /// on if the output is believed to be a TTY or not.
-pub async fn render(
+pub async fn render<W: Write>(
     mut render_rx: mpsc::UnboundedReceiver<RenderingTask>,
     action_tx: mpsc::UnboundedSender<Action>,
     ui_state_tx: mpsc::UnboundedSender<UiState>,
-    is_output_tty: bool,
-    height: Option<u16>,
-    width: Option<u16>,
+    mut tui: Tui<W>,
 ) -> Result<()> {
-    let stream = if is_output_tty {
-        debug!("Rendering to stdout");
-        IoStream::Stdout.to_stream()
-    } else {
-        debug!("Rendering to stderr");
-        IoStream::BufferedStderr.to_stream()
-    };
-    let mut tui =
-        Tui::new(stream, height, width).expect("Failed to create TUI");
-
-    debug!("Entering tui");
-    tui.enter().expect("Failed to enter TUI mode");
-
     let mut buffer = Vec::with_capacity(256);
     let mut num_instructions;
     let mut frame_start;

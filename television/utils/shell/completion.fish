@@ -123,7 +123,7 @@ function tv_smart_autocomplete_inline
     # prefix (lhs of cursor)
     set -l current_prompt (commandline --current-process)
 
-    if set -l result (tv $dir --autocomplete-prompt "$current_prompt" --input $tv_query --height 20 3>&1 1>&2 2>&3)
+    if set -l result (tv $dir --autocomplete-prompt "$current_prompt" --input $tv_query --inline)
         # Remove last token from commandline.
         commandline -t ''
 
