@@ -51,6 +51,45 @@ __tv_path_completion() {
   done
 }
 
+__tv_path_completion_inline() {
+  local base lbuf suffix tail dir leftover matches
+  base=$1
+  lbuf=$2
+  suffix=""
+  tail=" "
+
+  eval "base=$base" 2> /dev/null || return
+  [[ $base = *"/"* ]] && dir="$base"
+  while [ 1 ]; do
+    if [[ -z "$dir" || -d ${dir} ]]; then
+      leftover=${base/#"$dir"}
+      leftover=${leftover/#\/}
+      [ -z "$dir" ] && dir='.'
+      [ "$dir" != "/" ] && dir="${dir/%\//}"
+      # move cursor down one line to avoid overwriting the prompt
+      echo -ne "\033[E"
+      RESULT=$(tv "$dir" --autocomplete-prompt "$lbuf" --inline --input "$leftover")
+      matches=$(
+        shift
+        echo $RESULT | while read -r item; do
+          item="${item%$suffix}$suffix"
+          dirP="$dir/"
+          [[ $dirP = "./" ]] && dirP=""
+          echo -n -E "$dirP${(q)item} "
+        done
+      )
+      matches=${matches% }
+      if [ -n "$matches" ]; then
+        LBUFFER="$lbuf$matches$tail"
+      fi
+      zle reset-prompt
+      break
+    fi
+    dir=$(dirname "$dir")
+    dir=${dir%/}/
+  done
+}
+
 _tv_smart_autocomplete() {
   _disable_bracketed_paste
 
@@ -76,7 +115,7 @@ _tv_smart_autocomplete() {
   prefix=${tokens[-1]}
   [ -n "${tokens[-1]}" ] && lbuf=${lbuf:0:-${#tokens[-1]}}
 
-  __tv_path_completion "$prefix" "$lbuf"
+  __tv_path_completion_inline "$prefix" "$lbuf"
 
   _enable_bracketed_paste
 }

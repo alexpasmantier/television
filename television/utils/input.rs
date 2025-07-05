@@ -415,13 +415,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn format() {
-        let input: Input = TEXT.into();
-        println!("{}", input);
-        println!("{}", input);
-    }
-
-    #[test]
     fn set_cursor() {
         let mut input: Input = TEXT.into();
 
