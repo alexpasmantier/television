@@ -117,7 +117,7 @@ where
                         terminal_size.height.saturating_sub(*height);
                 }
                 Viewport::Fixed(ratatui::layout::Rect::new(
-                    cursor_position.x,
+                    0,
                     cursor_position.y,
                     w.min(terminal_size.width - cursor_position.x),
                     *height,
@@ -179,19 +179,17 @@ where
 
     pub fn resize_viewport(&mut self, w: u16, h: u16) -> Result<()> {
         debug!("Resizing viewport to: {:?}", (w, h));
-        let layout = match self.viewport {
-            Viewport::Fullscreen | Viewport::Inline(_) => {
-                ratatui::layout::Rect::new(0, 0, w, h)
-            }
-            Viewport::Fixed(rect) => ratatui::layout::Rect::new(
-                rect.x,
-                rect.y,
-                w.min(rect.width),
-                h.min(rect.height),
-            ),
-        };
+        // simpler implementation: just resize the terminal to the new size
+        // yes, we lose the previous data from the terminal, but that's an
+        // acceptable trade-off for the sake of simplicity
+        let layout = ratatui::layout::Rect::new(0, 0, w, h);
 
-        self.resize(layout)?;
+        // Update the stored viewport and only if it's not fullscreen
+        if self.viewport != Viewport::Fullscreen {
+            self.viewport = Viewport::Fixed(layout);
+        }
+        self.terminal.resize(layout)?;
+
         Ok(())
     }
 
