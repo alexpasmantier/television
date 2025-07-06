@@ -60,9 +60,10 @@ Start searching:
 tv files
 ```
 
-![tv files](./assets/tv-files.png)
+![tv files](./assets/tv-transparent.png)
 
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable):
+Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable) which
+you can install with `tv update-channels`:
 
 ![tv remote](./assets/tv-files-remote.png)
 
