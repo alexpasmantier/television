@@ -2,7 +2,7 @@ function tv_smart_autocomplete() {
   # prefix (lhs of cursor)
   local current_prompt="${READLINE_LINE:0:$READLINE_POINT}"
 
-  local output=$(tv --autocomplete-prompt "$current_prompt" | tr '\n' ' ')
+  local output=$(tv --autocomplete-prompt "$current_prompt" --inline | tr '\n' ' ')
 
   if [[ -n $output ]]; then
     # suffix (rhs of cursor)
@@ -19,7 +19,7 @@ function tv_smart_autocomplete() {
 function tv_shell_history() {
   local current_prompt="${READLINE_LINE:0:$READLINE_POINT}"
 
-  local output=$(tv bash-history --input "$current_prompt")
+  local output=$(tv bash-history --input "$current_prompt" --inline)
 
   if [[ -n $output ]]; then
     READLINE_LINE=$output

@@ -66,8 +66,6 @@ __tv_path_completion_inline() {
       leftover=${leftover/#\/}
       [ -z "$dir" ] && dir='.'
       [ "$dir" != "/" ] && dir="${dir/%\//}"
-      # move cursor down one line to avoid overwriting the prompt
-      echo -ne "\033[E"
       RESULT=$(tv "$dir" --autocomplete-prompt "$lbuf" --inline --input "$leftover")
       matches=$(
         shift
@@ -131,7 +129,7 @@ _tv_shell_history() {
 
     local output
 
-    output=$(history -n -1 0 | tv --input "$current_prompt" $*)
+    output=$(history -n -1 0 | tv --input "$current_prompt" --inline $*)
 
     if [[ -n $output ]]; then
         zle reset-prompt
