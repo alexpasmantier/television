@@ -16,7 +16,7 @@ def generate_cable_docs(os_name: str) -> str:
 
     docs = f"""
 # Community Channels ({os_name})
-    """
+"""
 
     channels = map(load_toml, sorted(cable_dir.glob("*.toml")))
 
@@ -26,7 +26,7 @@ def generate_cable_docs(os_name: str) -> str:
         channel_requirements = channel["metadata"].get("requirements", [])
 
         docs += f"""
-### {channel_name}
+### *{channel_name}*
 
 {channel_desc}
 
@@ -35,11 +35,9 @@ def generate_cable_docs(os_name: str) -> str:
         if img_path.exists():
             docs += f"![tv running the {channel_name} channel]({img_path})\n"
 
-        docs += f"""**Requirements:**
+        docs += f"""**Requirements:** {", ".join((f"`{req}`" for req in channel_requirements)) if channel_requirements else "*None*"}
 
-{", ".join((f"`{req}`" for req in channel_requirements)) if channel_requirements else "*None*"}
-
-**Code:**
+**Code:** *{channel_name}.toml*
 
 ```toml
 {dumps(channel)}
@@ -55,13 +53,9 @@ if __name__ == "__main__":
     for os_name in ("unix", "windows"):
         docs_content = generate_cable_docs(os_name)
         docs_file = DOCS_CABLE_DIR.joinpath(f"{os_name}.md")
-        # overwrite the existing docs
-        docs_file.parent.mkdir(parents=True, exist_ok=True)
-        if docs_file.exists():
-            docs_file.unlink()
         # write the new docs
-        with open(docs_file, "w", encoding="utf-8") as docs_file:
-            docs_file.write(docs_content)
+        with open(docs_file, "w+", encoding="utf-8") as f:
+            f.write(docs_content)
 
         print(
             f"Generated documentation for {os_name} community channels at {docs_file}"
