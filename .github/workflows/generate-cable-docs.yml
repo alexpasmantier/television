@@ -9,9 +9,6 @@ name: Generate Cable Docs
 permissions:
   contents: write
 on:
-  push:
-    branches:
-      - main
   pull_request:
   workflow_dispatch:
 jobs:
