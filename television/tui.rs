@@ -95,15 +95,15 @@ where
                         backend,
                         ScrollUp(MIN_VIEWPORT_HEIGHT - available_height)
                     )?;
-                    cursor_position.y = terminal_size
-                        .height
-                        .saturating_sub(MIN_VIEWPORT_HEIGHT);
+                    cursor_position.y = cursor_position.y.saturating_sub(
+                        MIN_VIEWPORT_HEIGHT - available_height + 1,
+                    );
                 }
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
                     cursor_position.y,
                     terminal_size.width,
-                    available_height.max(MIN_VIEWPORT_HEIGHT),
+                    available_height,
                 ))
             }
             TuiMode::Fixed { width, height } => {
@@ -113,8 +113,9 @@ where
                     terminal_size.height.saturating_sub(cursor_position.y);
                 if available_height < *height {
                     execute!(backend, ScrollUp(height - available_height))?;
-                    cursor_position.y =
-                        terminal_size.height.saturating_sub(*height);
+                    cursor_position.y = cursor_position
+                        .y
+                        .saturating_sub(*height - available_height + 1);
                 }
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
