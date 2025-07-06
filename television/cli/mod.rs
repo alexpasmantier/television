@@ -454,7 +454,7 @@ where
     let channels =
         cable::load_cable(cable_dir).expect("Failed to load cable channels");
     for c in channels.keys() {
-        println!("\t{c}");
+        println!("{c}");
     }
 }
 
