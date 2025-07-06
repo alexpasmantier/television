@@ -18,7 +18,7 @@ requirements = ["fd", "bat"]
 command = "fd -t f"
 
 [preview]
-command = "bat -n --color=always {}"
+command = "bat -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
