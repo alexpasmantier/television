@@ -126,7 +126,7 @@ impl Entry {
         self.display.as_deref().unwrap_or(&self.raw)
     }
 
-    pub fn stdout_repr(&self, template: &Option<Template>) -> String {
+    pub fn output(&self, template: &Option<Template>) -> String {
         if let Some(template) = template {
             return template.format(&self.raw).unwrap_or_else(|_| {
                 panic!(
@@ -195,7 +195,7 @@ mod tests {
             line_number: None,
         };
         assert_eq!(
-            entry.stdout_repr(&Some(Template::parse("{}").unwrap())),
+            entry.output(&Some(Template::parse("{}").unwrap())),
             "test name with spaces"
         );
     }
