@@ -1,15 +1,13 @@
 
 # Community Channels (unix)
-    
-### alias
+
+### *alias*
 
 A channel to select from shell aliases
 
-**Requirements:**
+**Requirements:** *None*
 
-*None*
-
-**Code:**
+**Code:** *alias.toml*
 
 ```toml
 [metadata]
@@ -26,15 +24,13 @@ output = "{split:=:0}"
 
 ---
 
-### bash-history
+### *bash-history*
 
 A channel to select from your bash history
 
-**Requirements:**
+**Requirements:** `bash`
 
-`bash`
-
-**Code:**
+**Code:** *bash-history.toml*
 
 ```toml
 [metadata]
@@ -50,15 +46,13 @@ command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
 
 ---
 
-### dirs
+### *dirs*
 
 A channel to select from directories
 
-**Requirements:**
+**Requirements:** `fd`
 
-`fd`
-
-**Code:**
+**Code:** *dirs.toml*
 
 ```toml
 [metadata]
@@ -80,15 +74,13 @@ shortcut = "f2"
 
 ---
 
-### docker-images
+### *docker-images*
 
 A channel to select from Docker images
 
-**Requirements:**
+**Requirements:** `docker`, `jq`
 
-`docker`, `jq`
-
-**Code:**
+**Code:** *docker-images.toml*
 
 ```toml
 [metadata]
@@ -108,15 +100,13 @@ command = "docker image inspect {split: :-1} | jq -C"
 
 ---
 
-### dotfiles
+### *dotfiles*
 
 A channel to select from your user's dotfiles
 
-**Requirements:**
+**Requirements:** `fd`, `bat`
 
-`fd`, `bat`
-
-**Code:**
+**Code:** *dotfiles.toml*
 
 ```toml
 [metadata]
@@ -135,15 +125,13 @@ command = "bat -n --color=always '{}'"
 
 ---
 
-### env
+### *env*
 
 A channel to select from environment variables
 
-**Requirements:**
+**Requirements:** *None*
 
-*None*
-
-**Code:**
+**Code:** *env.toml*
 
 ```toml
 [metadata]
@@ -172,15 +160,13 @@ header = "{split:=:0}"
 
 ---
 
-### files
+### *files*
 
 A channel to select files and directories
 
-**Requirements:**
+**Requirements:** `fd`, `bat`
 
-`fd`, `bat`
-
-**Code:**
+**Code:** *files.toml*
 
 ```toml
 [metadata]
@@ -205,15 +191,13 @@ BAT_THEME = "ansi"
 
 ---
 
-### fish-history
+### *fish-history*
 
 A channel to select from your fish history
 
-**Requirements:**
+**Requirements:** `fish`
 
-`fish`
-
-**Code:**
+**Code:** *fish-history.toml*
 
 ```toml
 [metadata]
@@ -229,15 +213,13 @@ command = "fish -c 'history'"
 
 ---
 
-### git-branch
+### *git-branch*
 
 A channel to select from git branches
 
-**Requirements:**
+**Requirements:** `git`
 
-`git`
-
-**Code:**
+**Code:** *git-branch.toml*
 
 ```toml
 [metadata]
@@ -257,15 +239,13 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ---
 
-### git-diff
+### *git-diff*
 
 A channel to select files from git diff commands
 
-**Requirements:**
+**Requirements:** `git`
 
-`git`
-
-**Code:**
+**Code:** *git-diff.toml*
 
 ```toml
 [metadata]
@@ -284,15 +264,13 @@ command = "git diff HEAD --color=always -- {}"
 
 ---
 
-### git-log
+### *git-log*
 
 A channel to select from git log entries
 
-**Requirements:**
+**Requirements:** `git`
 
-`git`
-
-**Code:**
+**Code:** *git-log.toml*
 
 ```toml
 [metadata]
@@ -312,15 +290,13 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ---
 
-### git-reflog
+### *git-reflog*
 
 A channel to select from git reflog entries
 
-**Requirements:**
+**Requirements:** `git`
 
-`git`
-
-**Code:**
+**Code:** *git-reflog.toml*
 
 ```toml
 [metadata]
@@ -340,18 +316,16 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ---
 
-### git-repos
+### *git-repos*
 
 A channel to select from git repositories on your local machine.
 
 This channel uses `fd` to find directories that contain a `.git` subdirectory, and then allows you to preview the git log of the selected repository.
 
 
-**Requirements:**
+**Requirements:** `fd`, `git`
 
-`fd`, `git`
-
-**Code:**
+**Code:** *git-repos.toml*
 
 ```toml
 [metadata]
@@ -371,15 +345,13 @@ command = "cd {}; git log -n 200 --pretty=medium --all --graph --color"
 
 ---
 
-### text
+### *text*
 
 A channel to find and select text from files
 
-**Requirements:**
+**Requirements:** `rg`, `bat`
 
-`rg`, `bat`
-
-**Code:**
+**Code:** *text.toml*
 
 ```toml
 [metadata]
@@ -407,15 +379,13 @@ header = "{split:\\::..2}"
 
 ---
 
-### zsh-history
+### *zsh-history*
 
 A channel to select from your zsh history
 
-**Requirements:**
+**Requirements:** `zsh`
 
-`zsh`
-
-**Code:**
+**Code:** *zsh-history.toml*
 
 ```toml
 [metadata]
