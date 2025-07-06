@@ -1,5 +1,6 @@
 use std::{
-    io::Write,
+    fs::OpenOptions,
+    io::{BufReader, LineWriter, Read, Write, stderr, stdout},
     ops::{Deref, DerefMut},
 };
 
@@ -14,10 +15,34 @@ use crossterm::{
     },
 };
 use ratatui::{
-    Terminal, TerminalOptions, Viewport, backend::CrosstermBackend,
-    layout::Size,
+    Terminal, TerminalOptions, Viewport,
+    backend::CrosstermBackend,
+    layout::{Position, Size},
+    prelude::Backend,
 };
 use tracing::debug;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TuiMode {
+    Fullscreen,
+    Inline,
+    Fixed { width: Option<u16>, height: u16 },
+}
+
+#[derive(Debug, Clone)]
+pub enum IoStream {
+    Stdout,
+    BufferedStderr,
+}
+
+impl IoStream {
+    pub fn to_stream(&self) -> Box<dyn std::io::Write + Send> {
+        match self {
+            IoStream::Stdout => Box::new(stdout()),
+            IoStream::BufferedStderr => Box::new(LineWriter::new(stderr())),
+        }
+    }
+}
 
 #[allow(dead_code)]
 pub struct Tui<W>
@@ -29,93 +54,147 @@ where
 }
 
 pub const TESTING_ENV_VAR: &str = "TV_TEST";
+pub const MIN_VIEWPORT_HEIGHT: u16 = 15;
 
 #[allow(dead_code)]
 impl<W> Tui<W>
 where
     W: Write,
 {
-    pub fn new(
-        writer: W,
-        height: Option<u16>,
-        width: Option<u16>,
-    ) -> Result<Self> {
+    /// NOTE:
+    /// We use ratatui's `Viewport::Fixed` to handle inline instead of the builtin
+    /// `Viewport::Inline` because we need control over which stream is used to query the cursor
+    /// position and the `Inline` viewport always uses `stdout` under the hood
+    /// (<https://github.com/crossterm-rs/crossterm/blob/master/src/cursor/sys/unix.rs#L35-L36>)
+    /// which makes ratatui (crossterm) panic when trying to read the cursor position from a stream
+    /// that is not connected to a tty.
+    ///
+    /// This allows us to query the cursor position ourselves using `/dev/tty` and to not rely on
+    /// crossterm's current implementation.
+    ///
+    /// More info: <https://github.com/crossterm-rs/crossterm/pull/957>
+    pub fn new(writer: W, mode: &TuiMode) -> Result<Self> {
         let mut backend = CrosstermBackend::new(writer);
         let mut options = TerminalOptions::default();
+        enable_raw_mode()?;
 
-        match (width, height) {
-            (None, None) => {
-                options.viewport = Viewport::Fullscreen;
-            }
-            (None, Some(h)) => {
-                options.viewport = Viewport::Inline(h);
-            }
-            (Some(w), Some(h)) => {
-                // get cursor position
-                let mut cursor_pos = Self::cursor_position()?;
-                let term_size = crossterm::terminal::size()?;
-                // scroll if we don't have enough space
-                if cursor_pos.1 + h > term_size.1 {
+        let terminal_size = backend.size()?;
+        let viewport = match mode {
+            TuiMode::Fullscreen => Viewport::Fullscreen,
+            TuiMode::Inline => {
+                let mut cursor_position = Self::get_cursor_position();
+                // take all available height and max width with a minimum of 15 for the height
+                let available_height =
+                    terminal_size.height.saturating_sub(cursor_position.y);
+                debug!(
+                    "Total height: {}, Available height: {}, cursor position: {:?}",
+                    terminal_size.height, available_height, cursor_position.y
+                );
+                if available_height < MIN_VIEWPORT_HEIGHT {
                     execute!(
                         backend,
-                        ScrollUp(cursor_pos.1 + h - term_size.1)
+                        ScrollUp(MIN_VIEWPORT_HEIGHT - available_height)
                     )?;
-                    cursor_pos.1 = term_size.1.saturating_sub(h);
+                    cursor_position.y = cursor_position.y.saturating_sub(
+                        MIN_VIEWPORT_HEIGHT - available_height + 1,
+                    );
                 }
-                options.viewport =
-                    Viewport::Fixed(ratatui::layout::Rect::new(
-                        cursor_pos.0,
-                        cursor_pos.1,
-                        w.min(term_size.0 - cursor_pos.0),
-                        h.min(term_size.1 - cursor_pos.1),
-                    ));
+                Viewport::Fixed(ratatui::layout::Rect::new(
+                    0,
+                    cursor_position.y,
+                    terminal_size.width,
+                    available_height,
+                ))
             }
-            _ => {
-                return Err(anyhow::anyhow!(
-                    "TUI viewport: Width cannot be set without a given height.",
-                ));
+            TuiMode::Fixed { width, height } => {
+                let mut cursor_position = Self::get_cursor_position();
+                let w = width.unwrap_or(terminal_size.width);
+                let available_height =
+                    terminal_size.height.saturating_sub(cursor_position.y);
+                if available_height < *height {
+                    execute!(backend, ScrollUp(height - available_height))?;
+                    cursor_position.y = cursor_position
+                        .y
+                        .saturating_sub(*height - available_height + 1);
+                }
+                Viewport::Fixed(ratatui::layout::Rect::new(
+                    0,
+                    cursor_position.y,
+                    w.min(terminal_size.width - cursor_position.x),
+                    *height,
+                ))
             }
-        }
+        };
 
-        let viewport = options.viewport.clone();
+        options.viewport = viewport.clone();
         let terminal = Terminal::with_options(backend, options)?;
         Ok(Self { terminal, viewport })
-    }
-
-    pub fn cursor_position() -> Result<(u16, u16)> {
-        if std::env::var(TESTING_ENV_VAR).is_ok() {
-            // For testing purposes, return a fixed position
-            return Ok((0, 0));
-        }
-        crossterm::cursor::position().map_err(|e| {
-            anyhow::anyhow!("Failed to get cursor position: {}", e)
-        })
     }
 
     pub fn size(&self) -> Result<Size> {
         Ok(self.terminal.size()?)
     }
 
+    const DSR: &'static str = "\x1b[6n";
+    /// This is manually implemented as a workaround to a [crossterm issue](https://github.com/crossterm-rs/crossterm/pull/957).
+    ///
+    /// See the `Tui::new` method for more details.
+    fn get_cursor_position() -> Position {
+        if std::env::var(TESTING_ENV_VAR).is_ok() {
+            // In tests, return a fixed position
+            return Position { x: 0, y: 0 };
+        }
+        let mut tty = OpenOptions::new()
+            .read(true)
+            // .write(true)
+            .append(true)
+            .open("/dev/tty")
+            .expect("Failed to open /dev/tty");
+
+        writeln!(tty, "{}", Self::DSR).expect("Failed to write to /dev/tty");
+
+        let mut response = Vec::new();
+        for byte in BufReader::new(tty).bytes() {
+            match byte {
+                Ok(b'R') => break,       // End of response
+                Ok(b'\x1B' | b'[') => {} // Ignore CSI sequences
+                Ok(b) => response.push(b),
+                Err(e) => panic!("Error reading from /dev/tty: {}", e),
+            }
+        }
+
+        let pos = response.split(|e| *e == b';').collect::<Vec<_>>();
+        if pos.len() == 2 {
+            let x =
+                String::from_utf8_lossy(pos[1]).parse::<u16>().unwrap_or(0);
+            let y =
+                String::from_utf8_lossy(pos[0]).parse::<u16>().unwrap_or(0);
+            Position {
+                x: x.saturating_sub(1),
+                y: y.saturating_sub(1),
+            } // Convert to zero-based index
+        } else {
+            Position::default() // Default position if parsing fails
+        }
+    }
+
     pub fn resize_viewport(&mut self, w: u16, h: u16) -> Result<()> {
         debug!("Resizing viewport to: {:?}", (w, h));
-        let layout = match self.viewport {
-            Viewport::Fullscreen | Viewport::Inline(_) => {
-                ratatui::layout::Rect::new(0, 0, w, h)
-            }
-            Viewport::Fixed(rect) => ratatui::layout::Rect::new(
-                rect.x,
-                rect.y,
-                w.min(rect.width),
-                h.min(rect.height),
-            ),
-        };
+        // simpler implementation: just resize the terminal to the new size
+        // yes, we lose the previous data from the terminal, but that's an
+        // acceptable trade-off for the sake of simplicity
+        let layout = ratatui::layout::Rect::new(0, 0, w, h);
 
-        self.resize(layout)?;
+        // Update the stored viewport and only if it's not fullscreen
+        if self.viewport != Viewport::Fullscreen {
+            self.viewport = Viewport::Fixed(layout);
+        }
+        self.terminal.resize(layout)?;
+
         Ok(())
     }
 
     pub fn enter(&mut self) -> Result<()> {
-        enable_raw_mode()?;
         let backend = self.terminal.backend_mut();
 
         execute!(backend, EnableMouseCapture)?;

@@ -3,7 +3,7 @@ def tv_smart_autocomplete [] {
     let cursor = (commandline get-cursor)
     let current_prompt = ($current_prompt | str substring 0..$cursor)
  
-    let output = (tv --autocomplete-prompt $current_prompt | str trim)
+    let output = (tv --autocomplete-prompt $current_prompt --inline | str trim)
 
     if ($output | str length) > 0 {
         let needs_space = not ($current_prompt | str ends-with " ")
@@ -22,7 +22,7 @@ def tv_shell_history [] {
     let cursor = (commandline get-cursor)
     let current_prompt = ($current_prompt | str substring 0..$cursor)
     
-    let output = (tv nu-history --input $current_prompt | str trim)
+    let output = (tv nu-history --input $current_prompt --inline | str trim)
 
     if ($output | is-not-empty) {
         commandline edit --replace $output

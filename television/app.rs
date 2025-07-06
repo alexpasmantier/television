@@ -8,11 +8,10 @@ use crate::{
     keymap::Keymap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
+    tui::{IoStream, Tui, TuiMode},
 };
 use anyhow::Result;
-use crossterm::{
-    cursor, event::MouseEventKind, terminal::size as terminal_size,
-};
+use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
@@ -345,14 +344,6 @@ impl App {
         is_output_tty: bool,
         headless: bool,
     ) -> Result<AppOutput> {
-        // Event loop
-        if !headless {
-            debug!("Starting backend event loop");
-            let event_loop = EventLoop::new(self.options.tick_rate);
-            self.event_rx = event_loop.rx;
-            self.event_abort_tx = event_loop.abort_tx;
-        }
-
         // Rendering loop
         if !headless {
             debug!("Starting rendering loop");
@@ -360,27 +351,37 @@ impl App {
             self.render_tx = render_tx.clone();
             let ui_state_tx = self.ui_state_tx.clone();
             let action_tx_r = self.action_tx.clone();
-            let height = if self.options.inline {
-                // Calculate available space for inline mode
-                Self::calculate_inline_height()?
+            let tui_mode = Self::determine_tui_mode(
+                self.options.height,
+                self.options.width,
+                self.options.inline,
+            )?;
+            let stream = if is_output_tty {
+                debug!("Rendering to stdout");
+                IoStream::Stdout.to_stream()
             } else {
-                self.options.height
+                debug!("Rendering to stderr");
+                IoStream::BufferedStderr.to_stream()
             };
-            let width = self.options.width;
+            let mut tui = Tui::new(stream, &tui_mode)
+                .expect("Failed to create TUI instance");
+            debug!("Entering tui");
+            tui.enter().expect("Failed to enter TUI mode");
+
             self.render_task = Some(tokio::spawn(async move {
-                render(
-                    render_rx,
-                    action_tx_r,
-                    ui_state_tx,
-                    is_output_tty,
-                    height,
-                    width,
-                )
-                .await
+                render(render_rx, action_tx_r, ui_state_tx, tui).await
             }));
             self.action_tx
                 .send(Action::Render)
                 .expect("Unable to send init render action.");
+        }
+
+        // Event loop
+        if !headless {
+            debug!("Starting backend event loop");
+            let event_loop = EventLoop::new(self.options.tick_rate);
+            self.event_rx = event_loop.rx;
+            self.event_abort_tx = event_loop.abort_tx;
         }
 
         // Start watch timer if configured
@@ -393,8 +394,10 @@ impl App {
         let mut action_buf = Vec::with_capacity(ACTION_BUF_SIZE);
         let mut action_outcome;
 
+        trace!("Entering main event loop");
         loop {
             // handle event and convert to action
+            trace!("Waiting for new events...");
             if self
                 .event_rx
                 .recv_many(&mut event_buf, EVENT_BUF_SIZE)
@@ -410,6 +413,7 @@ impl App {
                     }
                 }
             }
+            trace!("Event buffer processed, handling actions...");
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
 
@@ -447,7 +451,7 @@ impl App {
 
                 // wait for the rendering task to finish
                 if let Some(rendering_task) = self.render_task.take() {
-                    rendering_task.await??;
+                    rendering_task.await?.expect("Rendering task failed");
                 }
 
                 return Ok(AppOutput::new(action_outcome));
@@ -535,7 +539,7 @@ impl App {
         };
 
         if action != Action::Tick {
-            trace!("Converted event to action: {action:?}");
+            trace!("Converted {event:?} to action: {action:?}");
         }
 
         if action == Action::NoOp {
@@ -719,26 +723,76 @@ impl App {
         }
     }
 
-    /// Calculate the height for inline mode.
-    ///
-    /// This method determines the available space at the bottom of the terminal
-    // TODO: revisit minimum height if/when input can be toggled
-    fn calculate_inline_height() -> Result<Option<u16>> {
-        const MIN_HEIGHT: u16 = 6;
+    /// Determine the TUI mode based on the provided options.
+    fn determine_tui_mode(
+        height: Option<u16>,
+        width: Option<u16>,
+        inline: bool,
+    ) -> Result<TuiMode> {
+        if inline {
+            // Inline mode uses all available space at the bottom of the terminal
+            Ok(TuiMode::Inline)
+        } else if let Some(h) = height {
+            // Fixed mode with specified height and width
+            Ok(TuiMode::Fixed { width, height: h })
+        } else if width.is_some() {
+            // error if width is specified without height
+            Err(anyhow::anyhow!(
+                "TUI viewport: Width cannot be set without a given height."
+            ))
+        } else {
+            // Fullscreen mode
+            Ok(TuiMode::Fullscreen)
+        }
+    }
+}
 
-        // Get current cursor position and terminal size
-        let (_, current_row) = cursor::position()?;
-        let (_, terminal_height) = terminal_size()?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-        // Calculate available space from next line to bottom of terminal
-        let available_space = terminal_height.saturating_sub(current_row + 1);
-        let ui_height = available_space.max(MIN_HEIGHT);
-
-        debug!(
-            "Inline mode: using {} lines (available: {}, minimum: {})",
-            ui_height, available_space, MIN_HEIGHT
+    #[test]
+    fn test_determine_tui_mode() {
+        // Test inline mode
+        assert_eq!(
+            App::determine_tui_mode(None, None, true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(0), None, true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(0), Some(0), true).unwrap(),
+            TuiMode::Inline,
+            "Passing `inline = true` should return Inline mode"
         );
 
-        Ok(Some(ui_height))
+        // Test fixed mode
+        assert_eq!(
+            App::determine_tui_mode(Some(20), Some(80), false).unwrap(),
+            TuiMode::Fixed {
+                width: Some(80),
+                height: 20
+            }
+        );
+        assert_eq!(
+            App::determine_tui_mode(Some(20), None, false).unwrap(),
+            TuiMode::Fixed {
+                width: None,
+                height: 20
+            }
+        );
+
+        // Test fullscreen mode
+        assert_eq!(
+            App::determine_tui_mode(None, None, false).unwrap(),
+            TuiMode::Fullscreen
+        );
+
+        // Test error case for width without height
+        assert!(App::determine_tui_mode(None, Some(80), false).is_err());
     }
 }

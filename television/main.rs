@@ -127,9 +127,7 @@ async fn main() -> Result<()> {
             writeln!(
                 bufwriter,
                 "{}",
-                entry.stdout_repr(
-                    &app.television.channel.prototype.source.output
-                )
+                entry.output(&app.television.channel.prototype.source.output)
             )?;
         }
     }
