@@ -38,7 +38,7 @@ Television supports two primary operating modes that determine how CLI flags are
 **Example**:
 
 ```bash
-tv files --preview-command "bat -n --color=always {}"
+tv files --preview-command "bat -n --color=always '{}'"
 ```
 
 ### Ad-hoc Mode
@@ -55,7 +55,7 @@ tv files --preview-command "bat -n --color=always {}"
 **Example**:
 
 ```bash
-tv --source-command "find . -name '*.rs'" --preview-command "bat -n --color=always {}"
+tv --source-command "find . -name '*.rs'" --preview-command "bat -n --color=always '{}'"
 ```
 
 ## Basic Usage
@@ -195,7 +195,7 @@ Television's options are organized by functionality. Each option behaves differe
 - **Both Modes**: Same behavior
 - **Requires**: `--source-command` (in ad-hoc mode)
 - **Conflicts**: Cannot be used with `--no-preview`
-- **Example**: `--preview-command "bat -n --color=always {}"`
+- **Example**: `--preview-command "bat -n --color=always '{}'"`
 
 #### `--preview-header <STRING>`
 
@@ -693,7 +693,7 @@ tv git-log                  # Browse git commit history
 tv docker-images            # Browse Docker images
 
 # Channel + customization
-tv files --preview-command "bat -n --color=always {}"
+tv files --preview-command "bat -n --color=always '{}'"
 tv git-log --layout portrait
 
 # Feature visibility control
