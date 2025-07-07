@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunktelevision_website=self.webpackChunktelevision_website||[]).push([[6884],{6884:(e,s,i)=>{i.d(s,{createArchitectureServices:()=>t.S});var t=i(5826);i(6068)}}]);
