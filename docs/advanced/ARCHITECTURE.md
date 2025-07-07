@@ -7,28 +7,27 @@ Television is a terminal fuzzy finder built with Rust. It uses async/await and s
 ## High-Level Architecture
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   CLI & Config  │───▶│   Application   │───▶│   Output        │
-│                 │    │   Orchestrator  │    │                 │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-                              │
-                              ▼
-        ┌─────────────────────────────────────────────────────┐
-        │                Event Loops                          │
-        │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐    │
-        │  │ Event Loop  │ │Render Loop  │ │Watch Timer  │    │
-        │  │             │ │             │ │             │    │
-        │  └─────────────┘ └─────────────┘ └─────────────┘    │
-        └─────────────────────────────────────────────────────┘
-                              │
-                              ▼
-        ┌─────────────────────────────────────────────────────┐
-        │                Core Components                      │
-        │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐    │
-        │  │  Television │ │  Channels   │ │  Previewer  │    │
-        │  │   (State)   │ │  (Sources)  │ │             │    │
-        │  └─────────────┘ └─────────────┘ └─────────────┘    │
-        └─────────────────────────────────────────────────────┘
+  ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
+  │ CLI & Config │───►│ Application  │───►│   Output    │
+  │              │    │ Orchestrator │    │             │
+  └──────────────┘    └──────────────┘    └─────────────┘
+                             │
+                             ▼
+    ┌─────────────────────────────────────────────────┐
+    │                   Event Loops                   │
+    │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
+    │ │ Event Loop  │ │ Render Loop │ │ Watch Timer │ │
+    │ └─────────────┘ └─────────────┘ └─────────────┘ │
+    └─────────────────────────────────────────────────┘
+                            │
+                            ▼
+    ┌─────────────────────────────────────────────────┐
+    │                 Core Components                 │
+    │ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ │
+    │ │  Television │ │  Channels   │ │  Previewer  │ │
+    │ │   (State)   │ │  (Sources)  │ │             │ │
+    │ └─────────────┘ └─────────────┘ └─────────────┘ │
+    └─────────────────────────────────────────────────┘
 ```
 
 ## How It Works
@@ -118,38 +117,19 @@ The main app that coordinates everything:
 ### Event System
 
 #### Event Loop (`loops/event_loop.rs`)
-
 ```mermaid
 flowchart LR
-    A[Raw Event] --> B[Event Loop]
-    B --> C{Event Type}
-    
-    C -->|Keyboard| D[Key Mapping]
-    C -->|Mouse| E[Mouse Handler]
-    C -->|System| F[System Handler]
-    
-    D --> G[Action]
-    E --> G
-    F --> G
-    
-    G --> H[Action Channel]
-    H --> I[App Handler]
-    
-    I --> J{Action Category}
-    J -->|Input| K[Text Input]
-    J -->|Navigation| L[Picker Update]
-    J -->|Application| M[State Change]
-    J -->|Render| N[UI Update]
-    
-    K --> O[Update Pattern]
-    L --> P[Move Selection]
-    M --> Q[Mode Switch]
-    N --> R[Render Task]
-    
-    O --> S[Trigger Filter]
-    P --> T[Update Display]
-    Q --> U[UI Refresh]
-    R --> V[Render Loop]
+A[Raw Event] --> B[Event Loop]
+B --> C{Event Type}
+C -->|Keyboard| D[Key Mapping]
+C -->|Mouse| E[Mouse Handler]
+C -->|System| F[System Handler]
+D --> G[Action]
+E --> G
+F --> G
+G --> H[Action Channel]
+H --> I[App Handler]
+
 ```
 
 - **Purpose:** Handles keyboard input, mouse events, and system signals
@@ -277,7 +257,7 @@ shortcut = "f1"
 - **Input:** Rendering tasks via channel
 - **Output:** Terminal updates and UI state feedback
 - **Features:**
-  - 60 FPS frame rate limit
+  - 60 FPS frame rate capping to avoid CPU hogging
   - Synchronized terminal updates
   - Layout state tracking
 
@@ -301,7 +281,7 @@ flowchart TD
     
     subgraph "Config Sources"
         G[embedded config.toml] --> A
-        I[~/.config/television/] --> C
+        I[$HOME/.config/television/config.toml] --> C
         J[cable/*.toml] --> D
         K[Command Line Args] --> E
     end
@@ -314,18 +294,6 @@ flowchart TD
         F --> P[Channel Specs]
     end
 ```
-
-#### Config Loading (`config/mod.rs`)
-Config is loaded and merged in this order:
-1. Default embedded config
-2. User config files
-3. Channel-specific configs
-4. CLI argument overrides
-
-#### Themes (`config/themes.rs`)
-- Multiple color schemes
-- Configurable UI elements
-- Runtime theme switching
 
 ### Preview System (`previewer/`)
 
@@ -365,18 +333,22 @@ sequenceDiagram
 
 ## Communication
 
-### How Components Talk
-All components use `tokio::mpsc` channels:
-
-```rust
-// Action flow
-event_loop → action_channel → app_handler → television
-
-// Render flow  
-app_handler → render_channel → render_loop → terminal
-
-// Preview flow
-television → preview_request → previewer → preview_response → television
+```mermaid
+flowchart LR
+    subgraph "Action Flow"
+    direction LR
+        A[event_loop] --> B[action_channel] --> C[app_handler] --> D[television]
+    end
+    
+    subgraph "Render Flow"
+    direction LR
+        E[app_handler] --> F[render_channel] --> G[render_loop] --> H[terminal]
+    end
+    
+    subgraph "Preview Flow"
+    direction LR
+        I[television] --> J[preview_request] --> K[previewer] --> L[preview_response] --> I
+    end
 ```
 
 ### Data Flow
