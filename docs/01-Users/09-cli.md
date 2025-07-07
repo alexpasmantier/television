@@ -575,7 +575,7 @@ Television uses a layered configuration system where each layer can override the
 
 Television features support dual-state control: **enabled/disabled** and **visible/not visible**.
 
-> **📖 For more details on the ui feature documentation**, see [`ui-features.md`](ui-features.md).
+> **📖 For more details on the ui feature documentation**, see [`ui-features.md`](../02-Developers/02-ui-features.md).
 
 #### Quick Feature Overview
 

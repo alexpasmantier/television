@@ -2,11 +2,11 @@
 .el .ds Aq '
 .TH television 1  "television 0.11.9" 
 .SH NAME
-television \- A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
+television \- Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-\-global\-history\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-source\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
-A cross\-platform, fast and extensible general purpose fuzzy finder TUI.
+Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
 .TP
 \fB\-\-preview\-offset\fR=\fISTRING\fR
@@ -146,6 +146,12 @@ When no channel is specified: This flag requires \-\-source\-command to be set.
 The template is used to format the final output when an entry is selected.
 Example: "{}" (output the full entry)
 .TP
+\fB\-\-source\-delimiter\fR=\fISTRING\fR
+The delimiter byte to use for splitting the source\*(Aqs command output into entries.
+
+This can be useful when the source command outputs multiline entries and you want to
+rely on another delimiter to split the entries such a null byte or a custom character.
+.TP
 \fB\-p\fR, \fB\-\-preview\-command\fR=\fISTRING\fR
 Preview command to use for the current channel.
 
@@ -276,6 +282,24 @@ Percentage of the screen to allocate to the preview panel (1\-99).
 When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
 When no channel is specified: This flag requires \-\-preview\-command to be set.
 .TP
+\fB\-\-config\-file\fR=\fIPATH\fR
+Provide a custom configuration file to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-cable\-dir\fR=\fIPATH\fR
+Provide a custom cable directory to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-global\-history\fR
+Use global history instead of channel\-specific history.
+
+This flag only works in channel mode.
+
+When enabled, history navigation will show entries from all channels.
+When disabled (default), history navigation is scoped to the current channel.
+.TP
 \fB\-\-height\fR=\fIINTEGER\fR
 Height in lines for non\-fullscreen mode.
 
@@ -297,24 +321,6 @@ This flag works identically in both channel mode and ad\-hoc mode.
 When enabled, the picker will be displayed as an inline interface that uses
 all available empty space at the bottom of the terminal. If there is insufficient
 space to meet the minimum height the terminal will scroll.
-.TP
-\fB\-\-config\-file\fR=\fIPATH\fR
-Provide a custom configuration file to use.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-.TP
-\fB\-\-cable\-dir\fR=\fIPATH\fR
-Provide a custom cable directory to use.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-.TP
-\fB\-\-global\-history\fR
-Enable global history for the current session.
-
-This flag only works in channel mode.
-
-When enabled, history navigation will show entries from all channels.
-When disabled (default), history navigation is scoped to the current channel.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)

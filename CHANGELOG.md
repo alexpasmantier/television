@@ -177,9 +177,21 @@ All notable changes to this project will be documented in this file.
 
 ### 📚 Documentation
 
+- [825e974](https://github.com/alexpasmantier/television/commit/825e97436360f3cbb5b40d4053c10c435352e6c9) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#594](https://github.com/alexpasmantier/television/pull/594)
+
+- [185f789](https://github.com/alexpasmantier/television/commit/185f7890ac27ca1580231c2f24fe6a696fd3f322) *(cable)* Update channel documentation (auto) by @github-actions[bot]
+
+- [8bdebd3](https://github.com/alexpasmantier/television/commit/8bdebd382ef9fe1f8ac74106b91cbdfdd308ef27) *(channels)* Autogenerate channel documentation + CI action by @alexpasmantier
+
 - [6015809](https://github.com/alexpasmantier/television/commit/601580953a11b4c1061c97c5417ffeacd154354d) *(tests)* Simple documentation for the `PtyTester` by @alexpasmantier
 
 - [7bbf538](https://github.com/alexpasmantier/television/commit/7bbf5388984ea4a9afa4daad695add4c258c0fb1) *(utils)* Add documentation for string formatting logic by @alexpasmantier in [#517](https://github.com/alexpasmantier/television/pull/517)
+
+- [a9badbc](https://github.com/alexpasmantier/television/commit/a9badbc088f332add3396a8f835b5dd1f06aa2f8) *(uncategorized)* Add docusaurus website by @alexpasmantier
+
+- [e797aba](https://github.com/alexpasmantier/television/commit/e797aba7c1e5fbdc6afabac69d2bbcb32767bf80) *(uncategorized)* Reorganize docs by @alexpasmantier
+
+- [106004d](https://github.com/alexpasmantier/television/commit/106004de948327f248c14f8eebdc40b54af58a4c) *(uncategorized)* Architecture by @alexpasmantier
 
 - [1d33c93](https://github.com/alexpasmantier/television/commit/1d33c9391039f703b3b9848784ab58d3f5372a7d) *(uncategorized)* Add readme banner by @alexpasmantier
 
@@ -234,6 +246,8 @@ All notable changes to this project will be documented in this file.
 - [fe8bdc6](https://github.com/alexpasmantier/television/commit/fe8bdc632b8e101fdf235ef24e68920ea52c4b0d) *(uncategorized)* Add test to check cli overrides by @alexpasmantier
 
 ### ⚙️ Miscellaneous Tasks
+
+- [f58e46c](https://github.com/alexpasmantier/television/commit/f58e46c40aca9a31003c2120bcd6772643d38bbb) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#591](https://github.com/alexpasmantier/television/pull/591)
 
 - [d106ada](https://github.com/alexpasmantier/television/commit/d106adafc0a8f4d17bc4235e3bc439487db4a0b4) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#513](https://github.com/alexpasmantier/television/pull/513)
 
