@@ -1,4 +1,4 @@
-# TV channels
+# Channels
 
 ## Quick start
 
@@ -27,7 +27,7 @@ shortcut = "f1"
 
 ## Default location on your system
 
-Channels live in the `cable` directory inside your [television configuration directory](https://github.com/alexpasmantier/television/wiki/Configuration-file).
+Channels live in the `cable` directory inside your [television configuration directory](./03-configuration.md).
 
 **Example**:
 
@@ -61,7 +61,7 @@ tv files
 ```
 
 2. using the remote control:
-   ![tv remote](../assets/tv-files-remote.png)
+   ![tv remote](../../assets/tv-files-remote.png)
 
 3. on the fly:
 
@@ -227,4 +227,3 @@ confirm_selection = "ctrl-y"
 ```
 
 See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.
-

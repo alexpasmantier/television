@@ -28,10 +28,10 @@ Start searching:
 tv files
 ```
 
-![tv files](../assets/tv-files.png)
+![tv files](../../assets/tv-files.png)
 
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable):
+Switch channels using the remote control and pick from a large choice of [community-maintained channels](./10-community-channels-unix.md):
 
-![tv remote](../assets/tv-files-remote.png)
+![tv remote](../../assets/tv-files-remote.png)
 
-See the [channels docs](https://github.com/alexpasmantier/television/blob/main/docs/channels.md) for more info on how to set these up.
+See the [channels docs](./07-channels.md) for more info on how to set these up.

@@ -1,4 +1,4 @@
-# Television UI Features System
+# UI Features documentation
 
 **Table of Contents**
 
@@ -259,12 +259,12 @@ tv git-log --hide-status-bar --show-preview
 
 ### Default UI Feature States
 
-| UI Feature | Default Enabled | Default Visible | Rationale |
-|------------|----------------|-----------------|-----------|
-| **Preview Panel** | ✅ | ✅ | Core functionality |
-| **Status Bar** | ✅ | ✅ | Shows mode and contextual hint to the user |
-| **Help Panel** | ✅ | ❌ | Available on-demand to avoid clutter |
-| **Remote Control** | ✅ | ❌ | Available on-demand, disrupts regular operation |
+| UI Feature         | Default Enabled | Default Visible | Rationale                                       |
+| ------------------ | --------------- | --------------- | ----------------------------------------------- |
+| **Preview Panel**  | ✅              | ✅              | Core functionality                              |
+| **Status Bar**     | ✅              | ✅              | Shows mode and contextual hint to the user      |
+| **Help Panel**     | ✅              | ❌              | Available on-demand to avoid clutter            |
+| **Remote Control** | ✅              | ❌              | Available on-demand, disrupts regular operation |
 
 ### Feature State Persistence
 
@@ -333,4 +333,3 @@ tv files
 # F12    - Toggle status bar
 # Ctrl-H - Toggle help panel
 ```
-

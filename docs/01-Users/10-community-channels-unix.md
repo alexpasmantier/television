@@ -1,13 +1,12 @@
+# 🍿 Community Channels (unix)
 
-# Community Channels (windows)
-
-### *alias*
+### _alias_
 
 A channel to select from shell aliases
 
-**Requirements:** *None*
+**Requirements:** _None_
 
-**Code:** *alias.toml*
+**Code:** _alias.toml_
 
 ```toml
 [metadata]
@@ -15,21 +14,42 @@ name = "alias"
 description = "A channel to select from shell aliases"
 
 [source]
-command = "Get-Alias | %{ \"{0,-10} = {1,-10}\" -f $_.Name,$_.Definition }"
-output = "{split:=:0|trim}"
+command = "alias"
+interactive = true
+output = "{split:=:0}"
 
 ```
 
+---
+
+### _bash-history_
+
+A channel to select from your bash history
+
+**Requirements:** `bash`
+
+**Code:** _bash-history.toml_
+
+```toml
+[metadata]
+name = "bash-history"
+description = "A channel to select from your bash history"
+requirements = [ "bash",]
+
+[source]
+command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
+
+```
 
 ---
 
-### *dirs*
+### _dirs_
 
 A channel to select from directories
 
 **Requirements:** `fd`
 
-**Code:** *dirs.toml*
+**Code:** _dirs.toml_
 
 ```toml
 [metadata]
@@ -41,23 +61,22 @@ requirements = [ "fd",]
 command = [ "fd -t d", "fd -t d --hidden",]
 
 [preview]
-command = "ls -l {}"
+command = "ls -la --color=always {}"
 
 [keybindings]
 shortcut = "f2"
 
 ```
 
-
 ---
 
-### *docker-images*
+### _docker-images_
 
 A channel to select from Docker images
 
 **Requirements:** `docker`, `jq`
 
-**Code:** *docker-images.toml*
+**Code:** _docker-images.toml_
 
 ```toml
 [metadata]
@@ -74,16 +93,15 @@ command = "docker image inspect {split: :-1} | jq -C"
 
 ```
 
-
 ---
 
-### *dotfiles*
+### _dotfiles_
 
 A channel to select from your user's dotfiles
 
 **Requirements:** `fd`, `bat`
 
-**Code:** *dotfiles.toml*
+**Code:** _dotfiles.toml_
 
 ```toml
 [metadata]
@@ -92,23 +110,22 @@ description = "A channel to select from your user's dotfiles"
 requirements = [ "fd", "bat",]
 
 [source]
-command = "fd -t f . \"$env:USERPROFILE\\AppData\\Roaming\\\""
+command = "fd -t f . $HOME/.config"
 
 [preview]
-command = "bat -n --color=always {}"
+command = "bat -n --color=always '{}'"
 
 ```
 
-
 ---
 
-### *env*
+### _env_
 
 A channel to select from environment variables
 
-**Requirements:** *None*
+**Requirements:** _None_
 
-**Code:** *env.toml*
+**Code:** _env.toml_
 
 ```toml
 [metadata]
@@ -116,7 +133,7 @@ name = "env"
 description = "A channel to select from environment variables"
 
 [source]
-command = "Get-ChildItem Env: | %{ \"{0,-30} = {1,-30}\" -f $_.Name,$_.Value }"
+command = "printenv"
 output = "{split:=:1..}"
 
 [preview]
@@ -130,20 +147,19 @@ shortcut = "f3"
 
 [ui.preview_panel]
 size = 20
-header = "{split:=:0|trim}"
+header = "{split:=:0}"
 
 ```
 
-
 ---
 
-### *files*
+### _files_
 
 A channel to select files and directories
 
 **Requirements:** `fd`, `bat`
 
-**Code:** *files.toml*
+**Code:** _files.toml_
 
 ```toml
 [metadata]
@@ -155,7 +171,7 @@ requirements = [ "fd", "bat",]
 command = [ "fd -t f", "fd -t f -H",]
 
 [preview]
-command = "bat -n --color=always {}"
+command = "bat -n --color=always '{}'"
 
 [keybindings]
 shortcut = "f1"
@@ -165,16 +181,36 @@ BAT_THEME = "ansi"
 
 ```
 
+---
+
+### _fish-history_
+
+A channel to select from your fish history
+
+**Requirements:** `fish`
+
+**Code:** _fish-history.toml_
+
+```toml
+[metadata]
+name = "fish-history"
+description = "A channel to select from your fish history"
+requirements = [ "fish",]
+
+[source]
+command = "fish -c 'history'"
+
+```
 
 ---
 
-### *git-branch*
+### _git-branch_
 
 A channel to select from git branches
 
 **Requirements:** `git`
 
-**Code:** *git-branch.toml*
+**Code:** _git-branch.toml_
 
 ```toml
 [metadata]
@@ -191,16 +227,15 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ```
 
-
 ---
 
-### *git-diff*
+### _git-diff_
 
 A channel to select files from git diff commands
 
 **Requirements:** `git`
 
-**Code:** *git-diff.toml*
+**Code:** _git-diff.toml_
 
 ```toml
 [metadata]
@@ -216,16 +251,15 @@ command = "git diff HEAD --color=always -- {}"
 
 ```
 
-
 ---
 
-### *git-log*
+### _git-log_
 
 A channel to select from git log entries
 
 **Requirements:** `git`
 
-**Code:** *git-log.toml*
+**Code:** _git-log.toml_
 
 ```toml
 [metadata]
@@ -234,7 +268,7 @@ description = "A channel to select from git log entries"
 requirements = [ "git",]
 
 [source]
-command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\""
+command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
 output = "{split: :0}"
 
 [preview]
@@ -242,16 +276,15 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ```
 
-
 ---
 
-### *git-reflog*
+### _git-reflog_
 
 A channel to select from git reflog entries
 
 **Requirements:** `git`
 
-**Code:** *git-reflog.toml*
+**Code:** _git-reflog.toml_
 
 ```toml
 [metadata]
@@ -268,19 +301,17 @@ command = "git show -p --stat --pretty=fuller --color=always {0}"
 
 ```
 
-
 ---
 
-### *git-repos*
+### _git-repos_
 
 A channel to select from git repositories on your local machine.
 
 This channel uses `fd` to find directories that contain a `.git` subdirectory, and then allows you to preview the git log of the selected repository.
 
-
 **Requirements:** `fd`, `git`
 
-**Code:** *git-repos.toml*
+**Code:** _git-repos.toml_
 
 ```toml
 [metadata]
@@ -289,45 +320,23 @@ requirements = [ "fd", "git",]
 description = "A channel to select from git repositories on your local machine.\n\nThis channel uses `fd` to find directories that contain a `.git` subdirectory, and then allows you to preview the git log of the selected repository.\n"
 
 [source]
-command = "fd -g .git -HL -t d -d 10 --prune 'C:\\Users' --exec dirname '{}'"
-display = "{split:\\\\:-1}"
+command = "fd -g .git -HL -t d -d 10 --prune ~ -E 'Library' -E 'Application Support' --exec dirname {}"
+display = "{split:/:-1}"
 
 [preview]
-command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
+command = "cd {}; git log -n 200 --pretty=medium --all --graph --color"
 
 ```
 
-
 ---
 
-### *pwsh-history*
-
-A channel to select from your powershell history
-
-**Requirements:** *None*
-
-**Code:** *pwsh-history.toml*
-
-```toml
-[metadata]
-name = "pwsh-history"
-description = "A channel to select from your powershell history"
-
-[source]
-command = "Get-Content (Get-PSReadLineOption).HistorySavePath | Select-Object -Last 500"
-
-```
-
-
----
-
-### *text*
+### _text_
 
 A channel to find and select text from files
 
 **Requirements:** `rg`, `bat`
 
-**Code:** *text.toml*
+**Code:** _text.toml_
 
 ```toml
 [metadata]
@@ -352,5 +361,27 @@ header = "{split:\\::..2}"
 
 ```
 
+---
+
+### _zsh-history_
+
+A channel to select from your zsh history
+
+**Requirements:** `zsh`
+
+**Code:** _zsh-history.toml_
+
+```toml
+[metadata]
+name = "zsh-history"
+description = "A channel to select from your zsh history"
+requirements = [ "zsh",]
+
+[source]
+command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.zsh_history}"
+display = "{split:;:1..}"
+output = "{split:;:1..}"
+
+```
 
 ---

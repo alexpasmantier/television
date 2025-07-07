@@ -1,4 +1,4 @@
-# Television Architecture Documentation
+# Architecture Documentation
 
 _NOTE: what follows has mostly been assembled using AI as an experiment and as a basis for further improvements. @lalvarezt and I (@alexpasmantier) have been proofreading it to make sure all the information is technically correct and really reflects the code's architecture, so that **other developers may rely on it as a technical source of truth** when getting started with the repo._
 
@@ -10,7 +10,7 @@ Television is a terminal fuzzy finder built with Rust. It uses async/await and s
 
 ```
   ┌──────────────┐    ┌──────────────┐    ┌─────────────┐
-  │ CLI & Config │───►│ Application  │───►│   Output    │
+  │ CLI & Config  │───►│ Application  │───►│   Output    │
   │              │    │ Orchestrator │    │             │
   └──────────────┘    └──────────────┘    └─────────────┘
                              │
