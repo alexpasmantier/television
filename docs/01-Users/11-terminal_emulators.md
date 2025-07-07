@@ -19,4 +19,4 @@ Here is a list of terminal emulators that have currently been tested with `telev
 | Warp              |         macOS         |               ✅               |
 | Hyper             |         macOS         |               ✅               |
 
-If you're able to test the application with a configuration not yet listed above, we'd love to [hear from your experience](./CONTRIBUTING) 🙏
+If you're able to test the application with a configuration not yet listed above, we'd love to [hear from your experience](https://github.com/alexpasmantier/television/blob/main/CONTRIBUTING.md) 🙏

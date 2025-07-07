@@ -1,0 +1,82 @@
+/**
+ * CSS files with the .module.css suffix will be treated as CSS modules
+ * and scoped locally.
+ */
+
+.heroBanner {
+  padding: 4rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.heroContent {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 2rem;
+  flex-wrap: wrap; /* Allows stacking on small screens */
+  margin-top: 2rem;
+}
+
+.heroImage {
+  flex: 0 0 auto;
+  max-width: 70%;
+}
+
+.heroImageImg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.heroAbout {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1 1 0;
+  max-width: 65%;
+  min-width: 350px;
+  color: var(--ifm-color-primary);
+  font-family: "Ubuntu Mono", monospace;
+  font-weight: 100;
+  font-size: 1rem;
+  text-align: left;
+  line-height: 1.5;
+  margin: 0;
+  margin-top: 1rem;
+  padding-bottom: 1.6rem;
+}
+
+.heroAbout a {
+  color: var(--ifm-color-primary-darker);
+  font-weight: 600;
+}
+
+@media screen and (max-width: 996px) {
+  .heroBanner {
+    padding: 2rem;
+  }
+
+  .heroAbout {
+    padding-bottom: 0;
+  }
+
+  .buttons {
+    position: static;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+}
+
+.buttons {
+  width: 100%;
+}
+
+.buttons a {
+  width: 100%;
+  max-width: 350px;
+  text-align: center;
+  display: block;
+}

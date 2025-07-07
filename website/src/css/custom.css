@@ -1,0 +1,152 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+@font-face {
+  font-family: "Doto";
+  src: url("/fonts/Doto.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu Mono";
+  src: url("/fonts/UbuntuMono-Regular.ttf");
+}
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #aeaed1;
+  --ifm-color-primary-dark: #9696c3;
+  --ifm-color-primary-darker: #8989bc;
+  --ifm-color-primary-darkest: #6565a7;
+  --ifm-color-primary-light: #c6c6df;
+  --ifm-color-primary-lighter: #d3d3e6;
+  --ifm-color-primary-lightest: #f7f7fb;
+  --ifm-background-color: #241f31;
+
+  --ifm-font-family-base: "Ubuntu Mono", monospace;
+  --ifm-font-color-base: #aeaed1;
+  --ifm-font-color-secondary: #545c8c;
+  --ifm-font-size-base: 1.1rem;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.05);
+  --ifm-heading-font-family: "Doto", sans-serif;
+  --ifm-heading-color: var(--ifm-color-primary-darkest);
+  --ifm-menu-color-active: var(--ifm-color-primary-lightest);
+  --ifm-menu-color-background-active: var(--ifm-color-primary-darkest);
+  --ifm-toc-link-color: var(--ifm-color-primary-dark);
+
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {}
+
+.navbar {
+  background-color: var(--ifm-background-color);
+  border-bottom: 3px solid var(--ifm-color-primary-darkest);
+  font-family: "Doto", sans-serif;
+  font-size: 1.5rem;
+  font-optical-sizing: auto;
+  font-weight: 800;
+  font-style: normal;
+  font-variation-settings:
+    "ROND" 0;
+}
+
+.navbar__logo {
+  margin-left: 1rem;
+}
+
+.navbar__title {
+  color: var(--ifm-color-primary-darkest);
+  margin-right: 2rem;
+  margin-left: 0.5rem;
+}
+
+.navbar__item {
+  color: var(--ifm-color-primary-lightest);
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+
+.navbar__item:hover {
+  color: var(--ifm-color-primary-darker);
+  text-decoration: none;
+}
+
+.hero {
+  background-color: var(--ifm-background-color);
+  margin-bottom: 4rem;
+}
+
+.hero__title {
+  color: var(--ifm-font-color-base);
+  margin-bottom: 0;
+  font-family: "Doto", sans-serif;
+  font-size: 3rem;
+  font-optical-sizing: auto;
+  font-weight: 800;
+  font-style: normal;
+  font-variation-settings:
+    "ROND" 0;
+}
+
+.hero__subtitle {
+  color: var(--ifm-font-color-secondary);
+
+  font-family: "Ubuntu Mono", monospace;
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.3rem;
+  margin-bottom: 6rem;
+  margin-top: 0rem;
+}
+
+.footer {
+  background-color: var(--ifm-background-color);
+  color: var(--ifm-font-color-base);
+  border-top: 3px solid var(--ifm-color-primary-darkest);
+}
+
+.button-mainpage {
+  border: 1px solid var(--ifm-color-primary-darker);
+  outline: none;
+  background-color: var(--ifm-background-color);
+  padding: 10px 20px;
+  margin: auto;
+  font-weight: 800;
+  font-family: "Doto", sans-serif;
+  font-size: 1.2rem;
+  color: var(--ifm-font-color-base);
+  border-radius: 6px;
+  transition: all ease 0.1s;
+  box-shadow: 0px 5px 0px 0px var(--ifm-color-primary-darker);
+}
+
+.button-mainpage:hover {
+  text-decoration: none;
+  background-color: var(--ifm-font-color-base);
+  color: var(--ifm-background-color);
+}
+
+.button-mainpage:active {
+  box-shadow: 0px 0px 0px 0px var(--ifm-font-color-base);
+  transform: translateY(5px);
+}
+
+nav.menu {
+  border-right: 1px solid var(--ifm-color-primary-darkest);
+  padding-right: 1rem;
+  font-family: "Doto", sans-serif;
+  font-weight: 400;
+}
+
+.table-of-contents__left-border {
+  border-left: 1px solid var(--ifm-color-primary-darkest);
+  font-family: "Ubuntu Mono", monospace;
+}
+
+.theme-doc-markdown a {
+  color: var(--ifm-color-primary-darker)
+}

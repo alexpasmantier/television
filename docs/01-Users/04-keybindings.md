@@ -17,7 +17,7 @@ Default keybindings are as follows:
 |                                                <kbd>Ctrl</kbd> + <kbd>o</kbd>                                                 | Toggle the preview panel                           |
 |                                                        <kbd>Esc</kbd>                                                         | Quit the application                               |
 
-These keybindings are all configurable via tv's configuration file (see [Configuration](Configuration-file)).
+These keybindings are all configurable via tv's configuration file (see [Configuration](./configuration)).
 
 # Keybindings Guide
 
