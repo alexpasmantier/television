@@ -23,13 +23,9 @@ It is inspired by the neovim [telescope](https://github.com/nvim-telescope/teles
 
 ## Installation
 
-See the [installation docs](https://github.com/alexpasmantier/television/wiki/Installation).
+See [installation docs](https://alexpasmantier.github.io/television/docs/Users/installation).
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions?columns=4)
-
-Or [build from source](https://github.com/alexpasmantier/television/wiki/Installation#--building-from-source)
-
-## Quick start
+## TL;DR
 
 Create a channel: _~/.config/television/cable/files.toml_
 
@@ -61,12 +57,12 @@ tv files
 
 ![tv files](./assets/tv-transparent.png)
 
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](./cable) which
+Switch channels using the remote control and pick from a list of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix) which
 you can install with `tv update-channels`:
 
 ![tv remote](./assets/tv-files-remote.png)
 
-See the [channels docs](https://github.com/alexpasmantier/television/blob/main/docs/channels.md) for more info on how to set these up.
+See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/channels) for more info on how to set these up.
 
 ## Usage
 
@@ -85,31 +81,7 @@ tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --p
 ```
 
 > [!TIP]
-> 🐚 _Television provides smart autocompletion based on the commands you start typing in your shell._
->
-> _Take a look at [this page](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion) for how to set it up for your shell._
-
-## Keybindings
-
-See [keybindings](https://github.com/alexpasmantier/television/wiki/Keybindings)
-
-## Configuration
-
-See [configuration](https://github.com/alexpasmantier/television/wiki/Configuration-file)
-
-## Themes
-
-See [themes](./themes)
-
-## Search Patterns
-
-See [search patterns](https://github.com/alexpasmantier/television/wiki/Search-patterns)
-
-## Contributions
-
-Contributions, issues and pull requests are welcome.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [good first issues](https://github.com/alexpasmantier/television/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22) for more information.
+> 🐚 _Television has **builtin shell integration**. More info [here](https://alexpasmantier.github.io/television/docs/Users/shell-integration)._
 
 ## Credits
 
