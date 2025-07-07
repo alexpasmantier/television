@@ -73,7 +73,7 @@ Which channel gets effectively chosen for different commands can be tweaked in t
 
 Each key is a channel name and each value is a set of commands that should trigger that channel.
 
-Example: say you want the following prompts to trigger the following channels when pressing <CTRL-T>:
+Example: say you want the following prompts to trigger the following channels when pressing <kbd>CTRL-T</kbd>`:
 
 - `git checkout` should trigger the `git-branches` channel
 - `ls` should trigger the `dirs` channel

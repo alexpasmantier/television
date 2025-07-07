@@ -1,4 +1,4 @@
-# Terminal Emulator Compatibility
+# Terminal Emulators
 
 Here is a list of terminal emulators that have currently been tested with `television` and their compatibility status.
 
