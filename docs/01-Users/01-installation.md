@@ -1,6 +1,6 @@
 # Installation
 
-## 📦 Nix
+## Nix
 
 Television is [available on `nixpkgs`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/te/television/package.nix)
 
@@ -8,39 +8,39 @@ Television is [available on `nixpkgs`](https://github.com/NixOS/nixpkgs/blob/mas
 nix run nixpkgs#television
 ```
 
-## 📦 Homebrew
+## Homebrew
 
 ```bash
 brew install television
 ```
 
-## 📦 Scoop
+## Scoop
 
 ```bash
 scoop bucket add extras
 scoop install television
 ```
 
-## 📦 WinGet
+## WinGet
 
 ```pwsh
 winget install --exact --id alexpasmantier.television
 ```
 
-## 📦 Arch Linux
+## Arch Linux
 
 ```bash
 pacman -S television
 ```
 
-## 📦 Chimera Linux
+## Chimera Linux
 
 ```bash
 apk add chimera-repo-user
 apk add television
 ```
 
-## 📦 Debian-based (Debian, Ubuntu, Pop!\_OS, Linux Mint, etc.)
+## Debian-based (Debian, Ubuntu, Pop!\_OS, Linux Mint, etc.)
 
 ```bash
 VER=`curl -s "https://api.github.com/repos/alexpasmantier/television/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/'`
@@ -49,20 +49,20 @@ echo $VER
 sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
 ```
 
-## 📦 Conda-forge (cross-platform)
+## Conda-forge (cross-platform)
 
 ```bash
 pixi global install television
 ```
 
-## 📦 Pre-compiled Binary
+## Pre-compiled Binary
 
 From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page:
 
 - Download the latest release asset for your platform (e.g. `tv-vX.X.X-linux-x86_64.tar.gz` if you're on a linux x86 machine)
 - Unpack and copy to the relevant location on your system (e.g. `/usr/local/bin` on macos and linux for a global installation)
 
-## 📦 Crates.io
+## Crates.io
 
 Setup the latest stable Rust toolchain via rustup:
 
@@ -77,7 +77,7 @@ Install `television`:
 cargo install --locked television
 ```
 
-## 📦 Building from source
+## Building from source
 
 If you want to benefit from the latest updates on main, clone the repo and build from source by running:
 
@@ -92,6 +92,6 @@ You can then alias `tv` to the produced binary:
 alias tv=$TELEVISION_DIR/target/release/tv
 ```
 
-## 📦 Repology
+## Repology
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
