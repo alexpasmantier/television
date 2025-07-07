@@ -28,3 +28,4 @@ Cargo.lock
 # Visual Studio Code
 .vscode/
 
+**/node_modules/

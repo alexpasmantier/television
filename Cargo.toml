@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.11.9"
+version = "0.12.0"
 edition = "2024"
 description = "Cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
@@ -14,16 +14,7 @@ categories = [
   "concurrency",
   "development-tools",
 ]
-include = [
-  "LICENSE",
-  "README.md",
-  "themes/**/*.toml",
-  "television/**",
-  ".config/config.toml",
-  "cable",
-  "build.rs",
-  "man",
-]
+exclude = ["website", ".github", "apt", "website"]
 rust-version = "1.87"
 build = "build.rs"
 
@@ -146,6 +137,10 @@ section = "utils"
 priority = "optional"
 depends = "$auto"
 assets = [
-    ["target/release/tv", "usr/bin/", "755"],
-    { source = "man/tv.1", dest = "usr/share/man/man1/", mode = "644"},
+  [
+    "target/release/tv",
+    "usr/bin/",
+    "755",
+  ],
+  { source = "man/tv.1", dest = "usr/share/man/man1/", mode = "644" },
 ]
