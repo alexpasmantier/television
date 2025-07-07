@@ -4,8 +4,7 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
-
-## [unreleased]
+## [0.12.0](https://github.com/alexpasmantier/television/releases/tag/0.12.0) - 2025-07-07
 
 ### ⛰️  Features
 
@@ -187,7 +186,9 @@ All notable changes to this project will be documented in this file.
 
 - [7bbf538](https://github.com/alexpasmantier/television/commit/7bbf5388984ea4a9afa4daad695add4c258c0fb1) *(utils)* Add documentation for string formatting logic by @alexpasmantier in [#517](https://github.com/alexpasmantier/television/pull/517)
 
-- [a9badbc](https://github.com/alexpasmantier/television/commit/a9badbc088f332add3396a8f835b5dd1f06aa2f8) *(uncategorized)* Add docusaurus website by @alexpasmantier
+- [0112b40](https://github.com/alexpasmantier/television/commit/0112b40df3d12a2f540ee7bbd5d6e24da6c2d048) *(uncategorized)* Update installation docs by @alexpasmantier
+
+- [e5654fc](https://github.com/alexpasmantier/television/commit/e5654fcddee638905a5e6478763e6b738ec469d1) *(uncategorized)* Add docusaurus website by @alexpasmantier
 
 - [e797aba](https://github.com/alexpasmantier/television/commit/e797aba7c1e5fbdc6afabac69d2bbcb32767bf80) *(uncategorized)* Reorganize docs by @alexpasmantier
 
@@ -261,6 +262,8 @@ All notable changes to this project will be documented in this file.
 
 - [f6b2205](https://github.com/alexpasmantier/television/commit/f6b22051cdfbce8f6598c5d36c4b75887ff65998) *(tui-input)* Add credit and license for `television/utils/input.rs` by @alexpasmantier in [#544](https://github.com/alexpasmantier/television/pull/544)
 
+- [f1c6816](https://github.com/alexpasmantier/television/commit/f1c68167eae6c1d77cdaac9c9039f3aeef95849d) *(uncategorized)* Bump to 0.12.0 by @alexpasmantier
+
 - [429bfae](https://github.com/alexpasmantier/television/commit/429bfaeb2f3dbbc7015213db1c2f12564615e5ca) *(uncategorized)* Remove unused serde renames by @alexpasmantier
 
 - [141d3e7](https://github.com/alexpasmantier/television/commit/141d3e7fb928c7020aa47240e97d9ff8dc0e753f) *(uncategorized)* Update dependencies by @alexpasmantier
@@ -279,6 +282,8 @@ All notable changes to this project will be documented in this file.
 * @kapobajza made their first contribution in [#568](https://github.com/alexpasmantier/television/pull/568)
 * @domaschh made their first contribution
 * @cr4ftx made their first contribution in [#496](https://github.com/alexpasmantier/television/pull/496)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.11.9...0.12.0
 
 
 ## [0.11.9](https://github.com/alexpasmantier/television/releases/tag/0.11.9) - 2025-04-21
