@@ -1,0 +1,36 @@
+name: Deploy Docusaurus to GitHub Pages
+on:
+  push:
+    paths-ignore:
+      - "README.md"
+    branches:
+      - main
+jobs:
+  deploy:
+    name: Build Docusaurus to gh-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: change directory to website
+        run: cd website
+      - name: Setup node env
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: ".nvmrc"
+      - uses: pnpm/action-setup@v4
+        name: Install pnpm
+        with:
+          run_install: false
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build website
+        run: pnpm run build
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+
