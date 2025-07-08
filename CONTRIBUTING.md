@@ -6,6 +6,10 @@ Please make sure to read and follow our [Code of Conduct](CODE_OF_CONDUCT.md) to
 
 If you're not sure where to start, take a look at the [Hot Topics](#hot-topics) section for some ideas on what you could work on.
 
+# Docs contributing
+
+To contribute to the docs, please refer to [Contributing to Docs](website/CONTRIBUTING.md) in the `website` directory. This will guide you through the process of setting up the documentation environment and making changes.
+
 ## Getting started
 
 ### Prerequisites

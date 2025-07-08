@@ -54,25 +54,10 @@
     "ROND" 0;
 }
 
-.navbar__logo {
-  margin-left: 1rem;
-}
-
-.navbar__title {
-  color: var(--ifm-color-primary-darkest);
-  margin-right: 2rem;
-  margin-left: 0.5rem;
-}
-
-.navbar__item {
-  color: var(--ifm-color-primary-lightest);
-  font-size: 1.3rem;
-  font-weight: 400;
-}
-
-.navbar__item:hover {
-  color: var(--ifm-color-primary-darker);
-  text-decoration: none;
+@media screen and (max-width: 576px) {
+  .navbar {
+    font-size: 1.2rem;
+  }  
 }
 
 .hero {
@@ -80,59 +65,10 @@
   margin-bottom: 4rem;
 }
 
-.hero__title {
-  color: var(--ifm-font-color-base);
-  margin-bottom: 0;
-  font-family: "Doto", sans-serif;
-  font-size: 3rem;
-  font-optical-sizing: auto;
-  font-weight: 800;
-  font-style: normal;
-  font-variation-settings:
-    "ROND" 0;
-}
-
-.hero__subtitle {
-  color: var(--ifm-font-color-secondary);
-
-  font-family: "Ubuntu Mono", monospace;
-  font-weight: 400;
-  font-style: italic;
-  font-size: 1.3rem;
-  margin-bottom: 6rem;
-  margin-top: 0rem;
-}
-
 .footer {
   background-color: var(--ifm-background-color);
   color: var(--ifm-font-color-base);
   border-top: 3px solid var(--ifm-color-primary-darkest);
-}
-
-.button-mainpage {
-  border: 1px solid var(--ifm-color-primary-darker);
-  outline: none;
-  background-color: var(--ifm-background-color);
-  padding: 10px 20px;
-  margin: auto;
-  font-weight: 800;
-  font-family: "Doto", sans-serif;
-  font-size: 1.2rem;
-  color: var(--ifm-font-color-base);
-  border-radius: 6px;
-  transition: all ease 0.1s;
-  box-shadow: 0px 5px 0px 0px var(--ifm-color-primary-darker);
-}
-
-.button-mainpage:hover {
-  text-decoration: none;
-  background-color: var(--ifm-font-color-base);
-  color: var(--ifm-background-color);
-}
-
-.button-mainpage:active {
-  box-shadow: 0px 0px 0px 0px var(--ifm-font-color-base);
-  transform: translateY(5px);
 }
 
 nav.menu {
