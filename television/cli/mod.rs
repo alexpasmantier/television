@@ -452,7 +452,7 @@ where
     P: AsRef<Path>,
 {
     let channels =
-        cable::load_cable(cable_dir).expect("Failed to load cable channels");
+        cable::load_cable(cable_dir).unwrap_or(Cable::from_prototypes(vec![]));
     for c in channels.keys() {
         println!("{c}");
     }
