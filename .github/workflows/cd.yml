@@ -285,7 +285,7 @@ jobs:
             "aarch64-unknown-linux-gnu:arm64"
           )
           ROOT_DIR=$(pwd)
-          APT_DIR=$ROOT_DIR/apt
+          APT_DIR=$ROOT_DIR/website/static/apt
           REPREPRO_DIR=$APT_DIR/reprepro
           DISTS_STABLE_DIR=$APT_DIR/dists/stable
           DEB_STABLE_DIR=$APT_DIR/deb/stable
