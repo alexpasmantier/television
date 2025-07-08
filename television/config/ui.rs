@@ -76,11 +76,11 @@ pub struct ThemeOverrides {
     pub border_fg: Option<String>,
     pub text_fg: Option<String>,
     pub dimmed_text_fg: Option<String>,
-    
+
     // Input colors
     pub input_text_fg: Option<String>,
     pub result_count_fg: Option<String>,
-    
+
     // Result colors
     pub result_name_fg: Option<String>,
     pub result_line_number_fg: Option<String>,
@@ -88,10 +88,10 @@ pub struct ThemeOverrides {
     pub selection_bg: Option<String>,
     pub selection_fg: Option<String>,
     pub match_fg: Option<String>,
-    
+
     // Preview colors
     pub preview_title_fg: Option<String>,
-    
+
     // Mode colors
     pub channel_mode_fg: Option<String>,
     pub channel_mode_bg: Option<String>,
@@ -115,7 +115,7 @@ pub struct UiConfig {
     pub preview_panel: PreviewPanelConfig,
     pub help_panel: HelpPanelConfig,
     pub remote_control: RemoteControlConfig,
-    
+
     // Theme color overrides
     #[serde(default)]
     pub theme_overrides: ThemeOverrides,

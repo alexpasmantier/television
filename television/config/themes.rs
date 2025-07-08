@@ -156,13 +156,25 @@ impl Theme {
             ($field:ident, $override_field:expr) => {
                 if let Some(ref color_str) = $override_field {
                     merged_theme.$field = Color::from_str(color_str)
-                        .ok_or_else(|| format!("invalid {} color: {}", stringify!($field), color_str))?;
+                        .ok_or_else(|| {
+                            format!(
+                                "invalid {} color: {}",
+                                stringify!($field),
+                                color_str
+                            )
+                        })?;
                 }
             };
             (opt $field:ident, $override_field:expr) => {
                 if let Some(ref color_str) = $override_field {
-                    merged_theme.$field = Some(Color::from_str(color_str)
-                        .ok_or_else(|| format!("invalid {} color: {}", stringify!($field), color_str))?);
+                    merged_theme.$field =
+                        Some(Color::from_str(color_str).ok_or_else(|| {
+                            format!(
+                                "invalid {} color: {}",
+                                stringify!($field),
+                                color_str
+                            )
+                        })?);
                 }
             };
         }
@@ -175,7 +187,10 @@ impl Theme {
         apply_override!(input_text_fg, overrides.input_text_fg);
         apply_override!(result_count_fg, overrides.result_count_fg);
         apply_override!(result_name_fg, overrides.result_name_fg);
-        apply_override!(result_line_number_fg, overrides.result_line_number_fg);
+        apply_override!(
+            result_line_number_fg,
+            overrides.result_line_number_fg
+        );
         apply_override!(result_value_fg, overrides.result_value_fg);
         apply_override!(selection_bg, overrides.selection_bg);
         apply_override!(selection_fg, overrides.selection_fg);
@@ -183,8 +198,14 @@ impl Theme {
         apply_override!(preview_title_fg, overrides.preview_title_fg);
         apply_override!(channel_mode_fg, overrides.channel_mode_fg);
         apply_override!(channel_mode_bg, overrides.channel_mode_bg);
-        apply_override!(remote_control_mode_fg, overrides.remote_control_mode_fg);
-        apply_override!(remote_control_mode_bg, overrides.remote_control_mode_bg);
+        apply_override!(
+            remote_control_mode_fg,
+            overrides.remote_control_mode_fg
+        );
+        apply_override!(
+            remote_control_mode_bg,
+            overrides.remote_control_mode_bg
+        );
 
         Ok(merged_theme)
     }
@@ -373,8 +394,6 @@ impl<'de> Deserialize<'de> for Theme {
         })
     }
 }
-
-
 
 #[allow(clippy::from_over_into)]
 impl Into<RatatuiColor> for &RGBColor {
@@ -637,7 +656,8 @@ mod tests {
             ..Default::default()
         };
 
-        let merged_theme = base_theme.merge_with_overrides(&overrides).unwrap();
+        let merged_theme =
+            base_theme.merge_with_overrides(&overrides).unwrap();
 
         // Check that overridden colors are changed
         assert_eq!(
@@ -652,7 +672,10 @@ mod tests {
 
         // Check that non-overridden colors remain the same
         assert_eq!(merged_theme.border_fg, Color::Ansi(ANSIColor::White));
-        assert_eq!(merged_theme.input_text_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(
+            merged_theme.input_text_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
         assert_eq!(merged_theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
     }
 
@@ -666,7 +689,12 @@ mod tests {
 
         let result = base_theme.merge_with_overrides(&overrides);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("invalid text_fg color"));
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("invalid text_fg color")
+        );
     }
 
     #[test]
@@ -674,7 +702,8 @@ mod tests {
         let base_theme = create_test_theme();
         let overrides = crate::config::ui::ThemeOverrides::default();
 
-        let merged_theme = base_theme.merge_with_overrides(&overrides).unwrap();
+        let merged_theme =
+            base_theme.merge_with_overrides(&overrides).unwrap();
 
         // Check that all colors remain the same when no overrides are provided
         assert_eq!(merged_theme.background, base_theme.background);
@@ -684,7 +713,10 @@ mod tests {
         assert_eq!(merged_theme.input_text_fg, base_theme.input_text_fg);
         assert_eq!(merged_theme.result_count_fg, base_theme.result_count_fg);
         assert_eq!(merged_theme.result_name_fg, base_theme.result_name_fg);
-        assert_eq!(merged_theme.result_line_number_fg, base_theme.result_line_number_fg);
+        assert_eq!(
+            merged_theme.result_line_number_fg,
+            base_theme.result_line_number_fg
+        );
         assert_eq!(merged_theme.result_value_fg, base_theme.result_value_fg);
         assert_eq!(merged_theme.selection_bg, base_theme.selection_bg);
         assert_eq!(merged_theme.selection_fg, base_theme.selection_fg);
@@ -692,7 +724,13 @@ mod tests {
         assert_eq!(merged_theme.preview_title_fg, base_theme.preview_title_fg);
         assert_eq!(merged_theme.channel_mode_fg, base_theme.channel_mode_fg);
         assert_eq!(merged_theme.channel_mode_bg, base_theme.channel_mode_bg);
-        assert_eq!(merged_theme.remote_control_mode_fg, base_theme.remote_control_mode_fg);
-        assert_eq!(merged_theme.remote_control_mode_bg, base_theme.remote_control_mode_bg);
+        assert_eq!(
+            merged_theme.remote_control_mode_fg,
+            base_theme.remote_control_mode_fg
+        );
+        assert_eq!(
+            merged_theme.remote_control_mode_bg,
+            base_theme.remote_control_mode_bg
+        );
     }
 }

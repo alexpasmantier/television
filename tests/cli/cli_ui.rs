@@ -4,11 +4,11 @@
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
 use std::fs;
-use tempfile::tempdir;
 use television::{
     config::{Config, ConfigEnv},
     tui::TESTING_ENV_VAR,
 };
+use tempfile::tempdir;
 
 use super::common::*;
 
@@ -493,8 +493,17 @@ match_fg = "bright-red"
 
     // Verify that theme overrides are loaded correctly
     assert_eq!(config.ui.theme, "default");
-    assert_eq!(config.ui.theme_overrides.background, Some("black".to_string()));
+    assert_eq!(
+        config.ui.theme_overrides.background,
+        Some("black".to_string())
+    );
     assert_eq!(config.ui.theme_overrides.text_fg, Some("red".to_string()));
-    assert_eq!(config.ui.theme_overrides.selection_bg, Some("bright-black".to_string()));
-    assert_eq!(config.ui.theme_overrides.match_fg, Some("bright-red".to_string()));
+    assert_eq!(
+        config.ui.theme_overrides.selection_bg,
+        Some("bright-black".to_string())
+    );
+    assert_eq!(
+        config.ui.theme_overrides.match_fg,
+        Some("bright-red".to_string())
+    );
 }
