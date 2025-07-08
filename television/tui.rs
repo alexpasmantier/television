@@ -144,6 +144,14 @@ where
             // In tests, return a fixed position
             return Position { x: 0, y: 0 };
         }
+        if cfg!(target_os = "windows") {
+            // get cursor position using crossterm's built-in method
+            let position = crossterm::cursor::position().unwrap_or((0, 0));
+            return Position {
+                x: position.0.saturating_sub(1), // Convert to zero-based index
+                y: position.1.saturating_sub(1), // Convert to zero-based index
+            };
+        }
         let mut tty = OpenOptions::new()
             .read(true)
             // .write(true)
