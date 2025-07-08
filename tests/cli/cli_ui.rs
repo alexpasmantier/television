@@ -3,7 +3,12 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
-use television::tui::TESTING_ENV_VAR;
+use std::fs;
+use tempfile::tempdir;
+use television::{
+    config::{Config, ConfigEnv},
+    tui::TESTING_ENV_VAR,
+};
 
 use super::common::*;
 
@@ -464,4 +469,32 @@ fn test_tui_with_height_only() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
     unsafe { std::env::remove_var(TESTING_ENV_VAR) };
+}
+
+#[test]
+fn test_theme_overrides_integration() {
+    let config_content = r#"
+[ui]
+theme = "default"
+
+[ui.theme_overrides]
+background = "black"
+text_fg = "red"
+selection_bg = "bright-black"
+match_fg = "bright-red"
+"#;
+
+    let temp_dir = tempdir().unwrap();
+    let config_file = temp_dir.path().join("config.toml");
+    fs::write(&config_file, config_content).unwrap();
+
+    let config_env = ConfigEnv::init().unwrap();
+    let config = Config::new(&config_env, Some(&config_file)).unwrap();
+
+    // Verify that theme overrides are loaded correctly
+    assert_eq!(config.ui.theme, "default");
+    assert_eq!(config.ui.theme_overrides.background, Some("black".to_string()));
+    assert_eq!(config.ui.theme_overrides.text_fg, Some("red".to_string()));
+    assert_eq!(config.ui.theme_overrides.selection_bg, Some("bright-black".to_string()));
+    assert_eq!(config.ui.theme_overrides.match_fg, Some("bright-red".to_string()));
 }

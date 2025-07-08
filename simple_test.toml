@@ -1,0 +1,6 @@
+[ui]
+theme = "gruvbox-dark"
+
+[ui.theme_overrides]
+background = "#00ff00"
+text_fg = "#000000"

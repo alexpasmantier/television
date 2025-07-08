@@ -6,6 +6,8 @@ Builtin themes are available in the [themes](https://github.com/alexpasmantier/t
 | :-----------------------------------------------------------------------------------: | :---------------------------------------------------------: |
 | ![solarized-dark](../../assets/solarized-dark.png "gruvbox-light") **solarized-dark** |       ![nord](../../assets/nord.png "nord") **nord**        |
 
+## Custom Themes
+
 You may create your own custom themes by adding them to the `themes` directory in your configuration folder and then referring to them by file name (without the extension) in the configuration file.
 
 ```
@@ -43,3 +45,68 @@ remote_control_mode_bg = '#a6e3a1'
 send_to_channel_mode_fg = '#89dceb'
 ```
 
+## Theme Color Overrides
+
+Instead of creating a complete custom theme, you can override specific colors from any theme directly in your configuration file. This is useful for making small adjustments to existing themes without creating a full theme file.
+
+### Configuration
+
+Add a `[ui.theme_overrides]` section to your `config.toml` file:
+
+```toml
+[ui]
+theme = "gruvbox-dark"
+
+[ui.theme_overrides]
+background = "#000000"
+text_fg = "#ffffff"
+selection_bg = "#444444"
+match_fg = "#ff0000"
+```
+
+### Available Color Properties
+
+You can override any of the following color properties:
+
+**General:**
+- `background` - Background color
+- `border_fg` - Border foreground color
+- `text_fg` - General text color
+- `dimmed_text_fg` - Dimmed text color
+
+**Input:**
+- `input_text_fg` - Input text color
+- `result_count_fg` - Result count color
+
+**Results:**
+- `result_name_fg` - Result name color
+- `result_line_number_fg` - Line number color
+- `result_value_fg` - Result value color
+- `selection_bg` - Selection background color
+- `selection_fg` - Selection foreground color
+- `match_fg` - Match highlight color
+
+**Preview:**
+- `preview_title_fg` - Preview title color
+
+**Modes:**
+- `channel_mode_fg` - Channel mode foreground color
+- `channel_mode_bg` - Channel mode background color
+- `remote_control_mode_fg` - Remote control mode foreground color
+- `remote_control_mode_bg` - Remote control mode background color
+
+### Color Formats
+
+Colors can be specified in two formats:
+
+1. **ANSI color names**: `"red"`, `"bright-blue"`, `"white"`, etc.
+2. **Hex values**: `"#ff0000"`, `"#1e1e2e"`, `"#ffffff"`, etc.
+
+### Example Use Cases
+
+- **Dark background**: Override just the background color for a darker appearance
+- **Highlight matches**: Change the match color to make search results more visible
+- **Custom selection**: Modify selection colors to match your terminal theme
+- **Accessibility**: Adjust text colors for better contrast
+
+The overrides are applied on top of the base theme, so any colors you don't specify will retain their original values from the selected theme.

@@ -133,7 +133,14 @@ impl Television {
                 .to_string_lossy()
                 .to_string(),
         );
-        let colorscheme = (&Theme::from_name(&config.ui.theme)).into();
+        let base_theme = Theme::from_name(&config.ui.theme);
+        let theme = base_theme
+            .merge_with_overrides(&config.ui.theme_overrides)
+            .unwrap_or_else(|e| {
+                eprintln!("Warning: Failed to apply theme overrides: {}", e);
+                base_theme
+            });
+        let colorscheme = (&theme).into();
 
         let patrnn = Television::preprocess_pattern(
             matching_mode,
