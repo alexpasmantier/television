@@ -1,0 +1,7 @@
+
+[metadata]
+name = "nu-history"
+description = "A channel to select from your nu history"
+
+[source]
+command = "nu -c 'open $nu.history-path | lines | reverse | to text'"
