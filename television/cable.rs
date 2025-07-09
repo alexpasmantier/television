@@ -21,7 +21,7 @@ use crate::{
 /// This is used to store cable channel prototypes throughout the application
 /// in a way that facilitates answering questions like "what's the prototype
 /// for `files`?" or "does this channel exist?".
-#[derive(Debug, serde::Deserialize, Clone)]
+#[derive(Debug, serde::Deserialize, Clone, Default)]
 pub struct Cable(pub FxHashMap<String, ChannelPrototype>);
 
 impl Deref for Cable {
@@ -186,23 +186,6 @@ where
     debug!("Found cable channel files: {:?}", cable_files);
 
     if cable_files.is_empty() {
-        println!(
-            "{}",
-            "It seems you don't have any cable channels configured yet.\n"
-                .blue()
-                .bold()
-        );
-        println!(
-            "Run {} to get the latest default cable channels and/or add your own in `{}`.\n",
-            "`tv update-channels`".green().bold(),
-            cable_dir.to_string_lossy().yellow().bold()
-        );
-        println!(
-            "More info: {}",
-            "https://github.com/alexpasmantier/television/blob/main/README.md"
-                .blue()
-                .bold()
-        );
         return None;
     }
 
@@ -211,4 +194,25 @@ where
     debug!("Loaded {} cable channels", prototypes.len());
 
     Some(Cable::from_prototypes(prototypes))
+}
+
+pub fn cable_empty_exit() -> ! {
+    println!(
+        "{}",
+        "It seems you don't have any cable channels configured yet.\n"
+            .blue()
+            .bold()
+    );
+    println!(
+        "Run {} to get the latest default cable channels and/or add your own (https://alexpasmantier.github.io/television/docs/Users/channels#creating-your-own-channels).\n",
+        "`tv update-channels`".green().bold(),
+    );
+    println!(
+        "More info: {}",
+        "https://github.com/alexpasmantier/television/blob/main/README.md"
+            .blue()
+            .bold()
+    );
+
+    std::process::exit(1);
 }

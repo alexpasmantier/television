@@ -451,8 +451,7 @@ pub fn list_channels<P>(cable_dir: P)
 where
     P: AsRef<Path>,
 {
-    let channels =
-        cable::load_cable(cable_dir).unwrap_or(Cable::from_prototypes(vec![]));
+    let channels = cable::load_cable(cable_dir).unwrap_or_default();
     for c in channels.keys() {
         println!("{c}");
     }

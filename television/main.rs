@@ -4,6 +4,7 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
+use television::cable::cable_empty_exit;
 use television::{
     action::Action,
     app::{App, AppOptions},
@@ -64,8 +65,7 @@ async fn main() -> Result<()> {
     }
 
     debug!("Loading cable channels...");
-    let cable =
-        load_cable(&config.application.cable_dir).unwrap_or_else(|| exit(1));
+    let cable = load_cable(&config.application.cable_dir).unwrap_or_default();
 
     // optionally change the working directory
     if let Some(ref working_dir) = args.working_directory {
@@ -76,7 +76,7 @@ async fn main() -> Result<()> {
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
     let channel_prototype =
-        determine_channel(&args, &config, readable_stdin, &cable);
+        determine_channel(&args, &config, readable_stdin, Some(&cable));
 
     CLIPBOARD.with(<_>::default);
 
@@ -441,18 +441,21 @@ pub fn determine_channel(
     args: &PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
-    cable: &Cable,
+    cable: Option<&Cable>,
 ) -> ChannelPrototype {
     // Determine the base channel prototype
     let mut channel_prototype = if readable_stdin {
         create_stdin_channel(args)
     } else if let Some(prompt) = &args.autocomplete_prompt {
+        if cable.is_none() {
+            cable_empty_exit()
+        }
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(
             prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
-            cable,
+            cable.unwrap(),
         );
         debug!("Using guessed channel: {:?}", prototype);
         prototype
@@ -460,12 +463,15 @@ pub fn determine_channel(
     {
         create_adhoc_channel(args)
     } else {
+        if cable.is_none() {
+            cable_empty_exit()
+        }
         let channel_name = args
             .channel
             .as_ref()
             .unwrap_or(&config.application.default_channel);
         debug!("Using channel: {:?}", channel_name);
-        cable.get_channel(channel_name)
+        cable.unwrap().get_channel(channel_name)
     };
 
     // Apply CLI overrides to the prototype
@@ -504,7 +510,7 @@ mod tests {
                 ChannelPrototype::new("git", "git status"),
             ]));
         let channel =
-            determine_channel(args, config, readable_stdin, &channels);
+            determine_channel(args, config, readable_stdin, Some(&channels));
 
         assert_eq!(
             channel.metadata.name, expected_channel.metadata.name,
@@ -533,7 +539,7 @@ mod tests {
         let config = Config::default();
         let cable = Cable::from_prototypes(vec![]);
 
-        let channel = determine_channel(&args, &config, true, &cable);
+        let channel = determine_channel(&args, &config, true, Some(&cable));
 
         assert_eq!(channel.metadata.name, "stdin");
         assert!(channel.preview.is_none()); // No preview spec should be created
@@ -556,7 +562,7 @@ mod tests {
         let config = Config::default();
         let cable = Cable::from_prototypes(vec![]);
 
-        let channel = determine_channel(&args, &config, true, &cable);
+        let channel = determine_channel(&args, &config, true, Some(&cable));
 
         assert_eq!(channel.metadata.name, "stdin");
         assert!(channel.preview.is_some()); // Preview spec should be created
@@ -679,12 +685,8 @@ mod tests {
         };
         let config = Config::default();
 
-        let channel = determine_channel(
-            &args,
-            &config,
-            false,
-            &Cable::from_prototypes(vec![]),
-        );
+        let channel =
+            determine_channel(&args, &config, false, Some(&Cable::default()));
 
         assert_eq!(channel.metadata.name, "custom");
         assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
@@ -772,7 +774,8 @@ mod tests {
         };
         let config = Config::default();
 
-        let result_channel = determine_channel(&args, &config, false, &cable);
+        let result_channel =
+            determine_channel(&args, &config, false, Some(&cable));
 
         // Verify that CLI arguments overrode the channel prototype's UI settings
         assert!(result_channel.ui.is_some());
