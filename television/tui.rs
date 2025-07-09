@@ -143,6 +143,13 @@ where
         if std::env::var(TESTING_ENV_VAR).is_ok() {
             // In tests, return a fixed position
             return Position { x: 0, y: 0 };
+        } else if cfg!(windows) {
+            let position = crossterm::cursor::position()
+                .expect("Failed to get cursor position on Windows");
+            return Position {
+                x: position.0,
+                y: position.1,
+            };
         }
         let mut tty = OpenOptions::new()
             .read(true)
