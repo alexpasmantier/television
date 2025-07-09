@@ -126,5 +126,7 @@ function tv_shell_history
     end
 end
 
-bind {tv_smart_autocomplete_keybinding} tv_smart_autocomplete
-bind {tv_shell_history_keybinding} tv_shell_history
+for mode in default insert
+    bind --mode $mode {tv_smart_autocomplete_keybinding} tv_smart_autocomplete
+    bind --mode $mode {tv_shell_history_keybinding} tv_shell_history
+end
