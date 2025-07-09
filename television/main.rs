@@ -196,7 +196,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.keybindings =
             merge_keybindings(config.keybindings.clone(), keybindings);
     }
-    config.ui.ui_scale = args.ui_scale;
+    config.ui.ui_scale = args.ui_scale.unwrap_or(config.ui.ui_scale);
     if let Some(input_header) = &args.input_header {
         if let Ok(t) = Template::parse(input_header) {
             config.ui.input_header = Some(t);
@@ -797,5 +797,26 @@ mod tests {
             preview_panel.footer,
             Some(Template::parse("CLI Preview Footer").unwrap())
         );
+    }
+
+    #[test]
+    fn test_apply_cli_overrides_ui_scale() {
+        // Test that the CLI ui_scale override is applied correctly
+        let mut config = Config::default();
+        let args = PostProcessedCli {
+            ui_scale: Some(90),
+            ..Default::default()
+        };
+        apply_cli_overrides(&args, &mut config);
+
+        assert_eq!(config.ui.ui_scale, 90);
+
+        // Test that the config value is used when no CLI override is provided
+        let mut config = Config::default();
+        config.ui.ui_scale = 70;
+        let args = PostProcessedCli::default();
+        apply_cli_overrides(&args, &mut config);
+
+        assert_eq!(config.ui.ui_scale, 70);
     }
 }
