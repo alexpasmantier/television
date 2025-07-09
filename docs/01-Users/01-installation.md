@@ -1,5 +1,7 @@
 # Installation
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
+
 ## Nix
 
 Television is [available on `nixpkgs`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/te/television/package.nix)
@@ -91,7 +93,3 @@ You can then alias `tv` to the produced binary:
 ```bash
 alias tv=$TELEVISION_DIR/target/release/tv
 ```
-
-## Repology
-
-[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
