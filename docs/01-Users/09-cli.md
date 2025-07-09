@@ -360,7 +360,8 @@ Television's options are organized by functionality. Each option behaves differe
 **Purpose**: Uses all available empty space at the bottom of the terminal
 
 - **Both Modes**: Same behavior
-- **Behavior**: Automatically uses all available space below the cursor, minimum height is ensured
+- **Behavior**: Automatically uses all available space below the cursor,
+minimum height is ensured (set by default at 15 lines)
 - **Conflicts**: Cannot be used with `--height`
 - **Use Case**: Use of all available space without entering fullscreen mode
 
