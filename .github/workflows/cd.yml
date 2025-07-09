@@ -235,6 +235,8 @@ jobs:
           # if aarch64, we need to install the cross compiler since we're running x86_64
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
             sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
+            
+            cargo install cross
 
             cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME" \
               --cargo-build cross
