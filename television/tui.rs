@@ -83,22 +83,47 @@ where
             TuiMode::Fullscreen => Viewport::Fullscreen,
             TuiMode::Inline => {
                 let mut cursor_position = Self::get_cursor_position();
-                // take all available height and max width with a minimum of 15 for the height
-                let available_height =
+
+                // Calculate the available height by subtracting the cursor position
+                // from the terminal height.
+                let mut available_height =
                     terminal_size.height.saturating_sub(cursor_position.y);
+
                 debug!(
-                    "Total height: {}, Available height: {}, cursor position: {:?}",
+                    "THIS Terminal height: {}, Available height: {}, cursor position: {:?}",
                     terminal_size.height, available_height, cursor_position.y
                 );
+
+                // If we don't have enough space for the minimum viewport height, scroll up.
                 if available_height < MIN_VIEWPORT_HEIGHT {
-                    execute!(
-                        backend,
-                        ScrollUp(MIN_VIEWPORT_HEIGHT - available_height)
-                    )?;
-                    cursor_position.y = cursor_position.y.saturating_sub(
-                        MIN_VIEWPORT_HEIGHT - available_height + 1,
-                    );
+                    // Scroll up by the difference between the minimum viewport height and
+                    //the available height, minus one to account for the cursor position.
+                    let scroll_amount =
+                        MIN_VIEWPORT_HEIGHT - available_height - 1;
+
+                    // Special case: when we're at the very bottom (available_height == 1),
+                    // we need to scroll one less line to avoid creating an empty line
+                    // between the TUI and the prompt due to terminal cursor positioning.
+                    let actual_scroll = if available_height == 1 {
+                        scroll_amount - 1
+                    } else {
+                        scroll_amount
+                    };
+
+                    // Scroll up by as needed to reach the minimum viewport height.
+                    debug!("THIS Scrolling up by: {}", actual_scroll);
+                    execute!(backend, ScrollUp(actual_scroll))?;
+
+                    // Update cursor position to account for the scroll.
+                    debug!("THIS New cursor position: {}", cursor_position.y);
+                    cursor_position.y =
+                        cursor_position.y.saturating_sub(scroll_amount);
+
+                    // Update available height to the minimum viewport height.
+                    debug!("THIS New Available height: {}", available_height);
+                    available_height = MIN_VIEWPORT_HEIGHT;
                 }
+
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
                     cursor_position.y,
@@ -109,14 +134,42 @@ where
             TuiMode::Fixed { width, height } => {
                 let mut cursor_position = Self::get_cursor_position();
                 let w = width.unwrap_or(terminal_size.width);
+
+                // Calculate the available height by subtracting the cursor position
+                // from the terminal height.
                 let available_height =
                     terminal_size.height.saturating_sub(cursor_position.y);
+
+                debug!(
+                    "THIS Terminal height: {}, Available height: {}, cursor position: {:?}",
+                    terminal_size.height, available_height, cursor_position.y
+                );
+
+                // If we don't have enough space for the requested height, scroll up.
                 if available_height < *height {
-                    execute!(backend, ScrollUp(height - available_height))?;
-                    cursor_position.y = cursor_position
-                        .y
-                        .saturating_sub(*height - available_height + 1);
+                    // Scroll up by the difference between the requested height and
+                    // the available height, minus one to account for the cursor position.
+                    let scroll_amount = *height - available_height - 1;
+
+                    // Special case: when we're at the very bottom (available_height == 1),
+                    // we need to scroll one less line to avoid creating an empty line
+                    // between the TUI and the prompt due to terminal cursor positioning.
+                    let actual_scroll = if available_height == 1 {
+                        scroll_amount - 1
+                    } else {
+                        scroll_amount
+                    };
+
+                    // Scroll up by as needed to reach the requested height.
+                    debug!("THIS Scrolling up by: {}", actual_scroll);
+                    execute!(backend, ScrollUp(actual_scroll))?;
+
+                    // Update cursor position to account for the scroll.
+                    debug!("THIS New cursor position: {}", cursor_position.y);
+                    cursor_position.y =
+                        cursor_position.y.saturating_sub(scroll_amount);
                 }
+
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
                     cursor_position.y,
