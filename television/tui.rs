@@ -143,6 +143,9 @@ where
             terminal_size.height, available_height, cursor_position.y
         );
 
+        // We need to add one to the required height to account for the cursor position.
+        let required_height = required_height + 1;
+
         // If we don't have enough space for the required height we need to scroll up.
         if available_height < required_height {
             // Minus one to account for the cursor position.
