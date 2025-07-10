@@ -95,6 +95,9 @@ function tv_smart_autocomplete
     # prefix (lhs of cursor)
     set -l current_prompt (commandline --current-process)
 
+    # move to the next line so that the prompt is not overwritten
+    printf "\n"
+
     if set -l result (tv $dir --autocomplete-prompt "$current_prompt" --input $tv_query --inline)
         # Remove last token from commandline.
         commandline -t ''
@@ -112,18 +115,26 @@ function tv_smart_autocomplete
         end
     end
 
+    # move the cursor back to the previous line
+    printf "\033[A"
+
     commandline -f repaint
 end
 
 function tv_shell_history
     set -l current_prompt (commandline -cp)
 
-    set -l output (tv fish-history --input "$current_prompt")
+    # move to the next line so that the prompt is not overwritten
+    printf "\n"
+
+    set -l output (tv fish-history --input "$current_prompt" --inline)
 
     if test -n "$output"
         commandline -r "$output"
-        commandline -f repaint
     end
+    # move the cursor back to the previous line
+    printf "\033[A"
+    commandline -f repaint
 end
 
 for mode in default insert
