@@ -34,7 +34,7 @@ use std::fmt::Display;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
-use tracing::debug;
+use tracing::{debug, error};
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
