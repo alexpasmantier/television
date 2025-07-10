@@ -75,6 +75,12 @@ alias b := build
 # Build the project in release mode
 br: (build 'release')
 
+
+# test the zsh shell completion script in debug mode
+# Run: `source <(just generate-zsh-completion)` directly in zsh
+@generate-zsh-completion:
+	eval "$(cargo run -- init zsh | sed 's/tv /.\/target\/debug\/tv /')"
+
 # Update the project's changelog
 @update-changelog:
 	echo "Updating changelog..."
