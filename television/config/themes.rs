@@ -180,7 +180,7 @@ struct Inner {
     preview_title_fg: String,
     //modes
     channel_mode_fg: String,
-    channel_mode_bg: String,
+    channel_mode_bg: Option<String>,
     remote_control_mode_fg: String,
     remote_control_mode_bg: String,
 }
@@ -190,7 +190,10 @@ impl<'de> Deserialize<'de> for Theme {
     where
         D: serde::Deserializer<'de>,
     {
-        let inner = Inner::deserialize(deserializer).unwrap();
+        let inner = Inner::deserialize(deserializer).unwrap_or_else(|err| {
+            eprintln!("Failed to deserialize theme: {}", err);
+            std::process::exit(1);
+        });
         Ok(Self {
             background: inner
                 .background
@@ -301,13 +304,13 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.channel_mode_fg
                     ))
                 })?,
-            channel_mode_bg: Color::from_str(&inner.channel_mode_bg)
-                .ok_or_else(|| {
-                    serde::de::Error::custom(format!(
-                        "invalid color {}",
-                        &inner.channel_mode_bg
-                    ))
+            channel_mode_bg: match inner.channel_mode_bg {
+                Some(s) => Color::from_str(&s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", &s))
                 })?,
+                // Default to black. Not sure if black is the best choice
+                None => Color::Ansi(ANSIColor::Black),
+            },
             remote_control_mode_fg: Color::from_str(
                 &inner.remote_control_mode_fg,
             )
@@ -557,5 +560,57 @@ mod tests {
             theme.remote_control_mode_fg,
             Color::Ansi(ANSIColor::BrightWhite)
         );
+    }
+
+    #[test]
+    fn test_theme_deserialization_invalid_color() {
+        let theme_content = r##"
+            background = "#000000"
+            border_fg = "invalid-color"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            selection_fg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            channel_mode_bg = "bright-black"
+            remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
+        "##;
+        let result: Result<Theme, _> = toml::from_str(theme_content);
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("invalid color invalid-color"));
+        }
+    }
+
+    #[test]
+    fn test_theme_deserialization_fallback_channel_mode_bg() {
+        let theme_content = r##"
+            background = "#000000"
+            border_fg = "black"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            selection_fg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
+        "##;
+        let theme: Theme = toml::from_str(theme_content).unwrap();
+        assert_eq!(theme.channel_mode_bg, Color::Ansi(ANSIColor::Black));
     }
 }
