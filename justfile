@@ -86,6 +86,11 @@ br: (build 'release')
 @generate-fish-completion:
 	cargo run -- init fish | sed '2,$ s/tv /.\/target\/debug\/tv /'
 
+# test the bash shell completion script in debug mode
+# Run: `source <(just generate-bash-completion)` directly in bash
+@generate-bash-completion:
+	cargo run -- init bash | sed 's/tv /.\/target\/debug\/tv /'
+
 # Update the project's changelog
 @update-changelog:
 	echo "Updating changelog..."
