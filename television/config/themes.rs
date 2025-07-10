@@ -735,7 +735,9 @@ mod tests {
             merged_theme.remote_control_mode_bg,
             base_theme.remote_control_mode_bg
         );
+    }
 
+    #[test]
     fn test_theme_deserialization_invalid_color() {
         let theme_content = r##"
             background = "#000000"
