@@ -389,11 +389,10 @@ pub struct Cli {
     #[arg(
         long,
         value_name = "INTEGER",
-        default_value = "100",
         verbatim_doc_comment,
         value_parser = clap::value_parser!(u16).range(10..=100)
     )]
-    pub ui_scale: u16,
+    pub ui_scale: Option<u16>,
 
     /// Percentage of the screen to allocate to the preview panel (1-99).
     ///

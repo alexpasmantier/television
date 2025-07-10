@@ -144,6 +144,71 @@ impl Theme {
         let theme: Theme = toml::from_str(&theme)?;
         Ok(theme)
     }
+
+    /// Merge this theme with color overrides from the configuration
+    pub fn merge_with_overrides(
+        &self,
+        overrides: &crate::config::ui::ThemeOverrides,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        let mut merged_theme = self.clone();
+
+        macro_rules! apply_override {
+            ($field:ident, $override_field:expr) => {
+                if let Some(ref color_str) = $override_field {
+                    merged_theme.$field = Color::from_str(color_str)
+                        .ok_or_else(|| {
+                            format!(
+                                "invalid {} color: {}",
+                                stringify!($field),
+                                color_str
+                            )
+                        })?;
+                }
+            };
+            (opt $field:ident, $override_field:expr) => {
+                if let Some(ref color_str) = $override_field {
+                    merged_theme.$field =
+                        Some(Color::from_str(color_str).ok_or_else(|| {
+                            format!(
+                                "invalid {} color: {}",
+                                stringify!($field),
+                                color_str
+                            )
+                        })?);
+                }
+            };
+        }
+
+        // Apply overrides using the macro
+        apply_override!(opt background, overrides.background);
+        apply_override!(border_fg, overrides.border_fg);
+        apply_override!(text_fg, overrides.text_fg);
+        apply_override!(dimmed_text_fg, overrides.dimmed_text_fg);
+        apply_override!(input_text_fg, overrides.input_text_fg);
+        apply_override!(result_count_fg, overrides.result_count_fg);
+        apply_override!(result_name_fg, overrides.result_name_fg);
+        apply_override!(
+            result_line_number_fg,
+            overrides.result_line_number_fg
+        );
+        apply_override!(result_value_fg, overrides.result_value_fg);
+        apply_override!(selection_bg, overrides.selection_bg);
+        apply_override!(selection_fg, overrides.selection_fg);
+        apply_override!(match_fg, overrides.match_fg);
+        apply_override!(preview_title_fg, overrides.preview_title_fg);
+        apply_override!(channel_mode_fg, overrides.channel_mode_fg);
+        apply_override!(channel_mode_bg, overrides.channel_mode_bg);
+        apply_override!(
+            remote_control_mode_fg,
+            overrides.remote_control_mode_fg
+        );
+        apply_override!(
+            remote_control_mode_bg,
+            overrides.remote_control_mode_bg
+        );
+
+        Ok(merged_theme)
+    }
 }
 
 pub const DEFAULT_THEME: &str = "default";
@@ -180,7 +245,7 @@ struct Inner {
     preview_title_fg: String,
     //modes
     channel_mode_fg: String,
-    channel_mode_bg: String,
+    channel_mode_bg: Option<String>,
     remote_control_mode_fg: String,
     remote_control_mode_bg: String,
 }
@@ -190,7 +255,10 @@ impl<'de> Deserialize<'de> for Theme {
     where
         D: serde::Deserializer<'de>,
     {
-        let inner = Inner::deserialize(deserializer).unwrap();
+        let inner = Inner::deserialize(deserializer).unwrap_or_else(|err| {
+            eprintln!("Failed to deserialize theme: {}", err);
+            std::process::exit(1);
+        });
         Ok(Self {
             background: inner
                 .background
@@ -301,13 +369,13 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.channel_mode_fg
                     ))
                 })?,
-            channel_mode_bg: Color::from_str(&inner.channel_mode_bg)
-                .ok_or_else(|| {
-                    serde::de::Error::custom(format!(
-                        "invalid color {}",
-                        &inner.channel_mode_bg
-                    ))
+            channel_mode_bg: match inner.channel_mode_bg {
+                Some(s) => Color::from_str(&s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", &s))
                 })?,
+                // Default to black. Not sure if black is the best choice
+                None => Color::Ansi(ANSIColor::Black),
+            },
             remote_control_mode_fg: Color::from_str(
                 &inner.remote_control_mode_fg,
             )
@@ -458,6 +526,28 @@ impl Into<ModeColorscheme> for &Theme {
 mod tests {
     use super::*;
 
+    fn create_test_theme() -> Theme {
+        Theme {
+            background: Some(Color::Ansi(ANSIColor::Black)),
+            border_fg: Color::Ansi(ANSIColor::White),
+            text_fg: Color::Ansi(ANSIColor::BrightWhite),
+            dimmed_text_fg: Color::Ansi(ANSIColor::BrightBlack),
+            input_text_fg: Color::Ansi(ANSIColor::BrightWhite),
+            result_count_fg: Color::Ansi(ANSIColor::BrightWhite),
+            result_name_fg: Color::Ansi(ANSIColor::BrightWhite),
+            result_line_number_fg: Color::Ansi(ANSIColor::BrightWhite),
+            result_value_fg: Color::Ansi(ANSIColor::BrightWhite),
+            selection_bg: Color::Ansi(ANSIColor::BrightWhite),
+            selection_fg: Color::Ansi(ANSIColor::BrightWhite),
+            match_fg: Color::Ansi(ANSIColor::BrightWhite),
+            preview_title_fg: Color::Ansi(ANSIColor::BrightWhite),
+            channel_mode_fg: Color::Ansi(ANSIColor::BrightWhite),
+            channel_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
+            remote_control_mode_fg: Color::Ansi(ANSIColor::BrightWhite),
+            remote_control_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
+        }
+    }
+
     #[test]
     fn test_theme_deserialization() {
         let theme_content = r##"
@@ -557,5 +647,145 @@ mod tests {
             theme.remote_control_mode_fg,
             Color::Ansi(ANSIColor::BrightWhite)
         );
+    }
+
+    #[test]
+    fn test_theme_merge_with_overrides() {
+        let base_theme = create_test_theme();
+        let overrides = crate::config::ui::ThemeOverrides {
+            background: Some("#ff0000".to_string()),
+            text_fg: Some("red".to_string()),
+            selection_bg: Some("#00ff00".to_string()),
+            ..Default::default()
+        };
+
+        let merged_theme =
+            base_theme.merge_with_overrides(&overrides).unwrap();
+
+        // Check that overridden colors are changed
+        assert_eq!(
+            merged_theme.background,
+            Some(Color::Rgb(RGBColor::from_str("ff0000").unwrap()))
+        );
+        assert_eq!(merged_theme.text_fg, Color::Ansi(ANSIColor::Red));
+        assert_eq!(
+            merged_theme.selection_bg,
+            Color::Rgb(RGBColor::from_str("00ff00").unwrap())
+        );
+
+        // Check that non-overridden colors remain the same
+        assert_eq!(merged_theme.border_fg, Color::Ansi(ANSIColor::White));
+        assert_eq!(
+            merged_theme.input_text_fg,
+            Color::Ansi(ANSIColor::BrightWhite)
+        );
+        assert_eq!(merged_theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
+    }
+
+    #[test]
+    fn test_theme_merge_with_invalid_color() {
+        let base_theme = create_test_theme();
+        let overrides = crate::config::ui::ThemeOverrides {
+            text_fg: Some("invalid-color".to_string()),
+            ..Default::default()
+        };
+
+        let result = base_theme.merge_with_overrides(&overrides);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("invalid text_fg color")
+        );
+    }
+
+    #[test]
+    fn test_theme_merge_with_empty_overrides() {
+        let base_theme = create_test_theme();
+        let overrides = crate::config::ui::ThemeOverrides::default();
+
+        let merged_theme =
+            base_theme.merge_with_overrides(&overrides).unwrap();
+
+        // Check that all colors remain the same when no overrides are provided
+        assert_eq!(merged_theme.background, base_theme.background);
+        assert_eq!(merged_theme.border_fg, base_theme.border_fg);
+        assert_eq!(merged_theme.text_fg, base_theme.text_fg);
+        assert_eq!(merged_theme.dimmed_text_fg, base_theme.dimmed_text_fg);
+        assert_eq!(merged_theme.input_text_fg, base_theme.input_text_fg);
+        assert_eq!(merged_theme.result_count_fg, base_theme.result_count_fg);
+        assert_eq!(merged_theme.result_name_fg, base_theme.result_name_fg);
+        assert_eq!(
+            merged_theme.result_line_number_fg,
+            base_theme.result_line_number_fg
+        );
+        assert_eq!(merged_theme.result_value_fg, base_theme.result_value_fg);
+        assert_eq!(merged_theme.selection_bg, base_theme.selection_bg);
+        assert_eq!(merged_theme.selection_fg, base_theme.selection_fg);
+        assert_eq!(merged_theme.match_fg, base_theme.match_fg);
+        assert_eq!(merged_theme.preview_title_fg, base_theme.preview_title_fg);
+        assert_eq!(merged_theme.channel_mode_fg, base_theme.channel_mode_fg);
+        assert_eq!(merged_theme.channel_mode_bg, base_theme.channel_mode_bg);
+        assert_eq!(
+            merged_theme.remote_control_mode_fg,
+            base_theme.remote_control_mode_fg
+        );
+        assert_eq!(
+            merged_theme.remote_control_mode_bg,
+            base_theme.remote_control_mode_bg
+        );
+    }
+
+    #[test]
+    fn test_theme_deserialization_invalid_color() {
+        let theme_content = r##"
+            background = "#000000"
+            border_fg = "invalid-color"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            selection_fg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            channel_mode_bg = "bright-black"
+            remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
+        "##;
+        let result: Result<Theme, _> = toml::from_str(theme_content);
+        assert!(result.is_err());
+        if let Err(e) = result {
+            assert!(e.to_string().contains("invalid color invalid-color"));
+        }
+    }
+
+    #[test]
+    fn test_theme_deserialization_fallback_channel_mode_bg() {
+        let theme_content = r##"
+            background = "#000000"
+            border_fg = "black"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            selection_fg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
+        "##;
+        let theme: Theme = toml::from_str(theme_content).unwrap();
+        assert_eq!(theme.channel_mode_bg, Color::Ansi(ANSIColor::Black));
     }
 }

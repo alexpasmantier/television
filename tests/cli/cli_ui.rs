@@ -3,7 +3,12 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
-use television::tui::TESTING_ENV_VAR;
+use std::fs;
+use television::{
+    config::{Config, ConfigEnv},
+    tui::TESTING_ENV_VAR,
+};
+use tempfile::tempdir;
 
 use super::common::*;
 
