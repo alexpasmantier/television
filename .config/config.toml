@@ -63,6 +63,20 @@ orientation = "landscape"
 # repository. You may also create your own theme by creating a new file in a `themes`
 # directory in your configuration directory (see the `config.toml` location above).
 theme = "default"
+
+# Theme color overrides
+# ---------------------
+# You can override specific colors from the selected theme by adding them here.
+# This allows you to customize the appearance without creating a full theme file.
+# Colors can be specified as ANSI color names (e.g., "red", "bright-blue") or
+# as hex values (e.g., "#ff0000", "#1e1e2e").
+#
+# Example overrides:
+# [ui.theme_overrides]
+# background = "#000000"
+# text_fg = "#ffffff"
+# selection_bg = "#444444"
+# match_fg = "#ff0000"
 # The default size of the preview panel (in percentage of the screen)
 preview_size = 50
 

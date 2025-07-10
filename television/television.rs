@@ -34,7 +34,7 @@ use std::fmt::Display;
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
-use tracing::debug;
+use tracing::{debug, error};
 
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
@@ -133,7 +133,14 @@ impl Television {
                 .to_string_lossy()
                 .to_string(),
         );
-        let colorscheme = (&Theme::from_name(&config.ui.theme)).into();
+        let base_theme = Theme::from_name(&config.ui.theme);
+        let theme = base_theme
+            .merge_with_overrides(&config.ui.theme_overrides)
+            .unwrap_or_else(|e| {
+                error!("Failed to apply theme overrides: {}", e);
+                base_theme
+            });
+        let colorscheme = (&theme).into();
 
         let patrnn = Television::preprocess_pattern(
             matching_mode,

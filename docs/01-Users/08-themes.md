@@ -6,6 +6,8 @@ Builtin themes are available in the [themes](https://github.com/alexpasmantier/t
 | :-----------------------------------------------------------------------------------: | :---------------------------------------------------------: |
 | ![solarized-dark](../../assets/solarized-dark.png "gruvbox-light") **solarized-dark** |       ![nord](../../assets/nord.png "nord") **nord**        |
 
+## Custom Themes
+
 You may create your own custom themes by adding them to the `themes` directory in your configuration folder and then referring to them by file name (without the extension) in the configuration file.
 
 ```
@@ -43,3 +45,30 @@ remote_control_mode_bg = '#a6e3a1'
 send_to_channel_mode_fg = '#89dceb'
 ```
 
+## Theme Color Overrides
+
+Override specific colors from any theme directly in your configuration:
+
+```toml
+[ui]
+theme = "gruvbox-dark"
+
+[ui.theme_overrides]
+background = "#000000"
+text_fg = "#ffffff"
+selection_bg = "#444444"
+match_fg = "#ff0000"
+```
+
+### Properties
+
+**General:** `background`, `border_fg`, `text_fg`, `dimmed_text_fg`  
+**Input:** `input_text_fg`, `result_count_fg`  
+**Results:** `result_name_fg`, `result_line_number_fg`, `result_value_fg`, `selection_bg`, `selection_fg`, `match_fg`  
+**Preview:** `preview_title_fg`  
+**Modes:** `channel_mode_fg`, `channel_mode_bg`, `remote_control_mode_fg`, `remote_control_mode_bg`
+
+### Colors
+
+ANSI: `"red"`, `"bright-blue"`, `"white"`  
+Hex: `"#ff0000"`, `"#1e1e2e"`
