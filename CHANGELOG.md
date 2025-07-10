@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+
+## [unreleased]
+
+### 🐛 Bug Fixes
+
+- [177ac79](https://github.com/alexpasmantier/television/commit/177ac79bcfaf9ddb0281b9dcd568ea5346d649a0) *(cable)* Quote shell arguments and fix line endings for linux files by @lalvarezt in [#619](https://github.com/alexpasmantier/television/pull/619)
+
+- [a663c47](https://github.com/alexpasmantier/television/commit/a663c47e4cd36710040740c20fe5fb69173d300e) *(ci)* Install cross by @alexpasmantier
+
+- [e4a6447](https://github.com/alexpasmantier/television/commit/e4a6447d75f54dbf81cd4da14c248dfe9fe95f0e) *(themes)* Make channel mode background optional by @kapobajza in [#614](https://github.com/alexpasmantier/television/pull/614)
+
+- [20be709](https://github.com/alexpasmantier/television/commit/20be709ee9f66f7e6c9c1362fcdcf598a59ec2c8) *(tui)* Better handling of cursor position by @lalvarezt in [#621](https://github.com/alexpasmantier/television/pull/621)
+
+- [799dcd8](https://github.com/alexpasmantier/television/commit/799dcd875d374edb788cf5f5a52d386099ef2cd6) *(tui)* Account for cursor position when determining the size by @lalvarezt in [#620](https://github.com/alexpasmantier/television/pull/620)
+
+### 📚 Documentation
+
+- [b2c4353](https://github.com/alexpasmantier/television/commit/b2c43539ffed34c7a97a71f2ca236f6dd3aa8305) *(uncategorized)* Update installation page by @alexpasmantier
+
+- [381ddde](https://github.com/alexpasmantier/television/commit/381dddeab20aad6aa7b6f8746b3f0792814a2d6b) *(uncategorized)* Update readme link by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [44b9e4a](https://github.com/alexpasmantier/television/commit/44b9e4af4576b365f9b05ecffbbcc01c257e0871) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#613](https://github.com/alexpasmantier/television/pull/613)
+
+
+
+
+
 ## [0.12.1](https://github.com/alexpasmantier/television/releases/tag/0.12.1) - 2025-07-09
 
 ### 🐛 Bug Fixes
