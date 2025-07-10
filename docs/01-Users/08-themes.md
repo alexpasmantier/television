@@ -6,6 +6,8 @@ Builtin themes are available in the [themes](https://github.com/alexpasmantier/t
 | :-----------------------------------------------------------------------------------: | :---------------------------------------------------------: |
 | ![solarized-dark](../../assets/solarized-dark.png "gruvbox-light") **solarized-dark** |       ![nord](../../assets/nord.png "nord") **nord**        |
 
+Available themes: `default`, `catppuccin`, `gruvbox-dark`, `gruvbox-light`, `solarized-dark`, `solarized-light`, `nord-dark`, `onedark`, `dracula`, `monokai`, `tokyonight`, `television`.
+
 You may create your own custom themes by adding them to the `themes` directory in your configuration folder and then referring to them by file name (without the extension) in the configuration file.
 
 ```
