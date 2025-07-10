@@ -7,7 +7,7 @@ requirements = ["fd"]
 command = ["fd -t d", "fd -t d --hidden"]
 
 [preview]
-command = "ls -l {}"
+command = "ls -l '{}'"
 
 [keybindings]
 shortcut = "f2"

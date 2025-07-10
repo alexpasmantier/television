@@ -66,6 +66,39 @@ impl Default for RemoteControlConfig {
     }
 }
 
+/// Theme color overrides that can be specified in the configuration file
+/// to customize the appearance of the selected theme
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[serde(default)]
+pub struct ThemeOverrides {
+    // General colors
+    pub background: Option<String>,
+    pub border_fg: Option<String>,
+    pub text_fg: Option<String>,
+    pub dimmed_text_fg: Option<String>,
+
+    // Input colors
+    pub input_text_fg: Option<String>,
+    pub result_count_fg: Option<String>,
+
+    // Result colors
+    pub result_name_fg: Option<String>,
+    pub result_line_number_fg: Option<String>,
+    pub result_value_fg: Option<String>,
+    pub selection_bg: Option<String>,
+    pub selection_fg: Option<String>,
+    pub match_fg: Option<String>,
+
+    // Preview colors
+    pub preview_title_fg: Option<String>,
+
+    // Mode colors
+    pub channel_mode_fg: Option<String>,
+    pub channel_mode_bg: Option<String>,
+    pub remote_control_mode_fg: Option<String>,
+    pub remote_control_mode_bg: Option<String>,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct UiConfig {
@@ -82,6 +115,10 @@ pub struct UiConfig {
     pub preview_panel: PreviewPanelConfig,
     pub help_panel: HelpPanelConfig,
     pub remote_control: RemoteControlConfig,
+
+    // Theme color overrides
+    #[serde(default)]
+    pub theme_overrides: ThemeOverrides,
 }
 
 impl Default for UiConfig {
@@ -98,6 +135,7 @@ impl Default for UiConfig {
             preview_panel: PreviewPanelConfig::default(),
             help_panel: HelpPanelConfig::default(),
             remote_control: RemoteControlConfig::default(),
+            theme_overrides: ThemeOverrides::default(),
         }
     }
 }

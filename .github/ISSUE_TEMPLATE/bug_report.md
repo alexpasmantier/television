@@ -1,10 +1,9 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-title: ''
+title: ""
 labels: bug
-assignees: ''
-
+assignees: ""
 ---
 
 **Description**
@@ -16,14 +15,14 @@ A [minimal reproducible code example](https://stackoverflow.com/help/minimal-rep
 **Expected behavior**
 A description of what you expected to happen.
 
-**Actual behavior**
-A description of what actually happens.
-
 **Environment**
- - OS: [e.g. Windows]
- - Rust version: [e.g. 1.50.0]
- - Project version: [e.g. 0.1.0]
- - [Any other dependency version if needed]
+
+- OS: [e.g. Windows]
+- TV version: [e.g. 0.1.0]
+- shell: [e.g. bash, zsh, fish]
+- terminal: [e.g. iTerm2, GNOME Terminal, Windows Terminal]
+- **Your configuration file (`~/.config/television/config.toml`)**
+- **The channel you are using** (if applicable and different from the default)
 
 **Additional context**
 Any other context about the bug here.

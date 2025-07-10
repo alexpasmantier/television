@@ -1,6 +1,6 @@
 <div align="center">
 
-![television-title](./assets/television-title.png)  
+[<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)  
 **A cross-platform, fast and extensible general purpose fuzzy finder for the terminal.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)

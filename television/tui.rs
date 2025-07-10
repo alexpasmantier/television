@@ -82,23 +82,20 @@ where
         let viewport = match mode {
             TuiMode::Fullscreen => Viewport::Fullscreen,
             TuiMode::Inline => {
-                let mut cursor_position = Self::get_cursor_position();
-                // take all available height and max width with a minimum of 15 for the height
-                let available_height =
-                    terminal_size.height.saturating_sub(cursor_position.y);
-                debug!(
-                    "Total height: {}, Available height: {}, cursor position: {:?}",
-                    terminal_size.height, available_height, cursor_position.y
-                );
-                if available_height < MIN_VIEWPORT_HEIGHT {
-                    execute!(
-                        backend,
-                        ScrollUp(MIN_VIEWPORT_HEIGHT - available_height)
-                    )?;
-                    cursor_position.y = cursor_position.y.saturating_sub(
-                        MIN_VIEWPORT_HEIGHT - available_height + 1,
-                    );
-                }
+                let cursor_position = Self::get_cursor_position();
+                let cursor_position = Self::handle_viewport_scrolling(
+                    &mut backend,
+                    cursor_position,
+                    terminal_size,
+                    MIN_VIEWPORT_HEIGHT,
+                )?;
+
+                // Calculate final available height after potential scrolling
+                let available_height = terminal_size
+                    .height
+                    .saturating_sub(cursor_position.y)
+                    .max(MIN_VIEWPORT_HEIGHT);
+
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
                     cursor_position.y,
@@ -107,16 +104,15 @@ where
                 ))
             }
             TuiMode::Fixed { width, height } => {
-                let mut cursor_position = Self::get_cursor_position();
+                let cursor_position = Self::get_cursor_position();
+                let cursor_position = Self::handle_viewport_scrolling(
+                    &mut backend,
+                    cursor_position,
+                    terminal_size,
+                    *height,
+                )?;
+
                 let w = width.unwrap_or(terminal_size.width);
-                let available_height =
-                    terminal_size.height.saturating_sub(cursor_position.y);
-                if available_height < *height {
-                    execute!(backend, ScrollUp(height - available_height))?;
-                    cursor_position.y = cursor_position
-                        .y
-                        .saturating_sub(*height - available_height + 1);
-                }
                 Viewport::Fixed(ratatui::layout::Rect::new(
                     0,
                     cursor_position.y,
@@ -131,8 +127,50 @@ where
         Ok(Self { terminal, viewport })
     }
 
-    pub fn size(&self) -> Result<Size> {
-        Ok(self.terminal.size()?)
+    /// Handles scrolling logic when there's insufficient space for the requested height.
+    /// Returns the updated cursor position after scrolling.
+    fn handle_viewport_scrolling(
+        backend: &mut CrosstermBackend<W>,
+        mut cursor_position: Position,
+        terminal_size: Size,
+        required_height: u16,
+    ) -> Result<Position> {
+        let available_height =
+            terminal_size.height.saturating_sub(cursor_position.y);
+
+        debug!(
+            "Terminal height: {}, Available height: {}, cursor position: {:?}",
+            terminal_size.height, available_height, cursor_position.y
+        );
+
+        // We need to add one to the required height to account for the cursor position.
+        let required_height = required_height + 1;
+
+        // If we don't have enough space for the required height we need to scroll up.
+        if available_height < required_height {
+            // Minus one to account for the cursor position.
+            let scroll_amount = required_height - available_height - 1;
+
+            // Special case: when we're at the very bottom (available_height == 1),
+            // we need to scroll one less line to avoid creating an empty line
+            // between the TUI and the prompt due to terminal cursor positioning.
+            let actual_scroll = if available_height == 1 {
+                scroll_amount - 1
+            } else {
+                scroll_amount
+            };
+
+            // Scroll up by as needed to reach the required height.
+            debug!("Scrolling up by: {}", actual_scroll);
+            execute!(backend, ScrollUp(actual_scroll))?;
+
+            // Update cursor position to account for the scroll.
+            debug!("New cursor position: {}", cursor_position.y);
+            cursor_position.y =
+                cursor_position.y.saturating_sub(scroll_amount);
+        }
+
+        Ok(cursor_position)
     }
 
     const DSR: &'static str = "\x1b[6n";
@@ -143,6 +181,13 @@ where
         if std::env::var(TESTING_ENV_VAR).is_ok() {
             // In tests, return a fixed position
             return Position { x: 0, y: 0 };
+        } else if cfg!(windows) {
+            let position = crossterm::cursor::position()
+                .expect("Failed to get cursor position on Windows");
+            return Position {
+                x: position.0,
+                y: position.1,
+            };
         }
         let mut tty = OpenOptions::new()
             .read(true)
@@ -213,8 +258,11 @@ where
 
             disable_raw_mode()?;
 
-            // Move cursor up one line to avoid leaving artefacts on the top border
-            execute!(backend, cursor::MoveToPreviousLine(1))?;
+            // Move cursor to the top of the application area.
+            if let Viewport::Fixed(rect) = self.viewport {
+                execute!(backend, cursor::MoveTo(0, rect.y))?;
+            }
+
             execute!(
                 backend,
                 crossterm::terminal::Clear(ClearType::FromCursorDown)
