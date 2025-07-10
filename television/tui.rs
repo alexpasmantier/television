@@ -258,8 +258,11 @@ where
 
             disable_raw_mode()?;
 
-            // Move cursor up one line to avoid leaving artefacts on the top border
-            execute!(backend, cursor::MoveToPreviousLine(1))?;
+            // Move cursor to the top of the application area.
+            if let Viewport::Fixed(rect) = self.viewport {
+                execute!(backend, cursor::MoveTo(0, rect.y))?;
+            }
+
             execute!(
                 backend,
                 crossterm::terminal::Clear(ClearType::FromCursorDown)
