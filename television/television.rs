@@ -137,7 +137,7 @@ impl Television {
         let theme = base_theme
             .merge_with_overrides(&config.ui.theme_overrides)
             .unwrap_or_else(|e| {
-                eprintln!("Warning: Failed to apply theme overrides: {}", e);
+                error!("Failed to apply theme overrides: {}", e);
                 base_theme
             });
         let colorscheme = (&theme).into();
