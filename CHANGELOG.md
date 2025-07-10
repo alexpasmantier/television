@@ -4,6 +4,81 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.12.2](https://github.com/alexpasmantier/television/releases/tag/0.12.2) - 2025-07-10
+
+### 🐛 Bug Fixes
+
+- [177ac79](https://github.com/alexpasmantier/television/commit/177ac79bcfaf9ddb0281b9dcd568ea5346d649a0) *(cable)* Quote shell arguments and fix line endings for linux files by @lalvarezt in [#619](https://github.com/alexpasmantier/television/pull/619)
+
+- [a663c47](https://github.com/alexpasmantier/television/commit/a663c47e4cd36710040740c20fe5fb69173d300e) *(ci)* Install cross by @alexpasmantier
+
+- [e4a6447](https://github.com/alexpasmantier/television/commit/e4a6447d75f54dbf81cd4da14c248dfe9fe95f0e) *(themes)* Make channel mode background optional by @kapobajza in [#614](https://github.com/alexpasmantier/television/pull/614)
+
+- [20be709](https://github.com/alexpasmantier/television/commit/20be709ee9f66f7e6c9c1362fcdcf598a59ec2c8) *(tui)* Better handling of cursor position by @lalvarezt in [#621](https://github.com/alexpasmantier/television/pull/621)
+
+- [799dcd8](https://github.com/alexpasmantier/television/commit/799dcd875d374edb788cf5f5a52d386099ef2cd6) *(tui)* Account for cursor position when determining the size by @lalvarezt in [#620](https://github.com/alexpasmantier/television/pull/620)
+
+### 📚 Documentation
+
+- [b2c4353](https://github.com/alexpasmantier/television/commit/b2c43539ffed34c7a97a71f2ca236f6dd3aa8305) *(uncategorized)* Update installation page by @alexpasmantier
+
+- [381ddde](https://github.com/alexpasmantier/television/commit/381dddeab20aad6aa7b6f8746b3f0792814a2d6b) *(uncategorized)* Update readme link by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [ec899b5](https://github.com/alexpasmantier/television/commit/ec899b56b67ae3d264ffef8456e05b953fd7e76e) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#622](https://github.com/alexpasmantier/television/pull/622)
+
+- [44b9e4a](https://github.com/alexpasmantier/television/commit/44b9e4af4576b365f9b05ecffbbcc01c257e0871) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#613](https://github.com/alexpasmantier/television/pull/613)
+
+- [d05b22d](https://github.com/alexpasmantier/television/commit/d05b22d82ba650b9f623b68d06dc31e9ab8ca6e1) *(uncategorized)* Bump to 0.12.2 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.1...0.12.2
+
+
+## [0.12.1](https://github.com/alexpasmantier/television/releases/tag/0.12.1) - 2025-07-09
+
+### 🐛 Bug Fixes
+
+- [75ea895](https://github.com/alexpasmantier/television/commit/75ea8953a21f14dba20c973f9be0230022350ea1) *(cable)* No more panics on empty cable by @alexpasmantier
+
+- [bcf9f1a](https://github.com/alexpasmantier/television/commit/bcf9f1a3a62e8677392dbfdc3c460fcff693c54e) *(cable)* No panic when listing empty cable by @alexpasmantier
+
+- [427ca36](https://github.com/alexpasmantier/television/commit/427ca3619c2b70bef1cf071f069d3701fab59ec1) *(shell)* Set fish keybinds for both default and insert modes by @joelazar in [#610](https://github.com/alexpasmantier/television/pull/610)
+
+- [20a55cf](https://github.com/alexpasmantier/television/commit/20a55cf1429565990debda5df31c6a357870ed87) *(tui)* Fix incorrect height calculation when there is not enough space by @lalvarezt in [#611](https://github.com/alexpasmantier/television/pull/611)
+
+- [c392ae8](https://github.com/alexpasmantier/television/commit/c392ae891c9fef8673ffe52072b056c524da2bd7) *(ui)* Config now takes precedence when no cli args on `ui_scale` by @alexpasmantier
+
+### 📚 Documentation
+
+- [b6e9990](https://github.com/alexpasmantier/television/commit/b6e9990b2f93bbaddb33b14f6824f66f5556a1d2) *(uncategorized)* Made the landing page more responsive by @kapobajza in [#605](https://github.com/alexpasmantier/television/pull/605)
+
+- [0876520](https://github.com/alexpasmantier/television/commit/0876520938febd38893c2a2ac7a30b1a996b4f4c) *(uncategorized)* Update patch notes by @alexpasmantier
+
+- [333bf63](https://github.com/alexpasmantier/television/commit/333bf63e3a92f3d1f5f4e3ab7691233d4b0e0a2c) *(uncategorized)* Update readme links by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [338632c](https://github.com/alexpasmantier/television/commit/338632c8f7cd7402051fcb1a9aba7c28968ab6cd) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#598](https://github.com/alexpasmantier/television/pull/598)
+
+- [ee180d7](https://github.com/alexpasmantier/television/commit/ee180d72fb6efde5f3f27e249f14807379f06a8b) *(docs)* Add missing pnpm installation step to tests by @alexpasmantier
+
+- [85a538d](https://github.com/alexpasmantier/television/commit/85a538d257e952430a0fb0cfd2d26a7c5c71e62a) *(uncategorized)* Bump to 0.12.1 by @alexpasmantier
+
+- [4fd42ac](https://github.com/alexpasmantier/television/commit/4fd42acd7e1ff238ab2260e82bdece29a39a00d7) *(uncategorized)* Update issue and pr templates by @alexpasmantier
+
+
+
+### New Contributors
+* @joelazar made their first contribution in [#610](https://github.com/alexpasmantier/television/pull/610)
+* @Vijayabaskar56 made their first contribution in [#607](https://github.com/alexpasmantier/television/pull/607)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.0...0.12.1
+
+
 ## [0.12.0](https://github.com/alexpasmantier/television/releases/tag/0.12.0) - 2025-07-07
 
 ### ⛰️  Features

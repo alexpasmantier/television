@@ -3,8 +3,7 @@ use crate::{
     channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
-        DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE, KeyBindings, get_config_dir,
-        get_data_dir,
+        DEFAULT_PREVIEW_SIZE, KeyBindings, get_config_dir, get_data_dir,
     },
     errors::cli_parsing_error_exit,
     screen::layout::Orientation,
@@ -84,7 +83,7 @@ pub struct PostProcessedCli {
 
     // UI and layout configuration
     pub layout: Option<Orientation>,
-    pub ui_scale: u16,
+    pub ui_scale: Option<u16>,
     pub height: Option<u16>,
     pub width: Option<u16>,
     pub inline: bool,
@@ -154,7 +153,7 @@ impl Default for PostProcessedCli {
 
             // UI and layout configuration
             layout: None,
-            ui_scale: DEFAULT_UI_SCALE,
+            ui_scale: None,
             height: None,
             width: None,
             inline: false,

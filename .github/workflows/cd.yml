@@ -109,7 +109,7 @@ jobs:
           args: --release --target ${{ matrix.target }}
       - name: install strip command
         shell: bash
-        run: |2
+        run: |
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
 
               sudo apt update
@@ -117,7 +117,7 @@ jobs:
           fi
       - name: Packaging final binary
         shell: bash
-        run: |2
+        run: |
           ####### reduce binary size by removing debug symbols #######
 
           BIN=target/${{ matrix.target }}/release/tv${{ matrix.binary-postfix }}
@@ -159,7 +159,7 @@ jobs:
       - name: Releasing assets
         uses: softprops/action-gh-release@v2
         with:
-          files: |2
+          files: |
             tv-*.tar.gz
             tv-*.zip
             tv-*.sha256
@@ -213,7 +213,9 @@ jobs:
       - name: Install cargo-deb and cross
         shell: bash
         run: |
-          cargo install cargo-deb cross
+          cargo install cargo-deb
+          cargo install cross
+          echo "~/.cargo/bin" >> $GITHUB_PATH
       - name: Create deployment directory
         shell: bash
         run: |
@@ -226,25 +228,7 @@ jobs:
           cp man/tv.1 "$DEPLOY_DIR/"
       - name: Build release binary
         shell: bash
-        run: |
-          version="${{ github.ref_name }}"
-          DEB_NAME="tv-$version-${{ matrix.target }}.deb"
-          DEB_DIR="target/${{ matrix.target }}/debian"
-
-          # Build the actual binary
-          # if aarch64, we need to install the cross compiler since we're running x86_64
-          if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
-            sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu
-
-            cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME" \
-              --cargo-build cross
-              -- --no-default-features --features zero-copy,simd,fancy
-          else
-            cargo deb --profile deb --target ${{ matrix.target }} -o "$DEB_DIR/$DEB_NAME"
-          fi
-
-          echo "DEB_DIR=$DEB_DIR" >> $GITHUB_ENV
-          echo "DEB_NAME=$DEB_NAME" >> $GITHUB_ENV
+        run: "version=\"${{ github.ref_name }}\"\nDEB_NAME=\"tv-$version-${{ matrix.target }}.deb\"\nDEB_DIR=\"target/${{ matrix.target }}/debian\"\n\n# Build the actual binary\n# if aarch64, we need to install the cross compiler since we're running x86_64\nif [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then\n  sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu\n  \n  cargo install cross\n\n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\" \\\n    --cargo-build cross\n    -- --no-default-features --features zero-copy,simd,fancy\nelse\n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\"\nfi\n\necho \"DEB_DIR=$DEB_DIR\" >> $GITHUB_ENV\necho \"DEB_NAME=$DEB_NAME\" >> $GITHUB_ENV\n"
       - name: Create sha256 sum of deb file
         shell: bash
         run: |
