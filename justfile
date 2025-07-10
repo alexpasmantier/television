@@ -79,7 +79,12 @@ br: (build 'release')
 # test the zsh shell completion script in debug mode
 # Run: `source <(just generate-zsh-completion)` directly in zsh
 @generate-zsh-completion:
-	eval "$(cargo run -- init zsh | sed 's/tv /.\/target\/debug\/tv /')"
+	cargo run -- init zsh | sed 's/tv /.\/target\/debug\/tv /'
+
+# test the fish shell completion script in debug mode
+# Run: `source <(just generate-fish-completion)` directly in fish
+@generate-fish-completion:
+	cargo run -- init fish | sed '2,$ s/tv /.\/target\/debug\/tv /'
 
 # Update the project's changelog
 @update-changelog:
