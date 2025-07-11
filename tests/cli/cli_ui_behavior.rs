@@ -102,7 +102,11 @@ fn test_scroll_preview_keybindings() {
     let mut tester = PtyTester::new();
 
     // Start with the files channel which has preview enabled
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--input",
+        "CHANGELOG.md",
+    ]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Send Page Down to scroll preview down
@@ -136,6 +140,8 @@ fn test_reload_source_keybinding() {
     // Start with the files channel
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
+        "--input",
+        ".txt",
         tmp_dir.to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
