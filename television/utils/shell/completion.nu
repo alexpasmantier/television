@@ -29,29 +29,31 @@ def tv_shell_history [] {
 }
 
 # Bind custom keybindings
-
 $env.config = (
   $env.config
-  | upsert keybindings [
-        {
-            name: tv_completion,
-            modifier: Control,
-            keycode: char_t,
-            mode: [vi_normal, vi_insert, emacs],
-            event: {
-                send: executehostcommand,
-                cmd: "tv_smart_autocomplete"
-            }
-        }
-        {
-            name: tv_history,
-            modifier: Control,
-            keycode: char_r,
-            mode: [vi_normal, vi_insert, emacs],
-            event: {
-                send: executehostcommand,
-                cmd: "tv_shell_history"
-            }
-        }
-    ]
+  | upsert keybindings (
+      $env.config.keybindings
+      | append [
+          {
+              name: tv_completion,
+              modifier: Control,
+              keycode: char_t,
+              mode: [vi_normal, vi_insert, emacs],
+              event: {
+                  send: executehostcommand,
+                  cmd: "tv_smart_autocomplete"
+              }
+          }
+          {
+              name: tv_history,
+              modifier: Control,
+              keycode: char_r,
+              mode: [vi_normal, vi_insert, emacs],
+              event: {
+                  send: executehostcommand,
+                  cmd: "tv_shell_history"
+              }
+          }
+      ]
+  )
 )
