@@ -477,9 +477,7 @@ impl Into<HelpColorscheme> for &Theme {
 impl Into<ResultsColorscheme> for &Theme {
     fn into(self) -> ResultsColorscheme {
         ResultsColorscheme {
-            result_name_fg: (&self.result_name_fg).into(),
-            result_preview_fg: (&self.result_value_fg).into(),
-            result_line_number_fg: (&self.result_line_number_fg).into(),
+            result_fg: (&self.result_name_fg).into(),
             result_selected_bg: (&self.selection_bg).into(),
             result_selected_fg: (&self.selection_fg).into(),
             match_foreground_color: (&self.match_fg).into(),

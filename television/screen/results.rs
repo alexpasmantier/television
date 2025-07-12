@@ -44,6 +44,7 @@ pub fn draw_results_list(
     let results_list = result_item::build_results_list(
         results_block,
         entries,
+        relative_picker_state,
         list_direction,
         use_nerd_font_icons,
         &colorscheme.results,

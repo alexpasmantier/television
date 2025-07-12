@@ -255,6 +255,7 @@ fn draw_rc_channels(
     let channel_list = result_item::build_results_list(
         rc_block,
         entries,
+        picker_state,
         ListDirection::TopToBottom,
         use_nerd_font_icons,
         &colorscheme.results,

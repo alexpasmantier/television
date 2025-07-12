@@ -69,7 +69,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     // Add channel-specific info in Channel mode
     if ctx.tv_state.mode == Mode::Channel {
         let name_style = Style::default()
-            .fg(ctx.colorscheme.results.result_name_fg)
+            .fg(ctx.colorscheme.results.result_fg)
             .add_modifier(Modifier::BOLD);
 
         // Channel name
@@ -89,7 +89,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
                 Span::styled(
                     format!("{} selected", selected_count),
                     Style::default()
-                        .fg(ctx.colorscheme.results.result_name_fg)
+                        .fg(ctx.colorscheme.results.result_fg)
                         .add_modifier(Modifier::ITALIC),
                 ),
             ]);
@@ -191,7 +191,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     let right_spans = vec![Span::styled(
         format!("v{} ", ctx.app_metadata.version),
         Style::default()
-            .fg(ctx.colorscheme.results.result_name_fg)
+            .fg(ctx.colorscheme.results.result_fg)
             .add_modifier(Modifier::ITALIC),
     )];
 

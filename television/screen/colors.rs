@@ -24,9 +24,7 @@ pub struct HelpColorscheme {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct ResultsColorscheme {
-    pub result_name_fg: Color,
-    pub result_preview_fg: Color,
-    pub result_line_number_fg: Color,
+    pub result_fg: Color,
     pub result_selected_bg: Color,
     pub result_selected_fg: Color,
     pub match_foreground_color: Color,

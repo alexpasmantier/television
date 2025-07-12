@@ -7,7 +7,9 @@ use ratatui::layout::Alignment;
 use ratatui::layout::Rect;
 use ratatui::prelude::{Line, Style};
 use ratatui::style::Color;
-use ratatui::widgets::{Block, BorderType, Borders, ListDirection, Padding};
+use ratatui::widgets::{
+    Block, BorderType, Borders, ListDirection, ListState, Padding,
+};
 use television::channels::prototypes::ChannelPrototype;
 use television::picker::Movement;
 use television::{
@@ -390,9 +392,7 @@ pub fn draw_results_list(c: &mut Criterion) {
     ];
 
     let colorscheme = ResultsColorscheme {
-        result_name_fg: Color::Indexed(222),
-        result_preview_fg: Color::Indexed(222),
-        result_line_number_fg: Color::Indexed(222),
+        result_fg: Color::Indexed(222),
         result_selected_fg: Color::Indexed(222),
         result_selected_bg: Color::Indexed(222),
         match_foreground_color: Color::Indexed(222),
@@ -411,6 +411,7 @@ pub fn draw_results_list(c: &mut Criterion) {
                     .style(Style::default())
                     .padding(Padding::right(1)),
                 &entries,
+                &ListState::default(),
                 ListDirection::BottomToTop,
                 false,
                 &colorscheme,
