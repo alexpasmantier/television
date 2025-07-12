@@ -96,16 +96,22 @@ update-man: build
 	else echo "No changes to manpages"
 	fi
 
-publish:
+@publish:
 	echo "Publishing {{ NAME }}..."
 	cargo publish --all-features
 	echo "Done"
 
-commit-release:
+@commit-release:
 	#!/usr/bin/env sh
 	version=$(grep -E '^\s*version\s*=' Cargo.toml | cut -d '"' -f 2)
 	git commit -am "chore: release version $version"
 	git tag "$version"
+
+@push-release:
+	#!/usr/bin/env sh
+	echo "Pushing changes and tags to remote..."
+	git push origin main --tags
+	echo "Done"
 
 alias rl := release
 # Publish a new release (major, minor, or patch)
