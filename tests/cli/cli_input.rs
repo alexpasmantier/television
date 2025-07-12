@@ -96,20 +96,22 @@ fn test_exact_matching_enabled() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
-// #[test]
-// TODO: This test is failing because the matcher is not correctly handling the exact matching mode. REGRESSION
-// fn test_exact_matching_enabled_fails() {
-//     let mut tester = PtyTester::new();
+#[test]
+fn test_exact_matching_enabled_fails() {
+    let mut tester = PtyTester::new();
 
-//     // This enables exact substring matching instead of the default fuzzy matching
-//     let cmd = tv_local_config_and_cable_with_args(&["files", "--exact", "--input", "fl1"]);
-//     let mut child = tester.spawn_command_tui(cmd);
+    // This enables exact substring matching instead of the default fuzzy matching
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files", "--exact", "--input", "fl1",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
 
-//     // Verify the TUI started successfully with exact matching enabled and no results
-//     tester.assert_tui_frame_contains("│> fl1                                               0 / 0 │");
-//     tester.assert_not_tui_frame_contains("file1.txt");
+    // Verify the TUI started successfully with exact matching enabled and no results
+    tester.assert_tui_frame_contains("│> fl1");
+    tester.assert_tui_frame_contains("0 / 0");
+    tester.assert_not_tui_frame_contains("file1.txt");
 
-//     // Send Ctrl+C to exit the application
-//     tester.send(&ctrl('c'));
-//     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-// }
+    // Send Ctrl+C to exit the application
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
