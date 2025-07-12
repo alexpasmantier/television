@@ -157,7 +157,7 @@ impl CommandSpec {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelKeyBindings {
     /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
     #[serde(default)]
@@ -391,6 +391,22 @@ pub struct UiSpec {
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
+
+impl From<&crate::config::UiConfig> for UiSpec {
+    fn from(config: &crate::config::UiConfig) -> Self {
+        UiSpec {
+            ui_scale: Some(config.ui_scale),
+            features: Some(config.features.clone()),
+            orientation: Some(config.orientation),
+            input_bar_position: Some(config.input_bar_position),
+            input_header: config.input_header.clone(),
+            preview_panel: Some(config.preview_panel.clone()),
+            status_bar: Some(config.status_bar.clone()),
+            help_panel: Some(config.help_panel.clone()),
+            remote_control: Some(config.remote_control.clone()),
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
