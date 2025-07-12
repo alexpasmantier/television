@@ -13,7 +13,7 @@ use devicons::FileIcon;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
     style::Stylize,
-    widgets::{Block, List, ListDirection},
+    widgets::{Block, List, ListDirection, ListState},
 };
 use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;
@@ -42,12 +42,17 @@ pub trait ResultItem {
 /// Build a single `Line` for a [`ResultItem`].
 #[allow(clippy::too_many_arguments)]
 #[allow(clippy::cast_possible_truncation)]
+// TODO: pass the right colors directly as arguments and make the
+// calling function responsible for the colors used for each line.
 pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     item: &'a T,
     use_icons: bool,
-    colorscheme: &ResultsColorscheme,
+    selection_fg: Color,
+    result_fg: Color,
+    match_fg: Color,
     area_width: u16,
-    prefix: Option<bool>, // Some(true)=selected ●, Some(false)=unselected, None=no prefix
+    // Some(true)=selected ●, Some(false)=unselected, None=no prefix
+    prefix: Option<bool>,
 ) -> Line<'a> {
     // PERF: Pre-allocate spans vector with estimated capacity
     let mut spans = Vec::<Span<'a>>::with_capacity(16);
@@ -57,7 +62,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         if selected {
             spans.push(Span::styled(
                 SELECTED_SYMBOL,
-                Style::default().fg(colorscheme.result_selected_fg),
+                Style::default().fg(selection_fg),
             ));
         } else {
             spans.push(Span::raw(DESELECTED_SYMBOL));
@@ -111,10 +116,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
 
     // PERF: Early return for empty match ranges - common case optimization
     if match_ranges.is_empty() {
-        spans.push(Span::styled(
-            entry_name,
-            Style::default().fg(colorscheme.result_name_fg),
-        ));
+        spans.push(Span::styled(entry_name, Style::default().fg(result_fg)));
     } else {
         // PERF: Collect chars once to avoid repeated Unicode parsing
         let chars: Vec<char> = entry_name.chars().collect();
@@ -131,7 +133,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
                 if !text.is_empty() {
                     spans.push(Span::styled(
                         text,
-                        Style::default().fg(colorscheme.result_name_fg),
+                        Style::default().fg(result_fg),
                     ));
                 }
             }
@@ -143,8 +145,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
                 if !text.is_empty() {
                     spans.push(Span::styled(
                         text,
-                        Style::default()
-                            .fg(colorscheme.match_foreground_color),
+                        Style::default().fg(match_fg),
                     ));
                 }
             }
@@ -156,10 +157,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         if last_end < name_len {
             let text: String = chars[last_end..].iter().collect();
             if !text.is_empty() {
-                spans.push(Span::styled(
-                    text,
-                    Style::default().fg(colorscheme.result_name_fg),
-                ));
+                spans.push(Span::styled(text, Style::default().fg(result_fg)));
             }
         }
     }
@@ -170,7 +168,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         match binding {
             Binding::SingleKey(k) => spans.push(Span::styled(
                 k.to_string(),
-                Style::default().fg(colorscheme.match_foreground_color),
+                Style::default().fg(match_fg),
             )),
             Binding::MultipleKeys(keys) => {
                 for (i, k) in keys.iter().enumerate() {
@@ -179,8 +177,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
                     }
                     spans.push(Span::styled(
                         k.to_string(),
-                        Style::default()
-                            .fg(colorscheme.match_foreground_color),
+                        Style::default().fg(match_fg),
                     ));
                 }
             }
@@ -195,6 +192,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
 pub fn build_results_list<'a, 'b, T, F>(
     block: Block<'b>,
     entries: &'a [T],
+    relative_picker_state: &ListState,
     list_direction: ListDirection,
     use_icons: bool,
     colorscheme: &ResultsColorscheme,
@@ -206,10 +204,22 @@ where
     T: ResultItem,
     F: FnMut(&T) -> Option<bool>,
 {
-    use ratatui::widgets::List;
-    List::new(entries.iter().map(|e| {
+    List::new(entries.iter().enumerate().map(|(i, e)| {
         let prefix = prefix_fn(e);
-        build_result_line(e, use_icons, colorscheme, area_width, prefix)
+        let result_fg = if relative_picker_state.selected() == Some(i) {
+            colorscheme.result_selected_fg
+        } else {
+            colorscheme.result_fg
+        };
+        build_result_line(
+            e,
+            use_icons,
+            colorscheme.result_selected_fg,
+            result_fg,
+            colorscheme.match_foreground_color,
+            area_width,
+            prefix,
+        )
     }))
     .direction(list_direction)
     .highlight_style(
@@ -223,7 +233,6 @@ where
 mod tests {
     use super::*;
     use crate::channels::entry::Entry;
-    use crate::screen::colors::ResultsColorscheme;
     use ratatui::prelude::{Color, Span};
     use ratatui::text::Line;
 
@@ -234,7 +243,9 @@ mod tests {
         let line = build_result_line(
             &entry,
             false,
-            &ResultsColorscheme::default(),
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
             200,
             None,
         );
@@ -258,7 +269,9 @@ mod tests {
         let line = build_result_line(
             &entry,
             false,
-            &ResultsColorscheme::default(),
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
             20, // small width
             None,
         );

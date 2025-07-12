@@ -16,6 +16,8 @@ match_fg = '#FF5555'
 # preview
 preview_title_fg = '#50FA7B'
 # modes
-channel_mode_fg = '#8BE9FD'
-remote_control_mode_fg = '#FFB86C'
+channel_mode_fg = '#282A36'
+channel_mode_bg = '#8BE9FD'
+remote_control_mode_fg = '#282A36'
+remote_control_mode_bg = '#FFB86C'
 send_to_channel_mode_fg = '#FF79C6'
