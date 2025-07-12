@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.12.3](https://github.com/alexpasmantier/television/releases/tag/0.12.3) - 2025-07-12
+
+### ⛰️  Features
+
+- [4e90a35](https://github.com/alexpasmantier/television/commit/4e90a357e86048ae352896ecc5c9552ca83a5e98) *(themes)* Allow users to add theme overrides using their config file by @MohamedBsh in [#604](https://github.com/alexpasmantier/television/pull/604)
+
+### 🐛 Bug Fixes
+
+- [521c747](https://github.com/alexpasmantier/television/commit/521c7473b4fa96fca6779eeaa2649fea47d6cd1f) *(channels)* Make stdin and adhoc channels inherit from global config by @lalvarezt in [#633](https://github.com/alexpasmantier/television/pull/633)
+
+- [781d27c](https://github.com/alexpasmantier/television/commit/781d27cebc7fd6ebeb3bca2e3a773ca1a0781557) *(ci)* Cross compilation for aarch64 deb release by @alexpasmantier
+
+- [229604a](https://github.com/alexpasmantier/television/commit/229604a7659f1d97e9e0778d0438f1a21b0afcec) *(fish)* Fix --inline terminal behavior for fish integration by @alexpasmantier
+
+- [6023d02](https://github.com/alexpasmantier/television/commit/6023d020f11265af58315402885fb45911465c6c) *(nix)* Set meta.mainProgram field by @samirettali in [#634](https://github.com/alexpasmantier/television/pull/634)
+
+- [7079d48](https://github.com/alexpasmantier/television/commit/7079d48aa7080836b24c06a6aa879d3f88380776) *(nushell)* Append to existing nu keybindings instead of replacing them by @alexpasmantier
+
+- [fb97f01](https://github.com/alexpasmantier/television/commit/fb97f011be9a7a1575a3516225d4dd87a0518461) *(themes)* `selection_fg` was not applied correctly + code improvements by @alexpasmantier
+
+- [83711f6](https://github.com/alexpasmantier/television/commit/83711f6d3073bb5b2f1eac0ec7bddab4fc8b843d) *(zsh)* Improve zsh integration inline mode by @alexpasmantier
+
+### 🚜 Refactor
+
+- [23cf584](https://github.com/alexpasmantier/television/commit/23cf584f67f62de0f74a6f4813878d6732d123a9) *(bash)* Improve bash integration script by @alexpasmantier
+
+### 📚 Documentation
+
+- [f0d17b7](https://github.com/alexpasmantier/television/commit/f0d17b70114db03154f5889987d7ab5067e5aee2) *(uncategorized)* Add links to various repo docs by @alexpasmantier
+
+- [1bbda8e](https://github.com/alexpasmantier/television/commit/1bbda8e62f2d9698f522cd673ff68ca2253819c5) *(uncategorized)* Add link to shell integration local dev note by @alexpasmantier
+
+### 🧪 Testing
+
+- [ecf05a0](https://github.com/alexpasmantier/television/commit/ecf05a0148c8d0d3d29af941aa7187b169b1ee14) *(cli)* Fix some flaky tests, reinstate exact mode testing by @lalvarezt in [#632](https://github.com/alexpasmantier/television/pull/632)
+
+### ⚙️ Miscellaneous Tasks
+
+- [0cdf65a](https://github.com/alexpasmantier/television/commit/0cdf65a2049291d728cf122e88762b118119d36b) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#623](https://github.com/alexpasmantier/television/pull/623)
+
+- [d5adad0](https://github.com/alexpasmantier/television/commit/d5adad03231795f2ad9e0deaa983827d0f4e2f58) *(uncategorized)* Release version 0.12.3 by @alexpasmantier
+
+- [e9ef8d8](https://github.com/alexpasmantier/television/commit/e9ef8d8150fba8dd1f748baadb4560b390542d1b) *(uncategorized)* Add recipes to allow testing shell integrations locally less of a pain by @alexpasmantier
+
+
+
+### New Contributors
+* @samirettali made their first contribution in [#634](https://github.com/alexpasmantier/television/pull/634)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.2...0.12.3
+
+
 ## [0.12.2](https://github.com/alexpasmantier/television/releases/tag/0.12.2) - 2025-07-10
 
 ### 🐛 Bug Fixes
