@@ -45,6 +45,9 @@
       in {
         packages.default = naersk'.buildPackage {
           src = ./.;
+          meta = {
+            mainProgram = "tv";
+          };
         };
         apps = {
           default = flake-utils.lib.mkApp {
