@@ -20,7 +20,7 @@ use television::{
     },
     config::{Config, ConfigEnv, merge_keybindings},
     errors::os_error_exit,
-    features::{FeatureFlags, Features},
+    features::FeatureFlags,
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
@@ -249,7 +249,10 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
 }
 
 /// Creates a stdin channel prototype with optional preview configuration
-fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
+fn create_stdin_channel(
+    args: &PostProcessedCli,
+    config: &Config,
+) -> ChannelPrototype {
     debug!("Using stdin channel");
     let stdin_preview =
         args.preview_command_override.as_ref().map(|preview_cmd| {
@@ -262,8 +265,8 @@ fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
     let mut prototype =
         ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter);
 
-    // Configure UI features based on whether preview command is available
-    let mut features = Features::default();
+    // Inherit UI features from global config (which has CLI overrides applied)
+    let mut features = config.ui.features.clone();
     if args.preview_command_override.is_some() {
         features.enable(FeatureFlags::PreviewPanel);
     } else {
@@ -271,17 +274,9 @@ fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
     }
 
     // Set UI specification to properly control feature visibility
-    prototype.ui = Some(UiSpec {
-        ui_scale: None,
-        features: Some(features),
-        orientation: None,
-        input_bar_position: None,
-        input_header: None,
-        status_bar: None,
-        preview_panel: None,
-        help_panel: None,
-        remote_control: None,
-    });
+    let mut ui_spec = UiSpec::from(&config.ui);
+    ui_spec.features = Some(features);
+    prototype.ui = Some(ui_spec);
 
     prototype
 }
@@ -290,7 +285,10 @@ fn create_stdin_channel(args: &PostProcessedCli) -> ChannelPrototype {
 const DEFAULT_ADHOC_CHANNEL_HEADER: &str = "Custom Channel";
 
 /// Creates an ad-hoc channel prototype from CLI arguments
-fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
+fn create_adhoc_channel(
+    args: &PostProcessedCli,
+    config: &Config,
+) -> ChannelPrototype {
     debug!("Creating ad-hoc channel with source command override");
     let source_cmd = args.source_command_override.as_ref().unwrap();
 
@@ -306,8 +304,8 @@ fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
             Template::parse(DEFAULT_ADHOC_CHANNEL_HEADER).unwrap()
         });
 
-    // Configure features based on available commands
-    let mut features = Features::default();
+    // Inherit UI features from global config (which has CLI overrides applied)
+    let mut features = config.ui.features.clone();
     if args.preview_command_override.is_some() {
         features.enable(FeatureFlags::PreviewPanel);
     } else {
@@ -315,17 +313,10 @@ fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
     }
 
     // Set UI specification
-    prototype.ui = Some(UiSpec {
-        ui_scale: None,
-        features: Some(features),
-        orientation: None,
-        input_bar_position: None,
-        input_header: Some(input_header),
-        status_bar: None,
-        preview_panel: None,
-        help_panel: None,
-        remote_control: None,
-    });
+    let mut ui_spec = UiSpec::from(&config.ui);
+    ui_spec.input_header = Some(input_header);
+    ui_spec.features = Some(features);
+    prototype.ui = Some(ui_spec);
 
     prototype
 }
@@ -445,7 +436,7 @@ pub fn determine_channel(
 ) -> ChannelPrototype {
     // Determine the base channel prototype
     let mut channel_prototype = if readable_stdin {
-        create_stdin_channel(args)
+        create_stdin_channel(args, config)
     } else if let Some(prompt) = &args.autocomplete_prompt {
         if cable.is_none() {
             cable_empty_exit()
@@ -461,7 +452,7 @@ pub fn determine_channel(
         prototype
     } else if args.channel.is_none() && args.source_command_override.is_some()
     {
-        create_adhoc_channel(args)
+        create_adhoc_channel(args, config)
     } else {
         if cable.is_none() {
             cable_empty_exit()
