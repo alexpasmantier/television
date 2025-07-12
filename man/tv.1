@@ -1,6 +1,6 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH television 1  "television 0.11.9" 
+.TH television 1  "television 0.12.3" 
 .SH NAME
 television \- Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
@@ -268,7 +268,7 @@ Show the help panel on startup (only works if feature is enabled).
 This flag works identically in both channel mode and ad\-hoc mode.
 This overrides any channel configuration that might have it disabled.
 .TP
-\fB\-\-ui\-scale\fR=\fIINTEGER\fR [default: 100]
+\fB\-\-ui\-scale\fR=\fIINTEGER\fR
 Change the display size in relation to the available area.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -320,7 +320,7 @@ This flag works identically in both channel mode and ad\-hoc mode.
 
 When enabled, the picker will be displayed as an inline interface that uses
 all available empty space at the bottom of the terminal. If there is insufficient
-space to meet the minimum height (set by default at 15 lines) the terminal will scroll.
+space to meet the minimum height the terminal will scroll.
 .TP
 \fB\-h\fR, \fB\-\-help\fR
 Print help (see a summary with \*(Aq\-h\*(Aq)
@@ -365,6 +365,6 @@ Downloads the latest collection of default channel prototypes from github and sa
 television\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
-v0.11.9
+v0.12.3
 .SH AUTHORS
 Alexandre Pasmantier <alex.pasmant@gmail.com>
