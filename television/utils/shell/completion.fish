@@ -1,4 +1,4 @@
-function __tv_parse_commandline --description 'Parse the current command line token and return split of existing filepath, and tv query'
+function __tv_parse_commandline --description 'Parse the current command line token and return split of existing filepath, and query'
     # credits to the junegunn/fzf project
     # https://github.com/junegunn/fzf/blob/9c1a47acf7453f9dad5905b7f23ad06e5195d51f/shell/key-bindings.fish#L53-L131
 
