@@ -150,3 +150,7 @@ bump-version kind='patch':
 	fi
 	git add Cargo.toml
 	echo "Done"
+
+# Start a local development server for the project's website
+@start-website:
+	cd website && pnpm install && pnpm start

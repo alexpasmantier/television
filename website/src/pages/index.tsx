@@ -4,6 +4,7 @@ import Link from "@docusaurus/Link";
 import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Layout from "@theme/Layout";
 import Heading from "@theme/Heading";
+import HomepageFeatures from "@site/src/components/HomepageFeatures";
 
 import styles from "./index.module.css";
 
@@ -21,7 +22,7 @@ function HomepageHeader() {
 
 export default function Home(): ReactNode {
   return (
-    <Layout description="Description will go into a meta tag in <head />">
+    <Layout description="The cross-platform, fast and extensible fuzzy finder.">
       <div className={clsx("container", styles.main)}>
         <HomepageHeader />
         <main>
@@ -65,6 +66,7 @@ export default function Home(): ReactNode {
               </div>
             </div>
           </div>
+          <HomepageFeatures />
         </main>
       </div>
     </Layout>
