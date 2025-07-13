@@ -222,7 +222,7 @@ fn draw_content_outer_block(
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::new(0, 1, 1, 0));
-    if let Some(border_type) = colorscheme.general.border_type {
+    if let Some(border_type) = colorscheme.preview.preview_border_type {
         preview_outer_block = preview_outer_block
             .borders(Borders::ALL)
             .border_type(border_type)

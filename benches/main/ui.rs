@@ -395,6 +395,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         result_fg: Color::Indexed(222),
         result_selected_fg: Color::Indexed(222),
         result_selected_bg: Color::Indexed(222),
+        result_border_type: Some(BorderType::Rounded),
         match_foreground_color: Color::Indexed(222),
     };
 

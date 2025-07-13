@@ -30,7 +30,7 @@ pub fn draw_results_list(
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::right(1));
-    if let Some(border_type) = colorscheme.general.border_type {
+    if let Some(border_type) = colorscheme.results.result_border_type {
         results_block = results_block
             .borders(Borders::ALL)
             .border_type(border_type)

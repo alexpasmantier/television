@@ -47,7 +47,7 @@ pub fn draw_input_box(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         );
-    if let Some(border_type) = colorscheme.general.border_type {
+    if let Some(border_type) = colorscheme.input.input_border_type {
         input_block = input_block
             .borders(Borders::ALL)
             .border_type(border_type)

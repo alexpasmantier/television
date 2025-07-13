@@ -90,7 +90,9 @@ impl RGBColor {
 #[derive(Clone, Debug, PartialEq)]
 pub enum BorderType {
     None,
+    Plain,
     Rounded,
+    Thick,
 }
 impl BorderType {
     pub fn from_string_option(s: Option<&str>) -> Option<Self> {
@@ -108,12 +110,12 @@ impl BorderType {
 pub struct Theme {
     // general
     pub background: Option<Color>,
-    pub border_type: BorderType,
     pub border_fg: Color,
     pub text_fg: Color,
     pub dimmed_text_fg: Color,
     // input
     pub input_text_fg: Color,
+    pub input_border_type: BorderType,
     pub result_count_fg: Color,
     // results
     pub result_name_fg: Color,
@@ -122,8 +124,10 @@ pub struct Theme {
     pub selection_bg: Color,
     pub selection_fg: Color,
     pub match_fg: Color,
+    pub result_border_type: BorderType,
     // preview
     pub preview_title_fg: Color,
+    pub preview_border_type: BorderType,
     // modes
     pub channel_mode_fg: Color,
     pub channel_mode_bg: Color,
@@ -243,26 +247,28 @@ impl Default for Theme {
 struct Inner {
     // general
     background: Option<String>,
-    border_type: Option<String>,
     border_fg: String,
     // info
     text_fg: String,
     dimmed_text_fg: String,
     // input
     input_text_fg: String,
+    input_border_type: Option<String>,
     result_count_fg: String,
-    //results
+    // results
     result_name_fg: String,
     result_line_number_fg: String,
     result_value_fg: String,
+    result_border_type: Option<String>,
     selection_bg: String,
     // this is made optional for theme backwards compatibility
     // and falls back to match_fg
     selection_fg: Option<String>,
     match_fg: String,
-    //preview
+    // preview
     preview_title_fg: String,
-    //modes
+    preview_border_type: Option<String>,
+    // modes
     channel_mode_fg: String,
     channel_mode_bg: Option<String>,
     remote_control_mode_fg: String,
@@ -290,13 +296,6 @@ impl<'de> Deserialize<'de> for Theme {
                     })
                 })
                 .transpose()?,
-            border_type: BorderType::from_string_option(&inner.border_type)
-                .ok_or_else(|| {
-                    serde::de::Error::custom(format!(
-                        "invalid border type {}",
-                        inner.border_type.unwrap_or_default()
-                    ))
-                })?,
             border_fg: Color::from_str(&inner.border_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
@@ -324,6 +323,15 @@ impl<'de> Deserialize<'de> for Theme {
                     ))
                 },
             )?,
+            input_border_type: BorderType::from_string_option(
+                inner.input_border_type.as_deref(),
+            )
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid border type {}",
+                    inner.input_border_type.unwrap_or_default()
+                ))
+            })?,
             result_count_fg: Color::from_str(&inner.result_count_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
@@ -354,6 +362,15 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.result_value_fg
                     ))
                 })?,
+            result_border_type: BorderType::from_string_option(
+                inner.result_border_type.as_deref(),
+            )
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid border type {}",
+                    inner.result_border_type.unwrap_or_default()
+                ))
+            })?,
             selection_bg: Color::from_str(&inner.selection_bg).ok_or_else(
                 || {
                     serde::de::Error::custom(format!(
@@ -388,6 +405,15 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.preview_title_fg
                     ))
                 })?,
+            preview_border_type: BorderType::from_string_option(
+                inner.preview_border_type.as_deref(),
+            )
+            .ok_or_else(|| {
+                serde::de::Error::custom(format!(
+                    "invalid border type {}",
+                    inner.preview_border_type.unwrap_or_default()
+                ))
+            })?,
             channel_mode_fg: Color::from_str(&inner.channel_mode_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
@@ -479,15 +505,22 @@ impl Into<Colorscheme> for &Theme {
     }
 }
 
+impl From<&BorderType> for Option<ratatui::widgets::BorderType> {
+    fn from(val: &BorderType) -> Self {
+        match val {
+            BorderType::None => None,
+            BorderType::Plain => Some(ratatui::widgets::BorderType::Plain),
+            BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
+            BorderType::Thick => Some(ratatui::widgets::BorderType::Thick),
+        }
+    }
+}
+
 #[allow(clippy::from_over_into)]
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
             background: self.background.as_ref().map(Into::into),
-            border_type: match self.border_type {
-                BorderType::None => None,
-                BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
-            },
             border_fg: (&self.border_fg).into(),
         }
     }
@@ -510,6 +543,7 @@ impl Into<ResultsColorscheme> for &Theme {
             result_fg: (&self.result_name_fg).into(),
             result_selected_bg: (&self.selection_bg).into(),
             result_selected_fg: (&self.selection_fg).into(),
+            result_border_type: (&self.result_border_type).into(),
             match_foreground_color: (&self.match_fg).into(),
         }
     }
@@ -524,6 +558,7 @@ impl Into<PreviewColorscheme> for &Theme {
             content_fg: (&self.text_fg).into(),
             gutter_fg: (&self.dimmed_text_fg).into(),
             gutter_selected_fg: (&self.match_fg).into(),
+            preview_border_type: (&self.preview_border_type).into(),
         }
     }
 }
@@ -533,6 +568,7 @@ impl Into<InputColorscheme> for &Theme {
     fn into(self) -> InputColorscheme {
         InputColorscheme {
             input_fg: (&self.input_text_fg).into(),
+            input_border_type: (&self.input_border_type).into(),
             results_count_fg: (&self.result_count_fg).into(),
         }
     }
@@ -557,19 +593,21 @@ mod tests {
     fn create_test_theme() -> Theme {
         Theme {
             background: Some(Color::Ansi(ANSIColor::Black)),
-            border_type: BorderType::Rounded,
             border_fg: Color::Ansi(ANSIColor::White),
             text_fg: Color::Ansi(ANSIColor::BrightWhite),
             dimmed_text_fg: Color::Ansi(ANSIColor::BrightBlack),
             input_text_fg: Color::Ansi(ANSIColor::BrightWhite),
+            input_border_type: BorderType::Plain,
             result_count_fg: Color::Ansi(ANSIColor::BrightWhite),
             result_name_fg: Color::Ansi(ANSIColor::BrightWhite),
             result_line_number_fg: Color::Ansi(ANSIColor::BrightWhite),
             result_value_fg: Color::Ansi(ANSIColor::BrightWhite),
+            result_border_type: BorderType::None,
             selection_bg: Color::Ansi(ANSIColor::BrightWhite),
             selection_fg: Color::Ansi(ANSIColor::BrightWhite),
             match_fg: Color::Ansi(ANSIColor::BrightWhite),
             preview_title_fg: Color::Ansi(ANSIColor::BrightWhite),
+            preview_border_type: BorderType::Rounded,
             channel_mode_fg: Color::Ansi(ANSIColor::BrightWhite),
             channel_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
             remote_control_mode_fg: Color::Ansi(ANSIColor::BrightWhite),

@@ -27,16 +27,19 @@ text_fg = '#cdd6f4'
 dimmed_text_fg = '#6c7086'
 # input
 input_text_fg = '#f38ba8'
+input_border_type = 'rounded' # https://docs.rs/ratatui/latest/ratatui/widgets/block/enum.BorderType.html#variants
 result_count_fg = '#f38ba8'
 # results
 result_name_fg = '#89b4fa'
 result_line_number_fg = '#f9e2af'
 result_value_fg = '#b4befe'
+result_border_type = 'rounded'
 selection_fg = '#a6e3a1'
 selection_bg = '#313244'
 match_fg = '#f38ba8'
 # preview
 preview_title_fg = '#fab387'
+preview_border_type = 'rounded'
 # modes
 channel_mode_fg = '#1e1e2e'
 channel_mode_bg = '#f5c2e7'

@@ -12,7 +12,6 @@ pub struct Colorscheme {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GeneralColorscheme {
-    pub border_type: Option<BorderType>,
     pub border_fg: Color,
     pub background: Option<Color>,
 }
@@ -28,6 +27,7 @@ pub struct ResultsColorscheme {
     pub result_fg: Color,
     pub result_selected_bg: Color,
     pub result_selected_fg: Color,
+    pub result_border_type: Option<BorderType>,
     pub match_foreground_color: Color,
 }
 
@@ -38,11 +38,13 @@ pub struct PreviewColorscheme {
     pub content_fg: Color,
     pub gutter_fg: Color,
     pub gutter_selected_fg: Color,
+    pub preview_border_type: Option<BorderType>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct InputColorscheme {
     pub input_fg: Color,
+    pub input_border_type: Option<BorderType>,
     pub results_count_fg: Color,
 }
 
