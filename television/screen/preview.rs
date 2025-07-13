@@ -13,7 +13,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
     widgets::{
-        Block, BorderType, Borders, Clear, Padding, Paragraph, Scrollbar,
+        Block, Borders, Clear, Padding, Paragraph, Scrollbar,
         ScrollbarOrientation, ScrollbarState, StatefulWidget,
     },
 };
@@ -216,15 +216,18 @@ fn draw_content_outer_block(
         block = block.title_bottom(footer_line);
     }
 
-    let preview_outer_block = block
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
+    let mut preview_outer_block = block
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::new(0, 1, 1, 0));
+    if let Some(border_type) = colorscheme.general.border_type {
+        preview_outer_block = preview_outer_block
+            .borders(Borders::ALL)
+            .border_type(border_type)
+            .border_style(Style::default().fg(colorscheme.general.border_fg));
+    }
 
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);

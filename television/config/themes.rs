@@ -87,10 +87,28 @@ impl RGBColor {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum BorderType {
+    None,
+    Rounded,
+}
+impl BorderType {
+    pub fn from_string_option(s: Option<&str>) -> Option<Self> {
+        match s {
+            Some("none") => Some(Self::None),
+            Some("plain") => Some(Self::Plain),
+            None | Some("rounded") => Some(Self::Rounded),
+            Some("thick") => Some(Self::Thick),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Theme {
     // general
     pub background: Option<Color>,
+    pub border_type: BorderType,
     pub border_fg: Color,
     pub text_fg: Color,
     pub dimmed_text_fg: Color,
@@ -225,6 +243,7 @@ impl Default for Theme {
 struct Inner {
     // general
     background: Option<String>,
+    border_type: Option<String>,
     border_fg: String,
     // info
     text_fg: String,
@@ -271,6 +290,13 @@ impl<'de> Deserialize<'de> for Theme {
                     })
                 })
                 .transpose()?,
+            border_type: BorderType::from_string_option(&inner.border_type)
+                .ok_or_else(|| {
+                    serde::de::Error::custom(format!(
+                        "invalid border type {}",
+                        inner.border_type.unwrap_or_default()
+                    ))
+                })?,
             border_fg: Color::from_str(&inner.border_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
@@ -458,6 +484,10 @@ impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
             background: self.background.as_ref().map(Into::into),
+            border_type: match self.border_type {
+                BorderType::None => None,
+                BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
+            },
             border_fg: (&self.border_fg).into(),
         }
     }
@@ -527,6 +557,7 @@ mod tests {
     fn create_test_theme() -> Theme {
         Theme {
             background: Some(Color::Ansi(ANSIColor::Black)),
+            border_type: BorderType::Rounded,
             border_fg: Color::Ansi(ANSIColor::White),
             text_fg: Color::Ansi(ANSIColor::BrightWhite),
             dimmed_text_fg: Color::Ansi(ANSIColor::BrightBlack),
