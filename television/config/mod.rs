@@ -255,13 +255,13 @@ impl Config {
         if let Some(value) = ui_spec.orientation {
             self.ui.orientation = value;
         }
-        if let Some(value) = ui_spec.input_bar_position {
-            self.ui.input_bar_position = value;
-        }
 
         // Apply clone fields
         if let Some(value) = &ui_spec.features {
             self.ui.features = value.clone();
+        }
+        if let Some(value) = &ui_spec.input_bar {
+            self.ui.input_bar = value.clone();
         }
         if let Some(value) = &ui_spec.status_bar {
             self.ui.status_bar = value.clone();
@@ -271,16 +271,6 @@ impl Config {
         }
         if let Some(value) = &ui_spec.remote_control {
             self.ui.remote_control = value.clone();
-        }
-
-        // Apply input_header
-        if let Some(value) = &ui_spec.input_header {
-            self.ui.input_header = Some(value.clone());
-        }
-
-        // Apply input_prompt
-        if let Some(value) = &ui_spec.input_prompt {
-            self.ui.input_prompt.clone_from(value);
         }
 
         // Handle preview_panel with field merging
@@ -498,8 +488,8 @@ mod tests {
     }
 
     const USER_CONFIG_INPUT_PROMPT: &str = r#"
-        [ui]
-        input_prompt = "❯"
+        [ui.input_bar]
+        prompt = "❯"
     "#;
 
     #[test]
@@ -518,7 +508,7 @@ mod tests {
         let config = Config::new(&config_env, None).unwrap();
 
         // Verify that input_prompt was loaded from user config
-        assert_eq!(config.ui.input_prompt, "❯");
+        assert_eq!(config.ui.input_bar.prompt, "❯");
     }
 
     #[test]
