@@ -5,6 +5,22 @@
   width: 100%;
 }
 
+.featureImageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.featureImage {
+  display: flex;
+  width: 80%;
+  justify-content: center;
+  margin: 0 auto;
+  border-radius: 6px;
+  border: 3px dotted var(--ifm-font-color-secondary);
+}
+
 .featureSvg {
   height: 120px;
   width: 120px;
