@@ -215,7 +215,6 @@ jobs:
         run: |
           cargo install cargo-deb
           cargo install cross
-          echo "~/.cargo/bin" >> $GITHUB_PATH
       - name: Create deployment directory
         shell: bash
         run: |
@@ -228,7 +227,7 @@ jobs:
           cp man/tv.1 "$DEPLOY_DIR/"
       - name: Build release binary
         shell: bash
-        run: "version=\"${{ github.ref_name }}\"\nDEB_NAME=\"tv-$version-${{ matrix.target }}.deb\"\nDEB_DIR=\"target/${{ matrix.target }}/debian\"\n\n# Build the actual binary\n# if aarch64, we need to install the cross compiler since we're running x86_64\nif [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then\n  sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu\n  \n  cargo install cross\n\n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\" \\\n    --cargo-build cross\n    -- --no-default-features --features zero-copy,simd,fancy\nelse\n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\"\nfi\n\necho \"DEB_DIR=$DEB_DIR\" >> $GITHUB_ENV\necho \"DEB_NAME=$DEB_NAME\" >> $GITHUB_ENV\n"
+        run: "# Add cargo bin to PATH for this step\nexport PATH=\"$HOME/.cargo/bin:$PATH\"\n\nversion=\"${{ github.ref_name }}\"\nDEB_NAME=\"tv-$version-${{ matrix.target }}.deb\"\nDEB_DIR=\"target/${{ matrix.target }}/debian\"\n\n# Build the actual binary\n# if aarch64, we need to install the cross compiler since we're running x86_64\nif [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then\n  sudo apt-get install -y --no-install-recommends gcc-aarch64-linux-gnu\n  \n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\" \\\n    --cargo-build cross \\\n    -- --no-default-features --features zero-copy,simd,fancy\nelse\n  cargo deb --profile deb --target ${{ matrix.target }} -o \"$DEB_DIR/$DEB_NAME\"\nfi\n\necho \"DEB_DIR=$DEB_DIR\" >> $GITHUB_ENV\necho \"DEB_NAME=$DEB_NAME\" >> $GITHUB_ENV\n"
       - name: Create sha256 sum of deb file
         shell: bash
         run: |
