@@ -482,7 +482,11 @@ pub enum Command {
     },
     /// Downloads the latest collection of default channel prototypes from github
     /// and saves them to the local configuration directory.
-    UpdateChannels,
+    UpdateChannels {
+        /// Force update on already existing channels.
+        #[arg(long, default_value = "false")]
+        force: bool,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]

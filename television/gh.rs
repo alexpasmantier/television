@@ -120,7 +120,7 @@ fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
         .collect())
 }
 
-pub fn update_local_channels() -> Result<()> {
+pub fn update_local_channels(force: &bool) -> Result<()> {
     println!("{}", "Fetching latest cable channels...".bold());
     let default_prototypes = get_default_prototypes_from_repo()?;
     println!("{}", "\nSaving channels locally...".bold());
@@ -133,7 +133,7 @@ pub fn update_local_channels() -> Result<()> {
         let file_path =
             cable_path.join(&p.name).with_extension(CHANNEL_FILE_FORMAT);
         // if the file already exists, don't overwrite it
-        if file_path.exists() {
+        if file_path.exists() && !force {
             println!(
                 "  Channel {} already exists at {}, SKIPPING...",
                 p.name.blue().bold(),

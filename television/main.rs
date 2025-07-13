@@ -241,8 +241,8 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
             println!("{script}");
             exit(0);
         }
-        Command::UpdateChannels => {
-            update_local_channels()?;
+        Command::UpdateChannels { force } => {
+            update_local_channels(force)?;
             exit(0);
         }
     }
