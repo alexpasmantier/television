@@ -5,46 +5,39 @@ import styles from "./styles.module.css";
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<"svg">>;
+  imgSrc: string;
   description: ReactNode;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: "Integrates with your shell",
-    Svg: require("@site/static/img/integrate_icon.svg").default,
+    title: "Create your own channels",
+    imgSrc: require("@site/static/img/files-toml.png").default,
     description: (
       <>
-        Television integrates with your shell and lets you quickly search
-        through any kind of data source (files, git repositories, environment
-        variables, docker images, you name it) using a fuzzy matching algorithm
-        and is designed to be extensible.
+        <a href="/docs/Users/channels">Create your own channels in a simple TOML file and search through
+        files, git repositories, environment variables, docker images, and more.
+        </a>
       </>
     ),
   },
   {
-    title: "Insipred by great tools",
-    Svg: require("@site/static/img/inspired_icon.svg").default,
+    title: "Integrates with your shell",
+    imgSrc: require("@site/static/img/zsh-integration.png").default,
     description: (
       <>
-        It is inspired by the neovim{" "}
-        <a href="https://github.com/nvim-telescope/telescope.nvim">telescope</a>{" "}
-        plugin and leverages{" "}
-        <a href="https://github.com/tokio-rs/tokio">tokio</a> and the{" "}
-        <a href="https://github.com/helix-editor/nucleo">nucleo</a> matcher used
-        by the <a href="https://github.com/helix-editor/helix">helix</a> editor
-        to ensure optimal performance.
+        <a href="/docs/Users/shell-integration">
+        Television integrates with your shell and provides autocompletion that is both
+          extensible and configurable to use your own channels.
+        </a>
       </>
     ),
   },
 ];
 
-function Feature({ title, Svg, description }: FeatureItem) {
+function Feature({ title, imgSrc, description }: FeatureItem) {
   return (
     <div className={clsx("col col--6", styles.featureItem)}>
-      <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
-      </div>
       <div
         className={clsx(
           "text--center padding-horiz--md",
@@ -53,6 +46,14 @@ function Feature({ title, Svg, description }: FeatureItem) {
       >
         <Heading as="h3">{title}</Heading>
         <p>{description}</p>
+      </div>
+      <div className="featureImageContainer">
+        <img 
+          src={imgSrc} 
+          alt={title}
+          className={styles.featureImage} 
+          role="img" 
+        />
       </div>
     </div>
   );
