@@ -105,7 +105,7 @@ fn test_scroll_preview_keybindings() {
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--input",
-        "CHANGELOG.md",
+        "README.md",
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 

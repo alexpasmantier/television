@@ -106,14 +106,16 @@ fn test_preview_offset_with_preview_command() {
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--input",
-        "CHANGELOG.md",
+        "CODE_OF_CONDUCT.md",
+        "-p",
+        "cat -n {}",
         "--preview-offset",
-        "500",
+        "50",
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the preview panel is active
-    tester.assert_tui_frame_contains("││  500 ");
+    tester.assert_tui_frame_contains("││     50");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));

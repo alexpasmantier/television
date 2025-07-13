@@ -7,7 +7,11 @@ use common::*;
 fn toggle_preview() {
     let mut tester = PtyTester::new();
     let mut child =
-        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[]));
+        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
+            "files",
+            "-p",
+            "cat -n {}",
+        ]));
 
     let with_preview =
         "╭───────────────────────── files ──────────────────────────╮";

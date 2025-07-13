@@ -17,7 +17,7 @@ fn test_watch_reloads_source_command() {
     // This monitors the temp directory and updates every 0.5 seconds
     let cmd = tv_local_config_and_cable_with_args(&[
         "--watch",
-        "1",
+        "0.5",
         "--source-command",
         "ls",
         tmp_dir.to_str().unwrap(),
@@ -48,7 +48,7 @@ fn test_tick_rate_valid_value_starts_application() {
 
     // Start Television with a custom tick rate
     let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "30"]);
+        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "50"]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the TUI launched successfully
