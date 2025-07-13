@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.12.4](https://github.com/alexpasmantier/television/releases/tag/0.12.4) - 2025-07-13
+
+### ⛰️  Features
+
+- [99b5c5c](https://github.com/alexpasmantier/television/commit/99b5c5ce784e64e8930ebdc9cd5117d0750f59dc) *(cli)* Add `--force` option to `update-channels` by @alexpasmantier
+
+### 📚 Documentation
+
+- [da9484a](https://github.com/alexpasmantier/television/commit/da9484a4912b93353c970ed25728a9140f6a0f51) *(uncategorized)* Update CONTRIBUTING.md by @alexpasmantier
+
+### 🧪 Testing
+
+- [23f38f9](https://github.com/alexpasmantier/television/commit/23f38f9bb43cb5b0f3f271801014e1992e4aead6) *(uncategorized)* Fix flaky tests and increase frame stability timeout by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [874e911](https://github.com/alexpasmantier/television/commit/874e91190d799ba411e982cbd89ae285edef6e46) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#637](https://github.com/alexpasmantier/television/pull/637)
+
+- [e87f7d3](https://github.com/alexpasmantier/television/commit/e87f7d30a881cab30a5dc8d10c8fa9a2ce5b4a3c) *(uncategorized)* Release version 0.12.4
+
+- [16d7de7](https://github.com/alexpasmantier/television/commit/16d7de7d09f9bf70f4dcf24228baa7bd43b26de9) *(uncategorized)* Fix cross not available in PATH by @alexpasmantier
+
+
+
+### New Contributors
+* @alexpasmantier made their first contribution
+* @github-actions[bot] made their first contribution in [#637](https://github.com/alexpasmantier/television/pull/637)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.3...0.12.4
+
+
 ## [0.12.3](https://github.com/alexpasmantier/television/releases/tag/0.12.3) - 2025-07-12
 
 ### ⛰️  Features
