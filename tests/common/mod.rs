@@ -212,7 +212,7 @@ impl PtyTester {
     }
 
     /// How long to wait for the TUI to stabilize before asserting its output.
-    const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(1000);
+    const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(5000);
 
     /// Gets the current TUI frame, ensuring it has stabilized.
     ///
@@ -247,12 +247,16 @@ impl PtyTester {
         // wait for the UI to stabilize with a timeout
         let mut frame = String::new();
         let start_time = std::time::Instant::now();
-        loop {
+        // wait till we get 3 consecutive frames that are the same
+        let mut counter = 0;
+        while counter < 3 {
             let new_frame = self.read_tui_output();
             if new_frame == frame {
-                break;
+                counter += 1;
+            } else {
+                frame = new_frame;
+                counter = 0;
             }
-            frame = new_frame;
             assert!(
                 start_time.elapsed() < Self::FRAME_STABILITY_TIMEOUT,
                 "UI did not stabilize within {:?}. Last frame:\n{}",
@@ -260,7 +264,7 @@ impl PtyTester {
                 frame
             );
             // Sleep briefly to allow the UI to update
-            sleep(DEFAULT_DELAY / 6);
+            sleep(Duration::from_millis(50));
         }
         frame
     }
