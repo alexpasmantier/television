@@ -79,18 +79,21 @@ pub struct ThemeOverrides {
 
     // Input colors
     pub input_text_fg: Option<String>,
+    pub input_border_type: Option<String>,
     pub result_count_fg: Option<String>,
 
     // Result colors
     pub result_name_fg: Option<String>,
     pub result_line_number_fg: Option<String>,
     pub result_value_fg: Option<String>,
+    pub result_border_type: Option<String>,
     pub selection_bg: Option<String>,
     pub selection_fg: Option<String>,
     pub match_fg: Option<String>,
 
     // Preview colors
     pub preview_title_fg: Option<String>,
+    pub preview_border_type: Option<String>,
 
     // Mode colors
     pub channel_mode_fg: Option<String>,

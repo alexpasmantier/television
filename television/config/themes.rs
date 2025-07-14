@@ -95,13 +95,19 @@ pub enum BorderType {
     Thick,
 }
 impl BorderType {
+    pub fn from_str(s: &str) -> Option<Self> {
+        match s {
+            "none" => Some(Self::None),
+            "plain" => Some(Self::Plain),
+            "rounded" => Some(Self::Rounded),
+            "thick" => Some(Self::Thick),
+            _ => None,
+        }
+    }
     pub fn from_string_option(s: Option<&str>) -> Option<Self> {
         match s {
-            Some("none") => Some(Self::None),
-            Some("plain") => Some(Self::Plain),
-            None | Some("rounded") => Some(Self::Rounded),
-            Some("thick") => Some(Self::Thick),
-            _ => None,
+            None => Some(Self::Rounded),
+            Some(inner) => BorderType::from_str(inner),
         }
     }
 }
@@ -200,6 +206,20 @@ impl Theme {
                 }
             };
         }
+        macro_rules! apply_border_type_override {
+            ($field:ident, $override_field:expr) => {
+                if let Some(ref border_type) = $override_field {
+                    merged_theme.$field = BorderType::from_str(border_type)
+                        .ok_or_else(|| {
+                            format!(
+                                "invalid {}: {}",
+                                stringify!($field),
+                                border_type
+                            )
+                        })?;
+                }
+            };
+        }
 
         // Apply overrides using the macro
         apply_override!(opt background, overrides.background);
@@ -207,6 +227,10 @@ impl Theme {
         apply_override!(text_fg, overrides.text_fg);
         apply_override!(dimmed_text_fg, overrides.dimmed_text_fg);
         apply_override!(input_text_fg, overrides.input_text_fg);
+        apply_border_type_override!(
+            input_border_type,
+            overrides.input_border_type
+        );
         apply_override!(result_count_fg, overrides.result_count_fg);
         apply_override!(result_name_fg, overrides.result_name_fg);
         apply_override!(
@@ -214,10 +238,18 @@ impl Theme {
             overrides.result_line_number_fg
         );
         apply_override!(result_value_fg, overrides.result_value_fg);
+        apply_border_type_override!(
+            result_border_type,
+            overrides.result_border_type
+        );
         apply_override!(selection_bg, overrides.selection_bg);
         apply_override!(selection_fg, overrides.selection_fg);
         apply_override!(match_fg, overrides.match_fg);
         apply_override!(preview_title_fg, overrides.preview_title_fg);
+        apply_border_type_override!(
+            preview_border_type,
+            overrides.preview_border_type
+        );
         apply_override!(channel_mode_fg, overrides.channel_mode_fg);
         apply_override!(channel_mode_bg, overrides.channel_mode_bg);
         apply_override!(
@@ -729,6 +761,7 @@ mod tests {
             background: Some("#ff0000".to_string()),
             text_fg: Some("red".to_string()),
             selection_bg: Some("#00ff00".to_string()),
+            input_border_type: Some("none".to_string()),
             ..Default::default()
         };
 
@@ -745,6 +778,7 @@ mod tests {
             merged_theme.selection_bg,
             Color::Rgb(RGBColor::from_str("00ff00").unwrap())
         );
+        assert_eq!(merged_theme.input_border_type, BorderType::None);
 
         // Check that non-overridden colors remain the same
         assert_eq!(merged_theme.border_fg, Color::Ansi(ANSIColor::White));
@@ -753,6 +787,7 @@ mod tests {
             Color::Ansi(ANSIColor::BrightWhite)
         );
         assert_eq!(merged_theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(merged_theme.result_border_type, BorderType::None);
     }
 
     #[test]
@@ -787,7 +822,10 @@ mod tests {
         assert_eq!(merged_theme.text_fg, base_theme.text_fg);
         assert_eq!(merged_theme.dimmed_text_fg, base_theme.dimmed_text_fg);
         assert_eq!(merged_theme.input_text_fg, base_theme.input_text_fg);
-        assert_eq!(merged_theme.input_border_type, base_theme.input_border_type);
+        assert_eq!(
+            merged_theme.input_border_type,
+            base_theme.input_border_type
+        );
         assert_eq!(merged_theme.result_count_fg, base_theme.result_count_fg);
         assert_eq!(merged_theme.result_name_fg, base_theme.result_name_fg);
         assert_eq!(
@@ -795,12 +833,18 @@ mod tests {
             base_theme.result_line_number_fg
         );
         assert_eq!(merged_theme.result_value_fg, base_theme.result_value_fg);
-        assert_eq!(merged_theme.result_border_type, base_theme.result_border_type);
+        assert_eq!(
+            merged_theme.result_border_type,
+            base_theme.result_border_type
+        );
         assert_eq!(merged_theme.selection_bg, base_theme.selection_bg);
         assert_eq!(merged_theme.selection_fg, base_theme.selection_fg);
         assert_eq!(merged_theme.match_fg, base_theme.match_fg);
         assert_eq!(merged_theme.preview_title_fg, base_theme.preview_title_fg);
-        assert_eq!(merged_theme.preview_border_type, base_theme.preview_border_type);
+        assert_eq!(
+            merged_theme.preview_border_type,
+            base_theme.preview_border_type
+        );
         assert_eq!(merged_theme.channel_mode_fg, base_theme.channel_mode_fg);
         assert_eq!(merged_theme.channel_mode_bg, base_theme.channel_mode_bg);
         assert_eq!(
