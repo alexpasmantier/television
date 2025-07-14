@@ -3,7 +3,11 @@
 //! These tests verify Television's input handling and user interaction features,
 //! ensuring users can customize their interaction experience and search behavior.
 
+use std::path::Path;
+
 use super::common::*;
+
+const TARGET_DIR: &str = "tests/target_dir";
 
 /// Tests that the --input flag pre-fills the search box with specified text.
 #[test]
@@ -84,7 +88,11 @@ fn test_exact_matching_enabled() {
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--exact", "--input", "file1",
+        "files",
+        "--exact",
+        "--input",
+        "file1",
+        Path::new(TARGET_DIR).to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
@@ -102,7 +110,11 @@ fn test_exact_matching_enabled_fails() {
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--exact", "--input", "fl1",
+        "files",
+        "--exact",
+        "--input",
+        "fl1",
+        Path::new(TARGET_DIR).to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
