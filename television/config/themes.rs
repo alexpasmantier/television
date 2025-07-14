@@ -623,14 +623,17 @@ mod tests {
             text_fg = "white"
             dimmed_text_fg = "bright-black"
             input_text_fg = "bright-white"
+            input_border_type = "none"
             result_count_fg = "bright-white"
             result_name_fg = "bright-white"
             result_line_number_fg = "bright-white"
             result_value_fg = "bright-white"
+            result_border_type = "plain"
             selection_bg = "bright-white"
             selection_fg = "bright-white"
             match_fg = "bright-white"
             preview_title_fg = "bright-white"
+            preview_border_type = "rounded"
             channel_mode_fg = "bright-white"
             channel_mode_bg = "bright-black"
             remote_control_mode_fg = "bright-white"
@@ -645,6 +648,7 @@ mod tests {
         assert_eq!(theme.text_fg, Color::Ansi(ANSIColor::White));
         assert_eq!(theme.dimmed_text_fg, Color::Ansi(ANSIColor::BrightBlack));
         assert_eq!(theme.input_text_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.input_border_type, BorderType::None);
         assert_eq!(theme.result_count_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.result_name_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(
@@ -652,6 +656,7 @@ mod tests {
             Color::Ansi(ANSIColor::BrightWhite)
         );
         assert_eq!(theme.result_value_fg, Color::Ansi(ANSIColor::BrightWhite));
+        assert_eq!(theme.result_border_type, BorderType::Plain);
         assert_eq!(theme.selection_bg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.selection_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(theme.match_fg, Color::Ansi(ANSIColor::BrightWhite));
@@ -659,6 +664,7 @@ mod tests {
             theme.preview_title_fg,
             Color::Ansi(ANSIColor::BrightWhite)
         );
+        assert_eq!(theme.preview_border_type, BorderType::Rounded);
         assert_eq!(theme.channel_mode_fg, Color::Ansi(ANSIColor::BrightWhite));
         assert_eq!(
             theme.remote_control_mode_fg,
@@ -775,12 +781,13 @@ mod tests {
         let merged_theme =
             base_theme.merge_with_overrides(&overrides).unwrap();
 
-        // Check that all colors remain the same when no overrides are provided
+        // Check that all values remain the same when no overrides are provided
         assert_eq!(merged_theme.background, base_theme.background);
         assert_eq!(merged_theme.border_fg, base_theme.border_fg);
         assert_eq!(merged_theme.text_fg, base_theme.text_fg);
         assert_eq!(merged_theme.dimmed_text_fg, base_theme.dimmed_text_fg);
         assert_eq!(merged_theme.input_text_fg, base_theme.input_text_fg);
+        assert_eq!(merged_theme.input_border_type, base_theme.input_border_type);
         assert_eq!(merged_theme.result_count_fg, base_theme.result_count_fg);
         assert_eq!(merged_theme.result_name_fg, base_theme.result_name_fg);
         assert_eq!(
@@ -788,10 +795,12 @@ mod tests {
             base_theme.result_line_number_fg
         );
         assert_eq!(merged_theme.result_value_fg, base_theme.result_value_fg);
+        assert_eq!(merged_theme.result_border_type, base_theme.result_border_type);
         assert_eq!(merged_theme.selection_bg, base_theme.selection_bg);
         assert_eq!(merged_theme.selection_fg, base_theme.selection_fg);
         assert_eq!(merged_theme.match_fg, base_theme.match_fg);
         assert_eq!(merged_theme.preview_title_fg, base_theme.preview_title_fg);
+        assert_eq!(merged_theme.preview_border_type, base_theme.preview_border_type);
         assert_eq!(merged_theme.channel_mode_fg, base_theme.channel_mode_fg);
         assert_eq!(merged_theme.channel_mode_bg, base_theme.channel_mode_bg);
         assert_eq!(
