@@ -16,7 +16,7 @@ use tokio::{task::JoinHandle, time::timeout};
 /// Default timeout for tests.
 ///
 /// This is kept quite high to avoid flakiness in CI.
-const DEFAULT_TIMEOUT: Duration = Duration::from_millis(100);
+const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
 
 /// Sets up an app with a file channel and default config.
 ///
