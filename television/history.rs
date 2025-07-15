@@ -80,6 +80,9 @@ impl History {
 
     /// Add a new history entry, if it's not a duplicate.
     pub fn add_entry(&mut self, query: String, channel: String) -> Result<()> {
+        if self.max_size == 0 {
+            return Ok(());
+        }
         // Don't add empty queries
         if query.trim().is_empty() {
             return Ok(());
@@ -732,6 +735,21 @@ mod tests {
         hist.init().unwrap();
 
         // Calling get_next without any previous navigation should return None
+        assert!(hist.get_next_entry().is_none());
+    }
+
+    #[test]
+    fn add_entry_with_history_size_zero() {
+        let dir = tempdir().expect("failed to create tempdir");
+        let mut hist = History::new(0, "files", false, dir.path());
+
+        // Adding an entry should not change the history
+        hist.add_entry("file1".into(), "files".into()).unwrap();
+        assert!(hist.is_empty());
+        assert_eq!(hist.len(), 0);
+
+        // Navigation should return None
+        assert!(hist.get_previous_entry().is_none());
         assert!(hist.get_next_entry().is_none());
     }
 }
