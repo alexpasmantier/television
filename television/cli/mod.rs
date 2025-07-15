@@ -515,10 +515,7 @@ pub fn guess_channel_from_prompt(
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
-    let fallback = cable
-        .get(fallback_channel)
-        .expect("Fallback channel not found in cable channels")
-        .clone();
+    let fallback = cable.get_channel(fallback_channel);
     if prompt.trim().is_empty() {
         return fallback;
     }
