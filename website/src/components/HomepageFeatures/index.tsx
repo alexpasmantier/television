@@ -15,8 +15,10 @@ const FeatureList: FeatureItem[] = [
     imgSrc: require("@site/static/img/files-toml.png").default,
     description: (
       <>
-        <a href="/docs/Users/channels">Create your own channels in a simple TOML file and search through
-        files, git repositories, environment variables, docker images, and more.
+        <a href="/docs/Users/channels">
+          Create your own channels in a simple TOML file and search through
+          files, git repositories, environment variables, docker images, and
+          more.
         </a>
       </>
     ),
@@ -27,8 +29,8 @@ const FeatureList: FeatureItem[] = [
     description: (
       <>
         <a href="/docs/Users/shell-integration">
-        Television integrates with your shell and provides autocompletion that is both
-          extensible and configurable to use your own channels.
+          Television integrates with your shell and provides autocompletion that
+          is both extensible and configurable to use your own channels.
         </a>
       </>
     ),
@@ -48,11 +50,11 @@ function Feature({ title, imgSrc, description }: FeatureItem) {
         <p>{description}</p>
       </div>
       <div className="featureImageContainer">
-        <img 
-          src={imgSrc} 
+        <img
+          src={imgSrc}
           alt={title}
-          className={styles.featureImage} 
-          role="img" 
+          className={styles.featureImage}
+          role="img"
         />
       </div>
     </div>
@@ -63,7 +65,7 @@ export default function HomepageFeatures(): ReactNode {
   return (
     <section className={styles.features}>
       <div className="container">
-        <div className="row">
+        <div className={clsx("row", styles.featuresRow)}>
           {FeatureList.map((props, idx) => (
             <Feature key={idx} {...props} />
           ))}
