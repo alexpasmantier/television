@@ -40,3 +40,9 @@ html[data-theme='dark'] .featureSvg {
   flex-direction: column;
   align-items: center;
 }
+
+@media screen and (max-width: 996px) {
+  .featuresRow {
+    gap: 2rem;
+  }
+}
