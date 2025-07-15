@@ -1,0 +1,13 @@
+[metadata]
+name = "aws-instances"
+description = "List and preview AWS EC2 Instances"
+requirements = ["aws"]
+
+[source]
+command = "aws ec2 describe-instances --output text --query \"Reservations[*].Instances[*].[InstanceId,Tags[?Key=='Name']|[0].Value]\""
+
+[preview]
+command = "aws ec2 describe-instances --output json --instance-ids {split:\t:0} --query 'Reservations[*].Instances[0]'"
+
+[ui.preview_panel]
+size = 60
