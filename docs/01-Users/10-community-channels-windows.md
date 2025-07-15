@@ -1,12 +1,13 @@
-# 🍿 Community Channels (windows)
 
-### _alias_
+# Community Channels (windows)
+
+### *alias*
 
 A channel to select from shell aliases
 
-**Requirements:** _None_
+**Requirements:** *None*
 
-**Code:** _alias.toml_
+**Code:** *alias.toml*
 
 ```toml
 [metadata]
@@ -19,15 +20,16 @@ output = "{split:=:0|trim}"
 
 ```
 
+
 ---
 
-### _dirs_
+### *dirs*
 
 A channel to select from directories
 
 **Requirements:** `fd`
 
-**Code:** _dirs.toml_
+**Code:** *dirs.toml*
 
 ```toml
 [metadata]
@@ -39,22 +41,23 @@ requirements = [ "fd",]
 command = [ "fd -t d", "fd -t d --hidden",]
 
 [preview]
-command = "ls -l {}"
+command = "ls -l '{}'"
 
 [keybindings]
 shortcut = "f2"
 
 ```
 
+
 ---
 
-### _docker-images_
+### *docker-images*
 
 A channel to select from Docker images
 
 **Requirements:** `docker`, `jq`
 
-**Code:** _docker-images.toml_
+**Code:** *docker-images.toml*
 
 ```toml
 [metadata]
@@ -67,19 +70,20 @@ command = "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
 output = "{split: :-1}"
 
 [preview]
-command = "docker image inspect {split: :-1} | jq -C"
+command = "docker image inspect '{split: :-1}' | jq -C"
 
 ```
 
+
 ---
 
-### _dotfiles_
+### *dotfiles*
 
 A channel to select from your user's dotfiles
 
 **Requirements:** `fd`, `bat`
 
-**Code:** _dotfiles.toml_
+**Code:** *dotfiles.toml*
 
 ```toml
 [metadata]
@@ -91,19 +95,20 @@ requirements = [ "fd", "bat",]
 command = "fd -t f . \"$env:USERPROFILE\\AppData\\Roaming\\\""
 
 [preview]
-command = "bat -n --color=always {}"
+command = "bat -n --color=always '{}'"
 
 ```
 
+
 ---
 
-### _env_
+### *env*
 
 A channel to select from environment variables
 
-**Requirements:** _None_
+**Requirements:** *None*
 
-**Code:** _env.toml_
+**Code:** *env.toml*
 
 ```toml
 [metadata]
@@ -129,15 +134,16 @@ header = "{split:=:0|trim}"
 
 ```
 
+
 ---
 
-### _files_
+### *files*
 
 A channel to select files and directories
 
 **Requirements:** `fd`, `bat`
 
-**Code:** _files.toml_
+**Code:** *files.toml*
 
 ```toml
 [metadata]
@@ -149,7 +155,7 @@ requirements = [ "fd", "bat",]
 command = [ "fd -t f", "fd -t f -H",]
 
 [preview]
-command = "bat -n --color=always {}"
+command = "bat -n --color=always '{}'"
 
 [keybindings]
 shortcut = "f1"
@@ -159,15 +165,16 @@ BAT_THEME = "ansi"
 
 ```
 
+
 ---
 
-### _git-branch_
+### *git-branch*
 
 A channel to select from git branches
 
 **Requirements:** `git`
 
-**Code:** _git-branch.toml_
+**Code:** *git-branch.toml*
 
 ```toml
 [metadata]
@@ -180,19 +187,20 @@ command = "git --no-pager branch --all --format=\"%(refname:short)\""
 output = "{split: :0}"
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always {0}"
+command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 
 ```
 
+
 ---
 
-### _git-diff_
+### *git-diff*
 
 A channel to select files from git diff commands
 
 **Requirements:** `git`
 
-**Code:** _git-diff.toml_
+**Code:** *git-diff.toml*
 
 ```toml
 [metadata]
@@ -204,19 +212,20 @@ requirements = [ "git",]
 command = "git diff --name-only HEAD"
 
 [preview]
-command = "git diff HEAD --color=always -- {}"
+command = "git diff HEAD --color=always -- '{}'"
 
 ```
 
+
 ---
 
-### _git-log_
+### *git-log*
 
 A channel to select from git log entries
 
 **Requirements:** `git`
 
-**Code:** _git-log.toml_
+**Code:** *git-log.toml*
 
 ```toml
 [metadata]
@@ -229,19 +238,20 @@ command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\""
 output = "{split: :0}"
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always {0}"
+command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 
 ```
 
+
 ---
 
-### _git-reflog_
+### *git-reflog*
 
 A channel to select from git reflog entries
 
 **Requirements:** `git`
 
-**Code:** _git-reflog.toml_
+**Code:** *git-reflog.toml*
 
 ```toml
 [metadata]
@@ -254,21 +264,23 @@ command = "git reflog"
 output = "{split: :0}"
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always {0}"
+command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 
 ```
 
+
 ---
 
-### _git-repos_
+### *git-repos*
 
 A channel to select from git repositories on your local machine.
 
 This channel uses `fd` to find directories that contain a `.git` subdirectory, and then allows you to preview the git log of the selected repository.
 
+
 **Requirements:** `fd`, `git`
 
-**Code:** _git-repos.toml_
+**Code:** *git-repos.toml*
 
 ```toml
 [metadata]
@@ -285,15 +297,37 @@ command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
 
 ```
 
+
 ---
 
-### _pwsh-history_
+### *nu-history*
+
+A channel to select from your nu history
+
+**Requirements:** *None*
+
+**Code:** *nu-history.toml*
+
+```toml
+[metadata]
+name = "nu-history"
+description = "A channel to select from your nu history"
+
+[source]
+command = "nu -c 'open $nu.history-path | lines | reverse | to text'"
+
+```
+
+
+---
+
+### *pwsh-history*
 
 A channel to select from your powershell history
 
-**Requirements:** _None_
+**Requirements:** *None*
 
-**Code:** _pwsh-history.toml_
+**Code:** *pwsh-history.toml*
 
 ```toml
 [metadata]
@@ -305,15 +339,16 @@ command = "Get-Content (Get-PSReadLineOption).HistorySavePath | Select-Object -L
 
 ```
 
+
 ---
 
-### _text_
+### *text*
 
 A channel to find and select text from files
 
 **Requirements:** `rg`, `bat`
 
-**Code:** _text.toml_
+**Code:** *text.toml*
 
 ```toml
 [metadata]
@@ -327,7 +362,7 @@ display = "[{split:\\::..2}]\t{split:\\::2}"
 output = "{split:\\::..2}"
 
 [preview]
-command = "bat -n --color=always {split:\\::0}"
+command = "bat -n --color=always '{split:\\::0}'"
 offset = "{split:\\::1}"
 
 [preview.env]
@@ -337,5 +372,6 @@ BAT_THEME = "ansi"
 header = "{split:\\::..2}"
 
 ```
+
 
 ---
