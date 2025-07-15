@@ -566,8 +566,6 @@ impl Television {
                     preview.title = template
                         .format(&entry.raw)
                         .unwrap_or_else(|_| entry.raw.clone());
-                } else {
-                    preview.title.clone_from(&entry.raw);
                 }
 
                 if let Some(template) = &self.config.ui.preview_panel.footer {

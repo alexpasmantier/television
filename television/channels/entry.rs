@@ -11,12 +11,14 @@ pub struct Entry {
     pub raw: String,
     /// The actual entry string that will be displayed in the UI.
     pub display: Option<String>,
-    /// The optional ranges for matching characters in the name.
-    pub name_match_ranges: Option<Vec<(u32, u32)>>,
+    /// The optional ranges for matching characters (based on `self.display`).
+    pub match_ranges: Option<Vec<(u32, u32)>>,
     /// The optional icon associated with the entry.
     pub icon: Option<FileIcon>,
     /// The optional line number associated with the entry.
     pub line_number: Option<usize>,
+    /// Whether the entry contains ANSI escape sequences.
+    pub ansi: bool,
 }
 
 impl Hash for Entry {
@@ -96,9 +98,10 @@ impl Entry {
         Self {
             raw,
             display: None,
-            name_match_ranges: None,
+            match_ranges: None,
             icon: None,
             line_number: None,
+            ansi: false,
         }
     }
 
@@ -108,7 +111,7 @@ impl Entry {
     }
 
     pub fn with_match_indices(mut self, indices: &[u32]) -> Self {
-        self.name_match_ranges = Some(into_ranges(indices));
+        self.match_ranges = Some(into_ranges(indices));
         self
     }
 
@@ -137,9 +140,19 @@ impl Entry {
         }
         self.raw.clone()
     }
+
+    /// Sets whether the entry contains ANSI escape sequences.
+    pub fn ansi(mut self, ansi: bool) -> Self {
+        self.ansi = ansi;
+        self
+    }
 }
 
 impl ResultItem for Entry {
+    fn raw(&self) -> &str {
+        &self.raw
+    }
+
     fn icon(&self) -> Option<&devicons::FileIcon> {
         self.icon.as_ref()
     }
@@ -149,11 +162,15 @@ impl ResultItem for Entry {
     }
 
     fn match_ranges(&self) -> Option<&[(u32, u32)]> {
-        self.name_match_ranges.as_deref()
+        self.match_ranges.as_deref()
     }
 
     fn shortcut(&self) -> Option<&Binding> {
         None
+    }
+
+    fn ansi(&self) -> bool {
+        self.ansi
     }
 }
 
@@ -190,9 +207,10 @@ mod tests {
         let entry = Entry {
             raw: "test name with spaces".to_string(),
             display: None,
-            name_match_ranges: None,
+            match_ranges: None,
             icon: None,
             line_number: None,
+            ansi: false,
         };
         assert_eq!(
             entry.output(&Some(Template::parse("{}").unwrap())),

@@ -51,6 +51,7 @@ pub struct PostProcessedCli {
     pub source_entry_delimiter: Option<char>,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
+    pub ansi: bool,
 
     // Preview configuration
     pub preview_command_override: Option<Template>,
@@ -122,6 +123,7 @@ impl Default for PostProcessedCli {
             source_entry_delimiter: None,
             working_directory: None,
             autocomplete_prompt: None,
+            ansi: false,
 
             // Preview configuration
             preview_command_override: None,
@@ -313,6 +315,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         source_entry_delimiter,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
+        ansi: cli.ansi,
 
         // Preview configuration
         preview_command_override,

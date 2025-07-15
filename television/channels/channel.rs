@@ -1,7 +1,7 @@
 use crate::{
     channels::{
         entry::Entry,
-        prototypes::{ChannelPrototype, SourceSpec},
+        prototypes::{ChannelPrototype, SourceSpec, Template},
     },
     matcher::{Matcher, config::Config, injector::Injector},
     utils::command::shell_command,
@@ -13,7 +13,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
-use tracing::debug;
+use tracing::{debug, trace};
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
@@ -99,7 +99,8 @@ impl Channel {
         for item in results {
             let entry = Entry::new(item.inner)
                 .with_display(item.matched_string)
-                .with_match_indices(&item.match_indices);
+                .with_match_indices(&item.match_indices)
+                .ansi(self.prototype.source.ansi);
             entries.push(entry);
         }
 
@@ -204,6 +205,8 @@ async fn load_candidates(
             .map(|d| *d as u8)
             .unwrap_or(b'\n');
 
+        let strip_ansi = Template::parse("{strip_ansi}").unwrap();
+
         loop {
             buf.clear();
             let n = reader.read_until(delimiter, &mut buf).unwrap();
@@ -221,10 +224,17 @@ async fn load_candidates(
             }
 
             if let Ok(l) = std::str::from_utf8(&buf) {
-                debug!("Read line: {}", l);
+                trace!("Read line: {}", l);
                 if !l.trim().is_empty() {
                     let () = injector.push(l.to_string(), |e, cols| {
-                        if let Some(display) = &source.display {
+                        if source.ansi {
+                            cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
+                                panic!(
+                                    "Failed to strip ANSI from entry '{}'",
+                                    e
+                                );
+                            }).into();
+                        } else if let Some(display) = &source.display {
                             let formatted = display.format(e).unwrap_or_else(|_| {
                                 panic!(
                                     "Failed to format display expression '{}' with entry '{}'",
