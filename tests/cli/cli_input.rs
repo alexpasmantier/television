@@ -85,19 +85,23 @@ fn test_multiple_keybindings_override() {
 #[test]
 fn test_exact_matching_enabled() {
     let mut tester = PtyTester::new();
+    let tmp_dir = Path::new(TARGET_DIR);
+
+    // Create initial file to be detected
+    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--exact",
         "--input",
-        "file1",
-        Path::new(TARGET_DIR).to_str().unwrap(),
+        "UNIQUE16CHARIDfile",
+        tmp_dir.to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the TUI started successfully with exact matching enabled
-    tester.assert_tui_frame_contains("file1.txt");
+    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
@@ -107,21 +111,25 @@ fn test_exact_matching_enabled() {
 #[test]
 fn test_exact_matching_enabled_fails() {
     let mut tester = PtyTester::new();
+    let tmp_dir = Path::new(TARGET_DIR);
+
+    // Create initial file to be detected
+    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--exact",
         "--input",
-        "fl1",
-        Path::new(TARGET_DIR).to_str().unwrap(),
+        "UNIQUE16CHARIDfl",
+        tmp_dir.to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the TUI started successfully with exact matching enabled and no results
-    tester.assert_tui_frame_contains("│> fl1");
+    tester.assert_tui_frame_contains("│> UNIQUE16CHARIDfl");
     tester.assert_tui_frame_contains("0 / 0");
-    tester.assert_not_tui_frame_contains("file1.txt");
+    tester.assert_not_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
