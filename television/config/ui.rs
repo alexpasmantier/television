@@ -108,6 +108,7 @@ pub struct UiConfig {
     pub orientation: Orientation,
     pub theme: String,
     pub input_header: Option<Template>,
+    pub input_prompt: Option<String>,
     pub features: Features,
 
     // Feature-specific configurations
@@ -130,6 +131,7 @@ impl Default for UiConfig {
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
             input_header: None,
+            input_prompt: None,
             features: Features::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),

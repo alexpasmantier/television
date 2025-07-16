@@ -197,6 +197,11 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     )?;
 
     // input box
+    let input_prompt = ctx.config.ui.input_prompt
+        .as_ref()
+        .map(|p| format!("{} ", p))
+        .unwrap_or_else(|| "> ".to_string());
+
     draw_input_box(
         f,
         layout.input,
@@ -209,6 +214,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
         &ctx.config.ui.input_header,
+        &input_prompt,
         &ctx.config.ui.input_bar_position,
     )?;
 
