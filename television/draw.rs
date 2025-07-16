@@ -191,9 +191,10 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.results_picker.entries,
         &ctx.tv_state.channel_state.selected_entries,
         &mut ctx.tv_state.results_picker.relative_state.clone(),
-        ctx.config.ui.input_bar_position,
+        ctx.config.ui.input_bar.position,
         ctx.config.ui.use_nerd_font_icons,
         &ctx.colorscheme,
+        &ctx.config.ui.results_panel,
     )?;
 
     // input box
@@ -208,8 +209,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
-        &ctx.config.ui.input_header,
-        &ctx.config.ui.input_bar_position,
+        &ctx.config.ui.input_bar,
     )?;
 
     // status bar at the bottom
@@ -225,7 +225,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.tv_state.preview_state,
             ctx.config.ui.use_nerd_font_icons,
             &ctx.colorscheme,
-            ctx.config.ui.preview_panel.scrollbar,
+            ctx.config.ui.preview_panel,
         )?;
     }
 

@@ -4,11 +4,10 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
-use television::cable::cable_empty_exit;
 use television::{
     action::Action,
     app::{App, AppOptions},
-    cable::{Cable, load_cable},
+    cable::{Cable, cable_empty_exit, load_cable},
     channels::prototypes::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
     },
@@ -18,7 +17,7 @@ use television::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels,
     },
-    config::{Config, ConfigEnv, merge_keybindings},
+    config::{Config, ConfigEnv, merge_keybindings, ui::InputBarConfig},
     errors::os_error_exit,
     features::FeatureFlags,
     gh::update_local_channels,
@@ -199,7 +198,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     config.ui.ui_scale = args.ui_scale.unwrap_or(config.ui.ui_scale);
     if let Some(input_header) = &args.input_header {
         if let Ok(t) = Template::parse(input_header) {
-            config.ui.input_header = Some(t);
+            config.ui.input_bar.header = Some(t);
         }
     }
     if let Some(preview_header) = &args.preview_header {
@@ -314,7 +313,10 @@ fn create_adhoc_channel(
 
     // Set UI specification
     let mut ui_spec = UiSpec::from(&config.ui);
-    ui_spec.input_header = Some(input_header);
+    let input_bar = ui_spec
+        .input_bar
+        .get_or_insert_with(InputBarConfig::default);
+    input_bar.header = Some(input_header);
     ui_spec.features = Some(features);
     prototype.ui = Some(ui_spec);
 
@@ -370,8 +372,7 @@ fn apply_ui_overrides(
         ui_scale: None,
         features: None,
         orientation: None,
-        input_bar_position: None,
-        input_header: None,
+        input_bar: None,
         preview_panel: None,
         status_bar: None,
         help_panel: None,
@@ -381,7 +382,10 @@ fn apply_ui_overrides(
     // Apply input header override
     if let Some(input_header_str) = &args.input_header {
         if let Ok(template) = Template::parse(input_header_str) {
-            ui_spec.input_header = Some(template);
+            let input_bar = ui_spec
+                .input_bar
+                .get_or_insert_with(InputBarConfig::default);
+            input_bar.header = Some(template);
             ui_changes_needed = true;
         }
     }
@@ -481,8 +485,11 @@ pub fn determine_channel(
 #[cfg(test)]
 mod tests {
     use rustc_hash::FxHashMap;
-    use television::channels::prototypes::{
-        ChannelPrototype, CommandSpec, PreviewSpec, Template,
+    use television::{
+        channels::prototypes::{
+            ChannelPrototype, CommandSpec, PreviewSpec, Template,
+        },
+        config::ui::{BorderType, InputBarConfig},
     };
 
     use super::*;
@@ -735,8 +742,11 @@ mod tests {
             ui_scale: None,
             features: None,
             orientation: Some(Orientation::Portrait),
-            input_bar_position: None,
-            input_header: Some(Template::parse("Original Header").unwrap()),
+            input_bar: Some(InputBarConfig {
+                position: None,
+                header: Some(Template::parse("Original Header").unwrap()),
+                border_type: BorderType::Rounded,
+            }),
             preview_panel: Some(television::config::ui::PreviewPanelConfig {
                 size: 50,
                 header: Some(

@@ -1,4 +1,5 @@
 use crate::{
+    config::ui::{BorderType, PreviewPanelConfig},
     previewer::state::PreviewState,
     screen::colors::Colorscheme,
     utils::strings::{
@@ -26,12 +27,13 @@ pub fn draw_preview_content_block(
     preview_state: PreviewState,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
-    scrollbar_enabled: bool,
+    preview_panel_config: PreviewPanelConfig,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
         rect,
         colorscheme,
+        preview_panel_config.border_type,
         preview_state.preview.icon,
         &preview_state.preview.title,
         &preview_state.preview.footer,
@@ -50,7 +52,7 @@ pub fn draw_preview_content_block(
     f.render_widget(rp, inner);
 
     // render scrollbar if enabled
-    if scrollbar_enabled {
+    if preview_panel_config.scrollbar {
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .style(Style::default().fg(colorscheme.general.border_fg));
 
@@ -165,6 +167,7 @@ fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
     colorscheme: &Colorscheme,
+    border_type: BorderType,
     icon: Option<FileIcon>,
     title: &str,
     footer: &str,
@@ -222,7 +225,7 @@ fn draw_content_outer_block(
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::new(0, 1, 1, 0));
-    if let Some(border_type) = colorscheme.preview.preview_border_type {
+    if let Some(border_type) = border_type.to_ratatui_border_type() {
         preview_outer_block = preview_outer_block
             .borders(Borders::ALL)
             .border_type(border_type)

@@ -11,9 +11,23 @@ pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
 #[serde(default)]
+pub struct InputBarConfig {
+    pub position: InputPosition,
+    pub header: Option<Template>,
+    pub border_type: BorderType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[serde(default)]
 pub struct StatusBarConfig {
     pub separator_open: String,
     pub separator_close: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[serde(default)]
+pub struct ResultsPanelConfig {
+    pub border_type: BorderType,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
@@ -23,6 +37,7 @@ pub struct PreviewPanelConfig {
     pub header: Option<Template>,
     pub footer: Option<Template>,
     pub scrollbar: bool,
+    pub border_type: BorderType,
 }
 
 impl Default for PreviewPanelConfig {
@@ -32,6 +47,7 @@ impl Default for PreviewPanelConfig {
             header: None,
             footer: None,
             scrollbar: true,
+            border_type: BorderType::default(),
         }
     }
 }
@@ -79,21 +95,18 @@ pub struct ThemeOverrides {
 
     // Input colors
     pub input_text_fg: Option<String>,
-    pub input_border_type: Option<String>,
     pub result_count_fg: Option<String>,
 
     // Result colors
     pub result_name_fg: Option<String>,
     pub result_line_number_fg: Option<String>,
     pub result_value_fg: Option<String>,
-    pub result_border_type: Option<String>,
     pub selection_bg: Option<String>,
     pub selection_fg: Option<String>,
     pub match_fg: Option<String>,
 
     // Preview colors
     pub preview_title_fg: Option<String>,
-    pub preview_border_type: Option<String>,
 
     // Mode colors
     pub channel_mode_fg: Option<String>,
@@ -107,15 +120,15 @@ pub struct ThemeOverrides {
 pub struct UiConfig {
     pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
-    pub input_bar_position: InputPosition,
     pub orientation: Orientation,
     pub theme: String,
-    pub input_header: Option<Template>,
     pub features: Features,
 
     // Feature-specific configurations
+    pub input_bar: InputBarConfig,
     pub status_bar: StatusBarConfig,
     pub preview_panel: PreviewPanelConfig,
+    pub results_panel: ResultsPanelConfig,
     pub help_panel: HelpPanelConfig,
     pub remote_control: RemoteControlConfig,
 
@@ -129,16 +142,36 @@ impl Default for UiConfig {
         Self {
             use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
-            input_bar_position: InputPosition::Top,
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
-            input_header: None,
             features: Features::default(),
+            input_bar: InputBarConfig::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),
+            results_panel: ResultsPanelConfig::default(),
             help_panel: HelpPanelConfig::default(),
             remote_control: RemoteControlConfig::default(),
             theme_overrides: ThemeOverrides::default(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum BorderType {
+    None,
+    Plain,
+    #[default]
+    Rounded,
+    Thick,
+}
+impl BorderType {
+    pub fn to_ratatui_border_type(&self) -> Option<ratatui::widgets::BorderType> {
+        match self {
+            BorderType::None => None,
+            BorderType::Plain => Some(ratatui::widgets::BorderType::Plain),
+            BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
+            BorderType::Thick => Some(ratatui::widgets::BorderType::Thick),
         }
     }
 }

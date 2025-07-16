@@ -87,31 +87,6 @@ impl RGBColor {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum BorderType {
-    None,
-    Plain,
-    Rounded,
-    Thick,
-}
-impl BorderType {
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s {
-            "none" => Some(Self::None),
-            "plain" => Some(Self::Plain),
-            "rounded" => Some(Self::Rounded),
-            "thick" => Some(Self::Thick),
-            _ => None,
-        }
-    }
-    pub fn from_string_option(s: Option<&str>) -> Option<Self> {
-        match s {
-            None => Some(Self::Rounded),
-            Some(inner) => BorderType::from_str(inner),
-        }
-    }
-}
-
 #[derive(Clone, Debug)]
 pub struct Theme {
     // general
@@ -121,7 +96,6 @@ pub struct Theme {
     pub dimmed_text_fg: Color,
     // input
     pub input_text_fg: Color,
-    pub input_border_type: BorderType,
     pub result_count_fg: Color,
     // results
     pub result_name_fg: Color,
@@ -130,10 +104,8 @@ pub struct Theme {
     pub selection_bg: Color,
     pub selection_fg: Color,
     pub match_fg: Color,
-    pub result_border_type: BorderType,
     // preview
     pub preview_title_fg: Color,
-    pub preview_border_type: BorderType,
     // modes
     pub channel_mode_fg: Color,
     pub channel_mode_bg: Color,
@@ -206,20 +178,6 @@ impl Theme {
                 }
             };
         }
-        macro_rules! apply_border_type_override {
-            ($field:ident, $override_field:expr) => {
-                if let Some(ref border_type) = $override_field {
-                    merged_theme.$field = BorderType::from_str(border_type)
-                        .ok_or_else(|| {
-                            format!(
-                                "invalid {}: {}",
-                                stringify!($field),
-                                border_type
-                            )
-                        })?;
-                }
-            };
-        }
 
         // Apply overrides using the macro
         apply_override!(opt background, overrides.background);
@@ -227,10 +185,6 @@ impl Theme {
         apply_override!(text_fg, overrides.text_fg);
         apply_override!(dimmed_text_fg, overrides.dimmed_text_fg);
         apply_override!(input_text_fg, overrides.input_text_fg);
-        apply_border_type_override!(
-            input_border_type,
-            overrides.input_border_type
-        );
         apply_override!(result_count_fg, overrides.result_count_fg);
         apply_override!(result_name_fg, overrides.result_name_fg);
         apply_override!(
@@ -238,18 +192,10 @@ impl Theme {
             overrides.result_line_number_fg
         );
         apply_override!(result_value_fg, overrides.result_value_fg);
-        apply_border_type_override!(
-            result_border_type,
-            overrides.result_border_type
-        );
         apply_override!(selection_bg, overrides.selection_bg);
         apply_override!(selection_fg, overrides.selection_fg);
         apply_override!(match_fg, overrides.match_fg);
         apply_override!(preview_title_fg, overrides.preview_title_fg);
-        apply_border_type_override!(
-            preview_border_type,
-            overrides.preview_border_type
-        );
         apply_override!(channel_mode_fg, overrides.channel_mode_fg);
         apply_override!(channel_mode_bg, overrides.channel_mode_bg);
         apply_override!(
@@ -285,13 +231,11 @@ struct Inner {
     dimmed_text_fg: String,
     // input
     input_text_fg: String,
-    input_border_type: Option<String>,
     result_count_fg: String,
     // results
     result_name_fg: String,
     result_line_number_fg: String,
     result_value_fg: String,
-    result_border_type: Option<String>,
     selection_bg: String,
     // this is made optional for theme backwards compatibility
     // and falls back to match_fg
@@ -299,7 +243,6 @@ struct Inner {
     match_fg: String,
     // preview
     preview_title_fg: String,
-    preview_border_type: Option<String>,
     // modes
     channel_mode_fg: String,
     channel_mode_bg: Option<String>,
@@ -355,15 +298,6 @@ impl<'de> Deserialize<'de> for Theme {
                     ))
                 },
             )?,
-            input_border_type: BorderType::from_string_option(
-                inner.input_border_type.as_deref(),
-            )
-            .ok_or_else(|| {
-                serde::de::Error::custom(format!(
-                    "invalid border type {}",
-                    inner.input_border_type.unwrap_or_default()
-                ))
-            })?,
             result_count_fg: Color::from_str(&inner.result_count_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
@@ -394,15 +328,6 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.result_value_fg
                     ))
                 })?,
-            result_border_type: BorderType::from_string_option(
-                inner.result_border_type.as_deref(),
-            )
-            .ok_or_else(|| {
-                serde::de::Error::custom(format!(
-                    "invalid border type {}",
-                    inner.result_border_type.unwrap_or_default()
-                ))
-            })?,
             selection_bg: Color::from_str(&inner.selection_bg).ok_or_else(
                 || {
                     serde::de::Error::custom(format!(
@@ -437,15 +362,6 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.preview_title_fg
                     ))
                 })?,
-            preview_border_type: BorderType::from_string_option(
-                inner.preview_border_type.as_deref(),
-            )
-            .ok_or_else(|| {
-                serde::de::Error::custom(format!(
-                    "invalid border type {}",
-                    inner.preview_border_type.unwrap_or_default()
-                ))
-            })?,
             channel_mode_fg: Color::from_str(&inner.channel_mode_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
@@ -537,17 +453,6 @@ impl Into<Colorscheme> for &Theme {
     }
 }
 
-impl From<&BorderType> for Option<ratatui::widgets::BorderType> {
-    fn from(val: &BorderType) -> Self {
-        match val {
-            BorderType::None => None,
-            BorderType::Plain => Some(ratatui::widgets::BorderType::Plain),
-            BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
-            BorderType::Thick => Some(ratatui::widgets::BorderType::Thick),
-        }
-    }
-}
-
 #[allow(clippy::from_over_into)]
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
@@ -575,7 +480,6 @@ impl Into<ResultsColorscheme> for &Theme {
             result_fg: (&self.result_name_fg).into(),
             result_selected_bg: (&self.selection_bg).into(),
             result_selected_fg: (&self.selection_fg).into(),
-            result_border_type: (&self.result_border_type).into(),
             match_foreground_color: (&self.match_fg).into(),
         }
     }
@@ -590,7 +494,6 @@ impl Into<PreviewColorscheme> for &Theme {
             content_fg: (&self.text_fg).into(),
             gutter_fg: (&self.dimmed_text_fg).into(),
             gutter_selected_fg: (&self.match_fg).into(),
-            preview_border_type: (&self.preview_border_type).into(),
         }
     }
 }
@@ -600,7 +503,6 @@ impl Into<InputColorscheme> for &Theme {
     fn into(self) -> InputColorscheme {
         InputColorscheme {
             input_fg: (&self.input_text_fg).into(),
-            input_border_type: (&self.input_border_type).into(),
             results_count_fg: (&self.result_count_fg).into(),
         }
     }

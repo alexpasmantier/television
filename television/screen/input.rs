@@ -1,5 +1,5 @@
 use crate::{
-    channels::prototypes::Template,
+    config::ui::InputBarConfig,
     screen::{colors::Colorscheme, layout::InputPosition, spinner::Spinner},
     utils::input::Input,
 };
@@ -26,15 +26,15 @@ pub fn draw_input_box(
     channel_name: &str,
     spinner: &Spinner,
     colorscheme: &Colorscheme,
-    input_header: &Option<Template>,
-    input_bar_position: &InputPosition,
+    input_bar_config: &InputBarConfig,
 ) -> Result<()> {
-    let header = input_header
+    let header = input_bar_config
+        .header
         .as_ref()
         .and_then(|tpl| tpl.format(channel_name).ok())
         .unwrap_or_else(|| channel_name.to_string());
     let mut input_block = Block::default()
-        .title_position(match input_bar_position {
+        .title_position(match input_bar_config.position {
             InputPosition::Top => Position::Top,
             InputPosition::Bottom => Position::Bottom,
         })
@@ -47,7 +47,9 @@ pub fn draw_input_box(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         );
-    if let Some(border_type) = colorscheme.input.input_border_type {
+    if let Some(border_type) =
+        input_bar_config.border_type.to_ratatui_border_type()
+    {
         input_block = input_block
             .borders(Borders::ALL)
             .border_type(border_type)
