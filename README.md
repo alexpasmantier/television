@@ -7,7 +7,7 @@
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
-[![Discord](https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hQBrzsJgUg)
+![Discord](https://img.shields.io/discord/1366133668535341116)
 
 ![tv's files channel](./assets/tv-transparent.png)
 
