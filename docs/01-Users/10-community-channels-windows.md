@@ -358,7 +358,7 @@ requirements = [ "rg", "bat",]
 
 [source]
 command = "rg . --no-heading --line-number"
-display = "[{split:\\::..2}]\t{split:\\::2}"
+display = "[{split:\\::..2}]\t{split:\\::2..}"
 output = "{split:\\::..2}"
 
 [preview]
