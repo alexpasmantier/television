@@ -18,6 +18,8 @@ pub const DEFAULT_CABLE_DIR: &str = "./cable/unix";
 #[cfg(windows)]
 pub const DEFAULT_CABLE_DIR: &str = "./cable/windows";
 
+pub const TARGET_DIR: &str = "./tests/target_dir";
+
 pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
     rows: 30,
     cols: 120,

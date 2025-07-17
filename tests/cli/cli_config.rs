@@ -4,19 +4,22 @@
 //! ensuring that users can customize their setup and work in different directories.
 
 use super::common::*;
+use std::path::Path;
 
 /// Tests that the PATH positional argument correctly sets the working directory.
 #[test]
 fn test_path_as_positional_argument_sets_working_directory() {
     let mut tester = PtyTester::new();
-    let tmp_dir = std::env::temp_dir();
+    let tmp_dir = Path::new(TARGET_DIR);
 
     // Create initial files to be detected
-    std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
+    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // Starts the files channel in the specified temporary directory
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
+        "--input",
+        "UNIQUE16CHARID",
         tmp_dir.to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
@@ -25,8 +28,8 @@ fn test_path_as_positional_argument_sets_working_directory() {
     tester.assert_tui_frame_contains(
         "╭───────────────────────── files ──────────────────────────╮",
     );
-    // Verify that the test file `file1.txt` is present
-    tester.assert_tui_frame_contains("file1.txt");
+    // Verify that the test file is present
+    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // Send Ctrl+C to exit cleanly
     tester.send(&ctrl('c'));

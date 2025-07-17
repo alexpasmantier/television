@@ -4,15 +4,16 @@
 //! ensuring users can enable real-time data updates.
 
 use super::common::*;
+use std::path::Path;
 
 /// Tests that --watch enables live monitoring with automatic source command re-execution.
 #[test]
 fn test_watch_reloads_source_command() {
     let mut tester = PtyTester::new();
-    let tmp_dir = std::env::temp_dir();
+    let tmp_dir = Path::new(TARGET_DIR);
 
     // Create initial file to be detected
-    std::fs::write(tmp_dir.join("file1.txt"), "").unwrap();
+    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This monitors the temp directory and updates every 0.5 seconds
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -20,21 +21,23 @@ fn test_watch_reloads_source_command() {
         "0.5",
         "--source-command",
         "ls",
+        "--input",
+        "UNIQUE16CHARID",
         tmp_dir.to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the initial file is detected
-    tester.assert_tui_frame_contains("file1.txt");
+    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // Create a second file
-    std::fs::write(tmp_dir.join("control.txt"), "").unwrap();
+    std::fs::write(tmp_dir.join("UNIQUE16CHARIDcontrol.txt"), "").unwrap();
 
     // Wait longer than watch interval
     std::thread::sleep(std::time::Duration::from_millis(2000));
 
     // Verify the new file appears after the watch interval
-    tester.assert_tui_frame_contains("control.txt");
+    tester.assert_tui_frame_contains("UNIQUE16CHARIDcontrol.txt");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
