@@ -29,3 +29,6 @@ Cargo.lock
 .vscode/
 
 **/node_modules/
+
+# test artifacts
+target_dir/
