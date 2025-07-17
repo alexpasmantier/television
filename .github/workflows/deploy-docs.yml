@@ -1,8 +1,10 @@
 name: deploy docs
 on:
   push:
-    paths-ignore:
-      - "README.md"
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - 'CONTRIBUTING.md'
     branches:
       - main
   workflow_dispatch:

@@ -3,8 +3,10 @@ on:
   pull_request:
     branches:
       - main
-      # Review gh actions docs if you want to further define triggers, paths, etc
-      # https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#on
+    paths:
+      - 'website/**'
+      - 'docs/**'
+      - 'CONTRIBUTING.md'
 jobs:
   test-deploy:
     name: Test deployment
@@ -27,3 +29,4 @@ jobs:
       - name: Build website
         run: pnpm run build
         working-directory: website
+

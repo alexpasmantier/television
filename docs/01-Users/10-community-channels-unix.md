@@ -28,6 +28,7 @@ output = "{split:=:0}"
 
 List and preview AWS S3 Buckets
 
+![tv running the aws-buckets channel](assets/channels/aws-buckets.png)
 **Requirements:** `aws`
 
 **Code:** *aws-buckets.toml*
@@ -439,7 +440,7 @@ requirements = [ "rg", "bat",]
 
 [source]
 command = "rg . --no-heading --line-number"
-display = "[{split:\\::..2}]\t{split:\\::2}"
+display = "[{split:\\::..2}]\t{split:\\::2..}"
 output = "{split:\\::..2}"
 
 [preview]

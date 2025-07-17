@@ -154,3 +154,14 @@ bump-version kind='patch':
 # Start a local development server for the project's website
 @start-website:
 	cd website && pnpm install && pnpm start
+
+# Generate cable channel docs
+@generate-cable-docs:
+	echo "Generating cable channel docs..."
+	python -m venv .venv && \
+	source .venv/bin/activate && \
+	python -m ensurepip && \
+	python -m pip install toml && \
+	python scripts/generate_cable_docs.py
+	echo "Docs generated in docs/cable_channels.md"
+	rm -rf .venv

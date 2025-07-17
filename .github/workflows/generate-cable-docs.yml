@@ -10,6 +10,9 @@ permissions:
   contents: write
 on:
   pull_request:
+    paths:
+      - 'cable/**'
+      - 'assets/channels/**'
   workflow_dispatch:
 jobs:
   generate-docs:
