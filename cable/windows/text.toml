@@ -5,7 +5,7 @@ requirements = ["rg", "bat"]
 
 [source]
 command = "rg . --no-heading --line-number"
-display = "[{split:\\::..2}]\t{split:\\::2}"
+display = "[{split:\\::..2}]\t{split:\\::2..}"
 output = "{split:\\::..2}"
 
 [preview]
@@ -15,4 +15,3 @@ offset = '{split:\::1}'
 
 [ui]
 preview_panel = { header = '{split:\::..2}' }
-
