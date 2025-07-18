@@ -408,7 +408,10 @@ impl From<&crate::config::UiConfig> for UiSpec {
 
 #[cfg(test)]
 mod tests {
-    use crate::{action::Action, config::Binding, event::Key};
+    use crate::{
+        action::Action, config::Binding, event::Key,
+        screen::layout::InputPosition,
+    };
 
     use super::*;
     use toml::from_str;
@@ -491,11 +494,13 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 100
-        input_bar_position = "bottom"
-        input_header = "Input: {}"
 
         [ui.features]
         preview_panel = { enabled = true, visible = true }
+
+        [ui.input_bar]
+        position = "bottom"
+        header = "Input: {}"
 
         [ui.preview_panel]
         size = 66
@@ -701,9 +706,8 @@ mod tests {
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
         assert!(ui.features.is_none());
-        assert!(ui.input_bar.position.is_none());
+        assert!(ui.input_bar.is_none());
         assert!(ui.preview_panel.is_some());
-        assert!(ui.input.header.is_none());
         assert_eq!(
             ui.preview_panel
                 .as_ref()

@@ -1,5 +1,7 @@
 use crate::{
-    channels::entry::Entry, config::ui::ResultsPanelConfig, screen::{colors::Colorscheme, layout::InputPosition, result_item}
+    channels::entry::Entry,
+    config::ui::ResultsPanelConfig,
+    screen::{colors::Colorscheme, layout::InputPosition, result_item},
 };
 use anyhow::Result;
 use ratatui::{
@@ -30,7 +32,9 @@ pub fn draw_results_list(
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(Padding::right(1));
-    if let Some(border_type) = results_panel_config.border_type.to_ratatui_border_type() {
+    if let Some(border_type) =
+        results_panel_config.border_type.to_ratatui_border_type()
+    {
         results_block = results_block
             .borders(Borders::ALL)
             .border_type(border_type)

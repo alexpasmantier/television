@@ -166,7 +166,9 @@ pub enum BorderType {
     Thick,
 }
 impl BorderType {
-    pub fn to_ratatui_border_type(&self) -> Option<ratatui::widgets::BorderType> {
+    pub fn to_ratatui_border_type(
+        &self,
+    ) -> Option<ratatui::widgets::BorderType> {
         match self {
             BorderType::None => None,
             BorderType::Plain => Some(ratatui::widgets::BorderType::Plain),

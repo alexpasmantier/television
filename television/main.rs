@@ -490,6 +490,7 @@ mod tests {
             ChannelPrototype, CommandSpec, PreviewSpec, Template,
         },
         config::ui::{BorderType, InputBarConfig},
+        screen::layout::InputPosition,
     };
 
     use super::*;
@@ -697,7 +698,7 @@ mod tests {
         // Preview should be disabled since no preview command was provided
         assert!(!features.is_enabled(FeatureFlags::PreviewPanel));
         assert_eq!(
-            ui_spec.input_header,
+            ui_spec.input_bar.as_ref().unwrap().header,
             Some(Template::parse("Custom Channel").unwrap())
         );
     }
@@ -718,7 +719,7 @@ mod tests {
         assert_eq!(config.application.tick_rate, 100_f64);
         assert!(!config.ui.features.is_enabled(FeatureFlags::PreviewPanel));
         assert_eq!(
-            config.ui.input_header,
+            config.ui.input_bar.header,
             Some(Template::parse("Input Header").unwrap())
         );
         assert_eq!(
@@ -743,7 +744,7 @@ mod tests {
             features: None,
             orientation: Some(Orientation::Portrait),
             input_bar: Some(InputBarConfig {
-                position: None,
+                position: InputPosition::default(),
                 header: Some(Template::parse("Original Header").unwrap()),
                 border_type: BorderType::Rounded,
             }),
@@ -756,6 +757,7 @@ mod tests {
                     Template::parse("Original Preview Footer").unwrap(),
                 ),
                 scrollbar: false,
+                border_type: BorderType::default(),
             }),
             status_bar: None,
             help_panel: None,
@@ -783,7 +785,7 @@ mod tests {
         let ui_spec = result_channel.ui.as_ref().unwrap();
 
         assert_eq!(
-            ui_spec.input_header,
+            ui_spec.input_bar.as_ref().unwrap().header,
             Some(Template::parse("CLI Input Header").unwrap())
         );
         assert_eq!(ui_spec.orientation, Some(Orientation::Landscape));

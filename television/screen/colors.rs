@@ -1,4 +1,4 @@
-use ratatui::{style::Color, widgets::BorderType};
+use ratatui::style::Color;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Colorscheme {
