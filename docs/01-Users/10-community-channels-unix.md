@@ -28,7 +28,7 @@ output = "{split:=:0}"
 
 List and preview AWS S3 Buckets
 
-![tv running the aws-buckets channel](assets/channels/aws-buckets.png)
+![tv running the aws-buckets channel](../../assets/channels/aws-buckets.png)
 **Requirements:** `aws`
 
 **Code:** *aws-buckets.toml*

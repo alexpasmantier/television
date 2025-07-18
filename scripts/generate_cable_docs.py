@@ -32,7 +32,7 @@ def generate_cable_docs(os_name: str) -> str:
 """
         img_path = Path(f"./assets/channels/{channel_name}.png")
         if img_path.exists():
-            docs += f"![tv running the {channel_name} channel]({img_path})\n"
+            docs += f"![tv running the {channel_name} channel](../../{img_path})\n"
 
         docs += f"""**Requirements:** {", ".join((f"`{req}`" for req in channel_requirements)) if channel_requirements else "*None*"}
 
