@@ -109,7 +109,6 @@ border_type = "rounded" # https://docs.rs/ratatui/latest/ratatui/widgets/block/e
 # Status bar separators (box):
 separator_open = ""
 separator_close = ""
-border_type = "rounded"
 
 [ui.results_panel]
 border_type = "rounded"
@@ -120,6 +119,7 @@ size = 50
 #header = "{}"
 #footer = ""
 scrollbar = true
+border_type = "rounded"
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode

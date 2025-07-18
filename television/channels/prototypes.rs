@@ -382,6 +382,8 @@ pub struct UiSpec {
     #[serde(default)]
     pub preview_panel: Option<ui::PreviewPanelConfig>,
     #[serde(default)]
+    pub results_panel: Option<ui::ResultsPanelConfig>,
+    #[serde(default)]
     pub status_bar: Option<ui::StatusBarConfig>,
     #[serde(default)]
     pub help_panel: Option<ui::HelpPanelConfig>,
@@ -399,6 +401,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
             orientation: Some(config.orientation),
             input_bar: Some(config.input_bar.clone()),
             preview_panel: Some(config.preview_panel.clone()),
+            results_panel: Some(config.results_panel.clone()),
             status_bar: Some(config.status_bar.clone()),
             help_panel: Some(config.help_panel.clone()),
             remote_control: Some(config.remote_control.clone()),
@@ -409,7 +412,9 @@ impl From<&crate::config::UiConfig> for UiSpec {
 #[cfg(test)]
 mod tests {
     use crate::{
-        action::Action, config::Binding, event::Key,
+        action::Action,
+        config::{Binding, ui::BorderType},
+        event::Key,
         screen::layout::InputPosition,
     };
 
@@ -501,11 +506,16 @@ mod tests {
         [ui.input_bar]
         position = "bottom"
         header = "Input: {}"
+        border_type = "plain"
 
         [ui.preview_panel]
         size = 66
         header = "Preview: {}"
         footer = "Press 'q' to quit"
+        border_type = "thick"
+
+        [ui.results_panel]
+        border_type = "none"
 
         [keybindings]
         quit = ["esc", "ctrl-c"]
@@ -552,26 +562,19 @@ mod tests {
         let input_bar = ui.input_bar.as_ref().unwrap();
         assert_eq!(input_bar.position, InputPosition::Bottom);
         assert_eq!(input_bar.header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(input_bar.border_type, BorderType::Plain);
+        let preview_panel = ui.preview_panel.as_ref().unwrap();
         assert_eq!(
-            ui.preview_panel
-                .as_ref()
-                .unwrap()
-                .header
-                .as_ref()
-                .unwrap()
-                .raw(),
+            preview_panel.header.as_ref().unwrap().raw(),
             "Preview: {}"
         );
         assert_eq!(
-            ui.preview_panel
-                .as_ref()
-                .unwrap()
-                .footer
-                .as_ref()
-                .unwrap()
-                .raw(),
+            preview_panel.footer.as_ref().unwrap().raw(),
             "Press 'q' to quit"
         );
+        assert_eq!(preview_panel.border_type, BorderType::Thick);
+
+        assert_eq!(ui.results_panel.unwrap().border_type, BorderType::None);
 
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(

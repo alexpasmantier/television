@@ -1,9 +1,10 @@
 use crate::{
     config::ui::{BorderType, PreviewPanelConfig},
-    previewer::{state::PreviewState, Preview},
+    previewer::{Preview, state::PreviewState},
     screen::colors::Colorscheme,
     utils::strings::{
-        replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig, EMPTY_STRING
+        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+        shrink_with_ellipsis,
     },
 };
 use anyhow::Result;
