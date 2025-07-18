@@ -706,7 +706,7 @@ mod tests {
         let merged_theme =
             base_theme.merge_with_overrides(&overrides).unwrap();
 
-        // Check that all values remain the same when no overrides are provided
+        // Check that all colors remain the same when no overrides are provided
         assert_eq!(merged_theme.background, base_theme.background);
         assert_eq!(merged_theme.border_fg, base_theme.border_fg);
         assert_eq!(merged_theme.text_fg, base_theme.text_fg);

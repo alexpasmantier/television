@@ -1,14 +1,12 @@
 use crate::{
     config::ui::{BorderType, PreviewPanelConfig},
-    previewer::state::PreviewState,
+    previewer::{state::PreviewState, Preview},
     screen::colors::Colorscheme,
     utils::strings::{
-        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
-        shrink_with_ellipsis,
+        replace_non_printable, shrink_with_ellipsis, ReplaceNonPrintableConfig, EMPTY_STRING
     },
 };
 use anyhow::Result;
-use devicons::FileIcon;
 use ratatui::{
     Frame,
     layout::{Alignment, Rect},
@@ -27,16 +25,14 @@ pub fn draw_preview_content_block(
     preview_state: PreviewState,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
-    preview_panel_config: PreviewPanelConfig,
+    preview_panel_config: &PreviewPanelConfig,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
         rect,
         colorscheme,
-        preview_panel_config.border_type,
-        preview_state.preview.icon,
-        &preview_state.preview.title,
-        &preview_state.preview.footer,
+        &preview_panel_config.border_type,
+        &preview_state.preview,
         use_nerd_font_icons,
     )?;
     let scroll = preview_state.scroll as usize;
@@ -167,16 +163,14 @@ fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
     colorscheme: &Colorscheme,
-    border_type: BorderType,
-    icon: Option<FileIcon>,
-    title: &str,
-    footer: &str,
+    border_type: &BorderType,
+    preview: &Preview,
     use_nerd_font_icons: bool,
 ) -> Result<Rect> {
     let mut preview_title_spans = vec![Span::from(" ")];
     // optional icon
-    if icon.is_some() && use_nerd_font_icons {
-        let icon = icon.as_ref().unwrap();
+    if preview.icon.is_some() && use_nerd_font_icons {
+        let icon = preview.icon.as_ref().unwrap();
         preview_title_spans.push(Span::styled(
             {
                 let mut icon_str = String::from(icon.icon);
@@ -190,7 +184,7 @@ fn draw_content_outer_block(
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable(
-                title.as_bytes(),
+                preview.title.as_bytes(),
                 &ReplaceNonPrintableConfig::default(),
             )
             .0,
@@ -208,10 +202,10 @@ fn draw_content_outer_block(
     );
 
     // preview footer
-    if !footer.is_empty() {
+    if !preview.footer.is_empty() {
         let footer_line = Line::from(vec![
             Span::from(" "),
-            Span::from(footer),
+            Span::from(preview.footer.as_str()),
             Span::from(" "),
         ])
         .alignment(Alignment::Center)
