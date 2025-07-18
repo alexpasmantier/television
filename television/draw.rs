@@ -197,6 +197,8 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     )?;
 
     // input box
+    let input_prompt = ctx.config.ui.input_prompt.clone();
+
     draw_input_box(
         f,
         layout.input,
@@ -209,6 +211,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
         &ctx.config.ui.input_header,
+        &input_prompt,
         &ctx.config.ui.input_bar_position,
     )?;
 

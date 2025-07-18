@@ -108,6 +108,8 @@ pub struct UiConfig {
     pub orientation: Orientation,
     pub theme: String,
     pub input_header: Option<Template>,
+    #[serde(default = "default_input_prompt")]
+    pub input_prompt: String,
     pub features: Features,
 
     // Feature-specific configurations
@@ -121,6 +123,11 @@ pub struct UiConfig {
     pub theme_overrides: ThemeOverrides,
 }
 
+const DEFAULT_INPUT_PROMPT: &str = ">";
+fn default_input_prompt() -> String {
+    String::from(DEFAULT_INPUT_PROMPT)
+}
+
 impl Default for UiConfig {
     fn default() -> Self {
         Self {
@@ -130,6 +137,7 @@ impl Default for UiConfig {
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
             input_header: None,
+            input_prompt: String::from(DEFAULT_INPUT_PROMPT),
             features: Features::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),

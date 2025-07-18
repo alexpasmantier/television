@@ -202,6 +202,9 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
             config.ui.input_header = Some(t);
         }
     }
+    if let Some(input_prompt) = &args.input_prompt {
+        config.ui.input_prompt.clone_from(input_prompt);
+    }
     if let Some(preview_header) = &args.preview_header {
         if let Ok(t) = Template::parse(preview_header) {
             config.ui.preview_panel.header = Some(t);
@@ -372,6 +375,7 @@ fn apply_ui_overrides(
         orientation: None,
         input_bar_position: None,
         input_header: None,
+        input_prompt: None,
         preview_panel: None,
         status_bar: None,
         help_panel: None,
@@ -384,6 +388,12 @@ fn apply_ui_overrides(
             ui_spec.input_header = Some(template);
             ui_changes_needed = true;
         }
+    }
+
+    // Apply input prompt override
+    if let Some(input_prompt_str) = &args.input_prompt {
+        ui_spec.input_prompt = Some(input_prompt_str.clone());
+        ui_changes_needed = true;
     }
 
     // Apply layout/orientation override
@@ -737,6 +747,7 @@ mod tests {
             orientation: Some(Orientation::Portrait),
             input_bar_position: None,
             input_header: Some(Template::parse("Original Header").unwrap()),
+            input_prompt: None,
             preview_panel: Some(television::config::ui::PreviewPanelConfig {
                 size: 50,
                 header: Some(

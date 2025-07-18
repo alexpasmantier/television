@@ -80,6 +80,7 @@ pub struct PostProcessedCli {
     // Input configuration
     pub input: Option<String>,
     pub input_header: Option<String>,
+    pub input_prompt: Option<String>,
 
     // UI and layout configuration
     pub layout: Option<Orientation>,
@@ -150,6 +151,7 @@ impl Default for PostProcessedCli {
             // Input configuration
             input: None,
             input_header: None,
+            input_prompt: None,
 
             // UI and layout configuration
             layout: None,
@@ -340,6 +342,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         // Input configuration
         input: cli.input,
         input_header: cli.input_header,
+        input_prompt: cli.input_prompt,
 
         // UI and layout configuration
         layout,

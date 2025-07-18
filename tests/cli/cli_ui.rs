@@ -89,6 +89,63 @@ fn test_input_header_in_adhoc_mode() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
+/// Tests that --input-prompt customizes the prompt symbol in Channel Mode.
+#[test]
+fn test_input_prompt_in_channel_mode() {
+    let mut tester = PtyTester::new();
+
+    // This overrides the channel's default input prompt with custom symbol
+    let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
+    cmd.args(["--input-prompt", "❯ "]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the custom input prompt is displayed
+    tester.assert_tui_frame_contains("❯ ");
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that --input-prompt works in Ad-hoc Mode.
+#[test]
+fn test_input_prompt_in_adhoc_mode() {
+    let mut tester = PtyTester::new();
+
+    // This provides a custom input prompt for an ad-hoc channel
+    let mut cmd =
+        tv_local_config_and_cable_with_args(&["--source-command", "ls"]);
+    cmd.args(["--input-prompt", "→ "]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the custom input prompt is displayed
+    tester.assert_tui_frame_contains("→ ");
+    tester.assert_tui_frame_contains("CHANNEL  custom");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that the default input prompt "> " is used when no custom prompt is specified.
+#[test]
+fn test_default_input_prompt() {
+    let mut tester = PtyTester::new();
+
+    // This uses the default input prompt
+    let cmd = tv_local_config_and_cable_with_args(&["files"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the default input prompt is displayed
+    tester.assert_tui_frame_contains("> ");
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
 /// Tests that --ui-scale adjusts the overall interface size.
 #[test]
 fn test_ui_scale() {

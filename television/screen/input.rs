@@ -29,6 +29,7 @@ pub fn draw_input_box(
     spinner: &Spinner,
     colorscheme: &Colorscheme,
     input_header: &Option<Template>,
+    input_prompt: &str,
     input_bar_position: &InputPosition,
 ) -> Result<()> {
     let header = input_header
@@ -64,8 +65,10 @@ pub fn draw_input_box(
     let inner_input_chunks = RatatuiLayout::default()
         .direction(Direction::Horizontal)
         .constraints([
-            // prompt symbol
-            Constraint::Length(2),
+            // prompt symbol + space
+            Constraint::Length(
+                u16::try_from(input_prompt.chars().count() + 1).unwrap_or(2),
+            ),
             // input field
             Constraint::Fill(1),
             // result count
@@ -81,7 +84,7 @@ pub fn draw_input_box(
 
     let arrow_block = Block::default();
     let arrow = Paragraph::new(Span::styled(
-        "> ",
+        format!("{} ", input_prompt),
         Style::default().fg(colorscheme.input.input_fg).bold(),
     ))
     .block(arrow_block);
