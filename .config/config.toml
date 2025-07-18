@@ -56,6 +56,8 @@ ui_scale = 100
 
 # Where to place the input bar in the UI (top or bottom)
 input_bar_position = "top"
+# The input prompt string (defaults to ">" if not specified)
+input_prompt = ">"
 # What orientation should tv be (landscape or portrait)
 orientation = "landscape"
 # The theme to use for the UI

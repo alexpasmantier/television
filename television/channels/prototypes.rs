@@ -379,6 +379,8 @@ pub struct UiSpec {
     pub input_bar_position: Option<InputPosition>,
     #[serde(default)]
     pub input_header: Option<Template>,
+    #[serde(default)]
+    pub input_prompt: Option<String>,
     // Feature-specific configurations
     #[serde(default)]
     pub preview_panel: Option<ui::PreviewPanelConfig>,
@@ -400,6 +402,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
             orientation: Some(config.orientation),
             input_bar_position: Some(config.input_bar_position),
             input_header: config.input_header.clone(),
+            input_prompt: Some(config.input_prompt.clone()),
             preview_panel: Some(config.preview_panel.clone()),
             status_bar: Some(config.status_bar.clone()),
             help_panel: Some(config.help_panel.clone()),

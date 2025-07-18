@@ -266,6 +266,11 @@ impl Config {
             self.ui.input_header = Some(value.clone());
         }
 
+        // Apply input_prompt
+        if let Some(value) = &ui_spec.input_prompt {
+            self.ui.input_prompt.clone_from(value);
+        }
+
         // Handle preview_panel with field merging
         if let Some(preview_panel) = &ui_spec.preview_panel {
             self.ui.preview_panel.size = preview_panel.size;
@@ -479,6 +484,30 @@ mod tests {
             config.shell_integration.keybindings,
             default_config.shell_integration.keybindings
         );
+    }
+
+    const USER_CONFIG_INPUT_PROMPT: &str = r#"
+        [ui]
+        input_prompt = "❯"
+    "#;
+
+    #[test]
+    fn test_config_input_prompt_from_user_cfg() {
+        // write user config to a file
+        let dir = tempdir().unwrap();
+        let config_dir = dir.path();
+        let config_file = config_dir.join(CONFIG_FILE_NAME);
+        let mut file = File::create(&config_file).unwrap();
+        file.write_all(USER_CONFIG_INPUT_PROMPT.as_bytes()).unwrap();
+
+        let config_env = ConfigEnv {
+            _data_dir: get_data_dir(),
+            config_dir: config_dir.to_path_buf(),
+        };
+        let config = Config::new(&config_env, None).unwrap();
+
+        // Verify that input_prompt was loaded from user config
+        assert_eq!(config.ui.input_prompt, "❯");
     }
 
     #[test]

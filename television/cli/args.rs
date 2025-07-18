@@ -141,6 +141,16 @@ pub struct Cli {
     #[arg(long = "input-header", value_name = "STRING", verbatim_doc_comment)]
     pub input_header: Option<String>,
 
+    /// Input prompt string
+    ///
+    /// When a channel is specified: This overrides the prompt defined in the channel prototype.
+    /// When no channel is specified: Sets the input prompt for the ad-hoc channel.
+    ///
+    /// The given value is used as the prompt string shown before the input field.
+    /// Defaults to ">" when omitted.
+    #[arg(long = "input-prompt", value_name = "STRING", verbatim_doc_comment)]
+    pub input_prompt: Option<String>,
+
     /// Preview header template
     ///
     /// When a channel is specified: This overrides the header defined in the channel prototype.
