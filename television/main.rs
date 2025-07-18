@@ -203,7 +203,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         }
     }
     if let Some(input_prompt) = &args.input_prompt {
-        config.ui.input_prompt = Some(input_prompt.clone());
+        config.ui.input_prompt.clone_from(input_prompt);
     }
     if let Some(preview_header) = &args.preview_header {
         if let Ok(t) = Template::parse(preview_header) {

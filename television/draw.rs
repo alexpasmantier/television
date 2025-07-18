@@ -197,10 +197,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     )?;
 
     // input box
-    let input_prompt = ctx.config.ui.input_prompt
-        .as_ref()
-        .map(|p| format!("{} ", p))
-        .unwrap_or_else(|| "> ".to_string());
+    let input_prompt = ctx.config.ui.input_prompt.clone();
 
     draw_input_box(
         f,

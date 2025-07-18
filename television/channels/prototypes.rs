@@ -402,7 +402,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
             orientation: Some(config.orientation),
             input_bar_position: Some(config.input_bar_position),
             input_header: config.input_header.clone(),
-            input_prompt: config.input_prompt.clone(),
+            input_prompt: Some(config.input_prompt.clone()),
             preview_panel: Some(config.preview_panel.clone()),
             status_bar: Some(config.status_bar.clone()),
             help_panel: Some(config.help_panel.clone()),

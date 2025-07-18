@@ -147,7 +147,7 @@ pub struct Cli {
     /// When no channel is specified: Sets the input prompt for the ad-hoc channel.
     ///
     /// The given value is used as the prompt string shown before the input field.
-    /// Defaults to "> " when omitted.
+    /// Defaults to ">" when omitted.
     #[arg(long = "input-prompt", value_name = "STRING", verbatim_doc_comment)]
     pub input_prompt: Option<String>,
 

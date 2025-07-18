@@ -268,7 +268,7 @@ impl Config {
 
         // Apply input_prompt
         if let Some(value) = &ui_spec.input_prompt {
-            self.ui.input_prompt = Some(value.clone());
+            self.ui.input_prompt.clone_from(value);
         }
 
         // Handle preview_panel with field merging
@@ -488,7 +488,7 @@ mod tests {
 
     const USER_CONFIG_INPUT_PROMPT: &str = r#"
         [ui]
-        input_prompt = "❯ "
+        input_prompt = "❯"
     "#;
 
     #[test]
@@ -507,7 +507,7 @@ mod tests {
         let config = Config::new(&config_env, None).unwrap();
 
         // Verify that input_prompt was loaded from user config
-        assert_eq!(config.ui.input_prompt, Some("❯ ".to_string()));
+        assert_eq!(config.ui.input_prompt, "❯");
     }
 
     #[test]
