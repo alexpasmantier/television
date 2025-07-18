@@ -4,6 +4,54 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.12.5](https://github.com/alexpasmantier/television/releases/tag/0.12.5) - 2025-07-18
+
+### ⛰️  Features
+
+- [313c0c3](https://github.com/alexpasmantier/television/commit/313c0c32382e4977955c3a4d9e3fcb4f1f1556ce) *(cable)* Channels for AWS Buckets and Instances by @LeoVen in [#647](https://github.com/alexpasmantier/television/pull/647)
+
+- [bc7a38b](https://github.com/alexpasmantier/television/commit/bc7a38b1a42dc01ff3cbd78f4ef39f24636f7ad9) *(uncategorized)* Add discord server badge in README file by @MohamedBsh in [#650](https://github.com/alexpasmantier/television/pull/650)
+
+### 🐛 Bug Fixes
+
+- [07853f0](https://github.com/alexpasmantier/television/commit/07853f07009c7aa96b6d2587dc1e6cb440622ef0) *(history)* Short-circuit `add_entry` when history size is zero by @alexpasmantier
+
+- [4b84a12](https://github.com/alexpasmantier/television/commit/4b84a12320ac2a998691bfdb374ce88f42b326b5) *(website)* Added gap between home page features on smaller screens by @kapobajza in [#645](https://github.com/alexpasmantier/television/pull/645)
+
+- [6a11627](https://github.com/alexpasmantier/television/commit/6a11627546372574ef8cb9f7dd57ef0c7d5f5d17) *(uncategorized)* Text channel colon splitting by @alexpasmantier
+
+- [37e31b2](https://github.com/alexpasmantier/television/commit/37e31b24436fb34d3befdf1ddf1de1df956d7224) *(uncategorized)* Clean exit when fallback channel is not found by @alexpasmantier
+
+### 📚 Documentation
+
+- [c4bcba2](https://github.com/alexpasmantier/television/commit/c4bcba211aa1ea151b62a2f22c28d8f563fe4924) *(uncategorized)* Fix cable channel docs image links by @alexpasmantier
+
+- [14b91f5](https://github.com/alexpasmantier/television/commit/14b91f5e55cb7b429dc82b0a778dc3b429fde8d5) *(uncategorized)* Update discord badge by @alexpasmantier
+
+- [3e4267d](https://github.com/alexpasmantier/television/commit/3e4267dad465a44f8e9931499be5f35e9b2e8d99) *(uncategorized)* Update website features by @alexpasmantier in [#640](https://github.com/alexpasmantier/television/pull/640)
+
+### 🧪 Testing
+
+- [6b818b9](https://github.com/alexpasmantier/television/commit/6b818b927c5e4f60c30ffb175cdc99e27482e289) *(uncategorized)* Make file based testing more robust with unique identifiers by @lalvarezt
+
+- [2ae95cd](https://github.com/alexpasmantier/television/commit/2ae95cdbb1125d62b0fc57721dc952000ca170bb) *(uncategorized)* Add missing test target directory to flaky tests by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [3c20d36](https://github.com/alexpasmantier/television/commit/3c20d36149d6c6ddbe7c02466bae354fa39e1fc9) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#639](https://github.com/alexpasmantier/television/pull/639)
+
+- [c533c41](https://github.com/alexpasmantier/television/commit/c533c41540578114eb53c19196b757a6c97bbc51) *(uncategorized)* Release version 0.12.5 by @alexpasmantier
+
+- [4d42a73](https://github.com/alexpasmantier/television/commit/4d42a731bf167793154eafec4404f7b58335ab3c) *(uncategorized)* Some gh actions + justfile improvements by @alexpasmantier
+
+
+
+### New Contributors
+* @LeoVen made their first contribution in [#647](https://github.com/alexpasmantier/television/pull/647)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.4...0.12.5
+
+
 ## [0.12.4](https://github.com/alexpasmantier/television/releases/tag/0.12.4) - 2025-07-13
 
 ### ⛰️  Features
@@ -22,15 +70,12 @@ All notable changes to this project will be documented in this file.
 
 - [874e911](https://github.com/alexpasmantier/television/commit/874e91190d799ba411e982cbd89ae285edef6e46) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#637](https://github.com/alexpasmantier/television/pull/637)
 
-- [e87f7d3](https://github.com/alexpasmantier/television/commit/e87f7d30a881cab30a5dc8d10c8fa9a2ce5b4a3c) *(uncategorized)* Release version 0.12.4
+- [e87f7d3](https://github.com/alexpasmantier/television/commit/e87f7d30a881cab30a5dc8d10c8fa9a2ce5b4a3c) *(uncategorized)* Release version 0.12.4 by @alexpasmantier
 
 - [16d7de7](https://github.com/alexpasmantier/television/commit/16d7de7d09f9bf70f4dcf24228baa7bd43b26de9) *(uncategorized)* Fix cross not available in PATH by @alexpasmantier
 
 
 
-### New Contributors
-* @alexpasmantier made their first contribution
-* @github-actions[bot] made their first contribution in [#637](https://github.com/alexpasmantier/television/pull/637)
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.12.3...0.12.4
 
