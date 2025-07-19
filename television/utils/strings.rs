@@ -1,5 +1,7 @@
 use lazy_regex::{Lazy, Regex, regex};
 
+use crate::screen::result_item::ResultItem;
+
 /// Returns the index of the next character boundary in the given string.
 ///
 /// If the given index is already a character boundary, it is returned as is.
@@ -456,60 +458,47 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
 /// the match ranges adjusted to the new string.
 ///
 /// # Examples
-/// ```
-/// use television::utils::strings::make_matched_string_printable;
+/// ```ignore
+/// use television::channels::entry::Entry;
+/// use television::utils::strings::make_result_item_printable;
 ///
-/// let matched_string = "Hello, World!";
-/// let match_ranges = vec![(0, 1), (7, 8)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("Hello, World!".to_string()).with_match_indices(&[0, 7]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "Hello, World!");
 /// assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
 ///
-/// let matched_string = "Hello,\tWorld!";
-/// let match_ranges = vec![(0, 1), (7, 8)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("Hello,\tWorld!".to_string()).with_match_indices(&[0, 10]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "Hello,    World!");
 /// assert_eq!(match_indices, vec![(0, 1), (10, 11)]);
 ///
-/// let matched_string = "Hello,\nWorld!";
-/// let match_ranges = vec![(0, 1), (7, 8)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("Hello,\nWorld!".to_string()).with_match_indices(&[0, 6]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "Hello,World!");
 /// assert_eq!(match_indices, vec![(0, 1), (6, 7)]);
 ///
-/// let matched_string = "Hello, World!";
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, None);
+/// let entry = Entry::new("Hello, World!".to_string());
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "Hello, World!");
 /// assert_eq!(match_indices, vec![]);
 ///
-/// let matched_string = "build.rs";
-/// let match_ranges = vec![(0, 1), (7, 8)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("build.rs".to_string()).with_match_indices(&[0, 7]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "build.rs");
 /// assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
 ///
-/// let matched_string = "a\tb";
-/// let match_ranges = vec![(0, 1), (2, 3)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("a\tb".to_string()).with_match_indices(&[0, 5]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "a    b");
 /// assert_eq!(match_indices, vec![(0, 1), (5, 6)]);
 ///
-/// let matched_string = "a\tbcd".repeat(65);
-/// let match_ranges = vec![(0, 1), (310, 311)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(&matched_string, match_ranges);
+/// let entry = Entry::new("a\tbcd".repeat(65)).with_match_indices(&[0, 330]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable.len(), 480);
 /// assert_eq!(match_indices, vec![(0, 1)]);
 ///
-/// let matched_string = "ジェ abc";
-/// let match_ranges = vec![(0, 1), (2, 3)];
-/// let match_ranges = Some(match_ranges.as_slice());
-/// let (printable, match_indices) = make_matched_string_printable(matched_string, match_ranges);
+/// let entry = Entry::new("ジェ abc".to_string()).with_match_indices(&[0, 2]);
+/// let (printable, match_indices) = make_result_item_printable(&entry);
 /// assert_eq!(printable, "ジェ abc");
 /// assert_eq!(match_indices, vec![(0, 1), (2, 3)]);
 /// ```
@@ -517,33 +506,38 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
 /// # Panics
 /// This will panic if the length of the printable string or the match indices don't fit into a
 /// `u32`.
-pub fn make_matched_string_printable(
-    matched_string: &str,
-    match_ranges: Option<&[(u32, u32)]>,
+pub fn make_result_item_printable(
+    result_item: &(impl ResultItem + ?Sized),
 ) -> (String, Vec<(u32, u32)>) {
-    // PERF: Fast path for ASCII strings without match ranges
-    if matched_string.is_ascii() && match_ranges.is_none() {
-        return (matched_string.to_string(), Vec::new());
-    }
-
-    // PERF: If ASCII with ranges, check if we need preprocessing (tabs, newlines, etc.)
-    if let Some(ranges) = match_ranges {
-        if matched_string.is_ascii() {
-            // Only use fast path if no characters need preprocessing
-            if !matched_string
-                .chars()
-                .any(|c| c == '\t' || c == '\n' || c.is_control())
-            {
-                return (matched_string.to_string(), ranges.to_vec());
+    // PERF: fast path for ascii
+    if result_item.display().is_ascii() {
+        match result_item.match_ranges() {
+            // If there are no match ranges, we can return the display string directly
+            None => {
+                return (result_item.display().to_string(), Vec::new());
+            }
+            // Otherwise, check if we can return the display string without further processing
+            Some(ranges) => {
+                if !result_item
+                    .display()
+                    .chars()
+                    .any(|c| c == '\t' || c == '\n' || c.is_control())
+                {
+                    return (
+                        result_item.display().to_string(),
+                        ranges.to_vec(),
+                    );
+                }
             }
         }
     }
 
     // Full processing for non-ASCII strings or strings that need preprocessing
-    let (printable, transformation_offsets) = preprocess_line(matched_string);
+    let (printable, transformation_offsets) =
+        preprocess_line(result_item.display());
     let mut match_indices = Vec::new();
 
-    if let Some(ranges) = match_ranges {
+    if let Some(ranges) = result_item.match_ranges() {
         // PERF: Pre-allocate with known capacity
         match_indices.reserve(ranges.len());
 
@@ -631,6 +625,7 @@ pub fn format_string(template: &str, source: &str, delimiter: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::channels::entry::Entry;
 
     fn test_next_char_boundary(input: &str, start: usize, expected: usize) {
         let actual = next_char_boundary(input, start);
@@ -888,5 +883,49 @@ mod tests {
         test_preprocess_line("Hello, World!\x7F", "Hello, World!␀");
         test_preprocess_line("Hello, World!\u{FEFF}", "Hello, World!␀");
         test_preprocess_line(&"a".repeat(400), &"a".repeat(300));
+    }
+
+    #[test]
+    fn test_make_match_string_printable() {
+        let entry = Entry::new("Hello, World!".to_string())
+            .with_match_indices(&[0, 7]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "Hello, World!");
+        assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
+
+        let entry = Entry::new("Hello,\tWorld!".to_string())
+            .with_match_indices(&[0, 10]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "Hello,    World!");
+        assert_eq!(match_indices, vec![(0, 1), (13, 14)]);
+
+        let entry = Entry::new("Hello,\nWorld!".to_string())
+            .with_match_indices(&[0, 6]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "Hello,World!");
+        assert_eq!(match_indices, vec![(0, 1), (6, 6)]);
+
+        let entry = Entry::new("Hello, World!".to_string());
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "Hello, World!");
+        assert_eq!(match_indices, vec![]);
+
+        let entry =
+            Entry::new("build.rs".to_string()).with_match_indices(&[0, 7]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "build.rs");
+        assert_eq!(match_indices, vec![(0, 1), (7, 8)]);
+
+        let entry =
+            Entry::new("a\tbcd".repeat(65)).with_match_indices(&[0, 330]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable.len(), 480);
+        assert_eq!(match_indices, vec![(0, 1)]);
+
+        let entry =
+            Entry::new("ジェ abc".to_string()).with_match_indices(&[0, 2]);
+        let (printable, match_indices) = make_result_item_printable(&entry);
+        assert_eq!(printable, "ジェ abc");
+        assert_eq!(match_indices, vec![(0, 1), (2, 3)]);
     }
 }

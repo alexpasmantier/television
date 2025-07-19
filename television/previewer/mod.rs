@@ -263,7 +263,13 @@ pub fn try_preview(
 
             let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
-            Preview::new(&entry.raw, text, None, total_lines, String::new())
+            Preview::new(
+                entry.display(),
+                text,
+                None,
+                total_lines,
+                String::new(),
+            )
         } else {
             let mut text = child
                 .stderr
@@ -284,7 +290,13 @@ pub fn try_preview(
 
             let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
-            Preview::new(&entry.raw, text, None, total_lines, String::new())
+            Preview::new(
+                entry.display(),
+                text,
+                None,
+                total_lines,
+                String::new(),
+            )
         }
     };
     results_handle

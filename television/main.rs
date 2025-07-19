@@ -338,6 +338,9 @@ fn apply_source_overrides(
     if let Some(source_output) = &args.source_output_override {
         prototype.source.output = Some(source_output.clone());
     }
+    if args.ansi {
+        prototype.source.ansi = true;
+    }
 }
 
 /// Applies preview-related CLI overrides to the channel prototype

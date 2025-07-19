@@ -217,6 +217,7 @@ impl ChannelPrototype {
                     env: FxHashMap::default(),
                 },
                 entry_delimiter: None,
+                ansi: false,
                 display: None,
                 output: None,
             },
@@ -246,6 +247,7 @@ impl ChannelPrototype {
                     interactive: false,
                     env: FxHashMap::default(),
                 },
+                ansi: false,
                 entry_delimiter,
                 display: None,
                 output: None,
@@ -316,6 +318,8 @@ pub struct SourceSpec {
     pub command: CommandSpec,
     #[serde(deserialize_with = "deserialize_entry_delimiter", default)]
     pub entry_delimiter: Option<char>,
+    #[serde(default)]
+    pub ansi: bool,
     #[serde(default)]
     pub display: Option<Template>,
     #[serde(default)]

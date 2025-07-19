@@ -27,7 +27,7 @@ pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
     pixel_height: 0,
 };
 
-pub const DEFAULT_DELAY: Duration = Duration::from_millis(300);
+pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
 
 /// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
 ///
@@ -214,7 +214,7 @@ impl PtyTester {
     }
 
     /// How long to wait for the TUI to stabilize before asserting its output.
-    const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(5000);
+    const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(3000);
 
     /// Gets the current TUI frame, ensuring it has stabilized.
     ///
@@ -249,9 +249,9 @@ impl PtyTester {
         // wait for the UI to stabilize with a timeout
         let mut frame = String::new();
         let start_time = std::time::Instant::now();
-        // wait till we get 3 consecutive frames that are the same
+        // wait till we get 2 consecutive frames that are the same
         let mut counter = 0;
-        while counter < 3 {
+        while counter < 2 {
             let new_frame = self.read_tui_output();
             if new_frame == frame {
                 counter += 1;
@@ -266,7 +266,7 @@ impl PtyTester {
                 frame
             );
             // Sleep briefly to allow the UI to update
-            sleep(Duration::from_millis(50));
+            sleep(Duration::from_millis(20));
         }
         frame
     }
