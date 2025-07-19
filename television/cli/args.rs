@@ -138,7 +138,7 @@ pub struct Cli {
     /// The given value is parsed as a `MultiTemplate`. It is evaluated against
     /// the current channel name and the resulting text is shown as the input
     /// field title. Defaults to the current channel name when omitted.
-    #[arg(long = "input-header", value_name = "STRING", verbatim_doc_comment)]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub input_header: Option<String>,
 
     /// Input prompt string
@@ -148,7 +148,7 @@ pub struct Cli {
     ///
     /// The given value is used as the prompt string shown before the input field.
     /// Defaults to ">" when omitted.
-    #[arg(long = "input-prompt", value_name = "STRING", verbatim_doc_comment)]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub input_prompt: Option<String>,
 
     /// Preview header template
@@ -159,7 +159,7 @@ pub struct Cli {
     /// The given value is parsed as a `MultiTemplate`. It is evaluated for every
     /// entry and its result is displayed above the preview panel.
     #[arg(
-        long = "preview-header",
+        long,
         value_name = "STRING",
         verbatim_doc_comment,
         conflicts_with = "no_preview"
@@ -174,7 +174,7 @@ pub struct Cli {
     /// The given value is parsed as a `MultiTemplate`. It is evaluated for every
     /// entry and its result is displayed below the preview panel.
     #[arg(
-        long = "preview-footer",
+        long,
         value_name = "STRING",
         verbatim_doc_comment,
         conflicts_with = "no_preview"
@@ -187,12 +187,18 @@ pub struct Cli {
     /// When no channel is specified: This creates an ad-hoc channel with the given command.
     ///
     /// Example: `find . -name '*.rs'`
-    #[arg(
-        long = "source-command",
-        value_name = "STRING",
-        verbatim_doc_comment
-    )]
+    #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub source_command: Option<String>,
+
+    /// Whether tv should extract and parse ANSI style codes from the source command output.
+    ///
+    /// This is useful when the source command outputs colored text or other ANSI styles and you
+    /// want `tv` to preserve them in the UI. It does come with a slight performance cost but
+    /// which should go mostly unnoticed for typical human interaction workloads.
+    ///
+    /// Example: `tv --source-command="echo -e '\x1b[31mRed\x1b[0m'" --ansi`
+    #[arg(long, default_value = "false", verbatim_doc_comment)]
+    pub ansi: bool,
 
     /// Source display template to use for the current channel.
     ///
@@ -201,11 +207,7 @@ pub struct Cli {
     ///
     /// The template is used to format each entry in the results list.
     /// Example: `{split:/:-1}` (show only the last path segment)
-    #[arg(
-        long = "source-display",
-        value_name = "STRING",
-        verbatim_doc_comment
-    )]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub source_display: Option<String>,
 
     /// Source output template to use for the current channel.
@@ -215,22 +217,14 @@ pub struct Cli {
     ///
     /// The template is used to format the final output when an entry is selected.
     /// Example: "{}" (output the full entry)
-    #[arg(
-        long = "source-output",
-        value_name = "STRING",
-        verbatim_doc_comment
-    )]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub source_output: Option<String>,
 
     /// The delimiter byte to use for splitting the source's command output into entries.
     ///
     /// This can be useful when the source command outputs multiline entries and you want to
     /// rely on another delimiter to split the entries such a null byte or a custom character.
-    #[arg(
-        long = "source-delimiter",
-        value_name = "STRING",
-        verbatim_doc_comment
-    )]
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub source_entry_delimiter: Option<String>,
 
     /// Preview command to use for the current channel.
@@ -246,7 +240,7 @@ pub struct Cli {
     /// the first two fields to the command.
     #[arg(
         short,
-        long = "preview-command",
+        long,
         value_name = "STRING",
         verbatim_doc_comment,
         conflicts_with = "no_preview"
@@ -259,7 +253,7 @@ pub struct Cli {
     /// When no channel is specified: Sets the layout orientation for the ad-hoc channel.
     ///
     /// Options are "landscape" or "portrait".
-    #[arg(long = "layout", value_enum, verbatim_doc_comment)]
+    #[arg(long, value_enum, verbatim_doc_comment)]
     pub layout: Option<LayoutOrientation>,
 
     /// The working directory to start the application in.

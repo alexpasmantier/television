@@ -4,7 +4,7 @@
 .SH NAME
 television \- Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-source\-command\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-source\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-input\-prompt\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-s\fR|\fB\-\-source\-command\fR] [\fB\-\-ansi\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-source\-entry\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
@@ -102,6 +102,15 @@ The given value is parsed as a `MultiTemplate`. It is evaluated against
 the current channel name and the resulting text is shown as the input
 field title. Defaults to the current channel name when omitted.
 .TP
+\fB\-\-input\-prompt\fR=\fISTRING\fR
+Input prompt string
+
+When a channel is specified: This overrides the prompt defined in the channel prototype.
+When no channel is specified: Sets the input prompt for the ad\-hoc channel.
+
+The given value is used as the prompt string shown before the input field.
+Defaults to ">" when omitted.
+.TP
 \fB\-\-preview\-header\fR=\fISTRING\fR
 Preview header template
 
@@ -120,13 +129,22 @@ When no channel is specified: This flag requires \-\-preview\-command to be set.
 The given value is parsed as a `MultiTemplate`. It is evaluated for every
 entry and its result is displayed below the preview panel.
 .TP
-\fB\-\-source\-command\fR=\fISTRING\fR
+\fB\-s\fR, \fB\-\-source\-command\fR=\fISTRING\fR
 Source command to use for the current channel.
 
 When a channel is specified: This overrides the command defined in the channel prototype.
 When no channel is specified: This creates an ad\-hoc channel with the given command.
 
 Example: `find . \-name \*(Aq*.rs\*(Aq`
+.TP
+\fB\-\-ansi\fR
+Whether tv should extract and parse ANSI style codes from the source command output.
+
+This is useful when the source command outputs colored text or other ANSI styles and you
+want `tv` to preserve them in the UI. It does come with a slight performance cost but
+which should go mostly unnoticed for typical human interaction workloads.
+
+Example: `tv \-\-source\-command="echo \-e \*(Aq\\x1b[31mRed\\x1b[0m\*(Aq" \-\-ansi`
 .TP
 \fB\-\-source\-display\fR=\fISTRING\fR
 Source display template to use for the current channel.
@@ -146,7 +164,7 @@ When no channel is specified: This flag requires \-\-source\-command to be set.
 The template is used to format the final output when an entry is selected.
 Example: "{}" (output the full entry)
 .TP
-\fB\-\-source\-delimiter\fR=\fISTRING\fR
+\fB\-\-source\-entry\-delimiter\fR=\fISTRING\fR
 The delimiter byte to use for splitting the source\*(Aqs command output into entries.
 
 This can be useful when the source command outputs multiline entries and you want to
