@@ -35,6 +35,15 @@ html[data-theme='dark'] .featureSvg {
   text-align: center;
 }
 
+.titleContainer a {
+  color: var(--ifm-color-primary-darkest);
+}
+
+.titleContainer a:hover {
+  color: var(--ifm-color-primary);
+  text-decoration: none;
+}
+
 .featureItem {
   display: flex;
   flex-direction: column;

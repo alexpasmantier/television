@@ -90,20 +90,9 @@ const config: Config = {
       },
       items: [
         {
-          type: "docSidebar",
-          position: "left",
-          label: "docs",
-          sidebarId: "docSidebar",
-        },
-        {
           href: "https://github.com/alexpasmantier/television/releases",
           label: "releases",
-          position: "left",
-        },
-        {
-          href: "https://crates.io/crates/television",
-          label: "crates.io",
-          position: "left",
+          position: "right",
         },
         {
           href: "https://github.com/alexpasmantier/television",

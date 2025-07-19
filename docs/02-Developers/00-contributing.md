@@ -98,20 +98,11 @@ Running the tests can be done with:
 just test
 ```
 
-### Contributing a new channel
-
-Contributing a new channel is pretty straightforward.
-
-1. create a new branch, add and commit your new channel's TOML file under `cable/unix` (or `cable/windows` depending on your usecase)
-2. [optional] add a screenshot of the channel in `assets/channels/<os>/` (e.g. `assets/channels/unix/my_channel.png`).
-3. push your commit and create a PR
-4. the ci will automatically generate the documentation for your channel and pick up the screenshot if available.
 
 ## Hot Topics
 
+- contributing new channels
+- improving code documentation
 - shell integration (autocomplete, keybindings)
 - packaging for various linux package managers (dnf, ...)
 - sorting options
-- ansi parsing
-- contributing new channels
-- improving code documentation

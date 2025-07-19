@@ -170,6 +170,7 @@ requirements = ["rg", "bat"]  # any binary requirements my channel needs
 command = "rg . --no-heading --line-number"
 display = "[{split:\\::..2}]\t{split:\\::2}"  # what's displayed in the UI
 output = "{split:\\::..2}"  # what's outputed on selection
+ansi = true  # whether the results are ANSI formatted
 ```
 
 #### `[preview]`
