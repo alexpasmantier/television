@@ -109,9 +109,9 @@ function tv_smart_autocomplete
         end
 
         for i in $result
-            commandline -it -- $dir(string escape -- $i)' '
+            commandline -t -- (string escape -- "$dir$i")' '
             # optional, if you want to replace '/home/foo/' with '~/', comment out above and uncomment below
-            # commandline -it -- (string replace --all $HOME '~' $dir(string escape -- $i))' '
+            # commandline -t -- (string replace --all $HOME '~' -- (string escape -- "$dir$i"))' '
         end
     end
 
