@@ -463,11 +463,11 @@ pub struct Cli {
     /// space to meet the minimum height the terminal will scroll.
     #[arg(
         long,
-        default_value = "false",
         verbatim_doc_comment,
-        conflicts_with = "height"
+        conflicts_with = "height",
+        value_parser = clap::builder::FalseyValueParser::new()
     )]
-    pub inline: bool,
+    pub inline: Option<bool>,
 
     #[command(subcommand)]
     pub command: Option<Command>,

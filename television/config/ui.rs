@@ -111,6 +111,7 @@ pub struct UiConfig {
     #[serde(default = "default_input_prompt")]
     pub input_prompt: String,
     pub features: Features,
+    pub inline: Option<bool>,
 
     // Feature-specific configurations
     pub status_bar: StatusBarConfig,
@@ -144,6 +145,7 @@ impl Default for UiConfig {
             help_panel: HelpPanelConfig::default(),
             remote_control: RemoteControlConfig::default(),
             theme_overrides: ThemeOverrides::default(),
+            inline: None,
         }
     }
 }
