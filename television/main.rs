@@ -99,7 +99,7 @@ async fn main() -> Result<()> {
         watch_interval,
         args.height,
         args.width,
-        args.inline.unwrap_or(false),
+        args.inline,
     );
     let mut app = App::new(
         channel_prototype,
@@ -142,9 +142,15 @@ fn apply_channel_overrides(
     args: &mut PostProcessedCli,
     channel_prototype: &ChannelPrototype,
 ) -> () {
+    // The default value for CLI args inline is `false`. If the CLI arguments have
+    // specified --inline, we should always take that value and ignore what the chanel wants
+    if args.inline {
+        return;
+    }
     if let Some(ui) = channel_prototype.ui.as_ref() {
-        if args.inline.is_none() {
-            args.inline = ui.inline;
+        // Otherwise, if the channel has specified an inline value, take it
+        if let Some(inline) = ui.inline {
+            args.inline = inline
         }
     }
 }

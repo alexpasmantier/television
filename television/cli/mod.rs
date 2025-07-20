@@ -88,7 +88,7 @@ pub struct PostProcessedCli {
     pub ui_scale: Option<u16>,
     pub height: Option<u16>,
     pub width: Option<u16>,
-    pub inline: Option<bool>,
+    pub inline: bool,
 
     // Behavior and matching configuration
     pub exact: bool,
@@ -160,7 +160,7 @@ impl Default for PostProcessedCli {
             ui_scale: None,
             height: None,
             width: None,
-            inline: None,
+            inline: false,
 
             // Behavior and matching configuration
             exact: false,
@@ -246,10 +246,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     validate_adhoc_mode_constraints(&cli, readable_stdin);
 
     // Validate width flag requires inline or height
-    if cli.width.is_some()
-        && !cli.inline.unwrap_or(false)
-        && cli.height.is_none()
-    {
+    if cli.width.is_some() && !cli.inline && cli.height.is_none() {
         cli_parsing_error_exit(
             "--width can only be used in combination with --inline or --height",
         );
