@@ -125,68 +125,21 @@ sort_alphabetically = true
 # Keybindings
 # ----------------------------------------------------------------------------
 #
-# HARDCODED KEYBINDINGS (cannot be changed via config):
-# Input field actions (always active):
-#   Backspace          - Delete previous character
-#   Ctrl+w             - Delete previous word
-#   Ctrl+u             - Delete entire line
-#   Delete             - Delete next character
-#   Left/Right         - Move cursor left/right
-#   Home / Ctrl+a      - Go to input start
-#   End / Ctrl+e       - Go to input end
+# NEW BINDING SYSTEM:
+# -------------------------
+# Television now uses a new binding system defined in:
+#   ~/.config/television/bindings.tvb, or similar depending on the OS
 #
-# CONFIGURABLE KEYBINDINGS (can be customized below):
-# --------------------------------------------------
+# For full documentation, see:
+#   https://alexpasmantier.github.io/television/docs/Users/04-keybindings.html
+#
+# LEGACY TOML KEYBINDINGS (deprecated but still supported):
+# ---------------------------------------------------------
+# The following \[keybindings] section is the legacy format.
+# It is recommended to migrate to the modern bindings.tvb format.
 [keybindings]
-# Application control
-# ------------------
-# Quit the application
+# Legacy TOML format - consider migrating to bindings.tvb
 quit = ["esc", "ctrl-c"]
-
-# Navigation and selection
-# -----------------------
-# Scrolling through entries
-select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-#select_next_page = "pagedown"
-#select_prev_page = "pageup"
-
-# History navigation
-# -----------------
-# Navigate through search query history
-select_prev_history = "ctrl-up"
-select_next_history = "ctrl-down"
-
-# Multi-selection
-# --------------
-# Add entry to selection and move to the next entry
-toggle_selection_down = "tab"
-# Add entry to selection and move to the previous entry
-toggle_selection_up = "backtab"
-# Confirm selection
-confirm_selection = "enter"
-
-# Preview panel control
-# --------------------
-# Scrolling the preview pane
-scroll_preview_half_page_down = ["pagedown", "mousescrolldown"]
-scroll_preview_half_page_up = ["pageup", "mousescrollup"]
-
-# Data operations
-# --------------
-# Copy the selected entry to the clipboard
-copy_entry_to_clipboard = "ctrl-y"
-# Reload the current source
-reload_source = "ctrl-r"
-# Cycle through the available sources for the current channel
-cycle_sources = "ctrl-s"
-
-# UI Features
-# ----------
-toggle_remote_control = "ctrl-t"
-toggle_preview = "ctrl-o"
-toggle_help = "ctrl-h"
-toggle_status_bar = "f12"
 
 # Shell integration
 # ----------------------------------------------------------------------------

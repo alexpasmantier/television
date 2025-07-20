@@ -2000,6 +2000,8 @@ dependencies = [
  "lazy-regex",
  "nucleo",
  "parking_lot",
+ "pest",
+ "pest_derive",
  "portable-pty",
  "ratatui",
  "rustc-hash",

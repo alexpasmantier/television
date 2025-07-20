@@ -1,0 +1,110 @@
+// Television Binding System Reference
+// =====================================
+//
+// SYNTAX:
+//   key => action;                    // Basic key binding
+//   key => { action1; action2; };     // Action block (multiple actions, executed sequentially)
+//   @event => action;                 // Event binding
+//   channel "name" { key => action; } // Channel-specific binding, overrides global
+//
+// KEY CODES:
+//   Basic: up, down, left, right, enter, esc, tab, space, backspace, delete, home, end, pageup, pagedown
+//   Function: f1, f2, f3, ..., f12
+//   Modified: ctrl-a, ctrl-c, alt-enter, etc.
+//   Mouse: mouse-scroll-up, mouse-scroll-down
+//   Special: backtab (Shift+Tab)
+//   Characters: a-z, 0-9, symbols (!@#$%^&*()_+-=[]{}|;':"<>,.?/~`)
+//
+// EVENTS:
+//   @start             - Application startup
+//   @load              - Channel data loaded
+//   @result            - Search filtering complete
+//   @one               - Exactly one search match
+//   @zero              - No search matches
+//   @selection-change  - Multi-selection changed
+//
+// ACTIONS:
+//   Navigation: select_next_entry, select_prev_entry, select_next_page, select_prev_page
+//   History: select_next_history, select_prev_history
+//   Selection: confirm_selection, select_and_exit, toggle_selection_down, toggle_selection_up
+//   Input: go_to_input_start, go_to_input_end, go_to_next_char, go_to_prev_char
+//   Edit: delete_line, delete_next_char, delete_prev_char, delete_prev_word
+//   Preview: scroll_preview_up, scroll_preview_down, scroll_preview_half_page_up, scroll_preview_half_page_down
+//   Control: quit, suspend, resume, reload_source
+//   Toggle: toggle_preview, toggle_help, toggle_status_bar, toggle_remote_control
+//   Data: copy_entry_to_clipboard, cycle_sources
+//   Special: nil (no-op)
+//
+// For more information, see: https://alexpasmantier.github.io/television/docs/Users/04-keybindings.html
+
+bindings {
+    // === APPLICATION CONTROL ===
+    // Quit the application
+    esc => quit;
+    ctrl-c => quit;
+
+    // === NAVIGATION AND SELECTION ===
+    // Scrolling through entries
+    down => select_next_entry;
+    ctrl-n => select_next_entry;
+    ctrl-j => select_next_entry;
+
+    up => select_prev_entry;
+    ctrl-p => select_prev_entry;
+    ctrl-k => select_prev_entry;
+
+    // Page navigation (uncomment to enable)
+    // pagedown => select_next_page;
+    // pageup => select_prev_page;
+
+    // === HISTORY NAVIGATION ===
+    // Navigate through search query history
+    ctrl-up => select_prev_history;
+    ctrl-down => select_next_history;
+
+    // === MULTI-SELECTION ===
+    // Add entry to selection and move to the next entry
+    tab => toggle_selection_down;
+    // Add entry to selection and move to the previous entry
+    backtab => toggle_selection_up;
+    // Confirm selection
+    enter => confirm_selection;
+
+    // === PREVIEW PANEL CONTROL ===
+    // Scrolling the preview pane
+    pagedown => scroll_preview_half_page_down;
+    mouse-scroll-down => scroll_preview_half_page_down;
+
+    pageup => scroll_preview_half_page_up;
+    mouse-scroll-up => scroll_preview_half_page_up;
+
+    // === DATA OPERATIONS ===
+    // Copy the selected entry to the clipboard
+    ctrl-y => copy_entry_to_clipboard;
+    // Reload the current source
+    ctrl-r => reload_source;
+    // Cycle through the available sources for the current channel
+    ctrl-s => cycle_sources;
+
+    // === UI FEATURES ===
+    // Toggle features
+    ctrl-t => toggle_remote_control;
+    ctrl-o => toggle_preview;
+    ctrl-h => toggle_help;
+    f12 => toggle_status_bar;
+
+    // === INPUT FIELD CONTROLS ===
+    // Text editing
+    backspace => delete_prev_char;
+    ctrl-w => delete_prev_word;
+    ctrl-u => delete_line;
+    delete => delete_next_char;
+
+    // Cursor movement
+    left => go_to_prev_char;
+    right => go_to_next_char;
+    home => go_to_input_start;
+    ctrl-a => go_to_input_start;
+    end => go_to_input_end;
+    ctrl-e => go_to_input_end;
+}

@@ -1,0 +1,185 @@
+// Core Rules
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+NEWLINE    = _{ "\n" | "\r\n" }
+
+// Comments
+COMMENT       = _{ line_comment | block_comment | toml_comment }
+line_comment  = _{ "//" ~ (!"\n" ~ ANY)* }
+block_comment = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+toml_comment  = _{ "#" ~ (!"\n" ~ ANY)* }
+
+// Basic atomic tokens
+identifier     = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+string_literal = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+number         = @{ ASCII_DIGIT+ }
+key_string     = @{ (!"\"" ~ (ASCII_ALPHANUMERIC | "-" | " " | "_" | "[" | "]" | ";" | ":" | "'" | "`" | "~" | "!" | "@" | "#" | "$" | "%" | "^" | "&" | "*" | "(" | ")" | "+" | "=" | "{" | "}" | "|" | "\\" | "<" | ">" | "," | "." | "?" | "/"))+ }
+
+// Entry points - Main grammar rules
+bindings       = { SOI ~ "bindings" ~ "{" ~ binding* ~ "}" ~ EOI }
+standalone_key = { SOI ~ key ~ EOI }
+
+// TOML compatibility
+toml_bindings   = { SOI ~ (toml_binding | toml_section | toml_comment | NEWLINE)* ~ EOI }
+toml_section    = { "[" ~ "keybindings" ~ "]" ~ NEWLINE? ~ (toml_binding | toml_comment | NEWLINE)* }
+toml_binding    = { action_name ~ "=" ~ (toml_key_array | toml_string_key) ~ NEWLINE? }
+toml_key_array  = { "[" ~ toml_string_key ~ ("," ~ toml_string_key)* ~ ","? ~ "]" }
+toml_string_key = { "\"" ~ key_string ~ "\"" }
+
+// Binding types
+binding = { key_binding | event_binding | channel_binding | for_channels_binding }
+
+key_binding          = { key_sequence ~ "=>" ~ action_target ~ ";" }
+event_binding        = { "@" ~ event_name ~ "=>" ~ action_target ~ ";" }
+channel_binding      = { "channel" ~ channel_specifier ~ "{" ~ binding_list ~ "}" }
+for_channels_binding = { "for_channels" ~ "(" ~ channel_pattern_list ~ ")" ~ "{" ~ binding_list ~ "}" }
+
+// Channel-specific
+channel_specifier    = { string_literal }
+channel_pattern_list = { channel_pattern ~ ("," ~ channel_pattern)* }
+channel_pattern      = { string_literal }
+binding_list         = { (key_binding | event_binding)* }
+
+// Key specifications
+key_sequence = { key ~ ("+" ~ key)* }
+key          = { modifier_key | named_key | character_key }
+
+// Modifier keys
+modifier_key = {
+    ("ctrl-" ~ (named_key | character_key))
+  | ("alt-" ~ (named_key | character_key))
+}
+
+// Named keys
+named_key = {
+    // Most common keys first
+    "enter"
+  | "esc"
+  | "tab"
+  | "space"
+  | "backspace"
+  | "delete"
+  | // Arrow keys
+  "up"
+  | "down"
+  | "left"
+  | "right"
+  | // Navigation keys
+  "home"
+  | "end"
+  | "pageup"
+  | "pagedown"
+  | "insert"
+  | "backtab"
+  | // Function keys (pattern)
+  ("f" ~ number)
+  | // Mouse events
+  "mouse-scroll-up"
+  | "mouse-scroll-down"
+}
+
+// Character keys
+character_key = { ASCII_ALPHA | ASCII_DIGIT | symbol }
+
+// Symbol definition
+symbol = {
+    "!"
+  | "$"
+  | "%"
+  | "^"
+  | "&"
+  | "*"
+  | "("
+  | ")"
+  | "_"
+  | "+"
+  | "-"
+  | "="
+  | "["
+  | "]"
+  | "{"
+  | "}"
+  | "|"
+  | "\\"
+  | ";"
+  | ":"
+  | "'"
+  | "\""
+  | "<"
+  | ">"
+  | ","
+  | "."
+  | "?"
+  | "/"
+  | "~"
+  | "`"
+}
+
+// Event names - Ordered by usage frequency
+event_name = {
+    "start"
+  | "load"
+  | "result"
+  | "selection-change"
+  | "resize"
+  | "one"
+  | "zero"
+}
+
+// Action specifications - Ordered by complexity
+action_target = { single_action | action_block | action_array }
+
+single_action    = { action_name ~ action_params? }
+action_block     = { "{" ~ action_statement* ~ "}" }
+action_array     = { "[" ~ action_list ~ "]" }
+action_statement = { action_name ~ action_params? ~ ";"? }
+action_list      = { action_name ~ ("," ~ action_name)* ~ ","? }
+action_params    = { "(" ~ string_literal ~ ")" }
+
+// Action names
+action_name = {
+    // High frequency actions first
+    "quit"
+  | "nil"
+  | "confirm_selection"
+  | "select_and_exit"
+  | // Navigation actions - grouped by prefix
+  "select_next_entry"
+  | "select_next_history"
+  | "select_next_page"
+  | "select_prev_entry"
+  | "select_prev_history"
+  | "select_prev_page"
+  | // Toggle actions - grouped by prefix
+  "toggle_help"
+  | "toggle_preview"
+  | "toggle_remote_control"
+  | "toggle_selection_down"
+  | "toggle_selection_up"
+  | "toggle_status_bar"
+  | // Scroll actions - grouped by prefix
+  "scroll_preview_down"
+  | "scroll_preview_half_page_down"
+  | "scroll_preview_half_page_up"
+  | "scroll_preview_up"
+  | // Input actions
+  "delete_line"
+  | "delete_next_char"
+  | "delete_prev_char"
+  | "delete_prev_word"
+  | "go_to_input_end"
+  | "go_to_input_start"
+  | "go_to_next_char"
+  | "go_to_prev_char"
+  | // System actions
+  "resume"
+  | "suspend"
+  | // Channel actions
+  "copy_entry_to_clipboard"
+  | "cycle_sources"
+  | "reload_source"
+  | // Parameterized actions
+  "execute"
+  | "switch_to_channel"
+  | // Generic extensibility
+  identifier
+}
