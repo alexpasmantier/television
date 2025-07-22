@@ -256,9 +256,11 @@ impl Television {
             let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
             let previewer = Previewer::new(
                 preview_spec,
+                // NOTE: this could be a per-channel configuration option in the future
                 PreviewerConfig::default(),
                 pv_request_rx,
                 pv_preview_tx,
+                preview_spec.cached,
             );
             tokio::spawn(async move { previewer.run().await });
             Some((pv_request_tx, pv_preview_rx))
