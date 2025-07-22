@@ -1,11 +1,13 @@
 use std::{
     cmp::Ordering,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
 use ansi_to_tui::IntoText;
 use anyhow::{Context, Result};
 use devicons::FileIcon;
+use parking_lot::Mutex;
 use ratatui::text::Text;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
@@ -18,6 +20,7 @@ use crate::{
         entry::Entry,
         prototypes::{CommandSpec, PreviewSpec},
     },
+    previewer::cache::Cache,
     utils::{
         command::shell_command,
         strings::{
@@ -26,6 +29,7 @@ use crate::{
     },
 };
 
+mod cache;
 pub mod state;
 
 pub struct Config {
@@ -100,7 +104,7 @@ impl Ticket {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Preview {
     pub title: String,
     // NOTE: this does couple the previewer with ratatui but allows
@@ -150,21 +154,29 @@ pub struct Previewer {
     last_job_entry: Option<Entry>,
     preview_spec: PreviewSpec,
     results: UnboundedSender<Preview>,
+    cache: Option<Arc<Mutex<Cache>>>,
 }
 
 impl Previewer {
     pub fn new(
-        preview_command: &PreviewSpec,
+        spec: &PreviewSpec,
         config: Config,
         receiver: UnboundedReceiver<Request>,
         sender: UnboundedSender<Preview>,
+        cache: bool,
     ) -> Self {
+        let cache = if cache {
+            Some(Arc::new(Mutex::new(Cache::default())))
+        } else {
+            None
+        };
         Self {
             config,
             requests: receiver,
             last_job_entry: None,
-            preview_spec: preview_command.clone(),
+            preview_spec: spec.clone(),
             results: sender,
+            cache,
         }
     }
 
@@ -186,6 +198,7 @@ impl Previewer {
                         // try to execute the preview with a timeout
                         let preview_command =
                             self.preview_spec.command.clone();
+                        let cache = self.cache.clone();
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
@@ -193,6 +206,7 @@ impl Previewer {
                                     &preview_command,
                                     &ticket.entry,
                                     &results_handle,
+                                    &cache,
                                 ) {
                                     debug!(
                                         "Failed to generate preview for entry '{}': {}",
@@ -233,8 +247,20 @@ pub fn try_preview(
     command: &CommandSpec,
     entry: &Entry,
     results_handle: &UnboundedSender<Preview>,
+    cache: &Option<Arc<Mutex<Cache>>>,
 ) -> Result<()> {
     debug!("Preview command: {}", command);
+
+    // Check if the entry is already cached
+    if let Some(cache) = &cache {
+        if let Some(preview) = cache.lock().get(entry) {
+            debug!("Preview for entry '{}' found in cache", entry.raw);
+            results_handle.send(preview).with_context(
+                || "Failed to send cached preview result to main thread.",
+            )?;
+            return Ok(());
+        }
+    }
 
     let formatted_command = command.get_nth(0).format(&entry.raw)?;
 
@@ -299,6 +325,13 @@ pub fn try_preview(
             )
         }
     };
+
+    // Cache the preview if caching is enabled
+    // Note: we're caching errors as well to avoid re-running potentially expensive commands
+    if let Some(cache) = &cache {
+        cache.lock().insert(entry, &preview);
+        debug!("Preview for entry '{}' cached", entry.raw);
+    }
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")

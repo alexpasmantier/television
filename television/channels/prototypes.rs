@@ -348,11 +348,17 @@ pub struct PreviewSpec {
     pub command: CommandSpec,
     #[serde(default)]
     pub offset: Option<Template>,
+    #[serde(default)]
+    pub cached: bool,
 }
 
 impl PreviewSpec {
     pub fn new(command: CommandSpec, offset: Option<Template>) -> Self {
-        Self { command, offset }
+        Self {
+            command,
+            offset,
+            cached: false,
+        }
     }
 
     pub fn from_str_command(command: &str) -> Self {
@@ -366,6 +372,7 @@ impl PreviewSpec {
                 env: FxHashMap::default(),
             },
             offset: None,
+            cached: false,
         }
     }
 }

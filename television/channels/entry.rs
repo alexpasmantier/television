@@ -24,6 +24,9 @@ pub struct Entry {
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.raw.hash(state);
+        if let Some(display) = &self.display {
+            display.hash(state);
+        }
         if let Some(line_number) = self.line_number {
             line_number.hash(state);
         }
@@ -35,6 +38,8 @@ impl PartialEq<Entry> for &Entry {
         self.raw == other.raw
             && (self.line_number.is_none() && other.line_number.is_none()
                 || self.line_number == other.line_number)
+            && (self.display.is_none() && other.display.is_none()
+                || self.display == other.display)
     }
 }
 
@@ -43,6 +48,8 @@ impl PartialEq<Entry> for Entry {
         self.raw == other.raw
             && (self.line_number.is_none() && other.line_number.is_none()
                 || self.line_number == other.line_number)
+            && (self.display.is_none() && other.display.is_none()
+                || self.display == other.display)
     }
 }
 
