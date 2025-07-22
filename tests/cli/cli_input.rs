@@ -39,18 +39,16 @@ fn test_keybindings_override_default() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "a=\"quit\"",
+            "a=\"quit\";ctrl-c=false;esc=false",
         ]));
 
-    // TODO: add back when unbinding is implemented
+    // Test that ESC no longer quits (default behavior is overridden)
+    tester.send(ESC);
+    tester.assert_tui_running(&mut child);
 
-    // // Test that ESC no longer quits (default behavior is overridden)
-    // tester.send(ESC);
-    // tester.assert_tui_running(&mut child);
-    //
-    // // Test that Ctrl+C no longer quits (default behavior is overridden)
-    // tester.send(&ctrl('c'));
-    // tester.assert_tui_running(&mut child);
+    // Test that Ctrl+C no longer quits (default behavior is overridden)
+    tester.send(&ctrl('c'));
+    tester.assert_tui_running(&mut child);
 
     // Test that our custom "a" key now quits the application
     tester.send("'a'");
@@ -66,14 +64,12 @@ fn test_multiple_keybindings_override() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "a=\"quit\";ctrl-t=\"toggle_remote_control\"",
+            "a=\"quit\";ctrl-t=\"toggle_remote_control\";esc=false",
         ]));
 
-    // TODO: add back when unbinding is implemented
-
-    // // Verify ESC doesn't quit (default overridden)
-    // tester.send(ESC);
-    // tester.assert_tui_running(&mut child);
+    // Verify ESC doesn't quit (default overridden)
+    tester.send(ESC);
+    tester.assert_tui_running(&mut child);
 
     // Test that Ctrl+T opens remote control panel (custom keybinding works)
     tester.send(&ctrl('t'));

@@ -470,13 +470,30 @@ where
         where
             A: MapAccess<'de>,
         {
+            use serde::de::Error;
+            use toml::Value;
+
             let mut bindings = FxHashMap::default();
-            while let Some((key_str, action)) =
-                map.next_entry::<String, Action>()?
+            while let Some((key_str, raw_value)) =
+                map.next_entry::<String, Value>()?
             {
-                let key =
-                    parse_key(&key_str).map_err(serde::de::Error::custom)?;
-                bindings.insert(key, action);
+                let key = parse_key(&key_str).map_err(Error::custom)?;
+
+                match raw_value {
+                    Value::Boolean(false) => {
+                        // Explicitly unbind key
+                        bindings.insert(key, Action::NoOp);
+                    }
+                    Value::Boolean(true) => {
+                        // True means do nothing (keep current binding or ignore)
+                    }
+                    action => {
+                        // Try to deserialize as Action
+                        let action = Action::deserialize(action)
+                            .map_err(Error::custom)?;
+                        bindings.insert(key, action);
+                    }
+                }
             }
             Ok(bindings)
         }
@@ -737,5 +754,34 @@ mod tests {
             merged.bindings.get(&Key::PageDown),
             Some(&Action::SelectNextPage)
         );
+    }
+
+    #[test]
+    fn test_deserialize_unbinding() {
+        let keybindings: KeyBindings = toml::from_str(
+            r#"
+                "esc" = "quit"
+                "ctrl-c" = false
+                "down" = "select_next_entry"
+                "up" = true
+            "#,
+        )
+        .unwrap();
+
+        // Normal action binding should work
+        assert_eq!(keybindings.bindings.get(&Key::Esc), Some(&Action::Quit));
+        assert_eq!(
+            keybindings.bindings.get(&Key::Down),
+            Some(&Action::SelectNextEntry)
+        );
+
+        // false should bind to NoOp (unbinding)
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('c')),
+            Some(&Action::NoOp)
+        );
+
+        // true should be ignored (no binding created)
+        assert_eq!(keybindings.bindings.get(&Key::Up), None);
     }
 }
