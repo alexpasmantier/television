@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import clsx from "clsx";
 import Heading from "@theme/Heading";
 import styles from "./styles.module.css";
+import { useGenerateSiteUrl } from "@site/src/hooks";
 
 type FeatureItem = {
   title: string;
@@ -16,9 +17,8 @@ const FeatureList: FeatureItem[] = [
     imgSrc: require("@site/static/img/files-toml.png").default,
     description: (
       <>
-        Create your own channels in a simple TOML file and search through
-        files, git repositories, environment variables, docker images, and
-        more.
+        Create your own channels in a simple TOML file and search through files,
+        git repositories, environment variables, docker images, and more.
       </>
     ),
     link: "/docs/Users/channels",
@@ -37,6 +37,8 @@ const FeatureList: FeatureItem[] = [
 ];
 
 function Feature({ title, imgSrc, description, link }: FeatureItem) {
+  const generateSiteUrl = useGenerateSiteUrl();
+
   return (
     <div className={clsx("col col--6", styles.featureItem)}>
       <div
@@ -45,7 +47,9 @@ function Feature({ title, imgSrc, description, link }: FeatureItem) {
           styles.titleContainer
         )}
       >
-        <Heading as="h3"><a href={link}>{title}</a></Heading>
+        <Heading as="h3">
+          <a href={generateSiteUrl(link)}>{title}</a>
+        </Heading>
         <p>{description}</p>
       </div>
       <div className="featureImageContainer">
