@@ -424,7 +424,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
 
 #[cfg(test)]
 mod tests {
-    use crate::{action::Action, config::Binding, event::Key};
+    use crate::{action::Action, event::Key};
 
     use super::*;
     use toml::from_str;
@@ -519,10 +519,15 @@ mod tests {
         footer = "Press 'q' to quit"
 
         [keybindings]
-        quit = ["esc", "ctrl-c"]
-        select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-        select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-        confirm_selection = "enter"
+        esc = "quit"
+        ctrl-c = "quit"
+        down = "select_next_entry"
+        ctrl-n = "select_next_entry"
+        ctrl-j = "select_next_entry"
+        up = "select_prev_entry"
+        ctrl-p = "select_prev_entry"
+        ctrl-k = "select_prev_entry"
+        enter = "confirm_selection"
         "#;
 
         let prototype: ChannelPrototype = from_str(toml_data).unwrap();
@@ -584,29 +589,38 @@ mod tests {
         );
 
         let keybindings = prototype.keybindings.unwrap();
+        assert_eq!(keybindings.bindings.get(&Key::Esc), Some(&Action::Quit));
         assert_eq!(
-            keybindings.bindings.0.get(&Action::Quit),
-            Some(&Binding::MultipleKeys(vec![Key::Esc, Key::Ctrl('c')]))
+            keybindings.bindings.get(&Key::Ctrl('c')),
+            Some(&Action::Quit)
         );
         assert_eq!(
-            keybindings.bindings.0.get(&Action::SelectNextEntry),
-            Some(&Binding::MultipleKeys(vec![
-                Key::Down,
-                Key::Ctrl('n'),
-                Key::Ctrl('j')
-            ]))
+            keybindings.bindings.get(&Key::Down),
+            Some(&Action::SelectNextEntry)
         );
         assert_eq!(
-            keybindings.bindings.0.get(&Action::SelectPrevEntry),
-            Some(&Binding::MultipleKeys(vec![
-                Key::Up,
-                Key::Ctrl('p'),
-                Key::Ctrl('k')
-            ]))
+            keybindings.bindings.get(&Key::Ctrl('n')),
+            Some(&Action::SelectNextEntry)
         );
         assert_eq!(
-            keybindings.bindings.0.get(&Action::ConfirmSelection),
-            Some(&Binding::SingleKey(Key::Enter))
+            keybindings.bindings.get(&Key::Ctrl('j')),
+            Some(&Action::SelectNextEntry)
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Up),
+            Some(&Action::SelectPrevEntry)
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('p')),
+            Some(&Action::SelectPrevEntry)
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('k')),
+            Some(&Action::SelectPrevEntry)
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Enter),
+            Some(&Action::ConfirmSelection)
         );
     }
 

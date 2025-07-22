@@ -22,6 +22,7 @@ use television::{
     errors::os_error_exit,
     features::FeatureFlags,
     gh::update_local_channels,
+    screen::keybindings::remove_action_bindings,
     television::Mode,
     utils::clipboard::CLIPBOARD,
     utils::{
@@ -151,7 +152,10 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     // Handle preview panel flags
     if args.no_preview {
         config.ui.features.disable(FeatureFlags::PreviewPanel);
-        config.keybindings.remove(&Action::TogglePreview);
+        remove_action_bindings(
+            &mut config.keybindings,
+            &Action::TogglePreview,
+        );
     } else if args.hide_preview {
         config.ui.features.hide(FeatureFlags::PreviewPanel);
     } else if args.show_preview {
@@ -165,7 +169,10 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     // Handle status bar flags
     if args.no_status_bar {
         config.ui.features.disable(FeatureFlags::StatusBar);
-        config.keybindings.remove(&Action::ToggleStatusBar);
+        remove_action_bindings(
+            &mut config.keybindings,
+            &Action::ToggleStatusBar,
+        );
     } else if args.hide_status_bar {
         config.ui.features.hide(FeatureFlags::StatusBar);
     } else if args.show_status_bar {
@@ -175,7 +182,10 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     // Handle remote control flags
     if args.no_remote {
         config.ui.features.disable(FeatureFlags::RemoteControl);
-        config.keybindings.remove(&Action::ToggleRemoteControl);
+        remove_action_bindings(
+            &mut config.keybindings,
+            &Action::ToggleRemoteControl,
+        );
     } else if args.hide_remote {
         config.ui.features.hide(FeatureFlags::RemoteControl);
     } else if args.show_remote {
@@ -185,7 +195,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     // Handle help panel flags
     if args.no_help_panel {
         config.ui.features.disable(FeatureFlags::HelpPanel);
-        config.keybindings.remove(&Action::ToggleHelp);
+        remove_action_bindings(&mut config.keybindings, &Action::ToggleHelp);
     } else if args.hide_help_panel {
         config.ui.features.hide(FeatureFlags::HelpPanel);
     } else if args.show_help_panel {

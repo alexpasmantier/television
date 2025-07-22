@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 /// The different actions that can be performed by the application.
 #[derive(
@@ -113,4 +114,71 @@ pub enum Action {
     SelectPrevHistory,
     /// Navigate to the next entry in the history.
     SelectNextHistory,
+    // Mouse and position-aware actions
+    /// Select an entry at a specific position (e.g., from mouse click)
+    #[serde(skip)]
+    SelectEntryAtPosition(u16, u16),
+    /// Handle mouse click event at specific coordinates
+    #[serde(skip)]
+    MouseClickAt(u16, u16),
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::AddInputChar(_) => write!(f, "add_input_char"),
+            Action::DeletePrevChar => write!(f, "delete_prev_char"),
+            Action::DeletePrevWord => write!(f, "delete_prev_word"),
+            Action::DeleteNextChar => write!(f, "delete_next_char"),
+            Action::DeleteLine => write!(f, "delete_line"),
+            Action::GoToPrevChar => write!(f, "go_to_prev_char"),
+            Action::GoToNextChar => write!(f, "go_to_next_char"),
+            Action::GoToInputStart => write!(f, "go_to_input_start"),
+            Action::GoToInputEnd => write!(f, "go_to_input_end"),
+            Action::Render => write!(f, "render"),
+            Action::Resize(_, _) => write!(f, "resize"),
+            Action::ClearScreen => write!(f, "clear_screen"),
+            Action::ToggleSelectionDown => write!(f, "toggle_selection_down"),
+            Action::ToggleSelectionUp => write!(f, "toggle_selection_up"),
+            Action::ConfirmSelection => write!(f, "confirm_selection"),
+            Action::SelectAndExit => write!(f, "select_and_exit"),
+            Action::SelectNextEntry => write!(f, "select_next_entry"),
+            Action::SelectPrevEntry => write!(f, "select_prev_entry"),
+            Action::SelectNextPage => write!(f, "select_next_page"),
+            Action::SelectPrevPage => write!(f, "select_prev_page"),
+            Action::CopyEntryToClipboard => {
+                write!(f, "copy_entry_to_clipboard")
+            }
+            Action::ScrollPreviewUp => write!(f, "scroll_preview_up"),
+            Action::ScrollPreviewDown => write!(f, "scroll_preview_down"),
+            Action::ScrollPreviewHalfPageUp => {
+                write!(f, "scroll_preview_half_page_up")
+            }
+            Action::ScrollPreviewHalfPageDown => {
+                write!(f, "scroll_preview_half_page_down")
+            }
+            Action::OpenEntry => write!(f, "open_entry"),
+            Action::Tick => write!(f, "tick"),
+            Action::Suspend => write!(f, "suspend"),
+            Action::Resume => write!(f, "resume"),
+            Action::Quit => write!(f, "quit"),
+            Action::ToggleRemoteControl => write!(f, "toggle_remote_control"),
+            Action::ToggleHelp => write!(f, "toggle_help"),
+            Action::ToggleStatusBar => write!(f, "toggle_status_bar"),
+            Action::TogglePreview => write!(f, "toggle_preview"),
+            Action::Error(_) => write!(f, "error"),
+            Action::NoOp => write!(f, "no_op"),
+            Action::ToggleSendToChannel => write!(f, "toggle_send_to_channel"),
+            Action::CycleSources => write!(f, "cycle_sources"),
+            Action::ReloadSource => write!(f, "reload_source"),
+            Action::SwitchToChannel(_) => write!(f, "switch_to_channel"),
+            Action::WatchTimer => write!(f, "watch_timer"),
+            Action::SelectPrevHistory => write!(f, "select_prev_history"),
+            Action::SelectNextHistory => write!(f, "select_next_history"),
+            Action::SelectEntryAtPosition(_, _) => {
+                write!(f, "select_entry_at_position")
+            }
+            Action::MouseClickAt(_, _) => write!(f, "mouse_click_at"),
+        }
+    }
 }

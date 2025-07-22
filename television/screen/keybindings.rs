@@ -163,6 +163,24 @@ pub fn extract_keys_from_binding(binding: &Binding) -> Vec<String> {
     }
 }
 
+/// Extract keys for a single action from the new Key->Action keybindings format
+pub fn find_keys_for_action(
+    keybindings: &KeyBindings,
+    target_action: &Action,
+) -> Vec<String> {
+    keybindings
+        .bindings
+        .iter()
+        .filter_map(|(key, action)| {
+            if action == target_action {
+                Some(key.to_string())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 /// Extract keys for multiple actions and return them as a flat vector
 pub fn extract_keys_for_actions(
     keybindings: &KeyBindings,
@@ -170,7 +188,16 @@ pub fn extract_keys_for_actions(
 ) -> Vec<String> {
     actions
         .iter()
-        .filter_map(|action| keybindings.get(action))
-        .flat_map(extract_keys_from_binding)
+        .flat_map(|action| find_keys_for_action(keybindings, action))
         .collect()
+}
+
+/// Remove all keybindings for a specific action from `KeyBindings`
+pub fn remove_action_bindings(
+    keybindings: &mut KeyBindings,
+    target_action: &Action,
+) {
+    keybindings
+        .bindings
+        .retain(|_, action| action != target_action);
 }

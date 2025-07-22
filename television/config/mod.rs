@@ -14,7 +14,10 @@ use std::{
 };
 use tracing::{debug, warn};
 
-pub use keybindings::{Binding, KeyBindings, merge_keybindings, parse_key};
+pub use keybindings::{
+    Binding, EventBindings, EventType, KeyBindings, merge_event_bindings,
+    merge_keybindings, parse_key,
+};
 pub use themes::Theme;
 pub use ui::UiConfig;
 
@@ -81,6 +84,9 @@ pub struct Config {
     /// Keybindings configuration
     #[serde(default)]
     pub keybindings: KeyBindings,
+    /// Event bindings configuration
+    #[serde(default)]
+    pub events: EventBindings,
     /// UI configuration
     #[serde(default)]
     pub ui: UiConfig,
@@ -223,9 +229,14 @@ impl Config {
             merge_keybindings(default.keybindings.clone(), &new.keybindings);
         new.keybindings = keybindings;
 
+        // merge event bindings with default event bindings
+        let events = merge_event_bindings(default.events.clone(), &new.events);
+        new.events = events;
+
         Config {
             application: new.application,
             keybindings: new.keybindings,
+            events: new.events,
             ui: new.ui,
             shell_integration: new.shell_integration,
         }
@@ -233,6 +244,10 @@ impl Config {
 
     pub fn merge_keybindings(&mut self, other: &KeyBindings) {
         self.keybindings = merge_keybindings(self.keybindings.clone(), other);
+    }
+
+    pub fn merge_event_bindings(&mut self, other: &EventBindings) {
+        self.events = merge_event_bindings(self.events.clone(), other);
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
@@ -355,7 +370,6 @@ mod tests {
     use crate::event::Key;
 
     use super::*;
-    use rustc_hash::FxHashMap;
     use std::fs::File;
     use std::io::Write;
     use tempfile::tempdir;
@@ -405,6 +419,7 @@ mod tests {
 
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
+        assert_eq!(config.events, default_config.events);
         assert_eq!(config.ui, default_config.ui);
         // backwards compatibility
         assert_eq!(
@@ -426,7 +441,7 @@ mod tests {
         theme = "something"
 
         [keybindings]
-        confirm_selection = "ctrl-enter"
+        ctrl-enter = "confirm_selection"
 
         [shell_integration.commands]
         "git add" = "git-diff"
@@ -455,14 +470,11 @@ mod tests {
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
-        default_config.keybindings.extend({
-            let mut map = FxHashMap::default();
-            map.insert(
-                Action::ConfirmSelection,
-                Binding::SingleKey(Key::CtrlEnter),
-            );
-            map
-        });
+        // With new architecture, we add directly to the bindings map
+        default_config
+            .keybindings
+            .bindings
+            .insert(Key::CtrlEnter, Action::ConfirmSelection);
 
         default_config.shell_integration.keybindings.insert(
             "command_history".to_string(),
@@ -472,6 +484,7 @@ mod tests {
 
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
+        assert_eq!(config.events, default_config.events);
         assert_eq!(config.ui, default_config.ui);
         assert_eq!(
             config.shell_integration.commands,

@@ -11,7 +11,7 @@ use crossterm::event::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
         Insert, Left, PageDown, PageUp, Right, Tab, Up,
     },
-    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
+    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent, MouseEventKind,
 };
 use serde::{Deserialize, Serialize};
 use tokio::{signal, sync::mpsc};
@@ -68,8 +68,22 @@ pub enum Key {
     Null,
     Esc,
     Tab,
-    MouseScrollUp,
-    MouseScrollDown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Unified input event type that encompasses all possible inputs
+pub enum InputEvent {
+    Key(Key),
+    Mouse(MouseInputEvent),
+    Resize(u16, u16),
+    Custom(String),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+/// Mouse event with position information for input mapping
+pub struct MouseInputEvent {
+    pub kind: MouseEventKind,
+    pub position: (u16, u16),
 }
 
 impl<'de> Deserialize<'de> for Key {
@@ -121,8 +135,6 @@ impl Display for Key {
             Key::Null => write!(f, "Null"),
             Key::Esc => write!(f, "Esc"),
             Key::Tab => write!(f, "Tab"),
-            Key::MouseScrollUp => write!(f, "MouseScrollUp"),
-            Key::MouseScrollDown => write!(f, "MouseScrollDown"),
         }
     }
 }

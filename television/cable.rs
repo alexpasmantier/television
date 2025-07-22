@@ -13,7 +13,6 @@ use crate::{
     channels::prototypes::ChannelPrototype,
     config::{Binding, KeyBindings},
     errors::unknown_channel_exit,
-    keymap::Keymap,
 };
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
@@ -59,21 +58,38 @@ impl Cable {
     ///
     /// (e.g. "files" -> "F1", "dirs" -> "F2", etc.)
     pub fn get_channels_shortcut_keybindings(&self) -> KeyBindings {
-        KeyBindings(
-            self.iter()
-                .filter_map(|(name, prototype)| {
-                    if let Some(keybindings) = &prototype.keybindings {
-                        if let Some(binding) = &keybindings.shortcut {
-                            return Some((name.clone(), binding));
+        let bindings = self
+            .iter()
+            .filter_map(|(name, prototype)| {
+                if let Some(keybindings) = &prototype.keybindings {
+                    if let Some(binding) = &keybindings.shortcut {
+                        // Convert Binding to Key for new architecture
+                        match binding {
+                            Binding::SingleKey(key) => Some((
+                                *key,
+                                Action::SwitchToChannel(name.clone()),
+                            )),
+                            // For multiple keys, use the first one
+                            Binding::MultipleKeys(keys)
+                                if !keys.is_empty() =>
+                            {
+                                Some((
+                                    keys[0],
+                                    Action::SwitchToChannel(name.clone()),
+                                ))
+                            }
+                            Binding::MultipleKeys(_) => None,
                         }
+                    } else {
+                        None
                     }
+                } else {
                     None
-                })
-                .fold(FxHashMap::default(), |mut acc, (name, binding)| {
-                    acc.insert(Action::SwitchToChannel(name), binding.clone());
-                    acc
-                }),
-        )
+                }
+            })
+            .collect();
+
+        KeyBindings { bindings }
     }
 
     /// Get a channel prototype's shortcut binding.
@@ -86,12 +102,6 @@ impl Cable {
             .and_then(|prototype| prototype.keybindings.as_ref())
             .and_then(|keybindings| keybindings.shortcut.as_ref())
             .cloned()
-    }
-
-    /// Build a `Keymap` that contains every channel shortcut defined in the cable.
-    /// Useful for merging directly into the application's global keymap.
-    pub fn shortcut_keymap(&self) -> Keymap {
-        Keymap::from(&self.get_channels_shortcut_keybindings())
     }
 }
 

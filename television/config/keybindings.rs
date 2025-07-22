@@ -9,6 +9,7 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
+// Legacy binding structure for backward compatibility with shell integration
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(untagged)]
 pub enum Binding {
@@ -31,59 +32,221 @@ impl Display for Binding {
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
-/// A set of keybindings for various actions in the application.
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// A set of keybindings that maps keys directly to actions.
 ///
-/// This struct is a wrapper around a `FxHashMap` that maps `Action`s to their corresponding
-/// `Binding`s. It's main use is to provide a convenient way to manage and serialize/deserialize
-/// keybindings from the configuration file as well as channel prototypes.
-pub struct KeyBindings(pub FxHashMap<Action, Binding>);
+/// This struct represents the new architecture where keybindings are structured as
+/// Key -> Action mappings in the configuration file. This eliminates the need for
+/// runtime inversion and provides better discoverability.
+pub struct KeyBindings {
+    #[serde(
+        flatten,
+        serialize_with = "serialize_key_bindings",
+        deserialize_with = "deserialize_key_bindings"
+    )]
+    pub bindings: FxHashMap<Key, Action>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
+#[serde(rename_all = "kebab-case")]
+/// Types of events that can be bound to actions
+pub enum EventType {
+    MouseClick,
+    MouseScrollUp,
+    MouseScrollDown,
+    Resize,
+    Custom(String),
+}
+
+impl<'de> serde::Deserialize<'de> for EventType {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.as_str() {
+            "mouse-click" => Ok(EventType::MouseClick),
+            "mouse-scroll-up" => Ok(EventType::MouseScrollUp),
+            "mouse-scroll-down" => Ok(EventType::MouseScrollDown),
+            "resize" => Ok(EventType::Resize),
+            custom => Ok(EventType::Custom(custom.to_string())),
+        }
+    }
+}
+
+impl Display for EventType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EventType::MouseClick => write!(f, "mouse-click"),
+            EventType::MouseScrollUp => write!(f, "mouse-scroll-up"),
+            EventType::MouseScrollDown => write!(f, "mouse-scroll-down"),
+            EventType::Resize => write!(f, "resize"),
+            EventType::Custom(name) => write!(f, "{}", name),
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+/// A set of event bindings that maps events to actions.
+pub struct EventBindings {
+    #[serde(
+        flatten,
+        serialize_with = "serialize_event_bindings",
+        deserialize_with = "deserialize_event_bindings"
+    )]
+    pub bindings: FxHashMap<EventType, Action>,
+}
 
 impl<I> From<I> for KeyBindings
 where
-    I: IntoIterator<Item = (Action, Binding)>,
+    I: IntoIterator<Item = (Key, Action)>,
 {
     fn from(iter: I) -> Self {
-        KeyBindings(iter.into_iter().collect())
+        KeyBindings {
+            bindings: iter.into_iter().collect(),
+        }
+    }
+}
+
+impl<I> From<I> for EventBindings
+where
+    I: IntoIterator<Item = (EventType, Action)>,
+{
+    fn from(iter: I) -> Self {
+        EventBindings {
+            bindings: iter.into_iter().collect(),
+        }
     }
 }
 
 impl Hash for KeyBindings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        // we're not actually using this for hashing, so this really only is a placeholder
-        state.write_u8(0);
+        // Hash based on the bindings map
+        for (key, action) in &self.bindings {
+            key.hash(state);
+            action.hash(state);
+        }
+    }
+}
+
+impl Hash for EventBindings {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        // Hash based on the bindings map
+        for (event, action) in &self.bindings {
+            event.hash(state);
+            action.hash(state);
+        }
     }
 }
 
 impl Deref for KeyBindings {
-    type Target = FxHashMap<Action, Binding>;
+    type Target = FxHashMap<Key, Action>;
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.bindings
     }
 }
 
 impl DerefMut for KeyBindings {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.bindings
+    }
+}
+
+impl Deref for EventBindings {
+    type Target = FxHashMap<EventType, Action>;
+    fn deref(&self) -> &Self::Target {
+        &self.bindings
+    }
+}
+
+impl DerefMut for EventBindings {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.bindings
     }
 }
 
 /// Merge two sets of keybindings together.
 ///
-/// Note that this function won't "meld", for a given action, the bindings from the first set
-/// with the bindings from the second set. Instead, it will simply overwrite them with the second
-/// set's keys.
-/// This is because it is assumed that the second set will be the user's custom keybindings, and
-/// they should take precedence over the default ones, effectively replacing them to avoid
-/// conflicts.
+/// The new keybindings will overwrite any existing ones for the same keys.
 pub fn merge_keybindings(
     mut keybindings: KeyBindings,
     new_keybindings: &KeyBindings,
 ) -> KeyBindings {
-    for (action, binding) in new_keybindings.iter() {
-        keybindings.insert(action.clone(), binding.clone());
+    for (key, action) in &new_keybindings.bindings {
+        keybindings.bindings.insert(*key, action.clone());
     }
     keybindings
+}
+
+/// Merge two sets of event bindings together.
+///
+/// The new event bindings will overwrite any existing ones for the same event types.
+pub fn merge_event_bindings(
+    mut event_bindings: EventBindings,
+    new_event_bindings: &EventBindings,
+) -> EventBindings {
+    for (event_type, action) in &new_event_bindings.bindings {
+        event_bindings
+            .bindings
+            .insert(event_type.clone(), action.clone());
+    }
+    event_bindings
+}
+
+impl Default for KeyBindings {
+    fn default() -> Self {
+        let mut bindings = FxHashMap::default();
+
+        // Quit actions
+        bindings.insert(Key::Esc, Action::Quit);
+        bindings.insert(Key::Ctrl('c'), Action::Quit);
+
+        // Navigation
+        bindings.insert(Key::Down, Action::SelectNextEntry);
+        bindings.insert(Key::Ctrl('n'), Action::SelectNextEntry);
+        bindings.insert(Key::Ctrl('j'), Action::SelectNextEntry);
+        bindings.insert(Key::Up, Action::SelectPrevEntry);
+        bindings.insert(Key::Ctrl('p'), Action::SelectPrevEntry);
+        bindings.insert(Key::Ctrl('k'), Action::SelectPrevEntry);
+
+        // History navigation
+        bindings.insert(Key::CtrlUp, Action::SelectPrevHistory);
+        bindings.insert(Key::CtrlDown, Action::SelectNextHistory);
+
+        // Selection actions
+        bindings.insert(Key::Enter, Action::ConfirmSelection);
+        bindings.insert(Key::Tab, Action::ToggleSelectionDown);
+        bindings.insert(Key::BackTab, Action::ToggleSelectionUp);
+
+        // Preview actions
+        bindings.insert(Key::PageDown, Action::ScrollPreviewHalfPageDown);
+        bindings.insert(Key::PageUp, Action::ScrollPreviewHalfPageUp);
+
+        // Clipboard and toggles
+        bindings.insert(Key::Ctrl('y'), Action::CopyEntryToClipboard);
+        bindings.insert(Key::Ctrl('r'), Action::ReloadSource);
+        bindings.insert(Key::Ctrl('s'), Action::CycleSources);
+
+        // UI Features
+        bindings.insert(Key::Ctrl('t'), Action::ToggleRemoteControl);
+        bindings.insert(Key::Ctrl('o'), Action::TogglePreview);
+        bindings.insert(Key::Ctrl('h'), Action::ToggleHelp);
+        bindings.insert(Key::F(12), Action::ToggleStatusBar);
+
+        Self { bindings }
+    }
+}
+
+impl Default for EventBindings {
+    fn default() -> Self {
+        let mut bindings = FxHashMap::default();
+
+        // Mouse events
+        bindings.insert(EventType::MouseScrollUp, Action::ScrollPreviewUp);
+        bindings.insert(EventType::MouseScrollDown, Action::ScrollPreviewDown);
+
+        Self { bindings }
+    }
 }
 
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
@@ -264,15 +427,122 @@ pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
         raw.strip_suffix('>').unwrap_or(raw)
     };
 
-    // Handle mouse scroll keys as special cases
-    match raw.to_ascii_lowercase().as_str() {
-        "mousescrollup" => return Ok(Key::MouseScrollUp),
-        "mousescrolldown" => return Ok(Key::MouseScrollDown),
-        _ => {}
-    }
-
     let key_event = parse_key_event(raw)?;
     Ok(convert_raw_event_to_key(key_event))
+}
+
+/// Custom serializer for `KeyBindings` that converts `Key` enum to string for TOML compatibility
+fn serialize_key_bindings<S>(
+    bindings: &FxHashMap<Key, Action>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use serde::ser::SerializeMap;
+    let mut map = serializer.serialize_map(Some(bindings.len()))?;
+    for (key, action) in bindings {
+        map.serialize_entry(&key.to_string(), action)?;
+    }
+    map.end()
+}
+
+/// Custom deserializer for `KeyBindings` that parses string keys back to `Key` enum
+fn deserialize_key_bindings<'de, D>(
+    deserializer: D,
+) -> Result<FxHashMap<Key, Action>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{MapAccess, Visitor};
+    use std::fmt;
+
+    struct KeyBindingsVisitor;
+
+    impl<'de> Visitor<'de> for KeyBindingsVisitor {
+        type Value = FxHashMap<Key, Action>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a map with string keys and action values")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut bindings = FxHashMap::default();
+            while let Some((key_str, action)) =
+                map.next_entry::<String, Action>()?
+            {
+                let key =
+                    parse_key(&key_str).map_err(serde::de::Error::custom)?;
+                bindings.insert(key, action);
+            }
+            Ok(bindings)
+        }
+    }
+
+    deserializer.deserialize_map(KeyBindingsVisitor)
+}
+
+/// Custom serializer for `EventBindings` that converts `EventType` enum to string for TOML compatibility
+fn serialize_event_bindings<S>(
+    bindings: &FxHashMap<EventType, Action>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    use serde::ser::SerializeMap;
+    let mut map = serializer.serialize_map(Some(bindings.len()))?;
+    for (event_type, action) in bindings {
+        map.serialize_entry(&event_type.to_string(), action)?;
+    }
+    map.end()
+}
+
+/// Custom deserializer for `EventBindings` that parses string keys back to `EventType` enum
+fn deserialize_event_bindings<'de, D>(
+    deserializer: D,
+) -> Result<FxHashMap<EventType, Action>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::de::{MapAccess, Visitor};
+    use std::fmt;
+
+    struct EventBindingsVisitor;
+
+    impl<'de> Visitor<'de> for EventBindingsVisitor {
+        type Value = FxHashMap<EventType, Action>;
+
+        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            formatter.write_str("a map with string keys and action values")
+        }
+
+        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        where
+            A: MapAccess<'de>,
+        {
+            let mut bindings = FxHashMap::default();
+            while let Some((event_str, action)) =
+                map.next_entry::<String, Action>()?
+            {
+                // Parse the event string back to EventType
+                let event_type = match event_str.as_str() {
+                    "mouse-click" => EventType::MouseClick,
+                    "mouse-scroll-up" => EventType::MouseScrollUp,
+                    "mouse-scroll-down" => EventType::MouseScrollDown,
+                    "resize" => EventType::Resize,
+                    custom => EventType::Custom(custom.to_string()),
+                };
+                bindings.insert(event_type, action);
+            }
+            Ok(bindings)
+        }
+    }
+
+    deserializer.deserialize_map(EventBindingsVisitor)
 }
 
 #[cfg(test)]
@@ -386,28 +656,24 @@ mod tests {
     fn test_deserialize_keybindings() {
         let keybindings: KeyBindings = toml::from_str(
             r#"
-                # Quit the application
-                quit = ["esc", "ctrl-c"]
-                # Scrolling through entries
-                select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-                select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-                select_next_page = "pagedown"
-                select_prev_page = "pageup"
-                # Scrolling the preview pane
-                scroll_preview_half_page_down = "ctrl-d"
-                scroll_preview_half_page_up = "ctrl-u"
-                # Add entry to selection and move to the next entry
-                toggle_selection_down = "tab"
-                # Add entry to selection and move to the previous entry
-                toggle_selection_up = "backtab"
-                # Confirm selection
-                confirm_selection = "enter"
-                # Copy the selected entry to the clipboard
-                copy_entry_to_clipboard = "ctrl-y"
-                # Toggle the remote control mode
-                toggle_remote_control = "ctrl-r"
-                # Toggle the preview panel
-                toggle_preview = "ctrl-o"
+                "esc" = "quit"
+                "ctrl-c" = "quit"
+                "down" = "select_next_entry"
+                "ctrl-n" = "select_next_entry"
+                "ctrl-j" = "select_next_entry"
+                "up" = "select_prev_entry"
+                "ctrl-p" = "select_prev_entry"
+                "ctrl-k" = "select_prev_entry"
+                "pagedown" = "select_next_page"
+                "pageup" = "select_prev_page"
+                "ctrl-d" = "scroll_preview_half_page_down"
+                "ctrl-u" = "scroll_preview_half_page_up"
+                "tab" = "toggle_selection_down"
+                "backtab" = "toggle_selection_up"
+                "enter" = "confirm_selection"
+                "ctrl-y" = "copy_entry_to_clipboard"
+                "ctrl-r" = "toggle_remote_control"
+                "ctrl-o" = "toggle_preview"
             "#,
         )
         .unwrap();
@@ -415,48 +681,24 @@ mod tests {
         assert_eq!(
             keybindings,
             KeyBindings::from(vec![
-                (
-                    Action::Quit,
-                    Binding::MultipleKeys(vec![Key::Esc, Key::Ctrl('c'),])
-                ),
-                (
-                    Action::SelectNextEntry,
-                    Binding::MultipleKeys(vec![
-                        Key::Down,
-                        Key::Ctrl('n'),
-                        Key::Ctrl('j'),
-                    ])
-                ),
-                (
-                    Action::SelectPrevEntry,
-                    Binding::MultipleKeys(vec![
-                        Key::Up,
-                        Key::Ctrl('p'),
-                        Key::Ctrl('k'),
-                    ])
-                ),
-                (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
-                (Action::SelectPrevPage, Binding::SingleKey(Key::PageUp)),
-                (
-                    Action::ScrollPreviewHalfPageDown,
-                    Binding::SingleKey(Key::Ctrl('d'))
-                ),
-                (
-                    Action::ScrollPreviewHalfPageUp,
-                    Binding::SingleKey(Key::Ctrl('u'))
-                ),
-                (Action::ToggleSelectionDown, Binding::SingleKey(Key::Tab)),
-                (Action::ToggleSelectionUp, Binding::SingleKey(Key::BackTab)),
-                (Action::ConfirmSelection, Binding::SingleKey(Key::Enter)),
-                (
-                    Action::CopyEntryToClipboard,
-                    Binding::SingleKey(Key::Ctrl('y'))
-                ),
-                (
-                    Action::ToggleRemoteControl,
-                    Binding::SingleKey(Key::Ctrl('r'))
-                ),
-                (Action::TogglePreview, Binding::SingleKey(Key::Ctrl('o'))),
+                (Key::Esc, Action::Quit),
+                (Key::Ctrl('c'), Action::Quit),
+                (Key::Down, Action::SelectNextEntry),
+                (Key::Ctrl('n'), Action::SelectNextEntry),
+                (Key::Ctrl('j'), Action::SelectNextEntry),
+                (Key::Up, Action::SelectPrevEntry),
+                (Key::Ctrl('p'), Action::SelectPrevEntry),
+                (Key::Ctrl('k'), Action::SelectPrevEntry),
+                (Key::PageDown, Action::SelectNextPage),
+                (Key::PageUp, Action::SelectPrevPage),
+                (Key::Ctrl('d'), Action::ScrollPreviewHalfPageDown),
+                (Key::Ctrl('u'), Action::ScrollPreviewHalfPageUp),
+                (Key::Tab, Action::ToggleSelectionDown),
+                (Key::BackTab, Action::ToggleSelectionUp),
+                (Key::Enter, Action::ConfirmSelection),
+                (Key::Ctrl('y'), Action::CopyEntryToClipboard),
+                (Key::Ctrl('r'), Action::ToggleRemoteControl),
+                (Key::Ctrl('o'), Action::TogglePreview),
             ])
         );
     }
@@ -464,35 +706,36 @@ mod tests {
     #[test]
     fn test_merge_keybindings() {
         let base_keybindings = KeyBindings::from(vec![
-            (Action::Quit, Binding::SingleKey(Key::Esc)),
-            (
-                Action::SelectNextEntry,
-                Binding::MultipleKeys(vec![Key::Down, Key::Ctrl('n')]),
-            ),
-            (Action::SelectPrevEntry, Binding::SingleKey(Key::Up)),
+            (Key::Esc, Action::Quit),
+            (Key::Down, Action::SelectNextEntry),
+            (Key::Ctrl('n'), Action::SelectNextEntry),
+            (Key::Up, Action::SelectPrevEntry),
         ]);
         let custom_keybindings = KeyBindings::from(vec![
-            (Action::SelectNextEntry, Binding::SingleKey(Key::Ctrl('j'))),
-            (
-                Action::SelectPrevEntry,
-                Binding::MultipleKeys(vec![Key::Up, Key::Ctrl('k')]),
-            ),
-            (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
+            (Key::Ctrl('j'), Action::SelectNextEntry),
+            (Key::Ctrl('k'), Action::SelectPrevEntry),
+            (Key::PageDown, Action::SelectNextPage),
         ]);
 
         let merged = merge_keybindings(base_keybindings, &custom_keybindings);
 
+        // Should contain both base and custom keybindings
+        assert!(merged.bindings.contains_key(&Key::Esc));
+        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::Quit));
+        assert!(merged.bindings.contains_key(&Key::Down));
         assert_eq!(
-            merged,
-            KeyBindings::from(vec![
-                (Action::Quit, Binding::SingleKey(Key::Esc)),
-                (Action::SelectNextEntry, Binding::SingleKey(Key::Ctrl('j'))),
-                (
-                    Action::SelectPrevEntry,
-                    Binding::MultipleKeys(vec![Key::Up, Key::Ctrl('k')]),
-                ),
-                (Action::SelectNextPage, Binding::SingleKey(Key::PageDown)),
-            ])
+            merged.bindings.get(&Key::Down),
+            Some(&Action::SelectNextEntry)
+        );
+        assert!(merged.bindings.contains_key(&Key::Ctrl('j')));
+        assert_eq!(
+            merged.bindings.get(&Key::Ctrl('j')),
+            Some(&Action::SelectNextEntry)
+        );
+        assert!(merged.bindings.contains_key(&Key::PageDown));
+        assert_eq!(
+            merged.bindings.get(&Key::PageDown),
+            Some(&Action::SelectNextPage)
         );
     }
 }
