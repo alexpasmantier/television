@@ -70,7 +70,8 @@ fn tv_list_channels() {
 /// This simply tests that the command exits successfully.
 fn tv_init_zsh() {
     let mut tester = PtyTester::new();
-    let mut child = tester.spawn_command(tv_with_args(&["init", "zsh"]));
+    let mut child = tester
+        .spawn_command(tv_local_config_and_cable_with_args(&["init", "zsh"]));
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
