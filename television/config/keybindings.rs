@@ -1,5 +1,5 @@
 use crate::{
-    action::Action,
+    action::{Action, Actions},
     event::{Key, convert_raw_event_to_key},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -44,7 +44,7 @@ pub struct KeyBindings {
         serialize_with = "serialize_key_bindings",
         deserialize_with = "deserialize_key_bindings"
     )]
-    pub bindings: FxHashMap<Key, Action>,
+    pub bindings: FxHashMap<Key, Actions>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
@@ -94,7 +94,7 @@ pub struct EventBindings {
         serialize_with = "serialize_event_bindings",
         deserialize_with = "deserialize_event_bindings"
     )]
-    pub bindings: FxHashMap<EventType, Action>,
+    pub bindings: FxHashMap<EventType, Actions>,
 }
 
 impl<I> From<I> for KeyBindings
@@ -103,7 +103,10 @@ where
 {
     fn from(iter: I) -> Self {
         KeyBindings {
-            bindings: iter.into_iter().collect(),
+            bindings: iter
+                .into_iter()
+                .map(|(k, a)| (k, Actions::from(a)))
+                .collect(),
         }
     }
 }
@@ -114,7 +117,10 @@ where
 {
     fn from(iter: I) -> Self {
         EventBindings {
-            bindings: iter.into_iter().collect(),
+            bindings: iter
+                .into_iter()
+                .map(|(e, a)| (e, Actions::from(a)))
+                .collect(),
         }
     }
 }
@@ -122,9 +128,9 @@ where
 impl Hash for KeyBindings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         // Hash based on the bindings map
-        for (key, action) in &self.bindings {
+        for (key, actions) in &self.bindings {
             key.hash(state);
-            action.hash(state);
+            actions.hash(state);
         }
     }
 }
@@ -132,15 +138,15 @@ impl Hash for KeyBindings {
 impl Hash for EventBindings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         // Hash based on the bindings map
-        for (event, action) in &self.bindings {
+        for (event, actions) in &self.bindings {
             event.hash(state);
-            action.hash(state);
+            actions.hash(state);
         }
     }
 }
 
 impl Deref for KeyBindings {
-    type Target = FxHashMap<Key, Action>;
+    type Target = FxHashMap<Key, Actions>;
     fn deref(&self) -> &Self::Target {
         &self.bindings
     }
@@ -153,7 +159,7 @@ impl DerefMut for KeyBindings {
 }
 
 impl Deref for EventBindings {
-    type Target = FxHashMap<EventType, Action>;
+    type Target = FxHashMap<EventType, Actions>;
     fn deref(&self) -> &Self::Target {
         &self.bindings
     }
@@ -172,8 +178,8 @@ pub fn merge_keybindings(
     mut keybindings: KeyBindings,
     new_keybindings: &KeyBindings,
 ) -> KeyBindings {
-    for (key, action) in &new_keybindings.bindings {
-        keybindings.bindings.insert(*key, action.clone());
+    for (key, actions) in &new_keybindings.bindings {
+        keybindings.bindings.insert(*key, actions.clone());
     }
     keybindings
 }
@@ -185,10 +191,10 @@ pub fn merge_event_bindings(
     mut event_bindings: EventBindings,
     new_event_bindings: &EventBindings,
 ) -> EventBindings {
-    for (event_type, action) in &new_event_bindings.bindings {
+    for (event_type, actions) in &new_event_bindings.bindings {
         event_bindings
             .bindings
-            .insert(event_type.clone(), action.clone());
+            .insert(event_type.clone(), actions.clone());
     }
     event_bindings
 }
@@ -198,52 +204,53 @@ impl Default for KeyBindings {
         let mut bindings = FxHashMap::default();
 
         // Quit actions
-        bindings.insert(Key::Esc, Action::Quit);
-        bindings.insert(Key::Ctrl('c'), Action::Quit);
+        bindings.insert(Key::Esc, Action::Quit.into());
+        bindings.insert(Key::Ctrl('c'), Action::Quit.into());
 
         // Navigation
-        bindings.insert(Key::Down, Action::SelectNextEntry);
-        bindings.insert(Key::Ctrl('n'), Action::SelectNextEntry);
-        bindings.insert(Key::Ctrl('j'), Action::SelectNextEntry);
-        bindings.insert(Key::Up, Action::SelectPrevEntry);
-        bindings.insert(Key::Ctrl('p'), Action::SelectPrevEntry);
-        bindings.insert(Key::Ctrl('k'), Action::SelectPrevEntry);
+        bindings.insert(Key::Down, Action::SelectNextEntry.into());
+        bindings.insert(Key::Ctrl('n'), Action::SelectNextEntry.into());
+        bindings.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
+        bindings.insert(Key::Up, Action::SelectPrevEntry.into());
+        bindings.insert(Key::Ctrl('p'), Action::SelectPrevEntry.into());
+        bindings.insert(Key::Ctrl('k'), Action::SelectPrevEntry.into());
 
         // History navigation
-        bindings.insert(Key::CtrlUp, Action::SelectPrevHistory);
-        bindings.insert(Key::CtrlDown, Action::SelectNextHistory);
+        bindings.insert(Key::CtrlUp, Action::SelectPrevHistory.into());
+        bindings.insert(Key::CtrlDown, Action::SelectNextHistory.into());
 
         // Selection actions
-        bindings.insert(Key::Enter, Action::ConfirmSelection);
-        bindings.insert(Key::Tab, Action::ToggleSelectionDown);
-        bindings.insert(Key::BackTab, Action::ToggleSelectionUp);
+        bindings.insert(Key::Enter, Action::ConfirmSelection.into());
+        bindings.insert(Key::Tab, Action::ToggleSelectionDown.into());
+        bindings.insert(Key::BackTab, Action::ToggleSelectionUp.into());
 
         // Preview actions
-        bindings.insert(Key::PageDown, Action::ScrollPreviewHalfPageDown);
-        bindings.insert(Key::PageUp, Action::ScrollPreviewHalfPageUp);
+        bindings
+            .insert(Key::PageDown, Action::ScrollPreviewHalfPageDown.into());
+        bindings.insert(Key::PageUp, Action::ScrollPreviewHalfPageUp.into());
 
         // Clipboard and toggles
-        bindings.insert(Key::Ctrl('y'), Action::CopyEntryToClipboard);
-        bindings.insert(Key::Ctrl('r'), Action::ReloadSource);
-        bindings.insert(Key::Ctrl('s'), Action::CycleSources);
+        bindings.insert(Key::Ctrl('y'), Action::CopyEntryToClipboard.into());
+        bindings.insert(Key::Ctrl('r'), Action::ReloadSource.into());
+        bindings.insert(Key::Ctrl('s'), Action::CycleSources.into());
 
         // UI Features
-        bindings.insert(Key::Ctrl('t'), Action::ToggleRemoteControl);
-        bindings.insert(Key::Ctrl('o'), Action::TogglePreview);
-        bindings.insert(Key::Ctrl('h'), Action::ToggleHelp);
-        bindings.insert(Key::F(12), Action::ToggleStatusBar);
+        bindings.insert(Key::Ctrl('t'), Action::ToggleRemoteControl.into());
+        bindings.insert(Key::Ctrl('o'), Action::TogglePreview.into());
+        bindings.insert(Key::Ctrl('h'), Action::ToggleHelp.into());
+        bindings.insert(Key::F(12), Action::ToggleStatusBar.into());
 
         // Input field actions
-        bindings.insert(Key::Backspace, Action::DeletePrevChar);
-        bindings.insert(Key::Ctrl('w'), Action::DeletePrevWord);
-        bindings.insert(Key::Ctrl('u'), Action::DeleteLine);
-        bindings.insert(Key::Delete, Action::DeleteNextChar);
-        bindings.insert(Key::Left, Action::GoToPrevChar);
-        bindings.insert(Key::Right, Action::GoToNextChar);
-        bindings.insert(Key::Home, Action::GoToInputStart);
-        bindings.insert(Key::Ctrl('a'), Action::GoToInputStart);
-        bindings.insert(Key::End, Action::GoToInputEnd);
-        bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd);
+        bindings.insert(Key::Backspace, Action::DeletePrevChar.into());
+        bindings.insert(Key::Ctrl('w'), Action::DeletePrevWord.into());
+        bindings.insert(Key::Ctrl('u'), Action::DeleteLine.into());
+        bindings.insert(Key::Delete, Action::DeleteNextChar.into());
+        bindings.insert(Key::Left, Action::GoToPrevChar.into());
+        bindings.insert(Key::Right, Action::GoToNextChar.into());
+        bindings.insert(Key::Home, Action::GoToInputStart.into());
+        bindings.insert(Key::Ctrl('a'), Action::GoToInputStart.into());
+        bindings.insert(Key::End, Action::GoToInputEnd.into());
+        bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd.into());
 
         Self { bindings }
     }
@@ -254,8 +261,12 @@ impl Default for EventBindings {
         let mut bindings = FxHashMap::default();
 
         // Mouse events
-        bindings.insert(EventType::MouseScrollUp, Action::ScrollPreviewUp);
-        bindings.insert(EventType::MouseScrollDown, Action::ScrollPreviewDown);
+        bindings
+            .insert(EventType::MouseScrollUp, Action::ScrollPreviewUp.into());
+        bindings.insert(
+            EventType::MouseScrollDown,
+            Action::ScrollPreviewDown.into(),
+        );
 
         Self { bindings }
     }
@@ -445,7 +456,7 @@ pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
 
 /// Custom serializer for `KeyBindings` that converts `Key` enum to string for TOML compatibility
 fn serialize_key_bindings<S>(
-    bindings: &FxHashMap<Key, Action>,
+    bindings: &FxHashMap<Key, Actions>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -453,8 +464,8 @@ where
 {
     use serde::ser::SerializeMap;
     let mut map = serializer.serialize_map(Some(bindings.len()))?;
-    for (key, action) in bindings {
-        map.serialize_entry(&key.to_string(), action)?;
+    for (key, actions) in bindings {
+        map.serialize_entry(&key.to_string(), actions)?;
     }
     map.end()
 }
@@ -462,7 +473,7 @@ where
 /// Custom deserializer for `KeyBindings` that parses string keys back to `Key` enum
 fn deserialize_key_bindings<'de, D>(
     deserializer: D,
-) -> Result<FxHashMap<Key, Action>, D::Error>
+) -> Result<FxHashMap<Key, Actions>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -472,10 +483,11 @@ where
     struct KeyBindingsVisitor;
 
     impl<'de> Visitor<'de> for KeyBindingsVisitor {
-        type Value = FxHashMap<Key, Action>;
+        type Value = FxHashMap<Key, Actions>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a map with string keys and action values")
+            formatter
+                .write_str("a map with string keys and action/actions values")
         }
 
         fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
@@ -494,16 +506,16 @@ where
                 match raw_value {
                     Value::Boolean(false) => {
                         // Explicitly unbind key
-                        bindings.insert(key, Action::NoOp);
+                        bindings.insert(key, Action::NoOp.into());
                     }
                     Value::Boolean(true) => {
                         // True means do nothing (keep current binding or ignore)
                     }
-                    action => {
-                        // Try to deserialize as Action
-                        let action = Action::deserialize(action)
+                    actions_value => {
+                        // Try to deserialize as Actions (handles both single and multiple)
+                        let actions = Actions::deserialize(actions_value)
                             .map_err(Error::custom)?;
-                        bindings.insert(key, action);
+                        bindings.insert(key, actions);
                     }
                 }
             }
@@ -516,7 +528,7 @@ where
 
 /// Custom serializer for `EventBindings` that converts `EventType` enum to string for TOML compatibility
 fn serialize_event_bindings<S>(
-    bindings: &FxHashMap<EventType, Action>,
+    bindings: &FxHashMap<EventType, Actions>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
@@ -524,8 +536,8 @@ where
 {
     use serde::ser::SerializeMap;
     let mut map = serializer.serialize_map(Some(bindings.len()))?;
-    for (event_type, action) in bindings {
-        map.serialize_entry(&event_type.to_string(), action)?;
+    for (event_type, actions) in bindings {
+        map.serialize_entry(&event_type.to_string(), actions)?;
     }
     map.end()
 }
@@ -533,7 +545,7 @@ where
 /// Custom deserializer for `EventBindings` that parses string keys back to `EventType` enum
 fn deserialize_event_bindings<'de, D>(
     deserializer: D,
-) -> Result<FxHashMap<EventType, Action>, D::Error>
+) -> Result<FxHashMap<EventType, Actions>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -543,19 +555,23 @@ where
     struct EventBindingsVisitor;
 
     impl<'de> Visitor<'de> for EventBindingsVisitor {
-        type Value = FxHashMap<EventType, Action>;
+        type Value = FxHashMap<EventType, Actions>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a map with string keys and action values")
+            formatter
+                .write_str("a map with string keys and action/actions values")
         }
 
         fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
         where
             A: MapAccess<'de>,
         {
+            use serde::de::Error;
+            use toml::Value;
+
             let mut bindings = FxHashMap::default();
-            while let Some((event_str, action)) =
-                map.next_entry::<String, Action>()?
+            while let Some((event_str, raw_value)) =
+                map.next_entry::<String, Value>()?
             {
                 // Parse the event string back to EventType
                 let event_type = match event_str.as_str() {
@@ -565,7 +581,11 @@ where
                     "resize" => EventType::Resize,
                     custom => EventType::Custom(custom.to_string()),
                 };
-                bindings.insert(event_type, action);
+
+                // Try to deserialize as Actions (handles both single and multiple)
+                let actions =
+                    Actions::deserialize(raw_value).map_err(Error::custom)?;
+                bindings.insert(event_type, actions);
             }
             Ok(bindings)
         }
@@ -750,21 +770,21 @@ mod tests {
 
         // Should contain both base and custom keybindings
         assert!(merged.bindings.contains_key(&Key::Esc));
-        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::Quit));
+        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::Quit.into()));
         assert!(merged.bindings.contains_key(&Key::Down));
         assert_eq!(
             merged.bindings.get(&Key::Down),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
         assert!(merged.bindings.contains_key(&Key::Ctrl('j')));
         assert_eq!(
             merged.bindings.get(&Key::Ctrl('j')),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
         assert!(merged.bindings.contains_key(&Key::PageDown));
         assert_eq!(
             merged.bindings.get(&Key::PageDown),
-            Some(&Action::SelectNextPage)
+            Some(&Action::SelectNextPage.into())
         );
     }
 
@@ -781,19 +801,157 @@ mod tests {
         .unwrap();
 
         // Normal action binding should work
-        assert_eq!(keybindings.bindings.get(&Key::Esc), Some(&Action::Quit));
+        assert_eq!(
+            keybindings.bindings.get(&Key::Esc),
+            Some(&Action::Quit.into())
+        );
         assert_eq!(
             keybindings.bindings.get(&Key::Down),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
 
         // false should bind to NoOp (unbinding)
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('c')),
-            Some(&Action::NoOp)
+            Some(&Action::NoOp.into())
         );
 
         // true should be ignored (no binding created)
         assert_eq!(keybindings.bindings.get(&Key::Up), None);
+    }
+
+    #[test]
+    fn test_deserialize_multiple_actions_per_key() {
+        let keybindings: KeyBindings = toml::from_str(
+            r#"
+                "esc" = "quit"
+                "ctrl-s" = ["reload_source", "copy_entry_to_clipboard"]
+                "f1" = ["toggle_help", "toggle_preview", "toggle_status_bar"]
+            "#,
+        )
+        .unwrap();
+
+        // Single action should work
+        assert_eq!(
+            keybindings.bindings.get(&Key::Esc),
+            Some(&Action::Quit.into())
+        );
+
+        // Multiple actions should work
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('s')),
+            Some(&Actions::Multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard
+            ]))
+        );
+
+        // Three actions should work
+        assert_eq!(
+            keybindings.bindings.get(&Key::F(1)),
+            Some(&Actions::Multiple(vec![
+                Action::ToggleHelp,
+                Action::TogglePreview,
+                Action::ToggleStatusBar
+            ]))
+        );
+    }
+
+    #[test]
+    fn test_merge_keybindings_with_multiple_actions() {
+        let base_keybindings = KeyBindings::from(vec![
+            (Key::Esc, Action::Quit),
+            (Key::Enter, Action::ConfirmSelection),
+        ]);
+
+        let mut custom_bindings = FxHashMap::default();
+        custom_bindings.insert(
+            Key::Ctrl('s'),
+            Actions::Multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard,
+            ]),
+        );
+        custom_bindings.insert(Key::Esc, Action::NoOp.into()); // Override
+        let custom_keybindings = KeyBindings {
+            bindings: custom_bindings,
+        };
+
+        let merged = merge_keybindings(base_keybindings, &custom_keybindings);
+
+        // Custom multiple actions should be present
+        assert_eq!(
+            merged.bindings.get(&Key::Ctrl('s')),
+            Some(&Actions::Multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard
+            ]))
+        );
+
+        // Override should work
+        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::NoOp.into()));
+
+        // Original binding should be preserved
+        assert_eq!(
+            merged.bindings.get(&Key::Enter),
+            Some(&Action::ConfirmSelection.into())
+        );
+    }
+
+    #[test]
+    fn test_complex_configuration_with_all_features() {
+        let keybindings: KeyBindings = toml::from_str(
+            r#"
+                # Single actions
+                esc = "quit"
+                enter = "confirm_selection"
+
+                # Multiple actions
+                ctrl-s = ["reload_source", "copy_entry_to_clipboard"]
+                f1 = ["toggle_help", "toggle_preview", "toggle_status_bar"]
+
+                # Unbinding
+                ctrl-c = false
+
+                # Single action in array format (should work)
+                tab = ["toggle_selection_down"]
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(keybindings.bindings.len(), 6); // ctrl-c=false creates NoOp binding
+
+        // Verify all binding types work correctly
+        assert_eq!(
+            keybindings.bindings.get(&Key::Esc),
+            Some(&Actions::Single(Action::Quit))
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Enter),
+            Some(&Action::ConfirmSelection.into())
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('s')),
+            Some(&Actions::Multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard
+            ]))
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::F(1)),
+            Some(&Actions::Multiple(vec![
+                Action::ToggleHelp,
+                Action::TogglePreview,
+                Action::ToggleStatusBar
+            ]))
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Ctrl('c')),
+            Some(&Actions::Single(Action::NoOp))
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::Tab),
+            Some(&Actions::Multiple(vec![Action::ToggleSelectionDown]))
+        );
     }
 }

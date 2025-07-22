@@ -412,7 +412,8 @@ impl App {
                 > 0
             {
                 for event in event_buf.drain(..) {
-                    if let Some(action) = self.convert_event_to_action(event) {
+                    let actions = self.convert_event_to_actions(event);
+                    for action in actions {
                         if action != Action::Tick {
                             debug!("Queuing new action: {action:?}");
                         }
@@ -481,24 +482,26 @@ impl App {
     /// mode the television is in.
     ///
     /// # Arguments
-    /// * `event` - The event to convert to an action.
+    /// * `event` - The event to convert to actions.
     ///
     /// # Returns
-    /// The action that corresponds to the given event.
-    fn convert_event_to_action(&self, event: Event<Key>) -> Option<Action> {
-        let action = match event {
+    /// A vector of actions that correspond to the given event. Multiple actions
+    /// will be returned for keys/events bound to action sequences.
+    fn convert_event_to_actions(&self, event: Event<Key>) -> Vec<Action> {
+        let actions = match event {
             Event::Input(keycode) => {
-                // First try to get action based on keybindings
-                if let Some(action) =
-                    self.input_map.get_action_for_key(&keycode)
+                // First try to get actions based on keybindings
+                if let Some(actions) =
+                    self.input_map.get_actions_for_key(&keycode)
                 {
-                    debug!("Keybinding found: {action:?}");
-                    action.clone()
+                    let actions_vec = actions.as_slice().to_vec();
+                    debug!("Keybinding found: {actions_vec:?}");
+                    actions_vec
                 } else {
                     // fallback to text input events
                     match keycode {
-                        Key::Char(c) => Action::AddInputChar(c),
-                        _ => Action::NoOp,
+                        Key::Char(c) => vec![Action::AddInputChar(c)],
+                        _ => vec![Action::NoOp],
                     }
                 }
             }
@@ -510,29 +513,32 @@ impl App {
                         position: (mouse_event.column, mouse_event.row),
                     });
                     self.input_map
-                        .get_action_for_input(&input_event)
-                        .unwrap_or(Action::NoOp)
+                        .get_actions_for_input(&input_event)
+                        .unwrap_or_else(|| vec![Action::NoOp])
                 } else {
-                    Action::NoOp
+                    vec![Action::NoOp]
                 }
             }
             // terminal events
-            Event::Tick => Action::Tick,
-            Event::Resize(x, y) => Action::Resize(x, y),
-            Event::FocusGained => Action::Resume,
-            Event::FocusLost => Action::Suspend,
-            Event::Closed => Action::NoOp,
+            Event::Tick => vec![Action::Tick],
+            Event::Resize(x, y) => vec![Action::Resize(x, y)],
+            Event::FocusGained => vec![Action::Resume],
+            Event::FocusLost => vec![Action::Suspend],
+            Event::Closed => vec![Action::NoOp],
         };
 
-        if action != Action::Tick {
-            trace!("Converted {event:?} to action: {action:?}");
+        // Filter out Tick actions for logging
+        let non_tick_actions: Vec<&Action> =
+            actions.iter().filter(|a| **a != Action::Tick).collect();
+        if !non_tick_actions.is_empty() {
+            trace!("Converted {event:?} to actions: {non_tick_actions:?}");
         }
 
-        if action == Action::NoOp {
-            None
-        } else {
-            Some(action)
-        }
+        // Filter out NoOp actions
+        actions
+            .into_iter()
+            .filter(|action| *action != Action::NoOp)
+            .collect()
     }
 
     /// Handle actions.

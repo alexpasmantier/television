@@ -1,6 +1,6 @@
 use crate::{
     action::Action, draw::Ctx, features::FeatureFlags,
-    screen::keybindings::find_keys_for_action, television::Mode,
+    screen::keybindings::find_keys_for_single_action, television::Mode,
 };
 use ratatui::{
     Frame,
@@ -133,7 +133,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .features
         .is_enabled(FeatureFlags::RemoteControl)
     {
-        let keys = find_keys_for_action(
+        let keys = find_keys_for_single_action(
             &ctx.config.keybindings,
             &Action::ToggleRemoteControl,
         );
@@ -154,7 +154,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             .features
             .is_enabled(FeatureFlags::PreviewPanel)
     {
-        let keys = find_keys_for_action(
+        let keys = find_keys_for_single_action(
             &ctx.config.keybindings,
             &Action::TogglePreview,
         );
@@ -174,8 +174,10 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     }
 
     // Add keybinding help hint (available in both modes)
-    let keys =
-        find_keys_for_action(&ctx.config.keybindings, &Action::ToggleHelp);
+    let keys = find_keys_for_single_action(
+        &ctx.config.keybindings,
+        &Action::ToggleHelp,
+    );
     if let Some(key) = keys.first() {
         add_hint("Help", key);
     }

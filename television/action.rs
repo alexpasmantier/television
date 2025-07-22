@@ -117,6 +117,47 @@ pub enum Action {
     MouseClickAt(u16, u16),
 }
 
+#[derive(
+    Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
+)]
+#[serde(untagged)]
+pub enum Actions {
+    Single(Action),
+    Multiple(Vec<Action>),
+}
+
+impl Actions {
+    pub fn into_vec(self) -> Vec<Action> {
+        match self {
+            Actions::Single(action) => vec![action],
+            Actions::Multiple(actions) => actions,
+        }
+    }
+
+    pub fn as_slice(&self) -> &[Action] {
+        match self {
+            Actions::Single(action) => std::slice::from_ref(action),
+            Actions::Multiple(actions) => actions.as_slice(),
+        }
+    }
+}
+
+impl From<Action> for Actions {
+    fn from(action: Action) -> Self {
+        Actions::Single(action)
+    }
+}
+
+impl From<Vec<Action>> for Actions {
+    fn from(actions: Vec<Action>) -> Self {
+        if actions.len() == 1 {
+            Actions::Single(actions.into_iter().next().unwrap())
+        } else {
+            Actions::Multiple(actions)
+        }
+    }
+}
+
 impl Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -174,5 +215,108 @@ impl Display for Action {
             }
             Action::MouseClickAt(_, _) => write!(f, "mouse_click_at"),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_actions_single() {
+        let single_action = Actions::Single(Action::Quit);
+        assert_eq!(single_action.into_vec(), vec![Action::Quit]);
+
+        let single_from_action = Actions::from(Action::SelectNextEntry);
+        assert_eq!(
+            single_from_action,
+            Actions::Single(Action::SelectNextEntry)
+        );
+        assert_eq!(single_from_action.as_slice(), &[Action::SelectNextEntry]);
+    }
+
+    #[test]
+    fn test_actions_multiple() {
+        let actions_vec = vec![Action::CopyEntryToClipboard, Action::Quit];
+        let multiple_actions = Actions::Multiple(actions_vec.clone());
+        assert_eq!(multiple_actions.into_vec(), actions_vec);
+
+        let multiple_from_vec = Actions::from(actions_vec.clone());
+        assert_eq!(multiple_from_vec, Actions::Multiple(actions_vec.clone()));
+        assert_eq!(multiple_from_vec.as_slice(), actions_vec.as_slice());
+    }
+
+    #[test]
+    fn test_actions_from_single_vec_becomes_single() {
+        // When creating Actions from a Vec with only one element, it should become Single
+        let single_vec = vec![Action::TogglePreview];
+        let actions = Actions::from(single_vec);
+        assert_eq!(actions, Actions::Single(Action::TogglePreview));
+    }
+
+    #[test]
+    fn test_actions_from_multi_vec_becomes_multiple() {
+        // When creating Actions from a Vec with multiple elements, it should become Multiple
+        let multi_vec = vec![
+            Action::ReloadSource,
+            Action::SelectNextEntry,
+            Action::TogglePreview,
+        ];
+        let actions = Actions::from(multi_vec.clone());
+        assert_eq!(actions, Actions::Multiple(multi_vec));
+    }
+
+    #[test]
+    fn test_actions_as_slice() {
+        let single = Actions::Single(Action::DeleteLine);
+        assert_eq!(single.as_slice(), &[Action::DeleteLine]);
+
+        let multiple = Actions::Multiple(vec![
+            Action::ScrollPreviewUp,
+            Action::ScrollPreviewDown,
+        ]);
+        assert_eq!(
+            multiple.as_slice(),
+            &[Action::ScrollPreviewUp, Action::ScrollPreviewDown]
+        );
+    }
+
+    #[test]
+    fn test_actions_into_vec() {
+        let single = Actions::Single(Action::ConfirmSelection);
+        assert_eq!(single.into_vec(), vec![Action::ConfirmSelection]);
+
+        let multiple = Actions::Multiple(vec![
+            Action::ToggleHelp,
+            Action::ToggleStatusBar,
+        ]);
+        assert_eq!(
+            multiple.into_vec(),
+            vec![Action::ToggleHelp, Action::ToggleStatusBar]
+        );
+    }
+
+    #[test]
+    fn test_actions_hash_and_eq() {
+        use std::collections::HashMap;
+
+        let actions1 = Actions::Single(Action::Quit);
+        let actions2 = Actions::Single(Action::Quit);
+        let actions3 =
+            Actions::Multiple(vec![Action::Quit, Action::ClearScreen]);
+        let actions4 =
+            Actions::Multiple(vec![Action::Quit, Action::ClearScreen]);
+
+        assert_eq!(actions1, actions2);
+        assert_eq!(actions3, actions4);
+        assert_ne!(actions1, actions3);
+
+        // Test that they can be used as HashMap keys
+        let mut map = HashMap::new();
+        map.insert(actions1.clone(), "single");
+        map.insert(actions3.clone(), "multiple");
+
+        assert_eq!(map.get(&actions2), Some(&"single"));
+        assert_eq!(map.get(&actions4), Some(&"multiple"));
     }
 }

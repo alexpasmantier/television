@@ -67,7 +67,7 @@ impl Cable {
                         match binding {
                             Binding::SingleKey(key) => Some((
                                 *key,
-                                Action::SwitchToChannel(name.clone()),
+                                Action::SwitchToChannel(name.clone()).into(),
                             )),
                             // For multiple keys, use the first one
                             Binding::MultipleKeys(keys)
@@ -75,7 +75,8 @@ impl Cable {
                             {
                                 Some((
                                     keys[0],
-                                    Action::SwitchToChannel(name.clone()),
+                                    Action::SwitchToChannel(name.clone())
+                                        .into(),
                                 ))
                             }
                             Binding::MultipleKeys(_) => None,

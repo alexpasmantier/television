@@ -1,5 +1,5 @@
 use crate::{
-    action::Action,
+    action::{Action, Actions},
     config::{EventBindings, EventType, KeyBindings},
     event::{InputEvent, Key},
 };
@@ -21,8 +21,8 @@ use rustc_hash::FxHashMap;
 ///     }
 /// ```
 pub struct InputMap {
-    pub key_actions: FxHashMap<Key, Action>,
-    pub event_actions: FxHashMap<EventType, Action>,
+    pub key_actions: FxHashMap<Key, Actions>,
+    pub event_actions: FxHashMap<EventType, Actions>,
 }
 
 impl InputMap {
@@ -34,20 +34,46 @@ impl InputMap {
         }
     }
 
-    /// Get the action for a given key
-    pub fn get_action_for_key(&self, key: &Key) -> Option<&Action> {
+    /// Get the actions for a given key
+    pub fn get_actions_for_key(&self, key: &Key) -> Option<&Actions> {
         self.key_actions.get(key)
     }
 
-    /// Get the action for a given event type
-    pub fn get_action_for_event(&self, event: &EventType) -> Option<&Action> {
+    /// Get the actions for a given event type
+    pub fn get_actions_for_event(
+        &self,
+        event: &EventType,
+    ) -> Option<&Actions> {
         self.event_actions.get(event)
     }
 
-    /// Get an action for any input event
-    pub fn get_action_for_input(&self, input: &InputEvent) -> Option<Action> {
+    /// Get the action for a given key (backward compatibility)
+    pub fn get_action_for_key(&self, key: &Key) -> Option<Action> {
+        self.key_actions.get(key).and_then(|actions| match actions {
+            Actions::Single(action) => Some(action.clone()),
+            Actions::Multiple(actions_vec) => actions_vec.first().cloned(),
+        })
+    }
+
+    /// Get the action for a given event type (backward compatibility)
+    pub fn get_action_for_event(&self, event: &EventType) -> Option<Action> {
+        self.event_actions
+            .get(event)
+            .and_then(|actions| match actions {
+                Actions::Single(action) => Some(action.clone()),
+                Actions::Multiple(actions_vec) => actions_vec.first().cloned(),
+            })
+    }
+
+    /// Get all actions for any input event
+    pub fn get_actions_for_input(
+        &self,
+        input: &InputEvent,
+    ) -> Option<Vec<Action>> {
         match input {
-            InputEvent::Key(key) => self.get_action_for_key(key).cloned(),
+            InputEvent::Key(key) => self
+                .get_actions_for_key(key)
+                .map(|actions| actions.as_slice().to_vec()),
             InputEvent::Mouse(mouse_event) => {
                 let event_type = match mouse_event.kind {
                     MouseEventKind::Down(_) => EventType::MouseClick,
@@ -55,14 +81,32 @@ impl InputMap {
                     MouseEventKind::ScrollDown => EventType::MouseScrollDown,
                     _ => return None,
                 };
-                self.get_action_for_event(&event_type).cloned()
+                self.get_actions_for_event(&event_type)
+                    .map(|actions| actions.as_slice().to_vec())
+            }
+            _ => None,
+        }
+    }
+
+    /// Get an action for any input event (backward compatibility)
+    pub fn get_action_for_input(&self, input: &InputEvent) -> Option<Action> {
+        match input {
+            InputEvent::Key(key) => self.get_action_for_key(key),
+            InputEvent::Mouse(mouse_event) => {
+                let event_type = match mouse_event.kind {
+                    MouseEventKind::Down(_) => EventType::MouseClick,
+                    MouseEventKind::ScrollUp => EventType::MouseScrollUp,
+                    MouseEventKind::ScrollDown => EventType::MouseScrollDown,
+                    _ => return None,
+                };
+                self.get_action_for_event(&event_type)
             }
             InputEvent::Resize(_, _) => {
-                self.get_action_for_event(&EventType::Resize).cloned()
+                self.get_action_for_event(&EventType::Resize)
             }
-            InputEvent::Custom(name) => self
-                .get_action_for_event(&EventType::Custom(name.clone()))
-                .cloned(),
+            InputEvent::Custom(name) => {
+                self.get_action_for_event(&EventType::Custom(name.clone()))
+            }
         }
     }
 }
@@ -148,15 +192,15 @@ mod tests {
         let input_map: InputMap = (&keybindings).into();
         assert_eq!(
             input_map.get_action_for_key(&Key::Char('j')),
-            Some(&Action::SelectNextEntry)
+            Some(Action::SelectNextEntry)
         );
         assert_eq!(
             input_map.get_action_for_key(&Key::Char('k')),
-            Some(&Action::SelectPrevEntry)
+            Some(Action::SelectPrevEntry)
         );
         assert_eq!(
             input_map.get_action_for_key(&Key::Char('q')),
-            Some(&Action::Quit)
+            Some(Action::Quit)
         );
     }
 
@@ -170,11 +214,11 @@ mod tests {
         let input_map: InputMap = (&event_bindings).into();
         assert_eq!(
             input_map.get_action_for_event(&EventType::MouseClick),
-            Some(&Action::ConfirmSelection)
+            Some(Action::ConfirmSelection)
         );
         assert_eq!(
             input_map.get_action_for_event(&EventType::Resize),
-            Some(&Action::ClearScreen)
+            Some(Action::ClearScreen)
         );
     }
 
@@ -212,34 +256,196 @@ mod tests {
         let mut input_map1 = InputMap::new();
         input_map1
             .key_actions
-            .insert(Key::Char('a'), Action::SelectNextEntry);
+            .insert(Key::Char('a'), Action::SelectNextEntry.into());
         input_map1
             .key_actions
-            .insert(Key::Char('b'), Action::SelectPrevEntry);
+            .insert(Key::Char('b'), Action::SelectPrevEntry.into());
 
         let mut input_map2 = InputMap::new();
-        input_map2.key_actions.insert(Key::Char('c'), Action::Quit);
-        input_map2.key_actions.insert(Key::Char('a'), Action::Quit); // This should overwrite
+        input_map2
+            .key_actions
+            .insert(Key::Char('c'), Action::Quit.into());
+        input_map2
+            .key_actions
+            .insert(Key::Char('a'), Action::Quit.into()); // This should overwrite
         input_map2
             .event_actions
-            .insert(EventType::MouseClick, Action::ConfirmSelection);
+            .insert(EventType::MouseClick, Action::ConfirmSelection.into());
 
         input_map1.merge(&input_map2);
         assert_eq!(
             input_map1.get_action_for_key(&Key::Char('a')),
-            Some(&Action::Quit)
+            Some(Action::Quit)
         );
         assert_eq!(
             input_map1.get_action_for_key(&Key::Char('b')),
-            Some(&Action::SelectPrevEntry)
+            Some(Action::SelectPrevEntry)
         );
         assert_eq!(
             input_map1.get_action_for_key(&Key::Char('c')),
-            Some(&Action::Quit)
+            Some(Action::Quit)
         );
         assert_eq!(
             input_map1.get_action_for_event(&EventType::MouseClick),
-            Some(&Action::ConfirmSelection)
+            Some(Action::ConfirmSelection)
         );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_per_key() {
+        let mut key_actions = FxHashMap::default();
+        key_actions.insert(
+            Key::Ctrl('s'),
+            Actions::Multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard,
+            ]),
+        );
+        key_actions.insert(Key::Esc, Actions::Single(Action::Quit));
+
+        let input_map = InputMap {
+            key_actions,
+            event_actions: FxHashMap::default(),
+        };
+
+        // Test getting all actions for multiple action binding
+        let ctrl_s_actions =
+            input_map.get_actions_for_key(&Key::Ctrl('s')).unwrap();
+        assert_eq!(
+            ctrl_s_actions.as_slice(),
+            &[Action::ReloadSource, Action::CopyEntryToClipboard]
+        );
+
+        // Test backward compatibility method returns first action
+        assert_eq!(
+            input_map.get_action_for_key(&Key::Ctrl('s')),
+            Some(Action::ReloadSource)
+        );
+
+        // Test single action still works
+        assert_eq!(
+            input_map.get_action_for_key(&Key::Esc),
+            Some(Action::Quit)
+        );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_for_input_event() {
+        let mut input_map = InputMap::new();
+        input_map.key_actions.insert(
+            Key::Char('j'),
+            Actions::Multiple(vec![
+                Action::SelectNextEntry,
+                Action::ScrollPreviewDown,
+            ]),
+        );
+
+        let key_input = InputEvent::Key(Key::Char('j'));
+        let actions = input_map.get_actions_for_input(&key_input).unwrap();
+
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0], Action::SelectNextEntry);
+        assert_eq!(actions[1], Action::ScrollPreviewDown);
+
+        // Test backward compatibility returns first action
+        assert_eq!(
+            input_map.get_action_for_input(&key_input),
+            Some(Action::SelectNextEntry)
+        );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_for_events() {
+        let mut event_actions = FxHashMap::default();
+        event_actions.insert(
+            EventType::MouseClick,
+            Actions::Multiple(vec![
+                Action::ConfirmSelection,
+                Action::TogglePreview,
+            ]),
+        );
+
+        let input_map = InputMap {
+            key_actions: FxHashMap::default(),
+            event_actions,
+        };
+
+        // Test mouse input with multiple actions
+        let mouse_input = InputEvent::Mouse(MouseInputEvent {
+            kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            position: (10, 10),
+        });
+
+        let actions = input_map.get_actions_for_input(&mouse_input).unwrap();
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0], Action::ConfirmSelection);
+        assert_eq!(actions[1], Action::TogglePreview);
+
+        // Test backward compatibility returns first action
+        assert_eq!(
+            input_map.get_action_for_input(&mouse_input),
+            Some(Action::ConfirmSelection)
+        );
+    }
+
+    #[test]
+    fn test_input_map_merge_multiple_actions() {
+        let mut input_map1 = InputMap::new();
+        input_map1
+            .key_actions
+            .insert(Key::Char('a'), Actions::Single(Action::SelectNextEntry));
+
+        let mut input_map2 = InputMap::new();
+        input_map2.key_actions.insert(
+            Key::Char('a'),
+            Actions::Multiple(vec![Action::ReloadSource, Action::Quit]), // This should overwrite
+        );
+        input_map2.key_actions.insert(
+            Key::Char('b'),
+            Actions::Multiple(vec![Action::TogglePreview, Action::ToggleHelp]),
+        );
+
+        input_map1.merge(&input_map2);
+
+        // Verify the multiple actions overwrite worked
+        let actions_a =
+            input_map1.get_actions_for_key(&Key::Char('a')).unwrap();
+        assert_eq!(
+            actions_a.as_slice(),
+            &[Action::ReloadSource, Action::Quit]
+        );
+
+        // Verify the new multiple actions were added
+        let actions_b =
+            input_map1.get_actions_for_key(&Key::Char('b')).unwrap();
+        assert_eq!(
+            actions_b.as_slice(),
+            &[Action::TogglePreview, Action::ToggleHelp]
+        );
+    }
+
+    #[test]
+    fn test_input_map_from_keybindings_with_multiple_actions() {
+        let mut bindings = FxHashMap::default();
+        bindings.insert(
+            Key::Ctrl('r'),
+            Actions::Multiple(vec![Action::ReloadSource, Action::ClearScreen]),
+        );
+        bindings.insert(Key::Esc, Actions::Single(Action::Quit));
+
+        let keybindings = KeyBindings { bindings };
+        let input_map: InputMap = (&keybindings).into();
+
+        // Test multiple actions are preserved
+        let ctrl_r_actions =
+            input_map.get_actions_for_key(&Key::Ctrl('r')).unwrap();
+        assert_eq!(
+            ctrl_r_actions.as_slice(),
+            &[Action::ReloadSource, Action::ClearScreen]
+        );
+
+        // Test single actions still work
+        let esc_actions = input_map.get_actions_for_key(&Key::Esc).unwrap();
+        assert_eq!(esc_actions.as_slice(), &[Action::Quit]);
     }
 }

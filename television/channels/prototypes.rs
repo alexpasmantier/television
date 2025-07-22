@@ -589,38 +589,41 @@ mod tests {
         );
 
         let keybindings = prototype.keybindings.unwrap();
-        assert_eq!(keybindings.bindings.get(&Key::Esc), Some(&Action::Quit));
+        assert_eq!(
+            keybindings.bindings.get(&Key::Esc),
+            Some(&Action::Quit.into())
+        );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('c')),
-            Some(&Action::Quit)
+            Some(&Action::Quit.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Down),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('n')),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('j')),
-            Some(&Action::SelectNextEntry)
+            Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Up),
-            Some(&Action::SelectPrevEntry)
+            Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('p')),
-            Some(&Action::SelectPrevEntry)
+            Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('k')),
-            Some(&Action::SelectPrevEntry)
+            Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Enter),
-            Some(&Action::ConfirmSelection)
+            Some(&Action::ConfirmSelection.into())
         );
     }
 

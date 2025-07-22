@@ -1,5 +1,5 @@
 use crate::{
-    action::Action,
+    action::{Action, Actions},
     config::{Binding, KeyBindings},
     television::Mode,
 };
@@ -166,7 +166,7 @@ pub fn extract_keys_from_binding(binding: &Binding) -> Vec<String> {
 /// Extract keys for a single action from the new Key->Action keybindings format
 pub fn find_keys_for_action(
     keybindings: &KeyBindings,
-    target_action: &Action,
+    target_action: &Actions,
 ) -> Vec<String> {
     keybindings
         .bindings
@@ -181,10 +181,35 @@ pub fn find_keys_for_action(
         .collect()
 }
 
+/// Extract keys for a single action (convenience function)
+pub fn find_keys_for_single_action(
+    keybindings: &KeyBindings,
+    target_action: &Action,
+) -> Vec<String> {
+    keybindings
+        .bindings
+        .iter()
+        .filter_map(|(key, actions)| {
+            // Check if this actions contains the target action
+            match actions {
+                Actions::Single(action) if action == target_action => {
+                    Some(key.to_string())
+                }
+                Actions::Multiple(action_list)
+                    if action_list.contains(target_action) =>
+                {
+                    Some(key.to_string())
+                }
+                _ => None,
+            }
+        })
+        .collect()
+}
+
 /// Extract keys for multiple actions and return them as a flat vector
 pub fn extract_keys_for_actions(
     keybindings: &KeyBindings,
-    actions: &[Action],
+    actions: &[Actions],
 ) -> Vec<String> {
     actions
         .iter()
@@ -195,7 +220,7 @@ pub fn extract_keys_for_actions(
 /// Remove all keybindings for a specific action from `KeyBindings`
 pub fn remove_action_bindings(
     keybindings: &mut KeyBindings,
-    target_action: &Action,
+    target_action: &Actions,
 ) {
     keybindings
         .bindings

@@ -241,7 +241,7 @@ impl Television {
             config.ui.features.disable(FeatureFlags::PreviewPanel);
             remove_action_bindings(
                 &mut config.keybindings,
-                &Action::TogglePreview,
+                &Action::TogglePreview.into(),
             );
         }
 
@@ -968,7 +968,7 @@ mod test {
         let mut config = crate::config::Config::default();
         config
             .keybindings
-            .insert(Key::Ctrl('n'), Action::SelectNextEntry);
+            .insert(Key::Ctrl('n'), Action::SelectNextEntry.into());
 
         let prototype =
             toml::from_str::<crate::channels::prototypes::ChannelPrototype>(
@@ -999,7 +999,7 @@ mod test {
 
         assert_eq!(
             tv.config.keybindings.get(&Key::Ctrl('j')),
-            Some(&Action::SelectNextEntry),
+            Some(&Action::SelectNextEntry.into()),
         );
     }
 }

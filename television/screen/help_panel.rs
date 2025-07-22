@@ -1,7 +1,7 @@
 use crate::{
     config::KeyBindings,
     screen::colors::Colorscheme,
-    screen::keybindings::{ActionMapping, find_keys_for_action},
+    screen::keybindings::{ActionMapping, find_keys_for_single_action},
     television::Mode,
 };
 use ratatui::{
@@ -62,7 +62,7 @@ fn add_keybinding_lines_for_mappings(
 ) {
     for mapping in mappings {
         for (action, description) in &mapping.actions {
-            let keys = find_keys_for_action(keybindings, action);
+            let keys = find_keys_for_single_action(keybindings, action);
             for key in keys {
                 lines.push(create_compact_keybinding_line(
                     &key,

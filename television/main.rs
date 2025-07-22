@@ -154,7 +154,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.ui.features.disable(FeatureFlags::PreviewPanel);
         remove_action_bindings(
             &mut config.keybindings,
-            &Action::TogglePreview,
+            &Action::TogglePreview.into(),
         );
     } else if args.hide_preview {
         config.ui.features.hide(FeatureFlags::PreviewPanel);
@@ -171,7 +171,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.ui.features.disable(FeatureFlags::StatusBar);
         remove_action_bindings(
             &mut config.keybindings,
-            &Action::ToggleStatusBar,
+            &Action::ToggleStatusBar.into(),
         );
     } else if args.hide_status_bar {
         config.ui.features.hide(FeatureFlags::StatusBar);
@@ -184,7 +184,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
         config.ui.features.disable(FeatureFlags::RemoteControl);
         remove_action_bindings(
             &mut config.keybindings,
-            &Action::ToggleRemoteControl,
+            &Action::ToggleRemoteControl.into(),
         );
     } else if args.hide_remote {
         config.ui.features.hide(FeatureFlags::RemoteControl);
@@ -195,7 +195,10 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     // Handle help panel flags
     if args.no_help_panel {
         config.ui.features.disable(FeatureFlags::HelpPanel);
-        remove_action_bindings(&mut config.keybindings, &Action::ToggleHelp);
+        remove_action_bindings(
+            &mut config.keybindings,
+            &Action::ToggleHelp.into(),
+        );
     } else if args.hide_help_panel {
         config.ui.features.hide(FeatureFlags::HelpPanel);
     } else if args.show_help_panel {

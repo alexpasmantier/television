@@ -474,7 +474,7 @@ mod tests {
         default_config
             .keybindings
             .bindings
-            .insert(Key::CtrlEnter, Action::ConfirmSelection);
+            .insert(Key::CtrlEnter, Action::ConfirmSelection.into());
 
         default_config.shell_integration.keybindings.insert(
             "command_history".to_string(),

@@ -650,9 +650,9 @@ mod tests {
         let post_processed_cli = post_process(cli, false);
 
         let mut expected = KeyBindings::default();
-        expected.insert(Key::Esc, Action::Quit);
-        expected.insert(Key::Down, Action::SelectNextEntry);
-        expected.insert(Key::Ctrl('j'), Action::SelectNextEntry);
+        expected.insert(Key::Esc, Action::Quit.into());
+        expected.insert(Key::Down, Action::SelectNextEntry.into());
+        expected.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
 
         assert_eq!(post_processed_cli.keybindings, Some(expected));
     }
