@@ -113,6 +113,19 @@ where
     pub fn back_to_front(&self) -> impl Iterator<Item = T> {
         self.ring_buffer.clone().into_iter().rev()
     }
+
+    /// Returns the current size of the ring buffer, which is the number of unique keys it
+    /// contains.
+    pub fn size(&self) -> usize {
+        self.known_keys.len()
+    }
+
+    /// Wipes the ring buffer clean.
+    pub fn clear(&mut self) {
+        debug!("Clearing ring buffer");
+        self.ring_buffer.clear();
+        self.known_keys.clear();
+    }
 }
 
 #[cfg(test)]
