@@ -125,16 +125,6 @@ sort_alphabetically = true
 # Keybindings and Events
 # ----------------------------------------------------------------------------
 #
-# HARDCODED KEYBINDINGS (cannot be changed via config):
-# Input field actions (always active):
-#   Backspace          - Delete previous character
-#   Ctrl+w             - Delete previous word
-#   Ctrl+u             - Delete entire line
-#   Delete             - Delete next character
-#   Left/Right         - Move cursor left/right
-#   Home / Ctrl+a      - Go to input start
-#   End / Ctrl+e       - Go to input end
-#
 # NEW CONFIGURATION FORMAT:
 # -------------------------
 # The keybindings are now structured as Key -> Action mappings
@@ -183,6 +173,19 @@ ctrl-t = "toggle_remote_control"
 ctrl-o = "toggle_preview"
 ctrl-h = "toggle_help"
 f12 = "toggle_status_bar"
+
+# Input field actions
+# ----------------------------------------
+backspace = "delete_prev_char"
+ctrl-w = "delete_prev_word"
+ctrl-u = "delete_line"
+delete = "delete_next_char"
+left = "go_to_prev_char"
+right = "go_to_next_char"
+home = "go_to_input_start"
+ctrl-a = "go_to_input_start"
+end = "go_to_input_end"
+ctrl-e = "go_to_input_end"
 
 # Event bindings
 # ----------------------------------------------------------------------------

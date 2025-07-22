@@ -12,22 +12,16 @@ pub enum Action {
     #[serde(skip)]
     AddInputChar(char),
     /// Delete the character before the cursor from the input buffer.
-    #[serde(skip)]
     DeletePrevChar,
     /// Delete the previous word from the input buffer.
-    #[serde(skip)]
     DeletePrevWord,
     /// Delete the character after the cursor from the input buffer.
-    #[serde(skip)]
     DeleteNextChar,
     /// Delete the current line from the input buffer.
-    #[serde(skip)]
     DeleteLine,
     /// Move the cursor to the character before the current cursor position.
-    #[serde(skip)]
     GoToPrevChar,
     /// Move the cursor to the character after the current cursor position.
-    #[serde(skip)]
     GoToNextChar,
     /// Move the cursor to the start of the input buffer.
     GoToInputStart,

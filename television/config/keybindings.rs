@@ -233,6 +233,18 @@ impl Default for KeyBindings {
         bindings.insert(Key::Ctrl('h'), Action::ToggleHelp);
         bindings.insert(Key::F(12), Action::ToggleStatusBar);
 
+        // Input field actions
+        bindings.insert(Key::Backspace, Action::DeletePrevChar);
+        bindings.insert(Key::Ctrl('w'), Action::DeletePrevWord);
+        bindings.insert(Key::Ctrl('u'), Action::DeleteLine);
+        bindings.insert(Key::Delete, Action::DeleteNextChar);
+        bindings.insert(Key::Left, Action::GoToPrevChar);
+        bindings.insert(Key::Right, Action::GoToNextChar);
+        bindings.insert(Key::Home, Action::GoToInputStart);
+        bindings.insert(Key::Ctrl('a'), Action::GoToInputStart);
+        bindings.insert(Key::End, Action::GoToInputEnd);
+        bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd);
+
         Self { bindings }
     }
 }

@@ -497,14 +497,6 @@ impl App {
                 } else {
                     // fallback to text input events
                     match keycode {
-                        Key::Backspace => Action::DeletePrevChar,
-                        Key::Ctrl('w') => Action::DeletePrevWord,
-                        Key::Ctrl('u') => Action::DeleteLine,
-                        Key::Delete => Action::DeleteNextChar,
-                        Key::Left => Action::GoToPrevChar,
-                        Key::Right => Action::GoToNextChar,
-                        Key::Home | Key::Ctrl('a') => Action::GoToInputStart,
-                        Key::End | Key::Ctrl('e') => Action::GoToInputEnd,
                         Key::Char(c) => Action::AddInputChar(c),
                         _ => Action::NoOp,
                     }
