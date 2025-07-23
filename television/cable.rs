@@ -1,19 +1,15 @@
+use crate::{
+    action::Action, channels::prototypes::ChannelPrototype,
+    config::KeyBindings, errors::unknown_channel_exit, event::Key,
+};
 use colored::Colorize;
+use rustc_hash::FxHashMap;
 use std::{
     ops::Deref,
     path::{Path, PathBuf},
 };
-
-use rustc_hash::FxHashMap;
 use tracing::{debug, error};
 use walkdir::WalkDir;
-
-use crate::{
-    action::Action,
-    channels::prototypes::ChannelPrototype,
-    config::{Binding, KeyBindings},
-    errors::unknown_channel_exit,
-};
 
 /// A neat `HashMap` of channel prototypes indexed by their name.
 ///
@@ -62,28 +58,9 @@ impl Cable {
             .iter()
             .filter_map(|(name, prototype)| {
                 if let Some(keybindings) = &prototype.keybindings {
-                    if let Some(binding) = &keybindings.shortcut {
-                        // Convert Binding to Key for new architecture
-                        match binding {
-                            Binding::SingleKey(key) => Some((
-                                *key,
-                                Action::SwitchToChannel(name.clone()).into(),
-                            )),
-                            // For multiple keys, use the first one
-                            Binding::MultipleKeys(keys)
-                                if !keys.is_empty() =>
-                            {
-                                Some((
-                                    keys[0],
-                                    Action::SwitchToChannel(name.clone())
-                                        .into(),
-                                ))
-                            }
-                            Binding::MultipleKeys(_) => None,
-                        }
-                    } else {
-                        None
-                    }
+                    keybindings.shortcut.as_ref().map(|key| {
+                        (*key, Action::SwitchToChannel(name.clone()).into())
+                    })
                 } else {
                     None
                 }
@@ -96,13 +73,12 @@ impl Cable {
     /// Get a channel prototype's shortcut binding.
     ///
     /// E.g. if the channel is "files" and the shortcut is "F1",
-    /// this will return `Some(Binding::SingleKey("F1"))`.
-    pub fn get_channel_shortcut(&self, channel_name: &str) -> Option<Binding> {
-        // Get only what we need, clone at the end
+    /// this will return `Some(Key::F(1))`.
+    pub fn get_channel_shortcut(&self, channel_name: &str) -> Option<Key> {
         self.get(channel_name)
             .and_then(|prototype| prototype.keybindings.as_ref())
             .and_then(|keybindings| keybindings.shortcut.as_ref())
-            .cloned()
+            .copied()
     }
 }
 

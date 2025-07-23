@@ -10,28 +10,6 @@ use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
-// Legacy binding structure for backward compatibility with shell integration
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
-#[serde(untagged)]
-pub enum Binding {
-    SingleKey(Key),
-    MultipleKeys(Vec<Key>),
-}
-
-impl Display for Binding {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Binding::SingleKey(key) => write!(f, "{key}"),
-            Binding::MultipleKeys(keys) => {
-                let keys_str: Vec<String> = keys
-                    .iter()
-                    .map(std::string::ToString::to_string)
-                    .collect();
-                write!(f, "{}", keys_str.join(", "))
-            }
-        }
-    }
-}
 
 /// Generic bindings structure that can map any key type to actions
 /// Generic bindings structure that maps any key type to actions.

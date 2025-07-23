@@ -1,6 +1,6 @@
 use crate::{
     action::{Action, Actions},
-    config::{Binding, KeyBindings},
+    config::KeyBindings,
     television::Mode,
 };
 use std::fmt::Display;
@@ -148,18 +148,6 @@ impl ActionMapping {
         // This is a bit of a hack to return just the Action part of the tuples
         // We'll need to handle this differently in the help bar system
         &[]
-    }
-}
-
-/// Unified key extraction function that works for both systems
-pub fn extract_keys_from_binding(binding: &Binding) -> Vec<String> {
-    match binding {
-        Binding::SingleKey(key) => {
-            vec![key.to_string()]
-        }
-        Binding::MultipleKeys(keys) => {
-            keys.iter().map(ToString::to_string).collect()
-        }
     }
 }
 

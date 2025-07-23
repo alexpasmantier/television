@@ -1,5 +1,6 @@
 use crate::{
-    channels::prototypes::Template, config::Binding,
+    channels::prototypes::Template,
+    event::Key,
     screen::result_item::ResultItem,
 };
 use devicons::FileIcon;
@@ -172,7 +173,7 @@ impl ResultItem for Entry {
         self.match_ranges.as_deref()
     }
 
-    fn shortcut(&self) -> Option<&Binding> {
+    fn shortcut(&self) -> Option<&Key> {
         None
     }
 

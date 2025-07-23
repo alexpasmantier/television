@@ -1,6 +1,7 @@
 use crate::cli::parse_source_entry_delimiter;
 use crate::{
-    config::{Binding, KeyBindings, ui},
+    config::{KeyBindings, ui},
+    event::Key,
     features::Features,
     screen::layout::{InputPosition, Orientation},
 };
@@ -161,7 +162,7 @@ impl CommandSpec {
 pub struct ChannelKeyBindings {
     /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
     #[serde(default)]
-    pub shortcut: Option<Binding>,
+    pub shortcut: Option<Key>,
     /// Regular action -> binding mappings living at channel level.
     #[serde(flatten)]
     #[serde(default)]
@@ -169,7 +170,7 @@ pub struct ChannelKeyBindings {
 }
 
 impl ChannelKeyBindings {
-    pub fn channel_shortcut(&self) -> Option<&Binding> {
+    pub fn channel_shortcut(&self) -> Option<&Key> {
         self.shortcut.as_ref()
     }
 }

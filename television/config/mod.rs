@@ -15,7 +15,7 @@ use std::{
 use tracing::{debug, warn};
 
 pub use keybindings::{
-    Binding, EventBindings, EventType, KeyBindings, merge_bindings,
+    EventBindings, EventType, KeyBindings, merge_bindings,
 };
 pub use themes::Theme;
 pub use ui::UiConfig;
@@ -478,7 +478,7 @@ mod tests {
 
         default_config.shell_integration.keybindings.insert(
             "command_history".to_string(),
-            Binding::SingleKey(Key::from_str("ctrl-h").unwrap()),
+            Key::from_str("ctrl-h").unwrap(),
         );
         default_config.shell_integration.merge_triggers();
 
@@ -570,14 +570,14 @@ mod tests {
 
         let config = Config::new(&config_env, None).unwrap();
 
-        let expected: rustc_hash::FxHashMap<String, Binding> = [
+        let expected: rustc_hash::FxHashMap<String, Key> = [
             (
                 "command_history".to_string(),
-                Binding::SingleKey(Key::from_str("ctrl-[").unwrap()),
+                Key::from_str("ctrl-[").unwrap(),
             ),
             (
                 "smart_autocomplete".to_string(),
-                Binding::SingleKey(Key::from_str("ctrl-t").unwrap()),
+                Key::from_str("ctrl-t").unwrap(),
             ),
         ]
         .iter()
