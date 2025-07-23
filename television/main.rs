@@ -46,7 +46,7 @@ async fn main() -> Result<()> {
 
     let readable_stdin = is_readable_stdin();
 
-    let args = post_process(cli, readable_stdin);
+    let mut args = post_process(cli, readable_stdin);
     debug!("PostProcessedCli: {:?}", args);
 
     // load the configuration file
@@ -77,6 +77,9 @@ async fn main() -> Result<()> {
     debug!("Determining channel...");
     let channel_prototype =
         determine_channel(&args, &config, readable_stdin, Some(&cable));
+
+    // allow channel to override CLI arguments
+    apply_channel_overrides(&mut args, &channel_prototype);
 
     CLIPBOARD.with(<_>::default);
 
@@ -133,6 +136,23 @@ async fn main() -> Result<()> {
     }
     bufwriter.flush()?;
     exit(0);
+}
+
+fn apply_channel_overrides(
+    args: &mut PostProcessedCli,
+    channel_prototype: &ChannelPrototype,
+) -> () {
+    // The default value for CLI args inline is `false`. If the CLI arguments have
+    // specified --inline, we should always take that value and ignore what the chanel wants
+    if args.inline {
+        return;
+    }
+    if let Some(ui) = channel_prototype.ui.as_ref() {
+        // Otherwise, if the channel has specified an inline value, take it
+        if let Some(inline) = ui.inline {
+            args.inline = inline
+        }
+    }
 }
 
 /// Apply overrides from the CLI arguments to the configuration.
@@ -383,6 +403,7 @@ fn apply_ui_overrides(
         status_bar: None,
         help_panel: None,
         remote_control: None,
+        inline: None,
     });
 
     // Apply input header override
@@ -764,6 +785,7 @@ mod tests {
             status_bar: None,
             help_panel: None,
             remote_control: None,
+            inline: None,
         });
 
         let cable = Cable::from_prototypes(vec![channel_prototype]);

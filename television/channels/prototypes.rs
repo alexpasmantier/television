@@ -401,6 +401,8 @@ pub struct UiSpec {
     pub help_panel: Option<ui::HelpPanelConfig>,
     #[serde(default)]
     pub remote_control: Option<ui::RemoteControlConfig>,
+    #[serde(default)]
+    pub inline: Option<bool>,
 }
 
 pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
@@ -418,6 +420,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
             status_bar: Some(config.status_bar.clone()),
             help_panel: Some(config.help_panel.clone()),
             remote_control: Some(config.remote_control.clone()),
+            inline: config.inline,
         }
     }
 }
