@@ -179,16 +179,10 @@ pub fn find_keys_for_single_action(
         .iter()
         .filter_map(|(key, actions)| {
             // Check if this actions contains the target action
-            match actions {
-                Actions::Single(action) if action == target_action => {
-                    Some(key.to_string())
-                }
-                Actions::Multiple(action_list)
-                    if action_list.contains(target_action) =>
-                {
-                    Some(key.to_string())
-                }
-                _ => None,
+            if actions.as_slice().contains(target_action) {
+                Some(key.to_string())
+            } else {
+                None
             }
         })
         .collect()

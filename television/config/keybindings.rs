@@ -11,7 +11,6 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use tracing::{debug, trace};
 
-/// Generic bindings structure that can map any key type to actions
 /// Generic bindings structure that maps any key type to actions.
 ///
 /// This is the core structure for storing key/event bindings in Television.
@@ -1087,7 +1086,7 @@ mod tests {
         // Multiple actions should work
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('s')),
-            Some(&Actions::Multiple(vec![
+            Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
@@ -1096,7 +1095,7 @@ mod tests {
         // Three actions should work
         assert_eq!(
             keybindings.bindings.get(&Key::F(1)),
-            Some(&Actions::Multiple(vec![
+            Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
                 Action::ToggleStatusBar
@@ -1114,7 +1113,7 @@ mod tests {
         let mut custom_bindings = FxHashMap::default();
         custom_bindings.insert(
             Key::Ctrl('s'),
-            Actions::Multiple(vec![
+            Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard,
             ]),
@@ -1129,7 +1128,7 @@ mod tests {
         // Custom multiple actions should be present
         assert_eq!(
             merged.bindings.get(&Key::Ctrl('s')),
-            Some(&Actions::Multiple(vec![
+            Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
@@ -1171,7 +1170,7 @@ mod tests {
         // Verify all binding types work correctly
         assert_eq!(
             keybindings.bindings.get(&Key::Esc),
-            Some(&Actions::Single(Action::Quit))
+            Some(&Actions::single(Action::Quit))
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Enter),
@@ -1179,14 +1178,14 @@ mod tests {
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('s')),
-            Some(&Actions::Multiple(vec![
+            Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
         );
         assert_eq!(
             keybindings.bindings.get(&Key::F(1)),
-            Some(&Actions::Multiple(vec![
+            Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
                 Action::ToggleStatusBar
@@ -1194,11 +1193,11 @@ mod tests {
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Ctrl('c')),
-            Some(&Actions::Single(Action::NoOp))
+            Some(&Actions::single(Action::NoOp))
         );
         assert_eq!(
             keybindings.bindings.get(&Key::Tab),
-            Some(&Actions::Multiple(vec![Action::ToggleSelectionDown]))
+            Some(&Actions::multiple(vec![Action::ToggleSelectionDown]))
         );
     }
 }

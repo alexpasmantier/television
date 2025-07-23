@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_with::{OneOrMany, serde_as};
 use std::fmt::Display;
 
 /// The different actions that can be performed by the application.
@@ -145,34 +146,44 @@ pub enum Action {
 /// use television::action::{Action, Actions};
 ///
 /// // Single action
-/// let single = Actions::Single(Action::Quit);
+/// let single = Actions::single(Action::Quit);
 /// assert_eq!(single.as_slice(), &[Action::Quit]);
 ///
 /// // Multiple actions
-/// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+/// let multiple = Actions::multiple(vec![Action::ReloadSource, Action::Quit]);
 /// assert_eq!(multiple.as_slice(), &[Action::ReloadSource, Action::Quit]);
 ///
 /// // Convert to vector for execution
 /// let actions_vec = multiple.into_vec();
 /// assert_eq!(actions_vec, vec![Action::ReloadSource, Action::Quit]);
 /// ```
+#[serde_as]
 #[derive(
     Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
 )]
-#[serde(untagged)]
-pub enum Actions {
-    /// A single action binding
-    Single(Action),
-    /// Multiple actions executed in sequence
-    Multiple(Vec<Action>),
+#[serde(transparent)]
+pub struct Actions {
+    #[serde_as(as = "OneOrMany<_>")]
+    inner: Vec<Action>,
 }
 
 impl Actions {
+    /// Creates a new `Actions` from a single action.
+    pub fn single(action: Action) -> Self {
+        Self {
+            inner: vec![action],
+        }
+    }
+
+    /// Creates a new `Actions` from multiple actions.
+    pub fn multiple(actions: Vec<Action>) -> Self {
+        Self { inner: actions }
+    }
+
     /// Converts the `Actions` into a `Vec<Action>` for execution.
     ///
     /// This method consumes the `Actions` and returns a vector containing
-    /// all actions to be executed. For `Single`, it returns a vector with
-    /// one element. For `Multiple`, it returns the contained vector.
+    /// all actions to be executed.
     ///
     /// # Returns
     ///
@@ -183,17 +194,14 @@ impl Actions {
     /// ```rust
     /// use television::action::{Action, Actions};
     ///
-    /// let single = Actions::Single(Action::Quit);
+    /// let single = Actions::single(Action::Quit);
     /// assert_eq!(single.into_vec(), vec![Action::Quit]);
     ///
-    /// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+    /// let multiple = Actions::multiple(vec![Action::ReloadSource, Action::Quit]);
     /// assert_eq!(multiple.into_vec(), vec![Action::ReloadSource, Action::Quit]);
     /// ```
     pub fn into_vec(self) -> Vec<Action> {
-        match self {
-            Actions::Single(action) => vec![action],
-            Actions::Multiple(actions) => actions,
-        }
+        self.inner
     }
 
     /// Returns a slice view of the actions without consuming the `Actions`.
@@ -210,22 +218,34 @@ impl Actions {
     /// ```rust
     /// use television::action::{Action, Actions};
     ///
-    /// let single = Actions::Single(Action::Quit);
+    /// let single = Actions::single(Action::Quit);
     /// assert_eq!(single.as_slice(), &[Action::Quit]);
     ///
-    /// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+    /// let multiple = Actions::multiple(vec![Action::ReloadSource, Action::Quit]);
     /// assert_eq!(multiple.as_slice(), &[Action::ReloadSource, Action::Quit]);
     /// ```
     pub fn as_slice(&self) -> &[Action] {
-        match self {
-            Actions::Single(action) => std::slice::from_ref(action),
-            Actions::Multiple(actions) => actions.as_slice(),
-        }
+        &self.inner
+    }
+
+    /// Returns `true` if this contains only a single action.
+    pub fn is_single(&self) -> bool {
+        self.inner.len() == 1
+    }
+
+    /// Returns `true` if this contains multiple actions.
+    pub fn is_multiple(&self) -> bool {
+        self.inner.len() > 1
+    }
+
+    /// Gets the first action, if any.
+    pub fn first(&self) -> Option<&Action> {
+        self.inner.first()
     }
 }
 
 impl From<Action> for Actions {
-    /// Converts a single `Action` into `Actions::Single`.
+    /// Converts a single `Action` into `Actions`.
     ///
     /// This conversion allows seamless use of single actions where
     /// `Actions` is expected, maintaining backward compatibility.
@@ -236,49 +256,35 @@ impl From<Action> for Actions {
     /// use television::action::{Action, Actions};
     ///
     /// let actions: Actions = Action::Quit.into();
-    /// assert_eq!(actions, Actions::Single(Action::Quit));
+    /// assert_eq!(actions, Actions::single(Action::Quit));
     /// ```
     fn from(action: Action) -> Self {
-        Actions::Single(action)
+        Self::single(action)
     }
 }
 
 impl From<Vec<Action>> for Actions {
     /// Converts a `Vec<Action>` into `Actions`.
     ///
-    /// This conversion optimizes single-element vectors into `Actions::Single`
-    /// for efficiency, while multi-element vectors become `Actions::Multiple`.
-    ///
     /// # Arguments
     ///
     /// * `actions` - Vector of actions to convert
-    ///
-    /// # Returns
-    ///
-    /// - `Actions::Single` if the vector has exactly one element
-    /// - `Actions::Multiple` if the vector has zero or multiple elements
     ///
     /// # Examples
     ///
     /// ```rust
     /// use television::action::{Action, Actions};
     ///
-    /// // Single element becomes Single
     /// let single_vec = vec![Action::Quit];
     /// let actions: Actions = single_vec.into();
-    /// assert_eq!(actions, Actions::Single(Action::Quit));
+    /// assert_eq!(actions, Action::Quit.into());
     ///
-    /// // Multiple elements become Multiple
     /// let multi_vec = vec![Action::ReloadSource, Action::Quit];
     /// let actions: Actions = multi_vec.into();
-    /// assert!(matches!(actions, Actions::Multiple(_)));
+    /// assert_eq!(actions, vec![Action::ReloadSource, Action::Quit].into());
     /// ```
     fn from(actions: Vec<Action>) -> Self {
-        if actions.len() == 1 {
-            Actions::Single(actions.into_iter().next().unwrap())
-        } else {
-            Actions::Multiple(actions)
-        }
+        Self::multiple(actions)
     }
 }
 
@@ -367,13 +373,13 @@ mod tests {
 
     #[test]
     fn test_actions_single() {
-        let single_action = Actions::Single(Action::Quit);
+        let single_action = Actions::single(Action::Quit);
         assert_eq!(single_action.into_vec(), vec![Action::Quit]);
 
         let single_from_action = Actions::from(Action::SelectNextEntry);
         assert_eq!(
             single_from_action,
-            Actions::Single(Action::SelectNextEntry)
+            Actions::single(Action::SelectNextEntry)
         );
         assert_eq!(single_from_action.as_slice(), &[Action::SelectNextEntry]);
     }
@@ -381,40 +387,20 @@ mod tests {
     #[test]
     fn test_actions_multiple() {
         let actions_vec = vec![Action::CopyEntryToClipboard, Action::Quit];
-        let multiple_actions = Actions::Multiple(actions_vec.clone());
+        let multiple_actions: Actions = Actions::multiple(actions_vec.clone());
         assert_eq!(multiple_actions.into_vec(), actions_vec);
 
         let multiple_from_vec = Actions::from(actions_vec.clone());
-        assert_eq!(multiple_from_vec, Actions::Multiple(actions_vec.clone()));
+        assert_eq!(multiple_from_vec, Actions::multiple(actions_vec.clone()));
         assert_eq!(multiple_from_vec.as_slice(), actions_vec.as_slice());
     }
 
     #[test]
-    fn test_actions_from_single_vec_becomes_single() {
-        // When creating Actions from a Vec with only one element, it should become Single
-        let single_vec = vec![Action::TogglePreview];
-        let actions = Actions::from(single_vec);
-        assert_eq!(actions, Actions::Single(Action::TogglePreview));
-    }
-
-    #[test]
-    fn test_actions_from_multi_vec_becomes_multiple() {
-        // When creating Actions from a Vec with multiple elements, it should become Multiple
-        let multi_vec = vec![
-            Action::ReloadSource,
-            Action::SelectNextEntry,
-            Action::TogglePreview,
-        ];
-        let actions = Actions::from(multi_vec.clone());
-        assert_eq!(actions, Actions::Multiple(multi_vec));
-    }
-
-    #[test]
     fn test_actions_as_slice() {
-        let single = Actions::Single(Action::DeleteLine);
+        let single: Actions = Actions::single(Action::DeleteLine);
         assert_eq!(single.as_slice(), &[Action::DeleteLine]);
 
-        let multiple = Actions::Multiple(vec![
+        let multiple: Actions = Actions::multiple(vec![
             Action::ScrollPreviewUp,
             Action::ScrollPreviewDown,
         ]);
@@ -426,10 +412,10 @@ mod tests {
 
     #[test]
     fn test_actions_into_vec() {
-        let single = Actions::Single(Action::ConfirmSelection);
+        let single: Actions = Actions::single(Action::ConfirmSelection);
         assert_eq!(single.into_vec(), vec![Action::ConfirmSelection]);
 
-        let multiple = Actions::Multiple(vec![
+        let multiple: Actions = Actions::multiple(vec![
             Action::ToggleHelp,
             Action::ToggleStatusBar,
         ]);
@@ -443,12 +429,12 @@ mod tests {
     fn test_actions_hash_and_eq() {
         use std::collections::HashMap;
 
-        let actions1 = Actions::Single(Action::Quit);
-        let actions2 = Actions::Single(Action::Quit);
-        let actions3 =
-            Actions::Multiple(vec![Action::Quit, Action::ClearScreen]);
-        let actions4 =
-            Actions::Multiple(vec![Action::Quit, Action::ClearScreen]);
+        let actions1: Actions = Actions::single(Action::Quit);
+        let actions2: Actions = Actions::single(Action::Quit);
+        let actions3: Actions =
+            Actions::multiple(vec![Action::Quit, Action::ClearScreen]);
+        let actions4: Actions =
+            Actions::multiple(vec![Action::Quit, Action::ClearScreen]);
 
         assert_eq!(actions1, actions2);
         assert_eq!(actions3, actions4);
