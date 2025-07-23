@@ -11,7 +11,6 @@ use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 use tracing::{debug, trace};
 
-
 /// Generic bindings structure that can map any key type to actions
 /// Generic bindings structure that maps any key type to actions.
 ///
@@ -802,7 +801,10 @@ where
             while let Some((key_str, raw_value)) =
                 map.next_entry::<String, Value>()?
             {
-                trace!("Processing binding: key='{}', value={:?}", key_str, raw_value);
+                trace!(
+                    "Processing binding: key='{}', value={:?}",
+                    key_str, raw_value
+                );
                 let key = K::from_str(&key_str).map_err(|e| {
                     debug!("Failed to parse key '{}': {}", key_str, e);
                     Error::custom(e)
@@ -823,7 +825,10 @@ where
                                 debug!("Failed to deserialize actions for key '{}': {}", key_str, e);
                                 Error::custom(e)
                             })?;
-                        trace!("Binding key '{}' to actions: {:?}", key_str, actions);
+                        trace!(
+                            "Binding key '{}' to actions: {:?}",
+                            key_str, actions
+                        );
                         bindings.insert(key, actions);
                     }
                 }

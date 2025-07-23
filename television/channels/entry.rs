@@ -1,6 +1,5 @@
 use crate::{
-    channels::prototypes::Template,
-    event::Key,
+    channels::prototypes::Template, event::Key,
     screen::result_item::ResultItem,
 };
 use devicons::FileIcon;

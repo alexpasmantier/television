@@ -14,9 +14,7 @@ use std::{
 };
 use tracing::{debug, warn};
 
-pub use keybindings::{
-    EventBindings, EventType, KeyBindings, merge_bindings,
-};
+pub use keybindings::{EventBindings, EventType, KeyBindings, merge_bindings};
 pub use themes::Theme;
 pub use ui::UiConfig;
 
