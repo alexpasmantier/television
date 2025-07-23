@@ -9,6 +9,7 @@ use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
+use tracing::{debug, trace};
 
 
 /// Generic bindings structure that can map any key type to actions
@@ -796,28 +797,38 @@ where
             use serde::de::Error;
             use toml::Value;
 
+            debug!("Starting deserialize_bindings for configuration");
             let mut bindings = FxHashMap::default();
             while let Some((key_str, raw_value)) =
                 map.next_entry::<String, Value>()?
             {
-                let key = K::from_str(&key_str).map_err(Error::custom)?;
+                trace!("Processing binding: key='{}', value={:?}", key_str, raw_value);
+                let key = K::from_str(&key_str).map_err(|e| {
+                    debug!("Failed to parse key '{}': {}", key_str, e);
+                    Error::custom(e)
+                })?;
 
                 match raw_value {
                     Value::Boolean(false) => {
-                        // Explicitly unbind key/event
+                        debug!("Unbinding key '{}' (set to NoOp)", key_str);
                         bindings.insert(key, Action::NoOp.into());
                     }
                     Value::Boolean(true) => {
-                        // True means do nothing (keep current binding or ignore)
+                        trace!("Ignoring key '{}' (set to true)", key_str);
                     }
                     actions_value => {
                         // Try to deserialize as Actions (handles both single and multiple)
                         let actions = Actions::deserialize(actions_value)
-                            .map_err(Error::custom)?;
+                            .map_err(|e| {
+                                debug!("Failed to deserialize actions for key '{}': {}", key_str, e);
+                                Error::custom(e)
+                            })?;
+                        trace!("Binding key '{}' to actions: {:?}", key_str, actions);
                         bindings.insert(key, actions);
                     }
                 }
             }
+            debug!("Deserialized {} key bindings", bindings.len());
             Ok(bindings)
         }
     }
