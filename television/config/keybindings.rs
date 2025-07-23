@@ -34,6 +34,30 @@ impl Display for Binding {
 }
 
 /// Generic bindings structure that can map any key type to actions
+/// Generic bindings structure that maps any key type to actions.
+///
+/// This is the core structure for storing key/event bindings in Television.
+/// It provides a flexible mapping system that can work with different key types
+/// (keyboard keys, mouse events, etc.) and supports serialization to/from TOML.
+///
+/// # Type Parameters
+///
+/// * `K` - The key type (must implement `Display`, `FromStr`, `Eq`, `Hash`)
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::{Bindings, KeyBindings};
+/// use television::event::Key;
+/// use television::action::Action;
+///
+/// // Create new empty bindings
+/// let mut bindings = KeyBindings::new();
+///
+/// // Add a binding
+/// bindings.insert(Key::Enter, Action::ConfirmSelection.into());
+/// assert_eq!(bindings.len(), 1);
+/// ```
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Bindings<K>
 where
@@ -53,6 +77,20 @@ where
     K: Display + FromStr + Eq + Hash,
     K::Err: Display,
 {
+    /// Creates a new empty bindings collection.
+    ///
+    /// # Returns
+    ///
+    /// A new `Bindings` instance with no key mappings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::config::keybindings::KeyBindings;
+    ///
+    /// let bindings = KeyBindings::new();
+    /// assert!(bindings.is_empty());
+    /// ```
     pub fn new() -> Self {
         Bindings {
             bindings: FxHashMap::default(),
@@ -60,16 +98,83 @@ where
     }
 }
 
-/// A set of keybindings that maps keys directly to actions.
+/// A set of keybindings that maps keyboard keys directly to actions.
 ///
-/// This struct represents the new architecture where keybindings are structured as
-/// Key -> Action mappings in the configuration file. This eliminates the need for
-/// runtime inversion and provides better discoverability.
+/// This type alias represents the primary keybinding system in Television, where
+/// keyboard keys are mapped directly to actions.
+///
+/// # Features
+///
+/// - Direct key-to-action mapping
+/// - Support for single and multiple actions per key
+/// - Key unbinding support (setting to `false`)
+/// - Modifier key combinations (Ctrl, Alt, Shift, Super/Cmd)
+///
+/// # Configuration Format
+///
+/// ```toml
+/// # Single action
+/// esc = "quit"
+/// enter = "confirm_selection"
+///
+/// # Multiple actions
+/// "ctrl-s" = ["reload_source", "copy_entry_to_clipboard"]
+///
+/// # Unbind a key
+/// "ctrl-c" = false
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::KeyBindings;
+/// use television::event::Key;
+/// use television::action::Action;
+///
+/// let mut bindings = KeyBindings::new();
+/// bindings.insert(Key::Enter, Action::ConfirmSelection.into());
+/// bindings.insert(Key::Esc, Action::Quit.into());
+/// assert_eq!(bindings.len(), 2);
+/// ```
 pub type KeyBindings = Bindings<Key>;
 
+/// Types of events that can be bound to actions.
+///
+/// This enum defines the various non-keyboard events that can trigger actions
+/// in Television, such as mouse events and terminal resize events.
+///
+/// # Variants
+///
+/// - `MouseClick` - Mouse button click events
+/// - `MouseScrollUp` - Mouse wheel scroll up
+/// - `MouseScrollDown` - Mouse wheel scroll down
+/// - `Resize` - Terminal window resize events
+/// - `Custom(String)` - Custom event types for extensibility
+///
+/// # Configuration
+///
+/// Events use kebab-case naming in TOML configuration:
+///
+/// ```toml
+/// mouse-click = "confirm_selection"
+/// mouse-scroll-up = "scroll_preview_up"
+/// resize = "refresh_layout"
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::EventType;
+/// use std::str::FromStr;
+///
+/// let event = EventType::from_str("mouse-click").unwrap();
+/// assert_eq!(event, EventType::MouseClick);
+///
+/// let custom = EventType::Custom("my-event".to_string());
+/// assert_eq!(custom.to_string(), "my-event");
+/// ```
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "kebab-case")]
-/// Types of events that can be bound to actions
 pub enum EventType {
     MouseClick,
     MouseScrollUp,
@@ -114,7 +219,36 @@ impl Display for EventType {
     }
 }
 
-/// A set of event bindings that maps events to actions.
+/// A set of event bindings that maps non-keyboard events to actions.
+///
+/// This type alias provides bindings for mouse events, resize events,
+/// and other non-keyboard interactions. It uses the same underlying
+/// `Bindings` structure as `KeyBindings` but for `EventType` instead of `Key`.
+///
+/// # Default Bindings
+///
+/// - `mouse-scroll-up` → `scroll_preview_up`
+/// - `mouse-scroll-down` → `scroll_preview_down`
+///
+/// # Configuration Example
+///
+/// ```toml
+/// [event-bindings]
+/// mouse-click = "confirm_selection"
+/// mouse-scroll-up = "scroll_preview_up"
+/// resize = "refresh_layout"
+/// ```
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::{EventBindings, EventType};
+/// use television::action::Action;
+///
+/// let mut bindings = EventBindings::new();
+/// bindings.insert(EventType::MouseClick, Action::ConfirmSelection.into());
+/// assert_eq!(bindings.len(), 1);
+/// ```
 pub type EventBindings = Bindings<EventType>;
 
 impl<K, I> From<I> for Bindings<K>
@@ -168,7 +302,39 @@ where
     }
 }
 
-/// Generic merge function for bindings
+/// Merges two binding collections, with new bindings taking precedence.
+///
+/// # Arguments
+///
+/// * `bindings` - The base bindings collection (will be consumed)
+/// * `new_bindings` - The new bindings to merge in (higher precedence)
+///
+/// # Returns
+///
+/// A new `Bindings` collection with merged key mappings.
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::{KeyBindings, merge_bindings};
+/// use television::event::Key;
+/// use television::action::Action;
+///
+/// let base = KeyBindings::from(vec![
+///     (Key::Enter, Action::ConfirmSelection),
+///     (Key::Esc, Action::Quit),
+/// ]);
+///
+/// let custom = KeyBindings::from(vec![
+///     (Key::Esc, Action::NoOp), // Override quit with no-op
+///     (Key::Tab, Action::ToggleSelectionDown), // Add new binding
+/// ]);
+///
+/// let merged = merge_bindings(base, &custom);
+/// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
+/// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
+/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelectionDown.into()));
+/// ```
 pub fn merge_bindings<K>(
     mut bindings: Bindings<K>,
     new_bindings: &Bindings<K>,
@@ -256,12 +422,69 @@ impl Default for Bindings<EventType> {
     }
 }
 
+/// Parses a string representation of a key event into a `KeyEvent`.
+///
+/// This function converts human-readable key descriptions (like "ctrl-a", "alt-enter")
+/// into crossterm `KeyEvent` structures.
+///
+/// # Arguments
+///
+/// * `raw` - String representation of the key (e.g., "ctrl-a", "shift-f1", "esc")
+///
+/// # Returns
+///
+/// * `Ok(KeyEvent)` - Successfully parsed key event
+/// * `Err(String)` - Parse error with description
+///
+/// # Supported Modifiers
+///
+/// - `ctrl-` - Control key
+/// - `alt-` - Alt key
+/// - `shift-` - Shift key
+/// - `cmd-` - Command key (macOS)
+/// - `super-` - Super key (Linux/Windows)
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::parse_key_event;
+/// use crossterm::event::{KeyCode, KeyModifiers};
+///
+/// let event = parse_key_event("ctrl-a").unwrap();
+/// assert_eq!(event.code, KeyCode::Char('a'));
+/// assert_eq!(event.modifiers, KeyModifiers::CONTROL);
+///
+/// let event = parse_key_event("alt-enter").unwrap();
+/// assert_eq!(event.code, KeyCode::Enter);
+/// assert_eq!(event.modifiers, KeyModifiers::ALT);
+/// ```
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
     let (remaining, modifiers) = extract_modifiers(&raw_lower);
     parse_key_code_with_modifiers(remaining, modifiers)
 }
 
+/// Extracts modifier keys from a raw key string.
+///
+/// This helper function parses modifier prefixes (ctrl-, alt-, shift-, etc.)
+/// from a key string and returns the remaining key part along with the
+/// extracted modifiers as a `KeyModifiers` bitfield.
+///
+/// # Arguments
+///
+/// * `raw` - The raw key string (already lowercased)
+///
+/// # Returns
+///
+/// A tuple of (`remaining_key_string`, `extracted_modifiers`)
+///
+/// # Examples
+///
+/// ```ignore
+/// let (key, mods) = extract_modifiers("ctrl-alt-a");
+/// assert_eq!(key, "a");
+/// assert!(mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT));
+/// ```
 fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
     let mut modifiers = KeyModifiers::empty();
     let mut current = raw;
@@ -298,6 +521,28 @@ fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
     (current, modifiers)
 }
 
+/// Parses a key code string with pre-extracted modifiers into a `KeyEvent`.
+///
+/// This function handles the actual key code parsing after modifiers have
+/// been extracted. It supports named keys (like "esc", "enter") and
+/// single character keys.
+///
+/// # Arguments
+///
+/// * `raw` - The key string with modifiers already removed
+/// * `modifiers` - Pre-extracted modifier keys
+///
+/// # Returns
+///
+/// * `Ok(KeyEvent)` - Successfully parsed key event
+/// * `Err(String)` - Parse error for unrecognized keys
+///
+/// # Supported Keys
+///
+/// - Named keys: esc, enter, left, right, up, down, home, end, etc.
+/// - Function keys: f1-f12
+/// - Special keys: space, tab, backspace, delete, etc.
+/// - Single characters: a-z, 0-9, punctuation
 fn parse_key_code_with_modifiers(
     raw: &str,
     mut modifiers: KeyModifiers,
@@ -361,6 +606,32 @@ fn parse_key_code_with_modifiers(
     Ok(KeyEvent::new(c, modifiers))
 }
 
+/// Converts a `KeyEvent` back to its string representation.
+///
+/// This function performs the reverse operation of `parse_key_event`,
+/// converting a crossterm `KeyEvent` back into a human-readable string
+/// format that can be used in configuration files.
+///
+/// # Arguments
+///
+/// * `key_event` - The key event to convert
+///
+/// # Returns
+///
+/// String representation of the key event (e.g., "ctrl-a", "alt-enter")
+///
+/// # Examples
+///
+/// ```rust
+/// use television::config::keybindings::key_event_to_string;
+/// use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
+///
+/// let event = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+/// assert_eq!(key_event_to_string(&event), "ctrl-a");
+///
+/// let event = KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT);
+/// assert_eq!(key_event_to_string(&event), "alt-enter");
+/// ```
 #[allow(dead_code)]
 pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     let char;
@@ -456,11 +727,25 @@ impl FromStr for Key {
     }
 }
 
-pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
-    Key::from_str(raw)
-}
-
-/// Generic serializer that converts any key type to string for TOML compatibility
+/// Generic serializer that converts any key type to string for TOML compatibility.
+///
+/// This function enables serialization of the bindings `HashMap` to TOML format
+/// by converting keys to their string representation using the `Display` trait.
+/// This is used internally by serde when serializing `Bindings` structs.
+///
+/// # Arguments
+///
+/// * `bindings` - The bindings `HashMap` to serialize
+/// * `serializer` - The serde serializer instance
+///
+/// # Type Parameters
+///
+/// * `K` - Key type that implements `Display`
+/// * `S` - Serializer type
+///
+/// # Returns
+///
+/// Result of the serialization operation
 fn serialize_bindings<K, S>(
     bindings: &FxHashMap<K, Actions>,
     serializer: S,
@@ -477,7 +762,30 @@ where
     map.end()
 }
 
-/// Generic deserializer that parses string keys back to key enum
+/// Generic deserializer that parses string keys back to key enum.
+///
+/// This function enables deserialization from TOML format by parsing string keys
+/// back into their appropriate key types using the `FromStr` trait. It also handles
+/// special cases like boolean values for key unbinding.
+///
+/// # Special Value Handling
+///
+/// - `false` - Binds the key to `Action::NoOp` (effectively unbinding)
+/// - `true` - Ignores the binding (preserves existing or default binding)
+/// - String/Array - Normal action binding
+///
+/// # Arguments
+///
+/// * `deserializer` - The serde deserializer instance
+///
+/// # Type Parameters
+///
+/// * `K` - Key type that implements `FromStr`, `Eq`, and `Hash`
+/// * `D` - Deserializer type
+///
+/// # Returns
+///
+/// Result containing the parsed bindings `HashMap` or deserialization error
 fn deserialize_bindings<'de, K, D>(
     deserializer: D,
 ) -> Result<FxHashMap<K, Actions>, D::Error>

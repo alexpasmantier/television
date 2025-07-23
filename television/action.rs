@@ -117,16 +117,78 @@ pub enum Action {
     MouseClickAt(u16, u16),
 }
 
+/// Container for one or more actions that can be executed together.
+///
+/// This enum enables binding single keys to multiple actions, allowing for
+/// complex behaviors triggered by a single key press. It supports both
+/// single action bindings (for backward compatibility) and multiple action
+/// sequences.
+///
+/// # Variants
+///
+/// - `Single(Action)` - A single action binding
+/// - `Multiple(Vec<Action>)` - Multiple actions executed in sequence
+///
+/// # Configuration Examples
+///
+/// ```toml
+/// # Single action (traditional)
+/// esc = "quit"
+///
+/// # Multiple actions (new feature)
+/// "ctrl-r" = ["reload_source", "copy_entry_to_clipboard"]
+/// ```
+///
+/// # Usage
+///
+/// ```rust
+/// use television::action::{Action, Actions};
+///
+/// // Single action
+/// let single = Actions::Single(Action::Quit);
+/// assert_eq!(single.as_slice(), &[Action::Quit]);
+///
+/// // Multiple actions
+/// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+/// assert_eq!(multiple.as_slice(), &[Action::ReloadSource, Action::Quit]);
+///
+/// // Convert to vector for execution
+/// let actions_vec = multiple.into_vec();
+/// assert_eq!(actions_vec, vec![Action::ReloadSource, Action::Quit]);
+/// ```
 #[derive(
     Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
 )]
 #[serde(untagged)]
 pub enum Actions {
+    /// A single action binding
     Single(Action),
+    /// Multiple actions executed in sequence
     Multiple(Vec<Action>),
 }
 
 impl Actions {
+    /// Converts the `Actions` into a `Vec<Action>` for execution.
+    ///
+    /// This method consumes the `Actions` and returns a vector containing
+    /// all actions to be executed. For `Single`, it returns a vector with
+    /// one element. For `Multiple`, it returns the contained vector.
+    ///
+    /// # Returns
+    ///
+    /// A `Vec<Action>` containing all actions to execute.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::action::{Action, Actions};
+    ///
+    /// let single = Actions::Single(Action::Quit);
+    /// assert_eq!(single.into_vec(), vec![Action::Quit]);
+    ///
+    /// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+    /// assert_eq!(multiple.into_vec(), vec![Action::ReloadSource, Action::Quit]);
+    /// ```
     pub fn into_vec(self) -> Vec<Action> {
         match self {
             Actions::Single(action) => vec![action],
@@ -134,6 +196,26 @@ impl Actions {
         }
     }
 
+    /// Returns a slice view of the actions without consuming the `Actions`.
+    ///
+    /// This method provides efficient access to the contained actions as a slice,
+    /// useful for iteration and inspection without taking ownership.
+    ///
+    /// # Returns
+    ///
+    /// A `&[Action]` slice containing all actions.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::action::{Action, Actions};
+    ///
+    /// let single = Actions::Single(Action::Quit);
+    /// assert_eq!(single.as_slice(), &[Action::Quit]);
+    ///
+    /// let multiple = Actions::Multiple(vec![Action::ReloadSource, Action::Quit]);
+    /// assert_eq!(multiple.as_slice(), &[Action::ReloadSource, Action::Quit]);
+    /// ```
     pub fn as_slice(&self) -> &[Action] {
         match self {
             Actions::Single(action) => std::slice::from_ref(action),
@@ -143,12 +225,54 @@ impl Actions {
 }
 
 impl From<Action> for Actions {
+    /// Converts a single `Action` into `Actions::Single`.
+    ///
+    /// This conversion allows seamless use of single actions where
+    /// `Actions` is expected, maintaining backward compatibility.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::action::{Action, Actions};
+    ///
+    /// let actions: Actions = Action::Quit.into();
+    /// assert_eq!(actions, Actions::Single(Action::Quit));
+    /// ```
     fn from(action: Action) -> Self {
         Actions::Single(action)
     }
 }
 
 impl From<Vec<Action>> for Actions {
+    /// Converts a `Vec<Action>` into `Actions`.
+    ///
+    /// This conversion optimizes single-element vectors into `Actions::Single`
+    /// for efficiency, while multi-element vectors become `Actions::Multiple`.
+    ///
+    /// # Arguments
+    ///
+    /// * `actions` - Vector of actions to convert
+    ///
+    /// # Returns
+    ///
+    /// - `Actions::Single` if the vector has exactly one element
+    /// - `Actions::Multiple` if the vector has zero or multiple elements
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::action::{Action, Actions};
+    ///
+    /// // Single element becomes Single
+    /// let single_vec = vec![Action::Quit];
+    /// let actions: Actions = single_vec.into();
+    /// assert_eq!(actions, Actions::Single(Action::Quit));
+    ///
+    /// // Multiple elements become Multiple
+    /// let multi_vec = vec![Action::ReloadSource, Action::Quit];
+    /// let actions: Actions = multi_vec.into();
+    /// assert!(matches!(actions, Actions::Multiple(_)));
+    /// ```
     fn from(actions: Vec<Action>) -> Self {
         if actions.len() == 1 {
             Actions::Single(actions.into_iter().next().unwrap())
@@ -159,6 +283,25 @@ impl From<Vec<Action>> for Actions {
 }
 
 impl Display for Action {
+    /// Formats the action as its string representation for configuration files.
+    ///
+    /// This implementation provides the `snake_case` string representation of each
+    /// action as used in TOML configuration files. The output matches the
+    /// `#[serde(rename_all = "snake_case")]` serialization format.
+    ///
+    /// # Returns
+    ///
+    /// The `snake_case` string representation of the action.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::action::Action;
+    ///
+    /// assert_eq!(Action::Quit.to_string(), "quit");
+    /// assert_eq!(Action::SelectNextEntry.to_string(), "select_next_entry");
+    /// assert_eq!(Action::TogglePreview.to_string(), "toggle_preview");
+    /// ```
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Action::AddInputChar(_) => write!(f, "add_input_char"),

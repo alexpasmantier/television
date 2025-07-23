@@ -15,7 +15,7 @@ use std::{
 use tracing::{debug, warn};
 
 pub use keybindings::{
-    Binding, EventBindings, EventType, KeyBindings, merge_bindings, parse_key,
+    Binding, EventBindings, EventType, KeyBindings, merge_bindings,
 };
 pub use themes::Theme;
 pub use ui::UiConfig;
@@ -371,6 +371,7 @@ mod tests {
     use super::*;
     use std::fs::File;
     use std::io::Write;
+    use std::str::FromStr;
     use tempfile::tempdir;
 
     #[test]
@@ -477,7 +478,7 @@ mod tests {
 
         default_config.shell_integration.keybindings.insert(
             "command_history".to_string(),
-            Binding::SingleKey(parse_key("ctrl-h").unwrap()),
+            Binding::SingleKey(Key::from_str("ctrl-h").unwrap()),
         );
         default_config.shell_integration.merge_triggers();
 
@@ -550,8 +551,6 @@ mod tests {
 
     #[test]
     fn test_shell_integration_keybindings_are_overwritten_by_user() {
-        use crate::config::parse_key;
-
         let user_config = r#"
             [shell_integration.keybindings]
             "smart_autocomplete" = "ctrl-t"
@@ -574,11 +573,11 @@ mod tests {
         let expected: rustc_hash::FxHashMap<String, Binding> = [
             (
                 "command_history".to_string(),
-                Binding::SingleKey(parse_key("ctrl-[").unwrap()),
+                Binding::SingleKey(Key::from_str("ctrl-[").unwrap()),
             ),
             (
                 "smart_autocomplete".to_string(),
-                Binding::SingleKey(parse_key("ctrl-t").unwrap()),
+                Binding::SingleKey(Key::from_str("ctrl-t").unwrap()),
             ),
         ]
         .iter()
