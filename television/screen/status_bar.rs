@@ -1,5 +1,6 @@
 use crate::{
-    action::Action, draw::Ctx, features::FeatureFlags, television::Mode,
+    action::Action, draw::Ctx, features::FeatureFlags,
+    screen::keybindings::find_keys_for_single_action, television::Mode,
 };
 use ratatui::{
     Frame,
@@ -132,14 +133,16 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .features
         .is_enabled(FeatureFlags::RemoteControl)
     {
-        if let Some(binding) =
-            ctx.config.keybindings.get(&Action::ToggleRemoteControl)
-        {
+        let keys = find_keys_for_single_action(
+            &ctx.config.keybindings,
+            &Action::ToggleRemoteControl,
+        );
+        if let Some(key) = keys.first() {
             let hint_text = match ctx.tv_state.mode {
                 Mode::Channel => "Remote Control",
                 Mode::RemoteControl => "Back to Channel",
             };
-            add_hint(hint_text, &binding.to_string());
+            add_hint(hint_text, key);
         }
     }
 
@@ -151,9 +154,11 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             .features
             .is_enabled(FeatureFlags::PreviewPanel)
     {
-        if let Some(binding) =
-            ctx.config.keybindings.get(&Action::TogglePreview)
-        {
+        let keys = find_keys_for_single_action(
+            &ctx.config.keybindings,
+            &Action::TogglePreview,
+        );
+        if let Some(key) = keys.first() {
             let hint_text = if ctx
                 .config
                 .ui
@@ -164,13 +169,17 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             } else {
                 "Show Preview"
             };
-            add_hint(hint_text, &binding.to_string());
+            add_hint(hint_text, key);
         }
     }
 
     // Add keybinding help hint (available in both modes)
-    if let Some(binding) = ctx.config.keybindings.get(&Action::ToggleHelp) {
-        add_hint("Help", &binding.to_string());
+    let keys = find_keys_for_single_action(
+        &ctx.config.keybindings,
+        &Action::ToggleHelp,
+    );
+    if let Some(key) = keys.first() {
+        add_hint("Help", key);
     }
 
     // Build middle section if we have hints

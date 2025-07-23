@@ -35,11 +35,11 @@ fn test_input_prefills_search_box() {
 fn test_keybindings_override_default() {
     let mut tester = PtyTester::new();
 
-    // This remaps the quit action from default keys (Esc, Ctrl+C) to just "a"
+    // This adds a new mapping for the quit action
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "quit='a'",
+            "a=\"quit\";ctrl-c=false;esc=false",
         ]));
 
     // Test that ESC no longer quits (default behavior is overridden)
@@ -64,7 +64,7 @@ fn test_multiple_keybindings_override() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "quit='a';toggle_remote_control='ctrl-t'",
+            "a=\"quit\";ctrl-t=\"toggle_remote_control\";esc=false",
         ]));
 
     // Verify ESC doesn't quit (default overridden)

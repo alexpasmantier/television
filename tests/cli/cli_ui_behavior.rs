@@ -62,7 +62,7 @@ fn test_toggle_status_bar_keybinding() {
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--keybindings",
-        "toggle_status_bar=\"ctrl-k\"",
+        "ctrl-k = \"toggle_status_bar\"",
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 

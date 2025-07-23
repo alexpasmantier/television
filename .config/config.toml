@@ -122,71 +122,80 @@ show_channel_descriptions = true
 sort_alphabetically = true
 
 
-# Keybindings
+# Keybindings and Events
 # ----------------------------------------------------------------------------
 #
-# HARDCODED KEYBINDINGS (cannot be changed via config):
-# Input field actions (always active):
-#   Backspace          - Delete previous character
-#   Ctrl+w             - Delete previous word
-#   Ctrl+u             - Delete entire line
-#   Delete             - Delete next character
-#   Left/Right         - Move cursor left/right
-#   Home / Ctrl+a      - Go to input start
-#   End / Ctrl+e       - Go to input end
+# NEW CONFIGURATION FORMAT:
+# -------------------------
+# The keybindings are now structured as Key -> Action mappings
+# This provides better discoverability and eliminates configuration complexity
 #
-# CONFIGURABLE KEYBINDINGS (can be customized below):
-# --------------------------------------------------
 [keybindings]
 # Application control
 # ------------------
-# Quit the application
-quit = ["esc", "ctrl-c"]
+esc = "quit"
+ctrl-c = "quit"
 
 # Navigation and selection
 # -----------------------
-# Scrolling through entries
-select_next_entry = ["down", "ctrl-n", "ctrl-j"]
-select_prev_entry = ["up", "ctrl-p", "ctrl-k"]
-#select_next_page = "pagedown"
-#select_prev_page = "pageup"
+down = "select_next_entry"
+ctrl-n = "select_next_entry"
+ctrl-j = "select_next_entry"
+up = "select_prev_entry"
+ctrl-p = "select_prev_entry"
+ctrl-k = "select_prev_entry"
 
 # History navigation
 # -----------------
-# Navigate through search query history
-select_prev_history = "ctrl-up"
-select_next_history = "ctrl-down"
+ctrl-up = "select_prev_history"
+ctrl-down = "select_next_history"
 
 # Multi-selection
 # --------------
-# Add entry to selection and move to the next entry
-toggle_selection_down = "tab"
-# Add entry to selection and move to the previous entry
-toggle_selection_up = "backtab"
-# Confirm selection
-confirm_selection = "enter"
+tab = "toggle_selection_down"
+backtab = "toggle_selection_up"
+enter = "confirm_selection"
 
 # Preview panel control
 # --------------------
-# Scrolling the preview pane
-scroll_preview_half_page_down = ["pagedown", "mousescrolldown"]
-scroll_preview_half_page_up = ["pageup", "mousescrollup"]
+pagedown = "scroll_preview_half_page_down"
+pageup = "scroll_preview_half_page_up"
 
 # Data operations
 # --------------
-# Copy the selected entry to the clipboard
-copy_entry_to_clipboard = "ctrl-y"
-# Reload the current source
-reload_source = "ctrl-r"
-# Cycle through the available sources for the current channel
-cycle_sources = "ctrl-s"
+ctrl-y = "copy_entry_to_clipboard"
+ctrl-r = "reload_source"
+ctrl-s = "cycle_sources"
 
 # UI Features
 # ----------
-toggle_remote_control = "ctrl-t"
-toggle_preview = "ctrl-o"
-toggle_help = "ctrl-h"
-toggle_status_bar = "f12"
+ctrl-t = "toggle_remote_control"
+ctrl-o = "toggle_preview"
+ctrl-h = "toggle_help"
+f12 = "toggle_status_bar"
+
+# Input field actions
+# ----------------------------------------
+backspace = "delete_prev_char"
+ctrl-w = "delete_prev_word"
+ctrl-u = "delete_line"
+delete = "delete_next_char"
+left = "go_to_prev_char"
+right = "go_to_next_char"
+home = "go_to_input_start"
+ctrl-a = "go_to_input_start"
+end = "go_to_input_end"
+ctrl-e = "go_to_input_end"
+
+# Event bindings
+# ----------------------------------------------------------------------------
+# Event bindings map non-keyboard events to actions
+# This includes mouse events, resize events, and custom events
+[events]
+# Mouse events
+# -----------
+mouse-scroll-up = "scroll_preview_up"
+mouse-scroll-down = "scroll_preview_down"
 
 # Shell integration
 # ----------------------------------------------------------------------------
