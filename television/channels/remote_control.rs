@@ -4,7 +4,8 @@ use crate::{
         entry::into_ranges,
         prototypes::{BinaryRequirement, ChannelPrototype},
     },
-    config::{Binding, ui::RemoteControlConfig},
+    config::ui::RemoteControlConfig,
+    event::Key,
     matcher::{Matcher, config::Config},
     screen::result_item::ResultItem,
 };
@@ -14,17 +15,17 @@ use devicons::FileIcon;
 pub struct CableEntry {
     pub channel_name: String,
     pub match_ranges: Option<Vec<(u32, u32)>>,
-    pub shortcut: Option<Binding>,
+    pub shortcut: Option<Key>,
     pub description: Option<String>,
     pub requirements: Vec<BinaryRequirement>,
 }
 
 impl CableEntry {
-    pub fn new(name: String, shortcut: Option<&Binding>) -> Self {
+    pub fn new(name: String, shortcut: Option<&Key>) -> Self {
         CableEntry {
             channel_name: name,
             match_ranges: None,
-            shortcut: shortcut.cloned(),
+            shortcut: shortcut.copied(),
             description: None,
             requirements: Vec::new(),
         }
@@ -67,7 +68,7 @@ impl ResultItem for CableEntry {
         self.match_ranges.as_deref()
     }
 
-    fn shortcut(&self) -> Option<&crate::config::Binding> {
+    fn shortcut(&self) -> Option<&Key> {
         self.shortcut.as_ref()
     }
 }

@@ -1,23 +1,21 @@
-use std::{
-    fmt::Display,
-    future::Future,
-    pin::Pin,
-    task::{Context, Poll as TaskPoll},
-    time::Duration,
-};
-
 use crossterm::event::{
     KeyCode::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
         Insert, Left, PageDown, PageUp, Right, Tab, Up,
     },
-    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
+    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent, MouseEventKind,
 };
 use serde::{Deserialize, Serialize};
+use std::{
+    fmt::Display,
+    future::Future,
+    pin::Pin,
+    str::FromStr,
+    task::{Context, Poll as TaskPoll},
+    time::Duration,
+};
 use tokio::{signal, sync::mpsc};
 use tracing::{debug, trace, warn};
-
-use crate::config::parse_key;
 
 #[derive(Debug, Clone, Copy)]
 pub enum Event<I> {
@@ -68,8 +66,92 @@ pub enum Key {
     Null,
     Esc,
     Tab,
-    MouseScrollUp,
-    MouseScrollDown,
+}
+
+/// Unified input event type that encompasses all possible inputs.
+///
+/// This enum provides a unified interface for handling different types of input
+/// events in Television, including keyboard input, mouse events, terminal resize
+/// events, and custom events. It enables the new binding system to map any
+/// type of input to actions.
+///
+/// # Variants
+///
+/// - `Key(Key)` - Keyboard input events
+/// - `Mouse(MouseInputEvent)` - Mouse events with position information
+/// - `Resize(u16, u16)` - Terminal resize events with new dimensions
+/// - `Custom(String)` - Custom events for extensibility
+///
+/// # Usage in Bindings
+///
+/// ```rust
+/// use television::event::{InputEvent, Key, MouseInputEvent};
+/// use television::keymap::InputMap;
+///
+/// let input_map = InputMap::new();
+///
+/// // Handle keyboard input
+/// let key_event = InputEvent::Key(Key::Enter);
+/// let actions = input_map.get_actions_for_input(&key_event);
+/// assert_eq!(actions, None); // No bindings in empty map
+///
+/// // Handle mouse input
+/// let mouse_event = InputEvent::Mouse(MouseInputEvent {
+///     kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
+///     position: (10, 5),
+/// });
+/// let actions = input_map.get_actions_for_input(&mouse_event);
+/// assert_eq!(actions, None); // No bindings in empty map
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum InputEvent {
+    /// Keyboard input event
+    Key(Key),
+    /// Mouse event with position information
+    Mouse(MouseInputEvent),
+    /// Terminal resize event with new dimensions (width, height)
+    Resize(u16, u16),
+    /// Custom event for extensibility
+    Custom(String),
+}
+
+/// Mouse event with position information for input mapping.
+///
+/// This structure combines a mouse event type with its screen coordinates,
+/// enabling position-aware mouse handling in the binding system. It provides
+/// the information needed to map mouse events to appropriate actions.
+///
+/// # Fields
+///
+/// - `kind` - The type of mouse event (click, scroll, etc.)
+/// - `position` - Screen coordinates as (column, row) tuple
+///
+/// # Examples
+///
+/// ```rust
+/// use television::event::MouseInputEvent;
+/// use crossterm::event::{MouseEventKind, MouseButton};
+///
+/// // Left mouse button click at position (10, 5)
+/// let click_event = MouseInputEvent {
+///     kind: MouseEventKind::Down(MouseButton::Left),
+///     position: (10, 5),
+/// };
+/// assert_eq!(click_event.position, (10, 5));
+///
+/// // Mouse scroll up at position (20, 15)
+/// let scroll_event = MouseInputEvent {
+///     kind: MouseEventKind::ScrollUp,
+///     position: (20, 15),
+/// };
+/// assert_eq!(scroll_event.position, (20, 15));
+/// ```
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct MouseInputEvent {
+    /// The type of mouse event (click, scroll, etc.)
+    pub kind: MouseEventKind,
+    /// Screen coordinates as (column, row)
+    pub position: (u16, u16),
 }
 
 impl<'de> Deserialize<'de> for Key {
@@ -78,7 +160,7 @@ impl<'de> Deserialize<'de> for Key {
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        parse_key(&s).map_err(serde::de::Error::custom)
+        Key::from_str(&s).map_err(serde::de::Error::custom)
     }
 }
 
@@ -121,8 +203,6 @@ impl Display for Key {
             Key::Null => write!(f, "Null"),
             Key::Esc => write!(f, "Esc"),
             Key::Tab => write!(f, "Tab"),
-            Key::MouseScrollUp => write!(f, "MouseScrollUp"),
-            Key::MouseScrollDown => write!(f, "MouseScrollDown"),
         }
     }
 }
@@ -258,6 +338,39 @@ fn flush_resize_events(first_resize: (u16, u16)) -> ((u16, u16), (u16, u16)) {
     (first_resize, last_resize)
 }
 
+/// Converts a crossterm `KeyEvent` into Television's internal `Key` representation.
+///
+/// This function handles the conversion from crossterm's key event format into
+/// Television's simplified key representation, applying modifier key combinations
+/// and filtering out key release events.
+///
+/// # Arguments
+///
+/// * `event` - The crossterm `KeyEvent` to convert
+///
+/// # Returns
+///
+/// The corresponding `Key` enum variant, or `Key::Null` for unsupported events
+///
+/// # Key Mapping
+///
+/// - Modifier combinations are mapped to specific variants (e.g., `Ctrl+a` → `Key::Ctrl('a')`)
+/// - Key release events are ignored (return `Key::Null`)
+/// - Special keys are mapped directly (e.g., `Enter` → `Key::Enter`)
+/// - Function keys preserve their number (e.g., `F1` → `Key::F(1)`)
+///
+/// # Examples
+///
+/// ```rust
+/// use television::event::{convert_raw_event_to_key, Key};
+/// use crossterm::event::{KeyEvent, KeyCode, KeyModifiers, KeyEventKind};
+///
+/// let event = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
+/// assert_eq!(convert_raw_event_to_key(event), Key::Ctrl('a'));
+///
+/// let event = KeyEvent::new(KeyCode::Enter, KeyModifiers::empty());
+/// assert_eq!(convert_raw_event_to_key(event), Key::Enter);
+/// ```
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
     trace!("Raw event: {:?}", event);
     if event.kind == KeyEventKind::Release {

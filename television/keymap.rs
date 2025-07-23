@@ -1,80 +1,587 @@
 use crate::{
-    action::Action,
-    config::{Binding, KeyBindings},
-    event::Key,
+    action::{Action, Actions},
+    config::{EventBindings, EventType, KeyBindings},
+    event::{InputEvent, Key},
 };
+use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashMap;
-use std::ops::Deref;
 
-#[derive(Default, Debug)]
-/// A keymap is a set of mappings of keys to actions for every mode.
+/// An input map that handles both keyboard and non-keyboard input events.
 ///
-/// # Example:
-/// ```ignore
-///     Keymap {
-///         Key::Char('j') => Action::MoveDown,
-///         Key::Char('k') => Action::MoveUp,
-///         Key::Char('q') => Action::Quit,
-///     }
+/// This structure supports multiple-actions-per-key and handles various
+/// input types including keyboard keys, mouse events, resize events, and
+/// custom events.
+///
+/// # Fields
+///
+/// - `key_actions` - Maps keyboard keys to actions
+/// - `event_actions` - Maps non-keyboard events to actions
+///
+/// # Examples
+///
+/// ```rust
+/// use television::keymap::InputMap;
+/// use television::event::{Key, InputEvent};
+/// use television::action::{Action, Actions};
+/// use television::config::{KeyBindings, EventType};
+///
+/// // Create from key bindings
+/// let keybindings = KeyBindings::from(vec![
+///     (Key::Char('j'), Action::SelectNextEntry),
+///     (Key::Char('k'), Action::SelectPrevEntry),
+/// ]);
+/// let input_map: InputMap = (&keybindings).into();
+///
+/// // Query actions for input
+/// let key_input = InputEvent::Key(Key::Char('j'));
+/// let actions = input_map.get_actions_for_input(&key_input);
+/// assert_eq!(actions, Some(vec![Action::SelectNextEntry]));
 /// ```
-pub struct Keymap(pub FxHashMap<Key, Action>);
-
-impl Deref for Keymap {
-    type Target = FxHashMap<Key, Action>;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
+/// ```
+#[derive(Default, Debug, Clone)]
+pub struct InputMap {
+    /// Maps keyboard keys to their associated actions
+    pub key_actions: FxHashMap<Key, Actions>,
+    /// Maps non-keyboard events to their associated actions
+    pub event_actions: FxHashMap<EventType, Actions>,
 }
 
-impl From<&KeyBindings> for Keymap {
-    /// Convert a `KeyBindings` into a `Keymap`.
+impl InputMap {
+    /// Creates a new empty `InputMap`.
     ///
-    /// This essentially "reverses" the inner `KeyBindings` structure, so that each mode keymap is
-    /// indexed by its keys instead of the actions so as to be used as a routing table for incoming
-    /// key events.
-    fn from(keybindings: &KeyBindings) -> Self {
-        let mut keymap = FxHashMap::default();
-        for (action, binding) in keybindings.iter() {
-            match binding {
-                Binding::SingleKey(key) => {
-                    keymap.insert(*key, action.clone());
-                }
-                Binding::MultipleKeys(keys) => {
-                    for key in keys {
-                        keymap.insert(*key, action.clone());
-                    }
-                }
+    /// Returns an empty input map with no key or event bindings.
+    /// Bindings can be added using the `merge` methods or by directly
+    /// manipulating the `key_actions` and `event_actions` fields.
+    ///
+    /// # Returns
+    ///
+    /// A new empty `InputMap` instance.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    ///
+    /// let input_map = InputMap::new();
+    /// assert!(input_map.key_actions.is_empty());
+    /// assert!(input_map.event_actions.is_empty());
+    /// ```
+    pub fn new() -> Self {
+        Self {
+            key_actions: FxHashMap::default(),
+            event_actions: FxHashMap::default(),
+        }
+    }
+
+    /// Gets all actions bound to a specific key.
+    ///
+    /// Returns a reference to the `Actions` (single or multiple) bound to
+    /// the given key, or `None` if no binding exists.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(&Actions)` - The actions bound to the key
+    /// - `None` - No binding exists for this key
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::event::Key;
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.key_actions.insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+    ///
+    /// let actions = input_map.get_actions_for_key(&Key::Enter).unwrap();
+    /// assert_eq!(actions.as_slice(), &[Action::ConfirmSelection]);
+    /// ```
+    pub fn get_actions_for_key(&self, key: &Key) -> Option<&Actions> {
+        self.key_actions.get(key)
+    }
+
+    /// Gets all actions bound to a specific event type.
+    ///
+    /// Returns a reference to the `Actions` (single or multiple) bound to
+    /// the given event type, or `None` if no binding exists.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - The event type to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(&Actions)` - The actions bound to the event
+    /// - `None` - No binding exists for this event type
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::EventType;
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.event_actions.insert(
+    ///     EventType::MouseClick,
+    ///     Actions::single(Action::ConfirmSelection)
+    /// );
+    ///
+    /// let actions = input_map.get_actions_for_event(&EventType::MouseClick).unwrap();
+    /// assert_eq!(actions.as_slice(), &[Action::ConfirmSelection]);
+    /// ```
+    pub fn get_actions_for_event(
+        &self,
+        event: &EventType,
+    ) -> Option<&Actions> {
+        self.event_actions.get(event)
+    }
+
+    /// Gets the first action bound to a specific key (backward compatibility).
+    ///
+    /// This method provides backward compatibility with the old single-action
+    /// binding system. For keys with multiple actions, it returns only the
+    /// first action. Use `get_actions_for_key()` to get all actions.
+    ///
+    /// # Arguments
+    ///
+    /// * `key` - The key to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Action)` - The first action bound to the key
+    /// - `None` - No binding exists for this key
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::event::Key;
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.key_actions.insert(
+    ///     Key::Ctrl('r'),
+    ///     Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen])
+    /// );
+    ///
+    /// // Returns only the first action
+    /// assert_eq!(input_map.get_action_for_key(&Key::Ctrl('r')), Some(Action::ReloadSource));
+    /// ```
+    pub fn get_action_for_key(&self, key: &Key) -> Option<Action> {
+        self.key_actions
+            .get(key)
+            .and_then(|actions| actions.first().cloned())
+    }
+
+    /// Gets the first action bound to a specific event type (backward compatibility).
+    ///
+    /// This method provides backward compatibility with the old single-action
+    /// binding system. For events with multiple actions, it returns only the
+    /// first action. Use `get_actions_for_event()` to get all actions.
+    ///
+    /// # Arguments
+    ///
+    /// * `event` - The event type to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Action)` - The first action bound to the event
+    /// - `None` - No binding exists for this event type
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::EventType;
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.event_actions.insert(
+    ///     EventType::MouseClick,
+    ///     Actions::multiple(vec![Action::ConfirmSelection, Action::TogglePreview])
+    /// );
+    ///
+    /// // Returns only the first action
+    /// assert_eq!(
+    ///     input_map.get_action_for_event(&EventType::MouseClick),
+    ///     Some(Action::ConfirmSelection)
+    /// );
+    /// ```
+    pub fn get_action_for_event(&self, event: &EventType) -> Option<Action> {
+        self.event_actions
+            .get(event)
+            .and_then(|actions| actions.first().cloned())
+    }
+
+    /// Gets all actions for any input event.
+    ///
+    /// This is the primary method for querying actions in the new input system.
+    /// It handles all types of input events and returns a vector of all actions
+    /// that should be executed in response to the input.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The input event to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Vec<Action>)` - All actions bound to the input event
+    /// - `None` - No binding exists for this input
+    ///
+    /// # Supported Input Types
+    ///
+    /// - `InputEvent::Key` - Keyboard input
+    /// - `InputEvent::Mouse` - Mouse clicks and scrolling
+    /// - `InputEvent::Resize` - Terminal resize events
+    /// - `InputEvent::Custom` - Custom event types
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::event::{Key, InputEvent, MouseInputEvent};
+    /// use television::config::EventType;
+    /// use television::action::{Action, Actions};
+    /// use crossterm::event::MouseEventKind;
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.key_actions.insert(
+    ///     Key::Ctrl('s'),
+    ///     Actions::multiple(vec![Action::ReloadSource, Action::CopyEntryToClipboard])
+    /// );
+    ///
+    /// let key_input = InputEvent::Key(Key::Ctrl('s'));
+    /// let actions = input_map.get_actions_for_input(&key_input).unwrap();
+    /// assert_eq!(actions, vec![Action::ReloadSource, Action::CopyEntryToClipboard]);
+    /// ```
+    pub fn get_actions_for_input(
+        &self,
+        input: &InputEvent,
+    ) -> Option<Vec<Action>> {
+        match input {
+            InputEvent::Key(key) => self
+                .get_actions_for_key(key)
+                .map(|actions| actions.as_slice().to_vec()),
+            InputEvent::Mouse(mouse_event) => {
+                let event_type = match mouse_event.kind {
+                    MouseEventKind::Down(_) => EventType::MouseClick,
+                    MouseEventKind::ScrollUp => EventType::MouseScrollUp,
+                    MouseEventKind::ScrollDown => EventType::MouseScrollDown,
+                    _ => return None,
+                };
+                self.get_actions_for_event(&event_type)
+                    .map(|actions| actions.as_slice().to_vec())
+            }
+            _ => None,
+        }
+    }
+
+    /// Gets the first action for any input event (backward compatibility).
+    ///
+    /// This method provides backward compatibility with the old single-action
+    /// system. It handles all input types and returns only the first action
+    /// bound to the input. Use `get_actions_for_input()` to get all actions.
+    ///
+    /// # Arguments
+    ///
+    /// * `input` - The input event to look up
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Action)` - The first action bound to the input
+    /// - `None` - No binding exists for this input
+    ///
+    /// # Supported Input Types
+    ///
+    /// - `InputEvent::Key` - Returns first action for the key
+    /// - `InputEvent::Mouse` - Maps to appropriate event type and returns first action
+    /// - `InputEvent::Resize` - Returns first action for resize events
+    /// - `InputEvent::Custom` - Returns first action for the custom event
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::event::{Key, InputEvent};
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut input_map = InputMap::new();
+    /// input_map.key_actions.insert(
+    ///     Key::Enter,
+    ///     Actions::multiple(vec![Action::ConfirmSelection, Action::Quit])
+    /// );
+    ///
+    /// let key_input = InputEvent::Key(Key::Enter);
+    /// assert_eq!(
+    ///     input_map.get_action_for_input(&key_input),
+    ///     Some(Action::ConfirmSelection) // Only first action
+    /// );
+    /// ```
+    pub fn get_action_for_input(&self, input: &InputEvent) -> Option<Action> {
+        match input {
+            InputEvent::Key(key) => self.get_action_for_key(key),
+            InputEvent::Mouse(mouse_event) => {
+                let event_type = match mouse_event.kind {
+                    MouseEventKind::Down(_) => EventType::MouseClick,
+                    MouseEventKind::ScrollUp => EventType::MouseScrollUp,
+                    MouseEventKind::ScrollDown => EventType::MouseScrollDown,
+                    _ => return None,
+                };
+                self.get_action_for_event(&event_type)
+            }
+            InputEvent::Resize(_, _) => {
+                self.get_action_for_event(&EventType::Resize)
+            }
+            InputEvent::Custom(name) => {
+                self.get_action_for_event(&EventType::Custom(name.clone()))
             }
         }
-        Self(keymap)
     }
 }
 
-impl Keymap {
-    /// Merge another keymap into this one.
+impl From<&KeyBindings> for InputMap {
+    /// Converts `KeyBindings` into an `InputMap`.
     ///
-    /// This will overwrite any existing keys in `self` with the keys from `other`.
+    /// This conversion creates an input map containing only keyboard bindings.
+    /// The event bindings will be empty. Since the new `KeyBindings` structure
+    /// already stores Key → Actions mappings, we can directly copy the bindings
+    /// without the inversion that was needed in the old system.
     ///
-    /// # Example:
-    /// ```ignore
-    /// let mut keymap1 = Keymap::default();
-    /// keymap1.0.insert(Key::Char('a'), Action::SelectNextEntry);
+    /// # Arguments
     ///
-    /// let keymap2 = Keymap({
-    ///     let mut h = FxHashMap::default();
-    ///     h.insert(Key::Char('b'), Action::SelectPrevEntry);
-    ///     h.insert(Key::Char('a'), Action::Quit); // This will overwrite the previous 'a' action
-    ///     h
-    /// });
+    /// * `keybindings` - The key bindings to convert
     ///
-    /// keymap1.merge(&keymap2);
+    /// # Returns
     ///
-    /// assert_eq!(keymap1.0.get(&Key::Char('a')), Some(&Action::Quit));
-    /// assert_eq!(keymap1.0.get(&Key::Char('b')), Some(&Action::SelectPrevEntry));
+    /// An `InputMap` with the key bindings and empty event bindings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::KeyBindings;
+    /// use television::event::Key;
+    /// use television::action::Action;
+    ///
+    /// let keybindings = KeyBindings::from(vec![
+    ///     (Key::Enter, Action::ConfirmSelection),
+    ///     (Key::Esc, Action::Quit),
+    /// ]);
+    ///
+    /// let input_map: InputMap = (&keybindings).into();
+    /// assert_eq!(input_map.get_action_for_key(&Key::Enter), Some(Action::ConfirmSelection));
+    /// assert!(input_map.event_actions.is_empty());
     /// ```
-    pub fn merge(&mut self, other: &Keymap) {
-        for (key, action) in other.iter() {
-            self.0.insert(*key, action.clone());
+    fn from(keybindings: &KeyBindings) -> Self {
+        Self {
+            key_actions: keybindings.bindings.clone(),
+            event_actions: FxHashMap::default(),
+        }
+    }
+}
+
+impl From<&EventBindings> for InputMap {
+    /// Converts `EventBindings` into an `InputMap`.
+    ///
+    /// This conversion creates an input map containing only event bindings.
+    /// The key bindings will be empty. This is useful when you want to
+    /// handle only non-keyboard events.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_bindings` - The event bindings to convert
+    ///
+    /// # Returns
+    ///
+    /// An `InputMap` with the event bindings and empty key bindings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::{EventBindings, EventType};
+    /// use television::action::Action;
+    ///
+    /// let event_bindings = EventBindings::from(vec![
+    ///     (EventType::MouseClick, Action::ConfirmSelection),
+    ///     (EventType::Resize, Action::ClearScreen),
+    /// ]);
+    ///
+    /// let input_map: InputMap = (&event_bindings).into();
+    /// assert_eq!(
+    ///     input_map.get_action_for_event(&EventType::MouseClick),
+    ///     Some(Action::ConfirmSelection)
+    /// );
+    /// assert!(input_map.key_actions.is_empty());
+    /// ```
+    fn from(event_bindings: &EventBindings) -> Self {
+        Self {
+            key_actions: FxHashMap::default(),
+            event_actions: event_bindings.bindings.clone(),
+        }
+    }
+}
+
+impl From<(&KeyBindings, &EventBindings)> for InputMap {
+    /// Converts both `KeyBindings` and `EventBindings` into an `InputMap`.
+    ///
+    /// This conversion creates a complete input map with both keyboard and
+    /// event bindings. This is the most common way to create a fully
+    /// configured input map that handles all types of input events.
+    ///
+    /// # Arguments
+    ///
+    /// * `keybindings` - The keyboard bindings to include
+    /// * `event_bindings` - The event bindings to include
+    ///
+    /// # Returns
+    ///
+    /// An `InputMap` containing both key and event bindings.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::{KeyBindings, EventBindings, EventType};
+    /// use television::event::Key;
+    /// use television::action::Action;
+    ///
+    /// let keybindings = KeyBindings::from(vec![
+    ///     (Key::Enter, Action::ConfirmSelection),
+    /// ]);
+    /// let event_bindings = EventBindings::from(vec![
+    ///     (EventType::MouseClick, Action::ConfirmSelection),
+    /// ]);
+    ///
+    /// let input_map: InputMap = (&keybindings, &event_bindings).into();
+    /// assert_eq!(input_map.get_action_for_key(&Key::Enter), Some(Action::ConfirmSelection));
+    /// assert_eq!(
+    ///     input_map.get_action_for_event(&EventType::MouseClick),
+    ///     Some(Action::ConfirmSelection)
+    /// );
+    /// ```
+    fn from(
+        (keybindings, event_bindings): (&KeyBindings, &EventBindings),
+    ) -> Self {
+        Self {
+            key_actions: keybindings.bindings.clone(),
+            event_actions: event_bindings.bindings.clone(),
+        }
+    }
+}
+
+impl InputMap {
+    /// Merges another `InputMap` into this one.
+    ///
+    /// This method combines the bindings from another `InputMap` into this one,
+    /// with bindings from `other` taking precedence over existing bindings.
+    /// This is useful for applying configuration hierarchies and user customizations.
+    ///
+    /// # Arguments
+    ///
+    /// * `other` - The input map to merge into this one
+    ///
+    /// # Behavior
+    ///
+    /// - Existing keys/events in `self` are overwritten by those in `other`
+    /// - New keys/events from `other` are added to `self`
+    /// - Both key bindings and event bindings are merged
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::event::Key;
+    /// use television::action::{Action, Actions};
+    ///
+    /// let mut base_map = InputMap::new();
+    /// base_map.key_actions.insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+    ///
+    /// let mut custom_map = InputMap::new();
+    /// custom_map.key_actions.insert(Key::Enter, Actions::single(Action::Quit)); // Override
+    /// custom_map.key_actions.insert(Key::Esc, Actions::single(Action::Quit));   // New binding
+    ///
+    /// base_map.merge(&custom_map);
+    /// assert_eq!(base_map.get_action_for_key(&Key::Enter), Some(Action::Quit));
+    /// assert_eq!(base_map.get_action_for_key(&Key::Esc), Some(Action::Quit));
+    /// ```
+    pub fn merge(&mut self, other: &InputMap) {
+        for (key, action) in &other.key_actions {
+            self.key_actions.insert(*key, action.clone());
+        }
+        for (event, action) in &other.event_actions {
+            self.event_actions.insert(event.clone(), action.clone());
+        }
+    }
+
+    /// Merges key bindings into this `InputMap`.
+    ///
+    /// This method adds all key bindings from a `KeyBindings` configuration
+    /// into this input map, overwriting any existing bindings for the same keys.
+    ///
+    /// # Arguments
+    ///
+    /// * `keybindings` - The key bindings to merge
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::KeyBindings;
+    /// use television::event::Key;
+    /// use television::action::Action;
+    ///
+    /// let mut input_map = InputMap::new();
+    /// let keybindings = KeyBindings::from(vec![
+    ///     (Key::Enter, Action::ConfirmSelection),
+    ///     (Key::Esc, Action::Quit),
+    /// ]);
+    ///
+    /// input_map.merge_key_bindings(&keybindings);
+    /// assert_eq!(input_map.get_action_for_key(&Key::Enter), Some(Action::ConfirmSelection));
+    /// ```
+    pub fn merge_key_bindings(&mut self, keybindings: &KeyBindings) {
+        for (key, action) in &keybindings.bindings {
+            self.key_actions.insert(*key, action.clone());
+        }
+    }
+
+    /// Merges event bindings into this `InputMap`.
+    ///
+    /// This method adds all event bindings from an `EventBindings` configuration
+    /// into this input map, overwriting any existing bindings for the same events.
+    ///
+    /// # Arguments
+    ///
+    /// * `event_bindings` - The event bindings to merge
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use television::keymap::InputMap;
+    /// use television::config::{EventBindings, EventType};
+    /// use television::action::Action;
+    ///
+    /// let mut input_map = InputMap::new();
+    /// let event_bindings = EventBindings::from(vec![
+    ///     (EventType::MouseClick, Action::ConfirmSelection),
+    ///     (EventType::Resize, Action::ClearScreen),
+    /// ]);
+    ///
+    /// input_map.merge_event_bindings(&event_bindings);
+    /// assert_eq!(
+    ///     input_map.get_action_for_event(&EventType::MouseClick),
+    ///     Some(Action::ConfirmSelection)
+    /// );
+    /// ```
+    pub fn merge_event_bindings(&mut self, event_bindings: &EventBindings) {
+        for (event, action) in &event_bindings.bindings {
+            self.event_actions.insert(event.clone(), action.clone());
         }
     }
 }
@@ -82,55 +589,275 @@ impl Keymap {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::{Binding, KeyBindings};
-    use crate::event::Key;
+    use crate::config::{EventBindings, KeyBindings};
+    use crate::event::{Key, MouseInputEvent};
+    use crossterm::event::MouseEventKind;
 
     #[test]
-    fn test_keymap_from_keybindings() {
-        let keybindings = KeyBindings({
-            let mut h = FxHashMap::default();
-            for (action, binding) in &[
-                (Action::SelectNextEntry, Binding::SingleKey(Key::Char('j'))),
-                (Action::SelectPrevEntry, Binding::SingleKey(Key::Char('k'))),
-                (Action::Quit, Binding::SingleKey(Key::Char('q'))),
-            ] {
-                h.insert(action.clone(), binding.clone());
-            }
-            h
-        });
+    fn test_input_map_from_keybindings() {
+        let keybindings = KeyBindings::from(vec![
+            (Key::Char('j'), Action::SelectNextEntry),
+            (Key::Char('k'), Action::SelectPrevEntry),
+            (Key::Char('q'), Action::Quit),
+        ]);
 
-        let keymap: Keymap = (&keybindings).into();
+        let input_map: InputMap = (&keybindings).into();
         assert_eq!(
-            keymap.0.get(&Key::Char('j')),
-            Some(&Action::SelectNextEntry)
+            input_map.get_action_for_key(&Key::Char('j')),
+            Some(Action::SelectNextEntry)
         );
         assert_eq!(
-            keymap.0.get(&Key::Char('k')),
-            Some(&Action::SelectPrevEntry)
+            input_map.get_action_for_key(&Key::Char('k')),
+            Some(Action::SelectPrevEntry)
         );
-        assert_eq!(keymap.0.get(&Key::Char('q')), Some(&Action::Quit));
+        assert_eq!(
+            input_map.get_action_for_key(&Key::Char('q')),
+            Some(Action::Quit)
+        );
     }
 
     #[test]
-    fn test_keymap_merge_into() {
-        let mut keymap1 = Keymap(FxHashMap::default());
-        keymap1.0.insert(Key::Char('a'), Action::SelectNextEntry);
-        keymap1.0.insert(Key::Char('b'), Action::SelectPrevEntry);
+    fn test_input_map_from_event_bindings() {
+        let event_bindings = EventBindings::from(vec![
+            (EventType::MouseClick, Action::ConfirmSelection),
+            (EventType::Resize, Action::ClearScreen),
+        ]);
 
-        let keymap2 = Keymap({
-            let mut h = FxHashMap::default();
-            h.insert(Key::Char('c'), Action::Quit);
-            h.insert(Key::Char('a'), Action::Quit); // This should overwrite the
-            // previous 'a' action
-            h
+        let input_map: InputMap = (&event_bindings).into();
+        assert_eq!(
+            input_map.get_action_for_event(&EventType::MouseClick),
+            Some(Action::ConfirmSelection)
+        );
+        assert_eq!(
+            input_map.get_action_for_event(&EventType::Resize),
+            Some(Action::ClearScreen)
+        );
+    }
+
+    #[test]
+    fn test_input_map_get_action_for_input() {
+        let keybindings =
+            KeyBindings::from(vec![(Key::Char('j'), Action::SelectNextEntry)]);
+        let event_bindings = EventBindings::from(vec![(
+            EventType::MouseClick,
+            Action::ConfirmSelection,
+        )]);
+
+        let input_map: InputMap = (&keybindings, &event_bindings).into();
+
+        // Test key input
+        let key_input = InputEvent::Key(Key::Char('j'));
+        assert_eq!(
+            input_map.get_action_for_input(&key_input),
+            Some(Action::SelectNextEntry)
+        );
+
+        // Test mouse input
+        let mouse_input = InputEvent::Mouse(MouseInputEvent {
+            kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            position: (10, 10),
+        });
+        assert_eq!(
+            input_map.get_action_for_input(&mouse_input),
+            Some(Action::ConfirmSelection)
+        );
+    }
+
+    #[test]
+    fn test_input_map_merge() {
+        let mut input_map1 = InputMap::new();
+        input_map1
+            .key_actions
+            .insert(Key::Char('a'), Action::SelectNextEntry.into());
+        input_map1
+            .key_actions
+            .insert(Key::Char('b'), Action::SelectPrevEntry.into());
+
+        let mut input_map2 = InputMap::new();
+        input_map2
+            .key_actions
+            .insert(Key::Char('c'), Action::Quit.into());
+        input_map2
+            .key_actions
+            .insert(Key::Char('a'), Action::Quit.into()); // This should overwrite
+        input_map2
+            .event_actions
+            .insert(EventType::MouseClick, Action::ConfirmSelection.into());
+
+        input_map1.merge(&input_map2);
+        assert_eq!(
+            input_map1.get_action_for_key(&Key::Char('a')),
+            Some(Action::Quit)
+        );
+        assert_eq!(
+            input_map1.get_action_for_key(&Key::Char('b')),
+            Some(Action::SelectPrevEntry)
+        );
+        assert_eq!(
+            input_map1.get_action_for_key(&Key::Char('c')),
+            Some(Action::Quit)
+        );
+        assert_eq!(
+            input_map1.get_action_for_event(&EventType::MouseClick),
+            Some(Action::ConfirmSelection)
+        );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_per_key() {
+        let mut key_actions = FxHashMap::default();
+        key_actions.insert(
+            Key::Ctrl('s'),
+            Actions::multiple(vec![
+                Action::ReloadSource,
+                Action::CopyEntryToClipboard,
+            ]),
+        );
+        key_actions.insert(Key::Esc, Actions::single(Action::Quit));
+
+        let input_map = InputMap {
+            key_actions,
+            event_actions: FxHashMap::default(),
+        };
+
+        // Test getting all actions for multiple action binding
+        let ctrl_s_actions =
+            input_map.get_actions_for_key(&Key::Ctrl('s')).unwrap();
+        assert_eq!(
+            ctrl_s_actions.as_slice(),
+            &[Action::ReloadSource, Action::CopyEntryToClipboard]
+        );
+
+        // Test backward compatibility method returns first action
+        assert_eq!(
+            input_map.get_action_for_key(&Key::Ctrl('s')),
+            Some(Action::ReloadSource)
+        );
+
+        // Test single action still works
+        assert_eq!(
+            input_map.get_action_for_key(&Key::Esc),
+            Some(Action::Quit)
+        );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_for_input_event() {
+        let mut input_map = InputMap::new();
+        input_map.key_actions.insert(
+            Key::Char('j'),
+            Actions::multiple(vec![
+                Action::SelectNextEntry,
+                Action::ScrollPreviewDown,
+            ]),
+        );
+
+        let key_input = InputEvent::Key(Key::Char('j'));
+        let actions = input_map.get_actions_for_input(&key_input).unwrap();
+
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0], Action::SelectNextEntry);
+        assert_eq!(actions[1], Action::ScrollPreviewDown);
+
+        // Test backward compatibility returns first action
+        assert_eq!(
+            input_map.get_action_for_input(&key_input),
+            Some(Action::SelectNextEntry)
+        );
+    }
+
+    #[test]
+    fn test_input_map_multiple_actions_for_events() {
+        let mut event_actions = FxHashMap::default();
+        event_actions.insert(
+            EventType::MouseClick,
+            Actions::multiple(vec![
+                Action::ConfirmSelection,
+                Action::TogglePreview,
+            ]),
+        );
+
+        let input_map = InputMap {
+            key_actions: FxHashMap::default(),
+            event_actions,
+        };
+
+        // Test mouse input with multiple actions
+        let mouse_input = InputEvent::Mouse(MouseInputEvent {
+            kind: MouseEventKind::Down(crossterm::event::MouseButton::Left),
+            position: (10, 10),
         });
 
-        keymap1.merge(&keymap2);
-        assert_eq!(keymap1.0.get(&Key::Char('a')), Some(&Action::Quit));
+        let actions = input_map.get_actions_for_input(&mouse_input).unwrap();
+        assert_eq!(actions.len(), 2);
+        assert_eq!(actions[0], Action::ConfirmSelection);
+        assert_eq!(actions[1], Action::TogglePreview);
+
+        // Test backward compatibility returns first action
         assert_eq!(
-            keymap1.0.get(&Key::Char('b')),
-            Some(&Action::SelectPrevEntry)
+            input_map.get_action_for_input(&mouse_input),
+            Some(Action::ConfirmSelection)
         );
-        assert_eq!(keymap1.0.get(&Key::Char('c')), Some(&Action::Quit));
+    }
+
+    #[test]
+    fn test_input_map_merge_multiple_actions() {
+        let mut input_map1 = InputMap::new();
+        input_map1
+            .key_actions
+            .insert(Key::Char('a'), Actions::single(Action::SelectNextEntry));
+
+        let mut input_map2 = InputMap::new();
+        input_map2.key_actions.insert(
+            Key::Char('a'),
+            Actions::multiple(vec![Action::ReloadSource, Action::Quit]), // This should overwrite
+        );
+        input_map2.key_actions.insert(
+            Key::Char('b'),
+            Actions::multiple(vec![Action::TogglePreview, Action::ToggleHelp]),
+        );
+
+        input_map1.merge(&input_map2);
+
+        // Verify the multiple actions overwrite worked
+        let actions_a =
+            input_map1.get_actions_for_key(&Key::Char('a')).unwrap();
+        assert_eq!(
+            actions_a.as_slice(),
+            &[Action::ReloadSource, Action::Quit]
+        );
+
+        // Verify the new multiple actions were added
+        let actions_b =
+            input_map1.get_actions_for_key(&Key::Char('b')).unwrap();
+        assert_eq!(
+            actions_b.as_slice(),
+            &[Action::TogglePreview, Action::ToggleHelp]
+        );
+    }
+
+    #[test]
+    fn test_input_map_from_keybindings_with_multiple_actions() {
+        let mut bindings = FxHashMap::default();
+        bindings.insert(
+            Key::Ctrl('r'),
+            Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen]),
+        );
+        bindings.insert(Key::Esc, Actions::single(Action::Quit));
+
+        let keybindings = KeyBindings { bindings };
+        let input_map: InputMap = (&keybindings).into();
+
+        // Test multiple actions are preserved
+        let ctrl_r_actions =
+            input_map.get_actions_for_key(&Key::Ctrl('r')).unwrap();
+        assert_eq!(
+            ctrl_r_actions.as_slice(),
+            &[Action::ReloadSource, Action::ClearScreen]
+        );
+
+        // Test single actions still work
+        let esc_actions = input_map.get_actions_for_key(&Key::Esc).unwrap();
+        assert_eq!(esc_actions.as_slice(), &[Action::Quit]);
     }
 }

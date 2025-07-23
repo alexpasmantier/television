@@ -3,15 +3,14 @@ use crate::{
     cable::Cable,
     channels::{entry::Entry, prototypes::ChannelPrototype},
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
-    event::{Event, EventLoop, Key},
+    event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
     history::History,
-    keymap::Keymap,
+    keymap::InputMap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
     tui::{IoStream, Tui, TuiMode},
 };
 use anyhow::Result;
-use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
@@ -101,7 +100,7 @@ impl AppOptions {
 
 /// The main application struct that holds the state of the application.
 pub struct App {
-    keymap: Keymap,
+    input_map: InputMap,
     /// The television instance that handles channels and entries.
     pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
@@ -201,9 +200,12 @@ impl App {
             cable_channels,
         );
 
-        // Create keymap from the merged config that includes channel prototype keybindings
-        let keymap = Keymap::from(&television.config.keybindings);
-        debug!("{:?}", keymap);
+        // Create input map from the merged config that includes both key and event bindings
+        let input_map = InputMap::from((
+            &television.config.keybindings,
+            &television.config.events,
+        ));
+        debug!("{:?}", input_map);
 
         let mut history = History::new(
             television.config.application.history_size,
@@ -216,7 +218,7 @@ impl App {
         }
 
         let mut app = Self {
-            keymap,
+            input_map,
             television,
             should_quit: false,
             should_suspend: false,
@@ -234,9 +236,9 @@ impl App {
             history,
         };
 
-        // populate keymap by going through all cable channels and adding their shortcuts if remote
+        // populate input_map by going through all cable channels and adding their shortcuts if remote
         // control is present
-        app.update_keymap();
+        app.update_input_map();
 
         app
     }
@@ -291,21 +293,26 @@ impl App {
         self.start_watch_timer();
     }
 
-    /// Update the keymap from the television's current config.
+    /// Update the `input_map` from the television's current config.
     ///
-    /// This should be called whenever the channel changes to ensure the keymap includes the
+    /// This should be called whenever the channel changes to ensure the `input_map` includes the
     /// channel's keybindings and shortcuts for all other channels if the remote control is
     /// enabled.
-    fn update_keymap(&mut self) {
-        let mut keymap = Keymap::from(&self.television.config.keybindings);
+    fn update_input_map(&mut self) {
+        let mut input_map = InputMap::from((
+            &self.television.config.keybindings,
+            &self.television.config.events,
+        ));
 
         // Add channel specific shortcuts
         if let Some(rc) = &self.television.remote_control {
-            keymap.merge(&rc.cable_channels.shortcut_keymap());
+            let shortcut_keybindings =
+                rc.cable_channels.get_channels_shortcut_keybindings();
+            input_map.merge_key_bindings(&shortcut_keybindings);
         }
 
-        self.keymap = keymap;
-        debug!("Updated keymap (with shortcuts): {:?}", self.keymap);
+        self.input_map = input_map;
+        debug!("Updated input_map (with shortcuts): {:?}", self.input_map);
     }
 
     /// Updates the history configuration to match the current channel.
@@ -405,7 +412,8 @@ impl App {
                 > 0
             {
                 for event in event_buf.drain(..) {
-                    if let Some(action) = self.convert_event_to_action(event) {
+                    let actions = self.convert_event_to_actions(event);
+                    for action in actions {
                         if action != Action::Tick {
                             debug!("Queuing new action: {action:?}");
                         }
@@ -474,79 +482,63 @@ impl App {
     /// mode the television is in.
     ///
     /// # Arguments
-    /// * `event` - The event to convert to an action.
+    /// * `event` - The event to convert to actions.
     ///
     /// # Returns
-    /// The action that corresponds to the given event.
-    fn convert_event_to_action(&self, event: Event<Key>) -> Option<Action> {
-        let action = match event {
+    /// A vector of actions that correspond to the given event. Multiple actions
+    /// will be returned for keys/events bound to action sequences.
+    fn convert_event_to_actions(&self, event: Event<Key>) -> Vec<Action> {
+        let actions = match event {
             Event::Input(keycode) => {
-                // get action based on keybindings
-                if let Some(action) = self.keymap.get(&keycode) {
-                    debug!("Keybinding found: {action:?}");
-                    action.clone()
+                // First try to get actions based on keybindings
+                if let Some(actions) =
+                    self.input_map.get_actions_for_key(&keycode)
+                {
+                    let actions_vec = actions.as_slice().to_vec();
+                    debug!("Keybinding found: {actions_vec:?}");
+                    actions_vec
                 } else {
-                    // text input events
+                    // fallback to text input events
                     match keycode {
-                        Key::Backspace => Action::DeletePrevChar,
-                        Key::Ctrl('w') => Action::DeletePrevWord,
-                        Key::Ctrl('u') => Action::DeleteLine,
-                        Key::Delete => Action::DeleteNextChar,
-                        Key::Left => Action::GoToPrevChar,
-                        Key::Right => Action::GoToNextChar,
-                        Key::Home | Key::Ctrl('a') => Action::GoToInputStart,
-                        Key::End | Key::Ctrl('e') => Action::GoToInputEnd,
-                        Key::Char(c) => Action::AddInputChar(c),
-                        _ => Action::NoOp,
+                        Key::Char(c) => vec![Action::AddInputChar(c)],
+                        _ => vec![Action::NoOp],
                     }
                 }
             }
             Event::Mouse(mouse_event) => {
-                // Handle mouse scroll events for preview panel, if keybindings are configured
-                // Only works in channel mode, regardless of mouse position
+                // Convert mouse event to InputEvent and use the input_map
                 if self.television.mode == Mode::Channel {
-                    match mouse_event.kind {
-                        MouseEventKind::ScrollUp => {
-                            if let Some(action) =
-                                self.keymap.get(&Key::MouseScrollUp)
-                            {
-                                action.clone()
-                            } else {
-                                Action::NoOp
-                            }
-                        }
-                        MouseEventKind::ScrollDown => {
-                            if let Some(action) =
-                                self.keymap.get(&Key::MouseScrollDown)
-                            {
-                                action.clone()
-                            } else {
-                                Action::NoOp
-                            }
-                        }
-                        _ => Action::NoOp,
-                    }
+                    let input_event = InputEvent::Mouse(MouseInputEvent {
+                        kind: mouse_event.kind,
+                        position: (mouse_event.column, mouse_event.row),
+                    });
+                    self.input_map
+                        .get_actions_for_input(&input_event)
+                        .unwrap_or_else(|| vec![Action::NoOp])
                 } else {
-                    Action::NoOp
+                    vec![Action::NoOp]
                 }
             }
             // terminal events
-            Event::Tick => Action::Tick,
-            Event::Resize(x, y) => Action::Resize(x, y),
-            Event::FocusGained => Action::Resume,
-            Event::FocusLost => Action::Suspend,
-            Event::Closed => Action::NoOp,
+            Event::Tick => vec![Action::Tick],
+            Event::Resize(x, y) => vec![Action::Resize(x, y)],
+            Event::FocusGained => vec![Action::Resume],
+            Event::FocusLost => vec![Action::Suspend],
+            Event::Closed => vec![Action::NoOp],
         };
 
-        if action != Action::Tick {
-            trace!("Converted {event:?} to action: {action:?}");
+        // Filter out Tick actions for logging
+        let non_tick_actions: Vec<&Action> =
+            actions.iter().filter(|a| **a != Action::Tick).collect();
+        if !non_tick_actions.is_empty() {
+            trace!("Converted {event:?} to actions: {non_tick_actions:?}");
         }
 
-        if action == Action::NoOp {
-            None
-        } else {
-            Some(action)
-        }
+        // Filter out NoOp actions
+        actions
+            .into_iter()
+            .filter(|action| *action != Action::NoOp)
+            .collect()
     }
 
     /// Handle actions.
@@ -664,12 +656,12 @@ impl App {
                     && matches!(action, Action::ConfirmSelection)
                     && self.television.mode == Mode::Channel
                 {
-                    self.update_keymap();
+                    self.update_input_map();
                     self.update_history();
                     self.restart_watch_timer();
                 } else if matches!(action, Action::SwitchToChannel(_)) {
                     // Channel changed via shortcut, refresh keymap and watch timer
-                    self.update_keymap();
+                    self.update_input_map();
                     self.update_history();
                     self.restart_watch_timer();
                 }

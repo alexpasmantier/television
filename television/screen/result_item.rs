@@ -1,5 +1,5 @@
 use crate::{
-    config::Binding,
+    event::Key,
     screen::{
         colors::ResultsColorscheme,
         constants::{DESELECTED_SYMBOL, POINTER_SYMBOL, SELECTED_SYMBOL},
@@ -40,7 +40,7 @@ pub trait ResultItem {
     }
 
     /// Optional shortcut binding shown after the name (remote-control entries).
-    fn shortcut(&self) -> Option<&Binding> {
+    fn shortcut(&self) -> Option<&Key> {
         None
     }
 
@@ -82,13 +82,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
 
     let shortcut_extra: u16 = item
         .shortcut()
-        .map(|b| match b {
-            Binding::SingleKey(k) => 2 + k.to_string().len() as u16, // space + key
-            Binding::MultipleKeys(keys) => keys
-                .iter()
-                .map(|k| 1 + k.to_string().len() as u16) // space + key
-                .sum(),
-        })
+        .map(|k| 2 + k.to_string().len() as u16) // space + key
         .unwrap_or(0);
 
     let item_max_width = area_width
@@ -126,25 +120,12 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     }
 
     // Show shortcut if present.
-    if let Some(binding) = item.shortcut() {
+    if let Some(key) = item.shortcut() {
         spans.push(Span::raw(" "));
-        match binding {
-            Binding::SingleKey(k) => spans.push(Span::styled(
-                k.to_string(),
-                Style::default().fg(match_fg),
-            )),
-            Binding::MultipleKeys(keys) => {
-                for (i, k) in keys.iter().enumerate() {
-                    if i > 0 {
-                        spans.push(Span::raw(" "));
-                    }
-                    spans.push(Span::styled(
-                        k.to_string(),
-                        Style::default().fg(match_fg),
-                    ));
-                }
-            }
-        }
+        spans.push(Span::styled(
+            key.to_string(),
+            Style::default().fg(match_fg),
+        ));
     }
 
     Line::from(spans)

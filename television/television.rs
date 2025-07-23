@@ -20,6 +20,7 @@ use crate::{
     render::UiState,
     screen::{
         colors::Colorscheme,
+        keybindings::remove_action_bindings,
         layout::InputPosition,
         spinner::{Spinner, SpinnerState},
     },
@@ -238,7 +239,10 @@ impl Television {
         // of flags that Television manages directly
         if no_preview {
             config.ui.features.disable(FeatureFlags::PreviewPanel);
-            config.keybindings.remove(&Action::TogglePreview);
+            remove_action_bindings(
+                &mut config.keybindings,
+                &Action::TogglePreview.into(),
+            );
         }
 
         // Apply preview size regardless of preview state
@@ -916,7 +920,6 @@ mod test {
     use crate::{
         action::Action,
         cable::Cable,
-        config::Binding,
         event::Key,
         television::{MatchingMode, Television},
     };
@@ -963,10 +966,9 @@ mod test {
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_channel_keybindings_take_precedence() {
         let mut config = crate::config::Config::default();
-        config.keybindings.insert(
-            Action::SelectNextEntry,
-            Binding::SingleKey(Key::Ctrl('n')),
-        );
+        config
+            .keybindings
+            .insert(Key::Ctrl('n'), Action::SelectNextEntry.into());
 
         let prototype =
             toml::from_str::<crate::channels::prototypes::ChannelPrototype>(
@@ -978,7 +980,7 @@ mod test {
             command = "echo 1"
 
             [keybindings]
-            select_next_entry = "ctrl-j"
+            ctrl-j = "select_next_entry"
             "#,
             )
             .unwrap();
@@ -996,8 +998,8 @@ mod test {
         );
 
         assert_eq!(
-            tv.config.keybindings.get(&Action::SelectNextEntry),
-            Some(&Binding::SingleKey(Key::Ctrl('j')))
+            tv.config.keybindings.get(&Key::Ctrl('j')),
+            Some(&Action::SelectNextEntry.into()),
         );
     }
 }
