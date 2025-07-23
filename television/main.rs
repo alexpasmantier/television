@@ -18,7 +18,7 @@ use television::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels,
     },
-    config::{Config, ConfigEnv, merge_keybindings},
+    config::{Config, ConfigEnv, merge_bindings},
     errors::os_error_exit,
     features::FeatureFlags,
     gh::update_local_channels,
@@ -207,7 +207,7 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
 
     if let Some(keybindings) = &args.keybindings {
         config.keybindings =
-            merge_keybindings(config.keybindings.clone(), keybindings);
+            merge_bindings(config.keybindings.clone(), keybindings);
     }
     config.ui.ui_scale = args.ui_scale.unwrap_or(config.ui.ui_scale);
     if let Some(input_header) = &args.input_header {

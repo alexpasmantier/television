@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
+use std::str::FromStr;
 
 // Legacy binding structure for backward compatibility with shell integration
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
@@ -32,20 +33,39 @@ impl Display for Binding {
     }
 }
 
+/// Generic bindings structure that can map any key type to actions
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Bindings<K>
+where
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
+{
+    #[serde(
+        flatten,
+        serialize_with = "serialize_bindings",
+        deserialize_with = "deserialize_bindings"
+    )]
+    pub bindings: FxHashMap<K, Actions>,
+}
+
+impl<K> Bindings<K>
+where
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
+{
+    pub fn new() -> Self {
+        Bindings {
+            bindings: FxHashMap::default(),
+        }
+    }
+}
+
 /// A set of keybindings that maps keys directly to actions.
 ///
 /// This struct represents the new architecture where keybindings are structured as
 /// Key -> Action mappings in the configuration file. This eliminates the need for
 /// runtime inversion and provides better discoverability.
-pub struct KeyBindings {
-    #[serde(
-        flatten,
-        serialize_with = "serialize_key_bindings",
-        deserialize_with = "deserialize_key_bindings"
-    )]
-    pub bindings: FxHashMap<Key, Actions>,
-}
+pub type KeyBindings = Bindings<Key>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
 #[serde(rename_all = "kebab-case")]
@@ -58,19 +78,27 @@ pub enum EventType {
     Custom(String),
 }
 
+impl FromStr for EventType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(match s {
+            "mouse-click" => EventType::MouseClick,
+            "mouse-scroll-up" => EventType::MouseScrollUp,
+            "mouse-scroll-down" => EventType::MouseScrollDown,
+            "resize" => EventType::Resize,
+            custom => EventType::Custom(custom.to_string()),
+        })
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for EventType {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let s = String::deserialize(deserializer)?;
-        match s.as_str() {
-            "mouse-click" => Ok(EventType::MouseClick),
-            "mouse-scroll-up" => Ok(EventType::MouseScrollUp),
-            "mouse-scroll-down" => Ok(EventType::MouseScrollDown),
-            "resize" => Ok(EventType::Resize),
-            custom => Ok(EventType::Custom(custom.to_string())),
-        }
+        Ok(EventType::from_str(&s).unwrap())
     }
 }
 
@@ -86,23 +114,17 @@ impl Display for EventType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 /// A set of event bindings that maps events to actions.
-pub struct EventBindings {
-    #[serde(
-        flatten,
-        serialize_with = "serialize_event_bindings",
-        deserialize_with = "deserialize_event_bindings"
-    )]
-    pub bindings: FxHashMap<EventType, Actions>,
-}
+pub type EventBindings = Bindings<EventType>;
 
-impl<I> From<I> for KeyBindings
+impl<K, I> From<I> for Bindings<K>
 where
-    I: IntoIterator<Item = (Key, Action)>,
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
+    I: IntoIterator<Item = (K, Action)>,
 {
     fn from(iter: I) -> Self {
-        KeyBindings {
+        Bindings {
             bindings: iter
                 .into_iter()
                 .map(|(k, a)| (k, Actions::from(a)))
@@ -111,21 +133,11 @@ where
     }
 }
 
-impl<I> From<I> for EventBindings
+impl<K> Hash for Bindings<K>
 where
-    I: IntoIterator<Item = (EventType, Action)>,
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
 {
-    fn from(iter: I) -> Self {
-        EventBindings {
-            bindings: iter
-                .into_iter()
-                .map(|(e, a)| (e, Actions::from(a)))
-                .collect(),
-        }
-    }
-}
-
-impl Hash for KeyBindings {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         // Hash based on the bindings map
         for (key, actions) in &self.bindings {
@@ -135,71 +147,43 @@ impl Hash for KeyBindings {
     }
 }
 
-impl Hash for EventBindings {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        // Hash based on the bindings map
-        for (event, actions) in &self.bindings {
-            event.hash(state);
-            actions.hash(state);
-        }
-    }
-}
-
-impl Deref for KeyBindings {
-    type Target = FxHashMap<Key, Actions>;
+impl<K> Deref for Bindings<K>
+where
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
+{
+    type Target = FxHashMap<K, Actions>;
     fn deref(&self) -> &Self::Target {
         &self.bindings
     }
 }
 
-impl DerefMut for KeyBindings {
+impl<K> DerefMut for Bindings<K>
+where
+    K: Display + FromStr + Eq + Hash,
+    K::Err: Display,
+{
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.bindings
     }
 }
 
-impl Deref for EventBindings {
-    type Target = FxHashMap<EventType, Actions>;
-    fn deref(&self) -> &Self::Target {
-        &self.bindings
+/// Generic merge function for bindings
+pub fn merge_bindings<K>(
+    mut bindings: Bindings<K>,
+    new_bindings: &Bindings<K>,
+) -> Bindings<K>
+where
+    K: Display + FromStr + Clone + Eq + Hash,
+    K::Err: Display,
+{
+    for (key, actions) in &new_bindings.bindings {
+        bindings.bindings.insert(key.clone(), actions.clone());
     }
+    bindings
 }
 
-impl DerefMut for EventBindings {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.bindings
-    }
-}
-
-/// Merge two sets of keybindings together.
-///
-/// The new keybindings will overwrite any existing ones for the same keys.
-pub fn merge_keybindings(
-    mut keybindings: KeyBindings,
-    new_keybindings: &KeyBindings,
-) -> KeyBindings {
-    for (key, actions) in &new_keybindings.bindings {
-        keybindings.bindings.insert(*key, actions.clone());
-    }
-    keybindings
-}
-
-/// Merge two sets of event bindings together.
-///
-/// The new event bindings will overwrite any existing ones for the same event types.
-pub fn merge_event_bindings(
-    mut event_bindings: EventBindings,
-    new_event_bindings: &EventBindings,
-) -> EventBindings {
-    for (event_type, actions) in &new_event_bindings.bindings {
-        event_bindings
-            .bindings
-            .insert(event_type.clone(), actions.clone());
-    }
-    event_bindings
-}
-
-impl Default for KeyBindings {
+impl Default for Bindings<Key> {
     fn default() -> Self {
         let mut bindings = FxHashMap::default();
 
@@ -252,11 +236,11 @@ impl Default for KeyBindings {
         bindings.insert(Key::End, Action::GoToInputEnd.into());
         bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd.into());
 
-        Self { bindings }
+        Bindings { bindings }
     }
 }
 
-impl Default for EventBindings {
+impl Default for Bindings<EventType> {
     fn default() -> Self {
         let mut bindings = FxHashMap::default();
 
@@ -268,7 +252,7 @@ impl Default for EventBindings {
             Action::ScrollPreviewDown.into(),
         );
 
-        Self { bindings }
+        Bindings { bindings }
     }
 }
 
@@ -318,48 +302,62 @@ fn parse_key_code_with_modifiers(
     raw: &str,
     mut modifiers: KeyModifiers,
 ) -> anyhow::Result<KeyEvent, String> {
-    let c = match raw {
-        "esc" => KeyCode::Esc,
-        "enter" => KeyCode::Enter,
-        "left" => KeyCode::Left,
-        "right" => KeyCode::Right,
-        "up" => KeyCode::Up,
-        "down" => KeyCode::Down,
-        "home" => KeyCode::Home,
-        "end" => KeyCode::End,
-        "pageup" => KeyCode::PageUp,
-        "pagedown" => KeyCode::PageDown,
-        "backtab" => {
-            modifiers.insert(KeyModifiers::SHIFT);
-            KeyCode::BackTab
+    use rustc_hash::FxHashMap;
+    use std::sync::LazyLock;
+
+    static KEY_CODE_MAP: LazyLock<FxHashMap<&'static str, KeyCode>> =
+        LazyLock::new(|| {
+            [
+                ("esc", KeyCode::Esc),
+                ("enter", KeyCode::Enter),
+                ("left", KeyCode::Left),
+                ("right", KeyCode::Right),
+                ("up", KeyCode::Up),
+                ("down", KeyCode::Down),
+                ("home", KeyCode::Home),
+                ("end", KeyCode::End),
+                ("pageup", KeyCode::PageUp),
+                ("pagedown", KeyCode::PageDown),
+                ("backspace", KeyCode::Backspace),
+                ("delete", KeyCode::Delete),
+                ("insert", KeyCode::Insert),
+                ("f1", KeyCode::F(1)),
+                ("f2", KeyCode::F(2)),
+                ("f3", KeyCode::F(3)),
+                ("f4", KeyCode::F(4)),
+                ("f5", KeyCode::F(5)),
+                ("f6", KeyCode::F(6)),
+                ("f7", KeyCode::F(7)),
+                ("f8", KeyCode::F(8)),
+                ("f9", KeyCode::F(9)),
+                ("f10", KeyCode::F(10)),
+                ("f11", KeyCode::F(11)),
+                ("f12", KeyCode::F(12)),
+                ("space", KeyCode::Char(' ')),
+                (" ", KeyCode::Char(' ')),
+                ("hyphen", KeyCode::Char('-')),
+                ("minus", KeyCode::Char('-')),
+                ("tab", KeyCode::Tab),
+            ]
+            .into_iter()
+            .collect()
+        });
+
+    let c = if let Some(&key_code) = KEY_CODE_MAP.get(raw) {
+        key_code
+    } else if raw == "backtab" {
+        modifiers.insert(KeyModifiers::SHIFT);
+        KeyCode::BackTab
+    } else if raw.len() == 1 {
+        let mut c = raw.chars().next().unwrap();
+        if modifiers.contains(KeyModifiers::SHIFT) {
+            c = c.to_ascii_uppercase();
         }
-        "backspace" => KeyCode::Backspace,
-        "delete" => KeyCode::Delete,
-        "insert" => KeyCode::Insert,
-        "f1" => KeyCode::F(1),
-        "f2" => KeyCode::F(2),
-        "f3" => KeyCode::F(3),
-        "f4" => KeyCode::F(4),
-        "f5" => KeyCode::F(5),
-        "f6" => KeyCode::F(6),
-        "f7" => KeyCode::F(7),
-        "f8" => KeyCode::F(8),
-        "f9" => KeyCode::F(9),
-        "f10" => KeyCode::F(10),
-        "f11" => KeyCode::F(11),
-        "f12" => KeyCode::F(12),
-        "space" | " " => KeyCode::Char(' '),
-        "hyphen" | "minus" => KeyCode::Char('-'),
-        "tab" => KeyCode::Tab,
-        c if c.len() == 1 => {
-            let mut c = c.chars().next().unwrap();
-            if modifiers.contains(KeyModifiers::SHIFT) {
-                c = c.to_ascii_uppercase();
-            }
-            KeyCode::Char(c)
-        }
-        _ => return Err(format!("Unable to parse {raw}")),
+        KeyCode::Char(c)
+    } else {
+        return Err(format!("Unable to parse {raw}"));
     };
+
     Ok(KeyEvent::new(c, modifiers))
 }
 
@@ -437,29 +435,38 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     key
 }
 
-pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
-    if raw.chars().filter(|c| *c == '>').count()
-        != raw.chars().filter(|c| *c == '<').count()
-    {
-        return Err(format!("Unable to parse `{raw}`"));
-    }
-    let raw = if raw.contains("><") {
-        raw
-    } else {
-        let raw = raw.strip_prefix('<').unwrap_or(raw);
-        raw.strip_suffix('>').unwrap_or(raw)
-    };
+impl FromStr for Key {
+    type Err = String;
 
-    let key_event = parse_key_event(raw)?;
-    Ok(convert_raw_event_to_key(key_event))
+    fn from_str(raw: &str) -> Result<Self, Self::Err> {
+        if raw.chars().filter(|c| *c == '>').count()
+            != raw.chars().filter(|c| *c == '<').count()
+        {
+            return Err(format!("Unable to parse `{raw}`"));
+        }
+        let raw = if raw.contains("><") {
+            raw
+        } else {
+            let raw = raw.strip_prefix('<').unwrap_or(raw);
+            raw.strip_suffix('>').unwrap_or(raw)
+        };
+
+        let key_event = parse_key_event(raw)?;
+        Ok(convert_raw_event_to_key(key_event))
+    }
 }
 
-/// Custom serializer for `KeyBindings` that converts `Key` enum to string for TOML compatibility
-fn serialize_key_bindings<S>(
-    bindings: &FxHashMap<Key, Actions>,
+pub fn parse_key(raw: &str) -> anyhow::Result<Key, String> {
+    Key::from_str(raw)
+}
+
+/// Generic serializer that converts any key type to string for TOML compatibility
+fn serialize_bindings<K, S>(
+    bindings: &FxHashMap<K, Actions>,
     serializer: S,
 ) -> Result<S::Ok, S::Error>
 where
+    K: Display,
     S: serde::Serializer,
 {
     use serde::ser::SerializeMap;
@@ -470,20 +477,26 @@ where
     map.end()
 }
 
-/// Custom deserializer for `KeyBindings` that parses string keys back to `Key` enum
-fn deserialize_key_bindings<'de, D>(
+/// Generic deserializer that parses string keys back to key enum
+fn deserialize_bindings<'de, K, D>(
     deserializer: D,
-) -> Result<FxHashMap<Key, Actions>, D::Error>
+) -> Result<FxHashMap<K, Actions>, D::Error>
 where
+    K: FromStr + Eq + std::hash::Hash,
+    K::Err: std::fmt::Display,
     D: serde::Deserializer<'de>,
 {
     use serde::de::{MapAccess, Visitor};
     use std::fmt;
 
-    struct KeyBindingsVisitor;
+    struct BindingsVisitor<K>(std::marker::PhantomData<K>);
 
-    impl<'de> Visitor<'de> for KeyBindingsVisitor {
-        type Value = FxHashMap<Key, Actions>;
+    impl<'de, K> Visitor<'de> for BindingsVisitor<K>
+    where
+        K: FromStr + Eq + std::hash::Hash,
+        K::Err: std::fmt::Display,
+    {
+        type Value = FxHashMap<K, Actions>;
 
         fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
             formatter
@@ -501,11 +514,11 @@ where
             while let Some((key_str, raw_value)) =
                 map.next_entry::<String, Value>()?
             {
-                let key = parse_key(&key_str).map_err(Error::custom)?;
+                let key = K::from_str(&key_str).map_err(Error::custom)?;
 
                 match raw_value {
                     Value::Boolean(false) => {
-                        // Explicitly unbind key
+                        // Explicitly unbind key/event
                         bindings.insert(key, Action::NoOp.into());
                     }
                     Value::Boolean(true) => {
@@ -523,75 +536,7 @@ where
         }
     }
 
-    deserializer.deserialize_map(KeyBindingsVisitor)
-}
-
-/// Custom serializer for `EventBindings` that converts `EventType` enum to string for TOML compatibility
-fn serialize_event_bindings<S>(
-    bindings: &FxHashMap<EventType, Actions>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    use serde::ser::SerializeMap;
-    let mut map = serializer.serialize_map(Some(bindings.len()))?;
-    for (event_type, actions) in bindings {
-        map.serialize_entry(&event_type.to_string(), actions)?;
-    }
-    map.end()
-}
-
-/// Custom deserializer for `EventBindings` that parses string keys back to `EventType` enum
-fn deserialize_event_bindings<'de, D>(
-    deserializer: D,
-) -> Result<FxHashMap<EventType, Actions>, D::Error>
-where
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::{MapAccess, Visitor};
-    use std::fmt;
-
-    struct EventBindingsVisitor;
-
-    impl<'de> Visitor<'de> for EventBindingsVisitor {
-        type Value = FxHashMap<EventType, Actions>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter
-                .write_str("a map with string keys and action/actions values")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: MapAccess<'de>,
-        {
-            use serde::de::Error;
-            use toml::Value;
-
-            let mut bindings = FxHashMap::default();
-            while let Some((event_str, raw_value)) =
-                map.next_entry::<String, Value>()?
-            {
-                // Parse the event string back to EventType
-                let event_type = match event_str.as_str() {
-                    "mouse-click" => EventType::MouseClick,
-                    "mouse-scroll-up" => EventType::MouseScrollUp,
-                    "mouse-scroll-down" => EventType::MouseScrollDown,
-                    "resize" => EventType::Resize,
-                    custom => EventType::Custom(custom.to_string()),
-                };
-
-                // Try to deserialize as Actions (handles both single and multiple)
-                let actions =
-                    Actions::deserialize(raw_value).map_err(Error::custom)?;
-                bindings.insert(event_type, actions);
-            }
-            Ok(bindings)
-        }
-    }
-
-    deserializer.deserialize_map(EventBindingsVisitor)
+    deserializer.deserialize_map(BindingsVisitor(std::marker::PhantomData))
 }
 
 #[cfg(test)]
@@ -766,7 +711,7 @@ mod tests {
             (Key::PageDown, Action::SelectNextPage),
         ]);
 
-        let merged = merge_keybindings(base_keybindings, &custom_keybindings);
+        let merged = merge_bindings(base_keybindings, &custom_keybindings);
 
         // Should contain both base and custom keybindings
         assert!(merged.bindings.contains_key(&Key::Esc));
@@ -877,7 +822,7 @@ mod tests {
             bindings: custom_bindings,
         };
 
-        let merged = merge_keybindings(base_keybindings, &custom_keybindings);
+        let merged = merge_bindings(base_keybindings, &custom_keybindings);
 
         // Custom multiple actions should be present
         assert_eq!(

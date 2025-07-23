@@ -15,8 +15,7 @@ use std::{
 use tracing::{debug, warn};
 
 pub use keybindings::{
-    Binding, EventBindings, EventType, KeyBindings, merge_event_bindings,
-    merge_keybindings, parse_key,
+    Binding, EventBindings, EventType, KeyBindings, merge_bindings, parse_key,
 };
 pub use themes::Theme;
 pub use ui::UiConfig;
@@ -226,11 +225,11 @@ impl Config {
 
         // merge keybindings with default keybindings
         let keybindings =
-            merge_keybindings(default.keybindings.clone(), &new.keybindings);
+            merge_bindings(default.keybindings.clone(), &new.keybindings);
         new.keybindings = keybindings;
 
         // merge event bindings with default event bindings
-        let events = merge_event_bindings(default.events.clone(), &new.events);
+        let events = merge_bindings(default.events.clone(), &new.events);
         new.events = events;
 
         Config {
@@ -243,11 +242,11 @@ impl Config {
     }
 
     pub fn merge_keybindings(&mut self, other: &KeyBindings) {
-        self.keybindings = merge_keybindings(self.keybindings.clone(), other);
+        self.keybindings = merge_bindings(self.keybindings.clone(), other);
     }
 
     pub fn merge_event_bindings(&mut self, other: &EventBindings) {
-        self.events = merge_event_bindings(self.events.clone(), other);
+        self.events = merge_bindings(self.events.clone(), other);
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
