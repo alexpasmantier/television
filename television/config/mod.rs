@@ -2,6 +2,7 @@ use crate::{
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
     cli::PostProcessedCli,
+    event::Key,
     history::DEFAULT_HISTORY_SIZE,
 };
 use anyhow::{Context, Result};
@@ -271,23 +272,13 @@ impl Config {
     ///
     /// CLI overrides preserve the original source of the key:
     /// - If overriding a global key → keep it in global list
-    /// - If overriding a channel key → keep it in channel list  
+    /// - If overriding a channel key → keep it in channel list
     /// - If adding a new key → add to global list (CLI is user's global preference)
     pub fn apply_cli_keybinding_overrides(
         &mut self,
         cli_keybindings: &KeyBindings,
     ) {
-        use tracing::{debug, trace};
-
-        debug!(
-            "Applying {} CLI keybinding overrides",
-            cli_keybindings.len()
-        );
-
-        let mut override_count = 0;
-        let mut new_key_count = 0;
-        let mut preserved_global = 0;
-        let mut preserved_channel = 0;
+        debug!("keybindings before: {:?}", self.keybindings);
 
         for (key, actions) in &cli_keybindings.bindings {
             let was_existing = self.keybindings.contains_key(key);
@@ -295,42 +286,15 @@ impl Config {
             // Update the keybinding
             self.keybindings.insert(*key, actions.clone());
 
-            if let Ok(tv_key) = crate::event::Key::from_str(&key.to_string()) {
-                if was_existing {
-                    override_count += 1;
-                    // Preserve existing source categorization
-                    if self.keybinding_source.is_global_key(&tv_key) {
-                        // Key was already global, keep it global
-                        preserved_global += 1;
-                        trace!("CLI override preserved global key: '{}'", key);
-                    } else if self.keybinding_source.is_channel_key(&tv_key) {
-                        // Key was channel-specific, keep it channel-specific
-                        preserved_channel += 1;
-                        trace!(
-                            "CLI override preserved channel key: '{}'",
-                            key
-                        );
-                    } else {
-                        // Key exists in keybindings but not tracked in source - treat as global
-                        self.keybinding_source.add_global_key(tv_key);
-                        trace!(
-                            "CLI override added untracked existing key '{}' to global",
-                            key
-                        );
-                    }
-                } else {
+            if let Ok(tv_key) = Key::from_str(&key.to_string()) {
+                if !was_existing {
                     // New key from CLI - add to global (CLI is user's global preference)
-                    new_key_count += 1;
                     self.keybinding_source.add_global_key(tv_key);
-                    trace!("CLI override added new global key: '{}'", key);
                 }
             }
         }
 
-        debug!(
-            "CLI override completed: {} overrides ({} preserved global, {} preserved channel), {} new keys",
-            override_count, preserved_global, preserved_channel, new_key_count
-        );
+        debug!("keybindings after: {:?}", self.keybindings);
     }
 
     pub fn merge_event_bindings(&mut self, other: &EventBindings) {

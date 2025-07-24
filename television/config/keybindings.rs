@@ -416,75 +416,40 @@ pub fn merge_bindings<K>(
     source: BindingSource,
 ) -> (Bindings<K>, KeybindingSource)
 where
-    K: Display + FromStr + Clone + Eq + Hash,
+    K: Display + FromStr + Clone + Eq + Hash + std::fmt::Debug,
     K::Err: Display,
 {
-    use tracing::{debug, trace};
-
     let mut keybinding_source = KeybindingSource::default();
 
-    debug!(
-        "Starting merge_bindings: {} existing bindings, {} new {} bindings",
-        bindings.bindings.len(),
-        new_bindings.bindings.len(),
-        source.as_str()
-    );
+    debug!("bindings before: {:?}", bindings.bindings);
 
     // Mark existing keys as global
     for key in bindings.bindings.keys() {
         if let Ok(tv_key) = Key::from_str(&key.to_string()) {
             keybinding_source.add_global_key(tv_key);
-            trace!("Marked existing key '{}' as global", key);
         }
     }
 
     // Merge new bindings and mark them based on source type
-    let mut merged_count = 0;
-    let mut override_count = 0;
-
     for (key, actions) in &new_bindings.bindings {
-        let was_existing = bindings.bindings.contains_key(key);
         bindings.bindings.insert(key.clone(), actions.clone());
-        merged_count += 1;
 
         if let Ok(tv_key) = Key::from_str(&key.to_string()) {
             match source {
                 BindingSource::Channel => {
                     keybinding_source.add_channel_key(tv_key);
                     // Remove from global keys if it was there (override)
-                    if keybinding_source.global_keys.remove(&tv_key) {
-                        override_count += 1;
-                        trace!(
-                            "Channel key '{}' overrode global binding",
-                            key
-                        );
-                    } else {
-                        trace!("Added new channel key '{}'", key);
-                    }
+                    keybinding_source.global_keys.remove(&tv_key);
                 }
                 BindingSource::Global => {
                     // New bindings are global - add to global keys
                     keybinding_source.add_global_key(tv_key);
-                    if was_existing {
-                        trace!(
-                            "Global key '{}' overrode existing binding",
-                            key
-                        );
-                    } else {
-                        trace!("Added new global key '{}'", key);
-                    }
                 }
             }
         }
     }
 
-    debug!(
-        "Merge completed: {} keys merged ({} overrides), final tracking: {} global, {} channel",
-        merged_count,
-        override_count,
-        keybinding_source.global_keys.len(),
-        keybinding_source.channel_keys.len()
-    );
+    debug!("bindings after: {:?}", bindings.bindings);
 
     (bindings, keybinding_source)
 }
