@@ -155,7 +155,7 @@ impl RemoteControl {
             .collect()
     }
 
-    pub fn get_result(&self, index: u32) -> CableEntry {
+    pub fn get_result(&mut self, index: u32) -> CableEntry {
         let item = self.matcher.get_result(index).expect("Invalid index");
         item.inner.with_match_indices(&item.match_indices)
     }

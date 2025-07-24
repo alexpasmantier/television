@@ -226,23 +226,23 @@ where
     /// }
     /// ```
     pub fn get_result(
-        &self,
+        &mut self,
         index: u32,
     ) -> Option<matched_item::MatchedItem<I>> {
         let snapshot = self.inner.snapshot();
-        let mut col_indices = Vec::new();
         let mut matcher = lazy::MATCHER.lock();
+        self.col_indices_buffer.clear();
 
         snapshot.get_matched_item(index).map(|item| {
             snapshot.pattern().column_pattern(0).indices(
                 item.matcher_columns[0].slice(..),
                 &mut matcher,
-                &mut col_indices,
+                &mut self.col_indices_buffer,
             );
-            col_indices.sort_unstable();
-            col_indices.dedup();
+            self.col_indices_buffer.sort_unstable();
+            self.col_indices_buffer.dedup();
 
-            let indices = col_indices.drain(..);
+            let indices = self.col_indices_buffer.drain(..);
             let matched_string = item.matcher_columns[0].to_string();
 
             matched_item::MatchedItem {
