@@ -2,6 +2,7 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{entry::Entry, prototypes::ChannelPrototype},
+    cli::PostProcessedCli,
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
     history::History,
@@ -181,6 +182,7 @@ impl App {
         input: Option<String>,
         options: AppOptions,
         cable_channels: Cable,
+        cli_args: &PostProcessedCli,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
@@ -198,6 +200,7 @@ impl App {
             options.preview_size,
             options.exact,
             cable_channels,
+            cli_args,
         );
 
         // Create input map from the merged config that includes both key and event bindings

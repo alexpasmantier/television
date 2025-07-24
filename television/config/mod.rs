@@ -1,6 +1,7 @@
 use crate::{
     cable::CABLE_DIR_NAME,
-    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
+    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
+    cli::PostProcessedCli,
     history::DEFAULT_HISTORY_SIZE,
 };
 use anyhow::{Context, Result};
@@ -11,10 +12,14 @@ use std::{
     env,
     hash::Hash,
     path::{Path, PathBuf},
+    str::FromStr,
 };
 use tracing::{debug, warn};
 
-pub use keybindings::{EventBindings, EventType, KeyBindings, merge_bindings};
+pub use keybindings::{
+    BindingSource, EventBindings, EventType, KeyBindings, KeybindingSource,
+    merge_bindings,
+};
 pub use themes::Theme;
 pub use ui::UiConfig;
 
@@ -90,6 +95,9 @@ pub struct Config {
     /// Shell integration configuration
     #[serde(default)]
     pub shell_integration: ShellIntegrationConfig,
+    /// Keybinding source tracking (not serialized)
+    #[serde(skip)]
+    pub keybinding_source: KeybindingSource,
 }
 
 const PROJECT_NAME: &str = "television";
@@ -221,13 +229,19 @@ impl Config {
         merged_keybindings.extend(new.shell_integration.keybindings.clone());
         new.shell_integration.keybindings = merged_keybindings;
 
-        // merge keybindings with default keybindings
-        let keybindings =
-            merge_bindings(default.keybindings.clone(), &new.keybindings);
+        let (keybindings, keybinding_source) = merge_bindings(
+            default.keybindings.clone(),
+            &new.keybindings,
+            BindingSource::Global,
+        );
         new.keybindings = keybindings;
+        new.keybinding_source = keybinding_source;
 
-        // merge event bindings with default event bindings
-        let events = merge_bindings(default.events.clone(), &new.events);
+        let (events, _) = merge_bindings(
+            default.events.clone(),
+            &new.events,
+            BindingSource::Global,
+        );
         new.events = events;
 
         Config {
@@ -236,15 +250,217 @@ impl Config {
             events: new.events,
             ui: new.ui,
             shell_integration: new.shell_integration,
+            keybinding_source: new.keybinding_source,
         }
     }
 
-    pub fn merge_keybindings(&mut self, other: &KeyBindings) {
-        self.keybindings = merge_bindings(self.keybindings.clone(), other);
+    pub fn merge_channel_keybindings(&mut self, other: &KeyBindings) {
+        let (merged, source) = merge_bindings(
+            self.keybindings.clone(),
+            other,
+            BindingSource::Channel,
+        );
+        self.keybindings = merged;
+        for key in &source.channel_keys {
+            self.keybinding_source.add_channel_key(*key);
+            self.keybinding_source.global_keys.remove(key);
+        }
+    }
+
+    /// Apply CLI keybinding overrides while preserving source categorization.
+    ///
+    /// CLI overrides preserve the original source of the key:
+    /// - If overriding a global key → keep it in global list
+    /// - If overriding a channel key → keep it in channel list  
+    /// - If adding a new key → add to global list (CLI is user's global preference)
+    pub fn apply_cli_keybinding_overrides(
+        &mut self,
+        cli_keybindings: &KeyBindings,
+    ) {
+        use tracing::{debug, trace};
+
+        debug!(
+            "Applying {} CLI keybinding overrides",
+            cli_keybindings.len()
+        );
+
+        let mut override_count = 0;
+        let mut new_key_count = 0;
+        let mut preserved_global = 0;
+        let mut preserved_channel = 0;
+
+        for (key, actions) in &cli_keybindings.bindings {
+            let was_existing = self.keybindings.contains_key(key);
+
+            // Update the keybinding
+            self.keybindings.insert(*key, actions.clone());
+
+            if let Ok(tv_key) = crate::event::Key::from_str(&key.to_string()) {
+                if was_existing {
+                    override_count += 1;
+                    // Preserve existing source categorization
+                    if self.keybinding_source.is_global_key(&tv_key) {
+                        // Key was already global, keep it global
+                        preserved_global += 1;
+                        trace!("CLI override preserved global key: '{}'", key);
+                    } else if self.keybinding_source.is_channel_key(&tv_key) {
+                        // Key was channel-specific, keep it channel-specific
+                        preserved_channel += 1;
+                        trace!(
+                            "CLI override preserved channel key: '{}'",
+                            key
+                        );
+                    } else {
+                        // Key exists in keybindings but not tracked in source - treat as global
+                        self.keybinding_source.add_global_key(tv_key);
+                        trace!(
+                            "CLI override added untracked existing key '{}' to global",
+                            key
+                        );
+                    }
+                } else {
+                    // New key from CLI - add to global (CLI is user's global preference)
+                    new_key_count += 1;
+                    self.keybinding_source.add_global_key(tv_key);
+                    trace!("CLI override added new global key: '{}'", key);
+                }
+            }
+        }
+
+        debug!(
+            "CLI override completed: {} overrides ({} preserved global, {} preserved channel), {} new keys",
+            override_count, preserved_global, preserved_channel, new_key_count
+        );
     }
 
     pub fn merge_event_bindings(&mut self, other: &EventBindings) {
-        self.events = merge_bindings(self.events.clone(), other);
+        let (merged, _) =
+            merge_bindings(self.events.clone(), other, BindingSource::Global);
+        self.events = merged;
+    }
+
+    /// Apply CLI overrides to this config
+    pub fn apply_cli_overrides(&mut self, args: &PostProcessedCli) {
+        use crate::{
+            action::Action, features::FeatureFlags,
+            screen::keybindings::remove_action_bindings,
+        };
+        use tracing::debug;
+
+        debug!("Applying CLI overrides to config after channel merging");
+
+        if let Some(cable_dir) = &args.cable_dir {
+            self.application.cable_dir.clone_from(cable_dir);
+        }
+        if let Some(tick_rate) = args.tick_rate {
+            self.application.tick_rate = tick_rate;
+        }
+        if args.global_history {
+            self.application.global_history = true;
+        }
+        // Handle preview panel flags
+        if args.no_preview {
+            self.ui.features.disable(FeatureFlags::PreviewPanel);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::TogglePreview.into(),
+            );
+        } else if args.hide_preview {
+            self.ui.features.hide(FeatureFlags::PreviewPanel);
+        } else if args.show_preview {
+            self.ui.features.enable(FeatureFlags::PreviewPanel);
+        }
+
+        if let Some(ps) = args.preview_size {
+            self.ui.preview_panel.size = ps;
+        }
+
+        // Handle status bar flags
+        if args.no_status_bar {
+            self.ui.features.disable(FeatureFlags::StatusBar);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleStatusBar.into(),
+            );
+        } else if args.hide_status_bar {
+            self.ui.features.hide(FeatureFlags::StatusBar);
+        } else if args.show_status_bar {
+            self.ui.features.enable(FeatureFlags::StatusBar);
+        }
+
+        // Handle remote control flags
+        if args.no_remote {
+            self.ui.features.disable(FeatureFlags::RemoteControl);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleRemoteControl.into(),
+            );
+        } else if args.hide_remote {
+            self.ui.features.hide(FeatureFlags::RemoteControl);
+        } else if args.show_remote {
+            self.ui.features.enable(FeatureFlags::RemoteControl);
+        }
+
+        // Handle help panel flags
+        if args.no_help_panel {
+            self.ui.features.disable(FeatureFlags::HelpPanel);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleHelp.into(),
+            );
+        } else if args.hide_help_panel {
+            self.ui.features.hide(FeatureFlags::HelpPanel);
+        } else if args.show_help_panel {
+            self.ui.features.enable(FeatureFlags::HelpPanel);
+        }
+
+        // Apply CLI keybinding overrides with proper source tracking
+        if let Some(keybindings) = &args.keybindings {
+            self.apply_cli_keybinding_overrides(keybindings);
+        }
+
+        self.ui.ui_scale = args.ui_scale.unwrap_or(self.ui.ui_scale);
+        if let Some(input_header) = &args.input_header {
+            if let Ok(t) = Template::parse(input_header) {
+                self.ui.input_bar.header = Some(t);
+            }
+        }
+        if let Some(input_prompt) = &args.input_prompt {
+            self.ui.input_bar.prompt.clone_from(input_prompt);
+        }
+        if let Some(preview_header) = &args.preview_header {
+            if let Ok(t) = Template::parse(preview_header) {
+                self.ui.preview_panel.header = Some(t);
+            }
+        }
+        if let Some(preview_footer) = &args.preview_footer {
+            if let Ok(t) =
+                crate::channels::prototypes::Template::parse(preview_footer)
+            {
+                self.ui.preview_panel.footer = Some(t);
+            }
+        }
+        if let Some(layout) = args.layout {
+            self.ui.orientation = layout;
+        }
+        if let Some(input_border) = args.input_border {
+            self.ui.input_bar.border_type = input_border;
+        }
+        if let Some(preview_border) = args.preview_border {
+            self.ui.preview_panel.border_type = preview_border;
+        }
+        if let Some(results_border) = args.results_border {
+            self.ui.results_panel.border_type = results_border;
+        }
+        if let Some(input_padding) = args.input_padding {
+            self.ui.input_bar.padding = input_padding;
+        }
+        if let Some(preview_padding) = args.preview_padding {
+            self.ui.preview_panel.padding = preview_padding;
+        }
+        if let Some(results_padding) = args.results_padding {
+            self.ui.results_panel.padding = results_padding;
+        }
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {

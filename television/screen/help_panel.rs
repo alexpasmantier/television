@@ -1,7 +1,8 @@
 use crate::{
-    config::KeyBindings,
+    action::Action,
+    config::{Config, KeyBindings},
+    event::Key,
     screen::colors::Colorscheme,
-    screen::keybindings::{ActionMapping, find_keys_for_single_action},
     television::Mode,
 };
 use ratatui::{
@@ -19,7 +20,7 @@ const MIN_PANEL_HEIGHT: u16 = 5;
 pub fn draw_help_panel(
     f: &mut Frame<'_>,
     area: Rect,
-    keybindings: &KeyBindings,
+    config: &Config,
     tv_mode: Mode,
     colorscheme: &Colorscheme,
 ) {
@@ -28,7 +29,7 @@ pub fn draw_help_panel(
     }
 
     // Generate content
-    let content = generate_help_content(keybindings, tv_mode, colorscheme);
+    let content = generate_help_content(config, tv_mode, colorscheme);
 
     // Clear the area first to create the floating effect
     f.render_widget(Clear, area);
@@ -52,36 +53,115 @@ pub fn draw_help_panel(
     f.render_widget(paragraph, area);
 }
 
-/// Adds keybinding lines for action mappings to the given lines vector
-fn add_keybinding_lines_for_mappings(
+/// Adds keybinding lines for specific keys to the given lines vector
+fn add_keybinding_lines_for_keys(
     lines: &mut Vec<Line<'static>>,
     keybindings: &KeyBindings,
-    mappings: &[ActionMapping],
+    keys: impl Iterator<Item = Key>,
     mode: Mode,
     colorscheme: &Colorscheme,
+    category_name: &str,
 ) {
-    for mapping in mappings {
-        for (action, description) in &mapping.actions {
-            let keys = find_keys_for_single_action(keybindings, action);
-            for key in keys {
-                lines.push(create_compact_keybinding_line(
-                    &key,
-                    description,
-                    mode,
-                    colorscheme,
-                ));
+    use tracing::trace;
+
+    // Collect all valid keybinding entries
+    let mut entries: Vec<(String, String)> = Vec::new();
+    let mut filtered_count = 0;
+
+    for key in keys {
+        if let Some(actions) = keybindings.get(&key) {
+            for action in actions.as_slice() {
+                // Filter out NoOp actions (unbound keys)
+                if matches!(action, Action::NoOp) {
+                    trace!(
+                        "Filtering out NoOp (unboud keys) action for key '{}' in {} category",
+                        key, category_name
+                    );
+                    filtered_count += 1;
+                    continue;
+                }
+
+                let description = get_action_description(action);
+                let key_string = key.to_string();
+                entries.push((description.clone(), key_string.clone()));
+                trace!(
+                    "Added keybinding: {} -> {} ({})",
+                    key_string, description, category_name
+                );
             }
         }
     }
+
+    // Sort entries alphabetically by description
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+    trace!(
+        "Sorted {} keybindings for {} category (filtered {} NoOp entries)",
+        entries.len(),
+        category_name,
+        filtered_count
+    );
+
+    // Create lines from sorted entries
+    for (description, key_string) in entries {
+        lines.push(create_compact_keybinding_line(
+            &key_string,
+            &description,
+            mode,
+            colorscheme,
+        ));
+    }
 }
 
-/// Generates the help content organized into global and mode-specific groups
+/// Get human-readable description for an action
+fn get_action_description(action: &Action) -> String {
+    match action {
+        Action::Quit => "Quit".to_string(),
+        Action::TogglePreview => "Toggle preview".to_string(),
+        Action::ToggleHelp => "Toggle help".to_string(),
+        Action::ToggleStatusBar => "Toggle status bar".to_string(),
+        Action::ToggleRemoteControl => "Toggle remote control".to_string(),
+        Action::SelectPrevEntry => "Navigate up".to_string(),
+        Action::SelectNextEntry => "Navigate down".to_string(),
+        Action::SelectPrevPage => "Page up".to_string(),
+        Action::SelectNextPage => "Page down".to_string(),
+        Action::SelectPrevHistory => "Previous history".to_string(),
+        Action::SelectNextHistory => "Next history".to_string(),
+        Action::ScrollPreviewHalfPageUp => "Preview scroll up".to_string(),
+        Action::ScrollPreviewHalfPageDown => "Preview scroll down".to_string(),
+        Action::ConfirmSelection => "Select entry".to_string(),
+        Action::ToggleSelectionDown => "Toggle selection down".to_string(),
+        Action::ToggleSelectionUp => "Toggle selection up".to_string(),
+        Action::CopyEntryToClipboard => "Copy to clipboard".to_string(),
+        Action::CycleSources => "Cycle sources".to_string(),
+        Action::ReloadSource => "Reload source".to_string(),
+        Action::DeletePrevChar => "Delete previous char".to_string(),
+        Action::DeletePrevWord => "Delete previous word".to_string(),
+        Action::DeleteNextChar => "Delete next char".to_string(),
+        Action::DeleteLine => "Delete line".to_string(),
+        Action::GoToPrevChar => "Move cursor left".to_string(),
+        Action::GoToNextChar => "Move cursor right".to_string(),
+        Action::GoToInputStart => "Move to start".to_string(),
+        Action::GoToInputEnd => "Move to end".to_string(),
+        _ => action.to_string(),
+    }
+}
+
+/// Generates the help content organized into global and channel-specific groups
 fn generate_help_content(
-    keybindings: &KeyBindings,
+    config: &Config,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> Vec<Line<'static>> {
+    use tracing::debug;
+
     let mut lines = Vec::new();
+
+    debug!("Generating help content for mode: {:?}", mode);
+    debug!(
+        "Keybinding source tracking - Global keys: {}, Channel keys: {}",
+        config.keybinding_source.global_keys.len(),
+        config.keybinding_source.channel_keys.len()
+    );
 
     // Global keybindings section header
     lines.push(Line::from(vec![Span::styled(
@@ -92,53 +172,68 @@ fn generate_help_content(
             .underlined(),
     )]));
 
-    // Global actions using centralized system
-    let global_mappings = ActionMapping::global_actions();
-    add_keybinding_lines_for_mappings(
+    // Global keybindings - all keys that are NOT from channel configs
+    let global_keys = config.keybinding_source.global_keys.iter().copied();
+    add_keybinding_lines_for_keys(
         &mut lines,
-        keybindings,
-        &global_mappings,
+        &config.keybindings,
+        global_keys,
         mode,
         colorscheme,
+        "Global",
     );
 
-    // Add spacing between Global and mode-specific sections
-    lines.push(Line::from(""));
+    // Add spacing between Global and channel-specific sections only if we have channel keys
+    if !config.keybinding_source.channel_keys.is_empty() {
+        lines.push(Line::from(""));
+    }
 
-    // Mode-specific keybindings section header
+    // Channel-specific keybindings section header
     let mode_name = match mode {
         Mode::Channel => "Channel",
         Mode::RemoteControl => "Remote",
     };
 
-    lines.push(Line::from(vec![Span::styled(
-        mode_name,
-        Style::default()
-            .fg(colorscheme.help.metadata_field_name_fg)
-            .bold()
-            .underlined(),
-    )]));
+    // Only show channel section if there are channel-specific keybindings
+    if config.keybinding_source.has_channel_keys() {
+        lines.push(Line::from(vec![Span::styled(
+            mode_name,
+            Style::default()
+                .fg(colorscheme.help.metadata_field_name_fg)
+                .bold()
+                .underlined(),
+        )]));
 
-    // Navigation actions (common to both modes) using centralized system
-    let nav_mappings = ActionMapping::navigation_actions();
-    add_keybinding_lines_for_mappings(
-        &mut lines,
-        keybindings,
-        &nav_mappings,
-        mode,
-        colorscheme,
-    );
+        // Channel-specific keybindings - only keys from channel configs
+        let channel_keys =
+            config.keybinding_source.channel_keys.iter().copied();
+        add_keybinding_lines_for_keys(
+            &mut lines,
+            &config.keybindings,
+            channel_keys,
+            mode,
+            colorscheme,
+            mode_name,
+        );
+    } else {
+        debug!(
+            "No channel-specific keybindings found, skipping channel section for mode: {:?}",
+            mode
+        );
+    }
 
-    // Mode-specific actions using centralized system
-    let mode_mappings = ActionMapping::mode_specific_actions(mode);
-    add_keybinding_lines_for_mappings(
-        &mut lines,
-        keybindings,
-        &mode_mappings,
-        mode,
-        colorscheme,
-    );
+    // Handle edge case where no keybindings are found at all
+    if !config.keybinding_source.has_any_keys() {
+        debug!("Warning: No keybindings found in source tracking!");
+        lines.push(Line::from(vec![Span::styled(
+            "No keybindings configured",
+            Style::default()
+                .fg(colorscheme.help.metadata_field_name_fg)
+                .italic(),
+        )]));
+    }
 
+    debug!("Generated help content with {} total lines", lines.len());
     lines
 }
 
@@ -168,12 +263,14 @@ fn create_compact_keybinding_line(
 /// Calculates the required dimensions for the help panel based on content
 #[allow(clippy::cast_possible_truncation)]
 pub fn calculate_help_panel_size(
-    keybindings: &KeyBindings,
+    config: &Config,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> (u16, u16) {
+    use tracing::trace;
+
     // Generate content to count items and calculate width
-    let content = generate_help_content(keybindings, mode, colorscheme);
+    let content = generate_help_content(config, mode, colorscheme);
 
     // Calculate required width based on actual content
     let max_content_width = content
@@ -187,6 +284,14 @@ pub fn calculate_help_panel_size(
     // - Height: content lines + 2 (2 borders, no title or padding)
     let required_width = (max_content_width + 3).max(25) as u16;
     let required_height = (content.len() + 2).max(8) as u16;
+
+    trace!(
+        "Help panel size calculation: {} lines, max width {}, final dimensions {}x{}",
+        content.len(),
+        max_content_width,
+        required_width,
+        required_height
+    );
 
     (required_width, required_height)
 }

@@ -7,6 +7,7 @@ use crate::{
         prototypes::ChannelPrototype,
         remote_control::{CableEntry, RemoteControl},
     },
+    cli::PostProcessedCli,
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
@@ -99,14 +100,15 @@ impl Television {
         preview_size: Option<u16>,
         exact: bool,
         cable_channels: Cable,
+        cli_args: &PostProcessedCli,
     ) -> Self {
         let mut config = Self::merge_base_config_with_prototype_specs(
             &base_config,
             &channel_prototype,
         );
 
-        // Apply CLI overrides after prototype merging to ensure they take precedence
-        Self::apply_cli_overrides(&mut config, no_preview, preview_size);
+        // Apply ALL CLI overrides (including keybindings) after channel merging
+        config.apply_cli_overrides(cli_args);
 
         debug!("Merged config: {:?}", config);
 
@@ -201,7 +203,7 @@ impl Television {
         let mut config = base_config.clone();
         // keybindings
         if let Some(keybindings) = &channel_prototype.keybindings {
-            config.merge_keybindings(&keybindings.bindings);
+            config.merge_channel_keybindings(&keybindings.bindings);
         }
         // ui
         if let Some(ui_spec) = &channel_prototype.ui {
@@ -944,6 +946,8 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_cli_overrides() {
+        use crate::cli::PostProcessedCli;
+
         let config = crate::config::Config::default();
         let prototype = crate::channels::prototypes::ChannelPrototype::new(
             "test", "echo 1",
@@ -958,6 +962,7 @@ mod test {
             Some(50),
             true,
             Cable::from_prototypes(vec![]),
+            &PostProcessedCli::default(),
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
@@ -967,6 +972,8 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_channel_keybindings_take_precedence() {
+        use crate::cli::PostProcessedCli;
+
         let mut config = crate::config::Config::default();
         config
             .keybindings
@@ -997,6 +1004,7 @@ mod test {
             Some(50),
             true,
             Cable::from_prototypes(vec![]),
+            &PostProcessedCli::default(),
         );
 
         assert_eq!(

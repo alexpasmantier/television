@@ -16,6 +16,7 @@ use television::{
     action::Action,
     cable::Cable,
     channels::entry::{Entry, into_ranges},
+    cli::PostProcessedCli,
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, result_item::build_results_list},
     television::Television,
@@ -490,6 +491,7 @@ pub fn draw(c: &mut Criterion) {
                     Some(50),
                     false,
                     cable.clone(),
+                    &PostProcessedCli::default(),
                 );
                 tv.find("television");
                 for _ in 0..5 {

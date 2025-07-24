@@ -9,6 +9,7 @@ use television::{
     app::{App, AppOptions},
     cable::Cable,
     channels::prototypes::ChannelPrototype,
+    cli::PostProcessedCli,
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -69,6 +70,7 @@ fn setup_app(
             ChannelPrototype::new("dirs", "find . -type d"),
             ChannelPrototype::new("env", "printenv"),
         ]),
+        &PostProcessedCli::default(),
     );
 
     // retrieve the app's action channel handle in order to send a quit action

@@ -5,23 +5,20 @@ use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
 use television::{
-    action::Action,
     app::{App, AppOptions},
     cable::{Cable, cable_empty_exit, load_cable},
     channels::prototypes::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
     },
-    cli::post_process,
     cli::{
         PostProcessedCli,
         args::{Cli, Command},
-        guess_channel_from_prompt, list_channels,
+        guess_channel_from_prompt, list_channels, post_process,
     },
-    config::{Config, ConfigEnv, merge_bindings, ui::InputBarConfig},
+    config::{Config, ConfigEnv, ui::InputBarConfig},
     errors::os_error_exit,
     features::FeatureFlags,
     gh::update_local_channels,
-    screen::keybindings::remove_action_bindings,
     television::Mode,
     utils::clipboard::CLIPBOARD,
     utils::{
@@ -56,7 +53,7 @@ async fn main() -> Result<()> {
 
     // override configuration values with provided CLI arguments
     debug!("Applying CLI overrides...");
-    apply_cli_overrides(&args, &mut config);
+    config.apply_cli_overrides(&args);
 
     // handle subcommands
     debug!("Handling subcommands...");
@@ -104,6 +101,7 @@ async fn main() -> Result<()> {
         args.input.clone(),
         options,
         cable,
+        &args,
     );
 
     // If the user requested to show the remote control on startup, switch the
@@ -133,121 +131,6 @@ async fn main() -> Result<()> {
     }
     bufwriter.flush()?;
     exit(0);
-}
-
-/// Apply overrides from the CLI arguments to the configuration.
-///
-/// This function mutates the configuration in place.
-fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
-    if let Some(cable_dir) = &args.cable_dir {
-        config.application.cable_dir.clone_from(cable_dir);
-    }
-    if let Some(tick_rate) = args.tick_rate {
-        config.application.tick_rate = tick_rate;
-    }
-    if args.global_history {
-        config.application.global_history = true;
-    }
-    // Handle preview panel flags
-    if args.no_preview {
-        config.ui.features.disable(FeatureFlags::PreviewPanel);
-        remove_action_bindings(
-            &mut config.keybindings,
-            &Action::TogglePreview.into(),
-        );
-    } else if args.hide_preview {
-        config.ui.features.hide(FeatureFlags::PreviewPanel);
-    } else if args.show_preview {
-        config.ui.features.enable(FeatureFlags::PreviewPanel);
-    }
-
-    if let Some(ps) = args.preview_size {
-        config.ui.preview_panel.size = ps;
-    }
-
-    // Handle status bar flags
-    if args.no_status_bar {
-        config.ui.features.disable(FeatureFlags::StatusBar);
-        remove_action_bindings(
-            &mut config.keybindings,
-            &Action::ToggleStatusBar.into(),
-        );
-    } else if args.hide_status_bar {
-        config.ui.features.hide(FeatureFlags::StatusBar);
-    } else if args.show_status_bar {
-        config.ui.features.enable(FeatureFlags::StatusBar);
-    }
-
-    // Handle remote control flags
-    if args.no_remote {
-        config.ui.features.disable(FeatureFlags::RemoteControl);
-        remove_action_bindings(
-            &mut config.keybindings,
-            &Action::ToggleRemoteControl.into(),
-        );
-    } else if args.hide_remote {
-        config.ui.features.hide(FeatureFlags::RemoteControl);
-    } else if args.show_remote {
-        config.ui.features.enable(FeatureFlags::RemoteControl);
-    }
-
-    // Handle help panel flags
-    if args.no_help_panel {
-        config.ui.features.disable(FeatureFlags::HelpPanel);
-        remove_action_bindings(
-            &mut config.keybindings,
-            &Action::ToggleHelp.into(),
-        );
-    } else if args.hide_help_panel {
-        config.ui.features.hide(FeatureFlags::HelpPanel);
-    } else if args.show_help_panel {
-        config.ui.features.enable(FeatureFlags::HelpPanel);
-    }
-
-    if let Some(keybindings) = &args.keybindings {
-        config.keybindings =
-            merge_bindings(config.keybindings.clone(), keybindings);
-    }
-    config.ui.ui_scale = args.ui_scale.unwrap_or(config.ui.ui_scale);
-    if let Some(input_header) = &args.input_header {
-        if let Ok(t) = Template::parse(input_header) {
-            config.ui.input_bar.header = Some(t);
-        }
-    }
-    if let Some(input_prompt) = &args.input_prompt {
-        config.ui.input_bar.prompt.clone_from(input_prompt);
-    }
-    if let Some(preview_header) = &args.preview_header {
-        if let Ok(t) = Template::parse(preview_header) {
-            config.ui.preview_panel.header = Some(t);
-        }
-    }
-    if let Some(preview_footer) = &args.preview_footer {
-        if let Ok(t) = Template::parse(preview_footer) {
-            config.ui.preview_panel.footer = Some(t);
-        }
-    }
-    if let Some(layout) = args.layout {
-        config.ui.orientation = layout;
-    }
-    if let Some(input_border) = args.input_border {
-        config.ui.input_bar.border_type = input_border;
-    }
-    if let Some(preview_border) = args.preview_border {
-        config.ui.preview_panel.border_type = preview_border;
-    }
-    if let Some(results_border) = args.results_border {
-        config.ui.results_panel.border_type = results_border;
-    }
-    if let Some(input_padding) = args.input_padding {
-        config.ui.input_bar.padding = input_padding;
-    }
-    if let Some(preview_padding) = args.preview_padding {
-        config.ui.preview_panel.padding = preview_padding;
-    }
-    if let Some(results_padding) = args.results_padding {
-        config.ui.results_panel.padding = results_padding;
-    }
 }
 
 pub fn set_current_dir(path: &PathBuf) -> Result<()> {
@@ -821,7 +704,7 @@ mod tests {
             results_padding: Some(Padding::new(9, 10, 11, 12)),
             ..Default::default()
         };
-        apply_cli_overrides(&args, &mut config);
+        config.apply_cli_overrides(&args);
 
         assert_eq!(config.application.tick_rate, 100_f64);
         assert!(!config.ui.features.is_enabled(FeatureFlags::PreviewPanel));
@@ -959,7 +842,7 @@ mod tests {
             ui_scale: Some(90),
             ..Default::default()
         };
-        apply_cli_overrides(&args, &mut config);
+        config.apply_cli_overrides(&args);
 
         assert_eq!(config.ui.ui_scale, 90);
 
@@ -967,7 +850,7 @@ mod tests {
         let mut config = Config::default();
         config.ui.ui_scale = 70;
         let args = PostProcessedCli::default();
-        apply_cli_overrides(&args, &mut config);
+        config.apply_cli_overrides(&args);
 
         assert_eq!(config.ui.ui_scale, 70);
     }

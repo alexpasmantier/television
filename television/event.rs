@@ -28,7 +28,9 @@ pub enum Event<I> {
     Tick,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, PartialEq, PartialOrd, Eq, Hash)]
+#[derive(
+    Debug, Clone, Copy, Serialize, PartialEq, PartialOrd, Eq, Hash, Ord,
+)]
 pub enum Key {
     Backspace,
     Enter,

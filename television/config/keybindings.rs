@@ -3,7 +3,7 @@ use crate::{
     event::{Key, convert_raw_event_to_key},
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use std::hash::Hash;
@@ -279,21 +279,119 @@ where
     }
 }
 
+/// Represents the source type of keybindings being merged.
+///
+/// # Variants
+///
+/// * `Global` - Bindings from user configuration files or default settings
+/// * `Channel` - Bindings specific to individual channels/data sources
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BindingSource {
+    Global,
+    Channel,
+}
+
+impl BindingSource {
+    /// Returns the string representation of the binding source.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            BindingSource::Global => "global",
+            BindingSource::Channel => "channel",
+        }
+    }
+}
+
+/// Tracks source information for merged keybindings.
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct KeybindingSource {
+    /// Keys that come from channel-specific configuration
+    pub channel_keys: FxHashSet<Key>,
+    /// Keys that come from global configuration
+    pub global_keys: FxHashSet<Key>,
+}
+
+impl KeybindingSource {
+    /// Check if a key comes from channel configuration
+    pub fn is_channel_key(&self, key: &Key) -> bool {
+        self.channel_keys.contains(key)
+    }
+
+    /// Check if a key comes from global configuration
+    pub fn is_global_key(&self, key: &Key) -> bool {
+        self.global_keys.contains(key)
+    }
+
+    /// Add a key as coming from channel configuration
+    pub fn add_channel_key(&mut self, key: Key) {
+        self.channel_keys.insert(key);
+    }
+
+    /// Add a key as coming from global configuration
+    pub fn add_global_key(&mut self, key: Key) {
+        self.global_keys.insert(key);
+    }
+
+    /// Check if there are any tracked keybindings
+    pub fn has_any_keys(&self) -> bool {
+        !self.channel_keys.is_empty() || !self.global_keys.is_empty()
+    }
+
+    /// Check if there are any channel-specific keybindings
+    pub fn has_channel_keys(&self) -> bool {
+        !self.channel_keys.is_empty()
+    }
+
+    /// Check if there are any global keybindings
+    pub fn has_global_keys(&self) -> bool {
+        !self.global_keys.is_empty()
+    }
+
+    /// Get the total count of tracked keys
+    pub fn total_keys(&self) -> usize {
+        self.channel_keys.len() + self.global_keys.len()
+    }
+
+    /// Clear all tracking information
+    pub fn clear(&mut self) {
+        self.channel_keys.clear();
+        self.global_keys.clear();
+    }
+}
+
+impl Hash for KeybindingSource {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        let mut channel_sorted: Vec<_> = self.channel_keys.iter().collect();
+        let mut global_sorted: Vec<_> = self.global_keys.iter().collect();
+
+        channel_sorted.sort(); // Key must implement Ord
+        global_sorted.sort();
+
+        for key in channel_sorted {
+            key.hash(state);
+        }
+        for key in global_sorted {
+            key.hash(state);
+        }
+    }
+}
+
 /// Merges two binding collections, with new bindings taking precedence.
+/// Keeps track of the source information.
 ///
 /// # Arguments
 ///
 /// * `bindings` - The base bindings collection (will be consumed)
 /// * `new_bindings` - The new bindings to merge in (higher precedence)
+/// * `source` - The source type of the new bindings being merged
 ///
 /// # Returns
 ///
-/// A new `Bindings` collection with merged key mappings.
+/// A tuple of (`merged_bindings`, `source_tracking`)
 ///
 /// # Examples
 ///
 /// ```rust
-/// use television::config::keybindings::{KeyBindings, merge_bindings};
+/// use television::config::keybindings::{KeyBindings, merge_bindings, BindingSource};
 /// use television::event::Key;
 /// use television::action::Action;
 ///
@@ -307,23 +405,88 @@ where
 ///     (Key::Tab, Action::ToggleSelectionDown), // Add new binding
 /// ]);
 ///
-/// let merged = merge_bindings(base, &custom);
-/// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
-/// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
-/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelectionDown.into()));
+/// let (merged, source) = merge_bindings(base, &custom, BindingSource::Channel);
+/// assert!(source.is_channel_key(&Key::Esc));
+/// assert!(source.is_channel_key(&Key::Tab));
+/// assert!(source.is_global_key(&Key::Enter));
 /// ```
 pub fn merge_bindings<K>(
     mut bindings: Bindings<K>,
     new_bindings: &Bindings<K>,
-) -> Bindings<K>
+    source: BindingSource,
+) -> (Bindings<K>, KeybindingSource)
 where
     K: Display + FromStr + Clone + Eq + Hash,
     K::Err: Display,
 {
-    for (key, actions) in &new_bindings.bindings {
-        bindings.bindings.insert(key.clone(), actions.clone());
+    use tracing::{debug, trace};
+
+    let mut keybinding_source = KeybindingSource::default();
+
+    debug!(
+        "Starting merge_bindings: {} existing bindings, {} new {} bindings",
+        bindings.bindings.len(),
+        new_bindings.bindings.len(),
+        source.as_str()
+    );
+
+    // Mark existing keys as global
+    for key in bindings.bindings.keys() {
+        if let Ok(tv_key) = Key::from_str(&key.to_string()) {
+            keybinding_source.add_global_key(tv_key);
+            trace!("Marked existing key '{}' as global", key);
+        }
     }
-    bindings
+
+    // Merge new bindings and mark them based on source type
+    let mut merged_count = 0;
+    let mut override_count = 0;
+
+    for (key, actions) in &new_bindings.bindings {
+        let was_existing = bindings.bindings.contains_key(key);
+        bindings.bindings.insert(key.clone(), actions.clone());
+        merged_count += 1;
+
+        if let Ok(tv_key) = Key::from_str(&key.to_string()) {
+            match source {
+                BindingSource::Channel => {
+                    keybinding_source.add_channel_key(tv_key);
+                    // Remove from global keys if it was there (override)
+                    if keybinding_source.global_keys.remove(&tv_key) {
+                        override_count += 1;
+                        trace!(
+                            "Channel key '{}' overrode global binding",
+                            key
+                        );
+                    } else {
+                        trace!("Added new channel key '{}'", key);
+                    }
+                }
+                BindingSource::Global => {
+                    // New bindings are global - add to global keys
+                    keybinding_source.add_global_key(tv_key);
+                    if was_existing {
+                        trace!(
+                            "Global key '{}' overrode existing binding",
+                            key
+                        );
+                    } else {
+                        trace!("Added new global key '{}'", key);
+                    }
+                }
+            }
+        }
+    }
+
+    debug!(
+        "Merge completed: {} keys merged ({} overrides), final tracking: {} global, {} channel",
+        merged_count,
+        override_count,
+        keybinding_source.global_keys.len(),
+        keybinding_source.channel_keys.len()
+    );
+
+    (bindings, keybinding_source)
 }
 
 impl Default for Bindings<Key> {
@@ -1012,7 +1175,11 @@ mod tests {
             (Key::PageDown, Action::SelectNextPage),
         ]);
 
-        let merged = merge_bindings(base_keybindings, &custom_keybindings);
+        let (merged, _) = merge_bindings(
+            base_keybindings,
+            &custom_keybindings,
+            BindingSource::Global,
+        );
 
         // Should contain both base and custom keybindings
         assert!(merged.bindings.contains_key(&Key::Esc));
@@ -1123,7 +1290,11 @@ mod tests {
             bindings: custom_bindings,
         };
 
-        let merged = merge_bindings(base_keybindings, &custom_keybindings);
+        let (merged, _) = merge_bindings(
+            base_keybindings,
+            &custom_keybindings,
+            BindingSource::Global,
+        );
 
         // Custom multiple actions should be present
         assert_eq!(
