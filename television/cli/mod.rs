@@ -4,6 +4,7 @@ use crate::{
     cli::args::{Cli, Command},
     config::{
         DEFAULT_PREVIEW_SIZE, KeyBindings, get_config_dir, get_data_dir,
+        ui::{BorderType, Padding},
     },
     errors::cli_parsing_error_exit,
     screen::layout::Orientation,
@@ -62,6 +63,12 @@ pub struct PostProcessedCli {
     pub preview_size: Option<u16>,
     pub preview_header: Option<String>,
     pub preview_footer: Option<String>,
+    pub preview_border: Option<BorderType>,
+    pub preview_padding: Option<Padding>,
+
+    // Results panel configuration
+    pub results_border: Option<BorderType>,
+    pub results_padding: Option<Padding>,
 
     // Status bar configuration
     pub no_status_bar: bool,
@@ -82,6 +89,8 @@ pub struct PostProcessedCli {
     pub input: Option<String>,
     pub input_header: Option<String>,
     pub input_prompt: Option<String>,
+    pub input_border: Option<BorderType>,
+    pub input_padding: Option<Padding>,
 
     // UI and layout configuration
     pub layout: Option<Orientation>,
@@ -112,6 +121,8 @@ pub struct PostProcessedCli {
     pub command: Option<Command>,
 }
 
+const DEFAULT_BORDER_TYPE: BorderType = BorderType::Rounded;
+
 impl Default for PostProcessedCli {
     fn default() -> Self {
         Self {
@@ -134,6 +145,12 @@ impl Default for PostProcessedCli {
             preview_size: Some(DEFAULT_PREVIEW_SIZE),
             preview_header: None,
             preview_footer: None,
+            preview_border: Some(DEFAULT_BORDER_TYPE),
+            preview_padding: None,
+
+            // Results panel configuration
+            results_border: Some(DEFAULT_BORDER_TYPE),
+            results_padding: None,
 
             // Status bar configuration
             no_status_bar: false,
@@ -154,6 +171,8 @@ impl Default for PostProcessedCli {
             input: None,
             input_header: None,
             input_prompt: None,
+            input_border: Some(DEFAULT_BORDER_TYPE),
+            input_padding: None,
 
             // UI and layout configuration
             layout: None,
@@ -300,11 +319,26 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         });
 
     // Determine layout
-    let layout: Option<Orientation> =
-        cli.layout.map(|layout_enum| match layout_enum {
-            args::LayoutOrientation::Landscape => Orientation::Landscape,
-            args::LayoutOrientation::Portrait => Orientation::Portrait,
-        });
+    let layout: Option<Orientation> = cli.layout.map(Orientation::from);
+
+    // borders
+    let input_border = cli.input_border.map(BorderType::from);
+    let results_border = cli.results_border.map(BorderType::from);
+    let preview_border = cli.preview_border.map(BorderType::from);
+
+    // padding
+    let input_padding = cli.input_padding.map(|p| {
+        parse_padding_literal(&p, CLI_PADDING_DELIMITER)
+            .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+    });
+    let results_padding = cli.results_padding.map(|p| {
+        parse_padding_literal(&p, CLI_PADDING_DELIMITER)
+            .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+    });
+    let preview_padding = cli.preview_padding.map(|p| {
+        parse_padding_literal(&p, CLI_PADDING_DELIMITER)
+            .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
+    });
 
     PostProcessedCli {
         // Channel and source configuration
@@ -326,6 +360,12 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         preview_size: cli.preview_size,
         preview_header: cli.preview_header,
         preview_footer: cli.preview_footer,
+        preview_border,
+        preview_padding,
+
+        // Results configuration
+        results_border,
+        results_padding,
 
         // Status bar configuration
         no_status_bar: cli.no_status_bar,
@@ -346,6 +386,8 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         input: cli.input,
         input_header: cli.input_header,
         input_prompt: cli.input_prompt,
+        input_border,
+        input_padding,
 
         // UI and layout configuration
         layout,
@@ -432,6 +474,7 @@ fn validate_adhoc_mode_constraints(cli: &Cli, readable_stdin: bool) {
 }
 
 const CLI_KEYBINDINGS_DELIMITER: char = ';';
+const CLI_PADDING_DELIMITER: char = ';';
 
 /// Parse a keybindings literal into a `KeyBindings` struct.
 ///
@@ -449,6 +492,17 @@ fn parse_keybindings_literal(
         .split(delimiter)
         .fold(String::new(), |acc, kb| acc + kb + "\n");
 
+    toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
+}
+
+/// Parses the CLI padding values into `config::ui::Padding`
+fn parse_padding_literal(
+    cli_padding: &str,
+    delimiter: char,
+) -> Result<Padding> {
+    let toml_definition = cli_padding
+        .split(delimiter)
+        .fold(String::new(), |acc, p| acc + p + "\n");
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 

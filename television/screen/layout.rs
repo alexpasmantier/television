@@ -70,6 +70,19 @@ pub enum Orientation {
     Portrait,
 }
 
+impl From<crate::cli::args::LayoutOrientation> for Orientation {
+    fn from(value: crate::cli::args::LayoutOrientation) -> Self {
+        match value {
+            crate::cli::args::LayoutOrientation::Landscape => {
+                Orientation::Landscape
+            }
+            crate::cli::args::LayoutOrientation::Portrait => {
+                Orientation::Portrait
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,
@@ -194,7 +207,7 @@ impl Layout {
             // results percentage is whatever remains
             let results_percentage = 100u16.saturating_sub(preview_percentage);
 
-            match (ui_config.orientation, ui_config.input_bar_position) {
+            match (ui_config.orientation, ui_config.input_bar.position) {
                 // Preview is rendered on the right or bottom depending on orientation
                 (Orientation::Landscape, _)
                 | (Orientation::Portrait, InputPosition::Top) => {
@@ -243,7 +256,7 @@ impl Layout {
                 // Now split the results window vertically into results list + input
                 let result_chunks = layout::Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints(match ui_config.input_bar_position {
+                    .constraints(match ui_config.input_bar.position {
                         InputPosition::Top => results_constraints
                             .clone()
                             .into_iter()
@@ -254,7 +267,8 @@ impl Layout {
                     .split(result_window);
 
                 let (input_rect, results_rect) = match ui_config
-                    .input_bar_position
+                    .input_bar
+                    .position
                 {
                     InputPosition::Bottom => {
                         (result_chunks[1], result_chunks[0])
@@ -278,7 +292,7 @@ impl Layout {
 
                 let mut portrait_constraints: Vec<Constraint> = Vec::new();
 
-                match ui_config.input_bar_position {
+                match ui_config.input_bar.position {
                     InputPosition::Top => {
                         // Input bar is always the first chunk
                         portrait_constraints
