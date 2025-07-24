@@ -232,7 +232,7 @@ struct Inner {
     // input
     input_text_fg: String,
     result_count_fg: String,
-    //results
+    // results
     result_name_fg: String,
     result_line_number_fg: String,
     result_value_fg: String,
@@ -241,9 +241,9 @@ struct Inner {
     // and falls back to match_fg
     selection_fg: Option<String>,
     match_fg: String,
-    //preview
+    // preview
     preview_title_fg: String,
-    //modes
+    // modes
     channel_mode_fg: String,
     channel_mode_bg: Option<String>,
     remote_control_mode_fg: String,

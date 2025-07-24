@@ -54,10 +54,6 @@ use_nerd_font_icons = false
 # └───────────────────────────────────────┘
 ui_scale = 100
 
-# Where to place the input bar in the UI (top or bottom)
-input_bar_position = "top"
-# The input prompt string (defaults to ">" if not specified)
-input_prompt = ">"
 # What orientation should tv be (landscape or portrait)
 orientation = "landscape"
 # The theme to use for the UI
@@ -100,6 +96,14 @@ remote_control = { enabled = true, visible = false }
 
 # Feature-specific configurations
 # Each feature can have its own configuration section
+[ui.input_bar]
+# Where to place the input bar in the UI (top or bottom)
+position = "top"
+# The input prompt string (defaults to ">" if not specified)
+prompt = ">"
+# header = "{}"
+border_type = "rounded" # https://docs.rs/ratatui/latest/ratatui/widgets/block/enum.BorderType.html#variants
+
 [ui.status_bar]
 # Status bar separators (bubble):
 #separator_open = ""
@@ -108,12 +112,16 @@ remote_control = { enabled = true, visible = false }
 separator_open = ""
 separator_close = ""
 
+[ui.results_panel]
+border_type = "rounded"
+
 [ui.preview_panel]
 # Preview panel size (percentage of screen width/height)
 size = 50
 #header = "{}"
 #footer = ""
 scrollbar = true
+border_type = "rounded"
 
 [ui.remote_control]
 # Whether to show channel descriptions in remote control mode

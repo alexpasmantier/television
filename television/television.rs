@@ -111,7 +111,7 @@ impl Television {
         debug!("Merged config: {:?}", config);
 
         let mut results_picker = Picker::new(input.clone());
-        if config.ui.input_bar_position == InputPosition::Bottom {
+        if config.ui.input_bar.position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
 
@@ -206,9 +206,11 @@ impl Television {
         // ui
         if let Some(ui_spec) = &channel_prototype.ui {
             config.apply_prototype_ui_spec(ui_spec);
-            if config.ui.input_header.is_none() {
-                if let Some(header_tpl) = &ui_spec.input_header {
-                    config.ui.input_header = Some(header_tpl.clone());
+            if config.ui.input_bar.header.is_none() {
+                if let Some(input_bar) = &ui_spec.input_bar {
+                    if let Some(header_tpl) = &input_bar.header {
+                        config.ui.input_bar.header = Some(header_tpl.clone());
+                    }
                 }
             }
             if config.ui.preview_panel.header.is_none() {
