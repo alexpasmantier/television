@@ -81,9 +81,9 @@ fn add_keybinding_lines_for_keys(
                     continue;
                 }
 
-                let description = get_action_description(action);
+                let description = action.description();
                 let key_string = key.to_string();
-                entries.push((description.clone(), key_string.clone()));
+                entries.push((description.to_string(), key_string.clone()));
                 trace!(
                     "Added keybinding: {} -> {} ({})",
                     key_string, description, category_name
@@ -109,40 +109,6 @@ fn add_keybinding_lines_for_keys(
             mode,
             colorscheme,
         ));
-    }
-}
-
-/// Get human-readable description for an action
-fn get_action_description(action: &Action) -> String {
-    match action {
-        Action::Quit => "Quit".to_string(),
-        Action::TogglePreview => "Toggle preview".to_string(),
-        Action::ToggleHelp => "Toggle help".to_string(),
-        Action::ToggleStatusBar => "Toggle status bar".to_string(),
-        Action::ToggleRemoteControl => "Toggle remote control".to_string(),
-        Action::SelectPrevEntry => "Navigate up".to_string(),
-        Action::SelectNextEntry => "Navigate down".to_string(),
-        Action::SelectPrevPage => "Page up".to_string(),
-        Action::SelectNextPage => "Page down".to_string(),
-        Action::SelectPrevHistory => "Previous history".to_string(),
-        Action::SelectNextHistory => "Next history".to_string(),
-        Action::ScrollPreviewHalfPageUp => "Preview scroll up".to_string(),
-        Action::ScrollPreviewHalfPageDown => "Preview scroll down".to_string(),
-        Action::ConfirmSelection => "Select entry".to_string(),
-        Action::ToggleSelectionDown => "Toggle selection down".to_string(),
-        Action::ToggleSelectionUp => "Toggle selection up".to_string(),
-        Action::CopyEntryToClipboard => "Copy to clipboard".to_string(),
-        Action::CycleSources => "Cycle sources".to_string(),
-        Action::ReloadSource => "Reload source".to_string(),
-        Action::DeletePrevChar => "Delete previous char".to_string(),
-        Action::DeletePrevWord => "Delete previous word".to_string(),
-        Action::DeleteNextChar => "Delete next char".to_string(),
-        Action::DeleteLine => "Delete line".to_string(),
-        Action::GoToPrevChar => "Move cursor left".to_string(),
-        Action::GoToNextChar => "Move cursor right".to_string(),
-        Action::GoToInputStart => "Move to start".to_string(),
-        Action::GoToInputEnd => "Move to end".to_string(),
-        _ => action.to_string(),
     }
 }
 
@@ -280,9 +246,9 @@ pub fn calculate_help_panel_size(
         .unwrap_or(25);
 
     // Calculate dimensions with proper padding:
-    // - Width: content + 3 (2 borders + 1 padding)
+    // - Width: content + 4 (2 borders + 2 padding)
     // - Height: content lines + 2 (2 borders, no title or padding)
-    let required_width = (max_content_width + 3).max(25) as u16;
+    let required_width = (max_content_width + 4).max(25) as u16;
     let required_height = (content.len() + 2).max(8) as u16;
 
     trace!(
