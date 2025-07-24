@@ -11,7 +11,9 @@ use ratatui::{
     },
     style::{Style, Stylize},
     text::{Line, Span},
-    widgets::{Block, Borders, ListState, Paragraph, block::Position},
+    widgets::{
+        Block, Borders, ListState, Padding, Paragraph, block::Position,
+    },
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -46,7 +48,8 @@ pub fn draw_input_box(
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
-        );
+        )
+        .padding(Padding::from(input_bar_config.padding));
     if let Some(border_type) =
         input_bar_config.border_type.to_ratatui_border_type()
     {

@@ -230,6 +230,24 @@ fn apply_cli_overrides(args: &PostProcessedCli, config: &mut Config) {
     if let Some(layout) = args.layout {
         config.ui.orientation = layout;
     }
+    if let Some(input_border) = args.input_border {
+        config.ui.input_bar.border_type = input_border;
+    }
+    if let Some(preview_border) = args.preview_border {
+        config.ui.preview_panel.border_type = preview_border;
+    }
+    if let Some(results_border) = args.results_border {
+        config.ui.results_panel.border_type = results_border;
+    }
+    if let Some(input_padding) = args.input_padding {
+        config.ui.input_bar.padding = input_padding;
+    }
+    if let Some(preview_padding) = args.preview_padding {
+        config.ui.preview_panel.padding = preview_padding;
+    }
+    if let Some(results_padding) = args.results_padding {
+        config.ui.results_panel.padding = results_padding;
+    }
 }
 
 pub fn set_current_dir(path: &PathBuf) -> Result<()> {
@@ -419,6 +437,60 @@ fn apply_ui_overrides(
         ui_changes_needed = true;
     }
 
+    // Apply input bar border override
+    if let Some(input_border) = args.input_border {
+        let input_bar = ui_spec
+            .input_bar
+            .get_or_insert_with(InputBarConfig::default);
+        input_bar.border_type = input_border;
+        ui_changes_needed = true;
+    }
+
+    // Apply input bar padding override
+    if let Some(input_padding) = &args.input_padding {
+        let input_bar = ui_spec
+            .input_bar
+            .get_or_insert_with(InputBarConfig::default);
+        input_bar.padding = *input_padding;
+        ui_changes_needed = true;
+    }
+
+    // Apply preview panel border override
+    if let Some(preview_border) = args.preview_border {
+        let preview_panel = ui_spec.preview_panel.get_or_insert_with(
+            television::config::ui::PreviewPanelConfig::default,
+        );
+        preview_panel.border_type = preview_border;
+        ui_changes_needed = true;
+    }
+
+    // Apply preview panel padding override
+    if let Some(preview_padding) = &args.preview_padding {
+        let preview_panel = ui_spec.preview_panel.get_or_insert_with(
+            television::config::ui::PreviewPanelConfig::default,
+        );
+        preview_panel.padding = *preview_padding;
+        ui_changes_needed = true;
+    }
+
+    // Apply results panel border override
+    if let Some(results_border) = args.results_border {
+        let results_panel = ui_spec.results_panel.get_or_insert_with(
+            television::config::ui::ResultsPanelConfig::default,
+        );
+        results_panel.border_type = results_border;
+        ui_changes_needed = true;
+    }
+
+    // Apply results panel padding override
+    if let Some(results_padding) = &args.results_padding {
+        let results_panel = ui_spec.results_panel.get_or_insert_with(
+            television::config::ui::ResultsPanelConfig::default,
+        );
+        results_panel.padding = *results_padding;
+        ui_changes_needed = true;
+    }
+
     // Apply layout/orientation override
     if let Some(layout) = args.layout {
         ui_spec.orientation = Some(layout);
@@ -518,7 +590,7 @@ mod tests {
         channels::prototypes::{
             ChannelPrototype, CommandSpec, PreviewSpec, Template,
         },
-        config::ui::{BorderType, InputBarConfig},
+        config::ui::{BorderType, InputBarConfig, Padding},
         screen::layout::InputPosition,
     };
 
@@ -741,6 +813,12 @@ mod tests {
             input_header: Some("Input Header".to_string()),
             preview_header: Some("Preview Header".to_string()),
             preview_footer: Some("Preview Footer".to_string()),
+            preview_border: Some(BorderType::Thick),
+            input_border: Some(BorderType::Thick),
+            results_border: Some(BorderType::Thick),
+            input_padding: Some(Padding::new(1, 2, 3, 4)),
+            preview_padding: Some(Padding::new(5, 6, 7, 8)),
+            results_padding: Some(Padding::new(9, 10, 11, 12)),
             ..Default::default()
         };
         apply_cli_overrides(&args, &mut config);
@@ -759,6 +837,15 @@ mod tests {
             config.ui.preview_panel.footer,
             Some(Template::parse("Preview Footer").unwrap())
         );
+        assert_eq!(config.ui.preview_panel.border_type, BorderType::Thick);
+        assert_eq!(config.ui.input_bar.border_type, BorderType::Thick);
+        assert_eq!(config.ui.results_panel.border_type, BorderType::Thick);
+        assert_eq!(config.ui.input_bar.padding, Padding::new(1, 2, 3, 4));
+        assert_eq!(config.ui.preview_panel.padding, Padding::new(5, 6, 7, 8));
+        assert_eq!(
+            config.ui.results_panel.padding,
+            Padding::new(9, 10, 11, 12)
+        );
     }
 
     #[test]
@@ -776,10 +863,11 @@ mod tests {
                 position: InputPosition::default(),
                 header: Some(Template::parse("Original Header").unwrap()),
                 prompt: ">".to_string(),
-                border_type: BorderType::Rounded,
+                border_type: BorderType::Thick,
+                padding: Padding::uniform(1),
             }),
             preview_panel: Some(television::config::ui::PreviewPanelConfig {
-                size: 50,
+                size: 60,
                 header: Some(
                     Template::parse("Original Preview Header").unwrap(),
                 ),
@@ -787,9 +875,13 @@ mod tests {
                     Template::parse("Original Preview Footer").unwrap(),
                 ),
                 scrollbar: false,
-                border_type: BorderType::default(),
+                border_type: BorderType::Thick,
+                padding: Padding::uniform(2),
             }),
-            results_panel: None,
+            results_panel: Some(television::config::ui::ResultsPanelConfig {
+                border_type: BorderType::Thick,
+                padding: Padding::uniform(2),
+            }),
             status_bar: None,
             help_panel: None,
             remote_control: None,
@@ -804,6 +896,12 @@ mod tests {
             preview_header: Some("CLI Preview Header".to_string()),
             preview_footer: Some("CLI Preview Footer".to_string()),
             layout: Some(Orientation::Landscape),
+            input_border: Some(BorderType::Plain),
+            preview_border: Some(BorderType::Plain),
+            results_border: Some(BorderType::Plain),
+            input_padding: Some(Padding::new(1, 2, 3, 4)),
+            preview_padding: Some(Padding::new(5, 6, 7, 8)),
+            results_padding: Some(Padding::new(9, 10, 11, 12)),
             ..Default::default()
         };
         let config = Config::default();
@@ -830,6 +928,26 @@ mod tests {
         assert_eq!(
             preview_panel.footer,
             Some(Template::parse("CLI Preview Footer").unwrap())
+        );
+        assert_eq!(preview_panel.border_type, BorderType::Plain);
+        assert_eq!(preview_panel.padding, Padding::new(5, 6, 7, 8));
+
+        assert_eq!(
+            ui_spec.results_panel.as_ref().unwrap().border_type,
+            BorderType::Plain
+        );
+        assert_eq!(
+            ui_spec.results_panel.as_ref().unwrap().padding,
+            Padding::new(9, 10, 11, 12)
+        );
+
+        assert_eq!(
+            ui_spec.input_bar.as_ref().unwrap().border_type,
+            BorderType::Plain
+        );
+        assert_eq!(
+            ui_spec.input_bar.as_ref().unwrap().padding,
+            Padding::new(1, 2, 3, 4)
         );
     }
 

@@ -281,12 +281,14 @@ impl Config {
                 .input_bar
                 .border_type
                 .clone_from(&input_bar.border_type);
+            self.ui.input_bar.padding = input_bar.padding;
         }
         if let Some(results_panel) = &ui_spec.results_panel {
             self.ui
                 .results_panel
                 .border_type
                 .clone_from(&results_panel.border_type);
+            self.ui.results_panel.padding = results_panel.padding;
         }
         if let Some(preview_panel) = &ui_spec.preview_panel {
             self.ui.preview_panel.size = preview_panel.size;
@@ -301,6 +303,7 @@ impl Config {
                 .preview_panel
                 .border_type
                 .clone_from(&preview_panel.border_type);
+            self.ui.preview_panel.padding = preview_panel.padding;
         }
     }
 }
@@ -372,6 +375,7 @@ pub use ui::{DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE};
 #[cfg(test)]
 mod tests {
     use crate::action::Action;
+    use crate::config::ui::Padding;
     use crate::event::Key;
 
     use super::*;
@@ -619,9 +623,11 @@ mod tests {
                 header: Some(Template::Raw("hello".to_string())),
                 prompt: "world".to_string(),
                 border_type: BorderType::Thick,
+                padding: Padding::uniform(2),
             }),
             results_panel: Some(ResultsPanelConfig {
                 border_type: BorderType::None,
+                padding: Padding::uniform(2),
             }),
             preview_panel: Some(PreviewPanelConfig {
                 size: 42,
@@ -629,6 +635,7 @@ mod tests {
                 footer: Some(Template::Raw("moo".to_string())),
                 scrollbar: true,
                 border_type: BorderType::Plain,
+                padding: Padding::uniform(2),
             }),
             status_bar: Some(StatusBarConfig {
                 separator_open: "open".to_string(),
@@ -653,7 +660,11 @@ mod tests {
         );
         assert_eq!(config.ui.input_bar.prompt, "world");
         assert_eq!(config.ui.input_bar.border_type, BorderType::Thick);
+        assert_eq!(config.ui.input_bar.padding, Padding::uniform(2));
+
         assert_eq!(config.ui.results_panel.border_type, BorderType::None);
+        assert_eq!(config.ui.results_panel.padding, Padding::uniform(2));
+
         assert_eq!(config.ui.preview_panel.size, 42);
         assert_eq!(
             config.ui.preview_panel.header.as_ref().unwrap().raw(),
@@ -665,6 +676,8 @@ mod tests {
         );
         assert!(config.ui.preview_panel.scrollbar);
         assert_eq!(config.ui.preview_panel.border_type, BorderType::Plain);
+        assert_eq!(config.ui.preview_panel.padding, Padding::uniform(2));
+
         assert_eq!(config.ui.status_bar.separator_open, "open");
         assert_eq!(config.ui.status_bar.separator_close, "close");
         assert!(config.ui.remote_control.show_channel_descriptions);

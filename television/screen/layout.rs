@@ -70,6 +70,19 @@ pub enum Orientation {
     Portrait,
 }
 
+impl From<crate::cli::args::LayoutOrientation> for Orientation {
+    fn from(value: crate::cli::args::LayoutOrientation) -> Self {
+        match value {
+            crate::cli::args::LayoutOrientation::Landscape => {
+                Orientation::Landscape
+            }
+            crate::cli::args::LayoutOrientation::Portrait => {
+                Orientation::Portrait
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,

@@ -739,7 +739,10 @@ mod tests {
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
         assert!(ui.features.is_none());
-        assert_eq!(ui.input_bar.as_ref().unwrap().border_type, BorderType::None);
+        assert_eq!(
+            ui.input_bar.as_ref().unwrap().border_type,
+            BorderType::None
+        );
         assert!(ui.preview_panel.is_some());
         assert_eq!(
             ui.preview_panel

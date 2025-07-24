@@ -1,5 +1,5 @@
 use crate::{
-    config::ui::{BorderType, PreviewPanelConfig},
+    config::ui::{BorderType, Padding, PreviewPanelConfig},
     previewer::{Preview, state::PreviewState},
     screen::colors::Colorscheme,
     utils::strings::{
@@ -13,8 +13,8 @@ use ratatui::{
     layout::{Alignment, Rect},
     prelude::{Color, Line, Span, Style, Stylize, Text},
     widgets::{
-        Block, Borders, Clear, Padding, Paragraph, Scrollbar,
-        ScrollbarOrientation, ScrollbarState, StatefulWidget,
+        Block, Borders, Clear, Padding as RatatuiPadding, Paragraph,
+        Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
     },
 };
 use std::str::FromStr;
@@ -32,7 +32,8 @@ pub fn draw_preview_content_block(
         f,
         rect,
         colorscheme,
-        &preview_panel_config.border_type,
+        preview_panel_config.border_type,
+        preview_panel_config.padding,
         &preview_state.preview,
         use_nerd_font_icons,
     )?;
@@ -75,12 +76,14 @@ pub fn build_preview_paragraph(
     highlight_bg: Color,
 ) -> Paragraph<'static> {
     let preview_block =
-        Block::default().style(Style::default()).padding(Padding {
-            top: 0,
-            right: 1,
-            bottom: 0,
-            left: 1,
-        });
+        Block::default()
+            .style(Style::default())
+            .padding(RatatuiPadding {
+                top: 0,
+                right: 1,
+                bottom: 0,
+                left: 1,
+            });
 
     build_ansi_text_paragraph(
         preview_state.preview.content,
@@ -164,7 +167,8 @@ fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
     colorscheme: &Colorscheme,
-    border_type: &BorderType,
+    border_type: BorderType,
+    padding: Padding,
     preview: &Preview,
     use_nerd_font_icons: bool,
 ) -> Result<Rect> {
@@ -219,7 +223,7 @@ fn draw_content_outer_block(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
-        .padding(Padding::new(0, 1, 1, 0));
+        .padding(RatatuiPadding::from(padding));
     if let Some(border_type) = border_type.to_ratatui_border_type() {
         preview_outer_block = preview_outer_block
             .borders(Borders::ALL)

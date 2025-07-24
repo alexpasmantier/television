@@ -16,6 +16,7 @@ pub struct InputBarConfig {
     pub header: Option<Template>,
     pub prompt: String,
     pub border_type: BorderType,
+    pub padding: Padding,
 }
 
 impl Default for InputBarConfig {
@@ -25,6 +26,7 @@ impl Default for InputBarConfig {
             header: None,
             prompt: ">".to_string(),
             border_type: BorderType::default(),
+            padding: Padding::uniform(0),
         }
     }
 }
@@ -40,6 +42,7 @@ pub struct StatusBarConfig {
 #[serde(default)]
 pub struct ResultsPanelConfig {
     pub border_type: BorderType,
+    pub padding: Padding,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
@@ -50,6 +53,7 @@ pub struct PreviewPanelConfig {
     pub footer: Option<Template>,
     pub scrollbar: bool,
     pub border_type: BorderType,
+    pub padding: Padding,
 }
 
 impl Default for PreviewPanelConfig {
@@ -60,6 +64,7 @@ impl Default for PreviewPanelConfig {
             footer: None,
             scrollbar: true,
             border_type: BorderType::default(),
+            padding: Padding::uniform(0),
         }
     }
 }
@@ -168,7 +173,9 @@ impl Default for UiConfig {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default,
+)]
 #[serde(rename_all = "snake_case")]
 pub enum BorderType {
     None,
@@ -177,6 +184,7 @@ pub enum BorderType {
     Rounded,
     Thick,
 }
+
 impl BorderType {
     pub fn to_ratatui_border_type(
         &self,
@@ -186,6 +194,77 @@ impl BorderType {
             BorderType::Plain => Some(ratatui::widgets::BorderType::Plain),
             BorderType::Rounded => Some(ratatui::widgets::BorderType::Rounded),
             BorderType::Thick => Some(ratatui::widgets::BorderType::Thick),
+        }
+    }
+}
+
+impl From<crate::cli::args::BorderType> for BorderType {
+    fn from(border_type: crate::cli::args::BorderType) -> Self {
+        match border_type {
+            crate::cli::args::BorderType::None => BorderType::None,
+            crate::cli::args::BorderType::Plain => BorderType::Plain,
+            crate::cli::args::BorderType::Rounded => BorderType::Rounded,
+            crate::cli::args::BorderType::Thick => BorderType::Thick,
+        }
+    }
+}
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default,
+)]
+#[serde(default)]
+pub struct Padding {
+    pub top: u16,
+    pub bottom: u16,
+    pub left: u16,
+    pub right: u16,
+}
+
+impl Padding {
+    pub fn new(top: u16, bottom: u16, left: u16, right: u16) -> Self {
+        Self {
+            top,
+            bottom,
+            left,
+            right,
+        }
+    }
+
+    pub fn uniform(padding: u16) -> Self {
+        Self {
+            top: padding,
+            bottom: padding,
+            left: padding,
+            right: padding,
+        }
+    }
+
+    pub fn horizontal(padding: u16) -> Self {
+        Self {
+            top: 0,
+            bottom: 0,
+            left: padding,
+            right: padding,
+        }
+    }
+
+    pub fn vertical(padding: u16) -> Self {
+        Self {
+            top: padding,
+            bottom: padding,
+            left: 0,
+            right: 0,
+        }
+    }
+}
+
+impl From<Padding> for ratatui::widgets::Padding {
+    fn from(padding: Padding) -> Self {
+        ratatui::widgets::Padding {
+            top: padding.top,
+            bottom: padding.bottom,
+            left: padding.left,
+            right: padding.right,
         }
     }
 }

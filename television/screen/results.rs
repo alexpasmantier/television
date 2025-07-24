@@ -31,7 +31,7 @@ pub fn draw_results_list(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
-        .padding(Padding::right(1));
+        .padding(Padding::from(results_panel_config.padding));
     if let Some(border_type) =
         results_panel_config.border_type.to_ratatui_border_type()
     {
