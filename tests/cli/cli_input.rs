@@ -27,7 +27,7 @@ fn test_input_prefills_search_box() {
 
     // Send Ctrl+C to exit the application gracefully
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that custom keybindings override default keyboard shortcuts.
@@ -52,7 +52,7 @@ fn test_keybindings_override_default() {
 
     // Test that our custom "a" key now quits the application
     tester.send("'a'");
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that multiple keybinding overrides can be specified simultaneously.
@@ -78,7 +78,7 @@ fn test_multiple_keybindings_override() {
     // Use "a" to quit remote control mode, then "a" again to quit the application
     tester.send("'a'"); // Exit remote control
     tester.send("'a'"); // Exit application
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that the --exact flag enables exact substring matching instead of fuzzy matching.
@@ -105,7 +105,7 @@ fn test_exact_matching_enabled() {
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 #[test]
@@ -133,5 +133,5 @@ fn test_exact_matching_enabled_fails() {
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }

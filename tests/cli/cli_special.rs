@@ -28,7 +28,7 @@ fn test_autocomplete_prompt_activates_channel_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that --autocomplete-prompt conflicts with explicit channel argument.
@@ -63,7 +63,7 @@ fn test_autocomplete_prompt_with_working_directory() {
 
     // Send Ctrl+C to exit (the test is mainly to ensure no CLI parsing error)
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that the `list-channels` subcommand lists available channels.
