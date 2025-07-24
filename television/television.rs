@@ -389,7 +389,7 @@ impl Television {
         }
     }
 
-    pub fn get_selected_entry(&self) -> Option<Entry> {
+    pub fn get_selected_entry(&mut self) -> Option<Entry> {
         if self.channel.result_count() == 0 {
             return None;
         }
@@ -398,7 +398,7 @@ impl Television {
             .and_then(|entry| entry)
     }
 
-    pub fn get_selected_cable_entry(&self) -> Option<CableEntry> {
+    pub fn get_selected_cable_entry(&mut self) -> Option<CableEntry> {
         if self
             .remote_control
             .as_ref()
@@ -408,7 +408,7 @@ impl Television {
             return None;
         }
         self.selected_index().and_then(|idx| {
-            self.remote_control.as_ref().map(|rc| rc.get_result(idx))
+            self.remote_control.as_mut().map(|rc| rc.get_result(idx))
         })
     }
 
@@ -423,7 +423,7 @@ impl Television {
     }
 
     #[must_use]
-    pub fn get_selected_entries(&self) -> Option<FxHashSet<Entry>> {
+    pub fn get_selected_entries(&mut self) -> Option<FxHashSet<Entry>> {
         // if nothing is selected, return the currently hovered entry
         if self.channel.selected_entries().is_empty() {
             return self

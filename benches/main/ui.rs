@@ -498,7 +498,8 @@ pub fn draw(c: &mut Criterion) {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
                 tv.move_cursor(Movement::Next, 10);
-                let _ = tv.update_preview_state(&tv.get_selected_entry());
+                let selected_entry = tv.get_selected_entry();
+                let _ = tv.update_preview_state(&selected_entry);
                 let _ = tv.update(&Action::Tick);
                 (tv, terminal)
             },
