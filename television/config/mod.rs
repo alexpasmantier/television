@@ -260,9 +260,6 @@ impl Config {
         if let Some(value) = &ui_spec.features {
             self.ui.features = value.clone();
         }
-        if let Some(value) = &ui_spec.input_bar {
-            self.ui.input_bar = value.clone();
-        }
         if let Some(value) = &ui_spec.status_bar {
             self.ui.status_bar = value.clone();
         }
@@ -273,7 +270,24 @@ impl Config {
             self.ui.remote_control = value.clone();
         }
 
-        // Handle preview_panel with field merging
+        // Handle input, results, and preview with field merging
+        if let Some(input_bar) = &ui_spec.input_bar {
+            self.ui.input_bar.position = input_bar.position;
+            if input_bar.header.is_some() {
+                self.ui.input_bar.header.clone_from(&input_bar.header);
+            }
+            self.ui.input_bar.prompt.clone_from(&input_bar.prompt);
+            self.ui
+                .input_bar
+                .border_type
+                .clone_from(&input_bar.border_type);
+        }
+        if let Some(results_panel) = &ui_spec.results_panel {
+            self.ui
+                .results_panel
+                .border_type
+                .clone_from(&results_panel.border_type);
+        }
         if let Some(preview_panel) = &ui_spec.preview_panel {
             self.ui.preview_panel.size = preview_panel.size;
             if let Some(header) = &preview_panel.header {
@@ -283,6 +297,10 @@ impl Config {
                 self.ui.preview_panel.footer = Some(footer.clone());
             }
             self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
+            self.ui
+                .preview_panel
+                .border_type
+                .clone_from(&preview_panel.border_type);
         }
     }
 }
@@ -573,5 +591,83 @@ mod tests {
         .collect();
 
         assert_eq!(config.shell_integration.keybindings, expected);
+    }
+
+    #[test]
+    fn test_apply_prototype_ui_spec() {
+        use crate::channels::prototypes::Template;
+        use crate::features::Features;
+        use crate::screen::layout::{InputPosition, Orientation};
+        use ui::{
+            BorderType, HelpPanelConfig, InputBarConfig, PreviewPanelConfig,
+            RemoteControlConfig, ResultsPanelConfig, StatusBarConfig,
+        };
+
+        let mut features = Features::default();
+        features.help_panel.disable();
+
+        let mut config = Config::default();
+        config.ui.preview_panel.header =
+            Some(Template::Raw("cow".to_string()));
+
+        let ui_spec = UiSpec {
+            ui_scale: Some(12),
+            features: Some(features),
+            orientation: Some(Orientation::Portrait),
+            input_bar: Some(InputBarConfig {
+                position: InputPosition::Bottom,
+                header: Some(Template::Raw("hello".to_string())),
+                prompt: "world".to_string(),
+                border_type: BorderType::Thick,
+            }),
+            results_panel: Some(ResultsPanelConfig {
+                border_type: BorderType::None,
+            }),
+            preview_panel: Some(PreviewPanelConfig {
+                size: 42,
+                header: None, // does not overwrite "cow"
+                footer: Some(Template::Raw("moo".to_string())),
+                scrollbar: true,
+                border_type: BorderType::Plain,
+            }),
+            status_bar: Some(StatusBarConfig {
+                separator_open: "open".to_string(),
+                separator_close: "close".to_string(),
+            }),
+            help_panel: Some(HelpPanelConfig {
+                show_categories: true,
+            }),
+            remote_control: Some(RemoteControlConfig {
+                show_channel_descriptions: true,
+                sort_alphabetically: true,
+            }),
+        };
+        config.apply_prototype_ui_spec(&ui_spec);
+
+        assert_eq!(config.ui.ui_scale, 12);
+        assert!(!config.ui.features.help_panel.enabled);
+        assert_eq!(config.ui.input_bar.position, InputPosition::Bottom);
+        assert_eq!(
+            config.ui.input_bar.header.as_ref().unwrap().raw(),
+            "hello"
+        );
+        assert_eq!(config.ui.input_bar.prompt, "world");
+        assert_eq!(config.ui.input_bar.border_type, BorderType::Thick);
+        assert_eq!(config.ui.results_panel.border_type, BorderType::None);
+        assert_eq!(config.ui.preview_panel.size, 42);
+        assert_eq!(
+            config.ui.preview_panel.header.as_ref().unwrap().raw(),
+            "cow"
+        );
+        assert_eq!(
+            config.ui.preview_panel.footer.as_ref().unwrap().raw(),
+            "moo"
+        );
+        assert!(config.ui.preview_panel.scrollbar);
+        assert_eq!(config.ui.preview_panel.border_type, BorderType::Plain);
+        assert_eq!(config.ui.status_bar.separator_open, "open");
+        assert_eq!(config.ui.status_bar.separator_close, "close");
+        assert!(config.ui.remote_control.show_channel_descriptions);
+        assert!(config.ui.remote_control.sort_alphabetically);
     }
 }

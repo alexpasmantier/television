@@ -712,6 +712,9 @@ mod tests {
         layout = "landscape"
         ui_scale = 40
 
+        [ui.input_bar]
+        border_type = "none"
+
         [ui.preview_panel]
         footer = "Press 'q' to quit"
         "#;
@@ -736,7 +739,7 @@ mod tests {
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
         assert!(ui.features.is_none());
-        assert!(ui.input_bar.is_none());
+        assert_eq!(ui.input_bar.as_ref().unwrap().border_type, BorderType::None);
         assert!(ui.preview_panel.is_some());
         assert_eq!(
             ui.preview_panel
