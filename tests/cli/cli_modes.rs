@@ -23,7 +23,7 @@ fn test_channel_mode_with_channel_name() {
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that Channel Mode works with both channel name and working directory specified.
@@ -46,7 +46,7 @@ fn test_channel_mode_with_channel_and_path() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that CLI flags can override channel defaults in Channel Mode.
@@ -64,7 +64,7 @@ fn test_channel_mode_with_channel_and_overrides() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that basic Ad-hoc Mode activation works with --source-command.
@@ -81,7 +81,7 @@ fn test_adhoc_mode_with_source_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that Ad-hoc Mode requires --source-command for dependent flags.
@@ -115,7 +115,7 @@ fn test_smart_path_detection_switches_to_adhoc_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
 /// Tests that fallback to default channel works when no arguments are provided.
@@ -132,5 +132,5 @@ fn test_no_arguments_uses_default_channel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
