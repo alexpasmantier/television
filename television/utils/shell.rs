@@ -189,7 +189,7 @@ pub fn render_autocomplete_script_template(
     let clap_autocomplete =
         render_clap_autocomplete(shell).unwrap_or_default();
 
-    Ok(clap_autocomplete + &script)
+    Ok(script + &clap_autocomplete)
 }
 
 fn render_clap_autocomplete(shell: Shell) -> Option<String> {
