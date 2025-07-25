@@ -1,5 +1,5 @@
 use crate::{
-    config::{KeyBindings, UiConfig},
+    config::{Config, UiConfig},
     features::FeatureFlags,
     screen::{
         colors::Colorscheme, help_panel::calculate_help_panel_size,
@@ -137,7 +137,7 @@ impl Layout {
         ui_config: &UiConfig,
         show_remote: bool,
         show_preview: bool,
-        keybindings: Option<&KeyBindings>,
+        config: Option<&Config>,
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
@@ -401,12 +401,12 @@ impl Layout {
                     area
                 };
 
-            if let Some(kb) = keybindings {
+            if let Some(cfg) = config {
                 let (width, height) =
-                    calculate_help_panel_size(kb, mode, colorscheme);
+                    calculate_help_panel_size(cfg, mode, colorscheme);
                 Some(bottom_right_rect(width, height, hp_area))
             } else {
-                // Fallback to reasonable default if keybindings not available
+                // Fallback to reasonable default if config not available
                 Some(bottom_right_rect(45, 25, hp_area))
             }
         } else {
