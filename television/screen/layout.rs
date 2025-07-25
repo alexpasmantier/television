@@ -1,5 +1,8 @@
 use crate::{
-    config::{Config, UiConfig},
+    config::{
+        Config, UiConfig,
+        ui::{BorderType, InputBarConfig},
+    },
     features::FeatureFlags,
     screen::{
         colors::Colorscheme, help_panel::calculate_help_panel_size,
@@ -167,8 +170,10 @@ impl Layout {
         // Define the constraints for the results area (results list + input bar).
         // We keep this near the top so we can derive the input-bar height before
         // calculating the preview/results split.
-        let results_constraints =
-            vec![Constraint::Min(3), Constraint::Length(3)];
+        let results_constraints = vec![
+            Constraint::Min(3),
+            Constraint::Length(input_bar_height(&ui_config.input_bar)),
+        ];
 
         // Extract the explicit height of the input bar from the vector above so
         // the value stays in sync if the constraint is ever changed elsewhere.
@@ -477,5 +482,96 @@ fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
         y: r.y + y,
         width: width.min(r.width.saturating_sub(2)),
         height: height.min(r.height.saturating_sub(2)),
+    }
+}
+
+fn input_bar_height(input_bar_config: &InputBarConfig) -> u16 {
+    // input line + header + vertical padding
+    let mut h =
+        1 + 1 + input_bar_config.padding.top + input_bar_config.padding.bottom;
+
+    // add the bottom border if applicable (top is already included with the header)
+    if input_bar_config.border_type != BorderType::None {
+        h += 1;
+    }
+    h
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::ui::Padding;
+
+    use super::*;
+
+    #[test]
+    /// ---h----
+    ///  input
+    /// --------
+    fn test_input_bar_height_top_with_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding::default(),
+            border_type: BorderType::Rounded,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 3);
+    }
+
+    #[test]
+    fn test_input_bar_height_bottom_with_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Bottom,
+            padding: Padding::default(),
+            border_type: BorderType::Rounded,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 3);
+    }
+
+    #[test]
+    ///      h
+    ///    input
+    fn test_input_bar_height_top_without_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding::default(),
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 2);
+    }
+
+    #[test]
+    ///  input
+    ///    h
+    fn test_input_bar_height_bottom_without_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Bottom,
+            padding: Padding::default(),
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 2);
+    }
+
+    #[test]
+    fn test_input_bar_height_with_padding() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding {
+                top: 1,
+                bottom: 2,
+                left: 0,
+                right: 0,
+            },
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 5);
     }
 }
