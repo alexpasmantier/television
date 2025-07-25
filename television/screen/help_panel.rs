@@ -111,7 +111,7 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::WatchTimer
                 | Action::SelectEntryAtPosition(_, _)
                 | Action::MouseClickAt(_, _)
-                | Action::ToggleSendToChannel
+                | Action::Expect(_)
                 | Action::SelectAndExit => false,
             }
         }

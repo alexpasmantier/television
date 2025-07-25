@@ -172,7 +172,7 @@ impl PtyTester {
         match child.try_wait() {
             Ok(Some(_)) => {
                 panic!(
-                    "Child process exited prematurely with output:\n{}",
+                    "Child process exited prematurely with output:\n{:?}",
                     self.read_raw_output()
                 );
             }
@@ -287,7 +287,7 @@ impl PtyTester {
         let frame = self.get_tui_frame();
         assert!(
             !frame.contains(expected),
-            "Expected output to not contain\n'{}'\nbut got:\n{}",
+            "Expected output to not contain\n'{}'\nbut got:\n'{}'",
             expected,
             frame
         );
@@ -297,7 +297,7 @@ impl PtyTester {
         let output = self.read_raw_output();
         assert!(
             output.contains(expected),
-            "Expected output to contain '{}', but got:\n{}",
+            "Expected output to contain '{}', but got:\n{:?}",
             expected,
             output
         );

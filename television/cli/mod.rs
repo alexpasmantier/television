@@ -1,12 +1,15 @@
 use crate::{
+    action::{Action, Actions},
     cable::{self, Cable},
     channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
         DEFAULT_PREVIEW_SIZE, KeyBindings, get_config_dir, get_data_dir,
+        merge_bindings,
         ui::{BorderType, Padding},
     },
     errors::cli_parsing_error_exit,
+    event::Key,
     screen::layout::Orientation,
     utils::paths::expand_tilde,
 };
@@ -15,7 +18,10 @@ use clap::CommandFactory;
 use clap::error::ErrorKind;
 use colored::Colorize;
 use rustc_hash::FxHashMap;
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use tracing::debug;
 
 pub mod args;
@@ -221,10 +227,26 @@ impl Default for PostProcessedCli {
 /// This prevents creating broken ad-hoc channels that reference non-existent commands.
 pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
-    let keybindings = cli.keybindings.as_ref().map(|kb| {
+    let mut keybindings = cli.keybindings.as_ref().map(|kb| {
         parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
             .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()))
     });
+
+    // if `--expect` is used, parse and add to the keybindings
+    if let Some(expect) = &cli.expect {
+        let expect_bindings = parse_expect_bindings(expect)
+            .unwrap_or_else(|e| cli_parsing_error_exit(&e.to_string()));
+        keybindings = match keybindings {
+            Some(kb) => {
+                // Merge expect bindings into existing keybindings
+                Some(merge_bindings(kb, &expect_bindings))
+            }
+            None => {
+                // Initialize keybindings with expect bindings
+                Some(expect_bindings)
+            }
+        }
+    }
 
     // Parse preview overrides if provided
     let preview_command_override =
@@ -610,6 +632,36 @@ pub fn guess_channel_from_prompt(
     fallback
 }
 
+/// Parses the `expect` keybindings from the CLI into a `KeyBindings` struct that can be
+/// merged with other keybindings.
+///
+/// The `expect` keybindings are expected to be in the format:
+/// ```ignore
+/// "ctrl-q;esc"
+/// ```
+/// And will produce a `KeyBindings` struct with the following entries:
+/// ```ignore
+/// {
+///    Key::Ctrl('q') => Actions::single(Action::Expect(Key::Ctrl('q'))),
+///    Key::Esc => Actions::single(Action::Expect(Key::Esc)),
+/// }
+/// ```
+fn parse_expect_bindings(expect: &str) -> Result<KeyBindings> {
+    let mut bindings = KeyBindings::default();
+    for s in expect.split(CLI_KEYBINDINGS_DELIMITER) {
+        let s = s.trim();
+        if s.is_empty() {
+            continue;
+        }
+        let key = Key::from_str(s).map_err(|e| {
+            anyhow!("Invalid key in expect bindings: '{}'. Error: {}", s, e)
+        })?;
+        let action = Action::Expect(key);
+        bindings.insert(key, Actions::single(action));
+    }
+    Ok(bindings)
+}
+
 const VERSION_MESSAGE: &str = env!("CARGO_PKG_VERSION");
 
 pub fn version() -> String {
@@ -795,5 +847,20 @@ mod tests {
         };
 
         validate_adhoc_mode_constraints(&cli, true);
+    }
+
+    #[test]
+    fn test_parse_expect_keybindings() {
+        let expect = "ctrl-q;esc";
+        let bindings = parse_expect_bindings(expect).unwrap();
+
+        let mut expected = KeyBindings::default();
+        expected.insert(
+            Key::Ctrl('q'),
+            Actions::single(Action::Expect(Key::Ctrl('q'))),
+        );
+        expected.insert(Key::Esc, Actions::single(Action::Expect(Key::Esc)));
+
+        assert_eq!(bindings, expected);
     }
 }
