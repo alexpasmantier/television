@@ -1,5 +1,5 @@
 use crate::{
-    channels::prototypes::Template,
+    config::ui::InputBarConfig,
     screen::{colors::Colorscheme, layout::InputPosition, spinner::Spinner},
     utils::input::Input,
 };
@@ -12,7 +12,7 @@ use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span},
     widgets::{
-        Block, BorderType, Borders, ListState, Paragraph, block::Position,
+        Block, Borders, ListState, Padding, Paragraph, block::Position,
     },
 };
 
@@ -28,19 +28,15 @@ pub fn draw_input_box(
     channel_name: &str,
     spinner: &Spinner,
     colorscheme: &Colorscheme,
-    input_header: &Option<Template>,
-    input_prompt: &str,
-    input_bar_position: &InputPosition,
+    input_bar_config: &InputBarConfig,
 ) -> Result<()> {
-    let header = input_header
+    let header = input_bar_config
+        .header
         .as_ref()
         .and_then(|tpl| tpl.format(channel_name).ok())
         .unwrap_or_else(|| channel_name.to_string());
-    let input_block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .title_position(match input_bar_position {
+    let mut input_block = Block::default()
+        .title_position(match input_bar_config.position {
             InputPosition::Top => Position::Top,
             InputPosition::Bottom => Position::Bottom,
         })
@@ -52,7 +48,16 @@ pub fn draw_input_box(
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
-        );
+        )
+        .padding(Padding::from(input_bar_config.padding));
+    if let Some(border_type) =
+        input_bar_config.border_type.to_ratatui_border_type()
+    {
+        input_block = input_block
+            .borders(Borders::ALL)
+            .border_type(border_type)
+            .border_style(Style::default().fg(colorscheme.general.border_fg));
+    }
 
     let input_block_inner = input_block.inner(rect);
     if input_block_inner.area() == 0 {
@@ -67,7 +72,8 @@ pub fn draw_input_box(
         .constraints([
             // prompt symbol + space
             Constraint::Length(
-                u16::try_from(input_prompt.chars().count() + 1).unwrap_or(2),
+                u16::try_from(input_bar_config.prompt.chars().count() + 1)
+                    .unwrap_or(2),
             ),
             // input field
             Constraint::Fill(1),
@@ -84,7 +90,7 @@ pub fn draw_input_box(
 
     let arrow_block = Block::default();
     let arrow = Paragraph::new(Span::styled(
-        format!("{} ", input_prompt),
+        format!("{} ", input_bar_config.prompt),
         Style::default().fg(colorscheme.input.input_fg).bold(),
     ))
     .block(arrow_block);

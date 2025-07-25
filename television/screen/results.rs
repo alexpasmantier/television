@@ -1,5 +1,6 @@
 use crate::{
     channels::entry::Entry,
+    config::ui::ResultsPanelConfig,
     screen::{colors::Colorscheme, layout::InputPosition, result_item},
 };
 use anyhow::Result;
@@ -8,7 +9,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     prelude::Style,
     text::Line,
-    widgets::{Block, BorderType, Borders, ListState, Padding},
+    widgets::{Block, Borders, ListState, Padding},
 };
 use rustc_hash::FxHashSet;
 
@@ -22,17 +23,23 @@ pub fn draw_results_list(
     input_bar_position: InputPosition,
     use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
+    results_panel_config: &ResultsPanelConfig,
 ) -> Result<()> {
-    let results_block = Block::default()
+    let mut results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
-        .padding(Padding::right(1));
+        .padding(Padding::from(results_panel_config.padding));
+    if let Some(border_type) =
+        results_panel_config.border_type.to_ratatui_border_type()
+    {
+        results_block = results_block
+            .borders(Borders::ALL)
+            .border_type(border_type)
+            .border_style(Style::default().fg(colorscheme.general.border_fg));
+    }
 
     let list_direction = match input_bar_position {
         InputPosition::Bottom => ratatui::widgets::ListDirection::BottomToTop,

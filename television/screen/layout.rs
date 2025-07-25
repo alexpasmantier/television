@@ -1,5 +1,8 @@
 use crate::{
-    config::{KeyBindings, UiConfig},
+    config::{
+        Config, UiConfig,
+        ui::{BorderType, InputBarConfig},
+    },
     features::FeatureFlags,
     screen::{
         colors::Colorscheme, help_panel::calculate_help_panel_size,
@@ -70,6 +73,19 @@ pub enum Orientation {
     Portrait,
 }
 
+impl From<crate::cli::args::LayoutOrientation> for Orientation {
+    fn from(value: crate::cli::args::LayoutOrientation) -> Self {
+        match value {
+            crate::cli::args::LayoutOrientation::Landscape => {
+                Orientation::Landscape
+            }
+            crate::cli::args::LayoutOrientation::Portrait => {
+                Orientation::Portrait
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,
@@ -124,7 +140,7 @@ impl Layout {
         ui_config: &UiConfig,
         show_remote: bool,
         show_preview: bool,
-        keybindings: Option<&KeyBindings>,
+        config: Option<&Config>,
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
@@ -154,8 +170,10 @@ impl Layout {
         // Define the constraints for the results area (results list + input bar).
         // We keep this near the top so we can derive the input-bar height before
         // calculating the preview/results split.
-        let results_constraints =
-            vec![Constraint::Min(3), Constraint::Length(3)];
+        let results_constraints = vec![
+            Constraint::Min(3),
+            Constraint::Length(input_bar_height(&ui_config.input_bar)),
+        ];
 
         // Extract the explicit height of the input bar from the vector above so
         // the value stays in sync if the constraint is ever changed elsewhere.
@@ -194,7 +212,7 @@ impl Layout {
             // results percentage is whatever remains
             let results_percentage = 100u16.saturating_sub(preview_percentage);
 
-            match (ui_config.orientation, ui_config.input_bar_position) {
+            match (ui_config.orientation, ui_config.input_bar.position) {
                 // Preview is rendered on the right or bottom depending on orientation
                 (Orientation::Landscape, _)
                 | (Orientation::Portrait, InputPosition::Top) => {
@@ -243,7 +261,7 @@ impl Layout {
                 // Now split the results window vertically into results list + input
                 let result_chunks = layout::Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints(match ui_config.input_bar_position {
+                    .constraints(match ui_config.input_bar.position {
                         InputPosition::Top => results_constraints
                             .clone()
                             .into_iter()
@@ -254,7 +272,8 @@ impl Layout {
                     .split(result_window);
 
                 let (input_rect, results_rect) = match ui_config
-                    .input_bar_position
+                    .input_bar
+                    .position
                 {
                     InputPosition::Bottom => {
                         (result_chunks[1], result_chunks[0])
@@ -278,7 +297,7 @@ impl Layout {
 
                 let mut portrait_constraints: Vec<Constraint> = Vec::new();
 
-                match ui_config.input_bar_position {
+                match ui_config.input_bar.position {
                     InputPosition::Top => {
                         // Input bar is always the first chunk
                         portrait_constraints
@@ -387,12 +406,12 @@ impl Layout {
                     area
                 };
 
-            if let Some(kb) = keybindings {
+            if let Some(cfg) = config {
                 let (width, height) =
-                    calculate_help_panel_size(kb, mode, colorscheme);
+                    calculate_help_panel_size(cfg, mode, colorscheme);
                 Some(bottom_right_rect(width, height, hp_area))
             } else {
-                // Fallback to reasonable default if keybindings not available
+                // Fallback to reasonable default if config not available
                 Some(bottom_right_rect(45, 25, hp_area))
             }
         } else {
@@ -463,5 +482,96 @@ fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
         y: r.y + y,
         width: width.min(r.width.saturating_sub(2)),
         height: height.min(r.height.saturating_sub(2)),
+    }
+}
+
+fn input_bar_height(input_bar_config: &InputBarConfig) -> u16 {
+    // input line + header + vertical padding
+    let mut h =
+        1 + 1 + input_bar_config.padding.top + input_bar_config.padding.bottom;
+
+    // add the bottom border if applicable (top is already included with the header)
+    if input_bar_config.border_type != BorderType::None {
+        h += 1;
+    }
+    h
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::config::ui::Padding;
+
+    use super::*;
+
+    #[test]
+    /// ---h----
+    ///  input
+    /// --------
+    fn test_input_bar_height_top_with_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding::default(),
+            border_type: BorderType::Rounded,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 3);
+    }
+
+    #[test]
+    fn test_input_bar_height_bottom_with_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Bottom,
+            padding: Padding::default(),
+            border_type: BorderType::Rounded,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 3);
+    }
+
+    #[test]
+    ///      h
+    ///    input
+    fn test_input_bar_height_top_without_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding::default(),
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 2);
+    }
+
+    #[test]
+    ///  input
+    ///    h
+    fn test_input_bar_height_bottom_without_borders() {
+        let config = InputBarConfig {
+            position: InputPosition::Bottom,
+            padding: Padding::default(),
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 2);
+    }
+
+    #[test]
+    fn test_input_bar_height_with_padding() {
+        let config = InputBarConfig {
+            position: InputPosition::Top,
+            padding: Padding {
+                top: 1,
+                bottom: 2,
+                left: 0,
+                right: 0,
+            },
+            border_type: BorderType::None,
+            header: None,
+            prompt: "> ".to_string(),
+        };
+        assert_eq!(input_bar_height(&config), 5);
     }
 }

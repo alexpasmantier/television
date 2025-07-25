@@ -1,9 +1,10 @@
 use crate::cli::parse_source_entry_delimiter;
+use crate::config::ui::InputBarConfig;
 use crate::{
     config::{KeyBindings, ui},
     event::Key,
     features::Features,
-    screen::layout::{InputPosition, Orientation},
+    screen::layout::Orientation,
 };
 use anyhow::Result;
 use rustc_hash::FxHashMap;
@@ -387,15 +388,13 @@ pub struct UiSpec {
     // `layout` is clearer for the user but collides with the overall `Layout` type.
     #[serde(rename = "layout", alias = "orientation", default)]
     pub orientation: Option<Orientation>,
-    #[serde(default)]
-    pub input_bar_position: Option<InputPosition>,
-    #[serde(default)]
-    pub input_header: Option<Template>,
-    #[serde(default)]
-    pub input_prompt: Option<String>,
     // Feature-specific configurations
     #[serde(default)]
+    pub input_bar: Option<InputBarConfig>,
+    #[serde(default)]
     pub preview_panel: Option<ui::PreviewPanelConfig>,
+    #[serde(default)]
+    pub results_panel: Option<ui::ResultsPanelConfig>,
     #[serde(default)]
     pub status_bar: Option<ui::StatusBarConfig>,
     #[serde(default)]
@@ -412,10 +411,9 @@ impl From<&crate::config::UiConfig> for UiSpec {
             ui_scale: Some(config.ui_scale),
             features: Some(config.features.clone()),
             orientation: Some(config.orientation),
-            input_bar_position: Some(config.input_bar_position),
-            input_header: config.input_header.clone(),
-            input_prompt: Some(config.input_prompt.clone()),
+            input_bar: Some(config.input_bar.clone()),
             preview_panel: Some(config.preview_panel.clone()),
+            results_panel: Some(config.results_panel.clone()),
             status_bar: Some(config.status_bar.clone()),
             help_panel: Some(config.help_panel.clone()),
             remote_control: Some(config.remote_control.clone()),
@@ -425,7 +423,10 @@ impl From<&crate::config::UiConfig> for UiSpec {
 
 #[cfg(test)]
 mod tests {
-    use crate::{action::Action, event::Key};
+    use crate::{
+        action::Action, config::ui::BorderType, event::Key,
+        screen::layout::InputPosition,
+    };
 
     use super::*;
     use toml::from_str;
@@ -508,16 +509,23 @@ mod tests {
         [ui]
         layout = "landscape"
         ui_scale = 100
-        input_bar_position = "bottom"
-        input_header = "Input: {}"
 
         [ui.features]
         preview_panel = { enabled = true, visible = true }
+
+        [ui.input_bar]
+        position = "bottom"
+        header = "Input: {}"
+        border_type = "plain"
 
         [ui.preview_panel]
         size = 66
         header = "Preview: {}"
         footer = "Press 'q' to quit"
+        border_type = "thick"
+
+        [ui.results_panel]
+        border_type = "none"
 
         [keybindings]
         esc = "quit"
@@ -565,29 +573,23 @@ mod tests {
         assert!(ui.features.is_some());
         let features = ui.features.as_ref().unwrap();
         assert!(features.preview_panel.enabled);
-        assert_eq!(ui.input_bar_position, Some(InputPosition::Bottom));
         assert_eq!(ui.preview_panel.as_ref().unwrap().size, 66);
-        assert_eq!(ui.input_header.as_ref().unwrap().raw(), "Input: {}");
+        let input_bar = ui.input_bar.as_ref().unwrap();
+        assert_eq!(input_bar.position, InputPosition::Bottom);
+        assert_eq!(input_bar.header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(input_bar.border_type, BorderType::Plain);
+        let preview_panel = ui.preview_panel.as_ref().unwrap();
         assert_eq!(
-            ui.preview_panel
-                .as_ref()
-                .unwrap()
-                .header
-                .as_ref()
-                .unwrap()
-                .raw(),
+            preview_panel.header.as_ref().unwrap().raw(),
             "Preview: {}"
         );
         assert_eq!(
-            ui.preview_panel
-                .as_ref()
-                .unwrap()
-                .footer
-                .as_ref()
-                .unwrap()
-                .raw(),
+            preview_panel.footer.as_ref().unwrap().raw(),
             "Press 'q' to quit"
         );
+        assert_eq!(preview_panel.border_type, BorderType::Thick);
+
+        assert_eq!(ui.results_panel.unwrap().border_type, BorderType::None);
 
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(
@@ -710,6 +712,9 @@ mod tests {
         layout = "landscape"
         ui_scale = 40
 
+        [ui.input_bar]
+        border_type = "none"
+
         [ui.preview_panel]
         footer = "Press 'q' to quit"
         "#;
@@ -734,9 +739,11 @@ mod tests {
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
         assert!(ui.features.is_none());
-        assert!(ui.input_bar_position.is_none());
+        assert_eq!(
+            ui.input_bar.as_ref().unwrap().border_type,
+            BorderType::None
+        );
         assert!(ui.preview_panel.is_some());
-        assert!(ui.input_header.is_none());
         assert_eq!(
             ui.preview_panel
                 .as_ref()

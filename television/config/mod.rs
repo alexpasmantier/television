@@ -1,7 +1,11 @@
 use crate::{
+    action::Action,
     cable::CABLE_DIR_NAME,
-    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, UiSpec},
+    channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
+    cli::PostProcessedCli,
+    features::FeatureFlags,
     history::DEFAULT_HISTORY_SIZE,
+    screen::keybindings::remove_action_bindings,
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
@@ -239,12 +243,145 @@ impl Config {
         }
     }
 
-    pub fn merge_keybindings(&mut self, other: &KeyBindings) {
+    pub fn merge_channel_keybindings(&mut self, other: &KeyBindings) {
         self.keybindings = merge_bindings(self.keybindings.clone(), other);
+    }
+
+    /// Apply CLI keybinding overrides.
+    pub fn apply_cli_keybinding_overrides(
+        &mut self,
+        cli_keybindings: &KeyBindings,
+    ) {
+        debug!("keybindings before: {:?}", self.keybindings);
+
+        for (key, actions) in &cli_keybindings.bindings {
+            // Update the keybinding
+            self.keybindings.insert(*key, actions.clone());
+        }
+
+        debug!("keybindings after: {:?}", self.keybindings);
     }
 
     pub fn merge_event_bindings(&mut self, other: &EventBindings) {
         self.events = merge_bindings(self.events.clone(), other);
+    }
+
+    /// Apply CLI overrides to this config
+    pub fn apply_cli_overrides(&mut self, args: &PostProcessedCli) {
+        debug!("Applying CLI overrides to config after channel merging");
+
+        if let Some(cable_dir) = &args.cable_dir {
+            self.application.cable_dir.clone_from(cable_dir);
+        }
+        if let Some(tick_rate) = args.tick_rate {
+            self.application.tick_rate = tick_rate;
+        }
+        if args.global_history {
+            self.application.global_history = true;
+        }
+        // Handle preview panel flags
+        if args.no_preview {
+            self.ui.features.disable(FeatureFlags::PreviewPanel);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::TogglePreview.into(),
+            );
+        } else if args.hide_preview {
+            self.ui.features.hide(FeatureFlags::PreviewPanel);
+        } else if args.show_preview {
+            self.ui.features.enable(FeatureFlags::PreviewPanel);
+        }
+
+        if let Some(ps) = args.preview_size {
+            self.ui.preview_panel.size = ps;
+        }
+
+        // Handle status bar flags
+        if args.no_status_bar {
+            self.ui.features.disable(FeatureFlags::StatusBar);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleStatusBar.into(),
+            );
+        } else if args.hide_status_bar {
+            self.ui.features.hide(FeatureFlags::StatusBar);
+        } else if args.show_status_bar {
+            self.ui.features.enable(FeatureFlags::StatusBar);
+        }
+
+        // Handle remote control flags
+        if args.no_remote {
+            self.ui.features.disable(FeatureFlags::RemoteControl);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleRemoteControl.into(),
+            );
+        } else if args.hide_remote {
+            self.ui.features.hide(FeatureFlags::RemoteControl);
+        } else if args.show_remote {
+            self.ui.features.enable(FeatureFlags::RemoteControl);
+        }
+
+        // Handle help panel flags
+        if args.no_help_panel {
+            self.ui.features.disable(FeatureFlags::HelpPanel);
+            remove_action_bindings(
+                &mut self.keybindings,
+                &Action::ToggleHelp.into(),
+            );
+        } else if args.hide_help_panel {
+            self.ui.features.hide(FeatureFlags::HelpPanel);
+        } else if args.show_help_panel {
+            self.ui.features.enable(FeatureFlags::HelpPanel);
+        }
+
+        // Apply CLI keybinding overrides
+        if let Some(keybindings) = &args.keybindings {
+            self.apply_cli_keybinding_overrides(keybindings);
+        }
+
+        self.ui.ui_scale = args.ui_scale.unwrap_or(self.ui.ui_scale);
+        if let Some(input_header) = &args.input_header {
+            if let Ok(t) = Template::parse(input_header) {
+                self.ui.input_bar.header = Some(t);
+            }
+        }
+        if let Some(input_prompt) = &args.input_prompt {
+            self.ui.input_bar.prompt.clone_from(input_prompt);
+        }
+        if let Some(preview_header) = &args.preview_header {
+            if let Ok(t) = Template::parse(preview_header) {
+                self.ui.preview_panel.header = Some(t);
+            }
+        }
+        if let Some(preview_footer) = &args.preview_footer {
+            if let Ok(t) =
+                crate::channels::prototypes::Template::parse(preview_footer)
+            {
+                self.ui.preview_panel.footer = Some(t);
+            }
+        }
+        if let Some(layout) = args.layout {
+            self.ui.orientation = layout;
+        }
+        if let Some(input_border) = args.input_border {
+            self.ui.input_bar.border_type = input_border;
+        }
+        if let Some(preview_border) = args.preview_border {
+            self.ui.preview_panel.border_type = preview_border;
+        }
+        if let Some(results_border) = args.results_border {
+            self.ui.results_panel.border_type = results_border;
+        }
+        if let Some(input_padding) = args.input_padding {
+            self.ui.input_bar.padding = input_padding;
+        }
+        if let Some(preview_padding) = args.preview_padding {
+            self.ui.preview_panel.padding = preview_padding;
+        }
+        if let Some(results_padding) = args.results_padding {
+            self.ui.results_panel.padding = results_padding;
+        }
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
@@ -254,9 +391,6 @@ impl Config {
         }
         if let Some(value) = ui_spec.orientation {
             self.ui.orientation = value;
-        }
-        if let Some(value) = ui_spec.input_bar_position {
-            self.ui.input_bar_position = value;
         }
 
         // Apply clone fields
@@ -273,17 +407,26 @@ impl Config {
             self.ui.remote_control = value.clone();
         }
 
-        // Apply input_header
-        if let Some(value) = &ui_spec.input_header {
-            self.ui.input_header = Some(value.clone());
+        // Handle input, results, and preview with field merging
+        if let Some(input_bar) = &ui_spec.input_bar {
+            self.ui.input_bar.position = input_bar.position;
+            if input_bar.header.is_some() {
+                self.ui.input_bar.header.clone_from(&input_bar.header);
+            }
+            self.ui.input_bar.prompt.clone_from(&input_bar.prompt);
+            self.ui
+                .input_bar
+                .border_type
+                .clone_from(&input_bar.border_type);
+            self.ui.input_bar.padding = input_bar.padding;
         }
-
-        // Apply input_prompt
-        if let Some(value) = &ui_spec.input_prompt {
-            self.ui.input_prompt.clone_from(value);
+        if let Some(results_panel) = &ui_spec.results_panel {
+            self.ui
+                .results_panel
+                .border_type
+                .clone_from(&results_panel.border_type);
+            self.ui.results_panel.padding = results_panel.padding;
         }
-
-        // Handle preview_panel with field merging
         if let Some(preview_panel) = &ui_spec.preview_panel {
             self.ui.preview_panel.size = preview_panel.size;
             if let Some(header) = &preview_panel.header {
@@ -293,6 +436,11 @@ impl Config {
                 self.ui.preview_panel.footer = Some(footer.clone());
             }
             self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
+            self.ui
+                .preview_panel
+                .border_type
+                .clone_from(&preview_panel.border_type);
+            self.ui.preview_panel.padding = preview_panel.padding;
         }
     }
 }
@@ -364,6 +512,7 @@ pub use ui::{DEFAULT_PREVIEW_SIZE, DEFAULT_UI_SCALE};
 #[cfg(test)]
 mod tests {
     use crate::action::Action;
+    use crate::config::ui::Padding;
     use crate::event::Key;
 
     use super::*;
@@ -498,8 +647,8 @@ mod tests {
     }
 
     const USER_CONFIG_INPUT_PROMPT: &str = r#"
-        [ui]
-        input_prompt = "❯"
+        [ui.input_bar]
+        prompt = "❯"
     "#;
 
     #[test]
@@ -518,7 +667,7 @@ mod tests {
         let config = Config::new(&config_env, None).unwrap();
 
         // Verify that input_prompt was loaded from user config
-        assert_eq!(config.ui.input_prompt, "❯");
+        assert_eq!(config.ui.input_bar.prompt, "❯");
     }
 
     #[test]
@@ -583,5 +732,92 @@ mod tests {
         .collect();
 
         assert_eq!(config.shell_integration.keybindings, expected);
+    }
+
+    #[test]
+    fn test_apply_prototype_ui_spec() {
+        use crate::channels::prototypes::Template;
+        use crate::features::Features;
+        use crate::screen::layout::{InputPosition, Orientation};
+        use ui::{
+            BorderType, HelpPanelConfig, InputBarConfig, PreviewPanelConfig,
+            RemoteControlConfig, ResultsPanelConfig, StatusBarConfig,
+        };
+
+        let mut features = Features::default();
+        features.help_panel.disable();
+
+        let mut config = Config::default();
+        config.ui.preview_panel.header =
+            Some(Template::Raw("cow".to_string()));
+
+        let ui_spec = UiSpec {
+            ui_scale: Some(12),
+            features: Some(features),
+            orientation: Some(Orientation::Portrait),
+            input_bar: Some(InputBarConfig {
+                position: InputPosition::Bottom,
+                header: Some(Template::Raw("hello".to_string())),
+                prompt: "world".to_string(),
+                border_type: BorderType::Thick,
+                padding: Padding::uniform(2),
+            }),
+            results_panel: Some(ResultsPanelConfig {
+                border_type: BorderType::None,
+                padding: Padding::uniform(2),
+            }),
+            preview_panel: Some(PreviewPanelConfig {
+                size: 42,
+                header: None, // does not overwrite "cow"
+                footer: Some(Template::Raw("moo".to_string())),
+                scrollbar: true,
+                border_type: BorderType::Plain,
+                padding: Padding::uniform(2),
+            }),
+            status_bar: Some(StatusBarConfig {
+                separator_open: "open".to_string(),
+                separator_close: "close".to_string(),
+            }),
+            help_panel: Some(HelpPanelConfig {
+                show_categories: true,
+            }),
+            remote_control: Some(RemoteControlConfig {
+                show_channel_descriptions: true,
+                sort_alphabetically: true,
+            }),
+        };
+        config.apply_prototype_ui_spec(&ui_spec);
+
+        assert_eq!(config.ui.ui_scale, 12);
+        assert!(!config.ui.features.help_panel.enabled);
+        assert_eq!(config.ui.input_bar.position, InputPosition::Bottom);
+        assert_eq!(
+            config.ui.input_bar.header.as_ref().unwrap().raw(),
+            "hello"
+        );
+        assert_eq!(config.ui.input_bar.prompt, "world");
+        assert_eq!(config.ui.input_bar.border_type, BorderType::Thick);
+        assert_eq!(config.ui.input_bar.padding, Padding::uniform(2));
+
+        assert_eq!(config.ui.results_panel.border_type, BorderType::None);
+        assert_eq!(config.ui.results_panel.padding, Padding::uniform(2));
+
+        assert_eq!(config.ui.preview_panel.size, 42);
+        assert_eq!(
+            config.ui.preview_panel.header.as_ref().unwrap().raw(),
+            "cow"
+        );
+        assert_eq!(
+            config.ui.preview_panel.footer.as_ref().unwrap().raw(),
+            "moo"
+        );
+        assert!(config.ui.preview_panel.scrollbar);
+        assert_eq!(config.ui.preview_panel.border_type, BorderType::Plain);
+        assert_eq!(config.ui.preview_panel.padding, Padding::uniform(2));
+
+        assert_eq!(config.ui.status_bar.separator_open, "open");
+        assert_eq!(config.ui.status_bar.separator_close, "close");
+        assert!(config.ui.remote_control.show_channel_descriptions);
+        assert!(config.ui.remote_control.sort_alphabetically);
     }
 }

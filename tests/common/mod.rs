@@ -53,7 +53,7 @@ pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
 ///     tester.send(&ctrl('c'));
 ///
 ///     // Assert that the child process exits successfully
-///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 /// }
 /// ```
 pub struct PtyTester {

@@ -16,6 +16,7 @@ use television::{
     action::Action,
     cable::Cable,
     channels::entry::{Entry, into_ranges},
+    cli::PostProcessedCli,
     config::{Config, ConfigEnv},
     screen::{colors::ResultsColorscheme, result_item::build_results_list},
     television::Television,
@@ -484,12 +485,8 @@ pub fn draw(c: &mut Criterion) {
                     tx,
                     channel_prototype,
                     config,
-                    None,
-                    false,
-                    false,
-                    Some(50),
-                    false,
                     cable.clone(),
+                    PostProcessedCli::default(),
                 );
                 tv.find("television");
                 for _ in 0..5 {
@@ -498,7 +495,8 @@ pub fn draw(c: &mut Criterion) {
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
                 tv.move_cursor(Movement::Next, 10);
-                let _ = tv.update_preview_state(&tv.get_selected_entry());
+                let selected_entry = tv.get_selected_entry();
+                let _ = tv.update_preview_state(&selected_entry);
                 let _ = tv.update(&Action::Tick);
                 (tv, terminal)
             },

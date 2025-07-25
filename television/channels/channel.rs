@@ -107,7 +107,7 @@ impl Channel {
         entries
     }
 
-    pub fn get_result(&self, index: u32) -> Option<Entry> {
+    pub fn get_result(&mut self, index: u32) -> Option<Entry> {
         if let Some(item) = self.matcher.get_result(index) {
             let mut entry = Entry::new(item.inner.clone())
                 .with_display(item.matched_string)
@@ -177,6 +177,8 @@ impl Channel {
     }
 }
 
+const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
+
 #[allow(clippy::unused_async)]
 async fn load_candidates(
     source: SourceSpec,
@@ -197,7 +199,7 @@ async fn load_candidates(
     if let Some(out) = child.stdout.take() {
         let mut produced_output = false;
         let mut reader = BufReader::new(out);
-        let mut buf = Vec::new();
+        let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
 
         let delimiter = source
             .entry_delimiter
