@@ -144,6 +144,7 @@ pub struct App {
 #[derive(Debug, PartialEq)]
 pub enum ActionOutcome {
     Entries(FxHashSet<Entry>),
+    EntriesWithExpect(FxHashSet<Entry>, Key),
     Input(String),
     None,
 }
@@ -152,6 +153,7 @@ pub enum ActionOutcome {
 #[derive(Debug)]
 pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
+    pub expect_key: Option<Key>,
 }
 
 impl AppOutput {
@@ -159,14 +161,21 @@ impl AppOutput {
         match action_outcome {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
+                expect_key: None,
+            },
+            ActionOutcome::EntriesWithExpect(entries, expect_key) => Self {
+                selected_entries: Some(entries),
+                expect_key: Some(expect_key),
             },
             ActionOutcome::Input(input) => Self {
                 selected_entries: Some(FxHashSet::from_iter([Entry::new(
                     input,
                 )])),
+                expect_key: None,
             },
             ActionOutcome::None => Self {
                 selected_entries: None,
+                expect_key: None,
             },
         }
     }
@@ -597,6 +606,30 @@ impl App {
                                 self.television.current_channel(),
                             )?;
                             return Ok(ActionOutcome::Entries(entries));
+                        }
+
+                        return Ok(ActionOutcome::Input(
+                            self.television.current_pattern.clone(),
+                        ));
+                    }
+                    Action::Expect(k) => {
+                        self.should_quit = true;
+                        if !self.render_tx.is_closed() {
+                            self.render_tx.send(RenderingTask::Quit)?;
+                        }
+                        if let Some(entries) =
+                            self.television.get_selected_entries()
+                        {
+                            // Add current query to history
+                            let query =
+                                self.television.current_pattern.clone();
+                            self.history.add_entry(
+                                query,
+                                self.television.current_channel(),
+                            )?;
+                            return Ok(ActionOutcome::EntriesWithExpect(
+                                entries, k,
+                            ));
                         }
 
                         return Ok(ActionOutcome::Input(
