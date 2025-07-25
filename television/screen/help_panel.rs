@@ -53,6 +53,102 @@ pub fn draw_help_panel(
     f.render_widget(paragraph, area);
 }
 
+/// Checks if an action is relevant for the given mode
+fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
+    match mode {
+        Mode::Channel => {
+            // Channel mode - all actions except those specifically for remote mode switching
+            match action {
+                // Input actions - available in both modes
+                Action::AddInputChar(_)
+                | Action::DeletePrevChar
+                | Action::DeletePrevWord
+                | Action::DeleteNextChar
+                | Action::DeleteLine
+                | Action::GoToPrevChar
+                | Action::GoToNextChar
+                | Action::GoToInputStart
+                | Action::GoToInputEnd
+                // Navigation actions - available in both modes
+                | Action::SelectNextEntry
+                | Action::SelectPrevEntry
+                | Action::SelectNextPage
+                | Action::SelectPrevPage
+                // Selection actions - channel specific (multi-select)
+                | Action::ToggleSelectionDown
+                | Action::ToggleSelectionUp
+                | Action::ConfirmSelection
+                // Preview actions - channel specific
+                | Action::ScrollPreviewUp
+                | Action::ScrollPreviewDown
+                | Action::ScrollPreviewHalfPageUp
+                | Action::ScrollPreviewHalfPageDown
+                | Action::TogglePreview
+                // Channel-specific actions
+                | Action::CopyEntryToClipboard
+                | Action::ReloadSource
+                | Action::CycleSources
+                | Action::SelectPrevHistory
+                | Action::SelectNextHistory
+                // UI toggles - global
+                | Action::ToggleRemoteControl
+                | Action::ToggleHelp
+                | Action::ToggleStatusBar
+                // Application actions - global
+                | Action::Quit => true,
+
+                // Skip actions not relevant to help or internal actions
+                Action::NoOp
+                | Action::Render
+                | Action::Resize(_, _)
+                | Action::ClearScreen
+                | Action::Tick
+                | Action::Suspend
+                | Action::Resume
+                | Action::Error(_)
+                | Action::OpenEntry
+                | Action::SwitchToChannel(_)
+                | Action::WatchTimer
+                | Action::SelectEntryAtPosition(_, _)
+                | Action::MouseClickAt(_, _)
+                | Action::ToggleSendToChannel
+                | Action::SelectAndExit => false,
+            }
+        }
+        Mode::RemoteControl => {
+            // Remote control mode - limited set of actions
+            match action {
+                // Input actions - available in both modes
+                Action::AddInputChar(_)
+                | Action::DeletePrevChar
+                | Action::DeletePrevWord
+                | Action::DeleteNextChar
+                | Action::DeleteLine
+                | Action::GoToPrevChar
+                | Action::GoToNextChar
+                | Action::GoToInputStart
+                | Action::GoToInputEnd
+                // Navigation actions - available in both modes
+                | Action::SelectNextEntry
+                | Action::SelectPrevEntry
+                | Action::SelectNextPage
+                | Action::SelectPrevPage
+                // Selection in remote mode - just confirm (no multi-select)
+                | Action::ConfirmSelection
+                // UI toggles - global
+                | Action::ToggleRemoteControl
+                | Action::ToggleHelp
+                | Action::ToggleStatusBar
+                // Application actions - global
+                | Action::Quit => true,
+
+                // All other actions not relevant in remote control mode
+                _ => false,
+            }
+        }
+    }
+}
+
 /// Adds keybinding lines for specific keys to the given lines vector
 fn add_keybinding_lines_for_keys(
     lines: &mut Vec<Line<'static>>,
@@ -67,6 +163,10 @@ fn add_keybinding_lines_for_keys(
     for (key, actions) in keybindings.iter() {
         for action in actions.as_slice() {
             // Filter out NoOp actions (unbound keys)
+            // Filter out actions not relevant for current mode
+            if matches!(action, Action::NoOp)
+                || !is_action_relevant_for_mode(action, mode)
+            {
                 continue;
             }
 
@@ -104,9 +204,14 @@ fn generate_help_content(
 
     debug!("Generating help content for mode: {:?}", mode);
 
-    // Global keybindings section header
+    // Mode-specific keybindings section header
+    let mode_name = match mode {
+        Mode::Channel => "Channel Mode",
+        Mode::RemoteControl => "Remote Control Mode",
+    };
+
     lines.push(Line::from(vec![Span::styled(
-        "Global",
+        mode_name,
         Style::default()
             .fg(colorscheme.help.metadata_field_name_fg)
             .bold()
@@ -118,7 +223,7 @@ fn generate_help_content(
         &config.keybindings,
         mode,
         colorscheme,
-        "Global",
+        mode_name,
     );
 
     debug!("Generated help content with {} total lines", lines.len());
