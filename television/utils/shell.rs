@@ -1,10 +1,11 @@
 use crate::{
-    cli::args::Shell as CliShell,
+    cli::args::{Cli, Shell as CliShell},
     config::shell_integration::ShellIntegrationConfig,
 };
 use anyhow::Result;
+use clap::CommandFactory;
 use std::fmt::Display;
-use tracing::debug;
+use tracing::{debug, warn};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Shell {
@@ -25,6 +26,31 @@ impl Default for Shell {
     #[cfg(windows)]
     fn default() -> Self {
         Shell::PowerShell
+    }
+}
+
+#[derive(Debug)]
+pub enum ShellError {
+    UnsupportedShell(String),
+}
+
+impl TryFrom<Shell> for clap_complete::Shell {
+    type Error = ShellError;
+
+    fn try_from(value: Shell) -> std::result::Result<Self, Self::Error> {
+        match value {
+            Shell::Bash => Ok(clap_complete::Shell::Bash),
+            Shell::Zsh => Ok(clap_complete::Shell::Zsh),
+            Shell::Fish => Ok(clap_complete::Shell::Fish),
+            Shell::PowerShell => Ok(clap_complete::Shell::PowerShell),
+            Shell::Cmd => Err(ShellError::UnsupportedShell(
+                "Cmd shell is not supported for completion scripts"
+                    .to_string(),
+            )),
+            Shell::Nu => Err(ShellError::UnsupportedShell(
+                "Nu shell is not supported for completion scripts".to_string(),
+            )),
+        }
     }
 }
 
@@ -143,6 +169,7 @@ pub fn render_autocomplete_script_template(
     template: &str,
     config: &ShellIntegrationConfig,
 ) -> Result<String> {
+    // Custom autocomplete
     let script = template
         .replace(
             "{tv_smart_autocomplete_keybinding}",
@@ -158,7 +185,33 @@ pub fn render_autocomplete_script_template(
                 config.get_command_history_keybinding_character(),
             )?,
         );
-    Ok(script)
+
+    let clap_autocomplete =
+        render_clap_autocomplete(shell).unwrap_or_default();
+
+    Ok(script + &clap_autocomplete)
+}
+
+fn render_clap_autocomplete(shell: Shell) -> Option<String> {
+    // Clap autocomplete
+    let mut clap_autocomplete = vec![];
+    let mut cmd = Cli::command();
+    let clap_shell: clap_complete::Shell = match shell.try_into() {
+        Ok(shell) => shell,
+        Err(err) => {
+            warn!("Failed to convert shell {:?}: {:?}", shell, err);
+            return None;
+        }
+    };
+
+    clap_complete::aot::generate(
+        clap_shell,
+        &mut cmd,
+        "tv", // the command defines the name as "television"
+        &mut clap_autocomplete,
+    );
+
+    String::from_utf8(clap_autocomplete).ok()
 }
 
 #[cfg(test)]
@@ -207,5 +260,31 @@ mod tests {
         let result = ctrl_keybinding(shell, character);
         assert!(result.is_ok());
         assert_eq!(result.unwrap(), "Ctrl-s");
+    }
+
+    #[test]
+    fn test_zsh_clap_completion() {
+        let shell = Shell::Zsh;
+        let result = render_autocomplete_script_template(
+            shell,
+            "",
+            &ShellIntegrationConfig::default(),
+        );
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.contains("compdef _tv tv"));
+    }
+
+    #[test]
+    fn test_unsupported_clap_completion() {
+        let shell = Shell::Nu;
+        let result = render_autocomplete_script_template(
+            shell,
+            "",
+            &ShellIntegrationConfig::default(),
+        );
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        assert!(result.is_empty());
     }
 }
