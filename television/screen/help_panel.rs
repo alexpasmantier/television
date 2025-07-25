@@ -1,7 +1,6 @@
 use crate::{
     action::Action,
     config::{Config, KeyBindings},
-    event::Key,
     screen::colors::Colorscheme,
     television::Mode,
 };
@@ -12,6 +11,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
 };
+use tracing::{debug, trace};
 
 const MIN_PANEL_WIDTH: u16 = 25;
 const MIN_PANEL_HEIGHT: u16 = 5;
@@ -57,49 +57,31 @@ pub fn draw_help_panel(
 fn add_keybinding_lines_for_keys(
     lines: &mut Vec<Line<'static>>,
     keybindings: &KeyBindings,
-    keys: impl Iterator<Item = Key>,
     mode: Mode,
     colorscheme: &Colorscheme,
     category_name: &str,
 ) {
-    use tracing::trace;
-
     // Collect all valid keybinding entries
     let mut entries: Vec<(String, String)> = Vec::new();
-    let mut filtered_count = 0;
 
-    for key in keys {
-        if let Some(actions) = keybindings.get(&key) {
-            for action in actions.as_slice() {
-                // Filter out NoOp actions (unbound keys)
-                if matches!(action, Action::NoOp) {
-                    trace!(
-                        "Filtering out NoOp (unboud keys) action for key '{}' in {} category",
-                        key, category_name
-                    );
-                    filtered_count += 1;
-                    continue;
-                }
-
-                let description = action.description();
-                let key_string = key.to_string();
-                entries.push((description.to_string(), key_string.clone()));
-                trace!(
-                    "Added keybinding: {} -> {} ({})",
-                    key_string, description, category_name
-                );
+    for (key, actions) in keybindings.iter() {
+        for action in actions.as_slice() {
+            // Filter out NoOp actions (unbound keys)
+                continue;
             }
+
+            let description = action.description();
+            let key_string = key.to_string();
+            entries.push((description.to_string(), key_string.clone()));
+            trace!(
+                "Added keybinding: {} -> {} ({})",
+                key_string, description, category_name
+            );
         }
     }
 
     // Sort entries alphabetically by description
     entries.sort_by(|a, b| a.0.cmp(&b.0));
-    trace!(
-        "Sorted {} keybindings for {} category (filtered {} NoOp entries)",
-        entries.len(),
-        category_name,
-        filtered_count
-    );
 
     // Create lines from sorted entries
     for (description, key_string) in entries {
@@ -112,22 +94,15 @@ fn add_keybinding_lines_for_keys(
     }
 }
 
-/// Generates the help content organized into global and channel-specific groups
+/// Generates the help content from the active bound keys
 fn generate_help_content(
     config: &Config,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> Vec<Line<'static>> {
-    use tracing::debug;
-
     let mut lines = Vec::new();
 
     debug!("Generating help content for mode: {:?}", mode);
-    debug!(
-        "Keybinding source tracking - Global keys: {}, Channel keys: {}",
-        config.keybinding_source.global_keys.len(),
-        config.keybinding_source.channel_keys.len()
-    );
 
     // Global keybindings section header
     lines.push(Line::from(vec![Span::styled(
@@ -138,66 +113,13 @@ fn generate_help_content(
             .underlined(),
     )]));
 
-    // Global keybindings - all keys that are NOT from channel configs
-    let global_keys = config.keybinding_source.global_keys.iter().copied();
     add_keybinding_lines_for_keys(
         &mut lines,
         &config.keybindings,
-        global_keys,
         mode,
         colorscheme,
         "Global",
     );
-
-    // Add spacing between Global and channel-specific sections only if we have channel keys
-    if !config.keybinding_source.channel_keys.is_empty() {
-        lines.push(Line::from(""));
-    }
-
-    // Channel-specific keybindings section header
-    let mode_name = match mode {
-        Mode::Channel => "Channel",
-        Mode::RemoteControl => "Remote",
-    };
-
-    // Only show channel section if there are channel-specific keybindings
-    if config.keybinding_source.has_channel_keys() {
-        lines.push(Line::from(vec![Span::styled(
-            mode_name,
-            Style::default()
-                .fg(colorscheme.help.metadata_field_name_fg)
-                .bold()
-                .underlined(),
-        )]));
-
-        // Channel-specific keybindings - only keys from channel configs
-        let channel_keys =
-            config.keybinding_source.channel_keys.iter().copied();
-        add_keybinding_lines_for_keys(
-            &mut lines,
-            &config.keybindings,
-            channel_keys,
-            mode,
-            colorscheme,
-            mode_name,
-        );
-    } else {
-        debug!(
-            "No channel-specific keybindings found, skipping channel section for mode: {:?}",
-            mode
-        );
-    }
-
-    // Handle edge case where no keybindings are found at all
-    if !config.keybinding_source.has_any_keys() {
-        debug!("Warning: No keybindings found in source tracking!");
-        lines.push(Line::from(vec![Span::styled(
-            "No keybindings configured",
-            Style::default()
-                .fg(colorscheme.help.metadata_field_name_fg)
-                .italic(),
-        )]));
-    }
 
     debug!("Generated help content with {} total lines", lines.len());
     lines
@@ -233,8 +155,6 @@ pub fn calculate_help_panel_size(
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> (u16, u16) {
-    use tracing::trace;
-
     // Generate content to count items and calculate width
     let content = generate_help_content(config, mode, colorscheme);
 

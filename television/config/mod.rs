@@ -2,7 +2,6 @@ use crate::{
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
     cli::PostProcessedCli,
-    event::Key,
     history::DEFAULT_HISTORY_SIZE,
 };
 use anyhow::{Context, Result};
@@ -13,14 +12,10 @@ use std::{
     env,
     hash::Hash,
     path::{Path, PathBuf},
-    str::FromStr,
 };
 use tracing::{debug, warn};
 
-pub use keybindings::{
-    BindingSource, EventBindings, EventType, KeyBindings, KeybindingSource,
-    merge_bindings,
-};
+pub use keybindings::{EventBindings, EventType, KeyBindings, merge_bindings};
 pub use themes::Theme;
 pub use ui::UiConfig;
 
@@ -96,9 +91,6 @@ pub struct Config {
     /// Shell integration configuration
     #[serde(default)]
     pub shell_integration: ShellIntegrationConfig,
-    /// Keybinding source tracking (not serialized)
-    #[serde(skip)]
-    pub keybinding_source: KeybindingSource,
 }
 
 const PROJECT_NAME: &str = "television";
@@ -230,20 +222,10 @@ impl Config {
         merged_keybindings.extend(new.shell_integration.keybindings.clone());
         new.shell_integration.keybindings = merged_keybindings;
 
-        let (keybindings, keybinding_source) = merge_bindings(
-            default.keybindings.clone(),
-            &new.keybindings,
-            BindingSource::Global,
-        );
-        new.keybindings = keybindings;
-        new.keybinding_source = keybinding_source;
+        new.keybindings =
+            merge_bindings(default.keybindings.clone(), &new.keybindings);
 
-        let (events, _) = merge_bindings(
-            default.events.clone(),
-            &new.events,
-            BindingSource::Global,
-        );
-        new.events = events;
+        new.events = merge_bindings(default.events.clone(), &new.events);
 
         Config {
             application: new.application,
@@ -251,29 +233,14 @@ impl Config {
             events: new.events,
             ui: new.ui,
             shell_integration: new.shell_integration,
-            keybinding_source: new.keybinding_source,
         }
     }
 
     pub fn merge_channel_keybindings(&mut self, other: &KeyBindings) {
-        let (merged, source) = merge_bindings(
-            self.keybindings.clone(),
-            other,
-            BindingSource::Channel,
-        );
-        self.keybindings = merged;
-        for key in &source.channel_keys {
-            self.keybinding_source.add_channel_key(*key);
-            self.keybinding_source.global_keys.remove(key);
-        }
+        self.keybindings = merge_bindings(self.keybindings.clone(), other);
     }
 
-    /// Apply CLI keybinding overrides while preserving source categorization.
-    ///
-    /// CLI overrides preserve the original source of the key:
-    /// - If overriding a global key → keep it in global list
-    /// - If overriding a channel key → keep it in channel list
-    /// - If adding a new key → add to global list (CLI is user's global preference)
+    /// Apply CLI keybinding overrides.
     pub fn apply_cli_keybinding_overrides(
         &mut self,
         cli_keybindings: &KeyBindings,
@@ -281,26 +248,15 @@ impl Config {
         debug!("keybindings before: {:?}", self.keybindings);
 
         for (key, actions) in &cli_keybindings.bindings {
-            let was_existing = self.keybindings.contains_key(key);
-
             // Update the keybinding
             self.keybindings.insert(*key, actions.clone());
-
-            if let Ok(tv_key) = Key::from_str(&key.to_string()) {
-                if !was_existing {
-                    // New key from CLI - add to global (CLI is user's global preference)
-                    self.keybinding_source.add_global_key(tv_key);
-                }
-            }
         }
 
         debug!("keybindings after: {:?}", self.keybindings);
     }
 
     pub fn merge_event_bindings(&mut self, other: &EventBindings) {
-        let (merged, _) =
-            merge_bindings(self.events.clone(), other, BindingSource::Global);
-        self.events = merged;
+        self.events = merge_bindings(self.events.clone(), other);
     }
 
     /// Apply CLI overrides to this config
