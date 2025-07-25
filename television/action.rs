@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use std::fmt::Display;
 
+use crate::event::Key;
+
 /// The different actions that can be performed by the application.
 #[derive(
     Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
@@ -47,6 +49,8 @@ pub enum Action {
     ConfirmSelection,
     /// Select the entry currently under the cursor and exit the application.
     SelectAndExit,
+    /// Confirm selection using one of the `expect` keys.
+    Expect(Key),
     /// Select the next entry in the currently focused list.
     SelectNextEntry,
     /// Select the previous entry in the currently focused list.
@@ -93,8 +97,6 @@ pub enum Action {
     #[serde(skip)]
     NoOp,
     // Channel actions
-    /// FIXME: clean this up
-    ToggleSendToChannel,
     /// Toggle between different source commands.
     CycleSources,
     /// Reload the current source command.
@@ -326,6 +328,7 @@ impl Display for Action {
             Action::ToggleSelectionUp => write!(f, "toggle_selection_up"),
             Action::ConfirmSelection => write!(f, "confirm_selection"),
             Action::SelectAndExit => write!(f, "select_and_exit"),
+            Action::Expect(_) => write!(f, "expect"),
             Action::SelectNextEntry => write!(f, "select_next_entry"),
             Action::SelectPrevEntry => write!(f, "select_prev_entry"),
             Action::SelectNextPage => write!(f, "select_next_page"),
@@ -352,7 +355,6 @@ impl Display for Action {
             Action::TogglePreview => write!(f, "toggle_preview"),
             Action::Error(_) => write!(f, "error"),
             Action::NoOp => write!(f, "no_op"),
-            Action::ToggleSendToChannel => write!(f, "toggle_send_to_channel"),
             Action::CycleSources => write!(f, "cycle_sources"),
             Action::ReloadSource => write!(f, "reload_source"),
             Action::SwitchToChannel(_) => write!(f, "switch_to_channel"),
@@ -411,6 +413,7 @@ impl Action {
             Action::ToggleSelectionUp => "Toggle selection up",
             Action::ConfirmSelection => "Select entry",
             Action::SelectAndExit => "Select and exit",
+            Action::Expect(_) => "Expect key",
 
             // Navigation actions
             Action::SelectNextEntry => "Navigate down",
@@ -445,7 +448,6 @@ impl Action {
             Action::NoOp => "No operation",
 
             // Channel actions
-            Action::ToggleSendToChannel => "Toggle send to channel",
             Action::CycleSources => "Cycle sources",
             Action::ReloadSource => "Reload source",
             Action::SwitchToChannel(_) => "Switch to channel",

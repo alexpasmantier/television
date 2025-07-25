@@ -121,6 +121,17 @@ pub struct Cli {
     #[arg(short, long, value_name = "STRING", verbatim_doc_comment)]
     pub keybindings: Option<String>,
 
+    /// Keys that can be used to confirm the current selection in addition to the default ones
+    /// (typically `enter`).
+    ///
+    /// When this is set, confirming the selection will first output an extra line with the key
+    /// that was used to confirm the selection before outputting the selected entry.
+    ///
+    /// Example: `tv --expect='ctrl-q'` will output `ctr-q\n<selected_entry>` when `ctrl-q` is
+    /// pressed to confirm the selection.
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
+    pub expect: Option<String>,
+
     /// Input text to pass to the channel to prefill the prompt.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.

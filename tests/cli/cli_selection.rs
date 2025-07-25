@@ -158,3 +158,31 @@ fn test_watch_and_take_1_fast_conflict_errors() {
     // CLI should exit with error message
     tester.assert_raw_output_contains("cannot be used with");
 }
+
+/// Tests that --expect works as intended.
+#[test]
+fn test_expect_with_selection() {
+    let mut tester = PtyTester::new();
+
+    // This should auto-select "UNIQUE16CHARID" and exit with it
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--expect",
+        "ctrl-c",
+        "--input",
+        "Cargo.toml",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    tester.send(&ctrl('c'));
+
+    let out = tester.read_raw_output();
+
+    assert!(
+        out.contains("Ctrl-c\r\nCargo.toml"),
+        "Expected output to contain 'Ctrl-c\\r\\nCargo.toml' but got: '{:?}'",
+        out
+    );
+
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}

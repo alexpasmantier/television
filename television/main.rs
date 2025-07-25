@@ -113,6 +113,9 @@ async fn main() -> Result<()> {
     info!("App output: {:?}", output);
     let stdout_handle = stdout().lock();
     let mut bufwriter = BufWriter::new(stdout_handle);
+    if let Some(key) = output.expect_key {
+        writeln!(bufwriter, "{}", key)?;
+    }
     if let Some(entries) = output.selected_entries {
         for entry in &entries {
             writeln!(
