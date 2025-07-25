@@ -317,12 +317,18 @@ pub fn merge_bindings<K>(
     new_bindings: &Bindings<K>,
 ) -> Bindings<K>
 where
-    K: Display + FromStr + Clone + Eq + Hash,
+    K: Display + FromStr + Clone + Eq + Hash + std::fmt::Debug,
     K::Err: Display,
 {
+    debug!("bindings before: {:?}", bindings.bindings);
+
+    // Merge new bindings - they take precedence over existing ones
     for (key, actions) in &new_bindings.bindings {
         bindings.bindings.insert(key.clone(), actions.clone());
     }
+
+    debug!("bindings after: {:?}", bindings.bindings);
+
     bindings
 }
 

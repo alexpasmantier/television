@@ -179,7 +179,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.ui,
         show_remote,
         ctx.tv_state.preview_state.enabled,
-        Some(&ctx.config.keybindings),
+        Some(&ctx.config),
         ctx.tv_state.mode,
         &ctx.colorscheme,
     );
@@ -247,7 +247,7 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_help_panel(
             f,
             help_area,
-            &ctx.config.keybindings,
+            &ctx.config,
             ctx.tv_state.mode,
             &ctx.colorscheme,
         );
