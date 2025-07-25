@@ -12,6 +12,8 @@
 pub struct Config {
     /// Whether to prefer prefix matches.
     pub prefer_prefix: bool,
+    /// Whether to sort results.
+    pub sort_results: bool,
     /// The number of threads to use for matching.
     pub n_threads: Option<usize>,
 }
@@ -20,6 +22,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             prefer_prefix: true,
+            sort_results: true,
             n_threads: Some(
                 std::thread::available_parallelism()
                     .map(std::num::NonZeroUsize::get)
@@ -31,9 +34,15 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Create a new configuration with the default values.
-    pub fn new() -> Self {
-        Self::default()
+    /// Create a new matcher configuration from channel configuration.
+    pub fn from_source_spec(
+        source_spec: &crate::channels::prototypes::SourceSpec,
+    ) -> Self {
+        Self {
+            prefer_prefix: source_spec.prefer_prefix,
+            sort_results: source_spec.sort_results,
+            ..Self::default()
+        }
     }
 
     /// Set whether to prefer prefix matches.

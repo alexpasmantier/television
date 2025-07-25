@@ -351,6 +351,10 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment)]
     pub exact: bool,
 
+    /// Sort results. Disable to preserve the input order.
+    #[arg(long, default_value = "true", default_missing_value="true", num_args=0..=1, verbatim_doc_comment)]
+    pub sort: bool,
+
     /// Automatically select and output the first entry if there is only one
     /// entry.
     ///

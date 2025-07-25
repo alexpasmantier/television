@@ -61,13 +61,15 @@ where
 {
     /// Create a new fuzzy matcher with the given configuration.
     pub fn new(config: &config::Config) -> Self {
+        let mut nucleo = nucleo::Nucleo::new(
+            config.into(),
+            Arc::new(|| {}),
+            config.n_threads,
+            1,
+        );
+        nucleo.sort_results(config.sort_results);
         Self {
-            inner: nucleo::Nucleo::new(
-                config.into(),
-                Arc::new(|| {}),
-                config.n_threads,
-                1,
-            ),
+            inner: nucleo,
             total_item_count: 0,
             matched_item_count: 0,
             status: Status::default(),

@@ -127,7 +127,7 @@ function tv_shell_history
     # move to the next line so that the prompt is not overwritten
     printf "\n"
 
-    set -l output (tv fish-history --input "$current_prompt" --inline)
+    set -l output (tv fish-history --input "$current_prompt" --inline --sort=false)
 
     if test -n "$output"
         commandline -r "$output"

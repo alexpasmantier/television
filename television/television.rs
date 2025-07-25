@@ -143,12 +143,12 @@ impl Television {
             });
         let colorscheme = (&theme).into();
 
-        let patrnn = Television::preprocess_pattern(
+        let pattern = Television::preprocess_pattern(
             matching_mode,
             &input.unwrap_or(EMPTY_STRING.to_string()),
         );
 
-        channel.find(&patrnn);
+        channel.find(&pattern);
         let spinner = Spinner::default();
 
         let preview_state = PreviewState::new(

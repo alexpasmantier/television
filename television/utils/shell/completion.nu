@@ -20,7 +20,7 @@ def tv_shell_history [] {
     let cursor = (commandline get-cursor)
     let current_prompt = ($current_prompt | str substring 0..$cursor)
 
-    let output = (tv nu-history --inline --input $current_prompt | str trim)
+    let output = (tv nu-history --inline --input $current_prompt --sort=false | str trim)
 
     if ($output | is-not-empty) {
         commandline edit --replace $output

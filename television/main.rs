@@ -174,8 +174,11 @@ fn create_stdin_channel(
             )
         });
 
-    let mut prototype =
-        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter);
+    let mut prototype = ChannelPrototype::stdin(
+        stdin_preview,
+        args.source_entry_delimiter,
+        args.sort,
+    );
 
     // Inherit UI features from global config (which has CLI overrides applied)
     let mut features = config.ui.features.clone();
@@ -206,6 +209,7 @@ fn create_adhoc_channel(
 
     // Create base prototype
     let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
+    prototype.source.sort_results = args.sort;
 
     // Determine input header
     let input_header = args

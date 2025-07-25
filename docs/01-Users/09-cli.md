@@ -391,6 +391,13 @@ minimum height is ensured (set by default at 15 lines)
 - **Default**: Fuzzy matching
 - **Use Case**: When you need precise substring matches
 
+#### `--sort`
+
+**Purpose**: Enables/disables sorting results
+
+- **Default**: true
+- **Use Case**: Disabling preserves the input order rather than sorting by how close it matches the input pattern
+
 ### ⚡ Selection Behavior Options
 
 > **Note**: These options are mutually exclusive - only one can be used at a time.

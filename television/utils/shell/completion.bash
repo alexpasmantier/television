@@ -113,7 +113,7 @@ tv_shell_history() {
     printf "\n"
 
     # Get history using tv with the same arguments as zsh version
-    output=$(tv bash-history --input "$current_prompt" --inline)
+    output=$(tv bash-history --input "$current_prompt" --inline --sort=false)
 
     if [[ -n "$output" ]]; then
         # Clear the right side of cursor and set new line
