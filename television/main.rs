@@ -95,14 +95,7 @@ async fn main() -> Result<()> {
         args.width,
         args.inline,
     );
-    let mut app = App::new(
-        channel_prototype,
-        config,
-        args.input.clone(),
-        options,
-        cable,
-        &args,
-    );
+    let mut app = App::new(channel_prototype, config, options, cable, &args);
 
     // If the user requested to show the remote control on startup, switch the
     // television into Remote Control mode before the application event loop

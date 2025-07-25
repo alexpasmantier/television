@@ -194,7 +194,7 @@ fn add_keybinding_lines_for_keys(
     }
 }
 
-/// Generates the help content from the active bound keys
+/// Generates the help content organized into global and mode-specific groups
 fn generate_help_content(
     config: &Config,
     mode: Mode,

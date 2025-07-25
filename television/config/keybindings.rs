@@ -288,7 +288,7 @@ where
 ///
 /// # Returns
 ///
-/// The merged bindings collection
+/// A new `Bindings` collection with merged key mappings.
 ///
 /// # Examples
 ///
@@ -308,7 +308,9 @@ where
 /// ]);
 ///
 /// let merged = merge_bindings(base, &custom);
-/// assert_eq!(merged.len(), 3);
+/// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
+/// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
+/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelectionDown.into()));
 /// ```
 pub fn merge_bindings<K>(
     mut bindings: Bindings<K>,

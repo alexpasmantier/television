@@ -60,17 +60,21 @@ fn setup_app(
         None,
         false,
     );
+    let cli_args = PostProcessedCli {
+        exact,
+        input: input.clone(),
+        ..PostProcessedCli::default()
+    };
     let mut app = App::new(
         chan,
         config,
-        input,
         options,
         Cable::from_prototypes(vec![
             ChannelPrototype::new("files", "find . -type f"),
             ChannelPrototype::new("dirs", "find . -type d"),
             ChannelPrototype::new("env", "printenv"),
         ]),
-        &PostProcessedCli::default(),
+        &cli_args,
     );
 
     // retrieve the app's action channel handle in order to send a quit action

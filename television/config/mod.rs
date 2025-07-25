@@ -1,8 +1,11 @@
 use crate::{
+    action::Action,
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
     cli::PostProcessedCli,
+    features::FeatureFlags,
     history::DEFAULT_HISTORY_SIZE,
+    screen::keybindings::remove_action_bindings,
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
@@ -222,10 +225,14 @@ impl Config {
         merged_keybindings.extend(new.shell_integration.keybindings.clone());
         new.shell_integration.keybindings = merged_keybindings;
 
-        new.keybindings =
+        // merge keybindings with default keybindings
+        let keybindings =
             merge_bindings(default.keybindings.clone(), &new.keybindings);
+        new.keybindings = keybindings;
 
-        new.events = merge_bindings(default.events.clone(), &new.events);
+        // merge event bindings with default event bindings
+        let events = merge_bindings(default.events.clone(), &new.events);
+        new.events = events;
 
         Config {
             application: new.application,
@@ -261,12 +268,6 @@ impl Config {
 
     /// Apply CLI overrides to this config
     pub fn apply_cli_overrides(&mut self, args: &PostProcessedCli) {
-        use crate::{
-            action::Action, features::FeatureFlags,
-            screen::keybindings::remove_action_bindings,
-        };
-        use tracing::debug;
-
         debug!("Applying CLI overrides to config after channel merging");
 
         if let Some(cable_dir) = &args.cable_dir {
@@ -334,7 +335,7 @@ impl Config {
             self.ui.features.enable(FeatureFlags::HelpPanel);
         }
 
-        // Apply CLI keybinding overrides with proper source tracking
+        // Apply CLI keybinding overrides
         if let Some(keybindings) = &args.keybindings {
             self.apply_cli_keybinding_overrides(keybindings);
         }

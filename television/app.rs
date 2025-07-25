@@ -179,7 +179,6 @@ impl App {
     pub fn new(
         channel_prototype: ChannelPrototype,
         config: Config,
-        input: Option<String>,
         options: AppOptions,
         cable_channels: Cable,
         cli_args: &PostProcessedCli,
@@ -194,13 +193,8 @@ impl App {
             action_tx.clone(),
             channel_prototype,
             config,
-            input,
-            options.no_remote,
-            options.no_preview,
-            options.preview_size,
-            options.exact,
             cable_channels,
-            cli_args,
+            cli_args.clone(),
         );
 
         // Create input map from the merged config that includes both key and event bindings

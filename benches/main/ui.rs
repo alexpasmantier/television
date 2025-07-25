@@ -485,13 +485,8 @@ pub fn draw(c: &mut Criterion) {
                     tx,
                     channel_prototype,
                     config,
-                    None,
-                    false,
-                    false,
-                    Some(50),
-                    false,
                     cable.clone(),
-                    &PostProcessedCli::default(),
+                    PostProcessedCli::default(),
                 );
                 tv.find("television");
                 for _ in 0..5 {

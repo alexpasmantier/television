@@ -21,7 +21,6 @@ use crate::{
     render::UiState,
     screen::{
         colors::Colorscheme,
-        keybindings::remove_action_bindings,
         layout::InputPosition,
         spinner::{Spinner, SpinnerState},
     },
@@ -80,8 +79,7 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
-    pub no_preview: bool,
-    pub preview_size: Option<u16>,
+    pub cli_args: PostProcessedCli,
     pub current_command_index: usize,
     pub channel_prototype: ChannelPrototype,
 }
@@ -94,13 +92,8 @@ impl Television {
         action_tx: UnboundedSender<Action>,
         channel_prototype: ChannelPrototype,
         base_config: Config,
-        input: Option<String>,
-        no_remote: bool,
-        no_preview: bool,
-        preview_size: Option<u16>,
-        exact: bool,
         cable_channels: Cable,
-        cli_args: &PostProcessedCli,
+        cli_args: PostProcessedCli,
     ) -> Self {
         let mut config = Self::merge_base_config_with_prototype_specs(
             &base_config,
@@ -108,9 +101,14 @@ impl Television {
         );
 
         // Apply ALL CLI overrides (including keybindings) after channel merging
-        config.apply_cli_overrides(cli_args);
+        config.apply_cli_overrides(&cli_args);
 
         debug!("Merged config: {:?}", config);
+
+        // Extract CLI arguments
+        let input = cli_args.input.clone();
+        let exact = cli_args.exact;
+        let no_remote = cli_args.no_remote;
 
         let mut results_picker = Picker::new(input.clone());
         if config.ui.input_bar.position == InputPosition::Bottom {
@@ -189,8 +187,7 @@ impl Television {
             colorscheme,
             ticks: 0,
             ui_state: UiState::default(),
-            no_preview,
-            preview_size,
+            cli_args,
             current_command_index: 0,
             channel_prototype,
         }
@@ -231,28 +228,6 @@ impl Television {
             }
         }
         config
-    }
-
-    /// Apply CLI overrides to ensure they take precedence over channel prototype settings
-    fn apply_cli_overrides(
-        config: &mut Config,
-        no_preview: bool,
-        preview_size: Option<u16>,
-    ) {
-        // Handle preview panel flags - this mirrors the logic in main.rs but only for the subset
-        // of flags that Television manages directly
-        if no_preview {
-            config.ui.features.disable(FeatureFlags::PreviewPanel);
-            remove_action_bindings(
-                &mut config.keybindings,
-                &Action::TogglePreview.into(),
-            );
-        }
-
-        // Apply preview size regardless of preview state
-        if let Some(ps) = preview_size {
-            config.ui.preview_panel.size = ps;
-        }
     }
 
     fn setup_previewer(
@@ -333,11 +308,7 @@ impl Television {
             &channel_prototype,
         );
         // Reapply CLI overrides to ensure they persist across channel changes
-        Self::apply_cli_overrides(
-            &mut self.config,
-            self.no_preview,
-            self.preview_size,
-        );
+        self.config.apply_cli_overrides(&self.cli_args);
         // Set preview state enabled based on both channel capability and UI configuration
         self.preview_state.enabled = channel_prototype.preview.is_some()
             && self
@@ -952,21 +923,20 @@ mod test {
         let prototype = crate::channels::prototypes::ChannelPrototype::new(
             "test", "echo 1",
         );
+        let cli_args = PostProcessedCli {
+            no_remote: true,
+            exact: true,
+            ..PostProcessedCli::default()
+        };
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
             prototype,
             config.clone(),
-            None,
-            true,
-            false,
-            Some(50),
-            true,
             Cable::from_prototypes(vec![]),
-            &PostProcessedCli::default(),
+            cli_args,
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
-        assert!(!tv.no_preview);
         assert!(tv.remote_control.is_none());
     }
 
@@ -994,17 +964,17 @@ mod test {
             )
             .unwrap();
 
+        let cli_args = PostProcessedCli {
+            no_remote: true,
+            exact: true,
+            ..PostProcessedCli::default()
+        };
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
             prototype,
             config.clone(),
-            None,
-            true,
-            false,
-            Some(50),
-            true,
             Cable::from_prototypes(vec![]),
-            &PostProcessedCli::default(),
+            cli_args,
         );
 
         assert_eq!(
