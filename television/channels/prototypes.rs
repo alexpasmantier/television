@@ -202,7 +202,19 @@ pub struct ChannelPrototype {
 }
 
 impl ChannelPrototype {
-    pub fn new(name: &str, command: &str) -> Self {
+    pub fn new(metadata: Metadata, source: SourceSpec) -> Self {
+        Self {
+            metadata,
+            source,
+            preview: None,
+            ui: None,
+            keybindings: None,
+            watch: 0.0,
+            history: HistoryConfig::default(),
+        }
+    }
+
+    pub fn simple(name: &str, command: &str) -> Self {
         Self {
             metadata: Metadata {
                 name: name.to_string(),
@@ -231,10 +243,7 @@ impl ChannelPrototype {
         }
     }
 
-    pub fn stdin(
-        preview: Option<PreviewSpec>,
-        entry_delimiter: Option<char>,
-    ) -> Self {
+    pub fn stdin(entry_delimiter: Option<char>) -> Self {
         Self {
             metadata: Metadata {
                 name: "stdin".to_string(),
@@ -254,12 +263,25 @@ impl ChannelPrototype {
                 display: None,
                 output: None,
             },
-            preview,
+            preview: None,
             ui: None,
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
         }
+    }
+
+    pub fn with_ui_options(mut self, ui: UiSpec) -> Self {
+        self.ui = Some(ui);
+        self
+    }
+
+    pub fn with_keybindings(
+        mut self,
+        keybindings: ChannelKeyBindings,
+    ) -> Self {
+        self.keybindings = Some(keybindings);
+        self
     }
 
     pub fn with_preview(mut self, preview: Option<PreviewSpec>) -> Self {

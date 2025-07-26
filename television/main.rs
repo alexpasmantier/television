@@ -2,8 +2,10 @@ use anyhow::Result;
 use clap::Parser;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
+use television::channels::prototypes::{Metadata, SourceSpec};
+use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::{App, AppOptions},
     cable::{Cable, cable_empty_exit, load_cable},
@@ -52,17 +54,20 @@ async fn main() -> Result<()> {
         Config::new(&ConfigEnv::init()?, args.config_file.as_deref())?;
 
     // override configuration values with provided CLI arguments
-    debug!("Applying CLI overrides...");
-    config.apply_cli_overrides(&args);
+    let cable_dir = args
+        .cable_dir
+        .as_ref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| config.application.cable_dir.clone());
 
     // handle subcommands
     debug!("Handling subcommands...");
     if let Some(subcommand) = &args.command {
-        handle_subcommand(subcommand, &config)?;
+        handle_subcommand(subcommand, &cable_dir, &config.shell_integration)?;
     }
 
     debug!("Loading cable channels...");
-    let cable = load_cable(&config.application.cable_dir).unwrap_or_default();
+    let cable = load_cable(cable_dir).unwrap_or_default();
 
     // optionally change the working directory
     if let Some(ref working_dir) = args.working_directory {
@@ -70,10 +75,13 @@ async fn main() -> Result<()> {
             .unwrap_or_else(|e| os_error_exit(&e.to_string()));
     }
 
+    debug!("Applying CLI overrides...");
+    config.apply_cli_overrides(&args);
+
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
     let channel_prototype =
-        determine_channel(&args, &config, readable_stdin, Some(&cable));
+        determine_channel(&args, &config, readable_stdin, &cable);
 
     CLIPBOARD.with(<_>::default);
 
@@ -134,10 +142,14 @@ pub fn set_current_dir(path: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
+pub fn handle_subcommand(
+    command: &Command,
+    cable_dir: &Path,
+    shell_integration_config: &ShellIntegrationConfig,
+) -> Result<()> {
     match command {
         Command::ListChannels => {
-            list_channels(&config.application.cable_dir);
+            list_channels(cable_dir);
             exit(0);
         }
         Command::InitShell { shell } => {
@@ -148,7 +160,7 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
             let script = render_autocomplete_script_template(
                 target_shell,
                 completion_script(target_shell)?,
-                &config.shell_integration,
+                shell_integration_config,
             )?;
             println!("{script}");
             exit(0);
@@ -160,78 +172,53 @@ pub fn handle_subcommand(command: &Command, config: &Config) -> Result<()> {
     }
 }
 
-/// Creates a stdin channel prototype with optional preview configuration
-fn create_stdin_channel(
-    args: &PostProcessedCli,
-    config: &Config,
-) -> ChannelPrototype {
+/// Creates a stdin channel prototype
+fn create_stdin_channel(entry_delimiter: Option<char>) -> ChannelPrototype {
     debug!("Using stdin channel");
-    let stdin_preview =
-        args.preview_command_override.as_ref().map(|preview_cmd| {
-            PreviewSpec::new(
-                CommandSpec::from(preview_cmd.clone()),
-                args.preview_offset_override.clone(),
-            )
-        });
+    // let stdin_preview = args.preview_command.as_ref().map(|preview_cmd| {
+    //     PreviewSpec::new(
+    //         CommandSpec::from(preview_cmd.clone()),
+    //         args.preview_offset.clone(),
+    //     )
+    // });
 
-    let mut prototype =
-        ChannelPrototype::stdin(stdin_preview, args.source_entry_delimiter);
+    ChannelPrototype::stdin(entry_delimiter)
 
     // Inherit UI features from global config (which has CLI overrides applied)
-    let mut features = config.ui.features.clone();
-    if args.preview_command_override.is_some() {
-        features.enable(FeatureFlags::PreviewPanel);
-    } else {
-        features.disable(FeatureFlags::PreviewPanel);
-    }
+    // let mut features = config.ui.features.clone();
+    // if args.preview_command.is_some() {
+    //     features.enable(FeatureFlags::PreviewPanel);
+    // } else {
+    //     features.disable(FeatureFlags::PreviewPanel);
+    // }
 
     // Set UI specification to properly control feature visibility
-    let mut ui_spec = UiSpec::from(&config.ui);
-    ui_spec.features = Some(features);
-    prototype.ui = Some(ui_spec);
-
-    prototype
+    // let mut ui_spec = UiSpec::from(&config.ui);
+    // ui_spec.features = Some(features);
+    // prototype.ui = Some(ui_spec);
 }
 
+const CUSTOM_CHANNEL_NAME: &str = "custom channel";
 /// Default header for ad-hoc channels when no custom header is provided
 const DEFAULT_ADHOC_CHANNEL_HEADER: &str = "Custom Channel";
 
 /// Creates an ad-hoc channel prototype from CLI arguments
-fn create_adhoc_channel(
-    args: &PostProcessedCli,
-    config: &Config,
-) -> ChannelPrototype {
-    debug!("Creating ad-hoc channel with source command override");
-    let source_cmd = args.source_command_override.as_ref().unwrap();
-
-    // Create base prototype
-    let mut prototype = ChannelPrototype::new("custom", source_cmd.raw());
-
-    // Determine input header
-    let input_header = args
-        .input_header
-        .as_ref()
-        .and_then(|ih| Template::parse(ih).ok())
-        .unwrap_or_else(|| {
-            Template::parse(DEFAULT_ADHOC_CHANNEL_HEADER).unwrap()
-        });
-
-    // Inherit UI features from global config (which has CLI overrides applied)
-    let mut features = config.ui.features.clone();
-    if args.preview_command_override.is_some() {
-        features.enable(FeatureFlags::PreviewPanel);
-    } else {
-        features.disable(FeatureFlags::PreviewPanel);
-    }
-
-    // Set UI specification
-    let mut ui_spec = UiSpec::from(&config.ui);
-    let input_bar = ui_spec
-        .input_bar
-        .get_or_insert_with(InputBarConfig::default);
-    input_bar.header = Some(input_header);
-    ui_spec.features = Some(features);
-    prototype.ui = Some(ui_spec);
+fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
+    debug!("Creating ad-hoc channel");
+    let mut prototype = ChannelPrototype::new(
+        Metadata {
+            name: CUSTOM_CHANNEL_NAME.to_string(),
+            description: None,
+            requirements: vec![],
+        },
+        SourceSpec {
+            command: CommandSpec::from(args.source_command.clone().unwrap()),
+            entry_delimiter: args.source_entry_delimiter,
+            ansi: args.ansi,
+            display: args.source_display.clone(),
+            output: args.source_output.clone(),
+        },
+    );
 
     prototype
 }
@@ -241,13 +228,13 @@ fn apply_source_overrides(
     prototype: &mut ChannelPrototype,
     args: &PostProcessedCli,
 ) {
-    if let Some(source_cmd) = &args.source_command_override {
+    if let Some(source_cmd) = &args.source_command {
         prototype.source.command = CommandSpec::from(source_cmd.clone());
     }
-    if let Some(source_display) = &args.source_display_override {
+    if let Some(source_display) = &args.source_display {
         prototype.source.display = Some(source_display.clone());
     }
-    if let Some(source_output) = &args.source_output_override {
+    if let Some(source_output) = &args.source_output {
         prototype.source.output = Some(source_output.clone());
     }
     if args.ansi {
@@ -260,7 +247,7 @@ fn apply_preview_overrides(
     prototype: &mut ChannelPrototype,
     args: &PostProcessedCli,
 ) {
-    if let Some(preview_cmd) = &args.preview_command_override {
+    if let Some(preview_cmd) = &args.preview_command {
         if let Some(ref mut preview) = prototype.preview {
             preview.command = CommandSpec::from(preview_cmd.clone());
         } else {
@@ -271,7 +258,7 @@ fn apply_preview_overrides(
         }
     }
 
-    if let Some(preview_offset) = &args.preview_offset_override {
+    if let Some(preview_offset) = &args.preview_offset {
         if let Some(ref mut preview) = prototype.preview {
             preview.offset = Some(preview_offset.clone());
         }
@@ -416,29 +403,28 @@ pub fn determine_channel(
     args: &PostProcessedCli,
     config: &Config,
     readable_stdin: bool,
-    cable: Option<&Cable>,
+    cable: &Cable,
 ) -> ChannelPrototype {
     // Determine the base channel prototype
     let mut channel_prototype = if readable_stdin {
-        create_stdin_channel(args, config)
+        debug!("Using stdin channel");
+        ChannelPrototype::stdin(args.source_entry_delimiter)
     } else if let Some(prompt) = &args.autocomplete_prompt {
-        if cable.is_none() {
+        if cable.is_empty() {
             cable_empty_exit()
         }
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(
             prompt,
-            &config.shell_integration.commands,
-            &config.shell_integration.fallback_channel,
-            cable.unwrap(),
+            &config.shell_integration,
+            cable,
         );
         debug!("Using guessed channel: {:?}", prototype);
         prototype
-    } else if args.channel.is_none() && args.source_command_override.is_some()
-    {
+    } else if args.channel.is_none() && args.source_command.is_some() {
         create_adhoc_channel(args, config)
     } else {
-        if cable.is_none() {
+        if cable.is_empty() {
             cable_empty_exit()
         }
         let channel_name = args
@@ -446,7 +432,7 @@ pub fn determine_channel(
             .as_ref()
             .unwrap_or(&config.application.default_channel);
         debug!("Using channel: {:?}", channel_name);
-        cable.unwrap().get_channel(channel_name)
+        cable.get_channel(channel_name)
     };
 
     // Apply CLI overrides to the prototype
@@ -484,12 +470,12 @@ mod tests {
     ) {
         let channels: Cable =
             cable_channels.unwrap_or(Cable::from_prototypes(vec![
-                ChannelPrototype::new("files", "fd -t f"),
-                ChannelPrototype::new("dirs", "ls"),
-                ChannelPrototype::new("git", "git status"),
+                ChannelPrototype::simple("files", "fd -t f"),
+                ChannelPrototype::simple("dirs", "ls"),
+                ChannelPrototype::simple("git", "git status"),
             ]));
         let channel =
-            determine_channel(args, config, readable_stdin, Some(&channels));
+            determine_channel(args, config, readable_stdin, &channels);
 
         assert_eq!(
             channel.metadata.name, expected_channel.metadata.name,
@@ -507,7 +493,7 @@ mod tests {
             &args,
             &config,
             true,
-            &ChannelPrototype::new("stdin", "cat"),
+            &ChannelPrototype::simple("stdin", "cat"),
             None,
         );
     }
@@ -518,7 +504,7 @@ mod tests {
         let config = Config::default();
         let cable = Cable::from_prototypes(vec![]);
 
-        let channel = determine_channel(&args, &config, true, Some(&cable));
+        let channel = determine_channel(&args, &config, true, &cable);
 
         assert_eq!(channel.metadata.name, "stdin");
         assert!(channel.preview.is_none()); // No preview spec should be created
@@ -535,13 +521,13 @@ mod tests {
     #[test]
     fn test_determine_channel_stdin_enables_preview_with_command() {
         let args = PostProcessedCli {
-            preview_command_override: Some(Template::parse("cat {}").unwrap()),
+            preview_command: Some(Template::parse("cat {}").unwrap()),
             ..Default::default()
         };
         let config = Config::default();
         let cable = Cable::from_prototypes(vec![]);
 
-        let channel = determine_channel(&args, &config, true, Some(&cable));
+        let channel = determine_channel(&args, &config, true, &cable);
 
         assert_eq!(channel.metadata.name, "stdin");
         assert!(channel.preview.is_some()); // Preview spec should be created
@@ -558,7 +544,7 @@ mod tests {
     #[test]
     fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
-        let expected_channel = ChannelPrototype::new("dirs", "ls {}");
+        let expected_channel = ChannelPrototype::simple("dirs", "ls {}");
         let args = PostProcessedCli {
             autocomplete_prompt,
             ..Default::default()
@@ -600,7 +586,7 @@ mod tests {
             &args,
             &config,
             false,
-            &ChannelPrototype::new("dirs", "ls {}"),
+            &ChannelPrototype::simple("dirs", "ls {}"),
             None,
         );
     }
@@ -617,7 +603,7 @@ mod tests {
             &args,
             &config,
             false,
-            &ChannelPrototype::new("dirs", "ls"),
+            &ChannelPrototype::simple("dirs", "ls"),
             None,
         );
     }
@@ -636,12 +622,12 @@ mod tests {
 
         let args = PostProcessedCli {
             channel: Some(String::from("dirs")),
-            preview_command_override: Some(preview_command),
+            preview_command: Some(preview_command),
             ..Default::default()
         };
         let config = Config::default();
 
-        let expected_prototype = ChannelPrototype::new("dirs", "ls")
+        let expected_prototype = ChannelPrototype::simple("dirs", "ls")
             .with_preview(Some(preview_spec));
 
         assert_is_correct_channel(
@@ -657,15 +643,13 @@ mod tests {
     fn test_determine_channel_adhoc_with_source_command() {
         let args = PostProcessedCli {
             channel: None,
-            source_command_override: Some(
-                Template::parse("fd -t f -H").unwrap(),
-            ),
+            source_command: Some(Template::parse("fd -t f -H").unwrap()),
             ..Default::default()
         };
         let config = Config::default();
 
         let channel =
-            determine_channel(&args, &config, false, Some(&Cable::default()));
+            determine_channel(&args, &config, false, &Cable::default());
 
         assert_eq!(channel.metadata.name, "custom");
         assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
@@ -732,7 +716,7 @@ mod tests {
         use television::screen::layout::Orientation;
 
         // Create a channel with default UI settings
-        let mut channel_prototype = ChannelPrototype::new("test", "ls");
+        let mut channel_prototype = ChannelPrototype::simple("test", "ls");
         // Set some initial UI values that should be overridden
         channel_prototype.ui = Some(UiSpec {
             ui_scale: None,
@@ -785,8 +769,7 @@ mod tests {
         };
         let config = Config::default();
 
-        let result_channel =
-            determine_channel(&args, &config, false, Some(&cable));
+        let result_channel = determine_channel(&args, &config, false, &cable);
 
         // Verify that CLI arguments overrode the channel prototype's UI settings
         assert!(result_channel.ui.is_some());

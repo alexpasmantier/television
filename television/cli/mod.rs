@@ -6,6 +6,7 @@ use crate::{
     config::{
         DEFAULT_PREVIEW_SIZE, KeyBindings, get_config_dir, get_data_dir,
         merge_bindings,
+        shell_integration::ShellIntegrationConfig,
         ui::{BorderType, Padding},
     },
     errors::cli_parsing_error_exit,
@@ -17,7 +18,6 @@ use anyhow::{Result, anyhow};
 use clap::CommandFactory;
 use clap::error::ErrorKind;
 use colored::Colorize;
-use rustc_hash::FxHashMap;
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
@@ -25,6 +25,35 @@ use std::{
 use tracing::debug;
 
 pub mod args;
+
+pub struct ChannelArguments {
+    pub channel: Option<String>,
+    pub working_directory: Option<PathBuf>,
+    pub prototype: Option<CliPrototype>,
+    pub no_preview: bool,
+    pub hide_preview: bool,
+    pub show_preview: bool,
+    pub preview_size: Option<u16>,
+    pub preview_header: Option<String>,
+    pub preview_footer: Option<String>,
+    pub autocomplete_prompt: Option<String>,
+}
+
+struct CliPrototype {
+    // source
+    pub source_command: Option<Template>,
+    pub source_entry_delimiter: Option<char>,
+    pub ansi: bool,
+    pub source_display: Option<Template>,
+    pub source_output: Option<Template>,
+    // preview
+    pub preview_command: Option<Template>,
+    pub preview_offset: Option<Template>,
+    pub preview_cached: Option<bool>,
+    // ui
+    pub ui_scale: Option<u16>,
+    pub 
+}
 
 /// # CLI Use Cases
 ///
@@ -52,17 +81,17 @@ pub mod args;
 pub struct PostProcessedCli {
     // Channel and source configuration
     pub channel: Option<String>,
-    pub source_command_override: Option<Template>,
-    pub source_display_override: Option<Template>,
-    pub source_output_override: Option<Template>,
+    pub source_command: Option<Template>,
+    pub source_display: Option<Template>,
+    pub source_output: Option<Template>,
     pub source_entry_delimiter: Option<char>,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     pub ansi: bool,
 
     // Preview configuration
-    pub preview_command_override: Option<Template>,
-    pub preview_offset_override: Option<Template>,
+    pub preview_command: Option<Template>,
+    pub preview_offset: Option<Template>,
     pub no_preview: bool,
     pub hide_preview: bool,
     pub show_preview: bool,
@@ -134,17 +163,17 @@ impl Default for PostProcessedCli {
         Self {
             // Channel and source configuration
             channel: None,
-            source_command_override: None,
-            source_display_override: None,
-            source_output_override: None,
+            source_command: None,
+            source_display: None,
+            source_output: None,
             source_entry_delimiter: None,
             working_directory: None,
             autocomplete_prompt: None,
             ansi: false,
 
             // Preview configuration
-            preview_command_override: None,
-            preview_offset_override: None,
+            preview_command: None,
+            preview_offset: None,
             no_preview: false,
             hide_preview: false,
             show_preview: false,
@@ -365,17 +394,17 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     PostProcessedCli {
         // Channel and source configuration
         channel,
-        source_command_override,
-        source_display_override,
-        source_output_override,
+        source_command: source_command_override,
+        source_display: source_display_override,
+        source_output: source_output_override,
         source_entry_delimiter,
         working_directory,
         autocomplete_prompt: cli.autocomplete_prompt,
         ansi: cli.ansi,
 
         // Preview configuration
-        preview_command_override,
-        preview_offset_override,
+        preview_command: preview_command_override,
+        preview_offset: preview_offset_override,
         no_preview: cli.no_preview,
         hide_preview: cli.hide_preview,
         show_preview: cli.show_preview,
@@ -590,21 +619,21 @@ pub fn parse_source_entry_delimiter(delimiter: &str) -> Result<char> {
 /// - it should be able to handle commands within delimiters (quotes, brackets, etc.)
 pub fn guess_channel_from_prompt(
     prompt: &str,
-    command_mapping: &FxHashMap<String, String>,
-    fallback_channel: &str,
+    shell_integration_config: &ShellIntegrationConfig,
     cable: &Cable,
 ) -> ChannelPrototype {
     debug!("Guessing channel from prompt: {}", prompt);
     // git checkout -qf
     // --- -------- --- <---------
-    let fallback = cable.get_channel(fallback_channel);
+    let fallback =
+        cable.get_channel(&shell_integration_config.fallback_channel);
     if prompt.trim().is_empty() {
         return fallback;
     }
     let rev_prompt_words = prompt.split_whitespace().rev();
     let mut stack = Vec::new();
     // for each patern
-    for (pattern, channel) in command_mapping {
+    for (pattern, channel) in &shell_integration_config.commands {
         if pattern.trim().is_empty() {
             continue;
         }
@@ -713,7 +742,7 @@ mod tests {
         let post_processed_cli = post_process(cli, false);
 
         assert_eq!(
-            post_processed_cli.preview_command_override.unwrap().raw(),
+            post_processed_cli.preview_command.unwrap().raw(),
             "bat -n --color=always {}".to_string(),
         );
         assert_eq!(post_processed_cli.tick_rate, None);
@@ -774,9 +803,9 @@ mod tests {
             command_mapping,
             "env",
             Cable::from_prototypes(vec![
-                ChannelPrototype::new("files", "fd -t f"),
-                ChannelPrototype::new("env", "env"),
-                ChannelPrototype::new("git", "git status"),
+                ChannelPrototype::simple("files", "fd -t f"),
+                ChannelPrototype::simple("env", "env"),
+                ChannelPrototype::simple("git", "git status"),
             ]),
         )
     }

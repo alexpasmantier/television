@@ -920,7 +920,7 @@ mod test {
         use crate::cli::PostProcessedCli;
 
         let config = crate::config::Config::default();
-        let prototype = crate::channels::prototypes::ChannelPrototype::new(
+        let prototype = crate::channels::prototypes::ChannelPrototype::simple(
             "test", "echo 1",
         );
         let cli_args = PostProcessedCli {
