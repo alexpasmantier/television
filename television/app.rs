@@ -2,7 +2,7 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{entry::Entry, prototypes::ChannelPrototype},
-    cli::PostProcessedCli,
+    cli::ProcessedCli,
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
     history::History,
@@ -190,7 +190,7 @@ impl App {
         config: Config,
         options: AppOptions,
         cable_channels: Cable,
-        cli_args: &PostProcessedCli,
+        cli_args: &ProcessedCli,
     ) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();

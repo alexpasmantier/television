@@ -36,17 +36,6 @@ pub struct Cli {
     #[arg(index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
-    /// A preview line number offset template to use to scroll the preview to for each
-    /// entry.
-    ///
-    /// When a channel is specified: This overrides the offset defined in the channel prototype.
-    /// When no channel is specified: This flag requires --preview-command to be set.
-    ///
-    /// This template uses the same syntax as the `preview` option and will be formatted
-    /// using the currently selected entry.
-    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
-    pub preview_offset: Option<String>,
-
     /// Disable the preview panel entirely on startup.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
@@ -309,6 +298,29 @@ pub struct Cli {
         conflicts_with = "no_preview"
     )]
     pub preview_command: Option<String>,
+
+    /// A preview line number offset template to use to scroll the preview to for each
+    /// entry.
+    ///
+    /// When a channel is specified: This overrides the offset defined in the channel prototype.
+    /// When no channel is specified: This flag requires --preview-command to be set.
+    ///
+    /// This template uses the same syntax as the `preview` option and will be formatted
+    /// using the currently selected entry.
+    #[arg(long, value_name = "STRING", verbatim_doc_comment)]
+    pub preview_offset: Option<String>,
+
+    /// Whether to cache the preview command output.
+    ///
+    /// This can be useful when the preview command is expensive to run or when the
+    /// output is static and doesn't change often.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "no_preview"
+    )]
+    pub preview_cached: bool,
 
     /// Layout orientation for the UI.
     ///

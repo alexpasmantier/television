@@ -2,7 +2,7 @@ use crate::{
     action::Action,
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
-    cli::PostProcessedCli,
+    cli::ProcessedCli,
     features::FeatureFlags,
     history::DEFAULT_HISTORY_SIZE,
     screen::keybindings::remove_action_bindings,
@@ -267,7 +267,7 @@ impl Config {
     }
 
     /// Apply CLI overrides to this config
-    pub fn apply_cli_overrides(&mut self, args: &PostProcessedCli) {
+    pub fn apply_cli_overrides(&mut self, args: &ProcessedCli) {
         debug!("Applying CLI overrides to config after channel merging");
 
         if let Some(cable_dir) = &args.cable_dir {

@@ -13,7 +13,7 @@ use television::{
         ChannelPrototype, CommandSpec, PreviewSpec, Template, UiSpec,
     },
     cli::{
-        PostProcessedCli,
+        ProcessedCli,
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
     },
@@ -39,71 +39,67 @@ async fn main() -> Result<()> {
 
     debug!("\n\n====  NEW SESSION  =====\n");
 
-    // process the CLI arguments
-    let cli = Cli::parse();
-    debug!("CLI: {:?}", cli);
-
     let readable_stdin = is_readable_stdin();
 
-    let args = post_process(cli, readable_stdin);
-    debug!("PostProcessedCli: {:?}", args);
+    // process CLI arguments
+    let cli = ProcessedCli::process(Cli::parse(), readable_stdin);
+    debug!("Processed CLI: {:?}", cli);
 
     // load the configuration file
     debug!("Loading configuration...");
     let mut config =
-        Config::new(&ConfigEnv::init()?, args.config_file.as_deref())?;
+        Config::new(&ConfigEnv::init()?, cli.config_file.as_deref())?;
 
-    // override configuration values with provided CLI arguments
-    let cable_dir = args
+    // load cable channels
+    debug!("Loading cable channels...");
+    let cable_dir = cli
         .cable_dir
         .as_ref()
         .map(PathBuf::from)
         .unwrap_or_else(|| config.application.cable_dir.clone());
+    let cable = load_cable(&cable_dir).unwrap_or_default();
 
     // handle subcommands
     debug!("Handling subcommands...");
-    if let Some(subcommand) = &args.command {
+    if let Some(subcommand) = &cli.command {
         handle_subcommand(subcommand, &cable_dir, &config.shell_integration)?;
     }
 
-    debug!("Loading cable channels...");
-    let cable = load_cable(cable_dir).unwrap_or_default();
-
     // optionally change the working directory
-    if let Some(ref working_dir) = args.working_directory {
+    if let Some(ref working_dir) = cli.workdir {
         set_current_dir(working_dir)
             .unwrap_or_else(|e| os_error_exit(&e.to_string()));
     }
 
+    // TODO: [27/07] this is where I left off
     debug!("Applying CLI overrides...");
-    config.apply_cli_overrides(&args);
+    config.apply_cli_overrides(&cli);
 
     // determine the channel to use based on the CLI arguments and configuration
     debug!("Determining channel...");
     let channel_prototype =
-        determine_channel(&args, &config, readable_stdin, &cable);
+        determine_channel(&cli, &config, readable_stdin, &cable);
 
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
     // Determine the effective watch interval (CLI override takes precedence)
-    let watch_interval =
-        args.watch_interval.unwrap_or(channel_prototype.watch);
+    let watch_interval = cli.watch_interval.unwrap_or(channel_prototype.watch);
     let options = AppOptions::new(
-        args.exact,
-        args.select_1,
-        args.take_1,
-        args.take_1_fast,
-        args.no_remote,
-        args.no_preview,
-        args.preview_size,
+        cli.exact,
+        cli.select_1,
+        cli.take_1,
+        cli.take_1_fast,
+        cli.no_remote,
+        cli.no_preview,
+        cli.preview_size,
         config.application.tick_rate,
         watch_interval,
-        args.height,
-        args.width,
-        args.inline,
+        cli.height,
+        cli.width,
+        cli.inline,
     );
-    let mut app = App::new(channel_prototype, config, options, cable, &args);
+    let mut app = App::new(channel_prototype, config, options, cable, &cli);
 
     // If the user requested to show the remote control on startup, switch the
     // television into Remote Control mode before the application event loop
@@ -111,7 +107,7 @@ async fn main() -> Result<()> {
     // the corresponding keybinding after launch, ensuring the panel is
     // visible from the start.
     // TODO: This is a hack, preview is not initialised yet, find a better way to do it.
-    if args.show_remote && app.television.remote_control.is_some() {
+    if cli.show_remote && app.television.remote_control.is_some() {
         app.television.mode = Mode::RemoteControl;
     }
 
@@ -203,7 +199,7 @@ const CUSTOM_CHANNEL_NAME: &str = "custom channel";
 const DEFAULT_ADHOC_CHANNEL_HEADER: &str = "Custom Channel";
 
 /// Creates an ad-hoc channel prototype from CLI arguments
-fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
+fn create_adhoc_channel(args: &ProcessedCli) -> ChannelPrototype {
     debug!("Creating ad-hoc channel");
     let mut prototype = ChannelPrototype::new(
         Metadata {
@@ -226,7 +222,7 @@ fn create_adhoc_channel(args: &PostProcessedCli) -> ChannelPrototype {
 /// Applies source-related CLI overrides to the channel prototype
 fn apply_source_overrides(
     prototype: &mut ChannelPrototype,
-    args: &PostProcessedCli,
+    args: &ProcessedCli,
 ) {
     if let Some(source_cmd) = &args.source_command {
         prototype.source.command = CommandSpec::from(source_cmd.clone());
@@ -245,7 +241,7 @@ fn apply_source_overrides(
 /// Applies preview-related CLI overrides to the channel prototype
 fn apply_preview_overrides(
     prototype: &mut ChannelPrototype,
-    args: &PostProcessedCli,
+    args: &ProcessedCli,
 ) {
     if let Some(preview_cmd) = &args.preview_command {
         if let Some(ref mut preview) = prototype.preview {
@@ -266,10 +262,7 @@ fn apply_preview_overrides(
 }
 
 /// Applies UI-related CLI overrides to the channel prototype
-fn apply_ui_overrides(
-    prototype: &mut ChannelPrototype,
-    args: &PostProcessedCli,
-) {
+fn apply_ui_overrides(prototype: &mut ChannelPrototype, args: &ProcessedCli) {
     let mut ui_changes_needed = false;
     let mut ui_spec = prototype.ui.clone().unwrap_or(UiSpec {
         ui_scale: None,
@@ -400,7 +393,7 @@ fn apply_ui_overrides(
 ///
 /// After determining the base channel, it applies all relevant CLI overrides.
 pub fn determine_channel(
-    args: &PostProcessedCli,
+    args: &ProcessedCli,
     config: &Config,
     readable_stdin: bool,
     cable: &Cable,
@@ -462,7 +455,7 @@ mod tests {
     use super::*;
 
     fn assert_is_correct_channel(
-        args: &PostProcessedCli,
+        args: &ProcessedCli,
         config: &Config,
         readable_stdin: bool,
         expected_channel: &ChannelPrototype,
@@ -487,7 +480,7 @@ mod tests {
     #[test]
     /// Test that the channel is stdin when stdin is readable
     fn test_determine_channel_readable_stdin() {
-        let args = PostProcessedCli::default();
+        let args = ProcessedCli::default();
         let config = Config::default();
         assert_is_correct_channel(
             &args,
@@ -500,7 +493,7 @@ mod tests {
 
     #[test]
     fn test_determine_channel_stdin_disables_preview_without_command() {
-        let args = PostProcessedCli::default();
+        let args = ProcessedCli::default();
         let config = Config::default();
         let cable = Cable::from_prototypes(vec![]);
 
@@ -520,7 +513,7 @@ mod tests {
 
     #[test]
     fn test_determine_channel_stdin_enables_preview_with_command() {
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             preview_command: Some(Template::parse("cat {}").unwrap()),
             ..Default::default()
         };
@@ -545,7 +538,7 @@ mod tests {
     fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
         let expected_channel = ChannelPrototype::simple("dirs", "ls {}");
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             autocomplete_prompt,
             ..Default::default()
         };
@@ -577,7 +570,7 @@ mod tests {
     #[test]
     fn test_determine_channel_standard_case() {
         let channel = Some(String::from("dirs"));
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             channel,
             ..Default::default()
         };
@@ -593,7 +586,7 @@ mod tests {
 
     #[test]
     fn test_determine_channel_config_fallback() {
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             channel: None,
             ..Default::default()
         };
@@ -620,7 +613,7 @@ mod tests {
             None,
         );
 
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             channel: Some(String::from("dirs")),
             preview_command: Some(preview_command),
             ..Default::default()
@@ -641,7 +634,7 @@ mod tests {
 
     #[test]
     fn test_determine_channel_adhoc_with_source_command() {
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             channel: None,
             source_command: Some(Template::parse("fd -t f -H").unwrap()),
             ..Default::default()
@@ -670,7 +663,7 @@ mod tests {
     #[test]
     fn test_apply_cli_overrides() {
         let mut config = Config::default();
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             tick_rate: Some(100_f64),
             no_preview: true,
             input_header: Some("Input Header".to_string()),
@@ -753,7 +746,7 @@ mod tests {
         let cable = Cable::from_prototypes(vec![channel_prototype]);
 
         // Test CLI arguments that should override channel settings
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             channel: Some("test".to_string()),
             input_header: Some("CLI Input Header".to_string()),
             preview_header: Some("CLI Preview Header".to_string()),
@@ -817,7 +810,7 @@ mod tests {
     fn test_apply_cli_overrides_ui_scale() {
         // Test that the CLI ui_scale override is applied correctly
         let mut config = Config::default();
-        let args = PostProcessedCli {
+        let args = ProcessedCli {
             ui_scale: Some(90),
             ..Default::default()
         };
@@ -828,7 +821,7 @@ mod tests {
         // Test that the config value is used when no CLI override is provided
         let mut config = Config::default();
         config.ui.ui_scale = 70;
-        let args = PostProcessedCli::default();
+        let args = ProcessedCli::default();
         config.apply_cli_overrides(&args);
 
         assert_eq!(config.ui.ui_scale, 70);

@@ -7,7 +7,7 @@ use crate::{
         prototypes::ChannelPrototype,
         remote_control::{CableEntry, RemoteControl},
     },
-    cli::PostProcessedCli,
+    cli::ProcessedCli,
     config::{Config, Theme},
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
@@ -79,7 +79,7 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
-    pub cli_args: PostProcessedCli,
+    pub cli_args: ProcessedCli,
     pub current_command_index: usize,
     pub channel_prototype: ChannelPrototype,
 }
@@ -93,7 +93,7 @@ impl Television {
         channel_prototype: ChannelPrototype,
         base_config: Config,
         cable_channels: Cable,
-        cli_args: PostProcessedCli,
+        cli_args: ProcessedCli,
     ) -> Self {
         let mut config = Self::merge_base_config_with_prototype_specs(
             &base_config,
@@ -917,16 +917,16 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_cli_overrides() {
-        use crate::cli::PostProcessedCli;
+        use crate::cli::ProcessedCli;
 
         let config = crate::config::Config::default();
         let prototype = crate::channels::prototypes::ChannelPrototype::simple(
             "test", "echo 1",
         );
-        let cli_args = PostProcessedCli {
+        let cli_args = ProcessedCli {
             no_remote: true,
             exact: true,
-            ..PostProcessedCli::default()
+            ..ProcessedCli::default()
         };
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
@@ -942,7 +942,7 @@ mod test {
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_channel_keybindings_take_precedence() {
-        use crate::cli::PostProcessedCli;
+        use crate::cli::ProcessedCli;
 
         let mut config = crate::config::Config::default();
         config
@@ -964,10 +964,10 @@ mod test {
             )
             .unwrap();
 
-        let cli_args = PostProcessedCli {
+        let cli_args = ProcessedCli {
             no_remote: true,
             exact: true,
-            ..PostProcessedCli::default()
+            ..ProcessedCli::default()
         };
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,

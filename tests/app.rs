@@ -9,7 +9,7 @@ use television::{
     app::{App, AppOptions},
     cable::Cable,
     channels::prototypes::ChannelPrototype,
-    cli::PostProcessedCli,
+    cli::ProcessedCli,
     config::default_config_from_file,
 };
 use tokio::{task::JoinHandle, time::timeout};
@@ -60,10 +60,10 @@ fn setup_app(
         None,
         false,
     );
-    let cli_args = PostProcessedCli {
+    let cli_args = ProcessedCli {
         exact,
         input: input.clone(),
-        ..PostProcessedCli::default()
+        ..ProcessedCli::default()
     };
     let mut app = App::new(
         chan,
