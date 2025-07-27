@@ -3,15 +3,20 @@ use crate::{
         entry::Entry,
         prototypes::{ChannelPrototype, SourceSpec, Template},
     },
-    matcher::{Matcher, config::Config, injector::Injector},
+    frecency::Frecency,
+    matcher::{
+        Matcher, config::Config, injector::Injector, matched_item::MatchedItem,
+    },
     utils::command::shell_command,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Duration;
 use tracing::{debug, trace};
 
@@ -26,6 +31,8 @@ pub struct Channel {
     /// Indicates if the channel is currently reloading to prevent UI flickering
     /// by delaying the rendering of a new frame.
     pub reloading: Arc<AtomicBool>,
+    /// Track current dataset items as they're loaded for frecency filtering
+    current_dataset: Arc<Mutex<FxHashSet<String>>>,
 }
 
 impl Channel {
@@ -40,26 +47,33 @@ impl Channel {
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
+            current_dataset: Arc::new(Mutex::new(FxHashSet::default())),
         }
     }
 
     pub fn load(&mut self) {
+        // Clear the current dataset at the start of each load
+        if let Ok(mut dataset) = self.current_dataset.lock() {
+            dataset.clear();
+        }
+
         let injector = self.matcher.injector();
+        let current_dataset = self.current_dataset.clone();
         let crawl_handle = tokio::spawn(load_candidates(
             self.prototype.source.clone(),
             self.current_source_index,
             injector,
+            current_dataset,
         ));
         self.crawl_handle = Some(crawl_handle);
     }
 
     pub fn reload(&mut self) {
-        if self.reloading.load(std::sync::atomic::Ordering::Relaxed) {
+        if self.reloading.load(Ordering::Relaxed) {
             debug!("Reload already in progress, skipping.");
             return;
         }
-        self.reloading
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        self.reloading.store(true, Ordering::Relaxed);
 
         if let Some(handle) = self.crawl_handle.take() {
             if !handle.is_finished() {
@@ -73,7 +87,7 @@ impl Channel {
         let reloading = self.reloading.clone();
         tokio::spawn(async move {
             tokio::time::sleep(RELOAD_RENDERING_DELAY).await;
-            reloading.store(false, std::sync::atomic::Ordering::Relaxed);
+            reloading.store(false, Ordering::Relaxed);
         });
     }
 
@@ -89,10 +103,131 @@ impl Channel {
         self.matcher.find(pattern);
     }
 
-    pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
+    /// Filter recent items to only include those that exist in the current dataset
+    fn filter_recent_items_by_current_dataset(
+        &self,
+        recent_items: &[String],
+    ) -> Vec<String> {
+        match self.current_dataset.lock() {
+            Ok(current_dataset) => {
+                let mut filtered = Vec::with_capacity(recent_items.len());
+                filtered.extend(
+                    recent_items
+                        .iter()
+                        .filter(|item| current_dataset.contains(*item))
+                        .cloned(),
+                );
+                filtered
+            }
+            Err(_) => {
+                // If we can't lock, return empty to prevent inconsistent results
+                Vec::new()
+            }
+        }
+    }
+
+    /// Fuzzy match against a list of recent items
+    #[allow(clippy::cast_possible_truncation)]
+    fn fuzzy_match_recent_items(
+        pattern: &str,
+        recent_items: &[String],
+    ) -> Vec<MatchedItem<String>> {
+        if recent_items.is_empty() {
+            return Vec::new();
+        }
+
+        // Create a temporary matcher for recent items
+        let config = Config::default().prefer_prefix(true);
+        let mut recent_matcher = Matcher::new(&config);
+
+        // Inject recent items into the matcher
+        let injector = recent_matcher.injector();
+        for item in recent_items {
+            injector.push(item.clone(), |e, cols| {
+                cols[0] = e.clone().into();
+            });
+        }
+
+        // Apply the pattern
+        recent_matcher.find(pattern);
+
+        // Let the matcher process
+        recent_matcher.tick();
+
+        // Get all matches (recent items are small, so we can get all)
+        recent_matcher.results(recent_items.len() as u32, 0)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn results(
+        &mut self,
+        num_entries: u32,
+        offset: u32,
+        frecency: Option<&Frecency>,
+    ) -> Vec<Entry> {
         self.matcher.tick();
 
-        let results = self.matcher.results(num_entries, offset);
+        let results = if let Some(frecency_data) = frecency {
+            // Frecency-aware results with dataset validation
+            let recent_items = frecency_data.get_recent_items();
+
+            // Early exit if no recent items to avoid unnecessary work
+            if recent_items.is_empty() {
+                self.matcher.results(num_entries, offset)
+            } else {
+                let filtered_recent_items =
+                    self.filter_recent_items_by_current_dataset(&recent_items);
+
+                // If no recent items pass validation, fall back to regular matching
+                if filtered_recent_items.is_empty() {
+                    self.matcher.results(num_entries, offset)
+                } else {
+                    // Fuzzy match the validated recent items
+                    let recent_matches = Self::fuzzy_match_recent_items(
+                        &self.matcher.last_pattern,
+                        &filtered_recent_items,
+                    );
+
+                    // Get regular results, excluding recent matches to avoid duplicates
+                    let remaining_slots = num_entries
+                        .saturating_sub(recent_matches.len() as u32);
+
+                    let mut regular_matches = Vec::new();
+                    if remaining_slots > 0 {
+                        // Fetch full list to account for deduplication
+                        let nucleo_results =
+                            self.matcher.results(num_entries, 0);
+
+                        // Use Vec::contains for small recent items list (faster than HashSet creation)
+                        regular_matches.reserve(remaining_slots as usize);
+                        for item in nucleo_results {
+                            if !filtered_recent_items.contains(&item.inner) {
+                                regular_matches.push(item);
+                                if regular_matches.len()
+                                    >= remaining_slots as usize
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Combine with recent items prioritized first
+                    let mut combined = recent_matches;
+                    combined.extend(regular_matches);
+
+                    // Apply pagination
+                    combined
+                        .into_iter()
+                        .skip(offset as usize)
+                        .take(num_entries as usize)
+                        .collect()
+                }
+            }
+        } else {
+            // No frecency: use standard nucleo matching
+            self.matcher.results(num_entries, offset)
+        };
 
         let mut entries = Vec::with_capacity(results.len());
 
@@ -108,7 +243,9 @@ impl Channel {
     }
 
     pub fn get_result(&mut self, index: u32) -> Option<Entry> {
-        if let Some(item) = self.matcher.get_result(index) {
+        let item = self.matcher.get_result(index);
+
+        if let Some(item) = item {
             let mut entry = Entry::new(item.inner.clone())
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices);
@@ -184,6 +321,7 @@ async fn load_candidates(
     source: SourceSpec,
     source_command_index: usize,
     injector: Injector<String>,
+    current_dataset: Arc<Mutex<FxHashSet<String>>>,
 ) {
     debug!("Loading candidates from command: {:?}", source.command);
     let mut child = shell_command(
@@ -228,7 +366,14 @@ async fn load_candidates(
             if let Ok(l) = std::str::from_utf8(&buf) {
                 trace!("Read line: {}", l);
                 if !l.trim().is_empty() {
-                    let () = injector.push(l.to_string(), |e, cols| {
+                    let entry = l.to_string();
+
+                    // Track this item in our current dataset
+                    if let Ok(mut dataset) = current_dataset.lock() {
+                        dataset.insert(entry.clone());
+                    }
+
+                    let () = injector.push(entry, |e, cols| {
                         if source.ansi {
                             cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
                                 panic!(
@@ -260,6 +405,11 @@ async fn load_candidates(
             for line in reader.lines() {
                 let line = line.unwrap();
                 if !line.trim().is_empty() {
+                    // Track this item in our current dataset
+                    if let Ok(mut dataset) = current_dataset.lock() {
+                        dataset.insert(line.clone());
+                    }
+
                     let () = injector.push(line, |e, cols| {
                         cols[0] = e.clone().into();
                     });
@@ -286,8 +436,9 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let current_dataset = Arc::new(Mutex::new(FxHashSet::default()));
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, current_dataset).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -309,8 +460,9 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let current_dataset = Arc::new(Mutex::new(FxHashSet::default()));
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, current_dataset).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -332,8 +484,9 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let current_dataset = Arc::new(Mutex::new(FxHashSet::default()));
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, current_dataset).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");

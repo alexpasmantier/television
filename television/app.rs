@@ -8,6 +8,7 @@ use crate::{
     cli::PostProcessedCli,
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
+    frecency::Frecency,
     history::History,
     keymap::InputMap,
     render::{RenderingTask, UiState, render},
@@ -16,6 +17,7 @@ use crate::{
 };
 use anyhow::Result;
 use rustc_hash::FxHashSet;
+use std::path::Path;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
 
@@ -141,6 +143,8 @@ pub struct App {
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
     history: History,
+    /// Frecency tracking for selected entries
+    frecency: Frecency,
 }
 
 /// The outcome of an action.
@@ -237,6 +241,16 @@ impl App {
             error!("Failed to initialize history: {}", e);
         }
 
+        // Initialize frecency
+        let mut frecency = Self::create_frecency(
+            &television.cli_args,
+            &television.channel_prototype,
+            &television.config.application.data_dir,
+        );
+        if let Err(e) = frecency.init() {
+            error!("Failed to initialize frecency: {}", e);
+        }
+
         let mut app = Self {
             input_map,
             television,
@@ -254,6 +268,7 @@ impl App {
             options,
             watch_timer_task: None,
             history,
+            frecency,
         };
 
         // populate input_map by going through all cable channels and adding their shortcuts if remote
@@ -349,6 +364,18 @@ impl App {
         self.history.update_channel_context(
             &channel_prototype.metadata.name,
             global_mode,
+        );
+
+        // Determine the effective global_frecency (channel overrides global config)
+        let frecency_global = channel_prototype
+            .frecency
+            .global_mode
+            .unwrap_or(self.television.cli_args.global_frecency);
+
+        // Update existing frecency with new channel context
+        self.frecency.update_channel_context(
+            &channel_prototype.metadata.name,
+            frecency_global,
         );
     }
 
@@ -475,6 +502,11 @@ impl App {
                 // persist search history
                 if let Err(e) = self.history.save_to_file() {
                     error!("Failed to persist history: {}", e);
+                }
+
+                // persist frecency data
+                if let Err(e) = self.frecency.save_to_file() {
+                    error!("Failed to persist frecency: {}", e);
                 }
 
                 // wait for the rendering task to finish
@@ -619,6 +651,20 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            for entry in &entries {
+                                if let Err(e) = self.frecency.add_entry(
+                                    entry.raw.clone(),
+                                    self.television.current_channel(),
+                                ) {
+                                    error!(
+                                        "Failed to add entry to frecency: {}",
+                                        e
+                                    );
+                                }
+                            }
+
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -641,6 +687,20 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            for entry in &entries {
+                                if let Err(e) = self.frecency.add_entry(
+                                    entry.raw.clone(),
+                                    self.television.current_channel(),
+                                ) {
+                                    error!(
+                                        "Failed to add entry to frecency: {}",
+                                        e
+                                    );
+                                }
+                            }
+
                             return Ok(ActionOutcome::EntriesWithExpect(
                                 entries, k,
                             ));
@@ -719,7 +779,14 @@ impl App {
                     self.television.mode == Mode::RemoteControl;
 
                 // forward action to the television handler
-                if let Some(action) = self.television.update(&action)? {
+                let frecency_ref = if self.frecency.max_size() > 0 {
+                    Some(&self.frecency)
+                } else {
+                    None
+                };
+                if let Some(action) =
+                    self.television.update(&action, frecency_ref)?
+                {
                     self.action_tx.send(action)?;
                 }
 
@@ -786,6 +853,34 @@ impl App {
 
             ActionOutcome::None
         }
+    }
+
+    /// Create frecency instance
+    fn create_frecency(
+        cli_args: &PostProcessedCli,
+        channel_prototype: &ChannelPrototype,
+        data_dir: &Path,
+    ) -> Frecency {
+        // Determine if frecency is enabled (CLI overrides channel config)
+        let frecency_enabled = cli_args.frecency
+            || channel_prototype.frecency.enabled.unwrap_or(false);
+
+        // Determine global mode (CLI overrides channel config)
+        let frecency_global = cli_args.global_frecency
+            || channel_prototype.frecency.global_mode.unwrap_or(false);
+
+        let frecency_size = if frecency_enabled {
+            crate::frecency::DEFAULT_FRECENCY_SIZE
+        } else {
+            0
+        };
+
+        Frecency::new(
+            frecency_size,
+            &channel_prototype.metadata.name,
+            frecency_global,
+            data_dir,
+        )
     }
 
     /// Determine the TUI mode based on the provided options.
