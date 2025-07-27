@@ -160,7 +160,9 @@ impl CommandSpec {
 }
 
 /// Execution mode for external actions
-#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(
+    Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum ExecutionMode {
     /// Fork the command as a child process (current behavior, tv stays open)
@@ -171,7 +173,9 @@ pub enum ExecutionMode {
 }
 
 /// Output handling mode for external actions
-#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(
+    Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq,
+)]
 #[serde(rename_all = "lowercase")]
 pub enum OutputMode {
     /// Inherit stdin/stdout/stderr (current behavior)
@@ -191,7 +195,7 @@ pub struct ActionSpec {
     pub command: CommandSpec,
     /// How to execute the command (fork vs become)
     #[serde(default)]
-    pub become: bool,
+    pub r#become: bool,
     /// How to handle command output
     #[serde(default)]
     pub output_mode: OutputMode,
@@ -818,8 +822,8 @@ mod tests {
 
         [keybindings]
         shortcut = "f1"
-        f8 = "thebatman"
-        f9 = "lsman"
+        f8 = "actions:thebatman"
+        f9 = "actions:lsman"
 
         [actions.thebatman]
         description = "cats the file"

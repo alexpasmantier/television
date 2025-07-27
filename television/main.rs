@@ -3,7 +3,7 @@ use clap::Parser;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
-use std::process::{Stdio, exit};
+use std::process::exit;
 use television::{
     app::{App, AppOptions},
     cable::{Cable, cable_empty_exit, load_cable},
@@ -21,7 +21,7 @@ use television::{
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
-    utils::command::{execute_action, shell_command},
+    utils::command::execute_action,
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
@@ -116,16 +116,12 @@ async fn main() -> Result<()> {
     // Handle external action execution after terminal cleanup
     if let Some((action_spec, entry_value)) = output.external_action {
         debug!("Executing external action command after terminal cleanup");
+        let template = action_spec.command.get_nth(0);
 
-        // Format the command template with the entry value
-        let formatted_command =
-            action_spec.command.get_nth(0).format(&entry_value)?;
+        // Process the concatenated entry value through the template system
+        let formatted_command = template.format(&entry_value)?;
 
-        debug!("External command: {}", formatted_command);
-
-        // Execute the command using the new action execution abstraction
         let status = execute_action(&action_spec, &formatted_command)?;
-
         if !status.success() {
             eprintln!(
                 "External command failed with exit code: {:?}",

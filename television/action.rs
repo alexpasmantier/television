@@ -423,7 +423,61 @@ impl<'de> serde::Deserialize<'de> for Action {
             "watch_timer" => Action::WatchTimer,
             "select_prev_history" => Action::SelectPrevHistory,
             "select_next_history" => Action::SelectNextHistory,
-            _ => Action::ExternalAction(s),
+            s if s.starts_with("actions:") => {
+                let action_name = &s[8..]; // Remove "actions:" prefix
+                Action::ExternalAction(action_name.to_string())
+            }
+            _ => {
+                return Err(serde::de::Error::unknown_variant(
+                    &s,
+                    &[
+                        "add_input_char",
+                        "delete_prev_char",
+                        "delete_prev_word",
+                        "delete_next_char",
+                        "delete_line",
+                        "go_to_prev_char",
+                        "go_to_next_char",
+                        "go_to_input_start",
+                        "go_to_input_end",
+                        "render",
+                        "resize",
+                        "clear_screen",
+                        "toggle_selection_down",
+                        "toggle_selection_up",
+                        "confirm_selection",
+                        "select_and_exit",
+                        "expect",
+                        "select_next_entry",
+                        "select_prev_entry",
+                        "select_next_page",
+                        "select_prev_page",
+                        "copy_entry_to_clipboard",
+                        "scroll_preview_up",
+                        "scroll_preview_down",
+                        "scroll_preview_half_page_up",
+                        "scroll_preview_half_page_down",
+                        "open_entry",
+                        "tick",
+                        "suspend",
+                        "resume",
+                        "quit",
+                        "toggle_remote_control",
+                        "toggle_help",
+                        "toggle_status_bar",
+                        "toggle_preview",
+                        "error",
+                        "no_op",
+                        "cycle_sources",
+                        "reload_source",
+                        "switch_to_channel",
+                        "watch_timer",
+                        "select_prev_history",
+                        "select_next_history",
+                        "actions:*",
+                    ],
+                ));
+            }
         };
 
         Ok(action)

@@ -45,8 +45,8 @@ env = { BAT_THEME = "ansi" }
 
 [keybindings]
 shortcut = "f1"
-f8 = "thebatman"
-f9 = "lsman"
+f8 = "actions:thebatman"
+f9 = "actions:lsman"
 
 [actions.thebatman]
 description = "show file content"
@@ -108,8 +108,8 @@ env = { BAT_THEME = "ansi" }
 
 [keybindings]
 shortcut = "f1"
-f8 = "thebatman"
-f9 = "lsman"
+f8 = "actions:thebatman"
+f9 = "actions:lsman"
 
 [actions.thebatman]
 description = "show file content"

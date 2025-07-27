@@ -35,7 +35,7 @@ pub fn shell_command<S>(
 }
 
 /// Execute an external action with the appropriate execution mode and output handling
-/// 
+///
 /// Currently implements the existing behavior but designed to be extended with:
 /// - `become` flag for execve behavior
 /// - `output_mode` for different output handling modes
@@ -45,7 +45,7 @@ pub fn execute_action(
 ) -> std::io::Result<std::process::ExitStatus> {
     // For now, preserve existing behavior regardless of the new flags
     // In the future, this will branch based on action_spec.become and action_spec.output_mode
-    
+
     let mut cmd = shell_command(
         formatted_command,
         action_spec.command.interactive,
@@ -74,7 +74,7 @@ pub fn execute_action(
     }
 
     // Execute based on become flag (future extension point)
-    if action_spec.become {
+    if action_spec.r#become {
         // Future: use execve to replace current process
         // For now, use normal execution
         let mut child = cmd.spawn()?;
