@@ -159,12 +159,42 @@ impl CommandSpec {
     }
 }
 
+/// Execution mode for external actions
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ExecutionMode {
+    /// Fork the command as a child process (current behavior, tv stays open)
+    #[default]
+    Fork,
+    /// Replace the current process with the command (tv exits, command takes over)
+    Become,
+}
+
+/// Output handling mode for external actions
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputMode {
+    /// Inherit stdin/stdout/stderr (current behavior)
+    #[default]
+    Inherit,
+    /// Capture output for processing
+    Capture,
+    /// Discard output silently
+    Discard,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
 pub struct ActionSpec {
     #[serde(default)]
     pub description: Option<String>,
     #[serde(flatten)]
     pub command: CommandSpec,
+    /// How to execute the command (fork vs become)
+    #[serde(default)]
+    pub become: bool,
+    /// How to handle command output
+    #[serde(default)]
+    pub output_mode: OutputMode,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]

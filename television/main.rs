@@ -21,7 +21,7 @@ use television::{
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
-    utils::command::shell_command,
+    utils::command::{execute_action, shell_command},
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
@@ -123,18 +123,8 @@ async fn main() -> Result<()> {
 
         debug!("External command: {}", formatted_command);
 
-        // Execute the command with inherited stdio
-        let mut child = shell_command(
-            &formatted_command,
-            action_spec.command.interactive,
-            &action_spec.command.env,
-        )
-        .stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()?;
-
-        let status = child.wait()?;
+        // Execute the command using the new action execution abstraction
+        let status = execute_action(&action_spec, &formatted_command)?;
 
         if !status.success() {
             eprintln!(
