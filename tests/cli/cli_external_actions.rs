@@ -5,20 +5,29 @@
 
 use super::common::*;
 use std::{fs, thread::sleep, time::Duration};
-use tempfile::TempDir;
 
 // ANSI escape sequences for function keys
 const F8_KEY: &str = "\x1b[19~";
 const F9_KEY: &str = "\x1b[20~";
+
+/// Helper to create a custom cable directory with external actions.
+fn write_toml_config(
+    cable_dir: &std::path::Path,
+    filename: &str,
+    content: &str,
+) {
+    let toml_path = cable_dir.join(filename);
+    fs::write(&toml_path, content).unwrap();
+}
 
 /// Tests that external actions execute properly when triggered by keybindings.
 #[test]
 fn test_external_action_lsman_with_f9() {
     let mut tester = PtyTester::new();
 
-    // Create a temporary directory for the custom cable
-    let temp_dir = TempDir::new().unwrap();
-    let cable_dir = temp_dir.path();
+    // Use TARGET_DIR for consistency with other tests
+    let cable_dir = std::path::Path::new(TARGET_DIR).join("custom_cable");
+    fs::create_dir_all(&cable_dir).unwrap();
 
     // Create a custom files.toml with external actions
     let files_toml_content = r#"
@@ -40,17 +49,15 @@ f8 = "thebatman"
 f9 = "lsman"
 
 [actions.thebatman]
-description = "cats the file"
-command = "bat '{}'"
-env = { BAT_THEME = "ansi" }
+description = "show file content"
+command = "cat '{}'"
 
 [actions.lsman]
 description = "show stats"
 command = "ls '{}'"
 "#;
 
-    let files_toml_path = cable_dir.join("files.toml");
-    fs::write(&files_toml_path, files_toml_content).unwrap();
+    write_toml_config(&cable_dir, "files.toml", files_toml_content);
 
     // Use the LICENSE file as input since it exists in the repo
     let mut cmd = tv();
@@ -82,9 +89,8 @@ command = "ls '{}'"
 fn test_external_action_thebatman_with_f8() {
     let mut tester = PtyTester::new();
 
-    // Create a temporary directory for the custom cable
-    let temp_dir = TempDir::new().unwrap();
-    let cable_dir = temp_dir.path();
+    let cable_dir = std::path::Path::new(TARGET_DIR).join("custom_cable_f8");
+    fs::create_dir_all(&cable_dir).unwrap();
 
     // Create a custom files.toml with external actions
     let files_toml_content = r#"
@@ -106,17 +112,15 @@ f8 = "thebatman"
 f9 = "lsman"
 
 [actions.thebatman]
-description = "cats the file"
-command = "bat '{}'"
-env = { BAT_THEME = "ansi" }
+description = "show file content"
+command = "cat '{}'"
 
 [actions.lsman]
 description = "show stats"
 command = "ls '{}'"
 "#;
 
-    let files_toml_path = cable_dir.join("files.toml");
-    fs::write(&files_toml_path, files_toml_content).unwrap();
+    write_toml_config(&cable_dir, "files.toml", files_toml_content);
 
     // Use the LICENSE file as input since it exists in the repo
     let mut cmd = tv();
@@ -129,7 +133,7 @@ command = "ls '{}'"
     // Wait for the UI to load
     sleep(DEFAULT_DELAY);
 
-    // Send F8 to trigger the "thebatman" action (mapped to bat command)
+    // Send F8 to trigger the "thebatman" action (mapped to cat command)
     tester.send(F8_KEY);
 
     // Give time for the action to execute
