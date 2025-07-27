@@ -98,7 +98,7 @@ impl<'de> Deserialize<'de> for Template {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
 pub struct CommandSpec {
     #[serde(rename = "command")]
     #[serde_as(as = "OneOrMany<_>")]
@@ -159,6 +159,14 @@ impl CommandSpec {
     }
 }
 
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
+pub struct ActionSpec {
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(flatten)]
+    pub command: CommandSpec,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelKeyBindings {
     /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
@@ -198,7 +206,8 @@ pub struct ChannelPrototype {
     pub watch: f64,
     #[serde(default)]
     pub history: HistoryConfig,
-    // actions: Vec<Action>,
+    #[serde(default)]
+    pub actions: FxHashMap<String, ActionSpec>,
 }
 
 impl ChannelPrototype {
@@ -228,6 +237,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            actions: FxHashMap::default(),
         }
     }
 
@@ -259,6 +269,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            actions: FxHashMap::default(),
         }
     }
 
@@ -757,5 +768,81 @@ mod tests {
         assert!(ui.status_bar.is_none());
         assert!(ui.help_panel.is_none());
         assert!(ui.remote_control.is_none());
+    }
+
+    #[test]
+    fn test_channel_prototype_with_actions() {
+        // Create a custom files.toml with external actions
+        let toml_data = r#"
+        [metadata]
+        name = "custom_files"
+        description = "A channel to select files and directories"
+        requirements = ["fd", "bat"]
+
+        [source]
+        command = ["fd -t f", "fd -t f -H"]
+
+        [preview]
+        command = "bat -n --color=always '{}'"
+        env = { BAT_THEME = "ansi" }
+
+        [keybindings]
+        shortcut = "f1"
+        f8 = "thebatman"
+        f9 = "lsman"
+
+        [actions.thebatman]
+        description = "cats the file"
+        command = "bat '{}'"
+        env = { BAT_THEME = "ansi" }
+
+        [actions.lsman]
+        description = "show stats"
+        command = "ls '{}'"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        // Verify basic prototype properties
+        assert_eq!(prototype.metadata.name, "custom_files");
+
+        // Verify actions are loaded
+        assert_eq!(prototype.actions.len(), 2);
+        assert!(prototype.actions.contains_key("thebatman"));
+        assert!(prototype.actions.contains_key("lsman"));
+
+        // Verify edit action
+        let thebatman = prototype.actions.get("thebatman").unwrap();
+        assert_eq!(thebatman.description, Some("cats the file".to_string()));
+        assert_eq!(thebatman.command.inner[0].raw(), "bat '{}'");
+        assert_eq!(
+            thebatman.command.env.get("BAT_THEME"),
+            Some(&"ansi".to_string())
+        );
+
+        // Verify lsman action
+        let lsman = prototype.actions.get("lsman").unwrap();
+        assert_eq!(lsman.description, Some("show stats".to_string()));
+        assert_eq!(lsman.command.inner[0].raw(), "ls '{}'");
+        assert!(lsman.command.env.is_empty());
+
+        // Verify keybindings reference the actions
+        let keybindings = prototype.keybindings.as_ref().unwrap();
+        assert_eq!(
+            keybindings.bindings.get(&Key::F(8)),
+            Some(
+                &crate::action::Action::ExternalAction(
+                    "thebatman".to_string()
+                )
+                .into()
+            )
+        );
+        assert_eq!(
+            keybindings.bindings.get(&Key::F(9)),
+            Some(
+                &crate::action::Action::ExternalAction("lsman".to_string())
+                    .into()
+            )
+        );
     }
 }

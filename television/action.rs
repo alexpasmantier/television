@@ -5,9 +5,7 @@ use std::fmt::Display;
 use crate::event::Key;
 
 /// The different actions that can be performed by the application.
-#[derive(
-    Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
     // input actions
@@ -118,6 +116,8 @@ pub enum Action {
     /// Handle mouse click event at specific coordinates
     #[serde(skip)]
     MouseClickAt(u16, u16),
+    /// Execute an external action
+    ExternalAction(String),
 }
 
 /// Container for one or more actions that can be executed together.
@@ -365,7 +365,68 @@ impl Display for Action {
                 write!(f, "select_entry_at_position")
             }
             Action::MouseClickAt(_, _) => write!(f, "mouse_click_at"),
+            Action::ExternalAction(name) => write!(f, "{}", name),
         }
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Action {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+
+        let action = match s.as_str() {
+            "add_input_char" => Action::AddInputChar(' '),
+            "delete_prev_char" => Action::DeletePrevChar,
+            "delete_prev_word" => Action::DeletePrevWord,
+            "delete_next_char" => Action::DeleteNextChar,
+            "delete_line" => Action::DeleteLine,
+            "go_to_prev_char" => Action::GoToPrevChar,
+            "go_to_next_char" => Action::GoToNextChar,
+            "go_to_input_start" => Action::GoToInputStart,
+            "go_to_input_end" => Action::GoToInputEnd,
+            "render" => Action::Render,
+            "resize" => Action::Resize(0, 0),
+            "clear_screen" => Action::ClearScreen,
+            "toggle_selection_down" => Action::ToggleSelectionDown,
+            "toggle_selection_up" => Action::ToggleSelectionUp,
+            "confirm_selection" => Action::ConfirmSelection,
+            "select_and_exit" => Action::SelectAndExit,
+            "expect" => Action::Expect(Key::Char(' ')),
+            "select_next_entry" => Action::SelectNextEntry,
+            "select_prev_entry" => Action::SelectPrevEntry,
+            "select_next_page" => Action::SelectNextPage,
+            "select_prev_page" => Action::SelectPrevPage,
+            "copy_entry_to_clipboard" => Action::CopyEntryToClipboard,
+            "scroll_preview_up" => Action::ScrollPreviewUp,
+            "scroll_preview_down" => Action::ScrollPreviewDown,
+            "scroll_preview_half_page_up" => Action::ScrollPreviewHalfPageUp,
+            "scroll_preview_half_page_down" => {
+                Action::ScrollPreviewHalfPageDown
+            }
+            "open_entry" => Action::OpenEntry,
+            "tick" => Action::Tick,
+            "suspend" => Action::Suspend,
+            "resume" => Action::Resume,
+            "quit" => Action::Quit,
+            "toggle_remote_control" => Action::ToggleRemoteControl,
+            "toggle_help" => Action::ToggleHelp,
+            "toggle_status_bar" => Action::ToggleStatusBar,
+            "toggle_preview" => Action::TogglePreview,
+            "error" => Action::Error(String::new()),
+            "no_op" => Action::NoOp,
+            "cycle_sources" => Action::CycleSources,
+            "reload_source" => Action::ReloadSource,
+            "switch_to_channel" => Action::SwitchToChannel(String::new()),
+            "watch_timer" => Action::WatchTimer,
+            "select_prev_history" => Action::SelectPrevHistory,
+            "select_next_history" => Action::SelectNextHistory,
+            _ => Action::ExternalAction(s),
+        };
+
+        Ok(action)
     }
 }
 
@@ -460,6 +521,9 @@ impl Action {
             // Mouse actions
             Action::SelectEntryAtPosition(_, _) => "Select at position",
             Action::MouseClickAt(_, _) => "Mouse click",
+
+            // External actions
+            Action::ExternalAction(_) => "External action",
         }
     }
 }

@@ -3,7 +3,7 @@ use clap::Parser;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
-use std::process::exit;
+use std::process::{Stdio, exit};
 use television::{
     app::{App, AppOptions},
     cable::{Cable, cable_empty_exit, load_cable},
@@ -21,6 +21,7 @@ use television::{
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
+    utils::command::shell_command,
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
@@ -111,6 +112,41 @@ async fn main() -> Result<()> {
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
     info!("App output: {:?}", output);
+
+    // Handle external action execution after terminal cleanup
+    if let Some((action_spec, entry_value)) = output.external_action {
+        debug!("Executing external action command after terminal cleanup");
+
+        // Format the command template with the entry value
+        let formatted_command =
+            action_spec.command.get_nth(0).format(&entry_value)?;
+
+        debug!("External command: {}", formatted_command);
+
+        // Execute the command with inherited stdio
+        let mut child = shell_command(
+            &formatted_command,
+            action_spec.command.interactive,
+            &action_spec.command.env,
+        )
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit())
+        .spawn()?;
+
+        let status = child.wait()?;
+
+        if !status.success() {
+            eprintln!(
+                "External command failed with exit code: {:?}",
+                status.code()
+            );
+            exit(1);
+        }
+
+        exit(0);
+    }
+
     let stdout_handle = stdout().lock();
     let mut bufwriter = BufWriter::new(stdout_handle);
     if let Some(key) = output.expect_key {
