@@ -265,4 +265,28 @@ where
         self.last_pattern.clear();
         self.col_indices_buffer.clear();
     }
+
+    /// Set whether the matcher should sort results by score.
+    pub fn set_sort_results(&mut self, enabled: bool) {
+        self.inner.sort_results(enabled);
+    }
+
+    /// Attach a frecency store to prioritize frequently and recently used items.
+    ///
+    /// When attached, items will be ranked by:
+    /// 1. Frecency score (highest first)
+    /// 2. Fuzzy match score
+    /// 3. Length
+    /// 4. Index
+    ///
+    /// # Arguments
+    /// * `store` - The frecency store to use
+    /// * `key_extractor` - Function to extract the frecency key from an item
+    pub fn attach_frecency(
+        &mut self,
+        store: Arc<nucleo::frecency::FrecencyStore>,
+        key_extractor: Arc<dyn Fn(&I) -> Option<String> + Send + Sync>,
+    ) {
+        self.inner.attach_frecency(store, key_extractor);
+    }
 }

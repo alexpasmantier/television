@@ -28,6 +28,14 @@ history_size = 200
 # When false: history navigation is scoped to the current channel
 global_history = false
 
+# Sorting strategy
+# ---------------
+# Controls how results are ordered (default: fuzzy)
+# - fuzzy: sort by match score
+# - disabled: preserve natural entry order
+# - frecency: boost frequently and recently used items
+sorting_strategy = "fuzzy"
+
 [ui]
 # How much space to allocate for the UI (in percentage of the screen)
 # ┌─────────────────────────┐

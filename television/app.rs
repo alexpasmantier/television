@@ -1,4 +1,8 @@
-use std::{thread::sleep, time::Duration};
+use std::{
+    sync::Arc,
+    thread::sleep,
+    time::{Duration, SystemTime},
+};
 
 use crate::{
     action::Action,
@@ -7,7 +11,7 @@ use crate::{
         entry::Entry,
         prototypes::{ActionSpec, ExecutionMode},
     },
-    config::layers::LayeredConfig,
+    config::{SortingStrategy, layers::LayeredConfig},
     event::{
         ControlEvent, Event, EventLoop, InputEvent, Key, MouseInputEvent,
     },
@@ -18,6 +22,7 @@ use crate::{
     utils::command::execute_action,
 };
 use anyhow::Result;
+use nucleo::frecency::{FrecencyConfig, FrecencyStore};
 use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
@@ -56,6 +61,8 @@ pub struct App {
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
     history: History,
+    /// Frecency store for tracking frequently and recently used items
+    frecency_store: Option<Arc<FrecencyStore>>,
 }
 
 /// The outcome of an action.
@@ -121,14 +128,61 @@ impl App {
         let (event_abort_tx, _) = mpsc::unbounded_channel();
 
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
-        let television =
-            Television::new(action_tx.clone(), layered_config, cable_channels);
 
+        // Prepare merged config for Television
+        let merged_config = layered_config.merge();
+
+        // Initialize frecency store
+        let frecency_store = if merged_config.sorting_strategy
+            == SortingStrategy::Frecency
+        {
+            let frecency_path = merged_config.data_dir.join("frecency.db");
+            match FrecencyStore::load_or_default(
+                frecency_path.clone(),
+                FrecencyConfig::default(),
+            ) {
+                Ok(store) => {
+                    if tracing::enabled!(tracing::Level::DEBUG) {
+                        let entries = store.entries();
+                        tracing::debug!(
+                            "Loaded frecency store from {:?} with {} entries:",
+                            frecency_path,
+                            entries.len()
+                        );
+                        for (key, entry) in &entries {
+                            tracing::debug!(
+                                "  {} - frequency: {}, last_access: {:?}",
+                                key,
+                                entry.frequency,
+                                entry.last_access()
+                            );
+                        }
+                    }
+                    Some(Arc::new(store))
+                }
+                Err(e) => {
+                    error!("Failed to initialize frecency store: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
+        // Create Television with frecency store
+        let television = Television::new(
+            action_tx.clone(),
+            layered_config,
+            cable_channels,
+            frecency_store.clone(),
+        );
+
+        // Initialize history
         let mut history = History::new(
             television.merged_config.history_size,
             &television.merged_config.channel_name,
             television.merged_config.global_history,
-            &television.merged_config.data_dir.clone(),
+            &television.merged_config.data_dir,
         );
         if let Err(e) = history.init() {
             error!("Failed to initialize history: {}", e);
@@ -148,6 +202,7 @@ impl App {
             render_task: None,
             watch_timer_task: None,
             history,
+            frecency_store,
         };
 
         // populate input_map by going through all cable channels and adding their shortcuts if remote
@@ -362,6 +417,13 @@ impl App {
                     error!("Failed to persist history: {}", e);
                 }
 
+                // persist frecency data
+                if let Some(store) = &self.frecency_store
+                    && let Err(e) = store.save()
+                {
+                    error!("Failed to persist frecency: {}", e);
+                }
+
                 // wait for the rendering task to finish
                 if let Some(rendering_task) = self.render_task.take() {
                     rendering_task.await?.expect("Rendering task failed");
@@ -507,6 +569,15 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            if let Some(store) = &self.frecency_store {
+                                for entry in &entries {
+                                    store
+                                        .update(&entry.raw, SystemTime::now());
+                                }
+                            }
+
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -529,6 +600,15 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            if let Some(store) = &self.frecency_store {
+                                for entry in &entries {
+                                    store
+                                        .update(&entry.raw, SystemTime::now());
+                                }
+                            }
+
                             return Ok(ActionOutcome::EntriesWithExpect(
                                 entries, k,
                             ));

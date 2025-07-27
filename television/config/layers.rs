@@ -5,7 +5,7 @@ use crate::{
     },
     cli::{ChannelCli, GlobalCli, PostProcessedCli},
     config::{
-        Config,
+        Config, SortingStrategy,
         ui::{BorderType, Padding, ThemeOverrides},
     },
     keymap::InputMap,
@@ -67,6 +67,12 @@ impl LayeredConfig {
         let default_channel =
             self.base_config.application.default_channel.clone();
         let history_size = self.base_config.application.history_size;
+        let sorting_strategy = self
+            .global_cli
+            .sorting_strategy
+            .map(SortingStrategy::from)
+            .or(self.channel.sorting.strategy)
+            .unwrap_or(self.base_config.application.sorting_strategy);
         let theme = self.base_config.ui.theme.clone();
         let shell_integration_commands =
             self.base_config.shell_integration.commands.clone();
@@ -436,6 +442,7 @@ impl LayeredConfig {
             default_channel,
             history_size,
             global_history,
+            sorting_strategy,
             working_directory,
             autocomplete_prompt,
             // matcher configuration
@@ -527,6 +534,7 @@ pub struct MergedConfig {
     pub default_channel: String,
     pub history_size: usize,
     pub global_history: bool,
+    pub sorting_strategy: SortingStrategy,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     // matcher configuration

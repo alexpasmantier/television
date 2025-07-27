@@ -30,10 +30,11 @@ use crate::{
     },
 };
 use anyhow::Result;
+use nucleo::frecency::FrecencyStore;
 use ratatui::layout::Rect;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -82,6 +83,7 @@ pub struct Television {
     pub ticks: u64,
     pub ui_state: UiState,
     pub current_command_index: usize,
+    frecency_store: Option<Arc<FrecencyStore>>,
 }
 
 impl Television {
@@ -92,6 +94,7 @@ impl Television {
         action_tx: UnboundedSender<Action>,
         layered_config: LayeredConfig,
         cable_channels: Cable,
+        frecency_store: Option<Arc<FrecencyStore>>,
     ) -> Self {
         let merged_config = {
             // this is to keep the outer merged config immutable
@@ -156,7 +159,6 @@ impl Television {
             &merged_config.input.unwrap_or(EMPTY_STRING.to_string()),
         );
 
-        channel.find(&pattern);
         let spinner = Spinner::default();
 
         let preview_state =
@@ -171,7 +173,7 @@ impl Television {
             ))
         };
 
-        Self {
+        let mut tv = Self {
             action_tx,
             merged_config: layered_config.merge(),
             layered_config,
@@ -192,7 +194,16 @@ impl Television {
             ticks: 0,
             ui_state: UiState::default(),
             current_command_index: 0,
-        }
+            frecency_store,
+        };
+
+        // Configure the matcher based on sorting strategy
+        tv.configure_channel_matcher();
+
+        // Always perform the initial find
+        tv.channel.find(&pattern);
+
+        tv
     }
 
     fn setup_previewer(
@@ -251,6 +262,30 @@ impl Television {
         self.merged_config.channel_name.clone()
     }
 
+    /// Configure the channel's matcher based on the sorting strategy.
+    fn configure_channel_matcher(&mut self) {
+        use crate::config::SortingStrategy;
+
+        match self.merged_config.sorting_strategy {
+            SortingStrategy::Disabled => {
+                self.channel.matcher.set_sort_results(false);
+            }
+            SortingStrategy::Frecency => {
+                if let Some(store) = &self.frecency_store {
+                    let key_extractor: Arc<
+                        dyn Fn(&String) -> Option<String> + Send + Sync,
+                    > = Arc::new(|item: &String| Some(item.clone()));
+                    self.channel
+                        .matcher
+                        .attach_frecency(store.clone(), key_extractor);
+                }
+            }
+            SortingStrategy::Fuzzy => {
+                // Default behavior - no configuration needed
+            }
+        }
+    }
+
     pub fn change_channel(&mut self, channel_prototype: &ChannelPrototype) {
         // shutdown the current channel and reset state
         self.preview_state.reset();
@@ -297,6 +332,10 @@ impl Television {
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
         );
+
+        // Configure the matcher based on sorting strategy
+        self.configure_channel_matcher();
+
         self.channel.load();
     }
 
@@ -930,6 +969,7 @@ mod test {
             tokio::sync::mpsc::unbounded_channel().0,
             layered_config,
             Cable::from_prototypes(vec![]),
+            None,
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
@@ -970,6 +1010,7 @@ mod test {
             tokio::sync::mpsc::unbounded_channel().0,
             layered_config,
             Cable::from_prototypes(vec![]),
+            None,
         );
 
         assert_eq!(
