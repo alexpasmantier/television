@@ -474,6 +474,22 @@ minimum height is ensured (set by default at 15 lines)
 - **Use Case**: Cross-channel workflow when you want to see all recent searches
 - **Example**: `tv files --global-history`
 
+### 🎯 Sorting Strategy Options
+
+#### `--sorting-strategy <STRATEGY>`
+
+**Purpose**: Controls how results are ordered
+
+- **Both Modes**: Same behavior
+- **Available strategies**:
+  - `fuzzy` (default): sort by match score
+  - `disabled`: preserve natural entry order
+  - `frecency`: boost frequently and recently used items
+- **Examples**:
+  - `tv files --sorting-strategy fuzzy`
+  - `tv files --sorting-strategy disabled`
+  - `tv files --sorting-strategy frecency`
+
 ### 🔧 Special Mode Options
 
 #### `--autocomplete-prompt <STRING>`

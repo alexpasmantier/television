@@ -1,5 +1,5 @@
 use crate::{
-    cable::CABLE_DIR_NAME, channels::prototypes::DEFAULT_PROTOTYPE_NAME,
+    cable::CABLE_DIR_NAME, channels::prototypes::DEFAULT_PROTOTYPE_NAME, cli,
     history::DEFAULT_HISTORY_SIZE,
 };
 use anyhow::{Context, Result};
@@ -26,6 +26,30 @@ pub mod ui;
 
 const DEFAULT_CONFIG: &str = include_str!("../../.config/config.toml");
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SortingStrategy {
+    Fuzzy,
+    Disabled,
+    Frecency,
+}
+
+impl Default for SortingStrategy {
+    fn default() -> Self {
+        Self::Fuzzy
+    }
+}
+
+impl From<cli::args::SortingStrategy> for SortingStrategy {
+    fn from(s: cli::args::SortingStrategy) -> Self {
+        match s {
+            cli::args::SortingStrategy::Fuzzy => Self::Fuzzy,
+            cli::args::SortingStrategy::Disabled => Self::Disabled,
+            cli::args::SortingStrategy::Frecency => Self::Frecency,
+        }
+    }
+}
+
 #[allow(dead_code, clippy::module_name_repetitions)]
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -45,6 +69,9 @@ pub struct AppConfig {
     /// Whether to use global history (all channels) or channel-specific history (default)
     #[serde(default = "default_global_history")]
     pub global_history: bool,
+    /// Controls how results are ordered
+    #[serde(default = "default_sorting_strategy")]
+    pub sorting_strategy: SortingStrategy,
 }
 
 impl Default for AppConfig {
@@ -56,6 +83,7 @@ impl Default for AppConfig {
             default_channel: default_channel(),
             history_size: default_history_size(),
             global_history: default_global_history(),
+            sorting_strategy: default_sorting_strategy(),
         }
     }
 }
@@ -70,6 +98,10 @@ fn default_history_size() -> usize {
 
 fn default_global_history() -> bool {
     false
+}
+
+fn default_sorting_strategy() -> SortingStrategy {
+    SortingStrategy::Fuzzy
 }
 
 impl Hash for AppConfig {

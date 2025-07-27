@@ -514,6 +514,15 @@ pub struct Cli {
     #[arg(long, verbatim_doc_comment)]
     pub global_history: bool,
 
+    /// Controls how results are ordered.
+    ///
+    /// Available strategies:
+    /// - fuzzy: sort by match score (default)
+    /// - disabled: preserve natural entry order
+    /// - frecency: boost frequently and recently used items
+    #[arg(long, value_name = "STRATEGY", verbatim_doc_comment)]
+    pub sorting_strategy: Option<SortingStrategy>,
+
     /// Height in lines for non-fullscreen mode.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
@@ -603,6 +612,19 @@ pub enum BorderType {
     Plain,
     Rounded,
     Thick,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum SortingStrategy {
+    Fuzzy,
+    Disabled,
+    Frecency,
+}
+
+impl Default for SortingStrategy {
+    fn default() -> Self {
+        Self::Fuzzy
+    }
 }
 
 // Add validator functions

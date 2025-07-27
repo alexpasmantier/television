@@ -222,6 +222,13 @@ pub struct HistoryConfig {
     pub global_mode: Option<bool>,
 }
 
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct SortingConfig {
+    /// Sorting strategy for this channel (overrides global setting)
+    #[serde(default)]
+    pub strategy: Option<crate::config::SortingStrategy>,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
@@ -237,6 +244,8 @@ pub struct ChannelPrototype {
     pub watch: f64,
     #[serde(default)]
     pub history: HistoryConfig,
+    #[serde(default)]
+    pub sorting: SortingConfig,
     #[serde(default)]
     pub actions: FxHashMap<String, ActionSpec>,
 }
@@ -268,6 +277,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            sorting: SortingConfig::default(),
             actions: FxHashMap::default(),
         }
     }
@@ -293,6 +303,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            sorting: SortingConfig::default(),
             actions: FxHashMap::default(),
         }
     }
