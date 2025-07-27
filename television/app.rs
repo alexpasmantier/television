@@ -11,6 +11,7 @@ use crate::{
     event::{
         ControlEvent, Event, EventLoop, InputEvent, Key, MouseInputEvent,
     },
+    frecency::{DEFAULT_FRECENCY_SIZE, Frecency},
     history::History,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
@@ -56,6 +57,8 @@ pub struct App {
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
     history: History,
+    /// Frecency tracking for selected entries
+    frecency: Frecency,
 }
 
 /// The outcome of an action.
@@ -134,6 +137,24 @@ impl App {
             error!("Failed to initialize history: {}", e);
         }
 
+        // Initialize frecency
+        let frecency_size = if television.merged_config.frecency {
+            DEFAULT_FRECENCY_SIZE
+        } else {
+            0
+        };
+
+        let mut frecency = Frecency::new(
+            frecency_size,
+            &television.merged_config.channel_name,
+            television.merged_config.global_frecency,
+            &television.merged_config.data_dir,
+        );
+
+        if let Err(e) = frecency.init() {
+            error!("Failed to initialize frecency: {}", e);
+        }
+
         let mut app = Self {
             television,
             should_quit: false,
@@ -148,6 +169,7 @@ impl App {
             render_task: None,
             watch_timer_task: None,
             history,
+            frecency,
         };
 
         // populate input_map by going through all cable channels and adding their shortcuts if remote
@@ -232,6 +254,12 @@ impl App {
         self.history.update_channel_context(
             &self.television.merged_config.channel_name,
             self.television.merged_config.global_history,
+        );
+
+        // Update existing frecency with new channel context
+        self.frecency.update_channel_context(
+            &self.television.merged_config.channel_name,
+            self.television.merged_config.global_frecency,
         );
     }
 
@@ -360,6 +388,11 @@ impl App {
                 // persist search history
                 if let Err(e) = self.history.save_to_file() {
                     error!("Failed to persist history: {}", e);
+                }
+
+                // persist frecency data
+                if let Err(e) = self.frecency.save_to_file() {
+                    error!("Failed to persist frecency: {}", e);
                 }
 
                 // wait for the rendering task to finish
@@ -507,6 +540,20 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            for entry in &entries {
+                                if let Err(e) = self.frecency.add_entry(
+                                    entry.raw.clone(),
+                                    self.television.current_channel(),
+                                ) {
+                                    error!(
+                                        "Failed to add entry to frecency: {}",
+                                        e
+                                    );
+                                }
+                            }
+
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -529,6 +576,20 @@ impl App {
                                 query,
                                 self.television.current_channel(),
                             )?;
+
+                            // Add selected entries to frecency
+                            for entry in &entries {
+                                if let Err(e) = self.frecency.add_entry(
+                                    entry.raw.clone(),
+                                    self.television.current_channel(),
+                                ) {
+                                    error!(
+                                        "Failed to add entry to frecency: {}",
+                                        e
+                                    );
+                                }
+                            }
+
                             return Ok(ActionOutcome::EntriesWithExpect(
                                 entries, k,
                             ));
@@ -616,7 +677,14 @@ impl App {
                     self.television.mode == Mode::RemoteControl;
 
                 // forward action to the television handler
-                if let Some(action) = self.television.update(&action)? {
+                let frecency_ref = if self.frecency.max_size() > 0 {
+                    Some(&self.frecency)
+                } else {
+                    None
+                };
+                if let Some(action) =
+                    self.television.update(&action, frecency_ref)?
+                {
                     self.action_tx.send(action)?;
                 }
 
