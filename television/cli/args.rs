@@ -514,6 +514,24 @@ pub struct Cli {
     #[arg(long, verbatim_doc_comment)]
     pub global_history: bool,
 
+    /// Enable frecency scoring to boost previously selected entries.
+    ///
+    /// This flag works in both channel mode and ad-hoc mode.
+    ///
+    /// When enabled, entries that were previously selected will be ranked higher
+    /// in the results list based on frequency of use and recency of access.
+    #[arg(long, verbatim_doc_comment)]
+    pub frecency: bool,
+
+    /// Use global frecency across all channels instead of channel-specific frecency.
+    ///
+    /// This flag only works when --frecency is enabled.
+    ///
+    /// When enabled, frecency scoring will consider selections from all channels.
+    /// When disabled (default), frecency is scoped to the current channel.
+    #[arg(long, verbatim_doc_comment)]
+    pub global_frecency: bool,
+
     /// Height in lines for non-fullscreen mode.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.

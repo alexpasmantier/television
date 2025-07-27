@@ -47,13 +47,13 @@ pub fn draw(c: &mut Criterion) {
                 tv.find("television");
                 for _ in 0..5 {
                     // tick the matcher
-                    let _ = tv.channel.results(10, 0);
+                    let _ = tv.channel.results(10, 0, None);
                     std::thread::sleep(std::time::Duration::from_millis(10));
                 }
                 tv.move_cursor(Movement::Next, 10);
                 let selected_entry = tv.get_selected_entry();
                 let _ = tv.update_preview_state(&selected_entry);
-                let _ = tv.update(&Action::Tick);
+                let _ = tv.update(&Action::Tick, None);
                 (tv, terminal)
             },
             // Measurement

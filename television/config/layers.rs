@@ -398,6 +398,12 @@ impl LayeredConfig {
         let global_history = self.global_cli.global_history
             || self.channel.history.global_mode.unwrap_or_default()
             || self.base_config.application.global_history;
+        let frecency = self.global_cli.frecency
+            || self.channel.frecency.enabled.unwrap_or_default()
+            || self.base_config.application.frecency;
+        let global_frecency = self.global_cli.global_frecency
+            || self.channel.frecency.global_mode.unwrap_or_default()
+            || self.base_config.application.global_frecency;
         let keybindings = {
             let mut merged_bindings = self.base_config.keybindings.clone();
             // Merge channel-specific keybindings
@@ -422,6 +428,8 @@ impl LayeredConfig {
             default_channel,
             history_size,
             global_history,
+            frecency,
+            global_frecency,
             working_directory,
             autocomplete_prompt,
             // matcher configuration
@@ -513,6 +521,8 @@ pub struct MergedConfig {
     pub default_channel: String,
     pub history_size: usize,
     pub global_history: bool,
+    pub frecency: bool,
+    pub global_frecency: bool,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     // matcher configuration
