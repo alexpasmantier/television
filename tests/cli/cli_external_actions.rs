@@ -51,10 +51,12 @@ f9 = "actions:lsman"
 [actions.thebatman]
 description = "show file content"
 command = "cat '{}'"
+mode = "execute"
 
 [actions.lsman]
 description = "show stats"
 command = "ls '{}'"
+mode = "execute"
 "#;
 
     write_toml_config(&cable_dir, "files.toml", files_toml_content);
@@ -114,10 +116,12 @@ f9 = "actions:lsman"
 [actions.thebatman]
 description = "show file content"
 command = "cat '{}'"
+mode = "execute"
 
 [actions.lsman]
 description = "show stats"
 command = "ls '{}'"
+mode = "execute"
 "#;
 
     write_toml_config(&cable_dir, "files.toml", files_toml_content);
