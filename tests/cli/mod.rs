@@ -12,6 +12,7 @@
 //! - UI customization and layout
 //! - UI behavioral integration
 //! - Error handling and validation
+//! - Frecency scoring and ranking
 
 #[path = "../common/mod.rs"]
 mod common;
@@ -19,6 +20,7 @@ mod common;
 pub mod cli_config;
 pub mod cli_errors;
 pub mod cli_external_actions;
+pub mod cli_frecency;
 pub mod cli_input;
 pub mod cli_modes;
 pub mod cli_monitoring;
