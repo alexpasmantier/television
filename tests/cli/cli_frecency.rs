@@ -344,3 +344,234 @@ fn test_global_vs_channel_frecency() {
         PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
     }
 }
+
+/// Tests that frecency handles duplicate entries correctly by incrementing access count.
+#[test]
+fn test_frecency_duplicate_entry_handling() {
+    let temp_dir = create_temp_data_dir_with_empty_frecency();
+    let data_dir = temp_dir.path().to_str().unwrap();
+
+    // Create test data with multiple entries
+    let test_entries = ["duplicate.txt", "other1.txt", "other2.txt"];
+
+    // First session: select "duplicate.txt" once
+    {
+        let mut tester = PtyTester::new();
+        let cmd = tv_frecency_with_data_dir(
+            data_dir,
+            &[
+                "--source-command",
+                &format!("printf '{}'", test_entries.join("\n")),
+            ],
+        );
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load and verify initial order
+        tester.assert_tui_frame_contains("> duplicate.txt");
+
+        // Select duplicate.txt (first time)
+        tester.send(ENTER);
+
+        // Wait for selection to complete and exit
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+
+    // Second session: select "duplicate.txt" again to test increment
+    {
+        let mut tester = PtyTester::new();
+        let cmd = tv_frecency_with_data_dir(
+            data_dir,
+            &[
+                "--source-command",
+                &format!("printf '{}'", test_entries.join("\n")),
+            ],
+        );
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load and verify duplicate.txt is boosted
+        tester.assert_tui_frame_contains("> duplicate.txt");
+
+        // Select duplicate.txt (second time)
+        tester.send(ENTER);
+
+        // Wait for selection to complete and exit
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+
+    // Verify frecency file shows duplicate.txt has access_count of 2
+    let frecency_file = format!("{}/frecency.json", data_dir);
+    let frecency_content = fs::read_to_string(&frecency_file)
+        .expect("Should be able to read frecency file");
+
+    // Parse JSON to verify access count
+    let frecency_entries: serde_json::Value =
+        serde_json::from_str(&frecency_content)
+            .expect("Frecency file should contain valid JSON");
+
+    let duplicate_entry = frecency_entries
+        .as_array()
+        .expect("Frecency data should be an array")
+        .iter()
+        .find(|entry| entry["entry"].as_str() == Some("duplicate.txt"))
+        .expect("duplicate.txt should be in frecency data");
+
+    assert_eq!(
+        duplicate_entry["access_count"].as_u64(),
+        Some(2),
+        "duplicate.txt should have access_count of 2. Entry: {}",
+        duplicate_entry
+    );
+}
+
+/// Tests frecency behavior when the JSON file is corrupted or invalid.
+#[test]
+fn test_frecency_corrupted_file_handling() {
+    let temp_dir = create_temp_data_dir();
+    let data_dir = temp_dir.path().to_str().unwrap();
+    let frecency_file = temp_dir.path().join("frecency.json");
+
+    // Create corrupted frecency file
+    fs::write(&frecency_file, "{ invalid json content }")
+        .expect("Failed to create corrupted frecency file");
+
+    // Create test data
+    let test_entries = ["recovery_test.txt", "normal_entry.txt"];
+
+    // First session: should handle corrupted file gracefully
+    {
+        let mut tester = PtyTester::new();
+        let cmd = tv_frecency_with_data_dir(
+            data_dir,
+            &[
+                "--source-command",
+                &format!("printf '{}'", test_entries.join("\n")),
+            ],
+        );
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load - should work despite corrupted file
+        tester.assert_tui_frame_contains("> recovery_test.txt");
+        tester.send(&ctrl('n')); // Move down to normal_entry.txt
+        tester.assert_tui_frame_contains("> normal_entry.txt");
+
+        // Select normal_entry.txt
+        tester.send(ENTER);
+
+        // Wait for selection to complete and exit
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+
+    // Verify frecency file was recreated with valid JSON
+    let frecency_content = fs::read_to_string(&frecency_file)
+        .expect("Should be able to read frecency file after recovery");
+
+    assert!(
+        frecency_content.starts_with('[') && frecency_content.ends_with(']'),
+        "Frecency file should be valid JSON array after recovery. Content:\n{}",
+        frecency_content
+    );
+
+    assert!(
+        frecency_content.contains("normal_entry.txt"),
+        "Frecency file should contain new entry after recovery. Content:\n{}",
+        frecency_content
+    );
+
+    // Second session: verify frecency is working normally after recovery
+    {
+        let mut tester = PtyTester::new();
+        let cmd = tv_frecency_with_data_dir(
+            data_dir,
+            &[
+                "--source-command",
+                "printf 'recovery_test.txt\nnormal_entry.txt'", // Reversed order
+            ],
+        );
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load and verify normal_entry.txt appears first due to frecency
+        tester.assert_tui_frame_contains("> normal_entry.txt");
+        tester.send(&ctrl('n')); // Move down to recovery_test.txt
+        tester.assert_tui_frame_contains("> recovery_test.txt");
+
+        // Exit cleanly
+        tester.send(&ctrl('c'));
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+}
+
+/// Tests frecency without the --frecency flag to ensure it's properly disabled.
+#[test]
+fn test_frecency_disabled_behavior() {
+    let temp_dir = create_temp_data_dir_with_empty_frecency();
+    let data_dir = temp_dir.path().to_str().unwrap();
+
+    // Create test data
+    let test_entries = ["first.txt", "second.txt", "third.txt"];
+
+    // First session: select third.txt WITHOUT --frecency flag
+    {
+        let mut tester = PtyTester::new();
+        let mut cmd = tv_local_config_and_cable_with_args(&[
+            "--source-command",
+            &format!("printf '{}'", test_entries.join("\n")),
+        ]);
+        cmd.env("TELEVISION_DATA", data_dir);
+        // Note: NO --frecency flag
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load and verify initial order
+        tester.assert_tui_frame_contains("> first.txt");
+        tester.send(&ctrl('n')); // Move down to second.txt
+        tester.assert_tui_frame_contains("> second.txt");
+        tester.send(&ctrl('n')); // Move down to third.txt
+        tester.assert_tui_frame_contains("> third.txt");
+
+        // Select third.txt
+        tester.send(ENTER);
+
+        // Wait for selection to complete and exit
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+
+    // Verify selected entry was not added to frecency data
+    let frecency_file = format!("{}/frecency.json", data_dir);
+    if std::path::Path::new(&frecency_file).exists() {
+        let frecency_content = fs::read_to_string(&frecency_file)
+            .unwrap_or_else(|_| "[]".to_string());
+        assert!(
+            !frecency_content.contains("third.txt"),
+            "Frecency file should not contain selected entry when --frecency flag is not used. Content:\n{}",
+            frecency_content
+        );
+    }
+
+    // Second session: verify order remains unchanged (no frecency boost)
+    {
+        let mut tester = PtyTester::new();
+        let mut cmd = tv_local_config_and_cable_with_args(&[
+            "--source-command",
+            &format!("printf '{}'", test_entries.join("\n")),
+        ]);
+        cmd.env("TELEVISION_DATA", data_dir);
+        // Note: Still NO --frecency flag
+
+        let mut child = tester.spawn_command_tui(cmd);
+
+        // Wait for UI to load and verify original order maintained
+        tester.assert_tui_frame_contains("> first.txt");
+        tester.send(&ctrl('n')); // Move down to second.txt
+        tester.assert_tui_frame_contains("> second.txt");
+        tester.send(&ctrl('n')); // Move down to third.txt
+        tester.assert_tui_frame_contains("> third.txt");
+
+        // Exit cleanly
+        tester.send(&ctrl('c'));
+        PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    }
+}
