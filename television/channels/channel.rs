@@ -256,20 +256,10 @@ impl Channel {
         let item = self.matcher.get_result(index);
 
         if let Some(item) = item {
-            let mut entry = Entry::new(item.inner.clone())
+            let entry = Entry::new(item.inner.clone())
                 .with_display(item.matched_string)
-                .with_match_indices(&item.match_indices);
-            if let Some(p) = &self.prototype.preview {
-                // FIXME: this should be done by the previewer instead
-                if let Some(offset_expr) = &p.offset {
-                    let offset_str =
-                        offset_expr.format(&item.inner).unwrap_or_default();
-
-                    entry = entry.with_line_number(
-                        offset_str.parse::<usize>().unwrap_or(0),
-                    );
-                }
-            }
+                .with_match_indices(&item.match_indices)
+                .ansi(self.prototype.source.ansi);
             Some(entry)
         } else {
             None

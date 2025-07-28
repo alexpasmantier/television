@@ -364,12 +364,45 @@ impl Television {
     }
 
     pub fn get_selected_entry(&mut self) -> Option<Entry> {
-        if self.channel.result_count() == 0 {
-            return None;
+        match self.mode {
+            Mode::Channel => {
+                let entry = self
+                    .results_picker
+                    .selected()
+                    .and_then(|idx| self.results_picker.entries.get(idx))
+                    .cloned()?;
+                Some(self.apply_preview_offset(entry))
+            }
+            Mode::RemoteControl => {
+                if self
+                    .remote_control
+                    .as_ref()
+                    .map_or(0, RemoteControl::result_count)
+                    == 0
+                {
+                    return None;
+                }
+                let entry = self
+                    .selected_index()
+                    .map(|idx| self.channel.get_result(idx))
+                    .and_then(|entry| entry)?;
+                Some(self.apply_preview_offset(entry))
+            }
         }
-        self.selected_index()
-            .map(|idx| self.channel.get_result(idx))
-            .and_then(|entry| entry)
+    }
+
+    /// Apply preview offset logic to an entry
+    fn apply_preview_offset(&self, mut entry: Entry) -> Entry {
+        if let Some(p) = &self.channel.prototype.preview {
+            if let Some(offset_expr) = &p.offset {
+                let offset_str =
+                    offset_expr.format(&entry.raw).unwrap_or_default();
+                entry = entry.with_line_number(
+                    offset_str.parse::<usize>().unwrap_or(0),
+                );
+            }
+        }
+        entry
     }
 
     pub fn get_selected_cable_entry(&mut self) -> Option<CableEntry> {
