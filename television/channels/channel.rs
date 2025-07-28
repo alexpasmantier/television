@@ -154,31 +154,36 @@ impl Channel {
     fn filter_recent_items_by_current_dataset(
         &self,
         recent_items: &[String],
-    ) -> Vec<String> {
+    ) -> FxHashSet<String> {
         // Try to read dataset, return empty on lock failure to prevent blocking
         let Ok(dataset) = self.current_dataset.read() else {
             debug!(
                 "Failed to acquire dataset read lock, skipping frecency filtering"
             );
-            return Vec::new();
+            return FxHashSet::default();
         };
 
-        let mut filtered = Vec::with_capacity(recent_items.len());
-        filtered.extend(
-            recent_items
-                .iter()
-                .filter(|item| dataset.contains(*item))
-                .cloned(),
+        // Iterate over smaller recent_items (~RECENT_ITEMS_PRIORITY_COUNT)
+        let mut intersection = FxHashSet::with_capacity_and_hasher(
+            recent_items.len().min(dataset.len()),
+            FxBuildHasher,
         );
-        filtered
+
+        for item in recent_items {
+            if dataset.contains(item) {
+                intersection.insert(item.clone());
+            }
+        }
+
+        intersection
     }
 
-    /// Fuzzy match against a list of recent items
+    /// Fuzzy match against a set of recent items
     #[allow(clippy::cast_possible_truncation)]
     fn fuzzy_match_recent_items(
         &mut self,
         pattern: &str,
-        recent_items: &[String],
+        recent_items: &FxHashSet<String>,
     ) -> Vec<MatchedItem<String>> {
         if recent_items.is_empty() {
             return Vec::new();
@@ -245,7 +250,7 @@ impl Channel {
                         let nucleo_results =
                             self.matcher.results(num_entries, 0);
 
-                        // Use Vec::contains for small recent items list (faster than HashSet creation)
+                        // Direct O(1) HashSet lookups for deduplication
                         regular_matches.reserve(remaining_slots as usize);
                         for item in nucleo_results {
                             if !filtered_recent_items.contains(&item.inner) {
