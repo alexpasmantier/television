@@ -686,77 +686,47 @@ impl App {
                     Action::ExternalAction(ref action_name) => {
                         debug!("External action triggered: {}", action_name);
 
-                        // Handle external action execution for selected entries
-                        let selected_entries = if !self
-                            .television
-                            .channel
-                            .selected_entries()
-                            .is_empty()
+                        if let Some(selected_entries) =
+                            self.television.get_selected_entries()
                         {
-                            // Use multi-selected entries
-                            self.television.channel.selected_entries().clone()
-                        } else if let Some(current_entry) =
-                            self.television.get_selected_entry()
-                        {
-                            // Use single entry under cursor
-                            std::iter::once(current_entry).collect()
-                        } else {
-                            debug!("No entries available for external action");
-                            self.action_tx.send(Action::Error(
-                                "No entry available for external action"
-                                    .to_string(),
-                            ))?;
-                            return Ok(ActionOutcome::None);
-                        };
-
-                        debug!(
-                            "Selected {} entries for external action",
-                            selected_entries.len()
-                        );
-
-                        if let Some(action_spec) = self
-                            .television
-                            .channel_prototype
-                            .actions
-                            .get(action_name)
-                        {
-                            debug!("Found action spec for: {}", action_name);
-                            // Store the external action info and exit - the command will be executed after terminal cleanup
-                            self.should_quit = true;
-                            self.render_tx.send(RenderingTask::Quit)?;
-                            // Concatenate entry values with space separator, quoting items with whitespace
-                            let concatenated_entries: String =
-                                selected_entries
-                                    .iter()
-                                    .map(|entry| {
-                                        let raw = entry.raw.clone();
-                                        if raw.chars().any(char::is_whitespace)
-                                        {
-                                            format!("'{}'", raw)
-                                        } else {
-                                            raw
-                                        }
-                                    })
-                                    .collect::<Vec<String>>()
-                                    .join(" ");
-                            return Ok(ActionOutcome::ExternalAction(
-                                action_spec.clone(),
-                                concatenated_entries,
-                            ));
+                            if let Some(action_spec) = self
+                                .television
+                                .channel_prototype
+                                .actions
+                                .get(action_name)
+                            {
+                                // Store the external action info and exit - the command will be executed after terminal cleanup
+                                self.should_quit = true;
+                                self.render_tx.send(RenderingTask::Quit)?;
+                                // Concatenate entry values with space separator, quoting items with whitespace
+                                let concatenated_entries: String =
+                                    selected_entries
+                                        .iter()
+                                        .map(|entry| {
+                                            let raw = entry.raw.clone();
+                                            if raw
+                                                .chars()
+                                                .any(char::is_whitespace)
+                                            {
+                                                format!("'{}'", raw)
+                                            } else {
+                                                raw
+                                            }
+                                        })
+                                        .collect::<Vec<String>>()
+                                        .join(" ");
+                                return Ok(ActionOutcome::ExternalAction(
+                                    action_spec.clone(),
+                                    concatenated_entries,
+                                ));
+                            }
                         }
-                        error!("Unknown action: {}", action_name);
-                        // List available actions for debugging
-                        let available_actions: Vec<&String> = self
-                            .television
-                            .channel_prototype
-                            .actions
-                            .keys()
-                            .collect();
-                        debug!("Available actions: {:?}", available_actions);
-                        self.action_tx.send(Action::Error(format!(
-                            "Unknown action: {}",
-                            action_name
-                        )))?;
+                        debug!("No entries available for external action");
+                        self.action_tx.send(Action::Error(
+                            "No entry available for external action"
+                                .to_string(),
+                        ))?;
+                        return Ok(ActionOutcome::None);
                     }
                     _ => {}
                 }

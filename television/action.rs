@@ -1,8 +1,7 @@
+use crate::{event::Key, screen::constants::ACTION_PREFIX};
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use std::fmt::Display;
-
-use crate::event::Key;
 
 /// The different actions that can be performed by the application.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash, PartialOrd, Ord)]
@@ -423,8 +422,8 @@ impl<'de> serde::Deserialize<'de> for Action {
             "watch_timer" => Action::WatchTimer,
             "select_prev_history" => Action::SelectPrevHistory,
             "select_next_history" => Action::SelectNextHistory,
-            s if s.starts_with("actions:") => {
-                let action_name = &s[8..]; // Remove "actions:" prefix
+            s if s.starts_with(ACTION_PREFIX) => {
+                let action_name = s.trim_start_matches(ACTION_PREFIX);
                 Action::ExternalAction(action_name.to_string())
             }
             _ => {

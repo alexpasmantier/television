@@ -1,10 +1,11 @@
+use crate::{
+    channels::prototypes::{ActionSpec, ExecutionMode, OutputMode},
+    utils::shell::Shell,
+};
 use std::{collections::HashMap, process::Command};
 
 #[cfg(not(unix))]
 use tracing::warn;
-
-use super::shell::Shell;
-use crate::channels::prototypes::{ActionSpec, OutputMode};
 
 pub fn shell_command<S>(
     command: &str,
@@ -52,36 +53,33 @@ pub fn execute_action(
         &action_spec.command.env,
     );
 
-    // Configure stdio based on output mode (future extension point)
-    match action_spec.output_mode {
-        OutputMode::Inherit => {
-            cmd.stdin(std::process::Stdio::inherit())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
+    // Execute based on execution mode
+    match action_spec.mode {
+        ExecutionMode::Execute => {
+            // For Execute mode, let the new process inherit file descriptors naturally
+            // TODO: use execve to replace current process
+            let mut child = cmd.spawn()?;
+            child.wait()
         }
-        OutputMode::Capture => {
-            // Future: capture output for processing
-            cmd.stdin(std::process::Stdio::inherit())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
-        }
-        OutputMode::Discard => {
-            // Future: discard output silently
-            cmd.stdin(std::process::Stdio::inherit())
-                .stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
-        }
-    }
+        ExecutionMode::Fork => {
+            // For Fork mode, configure stdio based on output mode
+            match action_spec.output_mode {
+                OutputMode::Capture => {
+                    // TODO: For now, inherit stdio (future: capture output for processing)
+                    cmd.stdin(std::process::Stdio::inherit())
+                        .stdout(std::process::Stdio::inherit())
+                        .stderr(std::process::Stdio::inherit());
+                }
+                OutputMode::Discard => {
+                    // Discard output silently
+                    cmd.stdin(std::process::Stdio::null())
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null());
+                }
+            }
 
-    // Execute based on become flag (future extension point)
-    if action_spec.r#become {
-        // Future: use execve to replace current process
-        // For now, use normal execution
-        let mut child = cmd.spawn()?;
-        child.wait()
-    } else {
-        // Normal fork execution (current behavior)
-        let mut child = cmd.spawn()?;
-        child.wait()
+            let mut child = cmd.spawn()?;
+            child.wait()
+        }
     }
 }
