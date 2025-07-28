@@ -12,10 +12,12 @@
 //! - UI customization and layout
 //! - UI behavioral integration
 //! - Error handling and validation
+//! - Frecency scoring and ranking
 
 pub mod config;
 pub mod errors;
 pub mod external_actions;
+pub mod frecency;
 pub mod input;
 pub mod modes;
 pub mod monitoring;
