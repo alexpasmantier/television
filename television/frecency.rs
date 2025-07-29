@@ -9,9 +9,9 @@ use tracing::debug;
 const FRECENCY_FILE_NAME: &str = "frecency.json";
 const SECONDS_PER_DAY: f64 = 86400.0; // 24 * 60 * 60
 pub const DEFAULT_FRECENCY_SIZE: usize = 1000;
-/// Maximum number of recent items to prioritize in search results
+/// Maximum number of frecent items to prioritize in search results
 /// This ensures frequently-used items get higher priority in nucleo matching
-pub const RECENT_ITEMS_PRIORITY_COUNT: usize = 200;
+pub const FRECENT_ITEMS_PRIORITY_COUNT: usize = 200;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FrecencyEntry {
@@ -47,8 +47,14 @@ impl FrecencyEntry {
     }
 
     /// Calculate frecency score based on frequency and recency
+    ///
+    /// Uses a hybrid algorithm that balances:
+    /// - Recency: `1/days_since_access` (hyperbolic decay)
+    /// - Frequency: ln(1 + `access_count`) (logarithmic to prevent runaway growth)
+    ///
+    /// Score = `recency_weight` × `frequency_weight`
     pub fn calculate_score(&self, now: u64) -> f64 {
-        // let's limit unreasonably high scores when the access is very recent
+        // Limit unreasonably high scores when access is very recent (min 0.1 days)
         let days_since_access =
             ((now - self.last_access) as f64 / SECONDS_PER_DAY).max(0.1);
 
@@ -207,9 +213,9 @@ impl Frecency {
         entries
     }
 
-    /// Get the most recent items for priority matching
-    /// Returns up to `RECENT_ITEMS_PRIORITY_COUNT` items sorted by recency (newest first)
-    pub fn get_recent_items(&self) -> Vec<String> {
+    /// Get the most frecent items for priority matching
+    /// Returns up to `FRECENT_ITEMS_PRIORITY_COUNT` items sorted by recency (newest first)
+    pub fn get_frecent_items(&self) -> Vec<String> {
         // Early exit if frecency is disabled or no entries
         if self.max_size == 0 || self.entries.is_empty() {
             return Vec::new();
@@ -222,30 +228,30 @@ impl Frecency {
             Some(self.current_channel.as_str())
         };
 
-        let mut recent_entries: Vec<_> =
-            Vec::with_capacity(RECENT_ITEMS_PRIORITY_COUNT);
-        recent_entries.extend(
+        let mut frecent_entries: Vec<_> =
+            Vec::with_capacity(FRECENT_ITEMS_PRIORITY_COUNT);
+        frecent_entries.extend(
             self.entries
                 .iter()
                 .filter(|e| channel_filter.is_none_or(|ch| e.channel == ch)),
         );
 
         // Early exit if no entries match the channel filter
-        if recent_entries.is_empty() {
+        if frecent_entries.is_empty() {
             return Vec::new();
         }
 
         // Sort by last_access timestamp (newest first)
-        recent_entries.sort_by(|a, b| b.last_access.cmp(&a.last_access));
+        frecent_entries.sort_by(|a, b| b.last_access.cmp(&a.last_access));
 
-        // Take the most recent items up to the configured limit
+        // Take the most frecent items up to the configured limit
         let mut result = Vec::with_capacity(
-            RECENT_ITEMS_PRIORITY_COUNT.min(recent_entries.len()),
+            FRECENT_ITEMS_PRIORITY_COUNT.min(frecent_entries.len()),
         );
         result.extend(
-            recent_entries
+            frecent_entries
                 .into_iter()
-                .take(RECENT_ITEMS_PRIORITY_COUNT)
+                .take(FRECENT_ITEMS_PRIORITY_COUNT)
                 .map(|e| e.entry.clone()),
         );
         result
@@ -266,7 +272,7 @@ impl Frecency {
         let mut loaded_entries: Vec<FrecencyEntry> =
             serde_json::from_str(&content)?;
 
-        // Keep only the most recent entries if file is too large
+        // Keep only the most frecent entries if file is too large
         if loaded_entries.len() > self.max_size {
             loaded_entries.sort_by_key(|e| e.last_access);
             loaded_entries.drain(0..loaded_entries.len() - self.max_size);

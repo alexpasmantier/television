@@ -474,6 +474,26 @@ minimum height is ensured (set by default at 15 lines)
 - **Use Case**: Cross-channel workflow when you want to see all recent searches
 - **Example**: `tv files --global-history`
 
+### 🎯 Frecency Options
+
+#### `--frecency`
+
+**Purpose**: Enable frecency scoring to boost previously selected entries
+
+- **Both Modes**: Same behavior
+- **Default**: Disabled
+- **Use Case**: When enabled, entries that were previously selected will be ranked higher in the results list based on frequency of use and recency of access
+- **Example**: `tv files --frecency`
+
+#### `--global-frecency`
+
+**Purpose**: Use global frecency across all channels instead of channel-specific frecency
+
+- **Both Modes**: This flag only works when `--frecency` is enabled
+- **Default**: Channel-specific frecency (scoped to current channel)
+- **Use Case**: When enabled, frecency scoring will consider selections from all channels. When disabled (default), frecency is scoped to the current channel
+- **Example**: `tv files --frecency --global-frecency`
+
 ### 🔧 Special Mode Options
 
 #### `--autocomplete-prompt <STRING>`

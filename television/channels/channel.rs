@@ -46,7 +46,7 @@ pub struct Channel {
     current_dataset: Arc<RwLock<FxHashSet<String>>>,
     /// Handle for the dataset update task
     dataset_update_handle: Option<tokio::task::JoinHandle<()>>,
-    /// Dedicated matcher for frecency recent items
+    /// Dedicated matcher for frecent items
     frecency_matcher: Matcher<String>,
 }
 
@@ -86,7 +86,7 @@ impl Channel {
             dataset.clear();
         }
 
-        // Clear recent matcher since dataset is changing
+        // Clear frecent matcher since dataset is changing
         self.frecency_matcher.restart();
 
         // Create bounded channel to prevent unbounded memory growth
@@ -150,10 +150,10 @@ impl Channel {
         self.matcher.find(pattern);
     }
 
-    /// Filter recent items to only include those that exist in the current dataset
-    fn filter_recent_items_by_current_dataset(
+    /// Filter frecent items to only include those that exist in the current dataset
+    fn filter_frecent_items_by_current_dataset(
         &self,
-        recent_items: &[String],
+        frecent_items: &[String],
     ) -> FxHashSet<String> {
         // Try to read dataset, return empty on lock failure to prevent blocking
         let Ok(dataset) = self.current_dataset.read() else {
@@ -163,13 +163,13 @@ impl Channel {
             return FxHashSet::default();
         };
 
-        // Iterate over smaller recent_items (~RECENT_ITEMS_PRIORITY_COUNT)
+        // Iterate over smaller frecent_items (~FRECENT_ITEMS_PRIORITY_COUNT)
         let mut intersection = FxHashSet::with_capacity_and_hasher(
-            recent_items.len().min(dataset.len()),
+            frecent_items.len().min(dataset.len()),
             FxBuildHasher,
         );
 
-        for item in recent_items {
+        for item in frecent_items {
             if dataset.contains(item) {
                 intersection.insert(item.clone());
             }
@@ -178,14 +178,14 @@ impl Channel {
         intersection
     }
 
-    /// Fuzzy match against a set of recent items
+    /// Fuzzy match against a set of frecent items
     #[allow(clippy::cast_possible_truncation)]
-    fn fuzzy_match_recent_items(
+    fn fuzzy_match_frecent_items(
         &mut self,
         pattern: &str,
-        recent_items: &FxHashSet<String>,
+        frecent_items: &FxHashSet<String>,
     ) -> Vec<MatchedItem<String>> {
-        if recent_items.is_empty() {
+        if frecent_items.is_empty() {
             return Vec::new();
         }
 
@@ -195,8 +195,8 @@ impl Channel {
         // Let the matcher process
         self.frecency_matcher.tick();
 
-        // Get all matches (recent items are small, so we can get all)
-        self.frecency_matcher.results(recent_items.len() as u32, 0)
+        // Get all matches (frecent items are small, so we can get all)
+        self.frecency_matcher.results(frecent_items.len() as u32, 0)
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -210,39 +210,42 @@ impl Channel {
 
         let results = if let Some(frecency_data) = frecency {
             // Frecency-aware results with dataset validation
-            let recent_items = frecency_data.get_recent_items();
+            let frecent_items = frecency_data.get_frecent_items();
 
-            // Early exit if no recent items to avoid unnecessary work
-            if recent_items.is_empty() {
+            // Early exit if no frecent items to avoid unnecessary work
+            if frecent_items.is_empty() {
                 self.matcher.results(num_entries, offset)
             } else {
-                // Fill frecency matcher if empty
+                // Populate frecency matcher with all frecent items (once per reload/load cycle)
+                // We use all items (unfiltered) since dataset changes during source cycling/reloading,
+                // but frecency data remains constant during the session
                 if self.frecency_matcher.total_item_count == 0 {
                     let injector = self.frecency_matcher.injector();
-                    for item in &recent_items {
+                    for item in &frecent_items {
                         injector.push(item.clone(), |e, cols| {
                             cols[0] = e.clone().into();
                         });
                     }
                 }
 
-                // Prune stale recent items against the dataset
-                let filtered_recent_items =
-                    self.filter_recent_items_by_current_dataset(&recent_items);
+                // Filter frecent items to only include those in current dataset
+                // This prevents searching stale entries that don't exist in the current data source
+                let filtered_frecent_items = self
+                    .filter_frecent_items_by_current_dataset(&frecent_items);
 
-                // If no recent items pass validation, fall back to regular matching
-                if filtered_recent_items.is_empty() {
+                // If no frecent items pass validation, fall back to regular matching
+                if filtered_frecent_items.is_empty() {
                     self.matcher.results(num_entries, offset)
                 } else {
-                    // Fuzzy match the validated recent items
-                    let recent_matches = self.fuzzy_match_recent_items(
+                    // Fuzzy match the validated frecent items
+                    let frecent_matches = self.fuzzy_match_frecent_items(
                         &self.matcher.last_pattern.clone(),
-                        &filtered_recent_items,
+                        &filtered_frecent_items,
                     );
 
                     // Get regular results, excluding recent matches to avoid duplicates
                     let remaining_slots = num_entries
-                        .saturating_sub(recent_matches.len() as u32);
+                        .saturating_sub(frecent_matches.len() as u32);
 
                     let mut regular_matches = Vec::new();
                     if remaining_slots > 0 {
@@ -253,7 +256,7 @@ impl Channel {
                         // Direct O(1) HashSet lookups for deduplication
                         regular_matches.reserve(remaining_slots as usize);
                         for item in nucleo_results {
-                            if !filtered_recent_items.contains(&item.inner) {
+                            if !filtered_frecent_items.contains(&item.inner) {
                                 regular_matches.push(item);
                                 if regular_matches.len()
                                     >= remaining_slots as usize
@@ -264,8 +267,8 @@ impl Channel {
                         }
                     }
 
-                    // Combine with recent items prioritized first
-                    let mut combined = recent_matches;
+                    // Combine results: frecent items first (highest priority), then regular matches
+                    let mut combined = frecent_matches;
                     combined.extend(regular_matches);
 
                     // Apply pagination
