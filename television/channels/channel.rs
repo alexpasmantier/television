@@ -200,9 +200,9 @@ impl Channel {
             if frecent_items.is_empty() {
                 self.matcher.results(num_entries, offset)
             } else {
-                // Fill frecency matcher with all frecent items if empty (once per reload/load cycle)
-                // Note: We populate with all items (not filtered) because the dataset changes
-                // when cycling sources or when reloading, but frecency data stays constant during the session.
+                // Populate frecency matcher with all frecent items (once per reload/load cycle)
+                // We use all items (unfiltered) since dataset changes during source cycling/reloading,
+                // but frecency data remains constant during the session
                 if self.frecency_matcher.total_item_count == 0 {
                     let injector = self.frecency_matcher.injector();
                     for item in &frecent_items {
@@ -212,8 +212,8 @@ impl Channel {
                     }
                 }
 
-                // Prune stale frecent items against the current dataset.
-                // Dynamic filtering below ensures we only search items from the current dataset.
+                // Filter frecent items to only include those in current dataset
+                // This prevents searching stale entries that don't exist in the current data source
                 let filtered_frecent_items = self
                     .filter_frecent_items_by_current_dataset(&frecent_items);
 
@@ -251,7 +251,7 @@ impl Channel {
                         }
                     }
 
-                    // Combine with frecent items prioritized first
+                    // Combine results: frecent items first (highest priority), then regular matches
                     let mut combined = frecent_matches;
                     combined.extend(regular_matches);
 

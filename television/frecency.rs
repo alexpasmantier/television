@@ -47,8 +47,14 @@ impl FrecencyEntry {
     }
 
     /// Calculate frecency score based on frequency and recency
+    ///
+    /// Uses a hybrid algorithm that balances:
+    /// - Recency: `1/days_since_access` (hyperbolic decay)
+    /// - Frequency: ln(1 + `access_count`) (logarithmic to prevent runaway growth)
+    ///
+    /// Score = `recency_weight` × `frequency_weight`
     pub fn calculate_score(&self, now: u64) -> f64 {
-        // let's limit unreasonably high scores when the access is very recent
+        // Limit unreasonably high scores when access is very recent (min 0.1 days)
         let days_since_access =
             ((now - self.last_access) as f64 / SECONDS_PER_DAY).max(0.1);
 
