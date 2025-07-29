@@ -41,6 +41,8 @@ pub struct Channel {
     current_dataset: Arc<RwLock<FxHashSet<String>>>,
     /// Handle for the dataset update task
     dataset_update_handle: Option<tokio::task::JoinHandle<()>>,
+    /// Dedicated matcher for frecency recent items
+    frecency_matcher: Matcher<String>,
 }
 
 impl Channel {
@@ -57,6 +59,7 @@ impl Channel {
             reloading: Arc::new(AtomicBool::new(false)),
             current_dataset: Arc::new(RwLock::new(FxHashSet::default())),
             dataset_update_handle: None,
+            frecency_matcher: Matcher::new(&config),
         }
     }
 
@@ -65,6 +68,9 @@ impl Channel {
         if let Ok(mut dataset) = self.current_dataset.write() {
             dataset.clear();
         }
+
+        // Clear recent matcher since dataset is changing
+        self.frecency_matcher.restart();
 
         // Create bounded channel to prevent unbounded memory growth
         let (dataset_tx, dataset_rx) = mpsc::channel(DATASET_CHANNEL_CAPACITY);
@@ -105,6 +111,7 @@ impl Channel {
             }
         }
         self.matcher.restart();
+        self.frecency_matcher.restart();
         self.load();
         // Spawn a thread that turns off reloading after a short delay
         // to avoid UI flickering (this boolean is used by `Television::should_render`)
@@ -158,6 +165,7 @@ impl Channel {
     /// Fuzzy match against a set of recent items
     #[allow(clippy::cast_possible_truncation)]
     fn fuzzy_match_recent_items(
+        &mut self,
         pattern: &str,
         recent_items: &FxHashSet<String>,
     ) -> Vec<MatchedItem<String>> {
@@ -165,26 +173,14 @@ impl Channel {
             return Vec::new();
         }
 
-        // Create a temporary matcher for recent items
-        let config = Config::default().prefer_prefix(true);
-        let mut recent_matcher = Matcher::new(&config);
-
-        // Inject recent items into the matcher
-        let injector = recent_matcher.injector();
-        for item in recent_items {
-            injector.push(item.clone(), |e, cols| {
-                cols[0] = e.clone().into();
-            });
-        }
-
         // Apply the pattern
-        recent_matcher.find(pattern);
+        self.frecency_matcher.find(pattern);
 
         // Let the matcher process
-        recent_matcher.tick();
+        self.frecency_matcher.tick();
 
         // Get all matches (recent items are small, so we can get all)
-        recent_matcher.results(recent_items.len() as u32, 0)
+        self.frecency_matcher.results(recent_items.len() as u32, 0)
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -204,6 +200,17 @@ impl Channel {
             if recent_items.is_empty() {
                 self.matcher.results(num_entries, offset)
             } else {
+                // Fill frecency matcher if empty
+                if self.frecency_matcher.total_item_count == 0 {
+                    let injector = self.frecency_matcher.injector();
+                    for item in &recent_items {
+                        injector.push(item.clone(), |e, cols| {
+                            cols[0] = e.clone().into();
+                        });
+                    }
+                }
+
+                // Prune stale recent items against the dataset
                 let filtered_recent_items =
                     self.filter_recent_items_by_current_dataset(&recent_items);
 
@@ -212,8 +219,8 @@ impl Channel {
                     self.matcher.results(num_entries, offset)
                 } else {
                     // Fuzzy match the validated recent items
-                    let recent_matches = Self::fuzzy_match_recent_items(
-                        &self.matcher.last_pattern,
+                    let recent_matches = self.fuzzy_match_recent_items(
+                        &self.matcher.last_pattern.clone(),
                         &filtered_recent_items,
                     );
 
