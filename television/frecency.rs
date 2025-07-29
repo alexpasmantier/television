@@ -241,17 +241,32 @@ impl Frecency {
             return Vec::new();
         }
 
-        // Sort by last_access timestamp (newest first)
-        frecent_entries.sort_by(|a, b| b.last_access.cmp(&a.last_access));
+        // Use partial sort for O(n) performance when we only need top items
+        // Performance analysis for typical case (1000 entries → 200 items):
+        //   select_nth_unstable_by(200) → O(n) ≈ 1000 comparisons
+        //   sort top 200 entries → O(200 × log(200)) ≈ 1500 comparisons
+        //   Total ≈ 2500 comparisons vs 10,000+ for full sort
+        let limit = FRECENT_ITEMS_PRIORITY_COUNT.min(frecent_entries.len());
+
+        if limit < frecent_entries.len() {
+            // Partial sort: O(n) to find top items, then sort only those
+            frecent_entries.select_nth_unstable_by(limit, |a, b| {
+                b.last_access.cmp(&a.last_access)
+            });
+            // Sort only the selected top items for consistent ordering
+            frecent_entries[..limit]
+                .sort_by(|a, b| b.last_access.cmp(&a.last_access));
+        } else {
+            // Full sort when we need all items anyway
+            frecent_entries.sort_by(|a, b| b.last_access.cmp(&a.last_access));
+        }
 
         // Take the most frecent items up to the configured limit
-        let mut result = Vec::with_capacity(
-            FRECENT_ITEMS_PRIORITY_COUNT.min(frecent_entries.len()),
-        );
+        let mut result = Vec::with_capacity(limit);
         result.extend(
             frecent_entries
                 .into_iter()
-                .take(FRECENT_ITEMS_PRIORITY_COUNT)
+                .take(limit)
                 .map(|e| e.entry.clone()),
         );
         result
