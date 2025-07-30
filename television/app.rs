@@ -698,20 +698,12 @@ impl App {
                                 // Store the external action info and exit - the command will be executed after terminal cleanup
                                 self.should_quit = true;
                                 self.render_tx.send(RenderingTask::Quit)?;
-                                // Concatenate entry values with space separator, quoting items with whitespace
+                                // Concatenate escaped entry values with space separator
                                 let concatenated_entries: String =
                                     selected_entries
                                         .iter()
                                         .map(|entry| {
-                                            let raw = entry.raw.clone();
-                                            if raw
-                                                .chars()
-                                                .any(char::is_whitespace)
-                                            {
-                                                format!("'{}'", raw)
-                                            } else {
-                                                raw
-                                            }
+                                            format!("'{}'", entry.raw)
                                         })
                                         .collect::<Vec<String>>()
                                         .join(" ");
