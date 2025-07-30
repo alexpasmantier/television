@@ -1,7 +1,10 @@
 use crate::{
     action::Action,
     cable::Cable,
-    channels::{entry::Entry, prototypes::ChannelPrototype},
+    channels::{
+        entry::Entry,
+        prototypes::{ActionSpec, ChannelPrototype},
+    },
     cli::PostProcessedCli,
     config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
     event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
@@ -147,6 +150,7 @@ pub enum ActionOutcome {
     EntriesWithExpect(FxHashSet<Entry>, Key),
     Input(String),
     None,
+    ExternalAction(ActionSpec, FxHashSet<Entry>),
 }
 
 /// The result of the application.
@@ -154,6 +158,7 @@ pub enum ActionOutcome {
 pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
     pub expect_key: Option<Key>,
+    pub external_action: Option<(ActionSpec, FxHashSet<Entry>)>,
 }
 
 impl AppOutput {
@@ -162,20 +167,29 @@ impl AppOutput {
             ActionOutcome::Entries(entries) => Self {
                 selected_entries: Some(entries),
                 expect_key: None,
+                external_action: None,
             },
             ActionOutcome::EntriesWithExpect(entries, expect_key) => Self {
                 selected_entries: Some(entries),
                 expect_key: Some(expect_key),
+                external_action: None,
             },
             ActionOutcome::Input(input) => Self {
                 selected_entries: Some(FxHashSet::from_iter([Entry::new(
                     input,
                 )])),
                 expect_key: None,
+                external_action: None,
             },
             ActionOutcome::None => Self {
                 selected_entries: None,
                 expect_key: None,
+                external_action: None,
+            },
+            ActionOutcome::ExternalAction(action_spec, entries) => Self {
+                selected_entries: None,
+                expect_key: None,
+                external_action: Some((action_spec, entries)),
             },
         }
     }
@@ -668,6 +682,35 @@ impl App {
                             // At the end of history, clear the input
                             self.television.set_pattern("");
                         }
+                    }
+                    Action::ExternalAction(ref action_name) => {
+                        debug!("External action triggered: {}", action_name);
+
+                        if let Some(selected_entries) =
+                            self.television.get_selected_entries()
+                        {
+                            if let Some(action_spec) = self
+                                .television
+                                .channel_prototype
+                                .actions
+                                .get(action_name)
+                            {
+                                // Store the external action info and exit - the command will be executed after terminal cleanup
+                                self.should_quit = true;
+                                self.render_tx.send(RenderingTask::Quit)?;
+                                // Pass entries directly to be processed by execute_action
+                                return Ok(ActionOutcome::ExternalAction(
+                                    action_spec.clone(),
+                                    selected_entries,
+                                ));
+                            }
+                        }
+                        debug!("No entries available for external action");
+                        self.action_tx.send(Action::Error(
+                            "No entry available for external action"
+                                .to_string(),
+                        ))?;
+                        return Ok(ActionOutcome::None);
                     }
                     _ => {}
                 }
