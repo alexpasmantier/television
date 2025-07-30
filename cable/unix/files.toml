@@ -16,5 +16,5 @@ ctrl-f12 = "actions:edit"
 
 [actions.edit]
 description = "Opens the selected entries with Neovim"
-command = "nvim {}"
+command = "nvim {split:\\n:..|map:{append:'|prepend:'}|join: }"
 mode = "execute"

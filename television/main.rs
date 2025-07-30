@@ -114,14 +114,10 @@ async fn main() -> Result<()> {
     info!("App output: {:?}", output);
 
     // Handle external action execution after terminal cleanup
-    if let Some((action_spec, entry_value)) = output.external_action {
+    if let Some((action_spec, entries)) = output.external_action {
         debug!("Executing external action command after terminal cleanup");
-        let template = action_spec.command.get_nth(0);
 
-        // Process the concatenated entry value through the template system
-        let formatted_command = template.format(&entry_value)?;
-
-        let status = execute_action(&action_spec, &formatted_command)?;
+        let status = execute_action(&action_spec, &entries)?;
         if !status.success() {
             eprintln!(
                 "External command failed with exit code: {:?}",

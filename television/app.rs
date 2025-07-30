@@ -150,7 +150,7 @@ pub enum ActionOutcome {
     EntriesWithExpect(FxHashSet<Entry>, Key),
     Input(String),
     None,
-    ExternalAction(ActionSpec, String),
+    ExternalAction(ActionSpec, FxHashSet<Entry>),
 }
 
 /// The result of the application.
@@ -158,7 +158,7 @@ pub enum ActionOutcome {
 pub struct AppOutput {
     pub selected_entries: Option<FxHashSet<Entry>>,
     pub expect_key: Option<Key>,
-    pub external_action: Option<(ActionSpec, String)>,
+    pub external_action: Option<(ActionSpec, FxHashSet<Entry>)>,
 }
 
 impl AppOutput {
@@ -186,10 +186,10 @@ impl AppOutput {
                 expect_key: None,
                 external_action: None,
             },
-            ActionOutcome::ExternalAction(action_spec, entry_value) => Self {
+            ActionOutcome::ExternalAction(action_spec, entries) => Self {
                 selected_entries: None,
                 expect_key: None,
-                external_action: Some((action_spec, entry_value)),
+                external_action: Some((action_spec, entries)),
             },
         }
     }
@@ -698,18 +698,10 @@ impl App {
                                 // Store the external action info and exit - the command will be executed after terminal cleanup
                                 self.should_quit = true;
                                 self.render_tx.send(RenderingTask::Quit)?;
-                                // Concatenate escaped entry values with space separator
-                                let concatenated_entries: String =
-                                    selected_entries
-                                        .iter()
-                                        .map(|entry| {
-                                            format!("'{}'", entry.raw)
-                                        })
-                                        .collect::<Vec<String>>()
-                                        .join(" ");
+                                // Pass entries directly to be processed by execute_action
                                 return Ok(ActionOutcome::ExternalAction(
                                     action_spec.clone(),
-                                    concatenated_entries,
+                                    selected_entries,
                                 ));
                             }
                         }
