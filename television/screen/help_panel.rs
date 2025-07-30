@@ -112,7 +112,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::SelectEntryAtPosition(_, _)
                 | Action::MouseClickAt(_, _)
                 | Action::Expect(_)
-                | Action::SelectAndExit => false,
+                | Action::SelectAndExit
+                | Action::ExternalAction(_) => false,
             }
         }
         Mode::RemoteControl => {

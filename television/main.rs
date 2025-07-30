@@ -21,6 +21,7 @@ use television::{
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
+    utils::command::execute_action,
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
@@ -111,6 +112,23 @@ async fn main() -> Result<()> {
     debug!("Running application...");
     let output = app.run(stdout().is_terminal(), false).await?;
     info!("App output: {:?}", output);
+
+    // Handle external action execution after terminal cleanup
+    if let Some((action_spec, entries)) = output.external_action {
+        debug!("Executing external action command after terminal cleanup");
+
+        let status = execute_action(&action_spec, &entries)?;
+        if !status.success() {
+            eprintln!(
+                "External command failed with exit code: {:?}",
+                status.code()
+            );
+            exit(1);
+        }
+
+        exit(0);
+    }
+
     let stdout_handle = stdout().lock();
     let mut bufwriter = BufWriter::new(stdout_handle);
     if let Some(key) = output.expect_key {
