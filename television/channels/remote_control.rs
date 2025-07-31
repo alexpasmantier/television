@@ -9,6 +9,7 @@ use crate::{
     matcher::{Matcher, config::Config},
     screen::result_item::ResultItem,
 };
+use anyhow::Result;
 use devicons::FileIcon;
 
 #[derive(Debug, Clone)]
@@ -62,6 +63,10 @@ impl ResultItem for CableEntry {
 
     fn display(&self) -> &str {
         &self.channel_name
+    }
+
+    fn output(&self) -> Result<String> {
+        Ok(self.channel_name.clone())
     }
 
     fn match_ranges(&self) -> Option<&[(u32, u32)]> {
