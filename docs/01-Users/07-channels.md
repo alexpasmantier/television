@@ -235,6 +235,24 @@ External actions allow you to define custom commands that can be executed on
 selected entries. Actions are triggered via keybindings using the
 `actions:<action_name>` syntax.
 
+**Simple Braces Syntactic Sugar:**
+
+For most use cases, you can use simple `{}` braces which automatically handle
+quoting and multiple entries:
+
+```toml
+[actions.edit]
+description = "Open selected files in editor"
+command = "nvim {}"
+# Single file: nvim 'file1.txt'
+# Multiple files: nvim 'file1.txt' 'file2.txt'
+# Files with quotes: nvim 'file\'s name.txt'
+```
+
+**Advanced Template Processing:**
+
+For complex formatting needs, use the full [templating syntax](#templating-syntax):
+
 ```toml
 [keybindings]
 ctrl-e = "actions:edit"
