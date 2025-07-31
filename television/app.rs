@@ -18,7 +18,7 @@ use tracing::{debug, error, trace};
 
 #[allow(clippy::struct_excessive_bools)]
 pub struct AppOptions {
-    /// Whether the application should use subsring matching instead of fuzzy matching.
+    /// Whether the application should use substring matching instead of fuzzy matching.
     pub exact: bool,
     /// Whether the application should automatically select the first entry if there is only one
     /// entry available.
