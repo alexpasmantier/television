@@ -11,6 +11,7 @@ use crate::{
     television::Mode,
 };
 use clap::ValueEnum;
+use merge::Merge;
 use ratatui::layout::{
     self, Constraint, Direction, Layout as RatatuiLayout, Rect,
 };

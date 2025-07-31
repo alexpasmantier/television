@@ -91,26 +91,12 @@ impl Television {
     pub fn new(
         action_tx: UnboundedSender<Action>,
         channel_prototype: ChannelPrototype,
-        base_config: Config,
+        config: Config,
         cable_channels: Cable,
-        cli_args: ProcessedCli,
+        input: Option<String>,
     ) -> Self {
-        let mut config = Self::merge_base_config_with_prototype_specs(
-            &base_config,
-            &channel_prototype,
-        );
-
-        // Apply ALL CLI overrides (including keybindings) after channel merging
-        config.apply_cli_overrides(&cli_args);
-
-        debug!("Merged config: {:?}", config);
-
-        // Extract CLI arguments
-        let input = cli_args.input.clone();
-        let exact = cli_args.exact;
-        let no_remote = cli_args.no_remote;
-
         let mut results_picker = Picker::new(input.clone());
+
         if config.ui.input_bar.position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
@@ -169,7 +155,7 @@ impl Television {
 
         Self {
             action_tx,
-            base_config,
+            base_config: config,
             config,
             channel,
             remote_control,
@@ -920,9 +906,10 @@ mod test {
         use crate::cli::ProcessedCli;
 
         let config = crate::config::Config::default();
-        let prototype = crate::channels::prototypes::ChannelPrototype::simple(
-            "test", "echo 1",
-        );
+        let prototype =
+            crate::channels::prototypes::ChannelPrototype::from_command(
+                "test", "echo 1",
+            );
         let cli_args = ProcessedCli {
             no_remote: true,
             exact: true,

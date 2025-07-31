@@ -4,6 +4,8 @@ use tracing::debug;
 /// Heuristic to determine if stdin is readable.
 ///
 /// This is used to determine if we should use the stdin channel.
+///
+/// This is heavily based on ripgrep's implementation.
 pub fn is_readable_stdin() -> bool {
     use std::io::IsTerminal;
 

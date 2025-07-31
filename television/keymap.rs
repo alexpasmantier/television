@@ -8,9 +8,8 @@ use rustc_hash::FxHashMap;
 
 /// An input map that handles both keyboard and non-keyboard input events.
 ///
-/// This structure supports multiple-actions-per-key and handles various
-/// input types including keyboard keys, mouse events, resize events, and
-/// custom events.
+/// This structure supports multiple-actions-per-key (executed sequentially) and handles various
+/// input types including keyboard keys, mouse events, resize events, and custom events.
 ///
 /// # Fields
 ///

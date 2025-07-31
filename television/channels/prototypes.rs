@@ -1,5 +1,7 @@
-use crate::cli::parse_source_entry_delimiter;
+use crate::cli::{CliPrototype, parse_source_entry_delimiter};
 use crate::config::ui::InputBarConfig;
+use crate::config::{Config};
+use crate::utils::merge::option::{overwrite_if_some, recurse};
 use crate::{
     config::{KeyBindings, ui},
     event::Key,
@@ -7,11 +9,13 @@ use crate::{
     screen::layout::Orientation,
 };
 use anyhow::Result;
+use merge::Merge;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use serde_with::{OneOrMany, serde_as};
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
+use std::ops::{Deref, DerefMut};
 use string_pipeline::MultiTemplate;
 use which::which;
 
@@ -159,7 +163,7 @@ impl CommandSpec {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelKeyBindings {
     /// Optional channel specific shortcut that, when pressed, switches directly to this channel.
     #[serde(default)]
@@ -180,7 +184,7 @@ impl ChannelKeyBindings {
 pub struct HistoryConfig {
     /// Whether to use global history for this channel (overrides global setting)
     #[serde(default)]
-    pub global_mode: Option<bool>,
+    pub global_mode: bool,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -195,9 +199,9 @@ pub struct ChannelPrototype {
     pub keybindings: Option<ChannelKeyBindings>,
     /// Watch interval in seconds for automatic reloading (0 = disabled)
     #[serde(default)]
-    pub watch: f64,
+    pub watch: Option<f64>,
     #[serde(default)]
-    pub history: HistoryConfig,
+    pub history: Option<HistoryConfig>,
     // actions: Vec<Action>,
 }
 
@@ -209,12 +213,15 @@ impl ChannelPrototype {
             preview: None,
             ui: None,
             keybindings: None,
-            watch: 0.0,
-            history: HistoryConfig::default(),
+            watch: None,
+            history: None,
         }
     }
 
-    pub fn simple(name: &str, command: &str) -> Self {
+    /// Creates a new channel prototype from a command string and a name.
+    ///
+    /// This will leave other fields at their default values.
+    pub fn from_command(name: &str, command: &str) -> Self {
         Self {
             metadata: Metadata {
                 name: name.to_string(),
@@ -238,12 +245,12 @@ impl ChannelPrototype {
             preview: None,
             ui: None,
             keybindings: None,
-            watch: 0.0,
-            history: HistoryConfig::default(),
+            watch: None,
+            history: None,
         }
     }
 
-    pub fn stdin(entry_delimiter: Option<char>) -> Self {
+    pub fn stdin() -> Self {
         Self {
             metadata: Metadata {
                 name: "stdin".to_string(),
@@ -258,16 +265,16 @@ impl ChannelPrototype {
                     interactive: false,
                     env: FxHashMap::default(),
                 },
+                entry_delimiter: None,
                 ansi: false,
-                entry_delimiter,
                 display: None,
                 output: None,
             },
             preview: None,
             ui: None,
             keybindings: None,
-            watch: 0.0,
-            history: HistoryConfig::default(),
+            watch: None,
+            history: None,
         }
     }
 
@@ -284,8 +291,8 @@ impl ChannelPrototype {
         self
     }
 
-    pub fn with_preview(mut self, preview: Option<PreviewSpec>) -> Self {
-        self.preview = preview;
+    pub fn with_preview(mut self, preview: PreviewSpec) -> Self {
+        self.preview = Some(preview);
         self
     }
 }
@@ -399,29 +406,45 @@ impl PreviewSpec {
             cached: false,
         }
     }
+
+    pub fn from_template(template: Template) -> Self {
+        Self {
+            command: CommandSpec::from(template),
+            offset: None,
+            cached: false,
+        }
+    }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+// FIXME: I'm keeping the merging logic simple for now (replacing entire fields
+// without recursing into them). This can be improved later.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, Default, Merge)]
 pub struct UiSpec {
     #[serde(default)]
-    pub ui_scale: Option<u16>,
-    #[serde(default)]
+    #[merge(strategy = recurse)]
     pub features: Option<Features>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
     #[serde(rename = "layout", alias = "orientation", default)]
+    #[merge(strategy = overwrite_if_some)]
     pub orientation: Option<Orientation>,
     // Feature-specific configurations
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub input_bar: Option<InputBarConfig>,
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub preview_panel: Option<ui::PreviewPanelConfig>,
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub results_panel: Option<ui::ResultsPanelConfig>,
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub status_bar: Option<ui::StatusBarConfig>,
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub help_panel: Option<ui::HelpPanelConfig>,
     #[serde(default)]
+    #[merge(strategy = overwrite_if_some)]
     pub remote_control: Option<ui::RemoteControlConfig>,
 }
 
@@ -430,7 +453,6 @@ pub const DEFAULT_PROTOTYPE_NAME: &str = "files";
 impl From<&crate::config::UiConfig> for UiSpec {
     fn from(config: &crate::config::UiConfig) -> Self {
         UiSpec {
-            ui_scale: Some(config.ui_scale),
             features: Some(config.features.clone()),
             orientation: Some(config.orientation),
             input_bar: Some(config.input_bar.clone()),
@@ -443,10 +465,60 @@ impl From<&crate::config::UiConfig> for UiSpec {
     }
 }
 
+/// A merged prototype that combines a channel prototype with CLI overrides.
+#[derive(Debug, Clone)]
+pub struct MergedPrototype(ChannelPrototype);
+
+impl Deref for MergedPrototype {
+    type Target = ChannelPrototype;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for MergedPrototype {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl MergedPrototype {
+    /// Merges a channel prototype with CLI overrides and uses the provided config settings
+    /// as defaults.
+    pub fn using_config_and_cli(
+        channel_prototype: ChannelPrototype,
+        cli_prototype: &CliPrototype,
+        config: &Config,
+    ) -> Result<Self> {
+        // Merge UI options (config < prototype < cli)
+        let merged_ui_spec = UiSpec::from(&config.ui);
+        if let Some(prototype_ui) = &channel_prototype.ui {
+            merged_ui_spec.merge(prototype_ui.clone());
+        }
+        if let Some(cli_ui) = &cli_prototype.ui {
+            merged_ui_spec.merge(cli_ui.clone());
+        }
+
+
+        let mut prototype = ChannelPrototype {
+            metadata: channel_prototype.metadata,
+            source: channel_prototype.source,
+            preview: channel_prototype.preview,
+            ui: merged_ui_spec,
+            keybindings: merged_keybindings,
+            watch: merged_watch,
+            history: merged_history,
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
-        action::Action, config::ui::BorderType, event::Key,
+        action::Action,
+        config::ui::{BorderType, Padding},
+        event::Key,
         screen::layout::InputPosition,
     };
 
@@ -779,5 +851,218 @@ mod tests {
         assert!(ui.status_bar.is_none());
         assert!(ui.help_panel.is_none());
         assert!(ui.remote_control.is_none());
+    }
+
+    #[test]
+    fn test_merge_cli_prototype() {
+        let mut prototype =
+            ChannelPrototype::from_command(DEFAULT_PROTOTYPE_NAME, "fd -t f");
+
+        let cli_prototype = CliPrototype {
+            source_command: Some(Template::parse("ls -l").unwrap()),
+            source_entry_delimiter: Some('\n'),
+            ansi: true,
+            source_display: Some(Template::parse("{split:/:-1}").unwrap()),
+            source_output: Some(Template::parse("{}").unwrap()),
+            preview_command: Some(Template::parse("cat {}").unwrap()),
+            preview_offset: Some(Template::parse("2").unwrap()),
+            preview_cached: true,
+            ui_scale: Some(80),
+            layout: Some(Orientation::Portrait),
+            input_header: Some("Input Header".to_string()),
+            input_prompt: Some(String::from("prompt>")),
+            input_border: Some(BorderType::Thick),
+            input_padding: Some(Padding::vertical(3)),
+            preview_header: Some("Preview Header".to_string()),
+            preview_footer: Some("Preview Footer".to_string()),
+            preview_size: Some(60),
+            preview_border: Some(BorderType::Thick),
+            preview_padding: Some(Padding::horizontal(2)),
+            results_border: Some(BorderType::None),
+            results_padding: Some(Padding::uniform(1)),
+            hide_preview: false,
+            show_preview: true,
+            no_preview: true,
+            hide_help_panel: true,
+            show_help_panel: true,
+            no_help_panel: false,
+            hide_status_bar: false,
+            show_status_bar: true,
+            no_status_bar: false,
+            hide_remote: false,
+            show_remote: true,
+            no_remote: false,
+            keybindings: None, // No keybindings for this test
+            ..Default::default()
+        };
+
+        prototype = prototype.merge_cli_prototype(&cli_prototype);
+
+        assert_eq!(prototype.source.command.inner.len(), 1);
+        assert_eq!(prototype.source.command.get_nth(0).raw(), "ls -l");
+        assert_eq!(prototype.source.entry_delimiter, Some('\n'));
+        assert!(prototype.source.ansi);
+        assert_eq!(
+            prototype.source.display.as_ref().unwrap().raw(),
+            "{split:/:-1}"
+        );
+        assert_eq!(prototype.source.output.as_ref().unwrap().raw(), "{}");
+        assert_eq!(
+            prototype.preview.as_ref().unwrap().command.inner[0].raw(),
+            "cat {}"
+        );
+        assert_eq!(
+            prototype
+                .preview
+                .as_ref()
+                .unwrap()
+                .offset
+                .as_ref()
+                .unwrap()
+                .raw(),
+            "2"
+        );
+        assert!(prototype.preview.as_ref().unwrap().cached);
+        assert_eq!(prototype.ui.as_ref().unwrap().ui_scale, Some(80));
+        assert_eq!(
+            prototype.ui.as_ref().unwrap().orientation,
+            Some(Orientation::Portrait)
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .input_bar
+                .as_ref()
+                .unwrap()
+                .header,
+            Some(Template::parse("Input Header").unwrap())
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .input_bar
+                .as_ref()
+                .unwrap()
+                .prompt,
+            "prompt>"
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .input_bar
+                .as_ref()
+                .unwrap()
+                .border_type,
+            BorderType::Thick
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .input_bar
+                .as_ref()
+                .unwrap()
+                .padding,
+            Padding::vertical(3)
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .preview_panel
+                .as_ref()
+                .unwrap()
+                .header,
+            Some(Template::parse("Preview Header").unwrap())
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .preview_panel
+                .as_ref()
+                .unwrap()
+                .footer,
+            Some(Template::parse("Preview Footer").unwrap())
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .preview_panel
+                .as_ref()
+                .unwrap()
+                .size,
+            60
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .preview_panel
+                .as_ref()
+                .unwrap()
+                .border_type,
+            BorderType::Thick
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .preview_panel
+                .as_ref()
+                .unwrap()
+                .padding,
+            Padding::horizontal(2)
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .results_panel
+                .as_ref()
+                .unwrap()
+                .border_type,
+            BorderType::None
+        );
+        assert_eq!(
+            prototype
+                .ui
+                .as_ref()
+                .unwrap()
+                .results_panel
+                .as_ref()
+                .unwrap()
+                .padding,
+            Padding::uniform(1)
+        );
+        assert!(prototype.ui.as_ref().unwrap().features.is_some());
+        let features =
+            prototype.ui.as_ref().unwrap().features.as_ref().unwrap();
+        assert!(features.preview_panel.enabled);
+        assert!(features.preview_panel.visible);
+        assert!(features.help_panel.enabled);
+        assert!(features.help_panel.visible);
+        assert!(features.status_bar.enabled);
+        assert!(features.status_bar.visible);
+        assert!(features.remote_control.enabled);
+        assert!(features.remote_control.visible);
+        assert!(
+            prototype.keybindings.is_none(),
+            "Keybindings should not be set in this test"
+        );
     }
 }

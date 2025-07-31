@@ -135,8 +135,6 @@ pub struct ThemeOverrides {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct UiConfig {
-    pub use_nerd_font_icons: bool,
-    pub ui_scale: u16,
     pub orientation: Orientation,
     pub theme: String,
     pub features: Features,
@@ -157,8 +155,6 @@ pub struct UiConfig {
 impl Default for UiConfig {
     fn default() -> Self {
         Self {
-            use_nerd_font_icons: false,
-            ui_scale: DEFAULT_UI_SCALE,
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
             features: Features::default(),

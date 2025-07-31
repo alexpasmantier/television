@@ -35,7 +35,7 @@ use tracing::{debug, trace};
 /// bindings.insert(Key::Enter, Action::ConfirmSelection.into());
 /// assert_eq!(bindings.len(), 1);
 /// ```
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Bindings<K>
 where
     K: Display + FromStr + Eq + Hash,

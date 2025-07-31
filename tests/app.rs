@@ -40,7 +40,7 @@ fn setup_app(
     std::env::set_current_dir(&target_dir).unwrap();
 
     let chan: ChannelPrototype = channel_prototype
-        .unwrap_or(ChannelPrototype::simple("files", "find . -type f"));
+        .unwrap_or(ChannelPrototype::from_command("files", "find . -type f"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
     config.application.tick_rate = 100.0;
@@ -70,9 +70,9 @@ fn setup_app(
         config,
         options,
         Cable::from_prototypes(vec![
-            ChannelPrototype::simple("files", "find . -type f"),
-            ChannelPrototype::simple("dirs", "find . -type d"),
-            ChannelPrototype::simple("env", "printenv"),
+            ChannelPrototype::from_command("files", "find . -type f"),
+            ChannelPrototype::from_command("dirs", "find . -type d"),
+            ChannelPrototype::from_command("env", "printenv"),
         ]),
         &cli_args,
     );
@@ -238,7 +238,8 @@ async fn test_app_exact_search_positive() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_exits_when_select_1_and_only_one_result() {
-    let prototype = ChannelPrototype::simple("some_channel", "echo file1.txt");
+    let prototype =
+        ChannelPrototype::from_command("some_channel", "echo file1.txt");
     let (f, tx) = setup_app(Some(prototype), true, false);
 
     // tick a few times to get the results
@@ -263,7 +264,7 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
-    let prototype = ChannelPrototype::simple(
+    let prototype = ChannelPrototype::from_command(
         "some_channel",
         "echo 'file1.txt\nfile2.txt'",
     );

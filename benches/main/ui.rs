@@ -466,7 +466,7 @@ pub fn draw(c: &mut Criterion) {
 
     let rt = Runtime::new().unwrap();
 
-    let cable = Cable::from_prototypes(vec![ChannelPrototype::simple(
+    let cable = Cable::from_prototypes(vec![ChannelPrototype::from_command(
         "files", "fd -t f",
     )]);
 

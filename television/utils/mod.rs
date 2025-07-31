@@ -5,6 +5,7 @@ pub mod files;
 pub mod hashmaps;
 pub mod indices;
 pub mod input;
+pub mod merge;
 pub mod metadata;
 pub mod paths;
 pub mod rocell;

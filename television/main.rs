@@ -4,7 +4,10 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::{Path, PathBuf};
 use std::process::exit;
-use television::channels::prototypes::{Metadata, SourceSpec};
+use television::channels::prototypes::{
+    MergedPrototype, Metadata, SourceSpec,
+};
+use television::cli::CliChannel;
 use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::{App, AppOptions},
@@ -42,64 +45,81 @@ async fn main() -> Result<()> {
     let readable_stdin = is_readable_stdin();
 
     // process CLI arguments
-    let cli = ProcessedCli::process(Cli::parse(), readable_stdin);
-    debug!("Processed CLI: {:?}", cli);
+    let ProcessedCli {
+        channel: channel_cli,
+        global: global_cli,
+    } = ProcessedCli::process(Cli::parse(), readable_stdin);
+    debug!("Processed channel CLI: {:?}", channel_cli);
+    debug!("Processed global CLI: {:?}", global_cli);
 
     // load the configuration file
-    debug!("Loading configuration...");
     let mut config =
-        Config::new(&ConfigEnv::init()?, cli.config_file.as_deref())?;
+        Config::new(&ConfigEnv::init()?, global_cli.config_file.as_deref())?;
+    debug!("Loaded configuration: {:?}", config);
+    // merge CLI overrides into the configuration
+    config.apply_global_cli_overrides(&global_cli);
 
     // load cable channels
-    debug!("Loading cable channels...");
-    let cable_dir = cli
-        .cable_dir
-        .as_ref()
-        .map(PathBuf::from)
-        .unwrap_or_else(|| config.application.cable_dir.clone());
-    let cable = load_cable(&cable_dir).unwrap_or_default();
+    let cable = load_cable(&config.application.cable_dir);
+    debug!(
+        "Loaded cable channels from {}:\n{:?}",
+        config.application.cable_dir, cable
+    );
 
     // handle subcommands
     debug!("Handling subcommands...");
-    if let Some(subcommand) = &cli.command {
-        handle_subcommand(subcommand, &cable_dir, &config.shell_integration)?;
+    if let Some(subcommand) = &global_cli.command {
+        handle_subcommand(
+            subcommand,
+            &config.application.cable_dir,
+            &config.shell_integration,
+        )?;
     }
 
     // optionally change the working directory
-    if let Some(ref working_dir) = cli.workdir {
+    if let Some(ref working_dir) = global_cli.workdir {
         set_current_dir(working_dir)
             .unwrap_or_else(|e| os_error_exit(&e.to_string()));
     }
 
-    // TODO: [27/07] this is where I left off
-    debug!("Applying CLI overrides...");
-    config.apply_cli_overrides(&cli);
+    // determine the channel to use
+    debug!("Determining channel based on CLI and configuration...");
+    let mut channel_prototype = determine_channel(
+        &channel_cli,
+        &global_cli.autocomplete_prompt,
+        &config.shell_integration,
+        readable_stdin,
+        &cable,
+        &config.application.default_channel,
+    );
+    let merged_prototype =
+        channel_prototype.merge_cli_prototype(&channel_cli.prototype);
 
-    // determine the channel to use based on the CLI arguments and configuration
-    debug!("Determining channel...");
-    let channel_prototype =
-        determine_channel(&cli, &config, readable_stdin, &cable);
-
+    // initialize clipboard
     CLIPBOARD.with(<_>::default);
 
     debug!("Creating application...");
-    // Determine the effective watch interval (CLI override takes precedence)
-    let watch_interval = cli.watch_interval.unwrap_or(channel_prototype.watch);
     let options = AppOptions::new(
+        // global_cli.matching
         cli.exact,
         cli.select_1,
         cli.take_1,
         cli.take_1_fast,
+        // global_cli.ui_features
         cli.no_remote,
         cli.no_preview,
+        // why do we need this?
         cli.preview_size,
+        // let's freeze this
         config.application.tick_rate,
-        watch_interval,
+        // weird to need watch here
+        merged_prototype.watch,
+        // global_cli.tui
         cli.height,
         cli.width,
         cli.inline,
     );
-    let mut app = App::new(channel_prototype, config, options, cable, &cli);
+    let mut app = App::new(merged_prototype, config, options, cable, &cli);
 
     // If the user requested to show the remote control on startup, switch the
     // television into Remote Control mode before the application event loop
@@ -166,32 +186,6 @@ pub fn handle_subcommand(
             exit(0);
         }
     }
-}
-
-/// Creates a stdin channel prototype
-fn create_stdin_channel(entry_delimiter: Option<char>) -> ChannelPrototype {
-    debug!("Using stdin channel");
-    // let stdin_preview = args.preview_command.as_ref().map(|preview_cmd| {
-    //     PreviewSpec::new(
-    //         CommandSpec::from(preview_cmd.clone()),
-    //         args.preview_offset.clone(),
-    //     )
-    // });
-
-    ChannelPrototype::stdin(entry_delimiter)
-
-    // Inherit UI features from global config (which has CLI overrides applied)
-    // let mut features = config.ui.features.clone();
-    // if args.preview_command.is_some() {
-    //     features.enable(FeatureFlags::PreviewPanel);
-    // } else {
-    //     features.disable(FeatureFlags::PreviewPanel);
-    // }
-
-    // Set UI specification to properly control feature visibility
-    // let mut ui_spec = UiSpec::from(&config.ui);
-    // ui_spec.features = Some(features);
-    // prototype.ui = Some(ui_spec);
 }
 
 const CUSTOM_CHANNEL_NAME: &str = "custom channel";
@@ -393,50 +387,42 @@ fn apply_ui_overrides(prototype: &mut ChannelPrototype, args: &ProcessedCli) {
 ///
 /// After determining the base channel, it applies all relevant CLI overrides.
 pub fn determine_channel(
-    args: &ProcessedCli,
-    config: &Config,
+    channel_cli: &CliChannel,
+    autocomplete_prompt: &Option<String>,
+    shell_integration_config: &ShellIntegrationConfig,
     readable_stdin: bool,
     cable: &Cable,
+    default_channel: &str,
 ) -> ChannelPrototype {
     // Determine the base channel prototype
     let mut channel_prototype = if readable_stdin {
         debug!("Using stdin channel");
-        ChannelPrototype::stdin(args.source_entry_delimiter)
-    } else if let Some(prompt) = &args.autocomplete_prompt {
+        ChannelPrototype::stdin()
+    } else if let Some(prompt) = autocomplete_prompt {
         if cable.is_empty() {
             cable_empty_exit()
         }
         debug!("Using autocomplete prompt: {:?}", prompt);
-        let prototype = guess_channel_from_prompt(
-            prompt,
-            &config.shell_integration,
-            cable,
-        );
+        let prototype =
+            guess_channel_from_prompt(prompt, shell_integration_config, cable);
         debug!("Using guessed channel: {:?}", prototype);
         prototype
-    } else if args.channel.is_none() && args.source_command.is_some() {
-        create_adhoc_channel(args, config)
+    } else if channel_cli.channel.is_none()
+        && channel_cli.source_command.is_some()
+    {
+        ChannelPrototype::from_command(
+            CUSTOM_CHANNEL_NAME,
+            channel_cli.source_command.as_ref().unwrap().raw(),
+        )
     } else {
         if cable.is_empty() {
             cable_empty_exit()
         }
-        let channel_name = args
-            .channel
-            .as_ref()
-            .unwrap_or(&config.application.default_channel);
+        let channel_name =
+            channel_cli.channel.as_ref().unwrap_or(default_channel);
         debug!("Using channel: {:?}", channel_name);
         cable.get_channel(channel_name)
     };
-
-    // Apply CLI overrides to the prototype
-    apply_source_overrides(&mut channel_prototype, args);
-    apply_preview_overrides(&mut channel_prototype, args);
-    apply_ui_overrides(&mut channel_prototype, args);
-
-    // Apply watch interval override
-    if let Some(watch_interval) = args.watch_interval {
-        channel_prototype.watch = watch_interval;
-    }
 
     channel_prototype
 }
@@ -463,9 +449,9 @@ mod tests {
     ) {
         let channels: Cable =
             cable_channels.unwrap_or(Cable::from_prototypes(vec![
-                ChannelPrototype::simple("files", "fd -t f"),
-                ChannelPrototype::simple("dirs", "ls"),
-                ChannelPrototype::simple("git", "git status"),
+                ChannelPrototype::from_command("files", "fd -t f"),
+                ChannelPrototype::from_command("dirs", "ls"),
+                ChannelPrototype::from_command("git", "git status"),
             ]));
         let channel =
             determine_channel(args, config, readable_stdin, &channels);
@@ -486,7 +472,7 @@ mod tests {
             &args,
             &config,
             true,
-            &ChannelPrototype::simple("stdin", "cat"),
+            &ChannelPrototype::from_command("stdin", "cat"),
             None,
         );
     }
@@ -537,7 +523,7 @@ mod tests {
     #[test]
     fn test_determine_channel_autocomplete_prompt() {
         let autocomplete_prompt = Some("cd".to_string());
-        let expected_channel = ChannelPrototype::simple("dirs", "ls {}");
+        let expected_channel = ChannelPrototype::from_command("dirs", "ls {}");
         let args = ProcessedCli {
             autocomplete_prompt,
             ..Default::default()
@@ -579,7 +565,7 @@ mod tests {
             &args,
             &config,
             false,
-            &ChannelPrototype::simple("dirs", "ls {}"),
+            &ChannelPrototype::from_command("dirs", "ls {}"),
             None,
         );
     }
@@ -596,7 +582,7 @@ mod tests {
             &args,
             &config,
             false,
-            &ChannelPrototype::simple("dirs", "ls"),
+            &ChannelPrototype::from_command("dirs", "ls"),
             None,
         );
     }
@@ -620,7 +606,7 @@ mod tests {
         };
         let config = Config::default();
 
-        let expected_prototype = ChannelPrototype::simple("dirs", "ls")
+        let expected_prototype = ChannelPrototype::from_command("dirs", "ls")
             .with_preview(Some(preview_spec));
 
         assert_is_correct_channel(
@@ -709,7 +695,8 @@ mod tests {
         use television::screen::layout::Orientation;
 
         // Create a channel with default UI settings
-        let mut channel_prototype = ChannelPrototype::simple("test", "ls");
+        let mut channel_prototype =
+            ChannelPrototype::from_command("test", "ls");
         // Set some initial UI values that should be overridden
         channel_prototype.ui = Some(UiSpec {
             ui_scale: None,

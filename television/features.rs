@@ -334,6 +334,7 @@
 //! # Ctrl-H - Toggle help panel
 //! ```
 
+use merge::Merge;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
@@ -405,6 +406,18 @@ impl FeatureState {
     pub fn hide(&mut self) {
         self.visible = false;
     }
+
+    pub fn from_flags(hide: bool, show: bool, disable: bool) -> Option<Self> {
+        if disable {
+            Some(Self::disabled())
+        } else if hide {
+            Some(Self::hidden())
+        } else if show {
+            Some(Self::enabled())
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for FeatureState {
@@ -413,7 +426,19 @@ impl Default for FeatureState {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+impl Merge for FeatureState {
+    // FIXME: this might not be right and is just a placeholder for now
+    fn merge(&mut self, other: Self) {
+        if other.enabled {
+            self.enabled = true;
+        }
+        if other.visible {
+            self.visible = true;
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Merge)]
 /// Represents the collection of features available in the UI, each with its own state.
 ///
 /// This currently defaults to the following:

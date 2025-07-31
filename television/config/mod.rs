@@ -2,8 +2,8 @@ use crate::{
     action::Action,
     cable::CABLE_DIR_NAME,
     channels::prototypes::{DEFAULT_PROTOTYPE_NAME, Template, UiSpec},
-    cli::ProcessedCli,
-    features::FeatureFlags,
+    cli::{GlobalCli, ProcessedCli, TuiCli},
+    features::{FeatureFlags, FeatureState},
     history::DEFAULT_HISTORY_SIZE,
     screen::keybindings::remove_action_bindings,
 };
@@ -40,8 +40,6 @@ pub struct AppConfig {
     pub config_dir: PathBuf,
     #[serde(default = "default_cable_dir")]
     pub cable_dir: PathBuf,
-    #[serde(default = "default_tick_rate")]
-    pub tick_rate: f64,
     /// The default channel to use when no channel is specified
     #[serde(default = "default_channel")]
     pub default_channel: String,
@@ -69,7 +67,6 @@ impl Hash for AppConfig {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.data_dir.hash(state);
         self.config_dir.hash(state);
-        self.tick_rate.to_bits().hash(state);
         self.history_size.hash(state);
         self.global_history.hash(state);
     }
@@ -266,182 +263,100 @@ impl Config {
         self.events = merge_bindings(self.events.clone(), other);
     }
 
-    /// Apply CLI overrides to this config
-    pub fn apply_cli_overrides(&mut self, args: &ProcessedCli) {
-        debug!("Applying CLI overrides to config after channel merging");
+    /// Apply **global** CLI overrides to this config
+    pub fn apply_cli_overrides(&mut self, cli: &GlobalCli) {
+        debug!(
+            "Applying global CLI overrides to config after channel merging"
+        );
 
-        if let Some(cable_dir) = &args.cable_dir {
-            self.application.cable_dir.clone_from(cable_dir);
-        }
-        if let Some(tick_rate) = args.tick_rate {
-            self.application.tick_rate = tick_rate;
-        }
-        if args.global_history {
+        // general overrides
+        if cli.global_history {
             self.application.global_history = true;
         }
-        // Handle preview panel flags
-        if args.no_preview {
-            self.ui.features.disable(FeatureFlags::PreviewPanel);
-            remove_action_bindings(
-                &mut self.keybindings,
-                &Action::TogglePreview.into(),
-            );
-        } else if args.hide_preview {
-            self.ui.features.hide(FeatureFlags::PreviewPanel);
-        } else if args.show_preview {
-            self.ui.features.enable(FeatureFlags::PreviewPanel);
+        if let Some(config_file) = &cli.config_file {
+            self.application.config_dir = config_file
+                .parent()
+                .map(PathBuf::from)
+                .unwrap_or_else(|| get_config_dir());
+        }
+        if let Some(cable_dir) = &cli.cable_dir {
+            self.application.cable_dir.clone_from(cable_dir);
         }
 
-        if let Some(ps) = args.preview_size {
-            self.ui.preview_panel.size = ps;
+        // UI features
+        if let Some(preview_feature_state) = &cli.ui_features.preview {
+            self.ui.features.preview_panel = preview_feature_state.clone();
         }
-
-        // Handle status bar flags
-        if args.no_status_bar {
-            self.ui.features.disable(FeatureFlags::StatusBar);
-            remove_action_bindings(
-                &mut self.keybindings,
-                &Action::ToggleStatusBar.into(),
-            );
-        } else if args.hide_status_bar {
-            self.ui.features.hide(FeatureFlags::StatusBar);
-        } else if args.show_status_bar {
-            self.ui.features.enable(FeatureFlags::StatusBar);
+        if let Some(help_feature_state) = &cli.ui_features.help_panel {
+            self.ui.features.help_panel = help_feature_state.clone();
         }
-
-        // Handle remote control flags
-        if args.no_remote {
-            self.ui.features.disable(FeatureFlags::RemoteControl);
-            remove_action_bindings(
-                &mut self.keybindings,
-                &Action::ToggleRemoteControl.into(),
-            );
-        } else if args.hide_remote {
-            self.ui.features.hide(FeatureFlags::RemoteControl);
-        } else if args.show_remote {
-            self.ui.features.enable(FeatureFlags::RemoteControl);
+        if let Some(remote_control_feature_state) = &cli.ui_features.remote {
+            self.ui.features.remote_control =
+                remote_control_feature_state.clone();
         }
-
-        // Handle help panel flags
-        if args.no_help_panel {
-            self.ui.features.disable(FeatureFlags::HelpPanel);
-            remove_action_bindings(
-                &mut self.keybindings,
-                &Action::ToggleHelp.into(),
-            );
-        } else if args.hide_help_panel {
-            self.ui.features.hide(FeatureFlags::HelpPanel);
-        } else if args.show_help_panel {
-            self.ui.features.enable(FeatureFlags::HelpPanel);
-        }
-
-        // Apply CLI keybinding overrides
-        if let Some(keybindings) = &args.keybindings {
-            self.apply_cli_keybinding_overrides(keybindings);
-        }
-
-        self.ui.ui_scale = args.ui_scale.unwrap_or(self.ui.ui_scale);
-        if let Some(input_header) = &args.input_header {
-            if let Ok(t) = Template::parse(input_header) {
-                self.ui.input_bar.header = Some(t);
-            }
-        }
-        if let Some(input_prompt) = &args.input_prompt {
-            self.ui.input_bar.prompt.clone_from(input_prompt);
-        }
-        if let Some(preview_header) = &args.preview_header {
-            if let Ok(t) = Template::parse(preview_header) {
-                self.ui.preview_panel.header = Some(t);
-            }
-        }
-        if let Some(preview_footer) = &args.preview_footer {
-            if let Ok(t) =
-                crate::channels::prototypes::Template::parse(preview_footer)
-            {
-                self.ui.preview_panel.footer = Some(t);
-            }
-        }
-        if let Some(layout) = args.layout {
-            self.ui.orientation = layout;
-        }
-        if let Some(input_border) = args.input_border {
-            self.ui.input_bar.border_type = input_border;
-        }
-        if let Some(preview_border) = args.preview_border {
-            self.ui.preview_panel.border_type = preview_border;
-        }
-        if let Some(results_border) = args.results_border {
-            self.ui.results_panel.border_type = results_border;
-        }
-        if let Some(input_padding) = args.input_padding {
-            self.ui.input_bar.padding = input_padding;
-        }
-        if let Some(preview_padding) = args.preview_padding {
-            self.ui.preview_panel.padding = preview_padding;
-        }
-        if let Some(results_padding) = args.results_padding {
-            self.ui.results_panel.padding = results_padding;
+        if let Some(status_bar_feature_state) = &cli.ui_features.status_bar {
+            self.ui.features.status_bar = status_bar_feature_state.clone();
         }
     }
 
     pub fn apply_prototype_ui_spec(&mut self, ui_spec: &UiSpec) {
-        // Apply simple copy fields (Copy types)
-        if let Some(value) = ui_spec.ui_scale {
-            self.ui.ui_scale = value;
-        }
-        if let Some(value) = ui_spec.orientation {
-            self.ui.orientation = value;
-        }
-
-        // Apply clone fields
-        if let Some(value) = &ui_spec.features {
-            self.ui.features = value.clone();
-        }
-        if let Some(value) = &ui_spec.status_bar {
-            self.ui.status_bar = value.clone();
-        }
-        if let Some(value) = &ui_spec.help_panel {
-            self.ui.help_panel = value.clone();
-        }
-        if let Some(value) = &ui_spec.remote_control {
-            self.ui.remote_control = value.clone();
-        }
-
-        // Handle input, results, and preview with field merging
-        if let Some(input_bar) = &ui_spec.input_bar {
-            self.ui.input_bar.position = input_bar.position;
-            if input_bar.header.is_some() {
-                self.ui.input_bar.header.clone_from(&input_bar.header);
-            }
-            self.ui.input_bar.prompt.clone_from(&input_bar.prompt);
-            self.ui
-                .input_bar
-                .border_type
-                .clone_from(&input_bar.border_type);
-            self.ui.input_bar.padding = input_bar.padding;
-        }
-        if let Some(results_panel) = &ui_spec.results_panel {
-            self.ui
-                .results_panel
-                .border_type
-                .clone_from(&results_panel.border_type);
-            self.ui.results_panel.padding = results_panel.padding;
-        }
-        if let Some(preview_panel) = &ui_spec.preview_panel {
-            self.ui.preview_panel.size = preview_panel.size;
-            if let Some(header) = &preview_panel.header {
-                self.ui.preview_panel.header = Some(header.clone());
-            }
-            if let Some(footer) = &preview_panel.footer {
-                self.ui.preview_panel.footer = Some(footer.clone());
-            }
-            self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
-            self.ui
-                .preview_panel
-                .border_type
-                .clone_from(&preview_panel.border_type);
-            self.ui.preview_panel.padding = preview_panel.padding;
-        }
+        //     // Apply simple copy fields (Copy types)
+        //     if let Some(value) = ui_spec.ui_scale {
+        //         self.ui.ui_scale = value;
+        //     }
+        //     if let Some(value) = ui_spec.orientation {
+        //         self.ui.orientation = value;
+        //     }
+        //
+        //     // Apply clone fields
+        //     if let Some(value) = &ui_spec.features {
+        //         self.ui.features = value.clone();
+        //     }
+        //     if let Some(value) = &ui_spec.status_bar {
+        //         self.ui.status_bar = value.clone();
+        //     }
+        //     if let Some(value) = &ui_spec.help_panel {
+        //         self.ui.help_panel = value.clone();
+        //     }
+        //     if let Some(value) = &ui_spec.remote_control {
+        //         self.ui.remote_control = value.clone();
+        //     }
+        //
+        //     // Handle input, results, and preview with field merging
+        //     if let Some(input_bar) = &ui_spec.input_bar {
+        //         self.ui.input_bar.position = input_bar.position;
+        //         if input_bar.header.is_some() {
+        //             self.ui.input_bar.header.clone_from(&input_bar.header);
+        //         }
+        //         self.ui.input_bar.prompt.clone_from(&input_bar.prompt);
+        //         self.ui
+        //             .input_bar
+        //             .border_type
+        //             .clone_from(&input_bar.border_type);
+        //         self.ui.input_bar.padding = input_bar.padding;
+        //     }
+        //     if let Some(results_panel) = &ui_spec.results_panel {
+        //         self.ui
+        //             .results_panel
+        //             .border_type
+        //             .clone_from(&results_panel.border_type);
+        //         self.ui.results_panel.padding = results_panel.padding;
+        //     }
+        //     if let Some(preview_panel) = &ui_spec.preview_panel {
+        //         self.ui.preview_panel.size = preview_panel.size;
+        //         if let Some(header) = &preview_panel.header {
+        //             self.ui.preview_panel.header = Some(header.clone());
+        //         }
+        //         if let Some(footer) = &preview_panel.footer {
+        //             self.ui.preview_panel.footer = Some(footer.clone());
+        //         }
+        //         self.ui.preview_panel.scrollbar = preview_panel.scrollbar;
+        //         self.ui
+        //             .preview_panel
+        //             .border_type
+        //             .clone_from(&preview_panel.border_type);
+        //         self.ui.preview_panel.padding = preview_panel.padding;
+        //     }
     }
 }
 

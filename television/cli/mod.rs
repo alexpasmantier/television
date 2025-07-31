@@ -10,6 +10,7 @@ use crate::{
     },
     errors::cli_parsing_error_exit,
     event::Key,
+    features::FeatureState,
     screen::layout::Orientation,
     utils::paths::expand_tilde,
 };
@@ -27,25 +28,58 @@ pub mod args;
 
 #[derive(Debug, Clone)]
 pub struct ProcessedCli {
-    // general
+    pub channel: ChannelCli,
+    pub global: GlobalCli,
+}
+
+/// CLI arguments relative to channel configuration.
+#[derive(Debug, Clone)]
+pub struct ChannelCli {
+    pub channel: Option<String>,
+    pub prototype: CliPrototype,
+}
+
+/// CLI arguments relative to global configuration.
+#[derive(Debug, Clone)]
+pub struct GlobalCli {
     pub workdir: Option<PathBuf>,
-    pub input: Option<String>,
     pub global_history: bool,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
     pub command: Option<Command>,
-    // shell integration
     pub autocomplete_prompt: Option<String>,
-    // channel arguments
-    pub channel: Option<String>,
-    pub prototype: CliPrototype,
-    // matching behavior
+    pub tui: TuiCli,
+    pub matching: MatchingCli,
+    pub ui_features: UiFeaturesCli,
+}
+
+/// Cli arguments relative to matching behavior.
+#[derive(Debug, Clone)]
+pub struct MatchingCli {
+    pub input: Option<String>,
     pub exact: bool,
     pub select_1: bool,
     pub take_1: bool,
     pub take_1_fast: bool,
-    // performance
+}
+
+/// CLI arguments relative to TUI configuration.
+#[derive(Debug, Clone)]
+pub struct TuiCli {
     pub tick_rate: Option<f64>,
+    pub height: Option<u16>,
+    pub width: Option<u16>,
+    pub inline: bool,
+    pub ui_scale: Option<u16>,
+}
+
+/// CLI arguments relative to UI features.
+#[derive(Debug, Clone)]
+pub struct UiFeaturesCli {
+    pub preview: Option<FeatureState>,
+    pub status_bar: Option<FeatureState>,
+    pub remote: Option<FeatureState>,
+    pub help_panel: Option<FeatureState>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -65,24 +99,7 @@ pub struct CliPrototype {
     pub preview_cached: bool,
     // ui
     // ---------------------------------------
-    pub ui_scale: Option<u16>,
     pub layout: Option<Orientation>,
-    pub height: Option<u16>,
-    pub width: Option<u16>,
-    pub inline: bool,
-    // ui features
-    pub no_preview: bool,
-    pub hide_preview: bool,
-    pub show_preview: bool,
-    pub no_status_bar: bool,
-    pub hide_status_bar: bool,
-    pub show_status_bar: bool,
-    pub no_remote: bool,
-    pub hide_remote: bool,
-    pub show_remote: bool,
-    pub no_help_panel: bool,
-    pub hide_help_panel: bool,
-    pub show_help_panel: bool,
     // preview
     pub preview_size: Option<u16>,
     pub preview_header: Option<String>,
@@ -99,6 +116,55 @@ pub struct CliPrototype {
     pub input_padding: Option<Padding>,
     // keybindings
     pub keybindings: Option<KeyBindings>,
+}
+
+impl CliPrototype {
+    pub fn has_source_command(&self) -> bool {
+        self.source_command.is_some()
+    }
+
+    pub fn has_preview_command(&self) -> bool {
+        self.preview_command.is_some()
+    }
+
+    pub fn has_ui(&self) -> bool {
+        self.layout.is_some()
+            || self.preview_size.is_some()
+            || self.preview_header.is_some()
+            || self.preview_footer.is_some()
+            || self.preview_border.is_some()
+            || self.preview_padding.is_some()
+            || self.results_border.is_some()
+            || self.results_padding.is_some()
+            || self.input_header.is_some()
+            || self.input_prompt.is_some()
+            || self.input_border.is_some()
+            || self.input_padding.is_some()
+    }
+
+    pub fn has_ui_input_bar(&self) -> bool {
+        self.input_header.is_some()
+            || self.input_prompt.is_some()
+            || self.input_border.is_some()
+            || self.input_padding.is_some()
+    }
+
+    pub fn has_ui_results(&self) -> bool {
+        self.results_border.is_some() || self.results_padding.is_some()
+    }
+
+    pub fn has_ui_preview(&self) -> bool {
+        self.preview_border.is_some()
+            || self.preview_padding.is_some()
+            || self.preview_size.is_some()
+            || self.preview_header.is_some()
+            || self.preview_footer.is_some()
+    }
+
+    pub fn has_keybindings(&self) -> bool {
+        self.keybindings.is_some()
+            && !self.keybindings.as_ref().unwrap().is_empty()
+    }
 }
 
 impl ProcessedCli {
@@ -261,28 +327,7 @@ impl ProcessedCli {
             preview_offset,
             preview_cached: cli.preview_cached,
 
-            ui_scale: cli.ui_scale,
             layout,
-            height: cli.height,
-            width: cli.width,
-            inline: cli.inline,
-
-            no_preview: cli.no_preview,
-            hide_preview: cli.hide_preview,
-            show_preview: cli.show_preview,
-
-            no_status_bar: cli.no_status_bar,
-            hide_status_bar: cli.hide_status_bar,
-            show_status_bar: cli.show_status_bar,
-
-            no_remote: cli.no_remote,
-            hide_remote: cli.hide_remote,
-            show_remote: cli.show_remote,
-
-            no_help_panel: cli.no_help_panel,
-            hide_help_panel: cli.hide_help_panel,
-            show_help_panel: cli.show_help_panel,
-
             preview_size: cli.preview_size,
             preview_header: cli.preview_header,
             preview_footer: cli.preview_footer,
@@ -301,20 +346,54 @@ impl ProcessedCli {
         };
 
         Self {
-            workdir: working_directory,
-            input: cli.input,
-            global_history: cli.global_history,
-            config_file: cli.config_file.map(|p| expand_tilde(&p)),
-            cable_dir: cli.cable_dir.map(|p| expand_tilde(&p)),
-            command: cli.command,
-            autocomplete_prompt: cli.autocomplete_prompt,
-            channel,
-            prototype,
-            exact: cli.exact,
-            select_1: cli.select_1,
-            take_1: cli.take_1,
-            take_1_fast: cli.take_1_fast,
-            tick_rate: cli.tick_rate,
+            channel: ChannelCli {
+                channel: channel.clone(),
+                prototype,
+            },
+            global: GlobalCli {
+                workdir: working_directory,
+                global_history: cli.global_history,
+                config_file: cli.config_file.map(expand_tilde),
+                cable_dir: cli.cable_dir.map(expand_tilde),
+                command: cli.command,
+                autocomplete_prompt: cli.autocomplete_prompt,
+                matching: MatchingCli {
+                    input: cli.input,
+                    exact: cli.exact,
+                    select_1: cli.select_1,
+                    take_1: cli.take_1,
+                    take_1_fast: cli.take_1_fast,
+                },
+                tui: TuiCli {
+                    tick_rate: cli.tick_rate,
+                    height: cli.height,
+                    width: cli.width,
+                    inline: cli.inline,
+                    ui_scale: cli.ui_scale,
+                },
+                ui_features: UiFeaturesCli {
+                    preview: FeatureState::from_flags(
+                        cli.hide_preview,
+                        cli.show_preview,
+                        cli.no_preview,
+                    ),
+                    status_bar: FeatureState::from_flags(
+                        cli.hide_status_bar,
+                        cli.show_status_bar,
+                        cli.no_status_bar,
+                    ),
+                    remote: FeatureState::from_flags(
+                        cli.hide_remote,
+                        cli.show_remote,
+                        cli.no_remote,
+                    ),
+                    help_panel: FeatureState::from_flags(
+                        cli.hide_help_panel,
+                        cli.show_help_panel,
+                        cli.no_help_panel,
+                    ),
+                },
+            },
         }
     }
 }
@@ -593,11 +672,11 @@ mod tests {
         let p = ProcessedCli::process(cli, false);
 
         assert_eq!(
-            p.prototype.preview_command.unwrap().raw(),
+            p.channel.prototype.preview_command.unwrap().raw(),
             "bat -n --color=always {}".to_string(),
         );
-        assert_eq!(p.tick_rate, None);
-        assert_eq!(p.workdir, Some(PathBuf::from("/home/user")));
+        assert_eq!(p.global.tui.tick_rate, None);
+        assert_eq!(p.global.workdir, Some(PathBuf::from("/home/user")));
     }
 
     #[test]
@@ -610,8 +689,8 @@ mod tests {
 
         let p = ProcessedCli::process(cli, false);
 
-        assert_eq!(p.workdir, Some(PathBuf::from(".")));
-        assert_eq!(p.command, None);
+        assert_eq!(p.global.workdir, Some(PathBuf::from(".")));
+        assert_eq!(p.global.command, None);
     }
 
     #[test]
@@ -634,7 +713,7 @@ mod tests {
         expected.insert(Key::Down, Action::SelectNextEntry.into());
         expected.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
 
-        assert_eq!(p.prototype.keybindings, Some(expected));
+        assert_eq!(p.channel.prototype.keybindings, Some(expected));
     }
 
     /// Returns a tuple containing a command mapping and a fallback channel.
@@ -648,9 +727,9 @@ mod tests {
             command_mapping,
             "env",
             Cable::from_prototypes(vec![
-                ChannelPrototype::simple("files", "fd -t f"),
-                ChannelPrototype::simple("env", "env"),
-                ChannelPrototype::simple("git", "git status"),
+                ChannelPrototype::from_command("files", "fd -t f"),
+                ChannelPrototype::from_command("env", "env"),
+                ChannelPrototype::from_command("git", "git status"),
             ]),
         )
     }
