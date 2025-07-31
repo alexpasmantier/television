@@ -6,12 +6,15 @@ use crate::{
     utils::shell::Shell,
 };
 use anyhow::Result;
+use lazy_regex::{Lazy, Regex, regex};
 use rustc_hash::FxHashSet;
 use std::{
     collections::HashMap,
     process::{Command, ExitStatus, Stdio},
 };
 use tracing::debug;
+
+static COMPLEX_BRACES_REGEX: &Lazy<Regex> = regex!(r"\{[^}]+\}");
 
 #[cfg(not(unix))]
 use tracing::warn;
@@ -96,20 +99,43 @@ pub fn format_command(
         entries.len()
     );
 
-    // Concatenate entries with separator for template processing
-    let entries_str = entries
-        .iter()
-        .map(|entry| entry.raw.as_str())
-        .collect::<Vec<_>>()
-        .join(separator);
-    debug!("Concatenated entries input: {:?}", entries_str);
+    let template_str = template.raw();
 
-    // Process through template system
-    debug!("Using template: {}", template);
-    let formatted_command = template.format(&entries_str)?;
-    debug!("Final command: {:?}", formatted_command);
+    // Check if template has only simple braces (syntactic sugar)
+    let has_only_simple_braces = !COMPLEX_BRACES_REGEX.is_match(template_str);
+    if has_only_simple_braces {
+        // Handle simple braces with predictable multi-value logic
+        debug!(
+            "Using simple brace syntactic sugar for template: {}",
+            template_str
+        );
 
-    Ok(formatted_command)
+        // Multiple entries: quote each and join with spaces
+        let quoted_entries: Vec<String> = entries
+            .iter()
+            .map(|entry| format!("'{}'", entry.raw.replace('\'', r"\'")))
+            .collect();
+        let entries_joined = quoted_entries.join(" ");
+        let formatted_command = template_str.replace("{}", &entries_joined);
+        debug!("Multiple entries command: {:?}", formatted_command);
+        Ok(formatted_command)
+    } else {
+        // Complex braces: use existing template processing
+        debug!("Using complex template processing for: {}", template_str);
+
+        // Concatenate entries with separator for template processing
+        let entries_str = entries
+            .iter()
+            .map(|entry| entry.raw.as_str())
+            .collect::<Vec<_>>()
+            .join(separator);
+        debug!("Concatenated entries input: {:?}", entries_str);
+
+        // Process through template system
+        let formatted_command = template.format(&entries_str)?;
+        debug!("Final command: {:?}", formatted_command);
+        Ok(formatted_command)
+    }
 }
 
 /// Execute an external action with the appropriate execution mode and output handling
@@ -177,5 +203,81 @@ pub fn execute_action(
             let mut child = cmd.spawn()?;
             Ok(child.wait()?)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::channels::entry::Entry;
+
+    #[test]
+    fn test_simple_braces_syntactic_sugar() {
+        let mut entries = FxHashSet::default();
+        entries.insert(Entry::new("file1.txt".to_string()));
+
+        // Simple braces should use syntactic sugar with quotes
+        let template = Template::parse("nvim {}").unwrap();
+        let result = format_command(&entries, &template, "\n").unwrap();
+        assert_eq!(result, "nvim 'file1.txt'");
+    }
+
+    #[test]
+    fn test_simple_braces_multiple_entries() {
+        let mut entries = FxHashSet::default();
+        entries.insert(Entry::new("file1.txt".to_string()));
+        entries.insert(Entry::new("file2.txt".to_string()));
+
+        // Simple braces with multiple entries should quote each and join with spaces
+        let template = Template::parse("nvim {}").unwrap();
+        let result = format_command(&entries, &template, "\n").unwrap();
+
+        // Result should contain both files quoted and joined with space
+        assert_eq!(result, "nvim 'file1.txt' 'file2.txt'");
+    }
+
+    #[test]
+    fn test_simple_braces_with_quotes_in_filename() {
+        let mut entries = FxHashSet::default();
+        entries.insert(Entry::new("file's name.txt".to_string()));
+
+        // Simple braces should escape single quotes in filenames
+        let template = Template::parse("nvim {}").unwrap();
+        let result = format_command(&entries, &template, "\n").unwrap();
+        assert_eq!(result, "nvim 'file\\'s name.txt'");
+    }
+
+    #[test]
+    fn test_complex_braces_use_template_system() {
+        let mut entries = FxHashSet::default();
+        entries.insert(Entry::new("file1.txt".to_string()));
+        entries.insert(Entry::new("file2.txt".to_string()));
+
+        // Complex braces should use template system
+        let template = Template::parse(
+            "nvim {split:\\n:..|map:{append:'|prepend:'}|sort|join: }",
+        )
+        .unwrap();
+        let result = format_command(&entries, &template, "\n").unwrap();
+
+        // Result should contain both files quoted and joined with space
+        assert_eq!(result, "nvim 'file1.txt' 'file2.txt'");
+    }
+
+    #[test]
+    fn test_complex_braces_use_template_system_with_quotes_in_filename() {
+        let mut entries = FxHashSet::default();
+        entries.insert(Entry::new("file1's.txt".to_string()));
+        entries.insert(Entry::new("file2.txt".to_string()));
+
+        // Complex braces should use template system
+        let template = Template::parse(
+            r"nvim {split:\n:..|map:{replace:s/'/\'/g|append:'|prepend:'}|sort|join: }",
+        )
+        .unwrap();
+        let result = format_command(&entries, &template, "\n").unwrap();
+
+        // Result should be escaped with single quotes in filenames
+        assert_eq!(result, "nvim 'file1\\'s.txt' 'file2.txt'");
     }
 }
