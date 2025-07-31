@@ -58,12 +58,13 @@ pub fn shell_command<S>(
 
 /// Format a command string from entries using template processing
 ///
-/// Takes a set of entries, concatenates them with newlines, and processes them through
+/// Takes a set of entries, concatenates them with the specified separator, and processes them through
 /// the provided template to create a formatted command. The template handles escaping, formatting, and any transformations.
 ///
 /// # Arguments
 /// * `entries` - A reference to a set of Entry items to process
 /// * `template` - The template to process the entries through
+/// * `separator` - The separator to use when joining entries
 ///
 /// # Returns
 /// * `Result<String>` - The final formatted command ready for execution
@@ -79,7 +80,7 @@ pub fn shell_command<S>(
 /// entries.insert(Entry::new("file1.txt".to_string()));
 /// entries.insert(Entry::new("file 2.txt".to_string()));
 /// let template = Template::parse("nvim {split:\\n:..|map:{append:'|prepend:'}|join: }").unwrap();
-/// let result = format_command(&entries, &template).unwrap();
+/// let result = format_command(&entries, &template, "\n").unwrap();
 /// // Should produce something like: nvim 'file1.txt' 'file 2.txt'
 /// assert!(result.starts_with("nvim "));
 /// assert!(result.contains("'file1.txt'"));
@@ -88,18 +89,19 @@ pub fn shell_command<S>(
 pub fn format_command(
     entries: &FxHashSet<Entry>,
     template: &Template,
+    separator: &str,
 ) -> Result<String> {
     debug!(
         "Formatting command from {} entries using template",
         entries.len()
     );
 
-    // Concatenate entries with newlines for template processing
+    // Concatenate entries with separator for template processing
     let entries_str = entries
         .iter()
         .map(|entry| entry.raw.as_str())
         .collect::<Vec<_>>()
-        .join("\n");
+        .join(separator);
     debug!("Concatenated entries input: {:?}", entries_str);
 
     // Process through template system
@@ -138,7 +140,8 @@ pub fn execute_action(
 
     // Create command from entries using template
     let template: &Template = action_spec.command.get_nth(0);
-    let formatted_command = format_command(entries, template)?;
+    let formatted_command =
+        format_command(entries, template, &action_spec.separator)?;
 
     let mut cmd = shell_command(
         &formatted_command,
