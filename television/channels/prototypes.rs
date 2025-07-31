@@ -186,7 +186,7 @@ pub enum OutputMode {
 }
 
 fn default_separator() -> String {
-    "\n".to_string()
+    " ".to_string()
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]

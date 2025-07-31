@@ -288,6 +288,6 @@ separator = " "
 - `output_mode` - How to handle command output (when `mode = "fork"`, **not yet implemented**):
   - `capture` - Capture output for processing
   - `discard` - Discard output silently
-- `separator` - Character(s) to use when joining **multiple selected entries**,
+- `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
 depending on the entries content it might be beneficial to change to another
-one (default: `"\n"`)
+one (default: `" "` - space)
