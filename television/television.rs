@@ -12,6 +12,7 @@ use crate::{
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
     features::FeatureFlags,
+    frecency::Frecency,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -363,12 +364,45 @@ impl Television {
     }
 
     pub fn get_selected_entry(&mut self) -> Option<Entry> {
-        if self.channel.result_count() == 0 {
-            return None;
+        match self.mode {
+            Mode::Channel => {
+                let entry = self
+                    .results_picker
+                    .selected()
+                    .and_then(|idx| self.results_picker.entries.get(idx))
+                    .cloned()?;
+                Some(self.apply_preview_offset(entry))
+            }
+            Mode::RemoteControl => {
+                if self
+                    .remote_control
+                    .as_ref()
+                    .map_or(0, RemoteControl::result_count)
+                    == 0
+                {
+                    return None;
+                }
+                let entry = self
+                    .selected_index()
+                    .map(|idx| self.channel.get_result(idx))
+                    .and_then(|entry| entry)?;
+                Some(self.apply_preview_offset(entry))
+            }
         }
-        self.selected_index()
-            .map(|idx| self.channel.get_result(idx))
-            .and_then(|entry| entry)
+    }
+
+    /// Apply preview offset logic to an entry
+    fn apply_preview_offset(&self, mut entry: Entry) -> Entry {
+        if let Some(p) = &self.channel.prototype.preview {
+            if let Some(offset_expr) = &p.offset {
+                let offset_str =
+                    offset_expr.format(&entry.raw).unwrap_or_default();
+                entry = entry.with_line_number(
+                    offset_str.parse::<usize>().unwrap_or(0),
+                );
+            }
+        }
+        entry
     }
 
     pub fn get_selected_cable_entry(&mut self) -> Option<CableEntry> {
@@ -583,7 +617,10 @@ impl Television {
         Ok(())
     }
 
-    pub fn update_results_picker_state(&mut self) {
+    pub fn update_results_picker_state(
+        &mut self,
+        frecency: Option<&Frecency>,
+    ) {
         if self.results_picker.selected().is_none()
             && self.channel.result_count() > 0
         {
@@ -601,7 +638,7 @@ impl Television {
             // Re-use the existing allocation instead of constructing a new
             // `Vec` every tick:
             entries.clear();
-            entries.extend(self.channel.results(height, offset));
+            entries.extend(self.channel.results(height, offset, frecency));
         }
         self.results_picker.total_items = self.channel.result_count();
     }
@@ -862,10 +899,14 @@ impl Television {
     /// Update the television state based on the action provided.
     ///
     /// This function may return an Action that'll be processed by the parent `App`.
-    pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
+    pub fn update(
+        &mut self,
+        action: &Action,
+        frecency: Option<&Frecency>,
+    ) -> Result<Option<Action>> {
         self.handle_action(action)?;
 
-        self.update_results_picker_state();
+        self.update_results_picker_state(frecency);
 
         if self.remote_control.is_some() {
             self.update_rc_picker_state();

@@ -119,6 +119,10 @@ pub struct PostProcessedCli {
     // History configuration
     pub global_history: bool,
 
+    // Frecency
+    pub frecency: bool,
+    pub global_frecency: bool,
+
     // Configuration sources
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
@@ -200,6 +204,10 @@ impl Default for PostProcessedCli {
 
             // History configuration
             global_history: false,
+
+            // Frecency
+            frecency: false,
+            global_frecency: false,
 
             // Configuration sources
             config_file: None,
@@ -431,6 +439,10 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
 
         // History configuration
         global_history: cli.global_history,
+
+        // Frecency
+        frecency: cli.frecency,
+        global_frecency: cli.global_frecency,
 
         // Configuration sources
         config_file: cli.config_file.map(|p| expand_tilde(&p)),

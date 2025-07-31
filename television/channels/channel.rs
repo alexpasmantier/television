@@ -3,19 +3,30 @@ use crate::{
         entry::Entry,
         prototypes::{ChannelPrototype, SourceSpec, Template},
     },
-    matcher::{Matcher, config::Config, injector::Injector},
+    frecency::Frecency,
+    matcher::{
+        Matcher, config::Config, injector::Injector, matched_item::MatchedItem,
+    },
     utils::command::shell_command,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::{
+    Arc, RwLock,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Duration;
+use tokio::sync::mpsc;
 use tracing::{debug, trace};
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
+const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
+
+const DATASET_CHANNEL_CAPACITY: usize = 32;
+const DATASET_UPDATE_INTERVAL: Duration = Duration::from_millis(50);
+const LOAD_CANDIDATE_BATCH_SIZE: usize = 100;
 
 pub struct Channel {
     pub prototype: ChannelPrototype,
@@ -26,6 +37,12 @@ pub struct Channel {
     /// Indicates if the channel is currently reloading to prevent UI flickering
     /// by delaying the rendering of a new frame.
     pub reloading: Arc<AtomicBool>,
+    /// Track current dataset items
+    current_dataset: Arc<RwLock<FxHashSet<String>>>,
+    /// Handle for the dataset update task
+    dataset_update_handle: Option<tokio::task::JoinHandle<()>>,
+    /// Dedicated matcher for frecent items
+    frecency_matcher: Matcher<String>,
 }
 
 impl Channel {
@@ -40,40 +57,68 @@ impl Channel {
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
+            current_dataset: Arc::new(RwLock::new(FxHashSet::default())),
+            dataset_update_handle: None,
+            frecency_matcher: Matcher::new(&config),
         }
     }
 
     pub fn load(&mut self) {
+        // Clear the current dataset at the start of each load
+        if let Ok(mut dataset) = self.current_dataset.write() {
+            dataset.clear();
+        }
+
+        // Clear frecent matcher since dataset is changing
+        self.frecency_matcher.restart();
+
+        // Create bounded channel to prevent unbounded memory growth
+        let (dataset_tx, dataset_rx) = mpsc::channel(DATASET_CHANNEL_CAPACITY);
+
+        // Create dedicated dataset update task
+        let dataset_clone = self.current_dataset.clone();
+        let dataset_update_handle = tokio::spawn(async move {
+            dataset_update_task(dataset_rx, dataset_clone).await;
+        });
+        self.dataset_update_handle = Some(dataset_update_handle);
+
         let injector = self.matcher.injector();
         let crawl_handle = tokio::spawn(load_candidates(
             self.prototype.source.clone(),
             self.current_source_index,
             injector,
+            dataset_tx,
         ));
         self.crawl_handle = Some(crawl_handle);
     }
 
     pub fn reload(&mut self) {
-        if self.reloading.load(std::sync::atomic::Ordering::Relaxed) {
+        if self.reloading.load(Ordering::Relaxed) {
             debug!("Reload already in progress, skipping.");
             return;
         }
-        self.reloading
-            .store(true, std::sync::atomic::Ordering::Relaxed);
+        self.reloading.store(true, Ordering::Relaxed);
 
+        // Abort existing tasks
         if let Some(handle) = self.crawl_handle.take() {
             if !handle.is_finished() {
                 handle.abort();
             }
         }
+        if let Some(handle) = self.dataset_update_handle.take() {
+            if !handle.is_finished() {
+                handle.abort();
+            }
+        }
         self.matcher.restart();
+        self.frecency_matcher.restart();
         self.load();
         // Spawn a thread that turns off reloading after a short delay
         // to avoid UI flickering (this boolean is used by `Television::should_render`)
         let reloading = self.reloading.clone();
         tokio::spawn(async move {
             tokio::time::sleep(RELOAD_RENDERING_DELAY).await;
-            reloading.store(false, std::sync::atomic::Ordering::Relaxed);
+            reloading.store(false, Ordering::Relaxed);
         });
     }
 
@@ -89,10 +134,139 @@ impl Channel {
         self.matcher.find(pattern);
     }
 
-    pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
+    /// Filter frecent items to only include those that exist in the current dataset
+    fn filter_frecent_items_by_current_dataset(
+        &self,
+        frecent_items: &[String],
+    ) -> FxHashSet<String> {
+        // Try to read dataset, return empty on lock failure to prevent blocking
+        let Ok(dataset) = self.current_dataset.read() else {
+            debug!(
+                "Failed to acquire dataset read lock, skipping frecency filtering"
+            );
+            return FxHashSet::default();
+        };
+
+        // Iterate over smaller frecent_items (~FRECENT_ITEMS_PRIORITY_COUNT)
+        let mut intersection = FxHashSet::with_capacity_and_hasher(
+            frecent_items.len().min(dataset.len()),
+            FxBuildHasher,
+        );
+
+        for item in frecent_items {
+            if dataset.contains(item) {
+                intersection.insert(item.clone());
+            }
+        }
+
+        intersection
+    }
+
+    /// Fuzzy match against a set of frecent items
+    #[allow(clippy::cast_possible_truncation)]
+    fn fuzzy_match_frecent_items(
+        &mut self,
+        pattern: &str,
+        frecent_items: &FxHashSet<String>,
+    ) -> Vec<MatchedItem<String>> {
+        if frecent_items.is_empty() {
+            return Vec::new();
+        }
+
+        // Apply the pattern
+        self.frecency_matcher.find(pattern);
+
+        // Let the matcher process
+        self.frecency_matcher.tick();
+
+        // Get all matches (frecent items are small, so we can get all)
+        self.frecency_matcher.results(frecent_items.len() as u32, 0)
+    }
+
+    #[allow(clippy::cast_possible_truncation)]
+    pub fn results(
+        &mut self,
+        num_entries: u32,
+        offset: u32,
+        frecency: Option<&Frecency>,
+    ) -> Vec<Entry> {
         self.matcher.tick();
 
-        let results = self.matcher.results(num_entries, offset);
+        let results = if let Some(frecency_data) = frecency {
+            // Frecency-aware results with dataset validation
+            let frecent_items = frecency_data.get_frecent_items();
+
+            // Early exit if no frecent items to avoid unnecessary work
+            if frecent_items.is_empty() {
+                self.matcher.results(num_entries, offset)
+            } else {
+                // Populate frecency matcher with all frecent items (once per reload/load cycle)
+                // We use all items (unfiltered) since dataset changes during source cycling/reloading,
+                // but frecency data remains constant during the session
+                if self.frecency_matcher.total_item_count == 0 {
+                    let injector = self.frecency_matcher.injector();
+                    for item in &frecent_items {
+                        injector.push(item.clone(), |e, cols| {
+                            cols[0] = e.clone().into();
+                        });
+                    }
+                }
+
+                // Filter frecent items to only include those in current dataset
+                // This prevents searching stale entries that don't exist in the current data source
+                let filtered_frecent_items = self
+                    .filter_frecent_items_by_current_dataset(&frecent_items);
+
+                // If no frecent items pass validation, fall back to regular matching
+                if filtered_frecent_items.is_empty() {
+                    self.matcher.results(num_entries, offset)
+                } else {
+                    // Fuzzy match the validated frecent items
+                    let frecent_matches = self.fuzzy_match_frecent_items(
+                        &self.matcher.last_pattern.clone(),
+                        &filtered_frecent_items,
+                    );
+
+                    // Get regular results, excluding recent matches to avoid duplicates
+                    let remaining_slots = num_entries
+                        .saturating_sub(frecent_matches.len() as u32);
+
+                    let mut regular_matches = Vec::new();
+                    if remaining_slots > 0 {
+                        // Fetch full list to account for deduplication
+                        let nucleo_results =
+                            self.matcher.results(num_entries, 0);
+
+                        // Direct O(1) HashSet lookups for deduplication
+                        regular_matches.reserve(remaining_slots as usize);
+                        for item in nucleo_results {
+                            if !filtered_frecent_items.contains(&item.inner) {
+                                regular_matches.push(item);
+                                if regular_matches.len()
+                                    >= remaining_slots as usize
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    // Combine results: frecent items first (highest priority), then regular matches
+                    let mut combined = frecent_matches;
+                    combined.extend(regular_matches);
+
+                    // Apply pagination
+                    combined
+                        .into_iter()
+                        .skip(offset as usize)
+                        .take(num_entries as usize)
+                        .collect()
+                }
+            }
+        } else {
+            // No frecency: use standard nucleo matching
+            self.matcher.results(num_entries, offset)
+        };
 
         let mut entries = Vec::with_capacity(results.len());
 
@@ -108,21 +282,13 @@ impl Channel {
     }
 
     pub fn get_result(&mut self, index: u32) -> Option<Entry> {
-        if let Some(item) = self.matcher.get_result(index) {
-            let mut entry = Entry::new(item.inner.clone())
-                .with_display(item.matched_string)
-                .with_match_indices(&item.match_indices);
-            if let Some(p) = &self.prototype.preview {
-                // FIXME: this should be done by the previewer instead
-                if let Some(offset_expr) = &p.offset {
-                    let offset_str =
-                        offset_expr.format(&item.inner).unwrap_or_default();
+        let item = self.matcher.get_result(index);
 
-                    entry = entry.with_line_number(
-                        offset_str.parse::<usize>().unwrap_or(0),
-                    );
-                }
-            }
+        if let Some(item) = item {
+            let entry = Entry::new(item.inner.clone())
+                .with_display(item.matched_string)
+                .with_match_indices(&item.match_indices)
+                .ansi(self.prototype.source.ansi);
             Some(entry)
         } else {
             None
@@ -177,15 +343,97 @@ impl Channel {
     }
 }
 
-const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
+/// Dedicated task for updating the dataset from batched updates
+/// This runs independently from the UI to prevent blocking
+async fn dataset_update_task(
+    mut dataset_rx: mpsc::Receiver<Vec<String>>,
+    current_dataset: Arc<RwLock<FxHashSet<String>>>,
+) {
+    debug!("Starting dataset update task");
 
-#[allow(clippy::unused_async)]
+    let mut update_interval = tokio::time::interval(DATASET_UPDATE_INTERVAL);
+    let mut pending_updates = Vec::new();
+
+    loop {
+        tokio::select! {
+            // Receive new batches
+            batch_result = dataset_rx.recv() => {
+                 if let Some(batch) = batch_result {
+                     pending_updates.push(batch);
+                 } else {
+                     // Channel closed, process remaining updates and exit
+                     if !pending_updates.is_empty() {
+                         apply_pending_updates(&pending_updates, &current_dataset);
+                     }
+                     debug!("Dataset update task exiting - channel closed");
+                     break;
+                 }
+            }
+            // Periodic updates to apply accumulated batches
+            _ = update_interval.tick() => {
+                if !pending_updates.is_empty() {
+                    apply_pending_updates(&pending_updates, &current_dataset);
+                    pending_updates.clear();
+                }
+            }
+        }
+    }
+}
+
+/// Apply accumulated updates to the dataset with proper error handling
+fn apply_pending_updates(
+    pending_updates: &[Vec<String>],
+    current_dataset: &Arc<RwLock<FxHashSet<String>>>,
+) {
+    match current_dataset.write() {
+        Ok(mut dataset) => {
+            // Pre-calculate capacity to minimize reallocations
+            let total_items: usize =
+                pending_updates.iter().map(Vec::len).sum();
+            dataset.reserve(total_items);
+
+            // Apply all pending updates
+            for batch in pending_updates {
+                dataset.extend(batch.iter().cloned());
+            }
+
+            trace!(
+                "Applied {} batches containing {} total items to dataset",
+                pending_updates.len(),
+                total_items
+            );
+        }
+        Err(e) => {
+            debug!(
+                "Failed to acquire dataset write lock: {:?}. Skipping batch updates.",
+                e
+            );
+        }
+    }
+}
+
+/// Helper function to send a batch if it's not empty with backpressure handling
+async fn send_batch_if_not_empty(
+    batch: &mut Vec<String>,
+    dataset_tx: &mpsc::Sender<Vec<String>>,
+) -> Result<(), mpsc::error::SendError<Vec<String>>> {
+    if batch.is_empty() {
+        Ok(())
+    } else {
+        let batch_to_send = std::mem::take(batch);
+        dataset_tx.send(batch_to_send).await
+    }
+}
+
 async fn load_candidates(
     source: SourceSpec,
     source_command_index: usize,
     injector: Injector<String>,
+    dataset_tx: mpsc::Sender<Vec<String>>,
 ) {
     debug!("Loading candidates from command: {:?}", source.command);
+    let mut current_batch = Vec::with_capacity(LOAD_CANDIDATE_BATCH_SIZE);
+
     let mut child = shell_command(
         source.command.get_nth(source_command_index).raw(),
         source.command.interactive,
@@ -228,7 +476,28 @@ async fn load_candidates(
             if let Ok(l) = std::str::from_utf8(&buf) {
                 trace!("Read line: {}", l);
                 if !l.trim().is_empty() {
-                    let () = injector.push(l.to_string(), |e, cols| {
+                    let entry = l.to_string();
+
+                    // Add to current batch
+                    current_batch.push(entry.clone());
+
+                    // Send batch if it reaches the batch size
+                    if current_batch.len() >= LOAD_CANDIDATE_BATCH_SIZE {
+                        if let Err(e) = send_batch_if_not_empty(
+                            &mut current_batch,
+                            &dataset_tx,
+                        )
+                        .await
+                        {
+                            debug!(
+                                "Failed to send dataset batch: {:?}. Dataset may be incomplete.",
+                                e
+                            );
+                            break; // Exit loop if channel is closed
+                        }
+                    }
+
+                    let () = injector.push(entry, |e, cols| {
                         if source.ansi {
                             cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
                                 panic!(
@@ -260,6 +529,25 @@ async fn load_candidates(
             for line in reader.lines() {
                 let line = line.unwrap();
                 if !line.trim().is_empty() {
+                    // Add to current batch
+                    current_batch.push(line.clone());
+
+                    // Send batch if it reaches the batch size
+                    if current_batch.len() >= LOAD_CANDIDATE_BATCH_SIZE {
+                        if let Err(e) = send_batch_if_not_empty(
+                            &mut current_batch,
+                            &dataset_tx,
+                        )
+                        .await
+                        {
+                            debug!(
+                                "Failed to send dataset batch: {:?}. Dataset may be incomplete.",
+                                e
+                            );
+                            break; // Exit loop if channel is closed
+                        }
+                    }
+
                     let () = injector.push(line, |e, cols| {
                         cols[0] = e.clone().into();
                     });
@@ -268,6 +556,13 @@ async fn load_candidates(
         }
     }
     let _ = child.wait();
+
+    // Send any remaining entries in the final batch
+    if let Err(e) =
+        send_batch_if_not_empty(&mut current_batch, &dataset_tx).await
+    {
+        debug!("Failed to send final dataset batch: {:?}", e);
+    }
 }
 
 #[cfg(test)]
@@ -286,8 +581,10 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let (dataset_tx, _dataset_rx) =
+            mpsc::channel(DATASET_CHANNEL_CAPACITY);
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, dataset_tx).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -309,8 +606,10 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let (dataset_tx, _dataset_rx) =
+            mpsc::channel(DATASET_CHANNEL_CAPACITY);
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, dataset_tx).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -332,8 +631,10 @@ mod tests {
 
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
+        let (dataset_tx, _dataset_rx) =
+            mpsc::channel(DATASET_CHANNEL_CAPACITY);
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(source_spec, 0, injector, dataset_tx).await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
