@@ -867,7 +867,7 @@ impl Television {
 
         self.update_results_picker_state();
 
-        if self.remote_control.is_some() {
+        if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
             self.update_rc_picker_state();
         }
 
