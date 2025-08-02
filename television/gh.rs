@@ -106,16 +106,11 @@ fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
             }
         })
         .filter_map(|url| fetch_raw_content_from_url(&url).ok())
-        .map(|content| {
-            // NOTE: this acts as a sanity check to ensure the file is a valid prototype
-            // for the current tv version.
+        .filter_map(|content| {
             let name = toml::from_str::<ChannelPrototype>(&content)
                 .map(|p| p.metadata.name)
-                .expect("Failed to parse channel name from content.\n
-                    This might indicate one of two things:\n
-                    1. The channel file is not a valid prototype.\n
-                    2. The channel file is not compatible with your current version of television.");
-            DownloadedPrototype::new(name, content)
+                .ok()?;
+            Some(DownloadedPrototype::new(name, content))
         })
         .collect())
 }
