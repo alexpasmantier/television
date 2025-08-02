@@ -10,6 +10,7 @@ use crate::{
     },
 };
 use ansi_to_tui::IntoText;
+use anyhow::Result;
 use devicons::FileIcon;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
@@ -31,6 +32,9 @@ pub trait ResultItem {
 
     /// The main text representing the item.
     fn display(&self) -> &str;
+
+    /// The output string that will be used when the item is selected.
+    fn output(&self) -> Result<String>;
 
     /// Highlight match ranges (char based indices) within `display()`.
     ///

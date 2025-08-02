@@ -97,10 +97,13 @@ impl Channel {
         let mut entries = Vec::with_capacity(results.len());
 
         for item in results {
-            let entry = Entry::new(item.inner)
+            let mut entry = Entry::new(item.inner)
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices)
                 .ansi(self.prototype.source.ansi);
+            if let Some(output) = &self.prototype.source.output {
+                entry = entry.with_output(output.clone());
+            }
             entries.push(entry);
         }
 
@@ -112,6 +115,9 @@ impl Channel {
             let mut entry = Entry::new(item.inner.clone())
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices);
+            if let Some(output) = &self.prototype.source.output {
+                entry = entry.with_output(output.clone());
+            }
             if let Some(p) = &self.prototype.preview {
                 // FIXME: this should be done by the previewer instead
                 if let Some(offset_expr) = &p.offset {

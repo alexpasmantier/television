@@ -31,6 +31,7 @@ pub fn draw_results_list(c: &mut Criterion) {
     let entries = [
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/LICENSE".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -42,6 +43,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/README.md".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -53,6 +55,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/re.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -64,6 +67,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/io.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -75,6 +79,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/gc.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -86,6 +91,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/uu.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -97,6 +103,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/nt.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -108,6 +115,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/dis.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -119,6 +127,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/imp.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -130,6 +139,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/bdb.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -141,6 +151,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/abc.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -152,6 +163,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/cgi.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -163,6 +175,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/bz2.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -174,6 +187,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/grp.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -185,6 +199,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/ast.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -196,6 +211,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/csv.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -207,6 +223,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/pdb.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -218,6 +235,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/pwd.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -229,6 +247,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/ssl.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -240,6 +259,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/tty.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -251,6 +271,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/nis.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -262,6 +283,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/pty.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -273,6 +295,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/cmd.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -284,6 +307,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/tests/utils.py".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -295,6 +319,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/pyproject.toml".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -306,6 +331,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/MAINTAINERS.md".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -317,6 +343,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/enum.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -328,6 +355,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/hmac.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -339,6 +367,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/uuid.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -350,6 +379,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/glob.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -361,6 +391,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/_ast.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -372,6 +403,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/_csv.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -383,6 +415,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/code.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -394,6 +427,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/spwd.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -405,6 +439,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/_msi.pyi".to_string(),
             match_ranges: Some(into_ranges(&[0, 1, 2, 3])),
             icon: Some(FileIcon {
@@ -416,6 +451,7 @@ pub fn draw_results_list(c: &mut Criterion) {
         },
         Entry {
             display: None,
+            output: None,
             raw: "typeshed/stdlib/time.pyi".to_string(),
 
             icon: Some(FileIcon {
