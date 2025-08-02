@@ -228,3 +228,66 @@ confirm_selection = "ctrl-y"
 ```
 
 See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.
+
+#### `[actions]`
+
+External actions allow you to define custom commands that can be executed on
+selected entries. Actions are triggered via keybindings using the
+`actions:<action_name>` syntax.
+
+**Simple Braces Syntactic Sugar:**
+
+For most use cases, you can use simple `{}` braces which automatically handle
+quoting and multiple entries:
+
+```toml
+[actions.edit]
+description = "Open selected files in editor"
+command = "nvim {}"
+# Single file: nvim 'file1.txt'
+# Multiple files: nvim 'file1.txt' 'file2.txt'
+# Files with quotes: nvim 'file\'s name.txt'
+```
+
+**Advanced Template Processing:**
+
+For complex formatting needs, use the full [templating syntax](#templating-syntax):
+
+```toml
+[keybindings]
+ctrl-e = "actions:edit"
+f2 = "actions:view"
+
+[actions.edit]
+description = "Open selected files in editor"
+command = "nvim {split:\\n:..|map:{append:'|prepend:'}|join: }"
+mode = "execute"
+separator = "\n"
+# example: inputs "file1" and "file 2" will generate the command
+# nvim 'file1' 'file 2'
+# Note: we added quotes at command level to avoid shell artifacts
+
+[actions.view]
+description = "View files with less"
+command = "less {}"
+mode = "fork"
+output_mode = "discard"
+separator = " "
+# example: inputs "file1" and "file 2" will generate the command
+# less file1 file 2
+# Note: 3 args here, instead of 2
+```
+
+**Action specification:**
+
+- `description` - Optional description of what the action does
+- `command` - Command template to execute (supports [templating syntax](#templating-syntax))
+- `mode` - Execution mode:
+  - `execute` - Run command and wait for completion (inherits terminal)
+  - `fork` - Run command in background (**not yet implemented**)
+- `output_mode` - How to handle command output (when `mode = "fork"`, **not yet implemented**):
+  - `capture` - Capture output for processing
+  - `discard` - Discard output silently
+- `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
+depending on the entries content it might be beneficial to change to another
+one (default: `" "` - space)

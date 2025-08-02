@@ -2,6 +2,7 @@ use crate::{
     channels::prototypes::Template, event::Key,
     screen::result_item::ResultItem,
 };
+use anyhow::Result;
 use devicons::FileIcon;
 use std::hash::{Hash, Hasher};
 
@@ -11,6 +12,8 @@ pub struct Entry {
     pub raw: String,
     /// The actual entry string that will be displayed in the UI.
     pub display: Option<String>,
+    /// The output string that will be used when the entry is selected.
+    pub output: Option<Template>,
     /// The optional ranges for matching characters (based on `self.display`).
     pub match_ranges: Option<Vec<(u32, u32)>>,
     /// The optional icon associated with the entry.
@@ -105,6 +108,7 @@ impl Entry {
         Self {
             raw,
             display: None,
+            output: None,
             match_ranges: None,
             icon: None,
             line_number: None,
@@ -114,6 +118,11 @@ impl Entry {
 
     pub fn with_display(mut self, display: String) -> Self {
         self.display = Some(display);
+        self
+    }
+
+    pub fn with_output(mut self, output: Template) -> Self {
+        self.output = Some(output);
         self
     }
 
@@ -136,16 +145,12 @@ impl Entry {
         self.display.as_deref().unwrap_or(&self.raw)
     }
 
-    pub fn output(&self, template: &Option<Template>) -> String {
-        if let Some(template) = template {
-            return template.format(&self.raw).unwrap_or_else(|_| {
-                panic!(
-                    "Failed to format template '{}' with '{}'",
-                    template, self.raw
-                )
-            });
+    pub fn output(&self) -> Result<String> {
+        if let Some(output) = &self.output {
+            output.format(&self.raw)
+        } else {
+            Ok(self.raw.clone())
         }
-        self.raw.clone()
     }
 
     /// Sets whether the entry contains ANSI escape sequences.
@@ -166,6 +171,10 @@ impl ResultItem for Entry {
 
     fn display(&self) -> &str {
         self.display()
+    }
+
+    fn output(&self) -> Result<String> {
+        self.output()
     }
 
     fn match_ranges(&self) -> Option<&[(u32, u32)]> {
@@ -214,14 +223,12 @@ mod tests {
         let entry = Entry {
             raw: "test name with spaces".to_string(),
             display: None,
+            output: None,
             match_ranges: None,
             icon: None,
             line_number: None,
             ansi: false,
         };
-        assert_eq!(
-            entry.output(&Some(Template::parse("{}").unwrap())),
-            "test name with spaces"
-        );
+        assert_eq!(entry.output().unwrap(), "test name with spaces");
     }
 }

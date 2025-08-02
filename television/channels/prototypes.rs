@@ -185,6 +185,10 @@ pub enum OutputMode {
     Discard,
 }
 
+fn default_separator() -> String {
+    " ".to_string()
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
 pub struct ActionSpec {
     #[serde(default)]
@@ -197,6 +201,9 @@ pub struct ActionSpec {
     /// How to handle command output
     #[serde(default)]
     pub output_mode: OutputMode,
+    /// Separator to use when joining multiple selected entries
+    #[serde(default = "default_separator")]
+    pub separator: String,
     // TODO: add `requirements` (see `prototypes::BinaryRequirement`)
 }
 

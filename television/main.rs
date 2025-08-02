@@ -136,11 +136,7 @@ async fn main() -> Result<()> {
     }
     if let Some(entries) = output.selected_entries {
         for entry in &entries {
-            writeln!(
-                bufwriter,
-                "{}",
-                entry.output(&app.television.channel.prototype.source.output)
-            )?;
+            writeln!(bufwriter, "{}", entry.output()?)?;
         }
     }
     bufwriter.flush()?;
