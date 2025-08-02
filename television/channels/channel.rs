@@ -30,7 +30,7 @@ pub struct Channel {
 
 impl Channel {
     pub fn new(prototype: ChannelPrototype) -> Self {
-        let config = Config::default().prefer_prefix(true);
+        let config = Config::from_source_spec(&prototype.source);
         let matcher = Matcher::new(&config);
         let current_source_index = 0;
         Self {

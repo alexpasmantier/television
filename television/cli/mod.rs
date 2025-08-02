@@ -107,6 +107,7 @@ pub struct PostProcessedCli {
 
     // Behavior and matching configuration
     pub exact: bool,
+    pub sort: bool,
     pub select_1: bool,
     pub take_1: bool,
     pub take_1_fast: bool,
@@ -189,6 +190,7 @@ impl Default for PostProcessedCli {
 
             // Behavior and matching configuration
             exact: false,
+            sort: true,
             select_1: false,
             take_1: false,
             take_1_fast: false,
@@ -420,6 +422,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
 
         // Behavior and matching configuration
         exact: cli.exact,
+        sort: cli.sort,
         select_1: cli.select_1,
         take_1: cli.take_1,
         take_1_fast: cli.take_1_fast,
