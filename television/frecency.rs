@@ -67,15 +67,6 @@ impl FrecencyEntry {
         // Combined score with recency having stronger influence for recent items
         recency_weight * frequency_weight
     }
-
-    /// Update access information
-    pub fn update_access(&mut self) {
-        self.access_count += 1;
-        self.last_access = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-    }
 }
 
 #[derive(Debug, Clone)]
@@ -116,101 +107,27 @@ impl Frecency {
 
     /// Add or update a frecency entry for a selected item.
     pub fn add_entry(&mut self, entry: String, channel: String) -> Result<()> {
-        if self.max_size == 0 {
+        if self.max_size == 0 || entry.trim().is_empty() {
             return Ok(());
         }
 
-        // Don't add empty entries
-        if entry.trim().is_empty() {
-            return Ok(());
-        }
+        let key = (&entry, &channel);
 
-        // Check if entry already exists
         if let Some(existing) = self
             .entries
             .iter_mut()
-            .find(|e| e.entry == entry && e.channel == channel)
+            .find(|e| (&e.entry, &e.channel) == key)
         {
-            existing.update_access();
+            existing.access_count += 1;
+            existing.last_access = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_secs();
         } else {
-            // Add new entry
-            let frecency_entry = FrecencyEntry::new(entry, channel);
-            self.entries.push(frecency_entry);
-
-            // Trim if exceeding max size - remove oldest entries
-            if self.entries.len() > self.max_size {
-                // Sort by last_access and remove the oldest
-                self.entries.sort_by_key(|e| e.last_access);
-                self.entries.drain(0..self.entries.len() - self.max_size);
-            }
+            self.entries.push(FrecencyEntry::new(entry, channel));
         }
 
         Ok(())
-    }
-
-    /// Get frecency score for a specific entry (immutable version for sorting)
-    pub fn get_score(&self, entry: &str) -> Option<f64> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        // Cache channel filter calculation
-        let channel_filter = if self.global_mode {
-            None
-        } else {
-            Some(self.current_channel.as_str())
-        };
-
-        self.entries
-            .iter()
-            .find(|e| {
-                e.entry == entry
-                    && channel_filter.is_none_or(|ch| e.channel == ch)
-            })
-            .map(|e| e.calculate_score(now))
-    }
-
-    /// Check if an entry has frecency data (was previously selected)
-    pub fn has_entry(&self, entry: &str) -> bool {
-        // Cache channel filter calculation
-        let channel_filter = if self.global_mode {
-            None
-        } else {
-            Some(self.current_channel.as_str())
-        };
-
-        self.entries.iter().any(|e| {
-            e.entry == entry && channel_filter.is_none_or(|ch| e.channel == ch)
-        })
-    }
-
-    /// Get all frecency entries sorted by score (highest first)
-    pub fn get_sorted_entries(&self) -> Vec<(String, f64)> {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs();
-
-        // Cache channel filter calculation
-        let channel_filter = if self.global_mode {
-            None
-        } else {
-            Some(self.current_channel.as_str())
-        };
-
-        let mut entries = Vec::with_capacity(self.entries.len());
-        entries.extend(
-            self.entries
-                .iter()
-                .filter(|e| channel_filter.is_none_or(|ch| e.channel == ch))
-                .map(|e| (e.entry.clone(), e.calculate_score(now))),
-        );
-
-        entries.sort_by(|a, b| {
-            b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)
-        });
-        entries
     }
 
     /// Get the most frecent items for priority matching
