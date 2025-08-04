@@ -48,10 +48,8 @@ pub struct Channel {
     dataset_update_handle: Option<tokio::task::JoinHandle<()>>,
     /// Dedicated matcher for frecent items
     frecency_matcher: Matcher<String>,
-    /// Cached intersection result with count tracking (intersection, dataset_count, frecency_count)
-    cached_intersection: Option<(FxHashSet<String>, usize, usize)>,
-    /// Track previous running state to detect completion
-    was_running: bool,
+    /// Cached intersection result with dataset count tracking
+    cached_intersection: Option<(FxHashSet<String>, usize)>,
 }
 
 impl Channel {
@@ -82,7 +80,6 @@ impl Channel {
             dataset_update_handle: None,
             frecency_matcher: Matcher::new(&config),
             cached_intersection: None,
-            was_running: false,
         }
     }
 
@@ -176,43 +173,23 @@ impl Channel {
         };
 
         let dataset_count = dataset.len();
-        let frecency_count = frecent_items.len();
-
-        // Check if channel just stopped running and invalidate cache
-        let currently_running = self.running();
-        if self.was_running && !currently_running {
-            debug!("Channel completed, invalidating cached intersection");
-            self.cached_intersection = None;
-        }
-        self.was_running = currently_running;
 
         // Check if we can use cached result
-        if let Some((
-            cached_intersection,
-            cached_dataset_count,
-            cached_frecency_count,
-        )) = &self.cached_intersection
+        if let Some((cached_intersection, cached_dataset_count)) =
+            &self.cached_intersection
         {
-            if *cached_dataset_count == dataset_count
-                && *cached_frecency_count == frecency_count
-            {
+            if *cached_dataset_count == dataset_count {
                 debug!(
-                    "Using cached intersection result (dataset: {}, frecency: {}, items: {}, running: {})",
+                    "Using cached intersection result (dataset: {}, items: {})",
                     dataset_count,
-                    frecency_count,
-                    cached_intersection.len(),
-                    self.running()
+                    cached_intersection.len()
                 );
                 return cached_intersection.clone();
-            } else {
-                debug!(
-                    "Cache miss: dataset {} -> {}, frecency {} -> {}",
-                    cached_dataset_count,
-                    dataset_count,
-                    cached_frecency_count,
-                    frecency_count
-                );
             }
+            debug!(
+                "Cache miss: dataset {} -> {}",
+                cached_dataset_count, dataset_count
+            );
         }
 
         // Iterate over smaller frecent_items (~FRECENT_ITEMS_PRIORITY_COUNT)
@@ -230,13 +207,12 @@ impl Channel {
         debug!(
             "Calculating intersect between dataset and frecency list (dataset: {}, frecency: {}, items: {})",
             dataset_count,
-            frecency_count,
+            frecent_items.len(),
             intersection.len()
         );
 
-        // Cache the result with current counts
-        self.cached_intersection =
-            Some((intersection.clone(), dataset_count, frecency_count));
+        // Cache the result with current dataset count
+        self.cached_intersection = Some((intersection.clone(), dataset_count));
 
         intersection
     }
