@@ -48,6 +48,10 @@ pub struct Channel {
     dataset_update_handle: Option<tokio::task::JoinHandle<()>>,
     /// Dedicated matcher for frecent items
     frecency_matcher: Matcher<String>,
+    /// Cached intersection result with count tracking (intersection, dataset_count, frecency_count)
+    cached_intersection: Option<(FxHashSet<String>, usize, usize)>,
+    /// Track previous running state to detect completion
+    was_running: bool,
 }
 
 impl Channel {
@@ -77,6 +81,8 @@ impl Channel {
             current_dataset: Arc::new(RwLock::new(FxHashSet::default())),
             dataset_update_handle: None,
             frecency_matcher: Matcher::new(&config),
+            cached_intersection: None,
+            was_running: false,
         }
     }
 
@@ -132,6 +138,8 @@ impl Channel {
         }
         self.matcher.restart();
         self.frecency_matcher.restart();
+        // Clear cached intersection since we're reloading
+        self.cached_intersection = None;
         self.load();
         // Spawn a thread that turns off reloading after a short delay
         // to avoid UI flickering (this boolean is used by `Television::should_render`)
@@ -148,7 +156,7 @@ impl Channel {
 
     pub fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
-        // Mark frecency matcher for reload if pattern changed
+        // Refresh the frecency matcher if pattern changed
         if self.matcher.last_pattern != pattern {
             self.frecency_matcher.restart();
         }
@@ -156,7 +164,7 @@ impl Channel {
 
     /// Filter frecent items to only include those that exist in the current dataset
     fn filter_frecent_items_by_current_dataset(
-        &self,
+        &mut self,
         frecent_items: &[String],
     ) -> FxHashSet<String> {
         // Try to read dataset, return empty on lock failure to prevent blocking
@@ -166,6 +174,46 @@ impl Channel {
             );
             return FxHashSet::default();
         };
+
+        let dataset_count = dataset.len();
+        let frecency_count = frecent_items.len();
+
+        // Check if channel just stopped running and invalidate cache
+        let currently_running = self.running();
+        if self.was_running && !currently_running {
+            debug!("Channel completed, invalidating cached intersection");
+            self.cached_intersection = None;
+        }
+        self.was_running = currently_running;
+
+        // Check if we can use cached result
+        if let Some((
+            cached_intersection,
+            cached_dataset_count,
+            cached_frecency_count,
+        )) = &self.cached_intersection
+        {
+            if *cached_dataset_count == dataset_count
+                && *cached_frecency_count == frecency_count
+            {
+                debug!(
+                    "Using cached intersection result (dataset: {}, frecency: {}, items: {}, running: {})",
+                    dataset_count,
+                    frecency_count,
+                    cached_intersection.len(),
+                    self.running()
+                );
+                return cached_intersection.clone();
+            } else {
+                debug!(
+                    "Cache miss: dataset {} -> {}, frecency {} -> {}",
+                    cached_dataset_count,
+                    dataset_count,
+                    cached_frecency_count,
+                    frecency_count
+                );
+            }
+        }
 
         // Iterate over smaller frecent_items (~FRECENT_ITEMS_PRIORITY_COUNT)
         let mut intersection = FxHashSet::with_capacity_and_hasher(
@@ -178,6 +226,17 @@ impl Channel {
                 intersection.insert(item.clone());
             }
         }
+
+        debug!(
+            "Calculating intersect between dataset and frecency list (dataset: {}, frecency: {}, items: {})",
+            dataset_count,
+            frecency_count,
+            intersection.len()
+        );
+
+        // Cache the result with current counts
+        self.cached_intersection =
+            Some((intersection.clone(), dataset_count, frecency_count));
 
         intersection
     }
@@ -194,15 +253,38 @@ impl Channel {
             return Vec::new();
         }
 
+        trace!(
+            "Fuzzy matching {} frecent items with pattern: '{}'",
+            frecent_items.len(),
+            pattern
+        );
+        for item in frecent_items {
+            trace!("  frecent item: {}", item);
+        }
+
         // Apply the pattern
         self.frecency_matcher.find(pattern);
 
         // Let the matcher process
         self.frecency_matcher.tick();
 
+        trace!(
+            "Frecency matcher status: total_items={}, matched_items={}",
+            self.frecency_matcher.total_item_count,
+            self.frecency_matcher.matched_item_count
+        );
+
         // Get all matches (frecent items are small, so we can get all)
-        self.frecency_matcher
-            .results(frecent_items.len() as u32, offset)
+        let matches = self
+            .frecency_matcher
+            .results(frecent_items.len() as u32, offset);
+
+        trace!("Frecency matcher returned {} matches:", matches.len());
+        for (i, m) in matches.iter().enumerate() {
+            trace!("  match {}: {}", i, m.inner);
+        }
+
+        matches
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -218,6 +300,11 @@ impl Channel {
             // Frecency-aware results with dataset validation
             let frecent_items = frecency_data.get_frecent_items();
 
+            if self.frecency_matcher.needs_reload() || self.running() {
+                // Clear cached intersection when frecency matcher needs reload
+                self.cached_intersection = None;
+            }
+
             // Early exit if no frecent items to avoid unnecessary work
             if frecent_items.is_empty() {
                 self.matcher.results(num_entries, offset)
@@ -231,8 +318,12 @@ impl Channel {
                 if filtered_frecent_items.is_empty() {
                     self.matcher.results(num_entries, offset)
                 } else {
-                    // Only repopulate frecency matcher if needed and streaming is complete
-                    if self.frecency_matcher.needs_reload() || self.running() {
+                    // Only repopulate frecency matcher if needed
+                    if self.frecency_matcher.needs_reload()
+                        || self.running()
+                        || filtered_frecent_items.len()
+                            != self.frecency_matcher.total_item_count as usize
+                    {
                         debug!(
                             "Repopulating frecency matcher with {} items",
                             filtered_frecent_items.len()
@@ -277,12 +368,32 @@ impl Channel {
                         }
                     }
 
+                    trace!(
+                        "Result combination: {} frecent + {} regular (requested: {})",
+                        frecent_matches.len(),
+                        regular_matches.len(),
+                        num_entries
+                    );
+
                     // Combine results: frecent items first (highest priority), then regular matches
                     let mut combined = frecent_matches;
                     combined.extend(regular_matches);
 
                     // Apply pagination
-                    combined.into_iter().take(num_entries as usize).collect()
+                    let final_results: Vec<_> = combined
+                        .into_iter()
+                        .take(num_entries as usize)
+                        .collect();
+
+                    trace!(
+                        "Final results after pagination: {}",
+                        final_results.len()
+                    );
+                    for (i, item) in final_results.iter().enumerate() {
+                        trace!("  final result {}: {}", i, item.inner);
+                    }
+
+                    final_results
                 }
             }
         } else {
