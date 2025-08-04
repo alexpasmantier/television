@@ -3,7 +3,7 @@
 //! These tests verify Television's configuration and directory handling capabilities,
 //! ensuring that users can customize their setup and work in different directories.
 
-use super::common::*;
+use super::super::common::*;
 use std::path::Path;
 
 /// Tests that the PATH positional argument correctly sets the working directory.

@@ -97,7 +97,7 @@ pub struct Config {
 }
 
 const PROJECT_NAME: &str = "television";
-const CONFIG_FILE_NAME: &str = "config.toml";
+pub const CONFIG_FILE_NAME: &str = "config.toml";
 
 pub struct ConfigEnv {
     _data_dir: PathBuf,

@@ -9,7 +9,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that --autocomplete-prompt automatically detects and activates the appropriate channel.
 #[test]

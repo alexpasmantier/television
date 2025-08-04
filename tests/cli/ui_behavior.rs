@@ -4,7 +4,7 @@
 //! ensuring users can effectively navigate and control the interface during operation.
 //! These are integration tests that combine CLI setup with interactive behavior.
 
-use super::common::*;
+use super::super::common::*;
 use std::path::Path;
 
 /// Tests that the toggle preview keybinding functionality works correctly.

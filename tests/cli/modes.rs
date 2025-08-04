@@ -4,7 +4,7 @@
 //! and the intelligent path detection logic that automatically switches between them.
 //! This is fundamental to how Television interprets CLI arguments.
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that basic Channel Mode activation works with a channel name.
 #[test]

@@ -6,7 +6,7 @@
 
 use television::tui::TESTING_ENV_VAR;
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that preview flags without --preview-command fail in Ad-hoc Mode.
 #[test]

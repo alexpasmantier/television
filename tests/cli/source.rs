@@ -4,7 +4,7 @@
 //! generating and formatting the data that users interact with. Source commands define
 //! what entries are available for selection and how they're processed.
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that --source-command works properly in Ad-hoc Mode.
 #[test]

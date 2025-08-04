@@ -4,7 +4,7 @@
 //! customize preview behavior and that conflicting options are properly detected.
 //! Preview features are essential for examining file contents and command outputs.
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that --preview-command works in Ad-hoc Mode.
 #[test]
