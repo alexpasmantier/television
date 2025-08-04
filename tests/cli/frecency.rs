@@ -575,3 +575,39 @@ fn test_frecency_disabled_behavior() {
         PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
     }
 }
+
+/// Tests that preview works correctly with frecency items at high offsets.
+#[test]
+fn test_frecency_preview_with_high_offset_navigation() {
+    let temp_dir = create_temp_data_dir_with_empty_frecency();
+    let data_dir = temp_dir.path().to_str().unwrap();
+
+    // Create a test file that we can preview
+    let test_file_content = "This is preview content\nLine 2\nLine 3";
+    let test_file = temp_dir.path().join("preview_test.txt");
+    fs::write(&test_file, test_file_content)
+        .expect("Failed to create test file");
+
+    let mut tester = PtyTester::new();
+    let cmd =
+        tv_frecency_with_data_dir(data_dir, &["files", "--global-frecency"]);
+
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Wait for UI to load with preview panel
+    tester.assert_tui_frame_contains("files");
+    tester.assert_tui_frame_contains("Preview");
+
+    // Move to the last position (high offset) by pressing Ctrl+P (up) once
+    // This should select the last item in the list
+    tester.send(&ctrl('p'));
+
+    // Wait a bit for the preview to update
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
+    tester.assert_not_tui_frame_contains("Select an entry to preview");
+
+    // Exit cleanly
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}

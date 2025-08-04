@@ -86,7 +86,7 @@ impl Channel {
             dataset.clear();
         }
 
-        // Clear frecent matcher since dataset is changing
+        // Clear recent matcher since dataset is changing
         self.frecency_matcher.restart();
 
         // Create bounded channel to prevent unbounded memory growth
@@ -148,6 +148,10 @@ impl Channel {
 
     pub fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
+        // Mark frecency matcher for reload if pattern changed
+        if self.matcher.last_pattern != pattern {
+            self.frecency_matcher.restart();
+        }
     }
 
     /// Filter frecent items to only include those that exist in the current dataset
@@ -184,6 +188,7 @@ impl Channel {
         &mut self,
         pattern: &str,
         frecent_items: &FxHashSet<String>,
+        offset: u32,
     ) -> Vec<MatchedItem<String>> {
         if frecent_items.is_empty() {
             return Vec::new();
@@ -196,7 +201,8 @@ impl Channel {
         self.frecency_matcher.tick();
 
         // Get all matches (frecent items are small, so we can get all)
-        self.frecency_matcher.results(frecent_items.len() as u32, 0)
+        self.frecency_matcher
+            .results(frecent_items.len() as u32, offset)
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -216,18 +222,6 @@ impl Channel {
             if frecent_items.is_empty() {
                 self.matcher.results(num_entries, offset)
             } else {
-                // Populate frecency matcher with all frecent items (once per reload/load cycle)
-                // We use all items (unfiltered) since dataset changes during source cycling/reloading,
-                // but frecency data remains constant during the session
-                if self.frecency_matcher.total_item_count == 0 {
-                    let injector = self.frecency_matcher.injector();
-                    for item in &frecent_items {
-                        injector.push(item.clone(), |e, cols| {
-                            cols[0] = e.clone().into();
-                        });
-                    }
-                }
-
                 // Filter frecent items to only include those in current dataset
                 // This prevents searching stale entries that don't exist in the current data source
                 let filtered_frecent_items = self
@@ -237,10 +231,26 @@ impl Channel {
                 if filtered_frecent_items.is_empty() {
                     self.matcher.results(num_entries, offset)
                 } else {
+                    // Only repopulate frecency matcher if needed and streaming is complete
+                    if self.frecency_matcher.needs_reload() || self.running() {
+                        debug!(
+                            "Repopulating frecency matcher with {} items",
+                            filtered_frecent_items.len()
+                        );
+                        self.frecency_matcher.restart();
+                        let injector = self.frecency_matcher.injector();
+                        for item in &filtered_frecent_items {
+                            injector.push(item.clone(), |e, cols| {
+                                cols[0] = e.clone().into();
+                            });
+                        }
+                        self.frecency_matcher.mark_loaded();
+                    }
                     // Fuzzy match the validated frecent items
                     let frecent_matches = self.fuzzy_match_frecent_items(
                         &self.matcher.last_pattern.clone(),
                         &filtered_frecent_items,
+                        offset,
                     );
 
                     // Get regular results, excluding recent matches to avoid duplicates
@@ -251,7 +261,7 @@ impl Channel {
                     if remaining_slots > 0 {
                         // Fetch full list to account for deduplication
                         let nucleo_results =
-                            self.matcher.results(num_entries, 0);
+                            self.matcher.results(num_entries, offset);
 
                         // Direct O(1) HashSet lookups for deduplication
                         regular_matches.reserve(remaining_slots as usize);
@@ -272,11 +282,7 @@ impl Channel {
                     combined.extend(regular_matches);
 
                     // Apply pagination
-                    combined
-                        .into_iter()
-                        .skip(offset as usize)
-                        .take(num_entries as usize)
-                        .collect()
+                    combined.into_iter().take(num_entries as usize).collect()
                 }
             }
         } else {

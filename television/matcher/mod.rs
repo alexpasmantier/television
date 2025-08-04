@@ -50,6 +50,8 @@ where
     pub status: Status,
     /// The last pattern that was matched against.
     pub last_pattern: String,
+    /// Flag indicating if the matcher needs to be reloaded/repopulated.
+    needs_reload: bool,
     /// A pre-allocated buffer used to collect match indices when fetching the results
     /// from the matcher. This avoids having to re-allocate on each pass.
     col_indices_buffer: Vec<u32>,
@@ -72,6 +74,7 @@ where
             matched_item_count: 0,
             status: Status::default(),
             last_pattern: String::new(),
+            needs_reload: true, // Initially needs to be loaded
             col_indices_buffer: Vec::with_capacity(128), // Pre-allocate for performance
         }
     }
@@ -264,5 +267,16 @@ where
         self.status = Status::default();
         self.last_pattern.clear();
         self.col_indices_buffer.clear();
+        self.needs_reload = true; // Mark as needing reload after restart
+    }
+
+    /// Check if the matcher needs to be reloaded/repopulated.
+    pub fn needs_reload(&self) -> bool {
+        self.needs_reload
+    }
+
+    /// Mark the matcher as loaded (reset the `needs_reload` flag).
+    pub fn mark_loaded(&mut self) {
+        self.needs_reload = false;
     }
 }
