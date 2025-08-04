@@ -5,7 +5,7 @@
 
 use television::tui::TESTING_ENV_VAR;
 
-use super::common::*;
+use super::super::common::*;
 
 /// Tests that --layout landscape arranges panels side-by-side.
 #[test]

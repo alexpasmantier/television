@@ -1,9 +1,14 @@
 #![allow(dead_code)]
 
+use std::path::PathBuf;
 use std::time::Duration;
+use std::{fs, io};
 use std::{io::Write, thread::sleep};
 
 use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use television::cable::CABLE_DIR_NAME;
+use television::config::CONFIG_FILE_NAME;
+use tempfile::{TempDir, tempdir};
 
 pub const CI_ENV_VAR: &str = "TV_CI";
 
@@ -125,7 +130,7 @@ impl PtyTester {
     ) -> Box<dyn portable_pty::Child + Send + Sync> {
         cmd.cwd(&self.cwd);
         let mut child = self.pair.slave.spawn_command(cmd).unwrap();
-        sleep(self.delay * 2);
+        sleep(self.delay * 3);
 
         self.assert_tui_running(&mut child);
         // wait for the TUI to stabilize
@@ -173,7 +178,7 @@ impl PtyTester {
             Ok(Some(_)) => {
                 panic!(
                     "Child process exited prematurely with output:\n{:?}",
-                    self.read_raw_output()
+                    self.read_tui_output()
                 );
             }
             Ok(None) => {
@@ -282,6 +287,32 @@ impl PtyTester {
         );
     }
 
+    /// Asserts that the frame contains all expected strings.
+    pub fn assert_tui_frame_contains_all(&mut self, expected: &[&str]) {
+        let frame = self.get_tui_frame();
+        for &exp in expected {
+            assert!(
+                frame.contains(exp),
+                "Expected output to contain\n'{}'\nbut got:\n{}",
+                exp,
+                frame
+            );
+        }
+    }
+
+    /// Asserts that the frame does not contain any of the expected strings.
+    pub fn assert_tui_frame_contains_none(&mut self, expected: &[&str]) {
+        let frame = self.get_tui_frame();
+        for &exp in expected {
+            assert!(
+                !frame.contains(exp),
+                "Expected output to not contain\n'{}'\nbut got:\n{}",
+                exp,
+                frame
+            );
+        }
+    }
+
     /// Asserts that the frame does not contain the expected string.
     pub fn assert_not_tui_frame_contains(&mut self, expected: &str) {
         let frame = self.get_tui_frame();
@@ -338,4 +369,88 @@ pub fn tv_local_config_and_cable_with_args(args: &[&str]) -> CommandBuilder {
     cmd.args(LOCAL_CONFIG_AND_CABLE);
     cmd.args(args);
     cmd
+}
+
+/// A temporary configuration directory for tv to use during tests.
+///
+/// # Example
+/// ```rs
+/// // initialize a temporary directory with the right structure
+/// let temp_config = TempConfig::init();
+///
+/// let config_content: &str = r#"
+/// [ui]
+/// theme = "default"
+/// "#;
+///
+/// let channel_content: &str = r#"
+/// [metadata]
+/// name = "my-channel"
+/// description = "..."
+/// ...
+/// "#;
+///
+/// temp_config.write_config(config_content)?;
+/// temp_config.write_channel("my-channel", channel_content)?;
+/// ```
+pub struct TempConfig {
+    pub config_file: PathBuf,
+    pub cable_dir: PathBuf,
+    tempdir: TempDir,
+}
+
+impl TempConfig {
+    /// Create a temporary configuration directory.
+    pub fn init() -> Self {
+        let dir = tempdir().expect("tempdir creation failed");
+        let cable_dir = dir.path().join(CABLE_DIR_NAME);
+        fs::create_dir_all(&cable_dir)
+            .expect("cable directory creation failed");
+        let config_file = dir.path().join(CONFIG_FILE_NAME);
+        fs::write(&config_file, "").expect("failed touching config file");
+        Self {
+            config_file,
+            cable_dir,
+            tempdir: dir,
+        }
+    }
+
+    /// Write the config file in this temporary configuration directory.
+    ///
+    /// This will overwrite any existing content.
+    ///
+    /// # Example
+    /// ```rs
+    /// let temp_config = TempConfig::init();
+    /// let config_content: &str = r#"
+    /// [ui]
+    /// theme = "default"
+    /// "#;
+    ///
+    /// temp_config.write_config(config_content)?;
+    /// ```
+    pub fn write_config(&self, contents: &str) -> io::Result<()> {
+        fs::write(&self.config_file, contents)
+    }
+
+    /// Write a new channel inside this temporary configuration directory.
+    ///
+    /// This will create a new file with the given name and `.toml` extension.
+    ///
+    /// # Example
+    /// ```rs
+    /// let temp_config = TempConfig::init();
+    ///
+    /// let channel_content: &str = r#"
+    /// [metadata]
+    /// name = "my-channel"
+    /// description = "..."
+    /// ...
+    /// "#;
+    ///
+    /// temp_config.write_channel("my-channel", channel_content)?;
+    /// ```
+    pub fn write_channel(&self, name: &str, contents: &str) -> io::Result<()> {
+        fs::write(self.cable_dir.join(name).with_extension("toml"), contents)
+    }
 }

@@ -3,7 +3,7 @@
 //! These tests verify Television's live monitoring capabilities,
 //! ensuring users can enable real-time data updates.
 
-use super::common::*;
+use super::super::common::*;
 use std::path::Path;
 
 /// Tests that --watch enables live monitoring with automatic source command re-execution.

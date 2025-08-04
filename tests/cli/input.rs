@@ -5,7 +5,7 @@
 
 use std::path::Path;
 
-use super::common::*;
+use super::super::common::*;
 
 const TARGET_DIR: &str = "tests/target_dir";
 

@@ -13,18 +13,15 @@
 //! - UI behavioral integration
 //! - Error handling and validation
 
-#[path = "../common/mod.rs"]
-mod common;
-
-pub mod cli_config;
-pub mod cli_errors;
-pub mod cli_external_actions;
-pub mod cli_input;
-pub mod cli_modes;
-pub mod cli_monitoring;
-pub mod cli_preview;
-pub mod cli_selection;
-pub mod cli_source;
-pub mod cli_special;
-pub mod cli_ui;
-pub mod cli_ui_behavior;
+pub mod config;
+pub mod errors;
+pub mod external_actions;
+pub mod input;
+pub mod modes;
+pub mod monitoring;
+pub mod preview;
+pub mod selection;
+pub mod source;
+pub mod special;
+pub mod ui;
+pub mod ui_behavior;

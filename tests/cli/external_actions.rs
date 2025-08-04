@@ -3,7 +3,7 @@
 //! These tests verify that external actions defined in channel TOML files work correctly,
 //! including keybinding integration and command execution.
 
-use super::common::*;
+use super::super::common::*;
 use std::{fs, thread::sleep, time::Duration};
 
 // ANSI escape sequences for function keys
