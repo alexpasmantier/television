@@ -51,7 +51,7 @@ where
     /// The last pattern that was matched against.
     pub last_pattern: String,
     /// Flag indicating if the matcher needs to be reloaded/repopulated.
-    needs_reload: bool,
+    pub needs_reload: bool,
     /// A pre-allocated buffer used to collect match indices when fetching the results
     /// from the matcher. This avoids having to re-allocate on each pass.
     col_indices_buffer: Vec<u32>,

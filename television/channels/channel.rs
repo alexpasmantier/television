@@ -159,62 +159,88 @@ impl Channel {
         }
     }
 
-    /// Filter frecent items to only include those that exist in the current dataset
-    fn filter_frecent_items_by_current_dataset(
-        &mut self,
-        frecent_items: &[String],
-    ) -> FxHashSet<String> {
-        // Try to read dataset, return empty on lock failure to prevent blocking
-        let Ok(dataset) = self.current_dataset.read() else {
-            debug!(
-                "Failed to acquire dataset read lock, skipping frecency filtering"
-            );
-            return FxHashSet::default();
-        };
-
-        let dataset_count = dataset.len();
-
-        // Check if we can use cached result
+    /// Check if we can use cached intersection result
+    fn get_cached_intersection(
+        &self,
+        dataset_count: usize,
+    ) -> Option<&FxHashSet<String>> {
         if let Some((cached_intersection, cached_dataset_count)) =
             &self.cached_intersection
         {
             if *cached_dataset_count == dataset_count {
-                debug!(
-                    "Using cached intersection result (dataset: {}, items: {})",
-                    dataset_count,
-                    cached_intersection.len()
-                );
-                return cached_intersection.clone();
+                return Some(cached_intersection);
             }
             debug!(
-                "Cache miss: dataset {} -> {}",
-                cached_dataset_count, dataset_count
+                "Cache miss: dataset {} -> {}, item: {}",
+                cached_dataset_count,
+                dataset_count,
+                cached_intersection.len()
             );
         }
+        None
+    }
 
-        // Iterate over smaller frecent_items (~FRECENT_ITEMS_PRIORITY_COUNT)
+    /// Calculate intersection between frecent items and current dataset
+    fn calculate_intersection(
+        &mut self,
+        frecent_items: &[String],
+    ) -> FxHashSet<String> {
+        // Acquire the dataset lock within this method to avoid borrow checker issues
+        let Ok(dataset) = self.current_dataset.read() else {
+            debug!(
+                "Failed to acquire dataset read lock during intersection calculation"
+            );
+            return FxHashSet::default();
+        };
         let mut intersection = FxHashSet::with_capacity_and_hasher(
             frecent_items.len().min(dataset.len()),
             FxBuildHasher,
         );
 
-        for item in frecent_items {
-            if dataset.contains(item) {
-                intersection.insert(item.clone());
+        // Iterate over smaller collection for better performance
+        if frecent_items.len() < dataset.len() {
+            for item in frecent_items {
+                if dataset.contains(item) {
+                    intersection.insert(item.clone());
+                }
+            }
+        } else {
+            for item in dataset.iter() {
+                if frecent_items.contains(item) {
+                    intersection.insert(item.clone());
+                }
             }
         }
 
         debug!(
-            "Calculating intersect between dataset and frecency list (dataset: {}, frecency: {}, items: {})",
-            dataset_count,
+            "Calculated intersection: dataset={}, frecency={}, result={}",
+            dataset.len(),
             frecent_items.len(),
             intersection.len()
         );
 
-        // Cache the result with current dataset count
-        self.cached_intersection = Some((intersection.clone(), dataset_count));
-
+        // Cache the result
+        self.cached_intersection = Some((intersection.clone(), dataset.len()));
         intersection
+    }
+
+    /// Convert `MatchedItem` results to Entry objects
+    fn convert_to_entries(
+        &self,
+        results: Vec<MatchedItem<String>>,
+    ) -> Vec<Entry> {
+        let mut entries = Vec::with_capacity(results.len());
+        for item in results {
+            let mut entry = Entry::new(item.inner)
+                .with_display(item.matched_string)
+                .with_match_indices(&item.match_indices)
+                .ansi(self.source_ansi);
+            if let Some(output) = &self.source_output {
+                entry = entry.with_output(output.clone());
+            }
+            entries.push(entry);
+        }
+        entries
     }
 
     /// Fuzzy match against a set of frecent items
@@ -228,39 +254,10 @@ impl Channel {
         if frecent_items.is_empty() {
             return Vec::new();
         }
-
-        trace!(
-            "Fuzzy matching {} frecent items with pattern: '{}'",
-            frecent_items.len(),
-            pattern
-        );
-        for item in frecent_items {
-            trace!("  frecent item: {}", item);
-        }
-
-        // Apply the pattern
         self.frecency_matcher.find(pattern);
-
-        // Let the matcher process
         self.frecency_matcher.tick();
-
-        trace!(
-            "Frecency matcher status: total_items={}, matched_items={}",
-            self.frecency_matcher.total_item_count,
-            self.frecency_matcher.matched_item_count
-        );
-
-        // Get all matches (frecent items are small, so we can get all)
-        let matches = self
-            .frecency_matcher
-            .results(frecent_items.len() as u32, offset);
-
-        trace!("Frecency matcher returned {} matches:", matches.len());
-        for (i, m) in matches.iter().enumerate() {
-            trace!("  match {}: {}", i, m.inner);
-        }
-
-        matches
+        self.frecency_matcher
+            .results(frecent_items.len() as u32, offset)
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -272,125 +269,102 @@ impl Channel {
     ) -> Vec<Entry> {
         self.matcher.tick();
 
-        let results = if let Some(frecency_data) = frecency {
-            // Frecency-aware results with dataset validation
-            let frecent_items = frecency_data.get_frecent_items();
-
-            if self.frecency_matcher.needs_reload() || self.running() {
-                // Clear cached intersection when frecency matcher needs reload
-                self.cached_intersection = None;
-            }
-
-            // Early exit if no frecent items to avoid unnecessary work
-            if frecent_items.is_empty() {
-                self.matcher.results(num_entries, offset)
-            } else {
-                // Filter frecent items to only include those in current dataset
-                // This prevents searching stale entries that don't exist in the current data source
-                let filtered_frecent_items = self
-                    .filter_frecent_items_by_current_dataset(&frecent_items);
-
-                // If no frecent items pass validation, fall back to regular matching
-                if filtered_frecent_items.is_empty() {
-                    self.matcher.results(num_entries, offset)
-                } else {
-                    // Only repopulate frecency matcher if needed
-                    if self.frecency_matcher.needs_reload()
-                        || self.running()
-                        || filtered_frecent_items.len()
-                            != self.frecency_matcher.total_item_count as usize
-                    {
-                        debug!(
-                            "Repopulating frecency matcher with {} items",
-                            filtered_frecent_items.len()
-                        );
-                        self.frecency_matcher.restart();
-                        let injector = self.frecency_matcher.injector();
-                        for item in &filtered_frecent_items {
-                            injector.push(item.clone(), |e, cols| {
-                                cols[0] = e.clone().into();
-                            });
-                        }
-                        self.frecency_matcher.mark_loaded();
-                    }
-                    // Fuzzy match the validated frecent items
-                    let frecent_matches = self.fuzzy_match_frecent_items(
-                        &self.matcher.last_pattern.clone(),
-                        &filtered_frecent_items,
-                        offset,
-                    );
-
-                    // Get regular results, excluding recent matches to avoid duplicates
-                    let remaining_slots = num_entries
-                        .saturating_sub(frecent_matches.len() as u32);
-
-                    let mut regular_matches = Vec::new();
-                    if remaining_slots > 0 {
-                        // Fetch full list to account for deduplication
-                        let nucleo_results =
-                            self.matcher.results(num_entries, offset);
-
-                        // Direct O(1) HashSet lookups for deduplication
-                        regular_matches.reserve(remaining_slots as usize);
-                        for item in nucleo_results {
-                            if !filtered_frecent_items.contains(&item.inner) {
-                                regular_matches.push(item);
-                                if regular_matches.len()
-                                    >= remaining_slots as usize
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    trace!(
-                        "Result combination: {} frecent + {} regular (requested: {})",
-                        frecent_matches.len(),
-                        regular_matches.len(),
-                        num_entries
-                    );
-
-                    // Combine results: frecent items first (highest priority), then regular matches
-                    let mut combined = frecent_matches;
-                    combined.extend(regular_matches);
-
-                    // Apply pagination
-                    let final_results: Vec<_> = combined
-                        .into_iter()
-                        .take(num_entries as usize)
-                        .collect();
-
-                    trace!(
-                        "Final results after pagination: {}",
-                        final_results.len()
-                    );
-                    for (i, item) in final_results.iter().enumerate() {
-                        trace!("  final result {}: {}", i, item.inner);
-                    }
-
-                    final_results
-                }
-            }
-        } else {
+        // Handle frecency-aware results if provided
+        let Some(frecency_data) = frecency else {
             // No frecency: use standard nucleo matching
-            self.matcher.results(num_entries, offset)
+            let results = self.matcher.results(num_entries, offset);
+            return self.convert_to_entries(results);
         };
 
-        let mut entries = Vec::with_capacity(results.len());
+        // Frecency-aware results with dataset validation
+        let frecent_items = frecency_data.get_frecent_items();
 
-        for item in results {
-            let mut entry = Entry::new(item.inner)
-                .with_display(item.matched_string)
-                .with_match_indices(&item.match_indices)
-                .ansi(self.source_ansi);
-            if let Some(output) = &self.source_output {
-                entry = entry.with_output(output.clone());
-            }
-            entries.push(entry);
+        // Early exit if no frecent items to avoid unnecessary work
+        if frecent_items.is_empty() {
+            let results = self.matcher.results(num_entries, offset);
+            return self.convert_to_entries(results);
         }
 
-        entries
+        // Get dataset or fall back to regular results
+        let dataset_len = {
+            let Ok(dataset) = self.current_dataset.read() else {
+                debug!(
+                    "Failed to acquire dataset read lock, skipping frecency filtering"
+                );
+                let results = self.matcher.results(num_entries, offset);
+                return self.convert_to_entries(results);
+            };
+            dataset.len()
+        };
+
+        // Get filtered frecent items (cached or calculated)
+        let filtered_frecent_items =
+            if let Some(cached) = self.get_cached_intersection(dataset_len) {
+                cached.clone()
+            } else {
+                self.calculate_intersection(&frecent_items)
+            };
+
+        // If no frecent items pass validation, fall back to regular matching
+        if filtered_frecent_items.is_empty() {
+            let results = self.matcher.results(num_entries, offset);
+            return self.convert_to_entries(results);
+        } else if filtered_frecent_items.len()
+            != self.frecency_matcher.total_item_count as usize
+        {
+            self.frecency_matcher.needs_reload = true;
+        }
+
+        // Only repopulate frecency matcher if needed
+        if self.frecency_matcher.needs_reload() {
+            debug!(
+                "Repopulating frecency matcher with {} items",
+                filtered_frecent_items.len()
+            );
+            self.frecency_matcher.restart();
+            let injector = self.frecency_matcher.injector();
+            for item in &filtered_frecent_items {
+                injector.push(item.clone(), |e, cols| {
+                    cols[0] = e.clone().into();
+                });
+            }
+            self.frecency_matcher.mark_loaded();
+        }
+
+        // Fuzzy match the validated frecent items
+        let frecent_matches = self.fuzzy_match_frecent_items(
+            &self.matcher.last_pattern.clone(),
+            &filtered_frecent_items,
+            offset,
+        );
+
+        // Get regular results, excluding recent matches to avoid duplicates
+        let remaining_slots =
+            num_entries.saturating_sub(frecent_matches.len() as u32);
+        let mut regular_matches = Vec::new();
+
+        if remaining_slots > 0 {
+            let nucleo_results = self.matcher.results(num_entries, offset);
+            regular_matches.reserve(remaining_slots as usize);
+
+            for item in nucleo_results {
+                if !filtered_frecent_items.contains(&item.inner) {
+                    regular_matches.push(item);
+                    if regular_matches.len() >= remaining_slots as usize {
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Combine results: frecent items first, then regular matches
+        let mut combined = frecent_matches;
+        combined.extend(regular_matches);
+
+        // Apply pagination and convert to entries
+        let final_results: Vec<_> =
+            combined.into_iter().take(num_entries as usize).collect();
+        self.convert_to_entries(final_results)
     }
 
     pub fn get_result(&mut self, index: u32) -> Option<Entry> {
@@ -506,12 +480,6 @@ fn apply_pending_updates(
             for batch in pending_updates {
                 dataset.extend(batch.iter().cloned());
             }
-
-            trace!(
-                "Applied {} batches containing {} total items to dataset",
-                pending_updates.len(),
-                total_items
-            );
         }
         Err(e) => {
             debug!(
