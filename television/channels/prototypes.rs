@@ -271,6 +271,8 @@ impl ChannelPrototype {
                 ansi: false,
                 display: None,
                 output: None,
+                prefer_prefix: true,
+                sort_results: true,
             },
             preview: None,
             ui: None,
@@ -284,6 +286,7 @@ impl ChannelPrototype {
     pub fn stdin(
         preview: Option<PreviewSpec>,
         entry_delimiter: Option<char>,
+        sort_results: bool,
     ) -> Self {
         Self {
             metadata: Metadata {
@@ -303,6 +306,8 @@ impl ChannelPrototype {
                 entry_delimiter,
                 display: None,
                 output: None,
+                prefer_prefix: true,
+                sort_results,
             },
             preview,
             ui: None,
@@ -377,6 +382,14 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
+    #[serde(default = "default_true")]
+    pub prefer_prefix: bool,
+    #[serde(default = "default_true")]
+    pub sort_results: bool,
+}
+
+fn default_true() -> bool {
+    true
 }
 
 /// Just a helper function to adapt cli parsing to serde deserialization.
@@ -549,6 +562,8 @@ mod tests {
         env = {}
         display = "{split:/:-1}" # only show the last path segment ('/a/b/c' -> 'c')
         output = "{}"            # output the full path
+        prefer_prefix = false
+        sort_results = false
         unknown_field = "ignored" # should be ignored
 
         [preview]
@@ -605,6 +620,8 @@ mod tests {
         assert!(!prototype.source.command.interactive);
         assert_eq!(prototype.source.display.unwrap().raw(), "{split:/:-1}");
         assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+        assert!(!prototype.source.prefer_prefix);
+        assert!(!prototype.source.sort_results);
 
         let preview = prototype.preview.as_ref().unwrap();
         assert_eq!(
@@ -743,6 +760,8 @@ mod tests {
         assert!(prototype.source.command.env.is_empty());
         assert!(prototype.source.display.is_none());
         assert!(prototype.source.output.is_none());
+        assert!(prototype.source.prefer_prefix);
+        assert!(prototype.source.sort_results);
         assert!(prototype.preview.is_none());
         assert!(prototype.ui.is_none());
         assert!(prototype.keybindings.is_none());

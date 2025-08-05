@@ -177,7 +177,7 @@ Edit the `~/.config/television/shell/integration.bash` file and replace the `tv_
 function tv_shell_history() {
   local current_prompt="${READLINE_LINE:0:$READLINE_POINT}"
 
-  local output=$(history -n && history -a && tv bash-history --input "$current_prompt")
+  local output=$(history -n && history -a && tv bash-history --input "$current_prompt" --sort=false)
 
   if [[ -n $output ]]; then
     READLINE_LINE=$output
