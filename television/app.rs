@@ -677,7 +677,7 @@ impl App {
                     self.television.mode == Mode::RemoteControl;
 
                 // forward action to the television handler
-                let frecency_ref = if self.frecency.max_size() > 0 {
+                let frecency_ref = if self.frecency.max_size > 0 {
                     Some(&self.frecency)
                 } else {
                     None
