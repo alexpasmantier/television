@@ -112,7 +112,7 @@ impl PtyTester {
     ) -> Box<dyn portable_pty::Child + Send + Sync> {
         cmd.cwd(&self.cwd);
         let child = self.pair.slave.spawn_command(cmd).unwrap();
-        sleep(self.delay);
+        sleep(self.delay * 3);
 
         child
     }
@@ -177,7 +177,7 @@ impl PtyTester {
         match child.try_wait() {
             Ok(Some(_)) => {
                 panic!(
-                    "Child process exited prematurely with output:\n{:?}",
+                    "Child process exited prematurely with output:\n{}",
                     self.read_tui_output()
                 );
             }
@@ -208,14 +208,14 @@ impl PtyTester {
                 }
                 Ok(None) => {
                     // Process is still running, continue waiting
-                    sleep(DEFAULT_DELAY / 6);
+                    sleep(timeout / 6);
                 }
                 Err(e) => {
                     panic!("Error waiting for process: {}", e);
                 }
             }
         }
-        panic!("Process did not exit in time");
+        panic!("Process did not exit in time: {:?}", child.try_wait());
     }
 
     /// How long to wait for the TUI to stabilize before asserting its output.

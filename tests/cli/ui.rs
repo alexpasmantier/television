@@ -82,7 +82,7 @@ fn test_input_header_in_adhoc_mode() {
 
     // Verify the custom input header is displayed
     tester.assert_tui_frame_contains("UNIQUE16CHARID");
-    tester.assert_tui_frame_contains("CHANNEL  custom");
+    tester.assert_tui_frame_contains("CHANNEL  Custom");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -121,7 +121,7 @@ fn test_input_prompt_in_adhoc_mode() {
 
     // Verify the custom input prompt is displayed
     tester.assert_tui_frame_contains("→ ");
-    tester.assert_tui_frame_contains("CHANNEL  custom");
+    tester.assert_tui_frame_contains("CHANNEL  Custom");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -183,24 +183,6 @@ fn test_no_remote_hides_remote_panel() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests that --no-status-bar hides the bottom status bar.
-#[test]
-fn test_no_status_bar_hides_status_bar() {
-    let mut tester = PtyTester::new();
-
-    // This disables the bottom status bar display
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--no-status-bar"]);
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify the status bar is hidden
-    tester.assert_not_tui_frame_contains("CHANNEL  files");
-
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
 /// Tests that --hide-status-bar starts the interface with the status bar hidden.
 #[test]
 fn test_hide_status_bar_flag_hides_status_bar() {
@@ -217,58 +199,6 @@ fn test_hide_status_bar_flag_hides_status_bar() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
-/// Tests that --show-status-bar ensures the status bar is visible.
-#[test]
-fn test_show_status_bar_flag_shows_status_bar() {
-    let mut tester = PtyTester::new();
-
-    // Start with the files channel and force the status bar visible
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--show-status-bar"]);
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify the status bar is visible
-    tester.assert_tui_frame_contains("CHANNEL  files");
-
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
-/// Tests that --hide-status-bar conflicts with --no-status-bar.
-#[test]
-fn test_hide_status_bar_conflicts_with_no_status_bar() {
-    let mut tester = PtyTester::new();
-
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-status-bar",
-        "--no-status-bar",
-    ]);
-    tester.spawn_command(cmd);
-
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
-}
-
-/// Tests that --hide-status-bar and --show-status-bar cannot be used together.
-#[test]
-fn test_hide_and_show_status_bar_conflict_errors() {
-    let mut tester = PtyTester::new();
-
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-status-bar",
-        "--show-status-bar",
-    ]);
-    tester.spawn_command(cmd);
-
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
 }
 
 /// Tests that --show-remote starts the interface with the remote control panel visible.

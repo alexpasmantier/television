@@ -1,6 +1,5 @@
 use crate::{
     channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
-    config::ui::RemoteControlConfig,
     screen::{
         colors::{Colorscheme, GeneralColorscheme},
         logo::{REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph},
@@ -25,13 +24,12 @@ pub fn draw_remote_control(
     f: &mut Frame,
     rect: Rect,
     entries: &[CableEntry],
-    use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     input_state: &mut Input,
     colorscheme: &Colorscheme,
-    remote_config: &RemoteControlConfig,
+    show_channel_descriptions: bool,
 ) -> Result<()> {
-    let layout = if remote_config.show_channel_descriptions {
+    let layout = if show_channel_descriptions {
         Layout::default()
             .direction(Direction::Horizontal)
             .constraints(
@@ -66,13 +64,12 @@ pub fn draw_remote_control(
         f,
         layout[0],
         entries,
-        use_nerd_font_icons,
         picker_state,
         colorscheme,
         input_state,
     )?;
 
-    if remote_config.show_channel_descriptions {
+    if show_channel_descriptions {
         draw_information_panel(f, layout[1], selected_entry, colorscheme);
     }
 
@@ -208,7 +205,6 @@ fn draw_search_panel(
     f: &mut Frame,
     area: Rect,
     entries: &[CableEntry],
-    use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     colorscheme: &Colorscheme,
     input: &mut Input,
@@ -218,14 +214,7 @@ fn draw_search_panel(
         .constraints([Constraint::Fill(1), Constraint::Length(3)].as_ref())
         .split(area);
 
-    draw_rc_channels(
-        f,
-        layout[0],
-        entries,
-        use_nerd_font_icons,
-        picker_state,
-        colorscheme,
-    );
+    draw_rc_channels(f, layout[0], entries, picker_state, colorscheme);
     draw_rc_input(f, layout[1], input, colorscheme)
 }
 
@@ -233,7 +222,6 @@ fn draw_rc_channels(
     f: &mut Frame,
     area: Rect,
     entries: &[CableEntry],
-    use_nerd_font_icons: bool,
     picker_state: &mut ListState,
     colorscheme: &Colorscheme,
 ) {
@@ -257,7 +245,6 @@ fn draw_rc_channels(
         entries,
         picker_state,
         ListDirection::TopToBottom,
-        use_nerd_font_icons,
         &colorscheme.results,
         area.width,
         |_| None,

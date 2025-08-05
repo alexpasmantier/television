@@ -1,7 +1,4 @@
-use crate::{
-    action::Action, draw::Ctx, features::FeatureFlags,
-    screen::keybindings::find_keys_for_single_action, television::Mode,
-};
+use crate::{action::Action, draw::Ctx, television::Mode};
 use ratatui::{
     Frame,
     layout::{
@@ -49,9 +46,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .add_modifier(Modifier::BOLD);
 
     // Add opening separator
-    if !ctx.config.ui.status_bar.separator_open.is_empty() {
+    if !ctx.config.status_bar_separator_open.is_empty() {
         left_spans.push(Span::styled(
-            ctx.config.ui.status_bar.separator_open.clone(),
+            ctx.config.status_bar_separator_open.clone(),
             separator_style,
         ));
     }
@@ -60,9 +57,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     left_spans.push(Span::styled(format!(" {} ", mode_text), mode_style));
 
     // Add closing separator
-    if !ctx.config.ui.status_bar.separator_close.is_empty() {
+    if !ctx.config.status_bar_separator_close.is_empty() {
         left_spans.push(Span::styled(
-            ctx.config.ui.status_bar.separator_close.clone(),
+            ctx.config.status_bar_separator_close.clone(),
             separator_style,
         ));
     }
@@ -127,59 +124,41 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     };
 
     // Add remote control hint (available in both modes, but only if remote control is enabled)
-    if ctx
-        .config
-        .ui
-        .features
-        .is_enabled(FeatureFlags::RemoteControl)
-    {
-        let keys = find_keys_for_single_action(
-            &ctx.config.keybindings,
-            &Action::ToggleRemoteControl,
-        );
-        if let Some(key) = keys.first() {
+    if !ctx.config.remote_disabled {
+        let key = &ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::ToggleRemoteControl);
+        if let Some(k) = key {
             let hint_text = match ctx.tv_state.mode {
                 Mode::Channel => "Remote Control",
                 Mode::RemoteControl => "Back to Channel",
             };
-            add_hint(hint_text, key);
+            add_hint(hint_text, &k.to_string());
         }
     }
 
     // Add preview hint (Channel mode only, and only if preview feature is enabled)
-    if ctx.tv_state.mode == Mode::Channel
-        && ctx
-            .config
-            .ui
-            .features
-            .is_enabled(FeatureFlags::PreviewPanel)
+    if ctx.tv_state.mode == Mode::Channel && !ctx.config.preview_panel_disabled
     {
-        let keys = find_keys_for_single_action(
-            &ctx.config.keybindings,
-            &Action::TogglePreview,
-        );
-        if let Some(key) = keys.first() {
-            let hint_text = if ctx
-                .config
-                .ui
-                .features
-                .is_visible(FeatureFlags::PreviewPanel)
-            {
-                "Hide Preview"
-            } else {
+        let key = &ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::TogglePreview);
+        if let Some(k) = key {
+            let hint_text = if ctx.config.preview_panel_hidden {
                 "Show Preview"
+            } else {
+                "Hide Preview"
             };
-            add_hint(hint_text, key);
+            add_hint(hint_text, &k.to_string());
         }
     }
 
     // Add keybinding help hint (available in both modes)
-    let keys = find_keys_for_single_action(
-        &ctx.config.keybindings,
-        &Action::ToggleHelp,
-    );
-    if let Some(key) = keys.first() {
-        add_hint("Help", key);
+    let key = &ctx.config.input_map.get_key_for_action(&Action::ToggleHelp);
+    if let Some(k) = key {
+        add_hint("Help", &k.to_string());
     }
 
     // Build middle section if we have hints

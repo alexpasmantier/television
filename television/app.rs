@@ -1,15 +1,10 @@
 use crate::{
     action::Action,
     cable::Cable,
-    channels::{
-        entry::Entry,
-        prototypes::{ActionSpec, ChannelPrototype},
-    },
-    cli::PostProcessedCli,
-    config::{Config, DEFAULT_PREVIEW_SIZE, default_tick_rate},
+    channels::{entry::Entry, prototypes::ActionSpec},
+    config::layers::LayeredConfig,
     event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
     history::History,
-    keymap::InputMap,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
     tui::{IoStream, Tui, TuiMode},
@@ -19,93 +14,8 @@ use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
 
-#[allow(clippy::struct_excessive_bools)]
-pub struct AppOptions {
-    /// Whether the application should use subsring matching instead of fuzzy
-    /// matching.
-    pub exact: bool,
-    /// Whether the application should automatically select the first entry if there is only one
-    /// entry available.
-    pub select_1: bool,
-    /// Whether the application should take the first entry after the channel has finished loading.
-    pub take_1: bool,
-    /// Whether the application should take the first entry as soon as it becomes available.
-    pub take_1_fast: bool,
-    /// Whether the application should disable the remote control feature.
-    pub no_remote: bool,
-    /// Whether the application should disable the preview panel feature.
-    pub no_preview: bool,
-    /// The size of the preview panel in lines/columns.
-    pub preview_size: Option<u16>,
-    /// The tick rate of the application in ticks per second (Hz).
-    pub tick_rate: f64,
-    /// Watch interval in seconds for automatic reloading (0 = disabled).
-    pub watch_interval: f64,
-    /// Height in lines for non-fullscreen mode.
-    pub height: Option<u16>,
-    /// Width in columns for non-fullscreen mode.
-    pub width: Option<u16>,
-    /// Use all available empty space at the bottom of the terminal as an inline interface.
-    pub inline: bool,
-}
-
-impl Default for AppOptions {
-    fn default() -> Self {
-        Self {
-            exact: false,
-            select_1: false,
-            take_1: false,
-            take_1_fast: false,
-            no_remote: false,
-            no_preview: false,
-            preview_size: Some(DEFAULT_PREVIEW_SIZE),
-            tick_rate: default_tick_rate(),
-            watch_interval: 0.0,
-            height: None,
-            width: None,
-            inline: false,
-        }
-    }
-}
-
-impl AppOptions {
-    #[allow(clippy::too_many_arguments)]
-    #[allow(clippy::fn_params_excessive_bools)]
-    pub fn new(
-        exact: bool,
-        select_1: bool,
-        take_1: bool,
-        take_1_fast: bool,
-        no_remote: bool,
-        no_preview: bool,
-        preview_size: Option<u16>,
-        tick_rate: f64,
-        watch_interval: f64,
-        height: Option<u16>,
-        width: Option<u16>,
-        inline: bool,
-    ) -> Self {
-        Self {
-            exact,
-            select_1,
-            take_1,
-            take_1_fast,
-            no_remote,
-            no_preview,
-            preview_size,
-            tick_rate,
-            watch_interval,
-            height,
-            width,
-            inline,
-        }
-    }
-}
-
 /// The main application struct that holds the state of the application.
 pub struct App {
-    input_map: InputMap,
-    /// The television instance that handles channels and entries.
     pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
@@ -113,7 +23,7 @@ pub struct App {
     should_suspend: bool,
     /// A sender channel for actions.
     ///
-    /// This is made public so that tests for instance can send actions to a running application.
+    /// This is made public so that tests, for instance, can send actions to a running application.
     pub action_tx: mpsc::UnboundedSender<Action>,
     /// The receiver channel for actions.
     action_rx: mpsc::UnboundedReceiver<Action>,
@@ -136,7 +46,6 @@ pub struct App {
     ui_state_tx: mpsc::UnboundedSender<UiState>,
     /// Render task handle
     render_task: Option<tokio::task::JoinHandle<Result<()>>>,
-    options: AppOptions,
     /// Watch timer task handle for periodic reloading
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
@@ -199,46 +108,27 @@ const EVENT_BUF_SIZE: usize = 4;
 const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
-    pub fn new(
-        channel_prototype: ChannelPrototype,
-        config: Config,
-        options: AppOptions,
-        cable_channels: Cable,
-        cli_args: &PostProcessedCli,
-    ) -> Self {
+    pub fn new(layered_config: LayeredConfig, cable_channels: Cable) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
         let (event_abort_tx, _) = mpsc::unbounded_channel();
 
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
-        let television = Television::new(
-            action_tx.clone(),
-            channel_prototype,
-            config,
-            cable_channels,
-            cli_args.clone(),
-        );
-
-        // Create input map from the merged config that includes both key and event bindings
-        let input_map = InputMap::from((
-            &television.config.keybindings,
-            &television.config.events,
-        ));
-        debug!("{:?}", input_map);
+        let television =
+            Television::new(action_tx.clone(), layered_config, cable_channels);
 
         let mut history = History::new(
-            television.config.application.history_size,
-            &television.channel_prototype.metadata.name,
-            television.config.application.global_history,
-            &television.config.application.data_dir.clone(),
+            television.merged_config.history_size,
+            &television.merged_config.channel_name,
+            television.merged_config.global_history,
+            &television.merged_config.data_dir.clone(),
         );
         if let Err(e) = history.init() {
             error!("Failed to initialize history: {}", e);
         }
 
         let mut app = Self {
-            input_map,
             television,
             should_quit: false,
             should_suspend: false,
@@ -251,7 +141,6 @@ impl App {
             ui_state_rx,
             ui_state_tx,
             render_task: None,
-            options,
             watch_timer_task: None,
             history,
         };
@@ -270,10 +159,10 @@ impl App {
 
     /// Start the watch timer if watch interval is configured
     fn start_watch_timer(&mut self) {
-        if self.options.watch_interval > 0.0 && !self.watch_active() {
+        if self.television.merged_config.watch > 0.0 && !self.watch_active() {
             let action_tx = self.action_tx.clone();
             let interval = std::time::Duration::from_secs_f64(
-                self.options.watch_interval,
+                self.television.merged_config.watch,
             );
 
             debug!("Starting watch timer with interval: {:?}", interval);
@@ -305,11 +194,9 @@ impl App {
         debug!("Stopped watch timer");
     }
 
-    /// Restart the watch timer based on current channel's watch configuration
+    /// Restart the watch timer
     fn restart_watch_timer(&mut self) {
         self.stop_watch_timer();
-        // Update the watch interval from the current channel prototype
-        self.options.watch_interval = self.television.channel_prototype.watch;
         self.start_watch_timer();
     }
 
@@ -319,36 +206,27 @@ impl App {
     /// channel's keybindings and shortcuts for all other channels if the remote control is
     /// enabled.
     fn update_input_map(&mut self) {
-        let mut input_map = InputMap::from((
-            &self.television.config.keybindings,
-            &self.television.config.events,
-        ));
-
         // Add channel specific shortcuts
         if let Some(rc) = &self.television.remote_control {
             let shortcut_keybindings =
                 rc.cable_channels.get_channels_shortcut_keybindings();
-            input_map.merge_key_bindings(&shortcut_keybindings);
+            self.television
+                .merged_config
+                .input_map
+                .merge_key_bindings(&shortcut_keybindings);
         }
-
-        self.input_map = input_map;
-        debug!("Updated input_map (with shortcuts): {:?}", self.input_map);
+        debug!(
+            "Updated input_map (with shortcuts): {:?}",
+            self.television.merged_config.input_map
+        );
     }
 
     /// Updates the history configuration to match the current channel.
     fn update_history(&mut self) {
-        let channel_prototype = &self.television.channel_prototype;
-
-        // Determine the effective global_history (channel overrides global config)
-        let global_mode = channel_prototype
-            .history
-            .global_mode
-            .unwrap_or(self.television.config.application.global_history);
-
         // Update existing history with new channel context
         self.history.update_channel_context(
-            &channel_prototype.metadata.name,
-            global_mode,
+            &self.television.merged_config.channel_name,
+            self.television.merged_config.global_history,
         );
     }
 
@@ -379,9 +257,9 @@ impl App {
             let ui_state_tx = self.ui_state_tx.clone();
             let action_tx_r = self.action_tx.clone();
             let tui_mode = Self::determine_tui_mode(
-                self.options.height,
-                self.options.width,
-                self.options.inline,
+                self.television.merged_config.height,
+                self.television.merged_config.width,
+                self.television.merged_config.inline,
             )?;
             let stream = if is_output_tty {
                 debug!("Rendering to stdout");
@@ -406,7 +284,8 @@ impl App {
         // Event loop
         if !headless {
             debug!("Starting backend event loop");
-            let event_loop = EventLoop::new(self.options.tick_rate);
+            let event_loop =
+                EventLoop::new(self.television.merged_config.tick_rate);
             self.event_rx = event_loop.rx;
             self.event_abort_tx = event_loop.abort_tx;
         }
@@ -445,7 +324,7 @@ impl App {
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
 
-            if self.options.select_1
+            if self.television.merged_config.select_1
                 && !self.television.channel.running()
                 && self.television.channel.total_count() == 1
             {
@@ -454,13 +333,14 @@ impl App {
                 if let Some(outcome) = self.maybe_select_1() {
                     action_outcome = outcome;
                 }
-            } else if self.options.take_1 && !self.television.channel.running()
+            } else if self.television.merged_config.take_1
+                && !self.television.channel.running()
             {
                 // If `take_1` is true and the channel has finished loading,
                 // automatically take the first entry regardless of count.
                 // If there are no entries, exit with None.
                 action_outcome = self.maybe_take_1();
-            } else if self.options.take_1_fast {
+            } else if self.television.merged_config.take_1_fast {
                 // If `take_1_fast` is true, immediately take the first entry without
                 // waiting for loading to finish. If there are no entries, exit with None.
                 action_outcome = self.maybe_take_1();
@@ -511,8 +391,11 @@ impl App {
         let actions = match event {
             Event::Input(keycode) => {
                 // First try to get actions based on keybindings
-                if let Some(actions) =
-                    self.input_map.get_actions_for_key(&keycode)
+                if let Some(actions) = self
+                    .television
+                    .merged_config
+                    .input_map
+                    .get_actions_for_key(&keycode)
                 {
                     let actions_vec = actions.as_slice().to_vec();
                     debug!("Keybinding found: {actions_vec:?}");
@@ -532,7 +415,9 @@ impl App {
                         kind: mouse_event.kind,
                         position: (mouse_event.column, mouse_event.row),
                     });
-                    self.input_map
+                    self.television
+                        .merged_config
+                        .input_map
                         .get_actions_for_input(&input_event)
                         .unwrap_or_else(|| vec![Action::NoOp])
                 } else {
@@ -691,8 +576,8 @@ impl App {
                         {
                             if let Some(action_spec) = self
                                 .television
-                                .channel_prototype
-                                .actions
+                                .merged_config
+                                .channel_actions
                                 .get(action_name)
                             {
                                 // Store the external action info and exit - the command will be executed after terminal cleanup

@@ -7,7 +7,6 @@ pub struct PreviewState {
     pub enabled: bool,
     pub preview: Preview,
     pub scroll: u16,
-    pub target_line: Option<u16>,
 }
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
@@ -15,17 +14,11 @@ pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 3;
 const ANSI_CONTEXT_SIZE: u16 = 500;
 
 impl PreviewState {
-    pub fn new(
-        enabled: bool,
-        preview: Preview,
-        scroll: u16,
-        target_line: Option<u16>,
-    ) -> Self {
+    pub fn new(enabled: bool, preview: Preview, scroll: u16) -> Self {
         PreviewState {
             enabled,
             preview,
             scroll,
-            target_line,
         }
     }
 
@@ -44,23 +37,17 @@ impl PreviewState {
     pub fn reset(&mut self) {
         self.preview = Preview::default();
         self.scroll = 0;
-        self.target_line = None;
     }
 
-    pub fn update(
-        &mut self,
-        preview: Preview,
-        scroll: u16,
-        target_line: Option<u16>,
-    ) {
+    pub fn update(&mut self, preview: Preview, scroll: u16) {
         if self.preview.title != preview.title
             || self.preview.content != preview.content
             || self.preview.footer != preview.footer
+            || self.preview.line_number != preview.line_number
             || self.scroll != scroll
         {
             self.preview = preview;
             self.scroll = scroll;
-            self.target_line = target_line;
         }
     }
 
@@ -78,30 +65,21 @@ impl PreviewState {
             .cloned()
             .collect::<Vec<_>>();
 
-        let target_line: Option<u16> =
-            if let Some(target_line) = self.target_line {
-                if num_skipped_lines < target_line
-                    && (target_line - num_skipped_lines) <= ANSI_CONTEXT_SIZE
-                {
-                    Some(target_line.saturating_sub(num_skipped_lines))
-                } else {
-                    None
-                }
-            } else {
-                None
-            };
+        let adjusted_line_number = self
+            .preview
+            .line_number
+            .map(|line| line.saturating_sub(num_skipped_lines));
 
         PreviewState::new(
             self.enabled,
             Preview::new(
                 &self.preview.title,
                 Text::from(cropped_content),
-                self.preview.icon,
+                adjusted_line_number,
                 self.preview.total_lines,
                 self.preview.footer.clone(),
             ),
-            num_skipped_lines,
-            target_line,
+            self.scroll,
         )
     }
 }

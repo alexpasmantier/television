@@ -1,11 +1,10 @@
 use crate::{
     action::{Action, Actions},
-    cable::{self, Cable},
+    cable::Cable,
     channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
-        DEFAULT_PREVIEW_SIZE, KeyBindings, get_config_dir, get_data_dir,
-        merge_bindings,
+        KeyBindings, get_config_dir, get_data_dir, merge_bindings,
         ui::{BorderType, Padding},
     },
     errors::cli_parsing_error_exit,
@@ -48,46 +47,57 @@ pub mod args;
 /// The validation logic in `post_process()` enforces these constraints for ad-hoc mode
 /// while allowing full flexibility in channel-based mode.
 #[allow(clippy::struct_excessive_bools)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct PostProcessedCli {
+    /// Fields that are scoped to the first channel spawned
+    ///
+    /// These will be overridden when changing channels.
+    pub channel: ChannelCli,
+    /// Fields that are global to the CLI and not specific to a channel.
+    ///
+    /// These will persist across multiple channels.
+    pub global: GlobalCli,
+}
+
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Default)]
+pub struct ChannelCli {
     // Channel and source configuration
     pub channel: Option<String>,
-    pub source_command_override: Option<Template>,
-    pub source_display_override: Option<Template>,
-    pub source_output_override: Option<Template>,
+    pub source_command: Option<Template>,
+    pub source_display: Option<Template>,
+    pub source_output: Option<Template>,
     pub source_entry_delimiter: Option<char>,
-    pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     pub ansi: bool,
 
     // Preview configuration
-    pub preview_command_override: Option<Template>,
-    pub preview_offset_override: Option<Template>,
+    pub preview_command: Option<Template>,
+    pub preview_offset: Option<Template>,
+    pub cache_preview: bool,
     pub no_preview: bool,
     pub hide_preview: bool,
     pub show_preview: bool,
     pub preview_size: Option<u16>,
-    pub preview_header: Option<String>,
-    pub preview_footer: Option<String>,
+    pub preview_header: Option<Template>,
+    pub preview_footer: Option<Template>,
     pub preview_border: Option<BorderType>,
     pub preview_padding: Option<Padding>,
+    pub hide_preview_scrollbar: bool,
 
     // Results panel configuration
     pub results_border: Option<BorderType>,
     pub results_padding: Option<Padding>,
 
     // Status bar configuration
-    pub no_status_bar: bool,
     pub hide_status_bar: bool,
     pub show_status_bar: bool,
 
     // Remote configuration
-    pub no_remote: bool,
     pub hide_remote: bool,
     pub show_remote: bool,
 
     // Help panel configuration
-    pub no_help_panel: bool,
     pub hide_help_panel: bool,
     pub show_help_panel: bool,
 
@@ -101,9 +111,6 @@ pub struct PostProcessedCli {
     // UI and layout configuration
     pub layout: Option<Orientation>,
     pub ui_scale: Option<u16>,
-    pub height: Option<u16>,
-    pub width: Option<u16>,
-    pub inline: bool,
 
     // Behavior and matching configuration
     pub exact: bool,
@@ -112,103 +119,26 @@ pub struct PostProcessedCli {
     pub take_1_fast: bool,
     pub keybindings: Option<KeyBindings>,
 
-    // Performance configuration
-    pub tick_rate: Option<f64>,
+    // Watch
     pub watch_interval: Option<f64>,
-
-    // History configuration
-    pub global_history: bool,
-
-    // Configuration sources
-    pub config_file: Option<PathBuf>,
-    pub cable_dir: Option<PathBuf>,
-
-    // Command handling
-    pub command: Option<Command>,
 }
 
-const DEFAULT_BORDER_TYPE: BorderType = BorderType::Rounded;
-
-impl Default for PostProcessedCli {
-    fn default() -> Self {
-        Self {
-            // Channel and source configuration
-            channel: None,
-            source_command_override: None,
-            source_display_override: None,
-            source_output_override: None,
-            source_entry_delimiter: None,
-            working_directory: None,
-            autocomplete_prompt: None,
-            ansi: false,
-
-            // Preview configuration
-            preview_command_override: None,
-            preview_offset_override: None,
-            no_preview: false,
-            hide_preview: false,
-            show_preview: false,
-            preview_size: Some(DEFAULT_PREVIEW_SIZE),
-            preview_header: None,
-            preview_footer: None,
-            preview_border: Some(DEFAULT_BORDER_TYPE),
-            preview_padding: None,
-
-            // Results panel configuration
-            results_border: Some(DEFAULT_BORDER_TYPE),
-            results_padding: None,
-
-            // Status bar configuration
-            no_status_bar: false,
-            hide_status_bar: false,
-            show_status_bar: false,
-
-            // Remote configuration
-            no_remote: false,
-            hide_remote: false,
-            show_remote: false,
-
-            // Help panel configuration
-            no_help_panel: false,
-            hide_help_panel: false,
-            show_help_panel: false,
-
-            // Input configuration
-            input: None,
-            input_header: None,
-            input_prompt: None,
-            input_border: Some(DEFAULT_BORDER_TYPE),
-            input_padding: None,
-
-            // UI and layout configuration
-            layout: None,
-            ui_scale: None,
-            height: None,
-            width: None,
-            inline: false,
-
-            // Behavior and matching configuration
-            exact: false,
-            select_1: false,
-            take_1: false,
-            take_1_fast: false,
-            keybindings: None,
-
-            // Performance configuration
-            tick_rate: None,
-            watch_interval: None,
-
-            // History configuration
-            global_history: false,
-
-            // Configuration sources
-            config_file: None,
-            cable_dir: None,
-
-            // Command handling
-            command: None,
-        }
-    }
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Clone, Default)]
+pub struct GlobalCli {
+    pub workdir: Option<PathBuf>,
+    pub global_history: bool,
+    pub config_file: Option<PathBuf>,
+    pub cable_dir: Option<PathBuf>,
+    pub command: Option<Command>,
+    pub tick_rate: Option<u64>,
+    pub height: Option<u16>,
+    pub width: Option<u16>,
+    pub inline: bool,
+    pub no_remote: bool,
+    pub no_preview: bool,
+    pub no_help_panel: bool,
+    pub no_status_bar: bool,
 }
 
 /// Post-processes the raw CLI arguments into a structured format with validation.
@@ -249,23 +179,37 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     }
 
     // Parse preview overrides if provided
-    let preview_command_override =
-        cli.preview_command.as_ref().map(|preview_cmd| {
-            Template::parse(preview_cmd).unwrap_or_else(|e| {
-                cli_parsing_error_exit(&format!(
-                    "Error parsing preview command: {e}"
-                ))
-            })
-        });
+    let preview_command = cli.preview_command.as_ref().map(|preview_cmd| {
+        Template::parse(preview_cmd).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing preview command: {e}"
+            ))
+        })
+    });
 
-    let preview_offset_override =
-        cli.preview_offset.as_ref().map(|offset_str| {
-            Template::parse(offset_str).unwrap_or_else(|e| {
-                cli_parsing_error_exit(&format!(
-                    "Error parsing preview offset: {e}"
-                ))
-            })
-        });
+    let preview_offset = cli.preview_offset.as_ref().map(|offset_str| {
+        Template::parse(offset_str).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing preview offset: {e}"
+            ))
+        })
+    });
+
+    let preview_header = cli.preview_header.as_ref().map(|header_str| {
+        Template::parse(header_str).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing preview header: {e}"
+            ))
+        })
+    });
+
+    let preview_footer = cli.preview_footer.as_ref().map(|footer_str| {
+        Template::parse(footer_str).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing preview footer: {e}"
+            ))
+        })
+    });
 
     if cli.autocomplete_prompt.is_some() {
         if let Some(ch) = &cli.channel {
@@ -306,32 +250,29 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     };
 
     // Parse source overrides if any source fields are provided
-    let source_command_override =
-        cli.source_command.as_ref().map(|source_cmd| {
-            Template::parse(source_cmd).unwrap_or_else(|e| {
-                cli_parsing_error_exit(&format!(
-                    "Error parsing source command: {e}"
-                ))
-            })
-        });
+    let source_command = cli.source_command.as_ref().map(|source_cmd| {
+        Template::parse(source_cmd).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing source command: {e}"
+            ))
+        })
+    });
 
-    let source_display_override =
-        cli.source_display.as_ref().map(|display_str| {
-            Template::parse(display_str).unwrap_or_else(|e| {
-                cli_parsing_error_exit(&format!(
-                    "Error parsing source display: {e}"
-                ))
-            })
-        });
+    let source_display = cli.source_display.as_ref().map(|display_str| {
+        Template::parse(display_str).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing source display: {e}"
+            ))
+        })
+    });
 
-    let source_output_override =
-        cli.source_output.as_ref().map(|output_str| {
-            Template::parse(output_str).unwrap_or_else(|e| {
-                cli_parsing_error_exit(&format!(
-                    "Error parsing source output: {e}"
-                ))
-            })
-        });
+    let source_output = cli.source_output.as_ref().map(|output_str| {
+        Template::parse(output_str).unwrap_or_else(|e| {
+            cli_parsing_error_exit(&format!(
+                "Error parsing source output: {e}"
+            ))
+        })
+    });
 
     // Validate that the source entry delimiter is a single character
     let source_entry_delimiter =
@@ -363,81 +304,93 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
     });
 
     PostProcessedCli {
-        // Channel and source configuration
-        channel,
-        source_command_override,
-        source_display_override,
-        source_output_override,
-        source_entry_delimiter,
-        working_directory,
-        autocomplete_prompt: cli.autocomplete_prompt,
-        ansi: cli.ansi,
+        channel: ChannelCli {
+            // Channel and source configuration
+            channel,
+            source_command,
+            source_display,
+            source_output,
+            source_entry_delimiter,
 
-        // Preview configuration
-        preview_command_override,
-        preview_offset_override,
-        no_preview: cli.no_preview,
-        hide_preview: cli.hide_preview,
-        show_preview: cli.show_preview,
-        preview_size: cli.preview_size,
-        preview_header: cli.preview_header,
-        preview_footer: cli.preview_footer,
-        preview_border,
-        preview_padding,
+            // Autocomplete and ANSI configuration
+            autocomplete_prompt: cli.autocomplete_prompt,
+            ansi: cli.ansi,
 
-        // Results configuration
-        results_border,
-        results_padding,
+            // Preview configuration
+            preview_command,
+            preview_offset,
+            cache_preview: cli.cache_preview,
+            no_preview: cli.no_preview,
+            hide_preview: cli.hide_preview,
+            show_preview: cli.show_preview,
+            hide_preview_scrollbar: cli.hide_preview_scrollbar,
+            preview_size: cli.preview_size,
+            preview_header,
+            preview_footer,
+            preview_border,
+            preview_padding,
 
-        // Status bar configuration
-        no_status_bar: cli.no_status_bar,
-        hide_status_bar: cli.hide_status_bar,
-        show_status_bar: cli.show_status_bar,
+            // Results panel configuration
+            results_border,
+            results_padding,
 
-        // Remote configuration
-        no_remote: cli.no_remote,
-        hide_remote: cli.hide_remote,
-        show_remote: cli.show_remote,
+            // Status bar configuration
+            hide_status_bar: cli.hide_status_bar,
+            show_status_bar: cli.show_status_bar,
 
-        // Help panel configuration
-        no_help_panel: cli.no_help_panel,
-        hide_help_panel: cli.hide_help_panel,
-        show_help_panel: cli.show_help_panel,
+            // Remote configuration
+            hide_remote: cli.hide_remote,
+            show_remote: cli.show_remote,
 
-        // Input configuration
-        input: cli.input,
-        input_header: cli.input_header,
-        input_prompt: cli.input_prompt,
-        input_border,
-        input_padding,
+            // Help panel configuration
+            hide_help_panel: cli.hide_help_panel,
+            show_help_panel: cli.show_help_panel,
 
-        // UI and layout configuration
-        layout,
-        ui_scale: cli.ui_scale,
-        height: cli.height,
-        width: cli.width,
-        inline: cli.inline,
+            // Input configuration
+            input: cli.input,
+            input_header: cli.input_header,
+            input_prompt: cli.input_prompt,
+            input_border,
+            input_padding,
 
-        // Behavior and matching configuration
-        exact: cli.exact,
-        select_1: cli.select_1,
-        take_1: cli.take_1,
-        take_1_fast: cli.take_1_fast,
-        keybindings,
+            // UI and layout configuration
+            layout,
+            ui_scale: cli.ui_scale,
 
-        // Performance configuration
-        tick_rate: cli.tick_rate,
-        watch_interval: cli.watch,
+            // Behavior and matching configuration
+            exact: cli.exact,
+            select_1: cli.select_1,
+            take_1: cli.take_1,
+            take_1_fast: cli.take_1_fast,
+            keybindings,
 
-        // History configuration
-        global_history: cli.global_history,
+            // Watch interval
+            watch_interval: cli.watch,
+        },
+        global: GlobalCli {
+            // Workdir and global history
+            workdir: working_directory,
+            global_history: cli.global_history,
 
-        // Configuration sources
-        config_file: cli.config_file.map(|p| expand_tilde(&p)),
-        cable_dir: cli.cable_dir.map(|p| expand_tilde(&p)),
+            // Configuration sources
+            config_file: cli.config_file.map(|p| expand_tilde(&p)),
+            cable_dir: cli.cable_dir.map(|p| expand_tilde(&p)),
 
-        // Command handling
-        command: cli.command,
+            // Command handling
+            command: cli.command,
+
+            // Autocomplete prompt and tick rate
+            tick_rate: cli.tick_rate,
+            height: cli.height,
+            width: cli.width,
+            inline: cli.inline,
+
+            // Panel disable configuration
+            no_remote: cli.no_remote,
+            no_preview: cli.no_preview,
+            no_help_panel: cli.no_help_panel,
+            no_status_bar: cli.no_status_bar,
+        },
     }
 }
 
@@ -528,12 +481,8 @@ fn parse_padding_literal(
     toml::from_str(&toml_definition).map_err(|e| anyhow!(e))
 }
 
-pub fn list_channels<P>(cable_dir: P)
-where
-    P: AsRef<Path>,
-{
-    let channels = cable::load_cable(cable_dir).unwrap_or_default();
-    for c in channels.keys() {
+pub fn list_channels(cable: &Cable) {
+    for c in cable.keys() {
         println!("{c}");
     }
 }
@@ -543,18 +492,16 @@ pub fn parse_source_entry_delimiter(delimiter: &str) -> Result<char> {
         return Err(anyhow!("Source entry delimiter cannot be empty"));
     }
     if let Some(b) = delimiter.strip_prefix(r"\") {
-        match b {
-            "n" => return Ok('\n'),
-            "t" => return Ok('\t'),
-            "r" => return Ok('\r'),
-            "0" => return Ok('\0'),
-            _ => {
-                return Err(anyhow!(
-                    "Invalid escape sequence for source entry delimiter: '{}'",
-                    b
-                ));
-            }
-        }
+        return match b {
+            "n" => Ok('\n'),
+            "t" => Ok('\t'),
+            "r" => Ok('\r'),
+            "0" => Ok('\0'),
+            _ => Err(anyhow!(
+                "Invalid escape sequence for source entry delimiter: '{}'",
+                b
+            )),
+        };
     }
     if delimiter.len() != 1 {
         return Err(anyhow!(
@@ -713,12 +660,12 @@ mod tests {
         let post_processed_cli = post_process(cli, false);
 
         assert_eq!(
-            post_processed_cli.preview_command_override.unwrap().raw(),
+            post_processed_cli.channel.preview_command.unwrap().raw(),
             "bat -n --color=always {}".to_string(),
         );
-        assert_eq!(post_processed_cli.tick_rate, None);
+        assert_eq!(post_processed_cli.global.tick_rate, None);
         assert_eq!(
-            post_processed_cli.working_directory,
+            post_processed_cli.global.workdir,
             Some(PathBuf::from("/home/user"))
         );
     }
@@ -734,10 +681,10 @@ mod tests {
         let post_processed_cli = post_process(cli, false);
 
         assert_eq!(
-            post_processed_cli.working_directory,
+            post_processed_cli.global.workdir,
             Some(PathBuf::from("."))
         );
-        assert_eq!(post_processed_cli.command, None);
+        assert_eq!(post_processed_cli.global.command, None);
     }
 
     #[test]
@@ -760,7 +707,7 @@ mod tests {
         expected.insert(Key::Down, Action::SelectNextEntry.into());
         expected.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
 
-        assert_eq!(post_processed_cli.keybindings, Some(expected));
+        assert_eq!(post_processed_cli.channel.keybindings, Some(expected));
     }
 
     /// Returns a tuple containing a command mapping and a fallback channel.

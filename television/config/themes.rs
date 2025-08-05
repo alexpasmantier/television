@@ -87,7 +87,7 @@ impl RGBColor {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Theme {
     // general
     pub background: Option<Color>,

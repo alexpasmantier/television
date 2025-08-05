@@ -16,7 +16,7 @@ fn test_source_command_in_adhoc_mode() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify we're in Ad-hoc Mode with the custom source command active
-    tester.assert_tui_frame_contains("CHANNEL  custom");
+    tester.assert_tui_frame_contains("CHANNEL  Custom");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));

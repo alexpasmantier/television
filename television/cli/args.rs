@@ -69,21 +69,25 @@ pub struct Cli {
     #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_preview", "hide_preview"])]
     pub show_preview: bool,
 
-    /// Disable the status bar on startup.
+    /// Disable the status bar entirely on startup.
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
+    /// When set, no status bar will be shown regardless of channel configuration
+    /// or status bar-related flags.
     #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["hide_status_bar", "show_status_bar"])]
     pub no_status_bar: bool,
 
     /// Hide the status bar on startup (only works if feature is enabled).
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
+    /// The status bar remains functional and can be toggled visible later.
     #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_status_bar", "show_status_bar"])]
     pub hide_status_bar: bool,
 
     /// Show the status bar on startup (only works if feature is enabled).
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
+    /// This overrides any channel configuration that might have it disabled.
     #[arg(long, default_value = "false", verbatim_doc_comment, conflicts_with_all = ["no_status_bar", "hide_status_bar"])]
     pub show_status_bar: bool,
 
@@ -95,8 +99,8 @@ pub struct Cli {
     /// second. This can be used to control responsiveness and CPU usage on
     /// very slow machines or very fast ones but the default should be a good
     /// compromise for most users.
-    #[arg(short, long, value_name = "FLOAT", verbatim_doc_comment, value_parser = validate_positive_float)]
-    pub tick_rate: Option<f64>,
+    #[arg(short, long, value_name = "INT", verbatim_doc_comment, value_parser = validate_positive_int)]
+    pub tick_rate: Option<u64>,
 
     /// Watch mode: reload the source command every N seconds.
     ///
@@ -230,6 +234,15 @@ pub struct Cli {
     )]
     pub preview_padding: Option<String>,
 
+    /// Hide preview panel scrollbar.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "no_preview"
+    )]
+    pub hide_preview_scrollbar: bool,
+
     /// Source command to use for the current channel.
     ///
     /// When a channel is specified: This overrides the command defined in the channel prototype.
@@ -309,6 +322,18 @@ pub struct Cli {
         conflicts_with = "no_preview"
     )]
     pub preview_command: Option<String>,
+
+    /// Whether to cache the preview command output for each entry.
+    ///
+    /// This can be useful when the preview command is expensive to run
+    /// and you want to avoid running it multiple times for the same entry.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "no_preview"
+    )]
+    pub cache_preview: bool,
 
     /// Layout orientation for the UI.
     ///
@@ -581,11 +606,11 @@ pub enum BorderType {
 }
 
 // Add validator functions
-fn validate_positive_float(s: &str) -> Result<f64, String> {
-    match s.parse::<f64>() {
-        Ok(val) if val > 0.0 => Ok(val),
-        Ok(_) => Err("Value must be positive".to_string()),
-        Err(_) => Err("Invalid number format".to_string()),
+fn validate_positive_int(s: &str) -> Result<u64, String> {
+    match s.parse::<u64>() {
+        Ok(val) if val > 0 => Ok(val),
+        Ok(_) => Err("Value must be a positive integer".to_string()),
+        Err(_) => Err("Invalid integer format".to_string()),
     }
 }
 

@@ -103,7 +103,7 @@ pub async fn render<W: Write>(
                                 .ok();
                             tui.terminal.draw(|frame| {
                                 let current_layout = context.layout;
-                                match draw(context, frame, frame.area()) {
+                                match draw(&context, frame, frame.area()) {
                                     Ok(layout) => {
                                         if layout != current_layout {
                                             let _ = ui_state_tx

@@ -1,7 +1,10 @@
+use std::hash::Hash;
+
 use crate::{
     action::{Action, Actions},
     config::{EventBindings, EventType, KeyBindings},
     event::{InputEvent, Key},
+    utils::hashmaps::invert_flat_hashmap,
 };
 use crossterm::event::MouseEventKind;
 use rustc_hash::FxHashMap;
@@ -38,38 +41,38 @@ use rustc_hash::FxHashMap;
 /// assert_eq!(actions, Some(vec![Action::SelectNextEntry]));
 /// ```
 /// ```
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct InputMap {
     /// Maps keyboard keys to their associated actions
     pub key_actions: FxHashMap<Key, Actions>,
     /// Maps non-keyboard events to their associated actions
     pub event_actions: FxHashMap<EventType, Actions>,
+
+    /// Used to query key based on an `Actions` instance.
+    actions_keys: FxHashMap<Actions, Key>,
+}
+
+impl Hash for InputMap {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for (key, actions) in &self.key_actions {
+            (key, actions).hash(state);
+        }
+        for (event, actions) in &self.event_actions {
+            (event, actions).hash(state);
+        }
+    }
 }
 
 impl InputMap {
-    /// Creates a new empty `InputMap`.
-    ///
-    /// Returns an empty input map with no key or event bindings.
-    /// Bindings can be added using the `merge` methods or by directly
-    /// manipulating the `key_actions` and `event_actions` fields.
-    ///
-    /// # Returns
-    ///
-    /// A new empty `InputMap` instance.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use television::keymap::InputMap;
-    ///
-    /// let input_map = InputMap::new();
-    /// assert!(input_map.key_actions.is_empty());
-    /// assert!(input_map.event_actions.is_empty());
-    /// ```
-    pub fn new() -> Self {
+    pub fn new(
+        key_actions: FxHashMap<Key, Actions>,
+        event_actions: FxHashMap<EventType, Actions>,
+    ) -> Self {
+        let actions_keys = invert_flat_hashmap(&key_actions);
         Self {
-            key_actions: FxHashMap::default(),
-            event_actions: FxHashMap::default(),
+            key_actions,
+            event_actions,
+            actions_keys,
         }
     }
 
@@ -94,7 +97,7 @@ impl InputMap {
     /// use television::event::Key;
     /// use television::action::{Action, Actions};
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.key_actions.insert(Key::Enter, Actions::single(Action::ConfirmSelection));
     ///
     /// let actions = input_map.get_actions_for_key(&Key::Enter).unwrap();
@@ -125,7 +128,7 @@ impl InputMap {
     /// use television::config::EventType;
     /// use television::action::{Action, Actions};
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.event_actions.insert(
     ///     EventType::MouseClick,
     ///     Actions::single(Action::ConfirmSelection)
@@ -163,7 +166,7 @@ impl InputMap {
     /// use television::event::Key;
     /// use television::action::{Action, Actions};
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.key_actions.insert(
     ///     Key::Ctrl('r'),
     ///     Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen])
@@ -200,7 +203,7 @@ impl InputMap {
     /// use television::config::EventType;
     /// use television::action::{Action, Actions};
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.event_actions.insert(
     ///     EventType::MouseClick,
     ///     Actions::multiple(vec![Action::ConfirmSelection, Action::TogglePreview])
@@ -249,7 +252,7 @@ impl InputMap {
     /// use television::action::{Action, Actions};
     /// use crossterm::event::MouseEventKind;
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.key_actions.insert(
     ///     Key::Ctrl('s'),
     ///     Actions::multiple(vec![Action::ReloadSource, Action::CopyEntryToClipboard])
@@ -310,7 +313,7 @@ impl InputMap {
     /// use television::event::{Key, InputEvent};
     /// use television::action::{Action, Actions};
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// input_map.key_actions.insert(
     ///     Key::Enter,
     ///     Actions::multiple(vec![Action::ConfirmSelection, Action::Quit])
@@ -341,6 +344,13 @@ impl InputMap {
                 self.get_action_for_event(&EventType::Custom(name.clone()))
             }
         }
+    }
+
+    /// Gets the key associated with a specific action.
+    pub fn get_key_for_action(&self, action: &Action) -> Option<Key> {
+        self.actions_keys
+            .get(&Actions::single(action.clone()))
+            .copied()
     }
 }
 
@@ -379,8 +389,9 @@ impl From<&KeyBindings> for InputMap {
     /// ```
     fn from(keybindings: &KeyBindings) -> Self {
         Self {
-            key_actions: keybindings.bindings.clone(),
+            key_actions: keybindings.inner.clone(),
             event_actions: FxHashMap::default(),
+            actions_keys: invert_flat_hashmap(&keybindings.inner),
         }
     }
 }
@@ -422,7 +433,8 @@ impl From<&EventBindings> for InputMap {
     fn from(event_bindings: &EventBindings) -> Self {
         Self {
             key_actions: FxHashMap::default(),
-            event_actions: event_bindings.bindings.clone(),
+            event_actions: event_bindings.inner.clone(),
+            actions_keys: FxHashMap::default(),
         }
     }
 }
@@ -469,8 +481,9 @@ impl From<(&KeyBindings, &EventBindings)> for InputMap {
         (keybindings, event_bindings): (&KeyBindings, &EventBindings),
     ) -> Self {
         Self {
-            key_actions: keybindings.bindings.clone(),
-            event_actions: event_bindings.bindings.clone(),
+            key_actions: keybindings.inner.clone(),
+            event_actions: event_bindings.inner.clone(),
+            actions_keys: invert_flat_hashmap(&keybindings.inner),
         }
     }
 }
@@ -499,10 +512,10 @@ impl InputMap {
     /// use television::event::Key;
     /// use television::action::{Action, Actions};
     ///
-    /// let mut base_map = InputMap::new();
+    /// let mut base_map = InputMap::default();
     /// base_map.key_actions.insert(Key::Enter, Actions::single(Action::ConfirmSelection));
     ///
-    /// let mut custom_map = InputMap::new();
+    /// let mut custom_map = InputMap::default();
     /// custom_map.key_actions.insert(Key::Enter, Actions::single(Action::Quit)); // Override
     /// custom_map.key_actions.insert(Key::Esc, Actions::single(Action::Quit));   // New binding
     ///
@@ -516,6 +529,10 @@ impl InputMap {
         }
         for (event, action) in &other.event_actions {
             self.event_actions.insert(event.clone(), action.clone());
+        }
+        // Update actions_keys to reflect the merged actions
+        for (key, actions) in &other.key_actions {
+            self.actions_keys.insert(actions.clone(), *key);
         }
     }
 
@@ -536,7 +553,7 @@ impl InputMap {
     /// use television::event::Key;
     /// use television::action::Action;
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// let keybindings = KeyBindings::from(vec![
     ///     (Key::Enter, Action::ConfirmSelection),
     ///     (Key::Esc, Action::Quit),
@@ -546,8 +563,12 @@ impl InputMap {
     /// assert_eq!(input_map.get_action_for_key(&Key::Enter), Some(Action::ConfirmSelection));
     /// ```
     pub fn merge_key_bindings(&mut self, keybindings: &KeyBindings) {
-        for (key, action) in &keybindings.bindings {
+        for (key, action) in &keybindings.inner {
             self.key_actions.insert(*key, action.clone());
+        }
+        // Update actions_keys to reflect the merged actions
+        for (key, actions) in &keybindings.inner {
+            self.actions_keys.insert(actions.clone(), *key);
         }
     }
 
@@ -567,7 +588,7 @@ impl InputMap {
     /// use television::config::{EventBindings, EventType};
     /// use television::action::Action;
     ///
-    /// let mut input_map = InputMap::new();
+    /// let mut input_map = InputMap::default();
     /// let event_bindings = EventBindings::from(vec![
     ///     (EventType::MouseClick, Action::ConfirmSelection),
     ///     (EventType::Resize, Action::ClearScreen),
@@ -580,7 +601,7 @@ impl InputMap {
     /// );
     /// ```
     pub fn merge_event_bindings(&mut self, event_bindings: &EventBindings) {
-        for (event, action) in &event_bindings.bindings {
+        for (event, action) in &event_bindings.inner {
             self.event_actions.insert(event.clone(), action.clone());
         }
     }
@@ -665,7 +686,7 @@ mod tests {
 
     #[test]
     fn test_input_map_merge() {
-        let mut input_map1 = InputMap::new();
+        let mut input_map1 = InputMap::default();
         input_map1
             .key_actions
             .insert(Key::Char('a'), Action::SelectNextEntry.into());
@@ -673,7 +694,7 @@ mod tests {
             .key_actions
             .insert(Key::Char('b'), Action::SelectPrevEntry.into());
 
-        let mut input_map2 = InputMap::new();
+        let mut input_map2 = InputMap::default();
         input_map2
             .key_actions
             .insert(Key::Char('c'), Action::Quit.into());
@@ -718,6 +739,7 @@ mod tests {
         let input_map = InputMap {
             key_actions,
             event_actions: FxHashMap::default(),
+            actions_keys: FxHashMap::default(),
         };
 
         // Test getting all actions for multiple action binding
@@ -743,7 +765,7 @@ mod tests {
 
     #[test]
     fn test_input_map_multiple_actions_for_input_event() {
-        let mut input_map = InputMap::new();
+        let mut input_map = InputMap::default();
         input_map.key_actions.insert(
             Key::Char('j'),
             Actions::multiple(vec![
@@ -780,6 +802,7 @@ mod tests {
         let input_map = InputMap {
             key_actions: FxHashMap::default(),
             event_actions,
+            actions_keys: FxHashMap::default(),
         };
 
         // Test mouse input with multiple actions
@@ -802,12 +825,12 @@ mod tests {
 
     #[test]
     fn test_input_map_merge_multiple_actions() {
-        let mut input_map1 = InputMap::new();
+        let mut input_map1 = InputMap::default();
         input_map1
             .key_actions
             .insert(Key::Char('a'), Actions::single(Action::SelectNextEntry));
 
-        let mut input_map2 = InputMap::new();
+        let mut input_map2 = InputMap::default();
         input_map2.key_actions.insert(
             Key::Char('a'),
             Actions::multiple(vec![Action::ReloadSource, Action::Quit]), // This should overwrite
@@ -845,7 +868,7 @@ mod tests {
         );
         bindings.insert(Key::Esc, Actions::single(Action::Quit));
 
-        let keybindings = KeyBindings { bindings };
+        let keybindings = KeyBindings { inner: bindings };
         let input_map: InputMap = (&keybindings).into();
 
         // Test multiple actions are preserved

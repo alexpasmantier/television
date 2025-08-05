@@ -46,7 +46,7 @@ where
         serialize_with = "serialize_bindings",
         deserialize_with = "deserialize_bindings"
     )]
-    pub bindings: FxHashMap<K, Actions>,
+    pub inner: FxHashMap<K, Actions>,
 }
 
 impl<K> Bindings<K>
@@ -70,7 +70,7 @@ where
     /// ```
     pub fn new() -> Self {
         Bindings {
-            bindings: FxHashMap::default(),
+            inner: FxHashMap::default(),
         }
     }
 }
@@ -236,7 +236,7 @@ where
 {
     fn from(iter: I) -> Self {
         Bindings {
-            bindings: iter
+            inner: iter
                 .into_iter()
                 .map(|(k, a)| (k, Actions::from(a)))
                 .collect(),
@@ -251,7 +251,7 @@ where
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         // Hash based on the bindings map
-        for (key, actions) in &self.bindings {
+        for (key, actions) in &self.inner {
             key.hash(state);
             actions.hash(state);
         }
@@ -265,7 +265,7 @@ where
 {
     type Target = FxHashMap<K, Actions>;
     fn deref(&self) -> &Self::Target {
-        &self.bindings
+        &self.inner
     }
 }
 
@@ -275,7 +275,7 @@ where
     K::Err: Display,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.bindings
+        &mut self.inner
     }
 }
 
@@ -320,14 +320,14 @@ where
     K: Display + FromStr + Clone + Eq + Hash + std::fmt::Debug,
     K::Err: Display,
 {
-    debug!("bindings before: {:?}", bindings.bindings);
+    debug!("bindings before: {:?}", bindings.inner);
 
     // Merge new bindings - they take precedence over existing ones
-    for (key, actions) in &new_bindings.bindings {
-        bindings.bindings.insert(key.clone(), actions.clone());
+    for (key, actions) in &new_bindings.inner {
+        bindings.inner.insert(key.clone(), actions.clone());
     }
 
-    debug!("bindings after: {:?}", bindings.bindings);
+    debug!("bindings after: {:?}", bindings.inner);
 
     bindings
 }
@@ -385,7 +385,7 @@ impl Default for Bindings<Key> {
         bindings.insert(Key::End, Action::GoToInputEnd.into());
         bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd.into());
 
-        Bindings { bindings }
+        Bindings { inner: bindings }
     }
 }
 
@@ -401,7 +401,7 @@ impl Default for Bindings<EventType> {
             Action::ScrollPreviewDown.into(),
         );
 
-        Bindings { bindings }
+        Bindings { inner: bindings }
     }
 }
 
@@ -1021,21 +1021,21 @@ mod tests {
         let merged = merge_bindings(base_keybindings, &custom_keybindings);
 
         // Should contain both base and custom keybindings
-        assert!(merged.bindings.contains_key(&Key::Esc));
-        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::Quit.into()));
-        assert!(merged.bindings.contains_key(&Key::Down));
+        assert!(merged.inner.contains_key(&Key::Esc));
+        assert_eq!(merged.inner.get(&Key::Esc), Some(&Action::Quit.into()));
+        assert!(merged.inner.contains_key(&Key::Down));
         assert_eq!(
-            merged.bindings.get(&Key::Down),
+            merged.inner.get(&Key::Down),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.bindings.contains_key(&Key::Ctrl('j')));
+        assert!(merged.inner.contains_key(&Key::Ctrl('j')));
         assert_eq!(
-            merged.bindings.get(&Key::Ctrl('j')),
+            merged.inner.get(&Key::Ctrl('j')),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.bindings.contains_key(&Key::PageDown));
+        assert!(merged.inner.contains_key(&Key::PageDown));
         assert_eq!(
-            merged.bindings.get(&Key::PageDown),
+            merged.inner.get(&Key::PageDown),
             Some(&Action::SelectNextPage.into())
         );
     }
@@ -1054,22 +1054,22 @@ mod tests {
 
         // Normal action binding should work
         assert_eq!(
-            keybindings.bindings.get(&Key::Esc),
+            keybindings.inner.get(&Key::Esc),
             Some(&Action::Quit.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Down),
+            keybindings.inner.get(&Key::Down),
             Some(&Action::SelectNextEntry.into())
         );
 
         // false should bind to NoOp (unbinding)
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('c')),
+            keybindings.inner.get(&Key::Ctrl('c')),
             Some(&Action::NoOp.into())
         );
 
         // true should be ignored (no binding created)
-        assert_eq!(keybindings.bindings.get(&Key::Up), None);
+        assert_eq!(keybindings.inner.get(&Key::Up), None);
     }
 
     #[test]
@@ -1085,13 +1085,13 @@ mod tests {
 
         // Single action should work
         assert_eq!(
-            keybindings.bindings.get(&Key::Esc),
+            keybindings.inner.get(&Key::Esc),
             Some(&Action::Quit.into())
         );
 
         // Multiple actions should work
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('s')),
+            keybindings.inner.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -1100,7 +1100,7 @@ mod tests {
 
         // Three actions should work
         assert_eq!(
-            keybindings.bindings.get(&Key::F(1)),
+            keybindings.inner.get(&Key::F(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -1126,14 +1126,14 @@ mod tests {
         );
         custom_bindings.insert(Key::Esc, Action::NoOp.into()); // Override
         let custom_keybindings = KeyBindings {
-            bindings: custom_bindings,
+            inner: custom_bindings,
         };
 
         let merged = merge_bindings(base_keybindings, &custom_keybindings);
 
         // Custom multiple actions should be present
         assert_eq!(
-            merged.bindings.get(&Key::Ctrl('s')),
+            merged.inner.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -1141,11 +1141,11 @@ mod tests {
         );
 
         // Override should work
-        assert_eq!(merged.bindings.get(&Key::Esc), Some(&Action::NoOp.into()));
+        assert_eq!(merged.inner.get(&Key::Esc), Some(&Action::NoOp.into()));
 
         // Original binding should be preserved
         assert_eq!(
-            merged.bindings.get(&Key::Enter),
+            merged.inner.get(&Key::Enter),
             Some(&Action::ConfirmSelection.into())
         );
     }
@@ -1171,26 +1171,26 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(keybindings.bindings.len(), 6); // ctrl-c=false creates NoOp binding
+        assert_eq!(keybindings.inner.len(), 6); // ctrl-c=false creates NoOp binding
 
         // Verify all binding types work correctly
         assert_eq!(
-            keybindings.bindings.get(&Key::Esc),
+            keybindings.inner.get(&Key::Esc),
             Some(&Actions::single(Action::Quit))
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Enter),
+            keybindings.inner.get(&Key::Enter),
             Some(&Action::ConfirmSelection.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('s')),
+            keybindings.inner.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::F(1)),
+            keybindings.inner.get(&Key::F(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -1198,11 +1198,11 @@ mod tests {
             ]))
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('c')),
+            keybindings.inner.get(&Key::Ctrl('c')),
             Some(&Actions::single(Action::NoOp))
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Tab),
+            keybindings.inner.get(&Key::Tab),
             Some(&Actions::multiple(vec![Action::ToggleSelectionDown]))
         );
     }
