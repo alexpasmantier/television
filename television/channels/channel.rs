@@ -9,7 +9,7 @@ use crate::{
     },
     utils::command::shell_command,
 };
-use rustc_hash::{FxBuildHasher, FxHashSet};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
@@ -243,21 +243,48 @@ impl Channel {
         entries
     }
 
-    /// Fuzzy match against a set of frecent items
+    /// Return frecent items in their natural frecency order filtered by the search pattern.
     #[allow(clippy::cast_possible_truncation)]
     fn fuzzy_match_frecent_items(
         &mut self,
-        pattern: &str,
         frecent_items: &FxHashSet<String>,
+        frecent_items_ordered: &[String],
         offset: u32,
     ) -> Vec<MatchedItem<String>> {
         if frecent_items.is_empty() {
             return Vec::new();
         }
-        self.frecency_matcher.find(pattern);
+
+        // Use nucleo to get matching results with highlighting
+        self.frecency_matcher.find(&self.matcher.last_pattern);
         self.frecency_matcher.tick();
-        self.frecency_matcher
-            .results(frecent_items.len() as u32, offset)
+        let nucleo_matches =
+            self.frecency_matcher.results(frecent_items.len() as u32, 0);
+
+        // Fast path: if no matches, return empty
+        if nucleo_matches.is_empty() {
+            return Vec::new();
+        }
+
+        let mut matched_items = FxHashMap::with_capacity_and_hasher(
+            nucleo_matches.len(),
+            FxBuildHasher,
+        );
+        for matched_item in nucleo_matches {
+            matched_items.insert(matched_item.inner.clone(), matched_item);
+        }
+
+        let mut result = Vec::with_capacity(
+            frecent_items_ordered.len().min(matched_items.len()),
+        );
+
+        for item in frecent_items_ordered.iter().skip(offset as usize) {
+            if let Some(matched_item) = matched_items.remove(item) {
+                result.push(matched_item);
+            }
+        }
+
+        result
     }
 
     #[allow(clippy::cast_possible_truncation)]
@@ -299,10 +326,9 @@ impl Channel {
 
         // Get filtered frecent items (cached or calculated)
         let filtered_frecent_items =
-            if let Some(cached) = self.get_cached_intersection(dataset_len) {
-                cached.clone()
-            } else {
-                self.calculate_intersection(&frecent_items)
+            match self.get_cached_intersection(dataset_len) {
+                Some(cached) => cached.clone(),
+                None => self.calculate_intersection(&frecent_items),
             };
 
         // If no frecent items pass validation, fall back to regular matching
@@ -331,10 +357,16 @@ impl Channel {
             self.frecency_matcher.mark_loaded();
         }
 
+        // Create ordered list maintaining frecency order but only including items in dataset
+        let filtered_frecent_items_ordered: Vec<String> = frecent_items
+            .into_iter()
+            .filter(|item| filtered_frecent_items.contains(item))
+            .collect();
+
         // Fuzzy match the validated frecent items
         let frecent_matches = self.fuzzy_match_frecent_items(
-            &self.matcher.last_pattern.clone(),
             &filtered_frecent_items,
+            &filtered_frecent_items_ordered,
             offset,
         );
 
