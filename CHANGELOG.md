@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.1](https://github.com/alexpasmantier/television/releases/tag/0.13.1) - 2025-08-06
+
+### ⚙️ Miscellaneous Tasks
+
+- [6176933](https://github.com/alexpasmantier/television/commit/6176933067ec61275f050e1c55f92cf2ed4038b3) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#681](https://github.com/alexpasmantier/television/pull/681)
+
+- [5aa0b34](https://github.com/alexpasmantier/television/commit/5aa0b342f1726b29fd0642896b3226676a785e7f) *(uncategorized)* Release version 0.13.1
+
+- [a476f66](https://github.com/alexpasmantier/television/commit/a476f66ba6d3626d4a787dd6e06cfe0bc1ce3551) *(uncategorized)* Fix aarch64-linux-gnu cross compilation by @alexpasmantier in [#682](https://github.com/alexpasmantier/television/pull/682)
+
+
+
+### New Contributors
+* @alexpasmantier made their first contribution in [#682](https://github.com/alexpasmantier/television/pull/682)
+* @github-actions[bot] made their first contribution in [#681](https://github.com/alexpasmantier/television/pull/681)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.0...0.13.1
+
+
 ## [0.13.0](https://github.com/alexpasmantier/television/releases/tag/0.13.0) - 2025-08-06
 
 ### ⛰️  Features
