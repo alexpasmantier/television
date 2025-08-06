@@ -7,24 +7,6 @@
 
 use super::super::common::*;
 use std::fs;
-use tempfile::TempDir;
-
-/// Helper function to create a temporary data directory for frecency storage
-fn create_temp_data_dir() -> TempDir {
-    tempfile::tempdir().expect("Failed to create temporary directory")
-}
-
-/// Helper function to create a temporary data directory with empty frecency.json
-fn create_temp_data_dir_with_empty_frecency() -> TempDir {
-    let temp_dir = create_temp_data_dir();
-    let frecency_file = temp_dir.path().join("frecency.json");
-
-    // Create empty frecency file to ensure consistent starting state
-    fs::write(&frecency_file, "[]")
-        .expect("Failed to create empty frecency file");
-
-    temp_dir
-}
 
 /// Helper function to create tv command with frecency enabled and custom data directory
 fn tv_frecency_with_data_dir(
@@ -40,8 +22,8 @@ fn tv_frecency_with_data_dir(
 /// Tests that frecency ranking works: previously selected entries appear higher in results.
 #[test]
 fn test_frecency_ranking_boosts_selected_entries() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create test data with multiple entries
     let test_entries = ["apple.txt", "banana.txt", "cherry.txt", "date.txt"];
@@ -102,9 +84,9 @@ fn test_frecency_ranking_boosts_selected_entries() {
 /// Tests that frecency data persists across multiple sessions.
 #[test]
 fn test_frecency_persistence_across_sessions() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
-    let frecency_file = format!("{}/frecency.json", data_dir);
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
+    let frecency_file = &temp_data.frecency_file;
 
     // Create test data with multiple entries
     let test_entries = ["persistent.txt", "other.txt"];
@@ -134,13 +116,14 @@ fn test_frecency_persistence_across_sessions() {
 
     // Verify frecency file was created
     assert!(
-        std::path::Path::new(&frecency_file).exists(),
-        "Frecency file should be created at: {}",
+        frecency_file.exists(),
+        "Frecency file should be created at: {:?}",
         frecency_file
     );
 
     // Read and verify frecency file contains expected data
-    let frecency_content = fs::read_to_string(&frecency_file)
+    let frecency_content = temp_data
+        .read_frecency()
         .expect("Should be able to read frecency file");
 
     assert!(
@@ -176,8 +159,8 @@ fn test_frecency_persistence_across_sessions() {
 /// Tests that frecency only shows entries that exist in the current dataset.
 #[test]
 fn test_frecency_dataset_filtering() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create test data with multiple entries
     let first_session_entries = ["common.txt", "exclusive.txt", "shared.txt"];
@@ -246,8 +229,8 @@ fn test_frecency_dataset_filtering() {
 /// Tests global vs channel-specific frecency behavior.
 #[test]
 fn test_global_vs_channel_frecency() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create test data with multiple entries
     let files_entries = ["file1.txt", "file2.txt"];
@@ -348,8 +331,8 @@ fn test_global_vs_channel_frecency() {
 /// Tests that frecency handles duplicate entries correctly by incrementing access count.
 #[test]
 fn test_frecency_duplicate_entry_handling() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create test data with multiple entries
     let test_entries = ["duplicate.txt", "other1.txt", "other2.txt"];
@@ -401,8 +384,8 @@ fn test_frecency_duplicate_entry_handling() {
     }
 
     // Verify frecency file shows duplicate.txt has access_count of 2
-    let frecency_file = format!("{}/frecency.json", data_dir);
-    let frecency_content = fs::read_to_string(&frecency_file)
+    let frecency_content = temp_data
+        .read_frecency()
         .expect("Should be able to read frecency file");
 
     // Parse JSON to verify access count
@@ -428,12 +411,12 @@ fn test_frecency_duplicate_entry_handling() {
 /// Tests frecency behavior when the JSON file is corrupted or invalid.
 #[test]
 fn test_frecency_corrupted_file_handling() {
-    let temp_dir = create_temp_data_dir();
-    let data_dir = temp_dir.path().to_str().unwrap();
-    let frecency_file = temp_dir.path().join("frecency.json");
+    let temp_data = TempDataDir::init();
+    let data_dir = temp_data.path();
 
     // Create corrupted frecency file
-    fs::write(&frecency_file, "{ invalid json content }")
+    temp_data
+        .write_frecency("{ invalid json content }")
         .expect("Failed to create corrupted frecency file");
 
     // Create test data
@@ -465,7 +448,8 @@ fn test_frecency_corrupted_file_handling() {
     }
 
     // Verify frecency file was recreated with valid JSON
-    let frecency_content = fs::read_to_string(&frecency_file)
+    let frecency_content = temp_data
+        .read_frecency()
         .expect("Should be able to read frecency file after recovery");
 
     assert!(
@@ -507,8 +491,8 @@ fn test_frecency_corrupted_file_handling() {
 /// Tests frecency without the --frecency flag to ensure it's properly disabled.
 #[test]
 fn test_frecency_disabled_behavior() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create test data
     let test_entries = ["first.txt", "second.txt", "third.txt"];
@@ -540,9 +524,9 @@ fn test_frecency_disabled_behavior() {
     }
 
     // Verify selected entry was not added to frecency data
-    let frecency_file = format!("{}/frecency.json", data_dir);
-    if std::path::Path::new(&frecency_file).exists() {
-        let frecency_content = fs::read_to_string(&frecency_file)
+    if temp_data.frecency_file.exists() {
+        let frecency_content = temp_data
+            .read_frecency()
             .unwrap_or_else(|_| "[]".to_string());
         assert!(
             !frecency_content.contains("third.txt"),
@@ -579,12 +563,12 @@ fn test_frecency_disabled_behavior() {
 /// Tests that preview works correctly with frecency items at high offsets.
 #[test]
 fn test_frecency_preview_with_high_offset_navigation() {
-    let temp_dir = create_temp_data_dir_with_empty_frecency();
-    let data_dir = temp_dir.path().to_str().unwrap();
+    let temp_data = TempDataDir::init_with_empty_frecency();
+    let data_dir = temp_data.path();
 
     // Create a test file that we can preview
     let test_file_content = "This is preview content\nLine 2\nLine 3";
-    let test_file = temp_dir.path().join("preview_test.txt");
+    let test_file = temp_data.tempdir().path().join("preview_test.txt");
     fs::write(&test_file, test_file_content)
         .expect("Failed to create test file");
 
@@ -595,15 +579,11 @@ fn test_frecency_preview_with_high_offset_navigation() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Wait for UI to load with preview panel
-    tester.assert_tui_frame_contains("files");
-    tester.assert_tui_frame_contains("Preview");
+    tester.assert_tui_frame_contains_all(&["files", "Preview"]);
 
     // Move to the last position (high offset) by pressing Ctrl+P (up) once
     // This should select the last item in the list
     tester.send(&ctrl('p'));
-
-    // Wait a bit for the preview to update
-    std::thread::sleep(std::time::Duration::from_millis(200));
 
     tester.assert_not_tui_frame_contains("Select an entry to preview");
 
