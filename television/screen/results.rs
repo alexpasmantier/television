@@ -1,6 +1,6 @@
 use crate::{
     channels::entry::Entry,
-    config::ui::ResultsPanelConfig,
+    config::ui::{BorderType, Padding},
     screen::{colors::Colorscheme, layout::InputPosition, result_item},
 };
 use anyhow::Result;
@@ -9,7 +9,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     prelude::Style,
     text::Line,
-    widgets::{Block, Borders, ListState, Padding},
+    widgets::{Block, Borders, ListState, Padding as RatatuiPadding},
 };
 use rustc_hash::FxHashSet;
 
@@ -21,9 +21,9 @@ pub fn draw_results_list(
     selected_entries: &FxHashSet<Entry>,
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
-    use_nerd_font_icons: bool,
     colorscheme: &Colorscheme,
-    results_panel_config: &ResultsPanelConfig,
+    results_panel_padding: &Padding,
+    results_panel_border_type: &BorderType,
 ) -> Result<()> {
     let mut results_block = Block::default()
         .title_top(Line::from(" Results ").alignment(Alignment::Center))
@@ -31,9 +31,9 @@ pub fn draw_results_list(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
-        .padding(Padding::from(results_panel_config.padding));
+        .padding(RatatuiPadding::from(*results_panel_padding));
     if let Some(border_type) =
-        results_panel_config.border_type.to_ratatui_border_type()
+        results_panel_border_type.to_ratatui_border_type()
     {
         results_block = results_block
             .borders(Borders::ALL)
@@ -53,7 +53,6 @@ pub fn draw_results_list(
         entries,
         relative_picker_state,
         list_direction,
-        use_nerd_font_icons,
         &colorscheme.results,
         rect.width - 1, // right padding
         |entry| {

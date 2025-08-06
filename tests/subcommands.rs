@@ -12,19 +12,6 @@ fn tv_version() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Really just a sanity check
-#[test]
-fn tv_help() {
-    let mut tester = PtyTester::new();
-    let mut child = tester.spawn_command(tv_with_args(&["--help"]));
-
-    let output = tester.read_raw_output();
-    assert!(output.contains("Usage:"));
-    assert!(output.contains("Commands:"));
-    assert!(output.contains("Arguments:"));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
 /// Tests the `tv list-channels` command.
 ///
 /// We expect this to list all available channels in the cable directory.

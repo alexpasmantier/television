@@ -67,7 +67,7 @@ impl Cable {
             })
             .collect();
 
-        KeyBindings { bindings }
+        KeyBindings { inner: bindings }
     }
 
     /// Get a channel prototype's shortcut binding.

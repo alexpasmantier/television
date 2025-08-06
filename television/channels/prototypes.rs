@@ -1,9 +1,8 @@
 use crate::cli::parse_source_entry_delimiter;
-use crate::config::ui::InputBarConfig;
+use crate::config::ui::{InputBarConfig, ThemeOverrides};
 use crate::{
     config::{KeyBindings, ui},
     event::Key,
-    features::Features,
     screen::layout::Orientation,
 };
 use anyhow::Result;
@@ -98,7 +97,9 @@ impl<'de> Deserialize<'de> for Template {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
+#[derive(
+    Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Default,
+)]
 pub struct CommandSpec {
     #[serde(rename = "command")]
     #[serde_as(as = "OneOrMany<_>")]
@@ -156,6 +157,10 @@ impl CommandSpec {
     /// If the command spec does not contain any commands.
     pub fn get_nth(&self, index: usize) -> &Template {
         &self.inner[index % self.inner.len()]
+    }
+
+    pub fn from_template(template: Template) -> Self {
+        Self::new(vec![template], false, FxHashMap::default())
     }
 }
 
@@ -281,10 +286,7 @@ impl ChannelPrototype {
         }
     }
 
-    pub fn stdin(
-        preview: Option<PreviewSpec>,
-        entry_delimiter: Option<char>,
-    ) -> Self {
+    pub fn stdin() -> Self {
         Self {
             metadata: Metadata {
                 name: "stdin".to_string(),
@@ -296,15 +298,11 @@ impl ChannelPrototype {
             source: SourceSpec {
                 command: CommandSpec {
                     inner: vec![Template::parse("cat").unwrap()],
-                    interactive: false,
-                    env: FxHashMap::default(),
+                    ..Default::default()
                 },
-                ansi: false,
-                entry_delimiter,
-                display: None,
-                output: None,
+                ..Default::default()
             },
-            preview,
+            preview: None,
             ui: None,
             keybindings: None,
             watch: 0.0,
@@ -365,7 +363,7 @@ impl BinaryRequirement {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct SourceSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
@@ -434,11 +432,13 @@ impl PreviewSpec {
 pub struct UiSpec {
     #[serde(default)]
     pub ui_scale: Option<u16>,
-    #[serde(default)]
-    pub features: Option<Features>,
     // `layout` is clearer for the user but collides with the overall `Layout` type.
     #[serde(rename = "layout", alias = "orientation", default)]
     pub orientation: Option<Orientation>,
+    #[serde(default)]
+    pub theme: Option<String>,
+    #[serde(default)]
+    pub theme_overrides: ThemeOverrides,
     // Feature-specific configurations
     #[serde(default)]
     pub input_bar: Option<InputBarConfig>,
@@ -460,8 +460,9 @@ impl From<&crate::config::UiConfig> for UiSpec {
     fn from(config: &crate::config::UiConfig) -> Self {
         UiSpec {
             ui_scale: Some(config.ui_scale),
-            features: Some(config.features.clone()),
             orientation: Some(config.orientation),
+            theme: Some(config.theme.clone()),
+            theme_overrides: config.theme_overrides.clone(),
             input_bar: Some(config.input_bar.clone()),
             preview_panel: Some(config.preview_panel.clone()),
             results_panel: Some(config.results_panel.clone()),
@@ -621,13 +622,10 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(100));
-        assert!(ui.features.is_some());
-        let features = ui.features.as_ref().unwrap();
-        assert!(features.preview_panel.enabled);
         assert_eq!(ui.preview_panel.as_ref().unwrap().size, 66);
         let input_bar = ui.input_bar.as_ref().unwrap();
         assert_eq!(input_bar.position, InputPosition::Bottom);
-        assert_eq!(input_bar.header.as_ref().unwrap().raw(), "Input: {}");
+        assert_eq!(input_bar.header.as_ref().unwrap(), "Input: {}");
         assert_eq!(input_bar.border_type, BorderType::Plain);
         let preview_panel = ui.preview_panel.as_ref().unwrap();
         assert_eq!(
@@ -789,7 +787,6 @@ mod tests {
         let ui = prototype.ui.unwrap();
         assert_eq!(ui.orientation, Some(Orientation::Landscape));
         assert_eq!(ui.ui_scale, Some(40));
-        assert!(ui.features.is_none());
         assert_eq!(
             ui.input_bar.as_ref().unwrap().border_type,
             BorderType::None

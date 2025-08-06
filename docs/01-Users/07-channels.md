@@ -208,11 +208,18 @@ show_categories = true
 show_channel_descriptions = true
 sort_alphabetically = true
 
-[ui.features]
-preview_panel = { enabled = true, visible = true }
-remote_control = { enabled = true, visible = false }
-help_panel = { enabled = true, visible = false }
-status_bar = { enabled =true, visible = true }
+# UI panel visibility (individual control)
+[ui.preview_panel]
+hidden = false
+
+[ui.status_bar]
+hidden = false
+
+[ui.help_panel]
+hidden = true
+
+[ui.remote_control]
+# disabled = false  # uncomment to disable remote control for this channel
 ```
 
 #### `[keybindings]`

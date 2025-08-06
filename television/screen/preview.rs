@@ -1,5 +1,5 @@
 use crate::{
-    config::ui::{BorderType, Padding, PreviewPanelConfig},
+    config::ui::{BorderType, Padding},
     previewer::{Preview, state::PreviewState},
     screen::colors::Colorscheme,
     utils::strings::{
@@ -17,45 +17,45 @@ use ratatui::{
         Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
     },
 };
-use std::str::FromStr;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_preview_content_block(
     f: &mut Frame,
     rect: Rect,
-    preview_state: PreviewState,
-    use_nerd_font_icons: bool,
+    preview_state: &PreviewState,
     colorscheme: &Colorscheme,
-    preview_panel_config: &PreviewPanelConfig,
+    border_type: &BorderType,
+    padding: &Padding,
+    scrollbar: bool,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
         rect,
         colorscheme,
-        preview_panel_config.border_type,
-        preview_panel_config.padding,
+        *border_type,
+        *padding,
         &preview_state.preview,
-        use_nerd_font_icons,
-    )?;
-    let scroll = preview_state.scroll as usize;
+    );
     let total_lines =
         preview_state.preview.total_lines.saturating_sub(1) as usize;
+    let scroll = preview_state.scroll;
 
     // render the preview content
     let rp = build_preview_paragraph(
-        preview_state,
+        preview_state.preview.content.clone(),
+        preview_state.preview.line_number,
         colorscheme.preview.highlight_bg,
     );
     f.render_widget(Clear, inner);
     f.render_widget(rp, inner);
 
     // render scrollbar if enabled
-    if preview_panel_config.scrollbar {
+    if scrollbar {
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
             .style(Style::default().fg(colorscheme.general.border_fg));
 
         let mut scrollbar_state =
-            ScrollbarState::new(total_lines).position(scroll);
+            ScrollbarState::new(total_lines).position(scroll as usize);
 
         // Create a separate area for the scrollbar that accounts for text padding
         let scrollbar_rect = Rect {
@@ -72,7 +72,8 @@ pub fn draw_preview_content_block(
 }
 
 pub fn build_preview_paragraph(
-    preview_state: PreviewState,
+    content: Text<'static>,
+    line_number: Option<u16>,
     highlight_bg: Color,
 ) -> Paragraph<'static> {
     let preview_block =
@@ -86,9 +87,9 @@ pub fn build_preview_paragraph(
             });
 
     build_ansi_text_paragraph(
-        preview_state.preview.content,
+        content,
         preview_block,
-        preview_state.target_line,
+        line_number,
         highlight_bg,
     )
 }
@@ -170,21 +171,8 @@ fn draw_content_outer_block(
     border_type: BorderType,
     padding: Padding,
     preview: &Preview,
-    use_nerd_font_icons: bool,
-) -> Result<Rect> {
+) -> Rect {
     let mut preview_title_spans = vec![Span::from(" ")];
-    // optional icon
-    if preview.icon.is_some() && use_nerd_font_icons {
-        let icon = preview.icon.as_ref().unwrap();
-        preview_title_spans.push(Span::styled(
-            {
-                let mut icon_str = String::from(icon.icon);
-                icon_str.push(' ');
-                icon_str
-            },
-            Style::default().fg(Color::from_str(icon.color)?),
-        ));
-    }
     // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
@@ -233,5 +221,5 @@ fn draw_content_outer_block(
 
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);
-    Ok(inner)
+    inner
 }

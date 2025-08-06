@@ -9,7 +9,7 @@ pub fn find_keys_for_single_action(
     target_action: &Action,
 ) -> Vec<String> {
     keybindings
-        .bindings
+        .inner
         .iter()
         .filter_map(|(key, actions)| {
             // Check if this actions contains the target action
@@ -28,6 +28,6 @@ pub fn remove_action_bindings(
     target_action: &Actions,
 ) {
     keybindings
-        .bindings
+        .inner
         .retain(|_, action| action != target_action);
 }

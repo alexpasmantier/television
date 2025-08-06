@@ -1,7 +1,7 @@
 use crate::{
     channels::{
         entry::Entry,
-        prototypes::{ChannelPrototype, SourceSpec, Template},
+        prototypes::{CommandSpec, Template},
     },
     matcher::{Matcher, config::Config, injector::Injector},
     utils::command::shell_command,
@@ -18,7 +18,12 @@ use tracing::{debug, trace};
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
 pub struct Channel {
-    pub prototype: ChannelPrototype,
+    pub source_command: CommandSpec,
+    pub source_entry_delimiter: Option<char>,
+    pub source_ansi: bool,
+    pub source_display: Option<Template>,
+    pub source_output: Option<Template>,
+    pub supports_preview: bool,
     matcher: Matcher<String>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
@@ -29,12 +34,24 @@ pub struct Channel {
 }
 
 impl Channel {
-    pub fn new(prototype: ChannelPrototype) -> Self {
+    pub fn new(
+        source_command: CommandSpec,
+        source_entry_delimiter: Option<char>,
+        source_ansi: bool,
+        source_display: Option<Template>,
+        source_output: Option<Template>,
+        supports_preview: bool,
+    ) -> Self {
         let config = Config::default().prefer_prefix(true);
         let matcher = Matcher::new(&config);
         let current_source_index = 0;
         Self {
-            prototype,
+            source_command,
+            source_entry_delimiter,
+            source_ansi,
+            source_display,
+            source_output,
+            supports_preview,
             matcher,
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle: None,
@@ -46,8 +63,11 @@ impl Channel {
     pub fn load(&mut self) {
         let injector = self.matcher.injector();
         let crawl_handle = tokio::spawn(load_candidates(
-            self.prototype.source.clone(),
+            self.source_command.clone(),
+            self.source_entry_delimiter,
             self.current_source_index,
+            self.source_ansi,
+            self.source_display.clone(),
             injector,
         ));
         self.crawl_handle = Some(crawl_handle);
@@ -78,11 +98,7 @@ impl Channel {
     }
 
     pub fn current_command(&self) -> &str {
-        self.prototype
-            .source
-            .command
-            .get_nth(self.current_source_index)
-            .raw()
+        self.source_command.get_nth(self.current_source_index).raw()
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -100,8 +116,8 @@ impl Channel {
             let mut entry = Entry::new(item.inner)
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices)
-                .ansi(self.prototype.source.ansi);
-            if let Some(output) = &self.prototype.source.output {
+                .ansi(self.source_ansi);
+            if let Some(output) = &self.source_output {
                 entry = entry.with_output(output.clone());
             }
             entries.push(entry);
@@ -115,19 +131,8 @@ impl Channel {
             let mut entry = Entry::new(item.inner.clone())
                 .with_display(item.matched_string)
                 .with_match_indices(&item.match_indices);
-            if let Some(output) = &self.prototype.source.output {
+            if let Some(output) = &self.source_output {
                 entry = entry.with_output(output.clone());
-            }
-            if let Some(p) = &self.prototype.preview {
-                // FIXME: this should be done by the previewer instead
-                if let Some(offset_expr) = &p.offset {
-                    let offset_str =
-                        offset_expr.format(&item.inner).unwrap_or_default();
-
-                    entry = entry.with_line_number(
-                        offset_str.parse::<usize>().unwrap_or(0),
-                    );
-                }
             }
             Some(entry)
         } else {
@@ -163,15 +168,11 @@ impl Channel {
 
     pub fn shutdown(&self) {}
 
-    pub fn supports_preview(&self) -> bool {
-        self.prototype.preview.is_some()
-    }
-
     /// Cycles to the next source command
     pub fn cycle_sources(&mut self) {
-        if self.prototype.source.command.inner.len() > 1 {
+        if self.source_command.inner.len() > 1 {
             self.current_source_index = (self.current_source_index + 1)
-                % self.prototype.source.command.inner.len();
+                % self.source_command.inner.len();
             debug!(
                 "Cycling to source command index: {}",
                 self.current_source_index
@@ -187,15 +188,18 @@ const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
 
 #[allow(clippy::unused_async)]
 async fn load_candidates(
-    source: SourceSpec,
-    source_command_index: usize,
+    command: CommandSpec,
+    entry_delimiter: Option<char>,
+    command_index: usize,
+    ansi: bool,
+    display: Option<Template>,
     injector: Injector<String>,
 ) {
-    debug!("Loading candidates from command: {:?}", source.command);
+    debug!("Loading candidates from command: {:?}", command);
     let mut child = shell_command(
-        source.command.get_nth(source_command_index).raw(),
-        source.command.interactive,
-        &source.command.env,
+        command.get_nth(command_index).raw(),
+        command.interactive,
+        &command.env,
     )
     .stdout(Stdio::piped())
     .stderr(Stdio::piped())
@@ -207,11 +211,8 @@ async fn load_candidates(
         let mut reader = BufReader::new(out);
         let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
 
-        let delimiter = source
-            .entry_delimiter
-            .as_ref()
-            .map(|d| *d as u8)
-            .unwrap_or(b'\n');
+        let delimiter =
+            entry_delimiter.as_ref().map(|d| *d as u8).unwrap_or(b'\n');
 
         let strip_ansi = Template::parse("{strip_ansi}").unwrap();
 
@@ -235,14 +236,14 @@ async fn load_candidates(
                 trace!("Read line: {}", l);
                 if !l.trim().is_empty() {
                     let () = injector.push(l.to_string(), |e, cols| {
-                        if source.ansi {
+                        if ansi {
                             cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
                                 panic!(
                                     "Failed to strip ANSI from entry '{}'",
                                     e
                                 );
                             }).into();
-                        } else if let Some(display) = &source.display {
+                        } else if let Some(display) = &display {
                             let formatted = display.format(e).unwrap_or_else(|_| {
                                 panic!(
                                     "Failed to format display expression '{}' with entry '{}'",
@@ -279,7 +280,7 @@ async fn load_candidates(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::matcher::config::Config;
+    use crate::{channels::prototypes::SourceSpec, matcher::config::Config};
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_load_candidates_default_delimiter() {
@@ -293,7 +294,15 @@ mod tests {
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            0,
+            source_spec.ansi,
+            source_spec.display,
+            injector,
+        )
+        .await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -316,7 +325,15 @@ mod tests {
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            0,
+            source_spec.ansi,
+            source_spec.display,
+            injector,
+        )
+        .await;
 
         // Check if the matcher has the expected results
         matcher.find("test");
@@ -339,7 +356,15 @@ mod tests {
         let mut matcher = Matcher::<String>::new(&Config::default());
         let injector = matcher.injector();
 
-        load_candidates(source_spec, 0, injector).await;
+        load_candidates(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            0,
+            source_spec.ansi,
+            source_spec.display,
+            injector,
+        )
+        .await;
 
         // Check if the matcher has the expected results
         matcher.find("test");

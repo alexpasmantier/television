@@ -1,15 +1,14 @@
 use crate::{
     channels::{entry::Entry, remote_control::CableEntry},
-    config::Config,
+    config::layers::MergedConfig,
     picker::Picker,
     previewer::state::PreviewState,
-    screen::status_bar,
     screen::{
         colors::Colorscheme, help_panel::draw_help_panel,
         input::draw_input_box, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner,
+        spinner::Spinner, status_bar,
     },
     television::Mode,
     utils::metadata::AppMetadata,
@@ -106,7 +105,7 @@ impl TvState {
 /// draw a frame.
 pub struct Ctx {
     pub tv_state: TvState,
-    pub config: Config,
+    pub config: MergedConfig,
     pub colorscheme: Colorscheme,
     pub app_metadata: AppMetadata,
     pub instant: Instant,
@@ -116,7 +115,7 @@ pub struct Ctx {
 impl Ctx {
     pub fn new(
         tv_state: TvState,
-        config: Config,
+        config: MergedConfig,
         colorscheme: Colorscheme,
         app_metadata: AppMetadata,
         instant: Instant,
@@ -171,18 +170,11 @@ impl UiComponent for StatusBarComponent<'_> {
 /// A `Result` containing the layout of the current frame if the drawing was successful.
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
-pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
+pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
 
-    let layout = Layout::build(
-        area,
-        &ctx.config.ui,
-        show_remote,
-        ctx.tv_state.preview_state.enabled,
-        Some(&ctx.config),
-        ctx.tv_state.mode,
-        &ctx.colorscheme,
-    );
+    let layout =
+        Layout::build(area, &ctx.config, ctx.tv_state.mode, &ctx.colorscheme);
 
     // results list
     draw_results_list(
@@ -191,10 +183,10 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.results_picker.entries,
         &ctx.tv_state.channel_state.selected_entries,
         &mut ctx.tv_state.results_picker.relative_state.clone(),
-        ctx.config.ui.input_bar.position,
-        ctx.config.ui.use_nerd_font_icons,
+        ctx.config.input_bar_position,
         &ctx.colorscheme,
-        &ctx.config.ui.results_panel,
+        &ctx.config.results_panel_padding,
+        &ctx.config.results_panel_border_type,
     )?;
 
     draw_input_box(
@@ -208,12 +200,16 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.channel_state.current_channel_name,
         &ctx.tv_state.spinner,
         &ctx.colorscheme,
-        &ctx.config.ui.input_bar,
+        ctx.config.input_bar_position,
+        &ctx.config.input_bar_header,
+        &ctx.config.input_bar_padding,
+        &ctx.config.input_bar_border_type,
+        ctx.config.input_bar_prompt.as_ref(),
     )?;
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
-        let status_component = StatusBarComponent::new(&ctx);
+        let status_component = StatusBarComponent::new(ctx);
         status_component.draw(f, status_bar_area);
     }
 
@@ -221,10 +217,11 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_preview_content_block(
             f,
             preview_rect,
-            ctx.tv_state.preview_state,
-            ctx.config.ui.use_nerd_font_icons,
+            &ctx.tv_state.preview_state,
             &ctx.colorscheme,
-            &ctx.config.ui.preview_panel,
+            &ctx.config.preview_panel_border_type,
+            &ctx.config.preview_panel_padding,
+            ctx.config.preview_panel_scrollbar,
         )?;
     }
 
@@ -234,11 +231,10 @@ pub fn draw(ctx: Box<Ctx>, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             f,
             layout.remote_control.unwrap(),
             &ctx.tv_state.rc_picker.entries,
-            ctx.config.ui.use_nerd_font_icons,
             &mut ctx.tv_state.rc_picker.state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
-            &ctx.config.ui.remote_control,
+            ctx.config.remote_show_channel_descriptions,
         )?;
     }
 

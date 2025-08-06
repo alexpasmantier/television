@@ -572,33 +572,31 @@ Television uses a layered configuration system where each layer can override the
 
 > **Tip**: Use `--config-file` and `--cable-dir` flags to override these default locations
 
-### 🎛️ Feature Configuration
+### 🎛️ UI Panel Control
 
-Television features support dual-state control: **enabled/disabled** and **visible/not visible**.
+Television allows you to control the visibility and behavior of UI panels through CLI flags. Each panel can be hidden, shown, or disabled entirely.
 
-> **📖 For more details on the ui feature documentation**, see [`ui-features.md`](../02-Developers/02-ui-features.md).
+#### UI Panel Overview
 
-#### Quick Feature Overview
+Television supports four main UI panels:
 
-Television supports four main UI features:
+| Panel             | Purpose                                           | Default State | CLI Controls                                                |
+| ----------------- | ------------------------------------------------- | ------------- | ----------------------------------------------------------- |
+| **Preview Panel** | Shows contextual information for selected entries | Visible       | `--no-preview`, `--hide-preview`, `--show-preview`          |
+| **Status Bar**    | Displays application status and available actions | Visible       | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
+| **Help Panel**    | Shows contextual help and keyboard shortcuts      | Hidden        | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
+| **Remote Control**| Provides channel switching interface              | Hidden        | `--no-remote`, `--hide-remote`, `--show-remote`             |
 
-| Feature            | Purpose                                           | Default State      | CLI Controls                                                |
-| ------------------ | ------------------------------------------------- | ------------------ | ----------------------------------------------------------- |
-| **Preview Panel**  | Shows contextual information for selected entries | Enabled & Visible  | `--no-preview`, `--hide-preview`, `--show-preview`          |
-| **Status Bar**     | Displays application status and available actions | Enabled & Visible  | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
-| **Help Panel**     | Shows contextual help and keyboard shortcuts      | Enabled but Hidden | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
-| **Remote Control** | Provides channel switching interface              | Enabled but Hidden | `--no-remote`, `--hide-remote`, `--show-remote`             |
-
-#### CLI Feature Override Examples
+#### CLI Panel Control Examples
 
 ```bash
-# Control visibility while keeping functionality
+# Control visibility
 tv files --hide-preview --show-status-bar
 
-# Force features on
-tv files --show-preview --show-remote
+# Show normally hidden panels
+tv files --show-help-panel --show-remote
 
-# Disable completely
+# Disable panels entirely
 tv files --no-preview --no-remote
 
 # Mixed control

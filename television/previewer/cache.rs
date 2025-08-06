@@ -66,7 +66,6 @@ impl Default for Cache {
 
 #[cfg(test)]
 mod tests {
-    use devicons::FileIcon;
     use ratatui::text::Text;
 
     use super::*;
@@ -108,42 +107,5 @@ mod tests {
         assert!(cache.get(&another_entry).is_some());
         assert_eq!(cache.get(&new_entry).unwrap(), Preview::default());
         assert_eq!(cache.get(&another_entry).unwrap(), Preview::default());
-    }
-
-    #[test]
-    fn test_hash_criteria() {
-        let mut cache = Cache::new(3);
-        let entry_1 = Entry::new(String::from("entry_1"))
-            .with_display(String::from("display_1"))
-            .with_line_number(1)
-            .with_match_indices(&[1])
-            .with_icon(FileIcon::default());
-
-        let entry_2 = Entry::new(String::from("entry_2"))
-            .with_display(String::from("display_2"))
-            .with_line_number(2)
-            .with_match_indices(&[2])
-            .with_icon(FileIcon::default());
-
-        cache.insert(&entry_1, &Preview::default());
-        cache.insert(&entry_2, &Preview::default());
-        assert_eq!(cache.size(), 2);
-
-        cache.clear();
-        assert_eq!(cache.size(), 0);
-        let mut entry_1_mod = entry_1.clone();
-        entry_1_mod =
-            entry_1_mod.with_display(String::from("display_1_modified"));
-        cache.insert(&entry_1, &Preview::default());
-        cache.insert(&entry_1_mod, &Preview::default());
-        assert_eq!(cache.size(), 2);
-
-        cache.clear();
-        assert_eq!(cache.size(), 0);
-        let mut entry_1_mod = entry_1.clone();
-        entry_1_mod = entry_1_mod.with_line_number(3);
-        cache.insert(&entry_1, &Preview::default());
-        cache.insert(&entry_1_mod, &Preview::default());
-        assert_eq!(cache.size(), 2);
     }
 }

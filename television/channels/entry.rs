@@ -3,7 +3,6 @@ use crate::{
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
-use devicons::FileIcon;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq)]
@@ -16,10 +15,6 @@ pub struct Entry {
     pub output: Option<Template>,
     /// The optional ranges for matching characters (based on `self.display`).
     pub match_ranges: Option<Vec<(u32, u32)>>,
-    /// The optional icon associated with the entry.
-    pub icon: Option<FileIcon>,
-    /// The optional line number associated with the entry.
-    pub line_number: Option<usize>,
     /// Whether the entry contains ANSI escape sequences.
     pub ansi: bool,
 }
@@ -27,32 +22,18 @@ pub struct Entry {
 impl Hash for Entry {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.raw.hash(state);
-        if let Some(display) = &self.display {
-            display.hash(state);
-        }
-        if let Some(line_number) = self.line_number {
-            line_number.hash(state);
-        }
     }
 }
 
 impl PartialEq<Entry> for &Entry {
     fn eq(&self, other: &Entry) -> bool {
         self.raw == other.raw
-            && (self.line_number.is_none() && other.line_number.is_none()
-                || self.line_number == other.line_number)
-            && (self.display.is_none() && other.display.is_none()
-                || self.display == other.display)
     }
 }
 
 impl PartialEq<Entry> for Entry {
     fn eq(&self, other: &Entry) -> bool {
         self.raw == other.raw
-            && (self.line_number.is_none() && other.line_number.is_none()
-                || self.line_number == other.line_number)
-            && (self.display.is_none() && other.display.is_none()
-                || self.display == other.display)
     }
 }
 
@@ -93,9 +74,7 @@ impl Entry {
     ///
     /// let entry = Entry::new("name".to_string())
     ///                 .with_display("Display Name".to_string())
-    ///                 .with_match_indices(&vec![0])
-    ///                 .with_icon(FileIcon::default())
-    ///                 .with_line_number(0);
+    ///                 .with_match_indices(&vec![0]);
     /// ```
     ///
     /// # Arguments
@@ -110,8 +89,6 @@ impl Entry {
             display: None,
             output: None,
             match_ranges: None,
-            icon: None,
-            line_number: None,
             ansi: false,
         }
     }
@@ -128,16 +105,6 @@ impl Entry {
 
     pub fn with_match_indices(mut self, indices: &[u32]) -> Self {
         self.match_ranges = Some(into_ranges(indices));
-        self
-    }
-
-    pub fn with_icon(mut self, icon: FileIcon) -> Self {
-        self.icon = Some(icon);
-        self
-    }
-
-    pub fn with_line_number(mut self, line_number: usize) -> Self {
-        self.line_number = Some(line_number);
         self
     }
 
@@ -163,10 +130,6 @@ impl Entry {
 impl ResultItem for Entry {
     fn raw(&self) -> &str {
         &self.raw
-    }
-
-    fn icon(&self) -> Option<&devicons::FileIcon> {
-        self.icon.as_ref()
     }
 
     fn display(&self) -> &str {
@@ -225,8 +188,6 @@ mod tests {
             display: None,
             output: None,
             match_ranges: None,
-            icon: None,
-            line_number: None,
             ansi: false,
         };
         assert_eq!(entry.output().unwrap(), "test name with spaces");

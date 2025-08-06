@@ -1,9 +1,8 @@
 use crate::{
     config::{
-        Config, UiConfig,
-        ui::{BorderType, InputBarConfig},
+        layers::MergedConfig,
+        ui::{BorderType, Padding},
     },
-    features::FeatureFlags,
     screen::{
         colors::Colorscheme, help_panel::calculate_help_panel_size,
         logo::REMOTE_LOGO_HEIGHT_U16,
@@ -35,7 +34,7 @@ impl From<u16> for Dimensions {
 }
 
 #[derive(
-    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash,
+    Debug, Clone, Copy, Deserialize, Serialize, Default, PartialEq, Hash, Eq,
 )]
 pub enum InputPosition {
     #[serde(rename = "top")]
@@ -62,6 +61,7 @@ impl Display for InputPosition {
     Serialize,
     Default,
     PartialEq,
+    Eq,
     Hash,
     ValueEnum,
 )]
@@ -137,29 +137,23 @@ impl Layout {
 
     pub fn build(
         area: Rect,
-        ui_config: &UiConfig,
-        show_remote: bool,
-        show_preview: bool,
-        config: Option<&Config>,
+        merged_config: &MergedConfig,
         mode: Mode,
         colorscheme: &Colorscheme,
     ) -> Self {
-        let show_preview = show_preview
-            && ui_config.features.is_visible(FeatureFlags::PreviewPanel);
-        let dimensions = Dimensions::from(ui_config.ui_scale);
+        let dimensions = Dimensions::from(merged_config.ui_scale);
 
         // Reserve space for status bar if enabled
-        let working_area =
-            if ui_config.features.is_visible(FeatureFlags::StatusBar) {
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
-                }
-            } else {
-                area
-            };
+        let working_area = if merged_config.status_bar_hidden {
+            area
+        } else {
+            Rect {
+                x: area.x,
+                y: area.y,
+                width: area.width,
+                height: area.height.saturating_sub(1), // Reserve exactly 1 line for status bar
+            }
+        };
 
         let main_block =
             centered_rect(dimensions.x, dimensions.y, working_area);
@@ -172,7 +166,10 @@ impl Layout {
         // calculating the preview/results split.
         let results_constraints = vec![
             Constraint::Min(3),
-            Constraint::Length(input_bar_height(&ui_config.input_bar)),
+            Constraint::Length(input_bar_height(
+                merged_config.input_bar_padding,
+                merged_config.input_bar_border_type,
+            )),
         ];
 
         // Extract the explicit height of the input bar from the vector above so
@@ -186,16 +183,20 @@ impl Layout {
             .unwrap_or(0);
 
         // split the main block into 1 or 2 chunks (results + preview)
-        let constraints = if show_preview {
+        let preview_hidden = merged_config.preview_panel_hidden
+            || merged_config.channel_preview_command.is_none();
+        let constraints = if preview_hidden {
+            vec![Constraint::Fill(1)]
+        } else {
             // Determine the desired preview percentage (as configured by the user)
             let raw_preview_percentage =
-                ui_config.preview_panel.size.clamp(1, 99); // ensure sane value
+                merged_config.preview_panel_size.clamp(1, 99); // ensure sane value
 
             // In portrait orientation, reserve the input bar height from the total
             // vertical space before applying the percentage split so the preview
             // takes the intended share of *usable* height.
             let mut preview_percentage = raw_preview_percentage;
-            if ui_config.orientation == Orientation::Portrait
+            if merged_config.layout == Orientation::Portrait
                 && input_bar_height > 0
             {
                 let total_height = main_rect.height;
@@ -212,7 +213,7 @@ impl Layout {
             // results percentage is whatever remains
             let results_percentage = 100u16.saturating_sub(preview_percentage);
 
-            match (ui_config.orientation, ui_config.input_bar.position) {
+            match (merged_config.layout, merged_config.input_bar_position) {
                 // Preview is rendered on the right or bottom depending on orientation
                 (Orientation::Landscape, _)
                 | (Orientation::Portrait, InputPosition::Top) => {
@@ -228,12 +229,10 @@ impl Layout {
                     Constraint::Percentage(results_percentage),
                 ],
             }
-        } else {
-            vec![Constraint::Fill(1)]
         };
 
         let main_chunks = RatatuiLayout::default()
-            .direction(match ui_config.orientation {
+            .direction(match merged_config.layout {
                 Orientation::Portrait => Direction::Vertical,
                 Orientation::Landscape => Direction::Horizontal,
             })
@@ -244,7 +243,7 @@ impl Layout {
         // Determine the rectangles for input, results list and optional preview
         // ------------------------------------------------------------------
 
-        let (input, results, preview_window) = match ui_config.orientation {
+        let (input, results, preview_window) = match merged_config.layout {
             Orientation::Landscape => {
                 // Landscape keeps the old behaviour: horizontally split results+input
                 // on the left and preview (if any) on the right. We still need to
@@ -252,16 +251,16 @@ impl Layout {
 
                 // First, decide which chunk is results vs preview based on the
                 // earlier `main_chunks` computation.
-                let (result_window, preview_window) = if show_preview {
-                    (main_chunks[0], Some(main_chunks[1]))
-                } else {
+                let (result_window, preview_window) = if preview_hidden {
                     (main_chunks[0], None)
+                } else {
+                    (main_chunks[0], Some(main_chunks[1]))
                 };
 
                 // Now split the results window vertically into results list + input
                 let result_chunks = layout::Layout::default()
                     .direction(Direction::Vertical)
-                    .constraints(match ui_config.input_bar.position {
+                    .constraints(match merged_config.input_bar_position {
                         InputPosition::Top => results_constraints
                             .clone()
                             .into_iter()
@@ -271,9 +270,8 @@ impl Layout {
                     })
                     .split(result_window);
 
-                let (input_rect, results_rect) = match ui_config
-                    .input_bar
-                    .position
+                let (input_rect, results_rect) = match merged_config
+                    .input_bar_position
                 {
                     InputPosition::Bottom => {
                         (result_chunks[1], result_chunks[0])
@@ -297,14 +295,19 @@ impl Layout {
 
                 let mut portrait_constraints: Vec<Constraint> = Vec::new();
 
-                match ui_config.input_bar.position {
+                match merged_config.input_bar_position {
                     InputPosition::Top => {
                         // Input bar is always the first chunk
                         portrait_constraints
                             .push(Constraint::Length(input_bar_height));
                         input_idx = 0;
 
-                        if show_preview {
+                        if preview_hidden {
+                            // only results
+                            portrait_constraints.push(Constraint::Fill(1));
+                            results_idx = 1;
+                            preview_idx = None;
+                        } else {
                             // results then preview
                             portrait_constraints
                                 .push(Constraint::Percentage(100));
@@ -312,27 +315,22 @@ impl Layout {
                                 .push(Constraint::Percentage(0));
                             results_idx = 1;
                             preview_idx = Some(2);
-                        } else {
-                            // only results
-                            portrait_constraints.push(Constraint::Fill(1));
-                            results_idx = 1;
-                            preview_idx = None;
                         }
                     }
                     InputPosition::Bottom => {
                         // For bottom input bar we might put preview at the top if
                         // present, then results, then input.
-                        if show_preview {
+                        if preview_hidden {
+                            preview_idx = None;
+                        } else {
                             portrait_constraints
                                 .push(Constraint::Percentage(0));
                             preview_idx = Some(0);
-                        } else {
-                            preview_idx = None;
                         }
 
                         // results (placeholder percentage)
                         portrait_constraints.push(Constraint::Percentage(100));
-                        results_idx = usize::from(show_preview);
+                        results_idx = usize::from(!preview_hidden);
 
                         // finally the input bar
                         portrait_constraints
@@ -345,7 +343,7 @@ impl Layout {
                 if let Some(p_idx) = preview_idx {
                     // Determine preview percentage from config
                     let preview_pct =
-                        ui_config.preview_panel.size.clamp(1, 99);
+                        merged_config.preview_panel_size.clamp(1, 99);
 
                     // Remaining for results
                     let results_pct = 100u16.saturating_sub(preview_pct);
@@ -375,61 +373,54 @@ impl Layout {
         };
 
         // the remote control is a centered popup
-        let remote_control = if show_remote {
-            let remote_control_rect = centered_rect_with_dimensions(
-                &Dimensions::new(
-                    area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
-                    REMOTE_LOGO_HEIGHT_U16,
-                ),
-                area,
-            );
-            Some(remote_control_rect)
-        } else {
-            None
-        };
-
-        // the help panel is positioned at bottom-right, accounting for status bar
-        let help_panel = if ui_config
-            .features
-            .is_visible(FeatureFlags::HelpPanel)
-        {
-            // Calculate available area for help panel (excluding status bar if enabled)
-            let hp_area =
-                if ui_config.features.is_visible(FeatureFlags::StatusBar) {
-                    Rect {
-                        x: area.x,
-                        y: area.y,
-                        width: area.width,
-                        height: area.height.saturating_sub(1), // Account for single line status bar
-                    }
-                } else {
-                    area
-                };
-
-            if let Some(cfg) = config {
-                let (width, height) =
-                    calculate_help_panel_size(cfg, mode, colorscheme);
-                Some(bottom_right_rect(width, height, hp_area))
-            } else {
-                // Fallback to reasonable default if config not available
-                Some(bottom_right_rect(45, 25, hp_area))
-            }
-        } else {
-            None
-        };
-
-        // Create status bar at the bottom if enabled
-        let status_bar =
-            if ui_config.features.is_visible(FeatureFlags::StatusBar) {
-                Some(Rect {
-                    x: area.x,
-                    y: area.y + area.height - 1, // Position at the very last line
-                    width: area.width,
-                    height: 1, // Single line status bar
-                })
+        let remote_control =
+            if !merged_config.remote_disabled && mode == Mode::RemoteControl {
+                let remote_control_rect = centered_rect_with_dimensions(
+                    &Dimensions::new(
+                        area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
+                        REMOTE_LOGO_HEIGHT_U16,
+                    ),
+                    area,
+                );
+                Some(remote_control_rect)
             } else {
                 None
             };
+
+        // the help panel is positioned at bottom-right, accounting for status bar
+        let help_panel = if merged_config.help_panel_disabled
+            || merged_config.help_panel_hidden
+        {
+            None
+        } else {
+            // Calculate available area for help panel (excluding status bar if enabled)
+            let hp_area = if merged_config.status_bar_hidden {
+                area
+            } else {
+                Rect {
+                    x: area.x,
+                    y: area.y,
+                    width: area.width,
+                    height: area.height.saturating_sub(1), // Account for single line status bar
+                }
+            };
+
+            let (width, height) =
+                calculate_help_panel_size(merged_config, mode, colorscheme);
+            Some(bottom_right_rect(width, height, hp_area))
+        };
+
+        // Create status bar at the bottom if enabled
+        let status_bar = if merged_config.status_bar_hidden {
+            None
+        } else {
+            Some(Rect {
+                x: area.x,
+                y: area.y + area.height - 1, // Position at the very last line
+                width: area.width,
+                height: 1, // Single line status bar
+            })
+        };
 
         Self::new(
             results,
@@ -485,13 +476,12 @@ fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
     }
 }
 
-fn input_bar_height(input_bar_config: &InputBarConfig) -> u16 {
+fn input_bar_height(padding: Padding, border_type: BorderType) -> u16 {
     // input line + header + vertical padding
-    let mut h =
-        1 + 1 + input_bar_config.padding.top + input_bar_config.padding.bottom;
+    let mut h = 1 + 1 + padding.top + padding.bottom;
 
     // add the bottom border if applicable (top is already included with the header)
-    if input_bar_config.border_type != BorderType::None {
+    if border_type != BorderType::None {
         h += 1;
     }
     h
@@ -507,71 +497,33 @@ mod tests {
     /// ---h----
     ///  input
     /// --------
-    fn test_input_bar_height_top_with_borders() {
-        let config = InputBarConfig {
-            position: InputPosition::Top,
-            padding: Padding::default(),
-            border_type: BorderType::Rounded,
-            header: None,
-            prompt: "> ".to_string(),
-        };
-        assert_eq!(input_bar_height(&config), 3);
-    }
-
-    #[test]
-    fn test_input_bar_height_bottom_with_borders() {
-        let config = InputBarConfig {
-            position: InputPosition::Bottom,
-            padding: Padding::default(),
-            border_type: BorderType::Rounded,
-            header: None,
-            prompt: "> ".to_string(),
-        };
-        assert_eq!(input_bar_height(&config), 3);
+    fn test_input_bar_height_with_borders() {
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::Rounded),
+            3
+        );
     }
 
     #[test]
     ///      h
     ///    input
-    fn test_input_bar_height_top_without_borders() {
-        let config = InputBarConfig {
-            position: InputPosition::Top,
-            padding: Padding::default(),
-            border_type: BorderType::None,
-            header: None,
-            prompt: "> ".to_string(),
-        };
-        assert_eq!(input_bar_height(&config), 2);
-    }
-
-    #[test]
-    ///  input
-    ///    h
-    fn test_input_bar_height_bottom_without_borders() {
-        let config = InputBarConfig {
-            position: InputPosition::Bottom,
-            padding: Padding::default(),
-            border_type: BorderType::None,
-            header: None,
-            prompt: "> ".to_string(),
-        };
-        assert_eq!(input_bar_height(&config), 2);
+    fn test_input_bar_height_without_borders() {
+        assert_eq!(input_bar_height(Padding::default(), BorderType::None,), 2);
     }
 
     #[test]
     fn test_input_bar_height_with_padding() {
-        let config = InputBarConfig {
-            position: InputPosition::Top,
-            padding: Padding {
-                top: 1,
-                bottom: 2,
-                left: 0,
-                right: 0,
-            },
-            border_type: BorderType::None,
-            header: None,
-            prompt: "> ".to_string(),
-        };
-        assert_eq!(input_bar_height(&config), 5);
+        assert_eq!(
+            input_bar_height(
+                Padding {
+                    top: 1,
+                    bottom: 2,
+                    left: 0,
+                    right: 0,
+                },
+                BorderType::None
+            ),
+            5
+        );
     }
 }

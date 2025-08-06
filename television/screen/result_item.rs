@@ -17,7 +17,6 @@ use ratatui::{
     style::Stylize,
     widgets::{Block, List, ListDirection, ListState},
 };
-use std::str::FromStr;
 use unicode_width::UnicodeWidthStr;
 
 /// Trait implemented by any item that can be displayed in the results or remote-control list.
@@ -59,7 +58,6 @@ pub trait ResultItem {
 #[allow(clippy::cast_possible_truncation)]
 pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     item: &'a T,
-    use_icons: bool,
     selection_fg: Color,
     result_fg: Color,
     match_fg: Color,
@@ -92,20 +90,8 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     let item_max_width = area_width
         .saturating_sub(2) // pointer + space (kept for caller)
         .saturating_sub(2) // borders
-        .saturating_sub(2 * u16::from(use_icons))
         .saturating_sub(selection_prefix_width)
         .saturating_sub(shortcut_extra);
-
-    // Icon.
-    if use_icons {
-        if let Some(icon) = item.icon() {
-            spans.push(Span::styled(
-                icon.to_string(),
-                Style::default().fg(Color::from_str(icon.color).unwrap()),
-            ));
-            spans.push(Span::raw(" "));
-        }
-    }
 
     if item.ansi() {
         spans.extend(build_entry_spans_ansi(
@@ -305,7 +291,6 @@ pub fn build_results_list<'a, 'b, T, F>(
     entries: &'a [T],
     relative_picker_state: &ListState,
     list_direction: ListDirection,
-    use_icons: bool,
     colorscheme: &ResultsColorscheme,
     area_width: u16,
     mut prefix_fn: F,
@@ -324,7 +309,6 @@ where
         };
         build_result_line(
             e,
-            use_icons,
             colorscheme.result_selected_fg,
             result_fg,
             colorscheme.match_foreground_color,
@@ -353,7 +337,6 @@ mod tests {
             .with_match_indices(&[1, 2, 10, 11]);
         let line = build_result_line(
             &entry,
-            false,
             Color::Reset,
             Color::Reset,
             Color::Reset,
@@ -379,7 +362,6 @@ mod tests {
         // area width tuned so that text should be truncated with ellipsis
         let line = build_result_line(
             &entry,
-            false,
             Color::Reset,
             Color::Reset,
             Color::Reset,

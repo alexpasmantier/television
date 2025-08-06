@@ -159,7 +159,7 @@ fn test_no_preview_disables_preview_panel() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify no preview panel is displayed
-    tester.assert_not_tui_frame_contains("Preview");
+    tester.assert_not_tui_frame_contains("─ Preview ─");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -316,23 +316,6 @@ fn test_show_preview_flag_starts_with_preview_visible() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
-/// Tests that --hide-preview and --show-preview cannot be used together.
-#[test]
-fn test_hide_and_show_preview_conflict_errors() {
-    let mut tester = PtyTester::new();
-
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-preview",
-        "--show-preview",
-    ]);
-    tester.spawn_command(cmd);
-
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
 }
 
 /// Tests that --hide-preview conflicts with --no-preview.

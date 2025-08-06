@@ -1,20 +1,21 @@
 use crate::{
     channels::prototypes::Template,
     config::themes::DEFAULT_THEME,
-    features::Features,
     screen::layout::{InputPosition, Orientation},
 };
 use serde::{Deserialize, Serialize};
 
 pub const DEFAULT_UI_SCALE: u16 = 100;
 pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
+pub const DEFAULT_PROMPT: &str = ">";
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct InputBarConfig {
     pub position: InputPosition,
-    pub header: Option<Template>,
-    pub prompt: String,
+    pub header: Option<String>,
+    #[serde(default = "default_prompt")]
+    pub prompt: Option<String>,
     pub border_type: BorderType,
     pub padding: Padding,
 }
@@ -24,11 +25,16 @@ impl Default for InputBarConfig {
         Self {
             position: InputPosition::default(),
             header: None,
-            prompt: ">".to_string(),
+            prompt: Some(String::from(DEFAULT_PROMPT)),
             border_type: BorderType::default(),
             padding: Padding::uniform(0),
         }
     }
+}
+
+#[allow(clippy::unnecessary_wraps)]
+fn default_prompt() -> Option<String> {
+    Some(String::from(DEFAULT_PROMPT))
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
@@ -36,6 +42,7 @@ impl Default for InputBarConfig {
 pub struct StatusBarConfig {
     pub separator_open: String,
     pub separator_close: String,
+    pub hidden: bool,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
@@ -54,6 +61,7 @@ pub struct PreviewPanelConfig {
     pub scrollbar: bool,
     pub border_type: BorderType,
     pub padding: Padding,
+    pub hidden: bool,
 }
 
 impl Default for PreviewPanelConfig {
@@ -65,6 +73,7 @@ impl Default for PreviewPanelConfig {
             scrollbar: true,
             border_type: BorderType::default(),
             padding: Padding::uniform(0),
+            hidden: false,
         }
     }
 }
@@ -73,12 +82,21 @@ impl Default for PreviewPanelConfig {
 #[serde(default)]
 pub struct HelpPanelConfig {
     pub show_categories: bool,
+    #[serde(default = "default_help_hidden")]
+    pub hidden: bool,
+    pub disabled: bool,
+}
+
+fn default_help_hidden() -> bool {
+    true
 }
 
 impl Default for HelpPanelConfig {
     fn default() -> Self {
         Self {
             show_categories: true,
+            hidden: true,
+            disabled: false,
         }
     }
 }
@@ -88,6 +106,7 @@ impl Default for HelpPanelConfig {
 pub struct RemoteControlConfig {
     pub show_channel_descriptions: bool,
     pub sort_alphabetically: bool,
+    pub disabled: bool,
 }
 
 impl Default for RemoteControlConfig {
@@ -95,13 +114,16 @@ impl Default for RemoteControlConfig {
         Self {
             show_channel_descriptions: true,
             sort_alphabetically: true,
+            disabled: false,
         }
     }
 }
 
 /// Theme color overrides that can be specified in the configuration file
 /// to customize the appearance of the selected theme
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[derive(
+    Clone, Debug, Deserialize, Serialize, PartialEq, Eq, Hash, Default,
+)]
 #[serde(default)]
 pub struct ThemeOverrides {
     // General colors
@@ -132,14 +154,42 @@ pub struct ThemeOverrides {
     pub remote_control_mode_bg: Option<String>,
 }
 
+impl ThemeOverrides {
+    pub fn merge(self, other: Self) -> Self {
+        Self {
+            background: self.background.or(other.background),
+            border_fg: self.border_fg.or(other.border_fg),
+            text_fg: self.text_fg.or(other.text_fg),
+            dimmed_text_fg: self.dimmed_text_fg.or(other.dimmed_text_fg),
+            input_text_fg: self.input_text_fg.or(other.input_text_fg),
+            result_count_fg: self.result_count_fg.or(other.result_count_fg),
+            result_name_fg: self.result_name_fg.or(other.result_name_fg),
+            result_line_number_fg: self
+                .result_line_number_fg
+                .or(other.result_line_number_fg),
+            result_value_fg: self.result_value_fg.or(other.result_value_fg),
+            selection_bg: self.selection_bg.or(other.selection_bg),
+            selection_fg: self.selection_fg.or(other.selection_fg),
+            match_fg: self.match_fg.or(other.match_fg),
+            preview_title_fg: self.preview_title_fg.or(other.preview_title_fg),
+            channel_mode_fg: self.channel_mode_fg.or(other.channel_mode_fg),
+            channel_mode_bg: self.channel_mode_bg.or(other.channel_mode_bg),
+            remote_control_mode_fg: self
+                .remote_control_mode_fg
+                .or(other.remote_control_mode_fg),
+            remote_control_mode_bg: self
+                .remote_control_mode_bg
+                .or(other.remote_control_mode_bg),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct UiConfig {
-    pub use_nerd_font_icons: bool,
     pub ui_scale: u16,
     pub orientation: Orientation,
     pub theme: String,
-    pub features: Features,
 
     // Feature-specific configurations
     pub input_bar: InputBarConfig,
@@ -157,11 +207,9 @@ pub struct UiConfig {
 impl Default for UiConfig {
     fn default() -> Self {
         Self {
-            use_nerd_font_icons: false,
             ui_scale: DEFAULT_UI_SCALE,
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
-            features: Features::default(),
             input_bar: InputBarConfig::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),
@@ -174,7 +222,7 @@ impl Default for UiConfig {
 }
 
 #[derive(
-    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default,
+    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default, Eq,
 )]
 #[serde(rename_all = "snake_case")]
 pub enum BorderType {
@@ -210,7 +258,7 @@ impl From<crate::cli::args::BorderType> for BorderType {
 }
 
 #[derive(
-    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default,
+    Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Hash, Default, Eq,
 )]
 #[serde(default)]
 pub struct Padding {
