@@ -63,9 +63,14 @@ impl FrecencyEntry {
     ///
     /// Score = `recency_weight` × `frequency_weight`
     pub fn calculate_score(&self, now: u64) -> f64 {
-        // Limit unreasonably high scores when access is very recent (min 0.1 days)
-        let days_since_access =
-            ((now - self.last_access) as f64 / SECONDS_PER_DAY).max(0.1);
+        // Handle future timestamps or invalid time calculations
+        let days_since_access = if self.last_access > now {
+            // Future timestamp - treat as very recent (0.1 days)
+            0.1
+        } else {
+            // Normal case: calculate days since access, minimum 0.1 days to prevent division issues
+            ((now - self.last_access) as f64 / SECONDS_PER_DAY).max(0.1)
+        };
 
         // Recency weight: square root decay is gentler than linear decay
         // This allows frequently accessed older items to maintain higher scores
@@ -248,12 +253,19 @@ impl Frecency {
 
         // Keep only the most frecent entries if file is too large
         if loaded_entries.len() > self.max_size {
+            // Partial sort: O(n) to find top items, then sort only those
             loaded_entries.select_nth_unstable_by(self.max_size, |a, b| {
                 let score_a = a.get_score();
                 let score_b = b.get_score();
                 score_b.partial_cmp(&score_a).unwrap_or(Ordering::Equal)
             });
-            loaded_entries.drain(0..loaded_entries.len() - self.max_size);
+            // Sort only the selected top items for consistent ordering
+            loaded_entries[..self.max_size].sort_by(|a, b| {
+                let score_a = a.get_score();
+                let score_b = b.get_score();
+                score_b.partial_cmp(&score_a).unwrap_or(Ordering::Equal)
+            });
+            loaded_entries.truncate(self.max_size);
         }
 
         self.entries = loaded_entries;
