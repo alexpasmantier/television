@@ -4,14 +4,15 @@ use crate::{
     channels::{
         channel::Channel as CableChannel,
         entry::Entry,
-        prototypes::ChannelPrototype,
+        prototypes::{ChannelPrototype, CommandSpec, Template},
         remote_control::{CableEntry, RemoteControl},
     },
-    cli::PostProcessedCli,
-    config::{Config, Theme},
+    config::{
+        Theme,
+        layers::{LayeredConfig, MergedConfig},
+    },
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
-    features::FeatureFlags,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -29,6 +30,7 @@ use crate::{
     },
 };
 use anyhow::Result;
+use ratatui::layout::Rect;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -60,8 +62,8 @@ pub enum MatchingMode {
 
 pub struct Television {
     action_tx: UnboundedSender<Action>,
-    base_config: Config,
-    pub config: Config,
+    pub layered_config: LayeredConfig,
+    pub merged_config: MergedConfig,
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
     pub mode: Mode,
@@ -79,9 +81,7 @@ pub struct Television {
     pub colorscheme: Colorscheme,
     pub ticks: u64,
     pub ui_state: UiState,
-    pub cli_args: PostProcessedCli,
     pub current_command_index: usize,
-    pub channel_prototype: ChannelPrototype,
 }
 
 impl Television {
@@ -90,41 +90,49 @@ impl Television {
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        channel_prototype: ChannelPrototype,
-        base_config: Config,
+        layered_config: LayeredConfig,
         cable_channels: Cable,
-        cli_args: PostProcessedCli,
     ) -> Self {
-        let mut config = Self::merge_base_config_with_prototype_specs(
-            &base_config,
-            &channel_prototype,
-        );
+        let merged_config = {
+            // this is to keep the outer merged config immutable
+            let mut m = layered_config.merge();
+            m.input_map.merge_key_bindings(
+                &cable_channels.get_channels_shortcut_keybindings(),
+            );
+            m
+        };
 
-        // Apply ALL CLI overrides (including keybindings) after channel merging
-        config.apply_cli_overrides(&cli_args);
-
-        debug!("Merged config: {:?}", config);
-
-        // Extract CLI arguments
-        let input = cli_args.input.clone();
-        let exact = cli_args.exact;
-        let no_remote = cli_args.no_remote;
-
-        let mut results_picker = Picker::new(input.clone());
-        if config.ui.input_bar.position == InputPosition::Bottom {
+        let mut results_picker = Picker::new(merged_config.input.clone());
+        if merged_config.input_bar_position == InputPosition::Bottom {
             results_picker = results_picker.inverted();
         }
 
-        let matching_mode = if exact {
+        let matching_mode = if merged_config.exact_match {
             MatchingMode::Substring
         } else {
             MatchingMode::Fuzzy
         };
 
         // previewer
-        let preview_handles = Self::setup_previewer(&channel_prototype);
+        let preview_handles = merged_config
+            .channel_preview_command
+            .as_ref()
+            .map(|command| {
+                Self::setup_previewer(
+                    command,
+                    merged_config.channel_preview_cached,
+                    merged_config.channel_preview_offset.clone(),
+                )
+            });
 
-        let mut channel = CableChannel::new(channel_prototype.clone());
+        let mut channel = CableChannel::new(
+            merged_config.channel_source_command.clone(),
+            merged_config.channel_source_entry_delimiter,
+            merged_config.channel_source_ansi,
+            merged_config.channel_source_display,
+            merged_config.channel_source_output,
+            merged_config.channel_preview_command.is_some(),
+        );
         channel.load();
 
         let app_metadata = AppMetadata::new(
@@ -134,43 +142,39 @@ impl Television {
                 .to_string_lossy()
                 .to_string(),
         );
-        let base_theme = Theme::from_name(&config.ui.theme);
+        let base_theme = Theme::from_name(&merged_config.theme);
         let theme = base_theme
-            .merge_with_overrides(&config.ui.theme_overrides)
+            .merge_with_overrides(&merged_config.theme_overrides)
             .unwrap_or_else(|e| {
                 error!("Failed to apply theme overrides: {}", e);
                 base_theme
             });
         let colorscheme = (&theme).into();
 
-        let patrnn = Television::preprocess_pattern(
+        let pattern = Television::preprocess_pattern(
             matching_mode,
-            &input.unwrap_or(EMPTY_STRING.to_string()),
+            &merged_config.input.unwrap_or(EMPTY_STRING.to_string()),
         );
 
-        channel.find(&patrnn);
+        channel.find(&pattern);
         let spinner = Spinner::default();
 
-        let preview_state = PreviewState::new(
-            channel.supports_preview(),
-            Preview::default(),
-            0,
-            None,
-        );
+        let preview_state =
+            PreviewState::new(channel.supports_preview, Preview::default(), 0);
 
-        let remote_control = if no_remote {
+        let remote_control = if merged_config.remote_disabled {
             None
         } else {
             Some(RemoteControl::new(
                 cable_channels,
-                &config.ui.remote_control,
+                merged_config.remote_sort_alphabetically,
             ))
         };
 
         Self {
             action_tx,
-            base_config,
-            config,
+            merged_config: layered_config.merge(),
+            layered_config,
             channel,
             remote_control,
             mode: Mode::Channel,
@@ -187,69 +191,28 @@ impl Television {
             colorscheme,
             ticks: 0,
             ui_state: UiState::default(),
-            cli_args,
             current_command_index: 0,
-            channel_prototype,
         }
-    }
-
-    fn merge_base_config_with_prototype_specs(
-        base_config: &Config,
-        channel_prototype: &ChannelPrototype,
-    ) -> Config {
-        let mut config = base_config.clone();
-        // keybindings
-        if let Some(keybindings) = &channel_prototype.keybindings {
-            config.merge_channel_keybindings(&keybindings.bindings);
-        }
-        // ui
-        if let Some(ui_spec) = &channel_prototype.ui {
-            config.apply_prototype_ui_spec(ui_spec);
-            if config.ui.input_bar.header.is_none() {
-                if let Some(input_bar) = &ui_spec.input_bar {
-                    if let Some(header_tpl) = &input_bar.header {
-                        config.ui.input_bar.header = Some(header_tpl.clone());
-                    }
-                }
-            }
-            if config.ui.preview_panel.header.is_none() {
-                if let Some(preview_panel) = &ui_spec.preview_panel {
-                    if let Some(ph) = &preview_panel.header {
-                        config.ui.preview_panel.header = Some(ph.clone());
-                    }
-                }
-            }
-            if config.ui.preview_panel.footer.is_none() {
-                if let Some(preview_panel) = &ui_spec.preview_panel {
-                    if let Some(pf) = &preview_panel.footer {
-                        config.ui.preview_panel.footer = Some(pf.clone());
-                    }
-                }
-            }
-        }
-        config
     }
 
     fn setup_previewer(
-        channel_prototype: &ChannelPrototype,
-    ) -> Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>
-    {
-        if let Some(preview_spec) = &channel_prototype.preview {
-            let (pv_request_tx, pv_request_rx) = unbounded_channel();
-            let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
-            let previewer = Previewer::new(
-                preview_spec,
-                // NOTE: this could be a per-channel configuration option in the future
-                PreviewerConfig::default(),
-                pv_request_rx,
-                pv_preview_tx,
-                preview_spec.cached,
-            );
-            tokio::spawn(async move { previewer.run().await });
-            Some((pv_request_tx, pv_preview_rx))
-        } else {
-            None
-        }
+        command: &CommandSpec,
+        cached: bool,
+        offset_expr: Option<Template>,
+    ) -> (UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>) {
+        let (pv_request_tx, pv_request_rx) = unbounded_channel();
+        let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
+        let previewer = Previewer::new(
+            command,
+            offset_expr,
+            // NOTE: this could be a per-channel configuration option in the future
+            PreviewerConfig::default(),
+            pv_request_rx,
+            pv_preview_tx,
+            cached,
+        );
+        tokio::spawn(async move { previewer.run().await });
+        (pv_request_tx, pv_preview_rx)
     }
 
     pub fn update_ui_state(&mut self, ui_state: UiState) {
@@ -258,7 +221,7 @@ impl Television {
 
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
-            self.channel.prototype.metadata.name.clone(),
+            self.current_channel(),
             self.channel.selected_entries().clone(),
             self.channel.total_count(),
             self.channel.running(),
@@ -276,7 +239,7 @@ impl Television {
 
         Ctx::new(
             tv_state,
-            self.config.clone(),
+            self.merged_config.clone(),
             self.colorscheme.clone(),
             self.app_metadata.clone(),
             std::time::Instant::now(),
@@ -285,10 +248,10 @@ impl Television {
     }
 
     pub fn current_channel(&self) -> String {
-        self.channel.prototype.metadata.name.clone()
+        self.merged_config.channel_name.clone()
     }
 
-    pub fn change_channel(&mut self, channel_prototype: ChannelPrototype) {
+    pub fn change_channel(&mut self, channel_prototype: &ChannelPrototype) {
         // shutdown the current channel and reset state
         self.preview_state.reset();
         self.reset_picker_selection();
@@ -302,23 +265,32 @@ impl Television {
         }
         // setup the new channel
         debug!("Changing channel to {:?}", channel_prototype);
-        self.preview_handles = Self::setup_previewer(&channel_prototype);
-        self.config = Self::merge_base_config_with_prototype_specs(
-            &self.base_config,
-            &channel_prototype,
-        );
-        // Reapply CLI overrides to ensure they persist across channel changes
-        self.config.apply_cli_overrides(&self.cli_args);
+        self.layered_config
+            .update_channel(channel_prototype.clone());
+        self.merged_config = self.layered_config.merge();
+
+        self.preview_handles =
+            self.merged_config.channel_preview_command.as_ref().map(
+                |command| {
+                    Self::setup_previewer(
+                        command,
+                        self.merged_config.channel_preview_cached,
+                        self.merged_config.channel_preview_offset.clone(),
+                    )
+                },
+            );
         // Set preview state enabled based on both channel capability and UI configuration
         self.preview_state.enabled = channel_prototype.preview.is_some()
-            && self
-                .config
-                .ui
-                .features
-                .is_enabled(FeatureFlags::PreviewPanel);
-        self.channel_prototype = channel_prototype.clone();
+            && !self.merged_config.preview_panel_hidden;
         self.current_command_index = 0;
-        self.channel = CableChannel::new(channel_prototype);
+        self.channel = CableChannel::new(
+            self.merged_config.channel_source_command.clone(),
+            self.merged_config.channel_source_entry_delimiter,
+            self.merged_config.channel_source_ansi,
+            self.merged_config.channel_source_display.clone(),
+            self.merged_config.channel_source_output.clone(),
+            self.merged_config.channel_preview_command.is_some(),
+        );
         self.channel.load();
     }
 
@@ -534,53 +506,54 @@ impl Television {
             return Ok(());
         }
         if let Some((sender, receiver)) = &mut self.preview_handles {
-            // preview requests
+            // send a preview request if the selected entry has changed
             if *selected_entry != self.currently_selected {
                 sender.send(PreviewRequest::Preview(Ticket::new(
                     selected_entry.as_ref().unwrap().clone(),
                 )))?;
             }
-            // available previews
+            // try to receive a preview update
             let entry = selected_entry.as_ref().unwrap();
             if let Ok(mut preview) = receiver.try_recv() {
-                if let Some(template) = &self.config.ui.preview_panel.header {
+                if let Some(template) =
+                    &self.merged_config.preview_panel_header
+                {
                     preview.title = template
                         .format(&entry.raw)
                         .unwrap_or_else(|_| entry.raw.clone());
                 }
 
-                if let Some(template) = &self.config.ui.preview_panel.footer {
+                if let Some(template) =
+                    &self.merged_config.preview_panel_footer
+                {
                     preview.footer = template
                         .format(&entry.raw)
                         .unwrap_or_else(|_| String::new());
                 }
 
-                let scroll = entry
-                    .line_number
-                    .unwrap_or(0)
-                    .saturating_sub(
-                        (self
-                            .ui_state
-                            .layout
-                            .preview_window
-                            .map_or(0, |w| w.height.saturating_sub(2)) // borders
-                            / 2)
-                        .into(),
-                    )
-                    .saturating_add(3) // 3 lines above the center
-                    .try_into()
-                    // if the scroll doesn't fit in a u16, just scroll to the top
-                    // this is a current limitation of ratatui
-                    .unwrap_or(0);
-                self.preview_state.update(
-                    preview,
-                    scroll,
-                    entry.line_number.and_then(|l| l.try_into().ok()),
+                let initial_scroll = Self::calculate_scroll(
+                    &preview,
+                    self.ui_state.layout.preview_window.as_ref(),
                 );
+                self.preview_state.update(preview, initial_scroll);
                 self.action_tx.send(Action::Render)?;
             }
         }
         Ok(())
+    }
+
+    fn calculate_scroll(
+        preview: &Preview,
+        preview_window: Option<&Rect>,
+    ) -> u16 {
+        if let Some(window) = preview_window {
+            if let Some(target_line) = preview.line_number {
+                // this places the target line 3 lines above the center of the preview window
+                return target_line
+                    .saturating_sub((window.height / 2).saturating_sub(3));
+            }
+        }
+        0
     }
 
     pub fn update_results_picker_state(&mut self) {
@@ -688,7 +661,7 @@ impl Television {
                     self.reset_picker_input();
                     self.remote_control.as_mut().unwrap().find(EMPTY_STRING);
                     self.mode = Mode::Channel;
-                    self.change_channel(new_channel);
+                    self.change_channel(&new_channel);
                 }
             }
         }
@@ -802,11 +775,13 @@ impl Television {
             Action::SwitchToChannel(channel_name) => {
                 if let Some(rc) = &self.remote_control {
                     let prototype = rc.zap(channel_name);
-                    self.change_channel(prototype);
+                    self.change_channel(&prototype);
                 }
             }
             Action::ToggleRemoteControl => {
-                if self.remote_control.is_none() {
+                if self.remote_control.is_none()
+                    || self.merged_config.remote_disabled
+                {
                     return Ok(());
                 }
                 match self.mode {
@@ -828,30 +803,29 @@ impl Television {
                         self.mode = Mode::Channel;
                     }
                 }
-                self.config
-                    .ui
-                    .features
-                    .toggle_visible(FeatureFlags::RemoteControl);
             }
             Action::ToggleHelp => {
-                self.config
-                    .ui
-                    .features
-                    .toggle_visible(FeatureFlags::HelpPanel);
+                // Only allow toggling if the help panel is not disabled
+                if !self.merged_config.help_panel_disabled {
+                    self.merged_config.help_panel_hidden =
+                        !self.merged_config.help_panel_hidden;
+                }
             }
             Action::TogglePreview => {
-                if self.mode == Mode::Channel {
-                    self.config
-                        .ui
-                        .features
-                        .toggle_visible(FeatureFlags::PreviewPanel);
+                // Only allow toggling if in Channel mode and preview is not disabled
+                if self.mode == Mode::Channel
+                    && !self.merged_config.preview_panel_disabled
+                {
+                    self.merged_config.preview_panel_hidden =
+                        !self.merged_config.preview_panel_hidden;
                 }
             }
             Action::ToggleStatusBar => {
-                self.config
-                    .ui
-                    .features
-                    .toggle_visible(FeatureFlags::StatusBar);
+                // Only allow toggling if the status bar is not disabled
+                if !self.merged_config.status_bar_disabled {
+                    self.merged_config.status_bar_hidden =
+                        !self.merged_config.status_bar_hidden;
+                }
             }
             _ => {}
         }
@@ -895,6 +869,8 @@ mod test {
     use crate::{
         action::Action,
         cable::Cable,
+        cli::{ChannelCli, GlobalCli},
+        config::layers::LayeredConfig,
         event::Key,
         television::{MatchingMode, Television},
     };
@@ -924,16 +900,21 @@ mod test {
             "test", "echo 1",
         );
         let cli_args = PostProcessedCli {
-            no_remote: true,
-            exact: true,
-            ..PostProcessedCli::default()
+            channel: ChannelCli {
+                exact: true,
+                ..Default::default()
+            },
+            global: GlobalCli {
+                no_remote: true,
+                ..Default::default()
+            },
         };
+        let layered_config =
+            LayeredConfig::new(config, prototype, cli_args.clone());
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
-            prototype,
-            config.clone(),
+            layered_config,
             Cable::from_prototypes(vec![]),
-            cli_args,
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
@@ -964,22 +945,23 @@ mod test {
             )
             .unwrap();
 
-        let cli_args = PostProcessedCli {
-            no_remote: true,
-            exact: true,
-            ..PostProcessedCli::default()
-        };
+        let cli_args = PostProcessedCli::default();
+        let layered_config = LayeredConfig::new(
+            config.clone(),
+            prototype.clone(),
+            cli_args.clone(),
+        );
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
-            prototype,
-            config.clone(),
+            layered_config,
             Cable::from_prototypes(vec![]),
-            cli_args,
         );
 
         assert_eq!(
-            tv.config.keybindings.get(&Key::Ctrl('j')),
-            Some(&Action::SelectNextEntry.into()),
+            tv.merged_config
+                .input_map
+                .get_action_for_key(&Key::Ctrl('j')),
+            Some(Action::SelectNextEntry),
         );
     }
 }

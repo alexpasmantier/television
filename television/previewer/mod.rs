@@ -6,7 +6,6 @@ use std::{
 
 use ansi_to_tui::IntoText;
 use anyhow::{Context, Result};
-use devicons::FileIcon;
 use parking_lot::Mutex;
 use ratatui::text::Text;
 use tokio::{
@@ -18,7 +17,7 @@ use tracing::debug;
 use crate::{
     channels::{
         entry::Entry,
-        prototypes::{CommandSpec, PreviewSpec},
+        prototypes::{CommandSpec, Template},
     },
     previewer::cache::Cache,
     utils::{
@@ -110,7 +109,7 @@ pub struct Preview {
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
     pub content: Text<'static>,
-    pub icon: Option<FileIcon>,
+    pub line_number: Option<u16>,
     pub total_lines: u16,
     pub footer: String,
 }
@@ -122,7 +121,7 @@ impl Default for Preview {
         Self {
             title: DEFAULT_PREVIEW_TITLE.to_string(),
             content: Text::from(EMPTY_STRING),
-            icon: None,
+            line_number: None,
             total_lines: 1,
             footer: String::new(),
         }
@@ -133,14 +132,14 @@ impl Preview {
     fn new(
         title: &str,
         content: Text<'static>,
-        icon: Option<FileIcon>,
+        line_number: Option<u16>,
         total_lines: u16,
         footer: String,
     ) -> Self {
         Self {
             title: title.to_string(),
             content,
-            icon,
+            line_number,
             total_lines,
             footer,
         }
@@ -152,14 +151,16 @@ pub struct Previewer {
     // FIXME: maybe use a bounded channel here with a single slot
     requests: UnboundedReceiver<Request>,
     last_job_entry: Option<Entry>,
-    preview_spec: PreviewSpec,
+    command: CommandSpec,
+    offset_expr: Option<Template>,
     results: UnboundedSender<Preview>,
     cache: Option<Arc<Mutex<Cache>>>,
 }
 
 impl Previewer {
     pub fn new(
-        spec: &PreviewSpec,
+        command: &CommandSpec,
+        offset_expr: Option<Template>,
         config: Config,
         receiver: UnboundedReceiver<Request>,
         sender: UnboundedSender<Preview>,
@@ -174,7 +175,8 @@ impl Previewer {
             config,
             requests: receiver,
             last_job_entry: None,
-            preview_spec: spec.clone(),
+            command: command.clone(),
+            offset_expr,
             results: sender,
             cache,
         }
@@ -196,14 +198,15 @@ impl Previewer {
                         let results_handle = self.results.clone();
                         self.last_job_entry = Some(ticket.entry.clone());
                         // try to execute the preview with a timeout
-                        let preview_command =
-                            self.preview_spec.command.clone();
+                        let preview_command = self.command.clone();
                         let cache = self.cache.clone();
+                        let offset_expr = self.offset_expr.clone();
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
                                 if let Err(e) = try_preview(
                                     &preview_command,
+                                    &offset_expr,
                                     &ticket.entry,
                                     &results_handle,
                                     &cache,
@@ -245,6 +248,7 @@ impl Previewer {
 
 pub fn try_preview(
     command: &CommandSpec,
+    offset_expr: &Option<Template>,
     entry: &Entry,
     results_handle: &UnboundedSender<Preview>,
     cache: &Option<Arc<Mutex<Cache>>>,
@@ -289,10 +293,17 @@ pub fn try_preview(
 
             let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
+            let line_number = if let Some(offset_expr) = offset_expr {
+                let offset_str = offset_expr.format(&entry.raw)?;
+                offset_str.parse::<u16>().ok()
+            } else {
+                None
+            };
+
             Preview::new(
                 entry.display(),
                 text,
-                None,
+                line_number,
                 total_lines,
                 String::new(),
             )

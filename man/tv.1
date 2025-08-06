@@ -4,7 +4,7 @@
 .SH NAME
 television \- Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-input\-prompt\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-s\fR|\fB\-\-source\-command\fR] [\fB\-\-ansi\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-source\-entry\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-\-expect\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-input\-prompt\fR] [\fB\-\-input\-border\fR] [\fB\-\-input\-padding\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-preview\-border\fR] [\fB\-\-preview\-padding\fR] [\fB\-\-hide\-preview\-scrollbar\fR] [\fB\-s\fR|\fB\-\-source\-command\fR] [\fB\-\-ansi\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-results\-border\fR] [\fB\-\-results\-padding\fR] [\fB\-\-source\-entry\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-cache\-preview\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
 Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
@@ -39,21 +39,25 @@ This flag works identically in both channel mode and ad\-hoc mode.
 This overrides any channel configuration that might have it disabled.
 .TP
 \fB\-\-no\-status\-bar\fR
-Disable the status bar on startup.
+Disable the status bar entirely on startup.
 
 This flag works identically in both channel mode and ad\-hoc mode.
+When set, no status bar will be shown regardless of channel configuration
+or status bar\-related flags.
 .TP
 \fB\-\-hide\-status\-bar\fR
 Hide the status bar on startup (only works if feature is enabled).
 
 This flag works identically in both channel mode and ad\-hoc mode.
+The status bar remains functional and can be toggled visible later.
 .TP
 \fB\-\-show\-status\-bar\fR
 Show the status bar on startup (only works if feature is enabled).
 
 This flag works identically in both channel mode and ad\-hoc mode.
+This overrides any channel configuration that might have it disabled.
 .TP
-\fB\-t\fR, \fB\-\-tick\-rate\fR=\fIFLOAT\fR
+\fB\-t\fR, \fB\-\-tick\-rate\fR=\fIINT\fR
 The application\*(Aqs tick rate.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -84,6 +88,16 @@ expressions using the configuration file formalism.
 
 Example: `tv \-\-keybindings=\*(Aqquit="esc";select_next_entry=["down","ctrl\-j"]\*(Aq`
 .TP
+\fB\-\-expect\fR=\fISTRING\fR
+Keys that can be used to confirm the current selection in addition to the default ones
+(typically `enter`).
+
+When this is set, confirming the selection will first output an extra line with the key
+that was used to confirm the selection before outputting the selected entry.
+
+Example: `tv \-\-expect=\*(Aqctrl\-q\*(Aq` will output `ctr\-q\\n<selected_entry>` when `ctrl\-q` is
+pressed to confirm the selection.
+.TP
 \fB\-i\fR, \fB\-\-input\fR=\fISTRING\fR
 Input text to pass to the channel to prefill the prompt.
 
@@ -111,6 +125,22 @@ When no channel is specified: Sets the input prompt for the ad\-hoc channel.
 The given value is used as the prompt string shown before the input field.
 Defaults to ">" when omitted.
 .TP
+\fB\-\-input\-border\fR=\fIINPUT_BORDER\fR
+Sets the input panel border type.
+
+Available options are: `none`, `plain`, `rounded`, `thick`.
+.br
+
+.br
+[\fIpossible values: \fRnone, plain, rounded, thick]
+.TP
+\fB\-\-input\-padding\fR=\fISTRING\fR
+Sets the input panel padding.
+
+Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+
+Example: `\-\-input\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
+.TP
 \fB\-\-preview\-header\fR=\fISTRING\fR
 Preview header template
 
@@ -128,6 +158,25 @@ When no channel is specified: This flag requires \-\-preview\-command to be set.
 
 The given value is parsed as a `MultiTemplate`. It is evaluated for every
 entry and its result is displayed below the preview panel.
+.TP
+\fB\-\-preview\-border\fR=\fIPREVIEW_BORDER\fR
+Sets the preview panel border type.
+
+Available options are: `none`, `plain`, `rounded`, `thick`.
+.br
+
+.br
+[\fIpossible values: \fRnone, plain, rounded, thick]
+.TP
+\fB\-\-preview\-padding\fR=\fISTRING\fR
+Sets the preview panel padding.
+
+Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+
+Example: `\-\-preview\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
+.TP
+\fB\-\-hide\-preview\-scrollbar\fR
+Hide preview panel scrollbar.
 .TP
 \fB\-s\fR, \fB\-\-source\-command\fR=\fISTRING\fR
 Source command to use for the current channel.
@@ -164,6 +213,22 @@ When no channel is specified: This flag requires \-\-source\-command to be set.
 The template is used to format the final output when an entry is selected.
 Example: "{}" (output the full entry)
 .TP
+\fB\-\-results\-border\fR=\fIRESULTS_BORDER\fR
+Sets the results panel border type.
+
+Available options are: `none`, `plain`, `rounded`, `thick`.
+.br
+
+.br
+[\fIpossible values: \fRnone, plain, rounded, thick]
+.TP
+\fB\-\-results\-padding\fR=\fISTRING\fR
+Sets the results panel padding.
+
+Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+
+Example: `\-\-results\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
+.TP
 \fB\-\-source\-entry\-delimiter\fR=\fISTRING\fR
 The delimiter byte to use for splitting the source\*(Aqs command output into entries.
 
@@ -182,6 +247,12 @@ Parts of the entry can be extracted positionally using the `delimiter`
 option.
 Example: "echo {0} {1}" will split the entry by the delimiter and pass
 the first two fields to the command.
+.TP
+\fB\-\-cache\-preview\fR
+Whether to cache the preview command output for each entry.
+
+This can be useful when the preview command is expensive to run
+and you want to avoid running it multiple times for the same entry.
 .TP
 \fB\-\-layout\fR=\fILAYOUT\fR
 Layout orientation for the UI.

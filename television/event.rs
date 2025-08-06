@@ -90,7 +90,7 @@ pub enum Key {
 /// use television::event::{InputEvent, Key, MouseInputEvent};
 /// use television::keymap::InputMap;
 ///
-/// let input_map = InputMap::new();
+/// let input_map = InputMap::default();
 ///
 /// // Handle keyboard input
 /// let key_event = InputEvent::Key(Key::Enter);
@@ -257,9 +257,9 @@ fn flush_existing_events() {
 }
 
 impl EventLoop {
-    pub fn new(tick_rate: f64) -> Self {
+    pub fn new(tick_rate: u64) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
-        let tick_interval = Duration::from_secs_f64(1.0 / tick_rate);
+        let tick_interval = Duration::from_secs_f64(1.0 / tick_rate as f64);
 
         let (abort, mut abort_recv) = mpsc::unbounded_channel();
 

@@ -1,3 +1,5 @@
+use std::thread::sleep;
+
 use super::super::common::*;
 use std::path::Path;
 
@@ -108,51 +110,6 @@ fn test_cli_overrides_channel_source_and_preview() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests CLI feature flags override config file settings
-#[test]
-fn test_cli_feature_flags_override_config() {
-    let mut tester = PtyTester::new();
-    let temp_config = TempConfig::init();
-
-    // Config enables preview and status bar
-    let config_content = r#"
-        [ui.preview_panel]
-        header = "PREVIEW HEADER"
-
-        [ui.features]
-        preview_panel = { enabled = true, visible = true }
-        status_bar = { enabled = true, visible = true }
-        help_panel = { enabled = true, visible = false }
-
-        [keybindings]
-        ctrl-s = "toggle_status_bar"
-    "#;
-    temp_config.write_config(config_content).unwrap();
-
-    // CLI should disable preview and hide status bar
-    let cmd = tv_with_args(&[
-        "files",
-        "--config-file",
-        temp_config.config_file.to_str().unwrap(),
-        "--cable-dir",
-        DEFAULT_CABLE_DIR,
-        "--no-preview",      // Disable entirely
-        "--hide-status-bar", // Hide but keep enabled
-    ]);
-
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify the application starts with CLI feature overrides applied
-    tester.assert_tui_frame_contains_none(&["PREVIEW HEADER", "[Hint]"]);
-
-    // Verify that status bar is still enabled
-    tester.send(&ctrl('s'));
-    tester.assert_tui_frame_contains("[Hint]");
-
-    tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
 /// Tests CLI working directory parameter
 #[test]
 fn test_cli_working_directory_override() {
@@ -175,6 +132,7 @@ fn test_cli_working_directory_override() {
 
     // Should exit with the found file
     let mut child = tester.spawn_command(cmd);
+    sleep(DEFAULT_DELAY * 2);
 
     // Should find our test file in the target directory
     tester.assert_raw_output_contains("working-dir-test.txt");

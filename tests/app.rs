@@ -1,18 +1,19 @@
 //! This module tests the inner `App` struct of the `television` crate.
 
-use std::{
-    collections::HashSet, path::PathBuf, thread::sleep, time::Duration,
-};
+use std::{collections::HashSet, path::PathBuf, time::Duration};
 
 use television::{
     action::Action,
-    app::{App, AppOptions},
+    app::App,
     cable::Cable,
     channels::prototypes::ChannelPrototype,
-    cli::PostProcessedCli,
-    config::default_config_from_file,
+    cli::{ChannelCli, PostProcessedCli},
+    config::{default_config_from_file, layers::LayeredConfig},
 };
-use tokio::{task::JoinHandle, time::timeout};
+use tokio::{
+    task::JoinHandle,
+    time::{sleep, timeout},
+};
 
 /// Default timeout for tests.
 ///
@@ -43,41 +44,30 @@ fn setup_app(
         .unwrap_or(ChannelPrototype::new("files", "find . -type f"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
-    config.application.tick_rate = 100.0;
-    let input = None;
+    config.application.tick_rate = 100;
 
-    let options = AppOptions::new(
-        exact,
-        select_1,
-        false,
-        false,
-        false,
-        false,
-        Some(50),
-        config.application.tick_rate,
-        0.0, // watch_interval
-        None,
-        None,
-        false,
-    );
-    let cli_args = PostProcessedCli {
-        exact,
-        input: input.clone(),
-        ..PostProcessedCli::default()
-    };
-    let mut app = App::new(
-        chan,
+    let layered_config = LayeredConfig::new(
         config,
-        options,
+        chan,
+        PostProcessedCli {
+            channel: ChannelCli {
+                select_1,
+                exact,
+                ..ChannelCli::default()
+            },
+            ..PostProcessedCli::default()
+        },
+    );
+    let mut app = App::new(
+        layered_config,
         Cable::from_prototypes(vec![
             ChannelPrototype::new("files", "find . -type f"),
             ChannelPrototype::new("dirs", "find . -type d"),
             ChannelPrototype::new("env", "printenv"),
         ]),
-        &cli_args,
     );
 
-    // retrieve the app's action channel handle in order to send a quit action
+    // retrieve the app's action channel handle to send a quit action
     let tx = app.action_tx.clone();
 
     // start the app in a separate task
@@ -97,7 +87,7 @@ async fn test_app_does_quit() {
     tx.send(Action::Quit).unwrap();
 
     // assert that the app quits within a default timeout
-    std::thread::sleep(DEFAULT_TIMEOUT);
+    sleep(DEFAULT_TIMEOUT).await;
     assert!(f.is_finished());
 }
 
@@ -106,7 +96,7 @@ async fn test_app_starts_normally() {
     let (f, _) = setup_app(None, false, false);
 
     // assert that the app is still running after the default timeout
-    std::thread::sleep(DEFAULT_TIMEOUT);
+    sleep(DEFAULT_TIMEOUT).await;
     assert!(!f.is_finished());
 
     f.abort();
@@ -119,7 +109,7 @@ async fn test_app_basic_search() {
     // send actions to the app
     for c in "file1".chars() {
         tx.send(Action::AddInputChar(c)).unwrap();
-        sleep(Duration::from_millis(100));
+        sleep(Duration::from_millis(100)).await;
     }
     tx.send(Action::ConfirmSelection).unwrap();
 
@@ -147,9 +137,9 @@ async fn test_app_basic_search_multiselect() {
 
     // select both files
     tx.send(Action::ToggleSelectionDown).unwrap();
-    std::thread::sleep(Duration::from_millis(50));
+    sleep(Duration::from_millis(50)).await;
     tx.send(Action::ToggleSelectionDown).unwrap();
-    std::thread::sleep(Duration::from_millis(50));
+    sleep(Duration::from_millis(50)).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout
@@ -209,9 +199,9 @@ async fn test_app_exact_search_positive() {
 
     // select both files
     tx.send(Action::ToggleSelectionDown).unwrap();
-    std::thread::sleep(Duration::from_millis(50));
+    sleep(Duration::from_millis(50)).await;
     tx.send(Action::ToggleSelectionDown).unwrap();
-    std::thread::sleep(Duration::from_millis(50));
+    sleep(Duration::from_millis(50)).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout

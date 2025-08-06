@@ -280,28 +280,48 @@ shortcut = "f1"
 
 ### Configuration System
 
+The configuration system uses a three-layer architecture implemented by the `LayeredConfig` struct, which merges configuration from multiple sources with proper priority ordering:
+
 ```mermaid
 flowchart TD
-    A[Default Config] --> C[User Config]
-    C --> D[Channel Config]
-    D --> E[CLI Overrides]
-    E --> F[Final Config]
+    A[Base Config] --> C[LayeredConfig]
+    B[Channel Prototype] --> C
+    D[CLI Args] --> C
+    C --> E[MergedConfig]
 
     subgraph "Config Sources"
         G[embedded config.toml] --> A
-        I[$HOME/.config/television/config.toml] --> C
-        J[cable/*.toml] --> D
-        K[Command Line Args] --> E
+        I[$HOME/.config/television/config.toml] --> A
+        J[cable/*.toml] --> B
+        K[Command Line Args] --> D
     end
 
-    subgraph "Config Sections"
-        F --> L[Application Settings]
-        F --> M[UI Configuration]
-        F --> N[Keybindings]
-        F --> O[Themes]
-        F --> P[Channel Specs]
+    subgraph "LayeredConfig Processing"
+        C --> L[CLI-only fields]
+        C --> M[Base config fields]
+        C --> N[Channel-only fields]
+        C --> O[Merged fields with priority]
+    end
+
+    subgraph "Priority Order (highest to lowest)"
+        P[CLI Arguments] --> Q[Channel Configuration]
+        Q --> R[User Configuration]
+        R --> S[Embedded Defaults]
     end
 ```
+
+**Key Components:**
+
+- **Base Config**: User configuration loaded from `config.toml`
+- **Channel Prototype**: Channel-specific configuration from cable files
+- **CLI Configuration**: Runtime overrides from command-line arguments
+- **MergedConfig**: Final resolved configuration used by the application
+
+The layered approach allows for:
+- Clean separation of concerns between different config sources
+- Runtime channel switching without config reloading
+- Proper inheritance and override behavior
+- Type-safe configuration merging
 
 ### Preview System (`previewer/`)
 

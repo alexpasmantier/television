@@ -1,6 +1,6 @@
 use crate::{
     action::Action,
-    config::{Config, KeyBindings},
+    config::{KeyBindings, layers::MergedConfig},
     screen::colors::Colorscheme,
     television::Mode,
 };
@@ -20,7 +20,7 @@ const MIN_PANEL_HEIGHT: u16 = 5;
 pub fn draw_help_panel(
     f: &mut Frame<'_>,
     area: Rect,
-    config: &Config,
+    config: &MergedConfig,
     tv_mode: Mode,
     colorscheme: &Colorscheme,
 ) {
@@ -197,7 +197,7 @@ fn add_keybinding_lines_for_keys(
 
 /// Generates the help content organized into global and mode-specific groups
 fn generate_help_content(
-    config: &Config,
+    config: &MergedConfig,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> Vec<Line<'static>> {
@@ -221,7 +221,12 @@ fn generate_help_content(
 
     add_keybinding_lines_for_keys(
         &mut lines,
-        &config.keybindings,
+        &config
+            .input_map
+            .key_actions
+            .iter()
+            .map(|(key, actions)| (*key, actions.first().unwrap().clone()))
+            .into(),
         mode,
         colorscheme,
         mode_name,
@@ -257,7 +262,7 @@ fn create_compact_keybinding_line(
 /// Calculates the required dimensions for the help panel based on content
 #[allow(clippy::cast_possible_truncation)]
 pub fn calculate_help_panel_size(
-    config: &Config,
+    config: &MergedConfig,
     mode: Mode,
     colorscheme: &Colorscheme,
 ) -> (u16, u16) {
