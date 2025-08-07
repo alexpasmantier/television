@@ -608,18 +608,12 @@ impl App {
                     self.action_tx.send(action)?;
                 }
 
-                // Update keymap if channel changed (remote control to channel mode transition)
-                // This ensures channel-specific keybindings are properly loaded
+                // Update watch timer and history
                 if was_remote_control
                     && matches!(action, Action::ConfirmSelection)
                     && self.television.mode == Mode::Channel
+                    || matches!(action, Action::SwitchToChannel(_))
                 {
-                    self.update_input_map();
-                    self.update_history();
-                    self.restart_watch_timer();
-                } else if matches!(action, Action::SwitchToChannel(_)) {
-                    // Channel changed via shortcut, refresh keymap and watch timer
-                    self.update_input_map();
                     self.update_history();
                     self.restart_watch_timer();
                 }
