@@ -420,6 +420,136 @@ fn test_tui_with_height_and_width() {
     unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
+/// Tests that --no-preview disables the preview panel entirely.
+#[test]
+fn test_no_preview_disables_preview_panel() {
+    let mut tester = PtyTester::new();
+
+    // This disables the preview panel entirely
+    let cmd = tv_local_config_and_cable_with_args(&["files", "--no-preview"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Try to toggle preview - it shouldn't work since it's disabled entirely
+    tester.send("o"); // Toggle preview key
+
+    // Verify no preview elements are shown (no scrollbar, no panel frame)
+    tester.assert_tui_frame_contains_none(&["───╮╭───", "Show Preview"]);
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that --show-preview starts the interface with the preview panel visible.
+#[test]
+fn test_show_preview_starts_with_preview_visible() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and force the preview panel visible
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--show-preview"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify preview panel is initially visible (landscape layout shows side-by-side panels)
+    tester.assert_tui_frame_contains_all(&["───╮╭───", "Hide Preview"]);
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that --no-status-bar disables the status bar entirely.
+#[test]
+fn test_no_status_bar_disables_status_bar() {
+    let mut tester = PtyTester::new();
+
+    // This disables the status bar entirely
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--no-status-bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the status bar is not shown
+    tester.assert_not_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that --show-status-bar starts the interface with the status bar visible.
+#[test]
+fn test_show_status_bar_starts_with_status_visible() {
+    let mut tester = PtyTester::new();
+
+    // Start with the files channel and force the status bar visible
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--show-status-bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify status bar is initially visible
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that --hide-preview-scrollbar hides the preview panel scrollbar.
+#[test]
+fn test_hide_preview_scrollbar_hides_scrollbar() {
+    let mut tester = PtyTester::new();
+
+    // This hides the preview scrollbar while keeping the preview panel functional
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--hide-preview-scrollbar",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // The preview panel should still be visible but without scrollbar indicators
+    tester.assert_tui_frame_contains_all(&["Hide Preview", "───╮╭───"]);
+    tester.assert_not_tui_frame_contains("▲");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that --no-preview conflicts with preview-related flags.
+#[test]
+fn test_no_preview_conflicts_with_preview_flags() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because --no-preview conflicts with --preview-command
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--no-preview",
+        "--preview-command",
+        "cat {}",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
+/// Tests that --no-status-bar conflicts with status-bar-related flags.
+#[test]
+fn test_no_status_bar_conflicts_with_status_bar_flags() {
+    let mut tester = PtyTester::new();
+
+    // This should fail because --no-status-bar conflicts with --show-status-bar
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--no-status-bar",
+        "--show-status-bar",
+    ]);
+    tester.spawn_command(cmd);
+
+    // CLI should exit with error message, not show TUI
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
 #[test]
 // FIXME: needs https://github.com/crossterm-rs/crossterm/pull/957
 #[ignore = "needs https://github.com/crossterm-rs/crossterm/pull/957"]
