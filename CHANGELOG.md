@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.2](https://github.com/alexpasmantier/television/releases/tag/0.13.2) - 2025-08-07
+
+### 🐛 Bug Fixes
+
+- [e0c940c](https://github.com/alexpasmantier/television/commit/e0c940cf991f57b693d04428f032c6c6f2fa8a7f) *(uncategorized)* More informative error message when channel not found by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [e2e9fd5](https://github.com/alexpasmantier/television/commit/e2e9fd56681fe059210978eed2b7fc2a53397d39) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#686](https://github.com/alexpasmantier/television/pull/686)
+
+- [a478724](https://github.com/alexpasmantier/television/commit/a4787242f227ab025cbfd827bf4886927d10b3b6) *(uncategorized)* Release version 0.13.2 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.1...0.13.2
+
+
 ## [0.13.1](https://github.com/alexpasmantier/television/releases/tag/0.13.1) - 2025-08-07
 
 ### ⛰️  Features
