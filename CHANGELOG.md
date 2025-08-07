@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.1](https://github.com/alexpasmantier/television/releases/tag/0.13.1) - 2025-08-07
+
+### ⛰️  Features
+
+- [e37f5b4](https://github.com/alexpasmantier/television/commit/e37f5b4e546aa684ead5716ff8c76ad185cd9385) *(uncategorized)* Installation script by @alexpasmantier in [#685](https://github.com/alexpasmantier/television/pull/685)
+
+### ⚙️ Miscellaneous Tasks
+
+- [004628c](https://github.com/alexpasmantier/television/commit/004628c56b81f80fe013f333634fc3d7a956e893) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#684](https://github.com/alexpasmantier/television/pull/684)
+
+- [c3fe4b3](https://github.com/alexpasmantier/television/commit/c3fe4b398b100221efe289cacc1a7f3d2324ab91) *(uncategorized)* Release version 0.13.1 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.0...0.13.1
+
+
 ## [0.13.0](https://github.com/alexpasmantier/television/releases/tag/0.13.0) - 2025-08-06
 
 ### ⛰️  Features
