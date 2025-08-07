@@ -337,11 +337,12 @@ description = "A channel to select from git log entries"
 requirements = [ "git",]
 
 [source]
-command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\" \"$@\""
-output = "{split: :0}"
+command = "git log --graph --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
+output = "{strip_ansi|split: :1}"
+ansi = true
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always '{0}'"
+command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :1}' | head -n 1000"
 
 ```
 
@@ -364,11 +365,11 @@ requirements = [ "git",]
 
 [source]
 command = "git reflog --decorate --color=always"
-output = "{strip_ansi|split: :0}"
+output = "{0|strip_ansi}"
 ansi = true
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|0}'"
+command = "git show -p --stat --pretty=fuller --color=always '{0|strip_ansi}'"
 
 ```
 
@@ -398,6 +399,155 @@ display = "{split:/:-1}"
 
 [preview]
 command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
+
+```
+
+
+---
+
+### *k8s-deployments*
+
+List and preview Deployments in a Kubernetes Cluster.
+
+The first source lists only from the current namespace, while the second lists from all.
+
+Keybindings
+
+Press `ctrl-d` to delete the selected Deployment.
+
+
+![tv running the k8s-deployments channel](../../assets/channels/k8s-deployments.png)
+**Requirements:** `kubectl`
+
+**Code:** *k8s-deployments.toml*
+
+```toml
+[metadata]
+name = "k8s-deployments"
+description = "List and preview Deployments in a Kubernetes Cluster.\n\nThe first source lists only from the current namespace, while the second lists from all.\n\nKeybindings\n\nPress `ctrl-d` to delete the selected Deployment.\n"
+requirements = [ "kubectl",]
+
+[source]
+command = [ "  kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
+output = "{1}"
+
+[preview]
+command = "kubectl describe -n {0} deployments/{1}"
+
+[keybindings]
+ctrl-d = "actions:delete"
+
+[ui.preview_panel]
+size = 60
+
+[actions.delete]
+description = "Delete the selected Deployment"
+command = "kubectl delete -n {0} deployments/{1}"
+mode = "execute"
+
+```
+
+
+---
+
+### *k8s-pods*
+
+List and preview Pods in a Kubernetes Cluster.
+
+The first source lists only from the current namespace, while the second lists from all.
+
+Keybindings
+
+Press `ctrl-e` to execute shell inside the selected Pod.
+Press `ctrl-d` to delete the selected Pod.
+Press `ctrl-l` to print and follow the logs of the selected Pod.
+
+
+![tv running the k8s-pods channel](../../assets/channels/k8s-pods.png)
+**Requirements:** `kubectl`
+
+**Code:** *k8s-pods.toml*
+
+```toml
+[metadata]
+name = "k8s-pods"
+description = "List and preview Pods in a Kubernetes Cluster.\n\nThe first source lists only from the current namespace, while the second lists from all.\n\nKeybindings\n\nPress `ctrl-e` to execute shell inside the selected Pod.\nPress `ctrl-d` to delete the selected Pod.\nPress `ctrl-l` to print and follow the logs of the selected Pod.\n"
+requirements = [ "kubectl",]
+
+[source]
+command = [ "  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
+output = "{1}"
+
+[preview]
+command = "kubectl describe -n {0} pods/{1}"
+
+[keybindings]
+ctrl-d = "actions:delete"
+ctrl-e = "actions:exec"
+ctrl-l = "actions:logs"
+
+[ui.preview_panel]
+size = 60
+
+[actions.exec]
+description = "Execute shell inside the selected Pod"
+command = "kubectl exec -i -t -n {0} pods/{1} -- /bin/sh"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected Pod"
+command = "kubectl delete -n {0} pods/{1}"
+mode = "execute"
+
+[actions.logs]
+description = "Follow logs of the selected Pod"
+command = "kubectl logs -f -n {0} pods/{1}"
+mode = "execute"
+
+```
+
+
+---
+
+### *k8s-services*
+
+List and preview Services in a Kubernetes Cluster.
+
+The first source lists only from the current namespace, while the second lists from all.
+
+keybindings
+
+Press `ctrl-d` to delete the selected Service.
+
+
+![tv running the k8s-services channel](../../assets/channels/k8s-services.png)
+**Requirements:** `kubectl`
+
+**Code:** *k8s-services.toml*
+
+```toml
+[metadata]
+name = "k8s-services"
+description = "List and preview Services in a Kubernetes Cluster.\n\nThe first source lists only from the current namespace, while the second lists from all.\n\nkeybindings\n\nPress `ctrl-d` to delete the selected Service.\n"
+requirements = [ "kubectl",]
+
+[source]
+command = [ "  kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
+output = "{1}"
+
+[preview]
+command = "kubectl describe -n {0} services/{1}"
+
+[keybindings]
+ctrl-d = "actions:delete"
+
+[ui.preview_panel]
+size = 60
+
+[actions.delete]
+description = "Delete the selected Service"
+command = "kubectl delete -n {0} services/{1}"
+mode = "execute"
 
 ```
 
@@ -440,19 +590,19 @@ description = "A channel to find and select text from files"
 requirements = [ "rg", "bat",]
 
 [source]
-command = "rg . --no-heading --line-number"
-display = "[{split:\\::..2}]\t{split:\\::2..}"
-output = "{split:\\::..2}"
+command = "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always"
+ansi = true
+output = "{strip_ansi|split:\\::..2}"
 
 [preview]
-command = "bat -n --color=always '{split:\\::0}'"
-offset = "{split:\\::1}"
+command = "bat -n --color=always '{strip_ansi|split:\\::0}'"
+offset = "{strip_ansi|split:\\::1}"
 
 [preview.env]
 BAT_THEME = "ansi"
 
 [ui.preview_panel]
-header = "{split:\\::..2}"
+header = "{strip_ansi|split:\\::..2}"
 
 ```
 
