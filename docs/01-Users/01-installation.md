@@ -2,6 +2,22 @@
 
 [![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
 
+## Quick Install (Recommended)
+
+For an automatic installation that detects your system and uses the best available method:
+
+```bash
+curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
+```
+
+Or if you prefer to inspect the script first:
+
+```bash
+curl -fsSL https://alexpasmantier.github.io/television/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
+```
+
 ## Nix
 
 Television is [available on `nixpkgs`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/te/television/package.nix)
