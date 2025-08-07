@@ -73,6 +73,12 @@ sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
 pixi global install television
 ```
 
+## NetBSD (pkgsrc)
+
+```bash
+pkgin install television
+```
+
 ## Pre-compiled Binary
 
 From the [latest release](https://github.com/alexpasmantier/television/releases/latest) page:
