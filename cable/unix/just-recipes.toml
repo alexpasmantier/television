@@ -1,0 +1,10 @@
+[metadata]
+name = "just-recipes"
+description = "A channel to select recipes from Justfiles"
+requirements = ["just"]
+
+[source]
+command = ["just --summary | tr '[:blank:]' '\n'"]
+
+[preview]
+command = "just -s {}"
