@@ -12,9 +12,10 @@ env = { BAT_THEME = "ansi" }
 
 [keybindings]
 shortcut = "f1"
-# ctrl-f12 = "actions:edit"
+f12 = "actions:edit"
 
-# [actions.edit]
-# description = "Opens the selected entries with Neovim"
-# command = "nvim {}"
-# mode = "execute"
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+# use `mode = "fork"` if you want to return to tv afterwards
+mode = "execute"

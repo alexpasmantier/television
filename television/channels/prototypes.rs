@@ -177,19 +177,6 @@ pub enum ExecutionMode {
     Execute,
 }
 
-/// Output handling mode for external actions
-#[derive(
-    Debug, Clone, Default, serde::Deserialize, serde::Serialize, PartialEq,
-)]
-#[serde(rename_all = "lowercase")]
-pub enum OutputMode {
-    /// Capture output for processing
-    Capture,
-    /// Discard output silently
-    #[default]
-    Discard,
-}
-
 fn default_separator() -> String {
     " ".to_string()
 }
@@ -203,10 +190,9 @@ pub struct ActionSpec {
     /// How to execute the command
     #[serde(default)]
     pub mode: ExecutionMode,
-    /// How to handle command output
-    #[serde(default)]
-    pub output_mode: OutputMode,
-    /// Separator to use when joining multiple selected entries
+    /// Separator to use when formatting multiple entries into the command
+    ///
+    /// Example: `rm file1+SEPARATOR+file2+SEPARATOR+file3`
     #[serde(default = "default_separator")]
     pub separator: String,
     // TODO: add `requirements` (see `prototypes::BinaryRequirement`)

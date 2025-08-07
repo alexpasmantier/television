@@ -278,7 +278,6 @@ separator = "\n"
 description = "View files with less"
 command = "less {}"
 mode = "fork"
-output_mode = "discard"
 separator = " "
 # example: inputs "file1" and "file 2" will generate the command
 # less file1 file 2
@@ -290,11 +289,8 @@ separator = " "
 - `description` - Optional description of what the action does
 - `command` - Command template to execute (supports [templating syntax](#templating-syntax))
 - `mode` - Execution mode:
-  - `execute` - Run command and wait for completion (inherits terminal)
-  - `fork` - Run command in background (**not yet implemented**)
-- `output_mode` - How to handle command output (when `mode = "fork"`, **not yet implemented**):
-  - `capture` - Capture output for processing
-  - `discard` - Discard output silently
+  - `execute` - Run command and become the new process
+  - `fork` - Run command in a subprocess, allowing you to return to tv upon completion
 - `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
 depending on the entries content it might be beneficial to change to another
 one (default: `" "` - space)

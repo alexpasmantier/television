@@ -1,7 +1,7 @@
 use crate::{
     channels::{
         entry::Entry,
-        prototypes::{ActionSpec, ExecutionMode, OutputMode, Template},
+        prototypes::{ActionSpec, ExecutionMode, Template},
     },
     utils::shell::Shell,
 };
@@ -10,6 +10,7 @@ use lazy_regex::{Lazy, Regex, regex};
 use rustc_hash::FxHashSet;
 use std::{
     collections::HashMap,
+    os::unix::process::CommandExt,
     process::{Command, ExitStatus, Stdio},
 };
 use tracing::debug;
@@ -141,7 +142,7 @@ pub fn format_command(
 /// Execute an external action with the appropriate execution mode and output handling
 ///
 /// Takes an `ActionSpec` and a set of entries, creates a command using the action's template,
-/// and executes the resulting command with the specified execution mode and output handling.
+/// and executes the resulting command with the specified execution mode.
 ///
 /// # Arguments
 /// * `action_spec` - The `ActionSpec` containing the command template, execution mode, and output mode
@@ -151,20 +152,14 @@ pub fn format_command(
 /// * `Result<ExitStatus>` - The exit status of the executed command
 ///
 /// # Behavior
-/// - `ExecutionMode::Execute` - Executes the command and waits for completion (inherits stdio)
-/// - `ExecutionMode::Fork` - Spawns the command with stdio configured based on `output_mode` (TODO: implement)
-/// - `OutputMode::Capture` - Currently inherits stdio (TODO: implement)
-/// - `OutputMode::Discard` - Redirects all stdio to null
+/// - `ExecutionMode::Execute` - make the current process become what the command does
+/// - `ExecutionMode::Fork` - spawns the command as a child process
 pub fn execute_action(
     action_spec: &ActionSpec,
     entries: &FxHashSet<Entry>,
 ) -> Result<ExitStatus> {
-    // For now, preserve existing behavior regardless of the new flags
-    // In the future, this will branch based on action_spec.mode and action_spec.output_mode
-
     debug!("Executing external action with {} entries", entries.len());
 
-    // Create command from entries using template
     let template: &Template = action_spec.command.get_nth(0);
     let formatted_command =
         format_command(entries, template, &action_spec.separator)?;
@@ -175,30 +170,16 @@ pub fn execute_action(
         &action_spec.command.env,
     );
 
-    // Execute based on execution mode
     match action_spec.mode {
         ExecutionMode::Execute => {
-            // For Execute mode, let the new process inherit file descriptors naturally
-            // TODO: use execve to replace current process
-            let mut child = cmd.spawn()?;
-            Ok(child.wait()?)
+            let err = cmd.exec();
+            eprintln!("Failed to execute command: {}", err);
+            Err(err.into())
         }
         ExecutionMode::Fork => {
-            // For Fork mode, configure stdio based on output mode
-            match action_spec.output_mode {
-                OutputMode::Capture => {
-                    // TODO: For now, inherit stdio (future: capture output for processing)
-                    cmd.stdin(Stdio::inherit())
-                        .stdout(Stdio::inherit())
-                        .stderr(Stdio::inherit());
-                }
-                OutputMode::Discard => {
-                    // Discard output silently
-                    cmd.stdin(Stdio::null())
-                        .stdout(Stdio::null())
-                        .stderr(Stdio::null());
-                }
-            }
+            cmd.stdin(Stdio::inherit())
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
 
             let mut child = cmd.spawn()?;
             Ok(child.wait()?)

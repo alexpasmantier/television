@@ -212,7 +212,7 @@ impl Display for Key {
 #[allow(clippy::module_name_repetitions)]
 pub struct EventLoop {
     pub rx: mpsc::UnboundedReceiver<Event<Key>>,
-    pub abort_tx: mpsc::UnboundedSender<()>,
+    pub control_tx: mpsc::UnboundedSender<ControlEvent>,
 }
 
 struct PollFuture {
@@ -256,12 +256,21 @@ fn flush_existing_events() {
     }
 }
 
+pub enum ControlEvent {
+    /// Abort the event loop
+    Abort,
+    /// Pause the event loop
+    Pause,
+    /// Resume the event loop
+    Resume,
+}
+
 impl EventLoop {
     pub fn new(tick_rate: u64) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         let tick_interval = Duration::from_secs_f64(1.0 / tick_rate as f64);
 
-        let (abort, mut abort_recv) = mpsc::unbounded_channel();
+        let (control_tx, mut control_rx) = mpsc::unbounded_channel();
 
         flush_existing_events();
 
@@ -272,10 +281,38 @@ impl EventLoop {
 
                 tokio::select! {
                     // if we receive a message on the abort channel, stop the event loop
-                    _ = abort_recv.recv() => {
-                        tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
-                        tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
-                        break;
+                    Some(control_event) = control_rx.recv() => {
+                        match control_event {
+                            ControlEvent::Abort => {
+                                debug!("Received Abort control event");
+                                tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
+                                tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                                break;
+                            },
+                            ControlEvent::Pause => {
+                                debug!("Received Pause control event");
+                                // Stop processing events until resumed
+                                while let Some(event) = control_rx.recv().await {
+                                    match event {
+                                        ControlEvent::Resume => {
+                                            debug!("Received Resume control event");
+                                            // flush any leftover events
+                                            flush_existing_events();
+                                            break; // Exit pause loop
+                                        },
+                                        ControlEvent::Abort => {
+                                            debug!("Received Abort control event during Pause");
+                                            tx.send(Event::Closed).unwrap_or_else(|_| warn!("Unable to send Closed event"));
+                                            tx.send(Event::Tick).unwrap_or_else(|_| warn!("Unable to send Tick event"));
+                                            return;
+                                        },
+                                        ControlEvent::Pause => {}
+                                    }
+                                }
+                            },
+                            // these should always be captured by the pause loop
+                            ControlEvent::Resume => {},
+                        }
                     },
                     _ = signal::ctrl_c() => {
                         debug!("Received SIGINT");
@@ -319,7 +356,7 @@ impl EventLoop {
             //tx,
             rx,
             //tick_rate,
-            abort_tx: abort,
+            control_tx,
         }
     }
 }
