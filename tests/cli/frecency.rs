@@ -1,4 +1,4 @@
-//! Tests for CLI frecency behavior: --frecency and --global-frecency flags.
+//! Tests for CLI frecency behavior: --global-frecency flag.
 //!
 //! These tests verify Television's frecency scoring system that boosts previously
 //! selected entries in future searches based on frequency and recency of access.
@@ -15,7 +15,8 @@ fn tv_frecency_with_data_dir(
 ) -> portable_pty::CommandBuilder {
     let mut cmd = tv_local_config_and_cable_with_args(args);
     cmd.env("TELEVISION_DATA", data_dir);
-    cmd.arg("--frecency");
+    cmd.arg("--frecency-size");
+    cmd.arg("100");
     cmd
 }
 
@@ -488,7 +489,7 @@ fn test_frecency_corrupted_file_handling() {
     }
 }
 
-/// Tests frecency without the --frecency flag to ensure it's properly disabled.
+/// Tests frecency without the --frecency-size flag to ensure it's properly disabled.
 #[test]
 fn test_frecency_disabled_behavior() {
     let temp_data = TempDataDir::init_with_empty_frecency();
@@ -497,7 +498,7 @@ fn test_frecency_disabled_behavior() {
     // Create test data
     let test_entries = ["first.txt", "second.txt", "third.txt"];
 
-    // First session: select third.txt WITHOUT --frecency flag
+    // First session: select third.txt WITHOUT --frecency-size flag
     {
         let mut tester = PtyTester::new();
         let mut cmd = tv_local_config_and_cable_with_args(&[
@@ -505,7 +506,7 @@ fn test_frecency_disabled_behavior() {
             &format!("printf '{}'", test_entries.join("\n")),
         ]);
         cmd.env("TELEVISION_DATA", data_dir);
-        // Note: NO --frecency flag
+        // Note: NO --frecency-size flag
 
         let mut child = tester.spawn_command_tui(cmd);
 
@@ -530,7 +531,7 @@ fn test_frecency_disabled_behavior() {
             .unwrap_or_else(|_| "[]".to_string());
         assert!(
             !frecency_content.contains("third.txt"),
-            "Frecency file should not contain selected entry when --frecency flag is not used. Content:\n{}",
+            "Frecency file should not contain selected entry when --frecency-size flag is not used. Content:\n{}",
             frecency_content
         );
     }
@@ -543,7 +544,7 @@ fn test_frecency_disabled_behavior() {
             &format!("printf '{}'", test_entries.join("\n")),
         ]);
         cmd.env("TELEVISION_DATA", data_dir);
-        // Note: Still NO --frecency flag
+        // Note: Still NO --frecency-size flag
 
         let mut child = tester.spawn_command_tui(cmd);
 

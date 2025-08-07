@@ -9,7 +9,6 @@ use tracing::debug;
 
 const FRECENCY_FILE_NAME: &str = "frecency.json";
 const SECONDS_PER_DAY: f64 = 86400.0; // 24 * 60 * 60
-pub const DEFAULT_FRECENCY_SIZE: usize = 1000;
 /// Maximum number of frecent items to prioritize in search results
 /// This ensures frequently-used items get higher priority in nucleo matching
 pub const FRECENT_ITEMS_PRIORITY_COUNT: usize = 200;
