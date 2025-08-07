@@ -268,6 +268,12 @@ impl Television {
         self.layered_config
             .update_channel(channel_prototype.clone());
         self.merged_config = self.layered_config.merge();
+        // merge channel shortcuts if remote control is enabled
+        if let Some(rc) = &mut self.remote_control {
+            self.merged_config.input_map.merge_key_bindings(
+                &rc.cable_channels.get_channels_shortcut_keybindings(),
+            );
+        }
 
         self.preview_handles =
             self.merged_config.channel_preview_command.as_ref().map(
