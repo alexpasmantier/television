@@ -1,13 +1,21 @@
+use std::{thread::sleep, time::Duration};
+
 use crate::{
     action::Action,
     cable::Cable,
-    channels::{entry::Entry, prototypes::ActionSpec},
+    channels::{
+        entry::Entry,
+        prototypes::{ActionSpec, ExecutionMode},
+    },
     config::layers::LayeredConfig,
-    event::{Event, EventLoop, InputEvent, Key, MouseInputEvent},
+    event::{
+        ControlEvent, Event, EventLoop, InputEvent, Key, MouseInputEvent,
+    },
     history::History,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
     tui::{IoStream, Tui, TuiMode},
+    utils::command::execute_action,
 };
 use anyhow::Result;
 use rustc_hash::FxHashSet;
@@ -19,8 +27,6 @@ pub struct App {
     pub television: Television,
     /// A flag that indicates whether the application should quit during the next frame.
     should_quit: bool,
-    /// A flag that indicates whether the application should suspend during the next frame.
-    should_suspend: bool,
     /// A sender channel for actions.
     ///
     /// This is made public so that tests, for instance, can send actions to a running application.
@@ -29,8 +35,8 @@ pub struct App {
     action_rx: mpsc::UnboundedReceiver<Action>,
     /// The receiver channel for events.
     event_rx: mpsc::UnboundedReceiver<Event<Key>>,
-    /// A sender channel to abort the event loop.
-    event_abort_tx: mpsc::UnboundedSender<()>,
+    /// A sender channel to control the event loop.
+    event_control_tx: mpsc::UnboundedSender<ControlEvent>,
     /// A sender channel for rendering tasks.
     render_tx: mpsc::UnboundedSender<RenderingTask>,
     /// The receiver channel for rendering tasks.
@@ -131,11 +137,10 @@ impl App {
         let mut app = Self {
             television,
             should_quit: false,
-            should_suspend: false,
             action_tx,
             action_rx,
             event_rx,
-            event_abort_tx,
+            event_control_tx: event_abort_tx,
             render_tx,
             render_rx,
             ui_state_rx,
@@ -287,7 +292,7 @@ impl App {
             let event_loop =
                 EventLoop::new(self.television.merged_config.tick_rate);
             self.event_rx = event_loop.rx;
-            self.event_abort_tx = event_loop.abort_tx;
+            self.event_control_tx = event_loop.control_tx;
         }
 
         // Start watch timer if configured
@@ -349,7 +354,7 @@ impl App {
             if self.should_quit {
                 // send a termination signal to the event loop
                 if !headless {
-                    self.event_abort_tx.send(())?;
+                    self.event_control_tx.send(ControlEvent::Abort)?;
                 }
 
                 // persist search history
@@ -482,11 +487,9 @@ impl App {
                         }
                     }
                     Action::Suspend => {
-                        self.should_suspend = true;
                         self.render_tx.send(RenderingTask::Suspend)?;
                     }
                     Action::Resume => {
-                        self.should_suspend = false;
                         self.render_tx.send(RenderingTask::Resume)?;
                     }
                     Action::SelectAndExit => {
@@ -579,23 +582,32 @@ impl App {
                                 .merged_config
                                 .channel_actions
                                 .get(action_name)
+                                .cloned()
                             {
-                                // Store the external action info and exit - the command will be executed after terminal cleanup
-                                self.should_quit = true;
-                                self.render_tx.send(RenderingTask::Quit)?;
-                                // Pass entries directly to be processed by execute_action
-                                return Ok(ActionOutcome::ExternalAction(
-                                    action_spec.clone(),
-                                    selected_entries,
-                                ));
+                                match action_spec.mode {
+                                    // suspend the TUI and execute the action
+                                    ExecutionMode::Fork => {
+                                        self.run_external_command_fork(
+                                            &action_spec,
+                                            &selected_entries,
+                                        )?;
+                                    }
+                                    // clean up and exit the TUI and execute the action
+                                    ExecutionMode::Execute => {
+                                        self.run_external_command_execute(
+                                            &action_spec,
+                                            &selected_entries,
+                                        )?;
+                                    }
+                                }
                             }
+                        } else {
+                            debug!("No entries available for external action");
+                            self.action_tx.send(Action::Error(
+                                "No entry available for external action"
+                                    .to_string(),
+                            ))?;
                         }
-                        debug!("No entries available for external action");
-                        self.action_tx.send(Action::Error(
-                            "No entry available for external action"
-                                .to_string(),
-                        ))?;
-                        return Ok(ActionOutcome::None);
                     }
                     _ => {}
                 }
@@ -620,6 +632,58 @@ impl App {
             }
         }
         Ok(ActionOutcome::None)
+    }
+
+    fn run_external_command_fork(
+        &self,
+        action_spec: &ActionSpec,
+        entries: &FxHashSet<Entry>,
+    ) -> Result<()> {
+        // suspend the event loop
+        self.event_control_tx
+            .send(ControlEvent::Pause)
+            .map_err(|e| {
+                error!("Failed to suspend event loop: {}", e);
+                anyhow::anyhow!("Failed to suspend event loop: {}", e)
+            })?;
+
+        // execute the external command in a separate process
+        execute_action(action_spec, entries).map_err(|e| {
+            error!("Failed to execute external action: {}", e);
+            anyhow::anyhow!("Failed to execute external action: {}", e)
+        })?;
+        // resume the event loop
+        self.event_control_tx
+            .send(ControlEvent::Resume)
+            .map_err(|e| {
+                anyhow::anyhow!("Failed to resume event loop: {}", e)
+            })?;
+        // resume the TUI (after the event loop so as not to produce any artifacts)
+        self.render_tx.send(RenderingTask::Resume)?;
+
+        Ok(())
+    }
+
+    fn run_external_command_execute(
+        &mut self,
+        action_spec: &ActionSpec,
+        entries: &FxHashSet<Entry>,
+    ) -> Result<()> {
+        // cleanup
+        self.render_tx.send(RenderingTask::Quit)?;
+        // wait for the rendering task to finish
+        if let Some(rendering_task) = self.render_task.take() {
+            while !rendering_task.is_finished() {
+                sleep(Duration::from_millis(10));
+            }
+        }
+
+        execute_action(action_spec, entries).map_err(|e| {
+            error!("Failed to execute external action: {}", e);
+            anyhow::anyhow!("Failed to execute external action: {}", e)
+        })?;
+
+        Ok(())
     }
 
     /// Maybe select the first entry if there is only one entry available.
