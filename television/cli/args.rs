@@ -505,6 +505,14 @@ pub struct Cli {
     #[arg(long, value_name = "PATH", verbatim_doc_comment, value_parser = validate_directory_path)]
     pub cable_dir: Option<String>,
 
+    /// Maximum number of entries to track in search history.
+    ///
+    /// When set to 0, search history is disabled.
+    /// When set to a positive value, search history is enabled and will track
+    /// up to this many recent search queries.
+    #[arg(long, verbatim_doc_comment)]
+    pub history_size: Option<usize>,
+
     /// Use global history instead of channel-specific history.
     ///
     /// This flag only works in channel mode.
@@ -514,23 +522,23 @@ pub struct Cli {
     #[arg(long, verbatim_doc_comment)]
     pub global_history: bool,
 
-    /// Enable frecency scoring to boost previously selected entries.
-    ///
-    /// This flag works in both channel mode and ad-hoc mode.
-    ///
-    /// When enabled, entries that were previously selected will be ranked higher
-    /// in the results list based on frequency of use and recency of access.
-    #[arg(long, verbatim_doc_comment)]
-    pub frecency: bool,
-
     /// Use global frecency across all channels instead of channel-specific frecency.
     ///
-    /// This flag only works when --frecency is enabled.
+    /// This flag works identically in both channel mode and ad-hoc mode (if global is used).
+    //  Otherwise if just works for channel mode.
     ///
     /// When enabled, frecency scoring will consider selections from all channels.
     /// When disabled (default), frecency is scoped to the current channel.
     #[arg(long, verbatim_doc_comment)]
     pub global_frecency: bool,
+
+    /// Maximum number of entries to track in frecency scoring.
+    ///
+    /// When set to 0 (default), frecency scoring is disabled.
+    /// When set to a positive value, frecency scoring is enabled and will track
+    /// up to this many frequently used entries.
+    #[arg(long, verbatim_doc_comment)]
+    pub frecency_size: Option<usize>,
 
     /// Height in lines for non-fullscreen mode.
     ///

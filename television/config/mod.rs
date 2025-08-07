@@ -45,9 +45,9 @@ pub struct AppConfig {
     /// Whether to use global history (all channels) or channel-specific history (default)
     #[serde(default = "default_global_history")]
     pub global_history: bool,
-    /// Whether to use frecency
-    #[serde(default = "default_frecency")]
-    pub frecency: bool,
+    /// Maximum number of entries to keep in the frecency list
+    #[serde(default = "default_frecency_size")]
+    pub frecency_size: usize,
     /// Whether to use global frecency (all channels) or channel-specific frecency (default)
     #[serde(default = "default_global_frecency")]
     pub global_frecency: bool,
@@ -62,7 +62,7 @@ impl Default for AppConfig {
             default_channel: default_channel(),
             history_size: default_history_size(),
             global_history: default_global_history(),
-            frecency: default_frecency(),
+            frecency_size: default_frecency_size(),
             global_frecency: default_global_frecency(),
         }
     }
@@ -80,8 +80,8 @@ fn default_global_history() -> bool {
     false
 }
 
-fn default_frecency() -> bool {
-    false
+fn default_frecency_size() -> usize {
+    0
 }
 
 fn default_global_frecency() -> bool {

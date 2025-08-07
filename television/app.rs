@@ -11,7 +11,7 @@ use crate::{
     event::{
         ControlEvent, Event, EventLoop, InputEvent, Key, MouseInputEvent,
     },
-    frecency::{DEFAULT_FRECENCY_SIZE, Frecency},
+    frecency::Frecency,
     history::History,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
@@ -127,25 +127,20 @@ impl App {
         let television =
             Television::new(action_tx.clone(), layered_config, cable_channels);
 
+        // Initialize history
         let mut history = History::new(
             television.merged_config.history_size,
             &television.merged_config.channel_name,
             television.merged_config.global_history,
-            &television.merged_config.data_dir.clone(),
+            &television.merged_config.data_dir,
         );
         if let Err(e) = history.init() {
             error!("Failed to initialize history: {}", e);
         }
 
         // Initialize frecency
-        let frecency_size = if television.merged_config.frecency {
-            DEFAULT_FRECENCY_SIZE
-        } else {
-            0
-        };
-
         let mut frecency = Frecency::new(
-            frecency_size,
+            television.merged_config.frecency_size,
             &television.merged_config.channel_name,
             television.merged_config.global_frecency,
             &television.merged_config.data_dir,
