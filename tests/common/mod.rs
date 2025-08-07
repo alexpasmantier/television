@@ -339,6 +339,28 @@ pub fn ctrl(c: char) -> String {
     ((c as u8 & 0x1F) as char).to_string()
 }
 
+pub fn f(c: u8) -> String {
+    let seq = match c {
+        1 => "\x1bOP",    // F1
+        2 => "\x1bOQ",    // F2
+        3 => "\x1bOR",    // F3
+        4 => "\x1bOS",    // F4
+        5 => "\x1b[15~",  // F5
+        6 => "\x1b[17~",  // F6
+        7 => "\x1b[18~",  // F7
+        8 => "\x1b[19~",  // F8
+        9 => "\x1b[20~",  // F9
+        10 => "\x1b[21~", // F10
+        11 => "\x1b[23~", // F11
+        12 => "\x1b[24~", // F12
+        _ => {
+            panic!("Invalid function key: {}", c);
+        }
+    };
+
+    seq.to_string()
+}
+
 pub const ENTER: &str = "\r";
 pub const ESC: &str = "\x1b";
 

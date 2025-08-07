@@ -48,3 +48,24 @@ test_channel! {
     test_channel_text: "text",
     test_channel_diff: "git-diff",
 }
+
+#[test]
+fn test_channel_shortcuts() {
+    let mut tester = PtyTester::new();
+    let mut child = tester
+        .spawn_command_tui(tv_local_config_and_cable_with_args(&["files"]));
+
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // switch to the "dirs" channel
+    tester.send(&f(2));
+    tester.assert_tui_frame_contains("CHANNEL  dirs");
+
+    // switch back to the "files" channel
+    tester.send(&f(1));
+    tester.assert_tui_frame_contains("CHANNEL  files");
+
+    // Send Ctrl-C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
