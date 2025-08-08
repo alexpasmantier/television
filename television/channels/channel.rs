@@ -298,28 +298,53 @@ impl Channel {
 
         // Handle frecency-aware results if provided
         let Some(frecency_data) = frecency else {
-            // No frecency: use standard nucleo matching
-            let results = self.matcher.results(num_entries, offset);
-            return self.convert_to_entries(results);
+            return self.get_regular_results(num_entries, offset);
         };
 
-        // Frecency-aware results with dataset validation
+        // Get frecent items and handle early exit cases
         let frecent_items = frecency_data.get_frecent_items();
-
-        // Early exit if no frecent items to avoid unnecessary work
         if frecent_items.is_empty() {
-            let results = self.matcher.results(num_entries, offset);
-            return self.convert_to_entries(results);
+            return self.get_regular_results(num_entries, offset);
         }
 
-        // Get dataset or fall back to regular results
+        // Get validated frecent items that exist in current dataset
+        let Some((filtered_frecent_items, filtered_frecent_items_ordered)) =
+            self.get_validated_frecent_items(&frecent_items)
+        else {
+            return self.get_regular_results(num_entries, offset);
+        };
+
+        // Combine frecent and regular results
+        self.combine_frecent_and_regular_results(
+            num_entries,
+            offset,
+            &filtered_frecent_items,
+            &filtered_frecent_items_ordered,
+        )
+    }
+
+    /// Helper method for regular matching fallback
+    fn get_regular_results(
+        &mut self,
+        num_entries: u32,
+        offset: u32,
+    ) -> Vec<Entry> {
+        let results = self.matcher.results(num_entries, offset);
+        self.convert_to_entries(results)
+    }
+
+    /// Helper method to get validated frecent items that exist in the current dataset
+    fn get_validated_frecent_items(
+        &mut self,
+        frecent_items: &[String],
+    ) -> Option<(FxHashSet<String>, Vec<String>)> {
+        // Get dataset or return None if unavailable
         let dataset_len = {
             let Ok(dataset) = self.current_dataset.read() else {
                 debug!(
                     "Failed to acquire dataset read lock, skipping frecency filtering"
                 );
-                let results = self.matcher.results(num_entries, offset);
-                return self.convert_to_entries(results);
+                return None;
             };
             dataset.len()
         };
@@ -328,14 +353,16 @@ impl Channel {
         let filtered_frecent_items =
             match self.get_cached_intersection(dataset_len) {
                 Some(cached) => cached.clone(),
-                None => self.calculate_intersection(&frecent_items),
+                None => self.calculate_intersection(frecent_items),
             };
 
-        // If no frecent items pass validation, fall back to regular matching
+        // Early return if no frecent items pass validation
         if filtered_frecent_items.is_empty() {
-            let results = self.matcher.results(num_entries, offset);
-            return self.convert_to_entries(results);
-        } else if filtered_frecent_items.len()
+            return None;
+        }
+
+        // Check if frecency matcher needs reload
+        if filtered_frecent_items.len()
             != self.frecency_matcher.total_item_count as usize
         {
             self.frecency_matcher.needs_reload = true;
@@ -358,19 +385,35 @@ impl Channel {
         }
 
         // Create ordered list maintaining frecency order but only including items in dataset
-        let filtered_frecent_items_ordered: Vec<String> = frecent_items
-            .into_iter()
-            .filter(|item| filtered_frecent_items.contains(item))
-            .collect();
+        let mut filtered_frecent_items_ordered =
+            Vec::with_capacity(filtered_frecent_items.len());
 
-        // Fuzzy match the validated frecent items
+        for item in frecent_items {
+            if filtered_frecent_items.contains(item) {
+                filtered_frecent_items_ordered.push(item.clone());
+            }
+        }
+
+        Some((filtered_frecent_items, filtered_frecent_items_ordered))
+    }
+
+    /// Helper method to combine frecent and regular results
+    #[allow(clippy::cast_possible_truncation)]
+    fn combine_frecent_and_regular_results(
+        &mut self,
+        num_entries: u32,
+        offset: u32,
+        filtered_frecent_items: &FxHashSet<String>,
+        filtered_frecent_items_ordered: &[String],
+    ) -> Vec<Entry> {
+        // Get frecent matches
         let frecent_matches = self.fuzzy_match_frecent_items(
-            &filtered_frecent_items,
-            &filtered_frecent_items_ordered,
+            filtered_frecent_items,
+            filtered_frecent_items_ordered,
             offset,
         );
 
-        // Get regular results, excluding recent matches to avoid duplicates
+        // Get regular results, excluding frecent matches to avoid duplicates
         let remaining_slots =
             num_entries.saturating_sub(frecent_matches.len() as u32);
         let mut regular_matches = Vec::new();
