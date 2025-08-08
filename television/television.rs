@@ -13,6 +13,7 @@ use crate::{
     },
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
+    frecency::Frecency,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -562,7 +563,10 @@ impl Television {
         0
     }
 
-    pub fn update_results_picker_state(&mut self) {
+    pub fn update_results_picker_state(
+        &mut self,
+        frecency: Option<&Frecency>,
+    ) {
         if self.results_picker.selected().is_none()
             && self.channel.result_count() > 0
         {
@@ -580,7 +584,7 @@ impl Television {
             // Re-use the existing allocation instead of constructing a new
             // `Vec` every tick:
             entries.clear();
-            entries.extend(self.channel.results(height, offset));
+            entries.extend(self.channel.results(height, offset, frecency));
         }
         self.results_picker.total_items = self.channel.result_count();
     }
@@ -842,10 +846,14 @@ impl Television {
     /// Update the television state based on the action provided.
     ///
     /// This function may return an Action that'll be processed by the parent `App`.
-    pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
+    pub fn update(
+        &mut self,
+        action: &Action,
+        frecency: Option<&Frecency>,
+    ) -> Result<Option<Action>> {
         self.handle_action(action)?;
 
-        self.update_results_picker_state();
+        self.update_results_picker_state(frecency);
 
         if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
             self.update_rc_picker_state();

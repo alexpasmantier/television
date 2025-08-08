@@ -465,6 +465,16 @@ minimum height is ensured (set by default at 15 lines)
 
 ### 📚 History Options
 
+#### `--history-size <SIZE>`
+
+**Purpose**: Set the maximum number of entries to track in search history
+
+- **Both Modes**: Same behavior
+- **Default**: 100 (from configuration)
+- **Range**: 0 to disable, positive integers to enable
+- **Use Case**: When set to a positive value, enables search history that tracks recent queries. When set to 0, search history is disabled
+- **Example**: `tv files --history-size 50`
+
 #### `--global-history`
 
 **Purpose**: Enables global history for the current session
@@ -473,6 +483,27 @@ minimum height is ensured (set by default at 15 lines)
 - **Default**: Channel-specific history (scoped to current channel)
 - **Use Case**: Cross-channel workflow when you want to see all recent searches
 - **Example**: `tv files --global-history`
+
+### 🎯 Frecency Options
+
+#### `--frecency-size <SIZE>`
+
+**Purpose**: Set the maximum number of entries to track in frecency scoring
+
+- **Both Modes**: Same behavior
+- **Default**: 0 (frecency disabled)
+- **Range**: 0 to disable, positive integers to enable
+- **Use Case**: When set to a positive value, enables frecency scoring that boosts frequently used entries. When set to 0, frecency is disabled
+- **Example**: `tv files --frecency-size 100`
+
+#### `--global-frecency`
+
+**Purpose**: Use global frecency across all channels instead of channel-specific frecency
+
+- **Both Modes**: Same behavior
+- **Default**: Channel-specific frecency (scoped to current channel)
+- **Use Case**: When enabled, frecency scoring will consider selections from all channels. When disabled (default), frecency is scoped to the current channel
+- **Example**: `tv files --global-frecency`
 
 ### 🔧 Special Mode Options
 
