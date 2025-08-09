@@ -179,8 +179,8 @@ fn test_expect_with_selection() {
     let out = tester.read_raw_output();
 
     assert!(
-        out.contains("Ctrl-c\r\nCargo.toml"),
-        "Expected output to contain 'Ctrl-c\\r\\nCargo.toml' but got: '{:?}'",
+        out.contains("ctrl-c\r\nCargo.toml"),
+        "Expected output to contain 'ctrl-c\\r\\nCargo.toml' but got: '{:?}'",
         out
     );
 
