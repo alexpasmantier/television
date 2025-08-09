@@ -7,13 +7,12 @@ Default keybindings are as follows:
 |                                                              Key                                                              | Description                                        |
 | :---------------------------------------------------------------------------------------------------------------------------: | -------------------------------------------------- |
 | <kbd>↑</kbd> / <kbd>↓</kbd> or <kbd>Ctrl</kbd> + <kbd>p</kbd> / <kbd>n</kbd> or <kbd>Ctrl</kbd> + <kbd>k</kbd> / <kbd>j</kbd> | Navigate through the list of entries               |
-|                                         <kbd>Ctrl</kbd> + <kbd>u</kbd> / <kbd>d</kbd>                                         | Scroll the preview pane up / down                  |
+|                                            <kbd>PageUp</kbd> / <kbd>PageDown</kbd>                                            | Scroll the preview pane up / down                  |
 |                                                       <kbd>Enter</kbd>                                                        | Select the current entry                           |
 |                                              <kbd>Tab</kbd> / <kbd>BackTab</kbd>                                              | Toggle selection and move to next / previous entry |
 |                                                <kbd>Ctrl</kbd> + <kbd>y</kbd>                                                 | Copy the selected entry to the clipboard           |
-|                                                <kbd>Ctrl</kbd> + <kbd>r</kbd>                                                 | Toggle remote control mode                         |
-|                                                <kbd>Ctrl</kbd> + <kbd>s</kbd>                                                 | Toggle send to channel mode                        |
-|                                                <kbd>Ctrl</kbd> + <kbd>g</kbd>                                                 | Toggle the help panel                              |
+|                                                <kbd>Ctrl</kbd> + <kbd>t</kbd>                                                 | Toggle remote control mode                         |
+|                                                <kbd>Ctrl</kbd> + <kbd>h</kbd>                                                 | Toggle the help panel                              |
 |                                                <kbd>Ctrl</kbd> + <kbd>o</kbd>                                                 | Toggle the preview panel                           |
 |                                                        <kbd>Esc</kbd>                                                         | Quit the application                               |
 
