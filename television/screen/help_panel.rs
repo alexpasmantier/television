@@ -1,8 +1,10 @@
+use crate::event::Key;
 use crate::{
-    action::Action,
+    action::{Action, Actions},
     config::{KeyBindings, layers::MergedConfig},
     screen::colors::Colorscheme,
     television::Mode,
+    utils::strings::to_title_case,
 };
 use ratatui::{
     Frame,
@@ -11,6 +13,7 @@ use ratatui::{
     text::{Line, Span},
     widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
 };
+use rustc_hash::FxHashMap;
 use tracing::{debug, trace};
 
 const MIN_PANEL_WIDTH: u16 = 25;
@@ -97,7 +100,9 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 // Channel-mode layout
                 | Action::ToggleOrientation
                 // Application actions - global
-                | Action::Quit => true,
+                | Action::Quit
+                // External actions
+                | Action::ExternalAction(_) => true,
 
                 // Skip actions not relevant to help or internal actions
                 Action::NoOp
@@ -114,8 +119,7 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::SelectEntryAtPosition(_, _)
                 | Action::MouseClickAt(_, _)
                 | Action::Expect(_)
-                | Action::SelectAndExit
-                | Action::ExternalAction(_) => false,
+                | Action::SelectAndExit => false,
             }
         }
         Mode::RemoteControl => {
@@ -197,6 +201,58 @@ fn add_keybinding_lines_for_keys(
     }
 }
 
+/// Adds keybinding lines for external actions to the given lines vector
+fn add_actions_keybindings_section(
+    lines: &mut Vec<Line<'static>>,
+    key_actions: &FxHashMap<Key, Actions>,
+    colorscheme: &Colorscheme,
+    mode: Mode,
+) {
+    // Collect all valid external action entries
+    let mut entries = Vec::new();
+
+    for (key, actions) in key_actions {
+        // Skip keys without external actions
+        if !actions
+            .as_slice()
+            .iter()
+            .any(|a| matches!(a, Action::ExternalAction(_)))
+        {
+            continue;
+        }
+
+        // Build action description from all valid actions
+        let action_desc = actions
+            .as_slice()
+            .iter()
+            .filter(|a| {
+                !matches!(a, Action::NoOp)
+                    && is_action_relevant_for_mode(a, mode)
+            })
+            .map(|a| match a {
+                Action::ExternalAction(name) => to_title_case(name),
+                _ => to_title_case(a.description()),
+            })
+            .collect::<Vec<_>>()
+            .join(" + ");
+
+        if !action_desc.is_empty() {
+            entries.push((key.to_string(), action_desc));
+        }
+    }
+
+    entries.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Create lines from sorted entries
+    for (key_string, action_desc) in entries {
+        lines.push(create_external_action_line(
+            &key_string,
+            &action_desc,
+            colorscheme,
+        ));
+    }
+}
+
 /// Generates the help content organized into global and mode-specific groups
 fn generate_help_content(
     config: &MergedConfig,
@@ -234,6 +290,33 @@ fn generate_help_content(
         mode_name,
     );
 
+    // Check if we have external actions before adding the section
+    let has_external_actions =
+        config.input_map.key_actions.iter().any(|(_, actions)| {
+            actions
+                .as_slice()
+                .iter()
+                .any(|a| matches!(a, Action::ExternalAction(_)))
+        });
+
+    if has_external_actions {
+        lines.push(Line::from(""));
+        lines.push(Line::from(vec![Span::styled(
+            "External Actions",
+            Style::default()
+                .fg(colorscheme.help.metadata_field_name_fg)
+                .bold()
+                .underlined(),
+        )]));
+
+        add_actions_keybindings_section(
+            &mut lines,
+            &config.input_map.key_actions,
+            colorscheme,
+            mode,
+        );
+    }
+
     debug!("Generated help content with {} total lines", lines.len());
     lines
 }
@@ -258,6 +341,24 @@ fn create_compact_keybinding_line(
         ),
         Span::raw(" "), // Space between action and key
         Span::styled(key.to_string(), Style::default().fg(key_color).bold()),
+    ])
+}
+
+fn create_external_action_line(
+    key: &str,
+    actions: &str,
+    colorscheme: &Colorscheme,
+) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            format!("{}:", key),
+            Style::default().fg(colorscheme.mode.channel).bold(),
+        ),
+        Span::raw(" "), // Space between key and actions
+        Span::styled(
+            actions.to_string(),
+            Style::default().fg(colorscheme.help.metadata_field_name_fg),
+        ),
     ])
 }
 
