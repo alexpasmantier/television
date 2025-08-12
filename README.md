@@ -48,6 +48,17 @@ preview_panel = { "size" = 70, "scrollbar" = true }
 
 [keybindings]
 shortcut = "f1"
+f12 = "actions:edit"
+f11 = ["actions:rm", "reload_source"]
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} {}"
+mode = "execute"
+
+[actions.rm]
+description = "Removes the selected entries"
+command = "rm {}"
 ```
 
 Start searching:
