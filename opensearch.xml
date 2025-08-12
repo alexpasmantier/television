@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/"
+                       xmlns:moz="http://www.mozilla.org/2006/browser/search/">
+  <ShortName>Television</ShortName>
+  <Description>Search Television</Description>
+  <InputEncoding>UTF-8</InputEncoding>
+  <Image width="16" height="16" type="image/x-icon">https://alexpasmantier.github.io/television/img/tv-icon-150.png</Image>
+  <Url type="text/html" method="get" template="https://alexpasmantier.github.io/television/search?q={searchTerms}"/>
+  <Url type="application/opensearchdescription+xml" rel="self" template="https://alexpasmantier.github.io/television/opensearch.xml" />
+  <moz:SearchForm>https://alexpasmantier.github.io/television/</moz:SearchForm>
+</OpenSearchDescription>
