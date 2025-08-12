@@ -119,6 +119,21 @@ const config: Config = {
       darkTheme: prismThemes.dracula,
       additionalLanguages: ["bash", "json", "yaml", "toml", "diff"],
     },
+    algolia: {
+      // The application ID provided by Algolia
+      appId: 'HBDRS6D3Z1',
+
+      // Public API key: it is safe to commit it
+      apiKey: 'aa52361e43418cc0cfd79fe72b73ea0b',
+
+      indexName: 'tv docs',
+
+      replaceSearchResultPathname: {
+        from: '/television/',
+        to: '/',
+      },
+
+    },
   } satisfies Preset.ThemeConfig,
 
   themes: ["@docusaurus/theme-mermaid"],
