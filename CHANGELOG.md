@@ -4,6 +4,67 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.3](https://github.com/alexpasmantier/television/releases/tag/0.13.3) - 2025-08-13
+
+### ⛰️  Features
+
+- [834a3cc](https://github.com/alexpasmantier/television/commit/834a3ccd3ef61feeb675a9c1c07fce3f43c17bcc) *(actions)* Improve actions behavior and add support for `exec` by @alexpasmantier in [#689](https://github.com/alexpasmantier/television/pull/689)
+
+- [fcebf0a](https://github.com/alexpasmantier/television/commit/fcebf0a3f1384b2d8e81e051f976a153d844d43d) *(channels)* Add `update-channels` bash script by @alexpasmantier
+
+- [4b784f7](https://github.com/alexpasmantier/television/commit/4b784f76e4df89263af4ee7b50508db5274b30d3) *(channels)* Channel for Justfile recipes by @mheuvel-dev in [#691](https://github.com/alexpasmantier/television/pull/691)
+
+- [d6fd179](https://github.com/alexpasmantier/television/commit/d6fd1793817f5e8999fc7c4251e54644c99a03c2) *(channels)* Kubernetes channels for deployments, pods and services by @LeoVen in [#688](https://github.com/alexpasmantier/television/pull/688)
+
+- [9108edd](https://github.com/alexpasmantier/television/commit/9108edd0c30c9d7167c9c147b80bf1616e6b6ee2) *(website)* Improved Algoila search bar UI by @kapobajza in [#700](https://github.com/alexpasmantier/television/pull/700)
+
+- [9794ae1](https://github.com/alexpasmantier/television/commit/9794ae1ea967b413eae38938e777aa5453de83da) *(uncategorized)* Add support for NetBSD installation by @0323pin in [#690](https://github.com/alexpasmantier/television/pull/690)
+
+### 🐛 Bug Fixes
+
+- [14e719f](https://github.com/alexpasmantier/television/commit/14e719f4afafcd14ce3a531ab4f6855aab4628bf) *(remote)* Merge channel shortcuts into input map when switching channels by @alexpasmantier
+
+### 🚜 Refactor
+
+- [8c4ac25](https://github.com/alexpasmantier/television/commit/8c4ac2553632ec52738563825a3f92cc20d43d51) *(cli)* Use all lowercase key representations by @alexpasmantier
+
+- [b2b60ee](https://github.com/alexpasmantier/television/commit/b2b60eef9813a258c9ee881b108cea3ceb34e940) *(uncategorized)* Remove stale input map logic from App + add tests by @alexpasmantier
+
+### 📚 Documentation
+
+- [7ff55dc](https://github.com/alexpasmantier/television/commit/7ff55dc1f9154f8c1752def33f383c0d42a1a2b7) *(uncategorized)* Update README example by @alexpasmantier
+
+- [3439e8a](https://github.com/alexpasmantier/television/commit/3439e8a1b9b48f487aab25c6e0626ecadb457d47) *(uncategorized)* Update default keybindings by @pastalian
+
+### 🧪 Testing
+
+- [95fa84c](https://github.com/alexpasmantier/television/commit/95fa84c7207ff8877d0d8844c6b12f085dcf5fb7) *(uncategorized)* Add integration tests for missing CLI ui flags by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [f1e146b](https://github.com/alexpasmantier/television/commit/f1e146b2a65faeeefa3bd74cdd57d3f6de2d1e9e) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#687](https://github.com/alexpasmantier/television/pull/687)
+
+- [f7406d5](https://github.com/alexpasmantier/television/commit/f7406d53298d6373e1edf4ce1b206f2e3493ec27) *(website)* Setup algolia search by @alexpasmantier
+
+- [d878244](https://github.com/alexpasmantier/television/commit/d878244d8015be60fa879bc2050404e097523006) *(website)* Prepare for algolia search by @alexpasmantier
+
+- [1794435](https://github.com/alexpasmantier/television/commit/179443545e98a5bf054ee6fd3ac61527517b7126) *(uncategorized)* Release version 0.13.3
+
+
+
+### New Contributors
+* @kapobajza made their first contribution in [#700](https://github.com/alexpasmantier/television/pull/700)
+* @alexpasmantier made their first contribution
+* @dependabot[bot] made their first contribution in [#699](https://github.com/alexpasmantier/television/pull/699)
+* @pastalian made their first contribution
+* @mheuvel-dev made their first contribution in [#691](https://github.com/alexpasmantier/television/pull/691)
+* @0323pin made their first contribution in [#690](https://github.com/alexpasmantier/television/pull/690)
+* @LeoVen made their first contribution in [#688](https://github.com/alexpasmantier/television/pull/688)
+* @github-actions[bot] made their first contribution in [#687](https://github.com/alexpasmantier/television/pull/687)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.2...0.13.3
+
+
 ## [0.13.2](https://github.com/alexpasmantier/television/releases/tag/0.13.2) - 2025-08-07
 
 ### 🐛 Bug Fixes
