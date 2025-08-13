@@ -87,6 +87,9 @@ pub enum Action {
     ToggleHelp,
     ToggleStatusBar,
     TogglePreview,
+    /// Switch between the portrait and landscape modes.
+    #[serde(rename = "toggle_layout")]
+    ToggleOrientation,
     /// Signal an error with the given message.
     #[serde(skip)]
     Error(String),
@@ -352,6 +355,7 @@ impl Display for Action {
             Action::ToggleHelp => write!(f, "toggle_help"),
             Action::ToggleStatusBar => write!(f, "toggle_status_bar"),
             Action::TogglePreview => write!(f, "toggle_preview"),
+            Action::ToggleOrientation => write!(f, "toggle_layout"),
             Action::Error(_) => write!(f, "error"),
             Action::NoOp => write!(f, "no_op"),
             Action::CycleSources => write!(f, "cycle_sources"),
@@ -369,6 +373,7 @@ impl Display for Action {
     }
 }
 
+// FIXME: we shouldn't need to rely on hardcoding the action names here.
 impl<'de> serde::Deserialize<'de> for Action {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
@@ -414,6 +419,7 @@ impl<'de> serde::Deserialize<'de> for Action {
             "toggle_help" => Action::ToggleHelp,
             "toggle_status_bar" => Action::ToggleStatusBar,
             "toggle_preview" => Action::TogglePreview,
+            "toggle_layout" => Action::ToggleOrientation,
             "error" => Action::Error(String::new()),
             "no_op" => Action::NoOp,
             "cycle_sources" => Action::CycleSources,
@@ -465,6 +471,7 @@ impl<'de> serde::Deserialize<'de> for Action {
                         "toggle_help",
                         "toggle_status_bar",
                         "toggle_preview",
+                        "toggle_layout",
                         "error",
                         "no_op",
                         "cycle_sources",
@@ -556,6 +563,7 @@ impl Action {
             Action::ToggleHelp => "Toggle help",
             Action::ToggleStatusBar => "Toggle status bar",
             Action::TogglePreview => "Toggle preview",
+            Action::ToggleOrientation => "Toggle layout",
 
             // Error and no-op
             Action::Error(_) => "Error",

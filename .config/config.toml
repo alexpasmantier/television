@@ -160,6 +160,7 @@ ctrl-t = "toggle_remote_control"
 ctrl-o = "toggle_preview"
 ctrl-h = "toggle_help"
 f12 = "toggle_status_bar"
+ctrl-l = "toggle_layout"
 
 # Input field actions
 # ----------------------------------------

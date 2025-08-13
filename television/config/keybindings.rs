@@ -372,6 +372,7 @@ impl Default for Bindings<Key> {
         bindings.insert(Key::Ctrl('o'), Action::TogglePreview.into());
         bindings.insert(Key::Ctrl('h'), Action::ToggleHelp.into());
         bindings.insert(Key::F(12), Action::ToggleStatusBar.into());
+        bindings.insert(Key::Ctrl('l'), Action::ToggleOrientation.into());
 
         // Input field actions
         bindings.insert(Key::Backspace, Action::DeletePrevChar.into());
