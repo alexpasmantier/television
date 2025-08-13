@@ -50,6 +50,44 @@ fn test_layout_portrait() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
+/// Tests that --layout portrait arranges panels vertically stacked.
+// FIXME: this should be in a separate module that tests TUI interactions
+#[test]
+fn test_toggle_layout() {
+    let mut tester = PtyTester::new();
+
+    // This sets the interface to use vertically stacked panel arrangement
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "files",
+        "--layout",
+        "portrait",
+        "--keybindings",
+        "ctrl-l='toggle_layout'",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the TUI started successfully in portrait layout
+    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+
+    // Toggle to landscape layout
+    tester.send(&ctrl('l'));
+
+    // Verify the TUI switched to landscape layout
+    tester.assert_tui_frame_contains(
+        "╭───────────────────────── files ──────────────────────────╮╭─",
+    );
+
+    // Toggle back to portrait layout
+    tester.send(&ctrl('l'));
+
+    // Verify the TUI switched back to portrait layout
+    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
 /// Tests that --input-header customizes the text above the search input in Channel Mode.
 #[test]
 fn test_input_header_in_channel_mode() {

@@ -22,7 +22,7 @@ use crate::{
     render::UiState,
     screen::{
         colors::Colorscheme,
-        layout::InputPosition,
+        layout::{InputPosition, Orientation},
         spinner::{Spinner, SpinnerState},
     },
     utils::{
@@ -491,6 +491,7 @@ impl Television {
                     | Action::TogglePreview
                     | Action::ToggleStatusBar
                     | Action::ToggleRemoteControl
+                    | Action::ToggleOrientation
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
                     | Action::ReloadSource
@@ -833,6 +834,14 @@ impl Television {
                         !self.merged_config.status_bar_hidden;
                 }
             }
+            Action::ToggleOrientation => match self.merged_config.layout {
+                Orientation::Portrait => {
+                    self.merged_config.layout = Orientation::Landscape;
+                }
+                Orientation::Landscape => {
+                    self.merged_config.layout = Orientation::Portrait;
+                }
+            },
             _ => {}
         }
         Ok(())

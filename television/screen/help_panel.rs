@@ -94,6 +94,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::ToggleRemoteControl
                 | Action::ToggleHelp
                 | Action::ToggleStatusBar
+                // Channel-mode layout
+                | Action::ToggleOrientation
                 // Application actions - global
                 | Action::Quit => true,
 
