@@ -14,9 +14,12 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@docsearch/react": "^3.9.0",
     "@docusaurus/core": "3.8.1",
     "@docusaurus/preset-classic": "3.8.1",
+    "@docusaurus/theme-common": "^3.8.1",
     "@docusaurus/theme-mermaid": "^3.8.1",
+    "@docusaurus/theme-search-algolia": "^3.8.1",
     "@mdx-js/react": "^3.0.0",
     "clsx": "^2.0.0",
     "prism-react-renderer": "^2.3.0",
@@ -24,9 +27,12 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "@algolia/autocomplete-core": "^1.19.2",
     "@docusaurus/module-type-aliases": "3.8.1",
     "@docusaurus/tsconfig": "3.8.1",
     "@docusaurus/types": "3.8.1",
+    "@types/react": "^19.1.10",
+    "algoliasearch": "^5.35.0",
     "typescript": "~5.6.2"
   },
   "browserslist": {
