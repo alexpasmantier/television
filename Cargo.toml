@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.13.2"
+version = "0.13.3"
 edition = "2024"
 description = "Cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
@@ -14,7 +14,7 @@ categories = [
   "concurrency",
   "development-tools",
 ]
-exclude = ["website", ".github", "apt", "website"]
+exclude = ["website", ".github", "apt", "website", "assets"]
 rust-version = "1.87"
 build = "build.rs"
 
