@@ -48,19 +48,14 @@ All notable changes to this project will be documented in this file.
 
 - [d878244](https://github.com/alexpasmantier/television/commit/d878244d8015be60fa879bc2050404e097523006) *(website)* Prepare for algolia search by @alexpasmantier
 
-- [1794435](https://github.com/alexpasmantier/television/commit/179443545e98a5bf054ee6fd3ac61527517b7126) *(uncategorized)* Release version 0.13.3
+- [1794435](https://github.com/alexpasmantier/television/commit/179443545e98a5bf054ee6fd3ac61527517b7126) *(uncategorized)* Release version 0.13.3 by @alexpasmantier
 
 
 
 ### New Contributors
-* @kapobajza made their first contribution in [#700](https://github.com/alexpasmantier/television/pull/700)
-* @alexpasmantier made their first contribution
-* @dependabot[bot] made their first contribution in [#699](https://github.com/alexpasmantier/television/pull/699)
 * @pastalian made their first contribution
 * @mheuvel-dev made their first contribution in [#691](https://github.com/alexpasmantier/television/pull/691)
 * @0323pin made their first contribution in [#690](https://github.com/alexpasmantier/television/pull/690)
-* @LeoVen made their first contribution in [#688](https://github.com/alexpasmantier/television/pull/688)
-* @github-actions[bot] made their first contribution in [#687](https://github.com/alexpasmantier/television/pull/687)
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.2...0.13.3
 
