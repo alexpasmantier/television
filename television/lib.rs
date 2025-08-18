@@ -17,6 +17,7 @@ pub mod picker;
 pub mod previewer;
 pub mod render;
 pub mod screen;
+pub mod selector;
 pub mod television;
 pub mod tui;
 pub mod utils;

@@ -1,25 +1,10 @@
-use std::{
-    cmp::Ordering,
-    sync::Arc,
-    time::{Duration, Instant},
-};
-
-use ansi_to_tui::IntoText;
-use anyhow::{Context, Result};
-use parking_lot::Mutex;
-use ratatui::text::Text;
-use tokio::{
-    sync::mpsc::{UnboundedReceiver, UnboundedSender},
-    time::timeout,
-};
-use tracing::debug;
-
 use crate::{
     channels::{
         entry::Entry,
         prototypes::{CommandSpec, Template},
     },
     previewer::cache::Cache,
+    selector::process_entries,
     utils::{
         command::shell_command,
         strings::{
@@ -27,10 +12,25 @@ use crate::{
         },
     },
 };
+use ansi_to_tui::IntoText;
+use anyhow::{Context, Result};
+use parking_lot::Mutex;
+use ratatui::text::Text;
+use std::{
+    cmp::Ordering,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use tokio::{
+    sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    time::timeout,
+};
+use tracing::debug;
 
 mod cache;
 pub mod state;
 
+#[derive(Clone)]
 pub struct Config {
     request_max_age: Duration,
     job_timeout: Duration,
@@ -74,7 +74,7 @@ impl Ord for Request {
 
 #[derive(PartialEq, Eq)]
 pub struct Ticket {
-    entry: Entry,
+    entries: Vec<Entry>,
     timestamp: Instant,
 }
 
@@ -91,11 +91,15 @@ impl Ord for Ticket {
 }
 
 impl Ticket {
-    pub fn new(entry: Entry) -> Self {
+    pub fn new(entries: Vec<Entry>) -> Self {
         Self {
-            entry,
+            entries,
             timestamp: Instant::now(),
         }
+    }
+
+    pub fn from_single(entry: Entry) -> Self {
+        Self::new(vec![entry])
     }
 
     fn age(&self) -> Duration {
@@ -150,7 +154,7 @@ pub struct Previewer {
     config: Config,
     // FIXME: maybe use a bounded channel here with a single slot
     requests: UnboundedReceiver<Request>,
-    last_job_entry: Option<Entry>,
+    last_job_entries: Vec<Entry>,
     command: CommandSpec,
     offset_expr: Option<Template>,
     results: UnboundedSender<Preview>,
@@ -174,7 +178,7 @@ impl Previewer {
         Self {
             config,
             requests: receiver,
-            last_job_entry: None,
+            last_job_entries: Vec::new(),
             command: command.clone(),
             offset_expr,
             results: sender,
@@ -196,24 +200,30 @@ impl Previewer {
                             continue;
                         }
                         let results_handle = self.results.clone();
-                        self.last_job_entry = Some(ticket.entry.clone());
+                        self.last_job_entries.clone_from(&ticket.entries);
+
                         // try to execute the preview with a timeout
                         let preview_command = self.command.clone();
                         let cache = self.cache.clone();
                         let offset_expr = self.offset_expr.clone();
+                        let entries = ticket.entries;
+
                         match timeout(
                             self.config.job_timeout,
                             tokio::spawn(async move {
-                                if let Err(e) = try_preview(
+                                let entry_refs: Vec<&Entry> = entries.iter().collect();
+                                let result = try_preview(
                                     &preview_command,
                                     &offset_expr,
-                                    &ticket.entry,
+                                    &entry_refs,
                                     &results_handle,
                                     &cache,
-                                ) {
+                                );
+
+                                if let Err(e) = result {
                                     debug!(
-                                        "Failed to generate preview for entry '{}': {}",
-                                        ticket.entry.raw,
+                                        "Failed to generate preview for {} entries: {}",
+                                        entries.len(),
                                         e
                                     );
                                 }
@@ -246,31 +256,104 @@ impl Previewer {
     }
 }
 
+/// Try to run the given command on the given entries and send the result
+/// to the main thread via the given channel.
+///
+/// This function handles both single and multiple entry scenarios with different
+/// processing strategies and configuration-aware template formatting.
+///
+/// ## Single Entry Processing
+/// - Uses existing caching system for performance optimization
+/// - Standard template formatting with optional shell escaping
+/// - Supports both `Raw` and `StringPipeline` template types
+/// - Caches successful results and errors to avoid re-execution
+///
+/// ## Multi-Select Processing
+/// - `SelectorMode::Concatenate`: Joins all selected entries with the configured
+///   separator and treats them as a single input for all template placeholders.
+///   Ideal for commands that accept multiple arguments (e.g., `cat file1 file2`).
+///
+/// - `SelectorMode::OneToOne`: Maps each selected entry to individual template
+///   placeholders in sequence. Analyzes template placeholder count and generates
+///   warnings for mismatches. Best for commands with distinct argument slots
+///   (e.g., `diff {} {}` expects exactly two files).
+///
+/// ## Shell Escaping
+/// When `config.selector_shell_escaping` is enabled, all entry values are processed
+/// through `shlex::try_quote()` to safely handle special characters, spaces, and
+/// shell metacharacters in file paths and entry names.
+///
+/// ## Warning Generation
+/// For `OneToOne` mode, automatically detects argument mapping issues:
+/// - Excess entries: More selections than template placeholders
+/// - Missing arguments: Fewer selections than template placeholders
+/// - Warnings appear in the preview footer for user feedback
+///
+/// This function is responsible for the following tasks:
+/// 1. execute a command with the preview configuration and selector settings
+/// 2. analyze template structure and perform argument distribution based on selector mode
+/// 3. generate user warnings for argument mapping mismatches in `OneToOne` mode
+/// 4. apply shell escaping when configured for safe command execution
+/// 5. ensure the result sent on the channel is well-formed with appropriate title/footer
+/// 6. cache the result for future use (single entry only)
+/// 7. send the result to the main thread via the channel
 pub fn try_preview(
     command: &CommandSpec,
     offset_expr: &Option<Template>,
-    entry: &Entry,
+    entries: &[&Entry],
     results_handle: &UnboundedSender<Preview>,
     cache: &Option<Arc<Mutex<Cache>>>,
 ) -> Result<()> {
-    debug!("Preview command: {}", command);
+    if entries.is_empty() {
+        return Err(anyhow::anyhow!(
+            "Cannot generate preview with empty entries"
+        ));
+    }
 
-    // Check if the entry is already cached
-    if let Some(cache) = &cache {
-        if let Some(preview) = cache.lock().get(entry) {
-            debug!("Preview for entry '{}' found in cache", entry.raw);
-            results_handle.send(preview).with_context(
-                || "Failed to send cached preview result to main thread.",
-            )?;
-            return Ok(());
+    let is_single_entry = entries.len() == 1;
+    let entry = entries[0];
+
+    debug!("Preview template: {} (entries: {})", command, entries.len());
+
+    // Check cache for single entry only
+    if is_single_entry {
+        if let Some(cache) = &cache {
+            if let Some(preview) = cache.lock().get(entry) {
+                debug!("Preview for entry [{}] found in cache", entry.raw);
+                results_handle.send(preview).with_context(
+                    || "Failed to send cached preview result to main thread.",
+                )?;
+                return Ok(());
+            }
         }
     }
 
-    let formatted_command = command.get_nth(0).format(&entry.raw)?;
+    let template = command.get_nth(0);
+
+    // Convert entries to FxHashSet for process_entries
+    let entries_set: rustc_hash::FxHashSet<Entry> =
+        entries.iter().map(|&entry| entry.clone()).collect();
+
+    // Use the unified selector system to process entries
+    let (formatted_command, warning_message) =
+        process_entries(&entries_set, template)
+            .context("Failed to process entries for preview")?;
+
+    debug!("Executing formatted command: {}", formatted_command);
 
     let child =
         shell_command(&formatted_command, command.interactive, &command.env)
             .output()?;
+
+    // Create title based on entry count
+    let title = if is_single_entry {
+        entry.display().to_string()
+    } else {
+        format!("{} selected items", entries.len())
+    };
+
+    // Determine footer content (warnings for multi-select, empty for single entry)
+    let footer = warning_message.unwrap_or_else(String::new);
 
     let preview: Preview = {
         if child.status.success() {
@@ -301,11 +384,11 @@ pub fn try_preview(
             };
 
             Preview::new(
-                entry.display(),
+                &title,
                 text,
                 line_number,
                 total_lines,
-                String::new(),
+                footer.clone(),
             )
         } else {
             let mut text = child
@@ -327,22 +410,19 @@ pub fn try_preview(
 
             let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
-            Preview::new(
-                entry.display(),
-                text,
-                None,
-                total_lines,
-                String::new(),
-            )
+            Preview::new(&title, text, None, total_lines, footer)
         }
     };
 
     // Cache the preview if caching is enabled
     // Note: we're caching errors as well to avoid re-running potentially expensive commands
-    if let Some(cache) = &cache {
-        cache.lock().insert(entry, &preview);
-        debug!("Preview for entry '{}' cached", entry.raw);
+    if is_single_entry {
+        if let Some(cache) = &cache {
+            cache.lock().insert(entry, &preview);
+            debug!("Preview for entry '{}' cached", entry.raw);
+        }
     }
+
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")

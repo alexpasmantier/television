@@ -18,6 +18,7 @@ use television::{
     config::{Config, ConfigEnv},
     errors::os_error_exit,
     gh::update_local_channels,
+    selector::process_entries,
     television::Mode,
     utils::clipboard::CLIPBOARD,
     utils::{
@@ -105,8 +106,34 @@ async fn main() -> Result<()> {
         writeln!(bufwriter, "{}", key)?;
     }
     if let Some(entries) = output.selected_entries {
-        for entry in &entries {
-            writeln!(bufwriter, "{}", entry.output()?)?;
+        // Use the output template if available
+        if let Some(output_template) =
+            &app.television.merged_config.channel_source_output
+        {
+            // Use selector system for consistent output processing
+            match process_entries(&entries, output_template) {
+                Ok((formatted_output, warning)) => {
+                    if let Some(warning_msg) = warning {
+                        debug!("Selector warning: {}", warning_msg);
+                    }
+                    writeln!(bufwriter, "{}", formatted_output)?;
+                }
+                Err(e) => {
+                    debug!(
+                        "Failed to process entries with selector: {}, falling back to individual entry output",
+                        e
+                    );
+                    // Fallback to individual entry output
+                    for entry in &entries {
+                        writeln!(bufwriter, "{}", entry.output()?)?;
+                    }
+                }
+            }
+        } else {
+            // No output template, use individual entry output
+            for entry in &entries {
+                writeln!(bufwriter, "{}", entry.output()?)?;
+            }
         }
     }
     bufwriter.flush()?;
