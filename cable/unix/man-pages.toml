@@ -1,0 +1,20 @@
+[metadata]
+name = "man-pages"
+description = "Browse and preview system manual pages"
+requirements = ["apropos", "man", "col", "sed", "sort"]
+
+[source]
+# List all man pages using apropos
+command = "apropos . | sed 's/(.*//' | sort -u"
+
+[preview]
+# Show the man page for the selected entry
+command = "man '{}' | col -bx"
+
+[keybindings]
+enter = "actions:open"
+
+[actions.open]
+description = "Open the selected man page in the system pager"
+command = "man '{}'"
+mode = "execute"
