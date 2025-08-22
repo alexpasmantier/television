@@ -4,10 +4,12 @@ use crate::{
     config::{KeyBindings, ui},
     event::Key,
     screen::layout::Orientation,
+    selector::SelectorMode,
 };
 use anyhow::Result;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use serde_json;
 use serde_with::{OneOrMany, serde_as};
 use std::fmt::{self, Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -15,29 +17,33 @@ use string_pipeline::MultiTemplate;
 use which::which;
 
 #[derive(Debug, Clone)]
-pub enum Template {
+pub enum TemplateInner {
     StringPipeline(MultiTemplate),
     Raw(String),
 }
 
-impl Template {
+impl TemplateInner {
     pub fn raw(&self) -> &str {
         match self {
-            Template::StringPipeline(template) => template.template_string(),
-            Template::Raw(raw) => raw,
+            TemplateInner::StringPipeline(template) => {
+                template.template_string()
+            }
+            TemplateInner::Raw(raw) => raw,
         }
     }
 
     pub fn parse(template: &str) -> Result<Self, String> {
         match MultiTemplate::parse(template) {
-            Ok(multi_template) => Ok(Template::StringPipeline(multi_template)),
-            Err(_) => Ok(Template::Raw(template.to_string())),
+            Ok(multi_template) => {
+                Ok(TemplateInner::StringPipeline(multi_template))
+            }
+            Err(_) => Ok(TemplateInner::Raw(template.to_string())),
         }
     }
 
     pub fn format(&self, input: &str) -> Result<String> {
         match self {
-            Template::StringPipeline(template) => {
+            TemplateInner::StringPipeline(template) => {
                 template.format(input).map_err(|e| {
                     anyhow::anyhow!(
                         "Failed to format template '{}' with '{}': {}",
@@ -47,37 +53,317 @@ impl Template {
                     )
                 })
             }
-            Template::Raw(raw) => Ok(raw.replace("{}", input)),
+            TemplateInner::Raw(raw) => Ok(raw.replace("{}", input)),
+        }
+    }
+
+    /// Format template with multiple inputs, using the first template section.
+    ///
+    /// This method enables multi-input formatting where multiple values are passed
+    /// to a single template section and joined with the specified separator.
+    /// This is useful for commands that need to operate on multiple selected items.
+    ///
+    /// # Arguments
+    ///
+    /// * `inputs` - Slice of input strings to be formatted
+    /// * `separator` - Separator to join multiple inputs (typically " " for shell commands)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The formatted result
+    /// * `Err(anyhow::Error)` - Error if formatting fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use television::channels::prototypes::Template;
+    /// let template = Template::parse("diff {}").unwrap();
+    /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
+    /// assert_eq!(result, "diff file1.txt file2.txt");
+    ///
+    /// let template_with_pipeline = Template::parse("diff {upper}").unwrap();
+    /// let result = template_with_pipeline.format_with_inputs(&["file1.txt", "'file 2.txt'"], " ").unwrap();
+    /// assert_eq!(result, "diff FILE1.TXT 'FILE 2.TXT'");
+    /// ```
+    pub fn format_with_inputs(
+        &self,
+        inputs: &[&str],
+        separator: &str,
+    ) -> Result<String> {
+        tracing::debug!(
+            "Template format_with_inputs: '{}' with inputs: {:?}, separator: '{}'",
+            self.raw(),
+            inputs,
+            separator
+        );
+
+        match self {
+            TemplateInner::StringPipeline(template) => {
+                // For structured templates, use format_with_inputs
+                if template.template_section_count() > 0 {
+                    template.format_with_inputs(&[inputs], &[separator])
+                        .map_err(|e| {
+                            anyhow::anyhow!(
+                                "Failed to format structured template '{}' with {} inputs: {}",
+                                self.raw(),
+                                inputs.len(),
+                                e
+                            )
+                        })
+                } else {
+                    // No template sections, just return the literal text
+                    Ok(template.template_string().to_string())
+                }
+            }
+            TemplateInner::Raw(raw) => {
+                // For raw templates, replace {} with joined inputs
+                let joined_inputs = inputs.join(separator);
+                Ok(raw.replace("{}", &joined_inputs))
+            }
+        }
+    }
+
+    /// Get template sections for introspection (used in one-to-one argument distribution)
+    pub fn get_template_sections_count(&self) -> usize {
+        match self {
+            TemplateInner::StringPipeline(template) => {
+                template.template_section_count()
+            }
+            TemplateInner::Raw(raw) => raw.match_indices("{}").count(),
+        }
+    }
+}
+
+/// Template with embedded selector configuration
+#[derive(Clone, Debug, Serialize, PartialEq, Hash)]
+#[serde(default)]
+pub struct Template {
+    #[serde(flatten)]
+    #[allow(clippy::struct_field_names)]
+    template: TemplateInner,
+    pub mode: SelectorMode,
+    pub separator: String,
+    pub shell_escaping: bool,
+}
+
+impl Default for Template {
+    fn default() -> Self {
+        Self {
+            template: TemplateInner::Raw(String::new()),
+            mode: SelectorMode::default(),
+            separator: " ".to_string(),
+            shell_escaping: false,
+        }
+    }
+}
+
+impl From<TemplateInner> for Template {
+    fn from(template: TemplateInner) -> Self {
+        Self {
+            template,
+            mode: SelectorMode::default(),
+            separator: " ".to_string(),
+            shell_escaping: false,
+        }
+    }
+}
+
+impl From<&str> for Template {
+    fn from(template_str: &str) -> Self {
+        Self {
+            template: TemplateInner::parse(template_str)
+                .unwrap_or(TemplateInner::Raw(template_str.to_string())),
+            mode: SelectorMode::default(),
+            separator: " ".to_string(),
+            shell_escaping: false,
+        }
+    }
+}
+
+impl Template {
+    pub fn raw(&self) -> &str {
+        self.template.raw()
+    }
+
+    pub fn parse(template: &str) -> Result<Self, String> {
+        TemplateInner::parse(template).map(Self::from)
+    }
+
+    pub fn format(&self, input: &str) -> Result<String> {
+        self.template.format(input)
+    }
+
+    /// Format template with multiple inputs, using the first template section.
+    ///
+    /// This method enables multi-input formatting where multiple values are passed
+    /// to a single template section and joined with the specified separator.
+    /// This is useful for commands that need to operate on multiple selected items.
+    ///
+    /// # Arguments
+    ///
+    /// * `inputs` - Slice of input strings to be formatted
+    /// * `separator` - Separator to join multiple inputs (typically " " for shell commands)
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The formatted result
+    /// * `Err(anyhow::Error)` - Error if formatting fails
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use television::channels::prototypes::Template;
+    /// let template = Template::parse("diff {}").unwrap();
+    /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
+    /// assert_eq!(result, "diff file1.txt file2.txt");
+    ///
+    /// let template_with_pipeline = Template::parse("diff {upper}").unwrap();
+    /// let result = template_with_pipeline.format_with_inputs(&["file1.txt", "'file 2.txt'"], " ").unwrap();
+    /// assert_eq!(result, "diff FILE1.TXT 'FILE 2.TXT'");
+    /// ```
+    pub fn format_with_inputs(
+        &self,
+        inputs: &[&str],
+        separator: &str,
+    ) -> Result<String> {
+        self.template.format_with_inputs(inputs, separator)
+    }
+
+    /// Get template sections for introspection (used in one-to-one argument distribution)
+    pub fn get_template_sections_count(&self) -> usize {
+        self.template.get_template_sections_count()
+    }
+
+    /// Get the placeholder count for this template
+    pub fn template_section_count(&self) -> usize {
+        match &self.template {
+            TemplateInner::StringPipeline(multi_template) => {
+                multi_template.template_section_count()
+            }
+            TemplateInner::Raw(raw) => raw.matches("{}").count(),
         }
     }
 }
 
 impl Display for Template {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.template.raw())
+    }
+}
+
+// NOTE: here for backwards compatibility with old string templates
+impl<'de> Deserialize<'de> for Template {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{self, MapAccess, Visitor};
+        use serde_json::Value;
+
+        struct TemplateVisitor;
+
+        impl<'de> Visitor<'de> for TemplateVisitor {
+            type Value = Template;
+
+            fn expecting(
+                &self,
+                formatter: &mut std::fmt::Formatter,
+            ) -> std::fmt::Result {
+                formatter
+                    .write_str("a string or a struct with template fields")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: de::Error,
+            {
+                // Handle old string format: "command" -> Template with defaults
+                Ok(Template::from(value))
+            }
+
+            fn visit_map<M>(self, mut map: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                // Handle new struct format with selector fields
+                let mut template: Option<TemplateInner> = None;
+                let mut mode = SelectorMode::Single;
+                let mut separator = String::new();
+                let mut shell_escaping = false;
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "template" => {
+                            // Parse template field directly
+                            let template_str: String = map.next_value()?;
+                            template = Some(
+                                TemplateInner::parse(&template_str)
+                                    .map_err(de::Error::custom)?,
+                            );
+                        }
+                        "mode" => mode = map.next_value()?,
+                        "separator" => separator = map.next_value()?,
+                        "shell_escaping" => {
+                            shell_escaping = map.next_value()?;
+                        }
+                        _ => {
+                            // For flattened template fields, we need to handle them differently
+                            // This handles cases where template content is directly in the struct
+                            let value: Value = map.next_value()?;
+                            if template.is_none() {
+                                // Try to deserialize the entire remaining structure as a template
+                                let mut template_obj = serde_json::json!({});
+                                if let Value::Object(ref mut map_obj) =
+                                    template_obj
+                                {
+                                    map_obj.insert(key, value);
+                                }
+                                template = Some(
+                                    TemplateInner::deserialize(template_obj)
+                                        .map_err(de::Error::custom)?,
+                                );
+                            }
+                        }
+                    }
+                }
+
+                let template = template
+                    .ok_or_else(|| de::Error::missing_field("template"))?;
+
+                Ok(Template {
+                    template,
+                    mode,
+                    separator,
+                    shell_escaping,
+                })
+            }
+        }
+
+        deserializer.deserialize_any(TemplateVisitor)
+    }
+}
+
+impl Display for TemplateInner {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.raw())
     }
 }
 
-impl PartialEq for Template {
+impl PartialEq for TemplateInner {
     fn eq(&self, other: &Self) -> bool {
         self.raw() == other.raw()
-            && matches!(
-                (self, other),
-                (Template::StringPipeline(_), Template::StringPipeline(_))
-                    | (Template::Raw(_), Template::Raw(_))
-            )
     }
 }
 
 impl Eq for Template {}
 
-impl Hash for Template {
+impl Hash for TemplateInner {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.raw().hash(state);
     }
 }
 
-impl Serialize for Template {
+impl Serialize for TemplateInner {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
@@ -86,13 +372,13 @@ impl Serialize for Template {
     }
 }
 
-impl<'de> Deserialize<'de> for Template {
+impl<'de> Deserialize<'de> for TemplateInner {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
         let raw = String::deserialize(deserializer)?;
-        Template::parse(&raw).map_err(serde::de::Error::custom)
+        TemplateInner::parse(&raw).map_err(serde::de::Error::custom)
     }
 }
 
@@ -127,6 +413,12 @@ impl Display for CommandSpec {
 impl From<Template> for CommandSpec {
     fn from(template: Template) -> Self {
         Self::new(vec![template], false, FxHashMap::default())
+    }
+}
+
+impl From<TemplateInner> for CommandSpec {
+    fn from(template: TemplateInner) -> Self {
+        Self::new(vec![template.into()], false, FxHashMap::default())
     }
 }
 
@@ -424,6 +716,8 @@ pub struct UiSpec {
     #[serde(default)]
     pub theme: Option<String>,
     #[serde(default)]
+    pub results_max_selections: Option<u16>,
+    #[serde(default)]
     pub theme_overrides: ThemeOverrides,
     // Feature-specific configurations
     #[serde(default)]
@@ -448,6 +742,7 @@ impl From<&crate::config::UiConfig> for UiSpec {
             ui_scale: Some(config.ui_scale),
             orientation: Some(config.orientation),
             theme: Some(config.theme.clone()),
+            results_max_selections: Some(config.results_max_selections),
             theme_overrides: config.theme_overrides.clone(),
             input_bar: Some(config.input_bar.clone()),
             preview_panel: Some(config.preview_panel.clone()),
@@ -491,7 +786,7 @@ mod tests {
     fn test_template_serialization() {
         #[derive(Deserialize, Serialize, Debug, PartialEq)]
         struct TestStruct {
-            template: Template,
+            template: TemplateInner,
         }
         let raw_1 = r#"template = "Hello, {}""#;
         let raw_2 = r#"template = "Hello, World""#;
@@ -503,19 +798,19 @@ mod tests {
 
         assert_eq!(
             test_1.template,
-            Template::StringPipeline(
+            TemplateInner::StringPipeline(
                 MultiTemplate::parse("Hello, {}").unwrap()
             )
         );
         assert_eq!(
             test_2.template,
-            Template::StringPipeline(
+            TemplateInner::StringPipeline(
                 MultiTemplate::parse("Hello, World").unwrap()
             )
         );
         assert_eq!(
             test_3.template,
-            Template::Raw(
+            TemplateInner::Raw(
                 "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
                     .to_string()
             )

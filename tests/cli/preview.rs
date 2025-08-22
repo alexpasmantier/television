@@ -335,3 +335,123 @@ fn test_hide_preview_conflicts_with_no_preview() {
     // CLI should exit with error message
     tester.assert_raw_output_contains("cannot be used with");
 }
+
+/// Tests that preview command receives single entry when no items are selected.
+///
+/// This validates baseline behavior before testing multi-selection.
+#[test]
+fn test_single_entry_preview_with_structured_template() {
+    let mut tester = PtyTester::new();
+
+    // Create a channel that clearly shows what inputs it receives
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo -e 'file1.txt\\nfile2.txt\\nfile3.txt'",
+        "--preview-command",
+        "echo 'SINGLE: {}'", // Will show "SINGLE: file1.txt" for first entry
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Wait for initial UI and verify single-entry preview
+    tester.assert_tui_frame_contains("Custom Channel");
+    tester.assert_tui_frame_contains("SINGLE: file1.txt");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests multi-input structured templates with actual selection.
+///
+/// This test validates that when multiple entries are selected, the preview
+/// command receives all selected entries combined via `format_with_inputs`.
+#[test]
+fn test_multi_input_structured_templates_with_actual_selection() {
+    let mut tester = PtyTester::new();
+
+    // Create a channel that will clearly show when multiple inputs are received
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo -e 'apple.txt\\nbanana.txt\\ncherry.txt'",
+        "--preview-command",
+        "echo 'MULTI: {}'", // Will show "MULTI: apple.txt banana.txt" when both selected
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Wait for initial UI
+    tester.assert_tui_frame_contains("Custom Channel");
+
+    // Initially should show single entry preview
+    tester.assert_tui_frame_contains("MULTI: apple.txt");
+
+    // Select current entry (apple.txt)
+    tester.send(&ctrl('i'));
+    // Select second entry (banana.txt)
+    tester.send(&ctrl('i'));
+
+    // Now preview should show multiple selected entries
+    tester.assert_tui_frame_contains("MULTI: apple.txt banana.txt");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests structured template operations with single entry.
+///
+/// This validates that `string_pipeline` operations like {upper} and {lower}
+/// work correctly within structured templates.
+#[test]
+fn test_structured_template_string_operations_single_entry() {
+    let mut tester = PtyTester::new();
+
+    // Use a structured template with string operations
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo -e 'hello\\nworld\\ntest'",
+        "--preview-command",
+        "echo 'UPPER: {upper} | LOWER: {lower}'",
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify structured operations work
+    tester.assert_tui_frame_contains("Custom Channel");
+    tester.assert_tui_frame_contains("UPPER: HELLO | LOWER: hello");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests structured template operations with multiple selected entries.
+///
+/// This validates that string operations work correctly when multiple entries
+/// are selected and passed to `format_with_inputs`.
+#[test]
+fn test_structured_template_string_operations_multi_entry() {
+    let mut tester = PtyTester::new();
+
+    // Use structured template with string operations for multiple entries
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo -e 'hello\\nworld\\ntest'",
+        "--preview-command",
+        "echo 'PROCESSED: {upper}'", // Will uppercase all selected entries
+    ]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Initially shows single entry operation
+    tester.assert_tui_frame_contains("Custom Channel");
+    tester.assert_tui_frame_contains("PROCESSED: HELLO");
+
+    // Select two entries
+    tester.send(&ctrl('i'));
+    tester.send(&ctrl('i'));
+
+    // Now should show multiple entries processed through the template
+    tester.assert_tui_frame_contains("PROCESSED: HELLO WORLD");
+
+    // Send Ctrl+C to exit
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}

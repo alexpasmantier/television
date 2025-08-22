@@ -75,6 +75,7 @@ pub struct Television {
     pub preview_state: PreviewState,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
+    pub last_selection_hash: u64,
     pub spinner: Spinner,
     pub spinner_state: SpinnerState,
     pub app_metadata: AppMetadata,
@@ -185,6 +186,7 @@ impl Television {
             rc_picker: Picker::default(),
             preview_state,
             preview_handles,
+            last_selection_hash: 0,
             spinner,
             spinner_state: SpinnerState::from(&spinner),
             app_metadata,
@@ -513,11 +515,49 @@ impl Television {
             return Ok(());
         }
         if let Some((sender, receiver)) = &mut self.preview_handles {
-            // send a preview request if the selected entry has changed
-            if *selected_entry != self.currently_selected {
-                sender.send(PreviewRequest::Preview(Ticket::new(
-                    selected_entry.as_ref().unwrap().clone(),
-                )))?;
+            let has_selected_entries =
+                !self.channel.selected_entries().is_empty();
+
+            if has_selected_entries {
+                // Multi-selection mode: Preview uses all selected entries
+                let selected_entries = self.channel.selected_entries();
+                let selected_vec: Vec<&Entry> =
+                    selected_entries.iter().collect();
+
+                // Only update preview if the selection set has changed
+                let current_hash = {
+                    use std::collections::hash_map::DefaultHasher;
+                    use std::hash::{Hash, Hasher};
+                    let mut hasher = DefaultHasher::new();
+                    for entry in selected_entries {
+                        entry.hash(&mut hasher);
+                    }
+                    hasher.finish()
+                };
+
+                if current_hash != self.last_selection_hash {
+                    self.last_selection_hash = current_hash;
+
+                    // Convert references to owned entries for the ticket
+                    let owned_entries: Vec<Entry> = selected_vec
+                        .iter()
+                        .map(|&entry| entry.clone())
+                        .collect();
+
+                    // Send multi-entry preview request
+                    sender.send(PreviewRequest::Preview(Ticket::new(
+                        owned_entries,
+                    )))?;
+                }
+            } else {
+                // Single-selection mode: Preview follows focused entry
+                if *selected_entry != self.currently_selected {
+                    sender.send(PreviewRequest::Preview(
+                        Ticket::from_single(
+                            selected_entry.as_ref().unwrap().clone(),
+                        ),
+                    ))?;
+                }
             }
             // try to receive a preview update
             let entry = selected_entry.as_ref().unwrap();
@@ -640,12 +680,34 @@ impl Television {
 
     pub fn handle_toggle_selection(&mut self, action: &Action) {
         if matches!(self.mode, Mode::Channel) {
+            // Check if multi-select is enabled
+            let merged_config = self.layered_config.merge();
+            let max_selections = merged_config.results_max_selections;
+            if max_selections == 0 {
+                return;
+            }
+
             if let Some(entry) = &self.currently_selected {
-                self.channel.toggle_selection(entry);
-                if matches!(action, Action::ToggleSelectionDown) {
-                    self.move_cursor(Movement::Next, 1);
-                } else {
-                    self.move_cursor(Movement::Prev, 1);
+                let current_selection_count =
+                    self.channel.selected_entries().len();
+
+                // Check if we can add more selections
+                let can_select_more = max_selections == u16::MAX
+                    || current_selection_count < max_selections as usize;
+                let entry_is_selected =
+                    self.channel.selected_entries().contains(entry);
+
+                // Only allow toggling if:
+                // - We're deselecting an already selected item, OR
+                // - We can select more items
+                if entry_is_selected || can_select_more {
+                    self.channel.toggle_selection(entry);
+
+                    if matches!(action, Action::ToggleSelectionDown) {
+                        self.move_cursor(Movement::Next, 1);
+                    } else {
+                        self.move_cursor(Movement::Prev, 1);
+                    }
                 }
             }
         }
