@@ -31,7 +31,6 @@ use crate::{
 };
 use anyhow::Result;
 use ratatui::layout::Rect;
-use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 use tokio::sync::mpsc::{
@@ -224,7 +223,7 @@ impl Television {
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
             self.current_channel(),
-            self.channel.selected_entries().clone(),
+            self.channel.selected_entries().to_vec(),
             self.channel.total_count(),
             self.channel.running(),
             self.channel.current_command().to_string(),
@@ -376,14 +375,12 @@ impl Television {
     }
 
     #[must_use]
-    pub fn get_selected_entries(&mut self) -> Option<FxHashSet<Entry>> {
+    pub fn get_selected_entries(&mut self) -> Option<Vec<Entry>> {
         // if nothing is selected, return the currently hovered entry
         if self.channel.selected_entries().is_empty() {
-            return self
-                .get_selected_entry()
-                .map(|e| FxHashSet::from_iter([e]));
+            return self.get_selected_entry().map(|e| vec![e]);
         }
-        Some(self.channel.selected_entries().clone())
+        Some(self.channel.selected_entries().to_vec())
     }
 
     /// Unified cursor movement for both Channel and Remote-control pickers.

@@ -7,7 +7,6 @@ use crate::{
     utils::shell::Shell,
 };
 use anyhow::Result;
-use rustc_hash::FxHashSet;
 use std::{
     collections::HashMap,
     os::unix::process::CommandExt,
@@ -60,14 +59,13 @@ pub fn shell_command<S>(
 
 /// Format a command string from entries using the unified selector system
 ///
-/// Takes a set of entries and processes them through the provided template
+/// Takes a slice of entries and processes them through the provided template
 /// using the unified selector configuration to handle argument distribution,
 /// escaping, and formatting.
 ///
 /// # Arguments
-/// * `entries` - A reference to a set of Entry items to process
+/// * `entries` - A reference to a slice of Entry items to process
 /// * `template` - The template to process the entries through
-/// * `selector_config` - The selector configuration for processing behavior
 ///
 /// # Returns
 /// * `Result<String>` - The final formatted command ready for execution
@@ -78,10 +76,10 @@ pub fn shell_command<S>(
 ///     channels::{entry::Entry, prototypes::Template},
 ///     utils::command::format_command,
 /// };
-/// # use rustc_hash::FxHashSet;
-/// let mut entries = FxHashSet::default();
-/// entries.insert(Entry::new("file1.txt".to_string()));
-/// entries.insert(Entry::new("file 2.txt".to_string()));
+/// let entries = vec![
+///     Entry::new("file1.txt".to_string()),
+///     Entry::new("file 2.txt".to_string()),
+/// ];
 /// let template = Template::parse("nvim {}").unwrap();
 /// let result = format_command(&entries, &template).unwrap();
 /// // Should produce something like: nvim 'file1.txt' 'file 2.txt'
@@ -90,7 +88,7 @@ pub fn shell_command<S>(
 /// assert!(result.contains("file 2.txt"));
 /// ```
 pub fn format_command(
-    entries: &FxHashSet<Entry>,
+    entries: &[Entry],
     template: &Template,
 ) -> Result<String> {
     debug!(
@@ -99,7 +97,8 @@ pub fn format_command(
     );
 
     // Use unified selector system to process entries
-    let (formatted_command, warning) = process_entries(entries, template)?;
+    let entry_refs: Vec<&Entry> = entries.iter().collect();
+    let (formatted_command, warning) = process_entries(&entry_refs, template)?;
 
     if let Some(warning_msg) = warning {
         debug!("Selector warning: {}", warning_msg);
@@ -111,13 +110,12 @@ pub fn format_command(
 
 /// Execute an external action with the appropriate execution mode and output handling
 ///
-/// Takes an `ActionSpec` and a set of entries, creates a command using the action's template,
+/// Takes an `ActionSpec` and a slice of entries, creates a command using the action's template,
 /// and executes the resulting command with the specified execution mode.
 ///
 /// # Arguments
 /// * `action_spec` - The `ActionSpec` containing the command template, execution mode, and output mode
-/// * `entries` - A reference to a set of Entry items to process
-/// * `actions_selector_config` - The selector configuration for processing actions
+/// * `entries` - A reference to a slice of Entry items to process
 ///
 /// # Returns
 /// * `Result<ExitStatus>` - The exit status of the executed command
@@ -127,7 +125,7 @@ pub fn format_command(
 /// - `ExecutionMode::Fork` - spawns the command as a child process
 pub fn execute_action(
     action_spec: &ActionSpec,
-    entries: &FxHashSet<Entry>,
+    entries: &[Entry],
 ) -> Result<ExitStatus> {
     debug!("Executing external action with {} entries", entries.len());
 
@@ -166,8 +164,7 @@ mod tests {
 
     #[test]
     fn test_simple_braces_syntactic_sugar() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file1.txt".to_string()));
+        let entries = vec![Entry::new("file1.txt".to_string())];
 
         // Simple braces should use syntactic sugar with quotes
         let template = Template::parse("nvim {}").unwrap();
@@ -177,9 +174,10 @@ mod tests {
 
     #[test]
     fn test_simple_braces_multiple_entries() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file1.txt".to_string()));
-        entries.insert(Entry::new("file 2.txt".to_string()));
+        let entries = vec![
+            Entry::new("file1.txt".to_string()),
+            Entry::new("file 2.txt".to_string()),
+        ];
 
         // Simple braces with multiple entries should quote when needed and join with spaces
         let mut template = Template::parse("nvim {}").unwrap();
@@ -194,8 +192,7 @@ mod tests {
 
     #[test]
     fn test_simple_braces_with_quotes_in_filename() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file's name.txt".to_string()));
+        let entries = vec![Entry::new("file's name.txt".to_string())];
 
         // Simple braces should escape single quotes in filenames
         let mut template = Template::parse("nvim {}").unwrap();
@@ -208,9 +205,10 @@ mod tests {
 
     #[test]
     fn test_complex_braces_use_template_system() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file1.txt".to_string()));
-        entries.insert(Entry::new("file2.txt".to_string()));
+        let entries = vec![
+            Entry::new("file1.txt".to_string()),
+            Entry::new("file2.txt".to_string()),
+        ];
 
         // Complex braces should use template system
         let mut template = Template::parse(
@@ -228,9 +226,10 @@ mod tests {
 
     #[test]
     fn test_complex_braces_use_template_system_with_quotes_in_filename() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file1's.txt".to_string()));
-        entries.insert(Entry::new("file2.txt".to_string()));
+        let entries = vec![
+            Entry::new("file1's.txt".to_string()),
+            Entry::new("file2.txt".to_string()),
+        ];
 
         // Complex braces should use template system
         let mut template = Template::parse(

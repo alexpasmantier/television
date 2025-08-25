@@ -330,13 +330,9 @@ pub fn try_preview(
 
     let template = command.get_nth(0);
 
-    // Convert entries to FxHashSet for process_entries
-    let entries_set: rustc_hash::FxHashSet<Entry> =
-        entries.iter().map(|&entry| entry.clone()).collect();
-
     // Use the unified selector system to process entries
     let (formatted_command, warning_message) =
-        process_entries(&entries_set, template)
+        process_entries(entries, template)
             .context("Failed to process entries for preview")?;
 
     debug!("Executing formatted command: {}", formatted_command);

@@ -10,7 +10,7 @@ use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::App,
     cable::{Cable, cable_empty_exit, load_cable},
-    channels::prototypes::ChannelPrototype,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     cli::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
@@ -111,7 +111,8 @@ async fn main() -> Result<()> {
             &app.television.merged_config.channel_source_output
         {
             // Use selector system for consistent output processing
-            match process_entries(&entries, output_template) {
+            let entry_refs: Vec<&Entry> = entries.iter().collect();
+            match process_entries(&entry_refs, output_template) {
                 Ok((formatted_output, warning)) => {
                     if let Some(warning_msg) = warning {
                         debug!("Selector warning: {}", warning_msg);

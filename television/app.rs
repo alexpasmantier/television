@@ -18,7 +18,6 @@ use crate::{
     utils::command::execute_action,
 };
 use anyhow::Result;
-use rustc_hash::FxHashSet;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
 
@@ -61,19 +60,19 @@ pub struct App {
 /// The outcome of an action.
 #[derive(Debug, PartialEq)]
 pub enum ActionOutcome {
-    Entries(FxHashSet<Entry>),
-    EntriesWithExpect(FxHashSet<Entry>, Key),
+    Entries(Vec<Entry>),
+    EntriesWithExpect(Vec<Entry>, Key),
     Input(String),
     None,
-    ExternalAction(ActionSpec, FxHashSet<Entry>),
+    ExternalAction(ActionSpec, Vec<Entry>),
 }
 
 /// The result of the application.
 #[derive(Debug)]
 pub struct AppOutput {
-    pub selected_entries: Option<FxHashSet<Entry>>,
+    pub selected_entries: Option<Vec<Entry>>,
     pub expect_key: Option<Key>,
-    pub external_action: Option<(ActionSpec, FxHashSet<Entry>)>,
+    pub external_action: Option<(ActionSpec, Vec<Entry>)>,
 }
 
 impl AppOutput {
@@ -90,9 +89,7 @@ impl AppOutput {
                 external_action: None,
             },
             ActionOutcome::Input(input) => Self {
-                selected_entries: Some(FxHashSet::from_iter([Entry::new(
-                    input,
-                )])),
+                selected_entries: Some(vec![Entry::new(input)]),
                 expect_key: None,
                 external_action: None,
             },
@@ -637,7 +634,7 @@ impl App {
     fn run_external_command_fork(
         &self,
         action_spec: &ActionSpec,
-        entries: &FxHashSet<Entry>,
+        entries: &[Entry],
     ) -> Result<()> {
         // suspend the event loop
         self.event_control_tx
@@ -667,7 +664,7 @@ impl App {
     fn run_external_command_execute(
         &mut self,
         action_spec: &ActionSpec,
-        entries: &FxHashSet<Entry>,
+        entries: &[Entry],
     ) -> Result<()> {
         // cleanup
         self.render_tx.send(RenderingTask::Quit)?;
@@ -698,9 +695,7 @@ impl App {
                 let _ = self.render_tx.send(RenderingTask::Quit);
             }
 
-            return Some(ActionOutcome::Entries(FxHashSet::from_iter([
-                unique_entry.clone(),
-            ])));
+            return Some(ActionOutcome::Entries(vec![unique_entry.clone()]));
         }
         None
     }
@@ -718,7 +713,7 @@ impl App {
                 let _ = self.render_tx.send(RenderingTask::Quit);
             }
 
-            ActionOutcome::Entries(FxHashSet::from_iter([first_entry.clone()]))
+            ActionOutcome::Entries(vec![first_entry.clone()])
         } else {
             debug!("No entries available, exiting with None");
             self.should_quit = true;

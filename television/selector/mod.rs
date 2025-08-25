@@ -1,6 +1,5 @@
 use crate::channels::{entry::Entry, prototypes::Template};
 use anyhow::Result;
-use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
 use shlex::try_quote;
 use std::{borrow::Cow, cmp::Ordering};
@@ -72,25 +71,24 @@ fn generate_argument_mapping_warning(
 /// * `Ok((formatted_string, optional_warning))` - The formatted result and any warnings
 /// * `Err(anyhow::Error)` - If processing fails
 pub fn process_entries(
-    entries: &FxHashSet<Entry>,
+    entries: &[&Entry],
     template: &Template,
 ) -> Result<(String, Option<String>)> {
     if entries.is_empty() {
         return Err(anyhow::anyhow!("Cannot process empty entries"));
     }
 
-    let entries_vec: Vec<&Entry> = entries.iter().collect();
-    let is_single_entry = entries_vec.len() == 1;
+    let is_single_entry = entries.len() == 1;
 
     debug!(
         "Processing {} entries with selector mode: {:?}",
-        entries_vec.len(),
+        entries.len(),
         template.mode
     );
 
     // For single entry, use simple processing
     if is_single_entry {
-        let entry = entries_vec[0];
+        let entry = entries[0];
         let entry_str = if template.shell_escaping {
             try_quote(&entry.raw)?.into_owned()
         } else {
@@ -101,9 +99,9 @@ pub fn process_entries(
     }
 
     // Multiple entries processing
-    let entries_processed: Vec<String> = entries_vec
+    let entries_processed: Vec<String> = entries
         .iter()
-        .map(|entry| {
+        .map(|&entry| {
             if template.shell_escaping {
                 try_quote(&entry.raw)
                     .map(Cow::into_owned)
@@ -188,28 +186,32 @@ mod tests {
 
     #[test]
     fn test_process_single_entry() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("test.txt".to_string()));
+        let entries = [Entry::new("test.txt".to_string())];
 
         let template = Template::parse("cat {}").unwrap();
 
-        let (result, warning) = process_entries(&entries, &template).unwrap();
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let (result, warning) =
+            process_entries(&entry_refs, &template).unwrap();
         assert_eq!(result, "cat test.txt");
         assert!(warning.is_none());
     }
 
     #[test]
     fn test_process_multiple_entries_concatenate() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file1.txt".to_string()));
-        entries.insert(Entry::new("file 2.txt".to_string()));
+        let entries = vec![
+            Entry::new("file1.txt".to_string()),
+            Entry::new("file 2.txt".to_string()),
+        ];
 
         let mut template = Template::parse("diff {}").unwrap();
         template.mode = SelectorMode::Concatenate;
         template.separator = " ".to_string();
         template.shell_escaping = true;
 
-        let (result, warning) = process_entries(&entries, &template).unwrap();
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let (result, warning) =
+            process_entries(&entry_refs, &template).unwrap();
         // Result should contain both files
         assert!(result.contains("file1.txt"));
         assert!(result.contains("'file 2.txt'")); // quoted due to space
@@ -218,13 +220,14 @@ mod tests {
 
     #[test]
     fn test_shell_escaping_disabled() {
-        let mut entries = FxHashSet::default();
-        entries.insert(Entry::new("file with spaces.txt".to_string()));
+        let entries = [Entry::new("file with spaces.txt".to_string())];
 
         let mut template = Template::parse("cat {}").unwrap();
         template.shell_escaping = false;
 
-        let (result, warning) = process_entries(&entries, &template).unwrap();
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let (result, warning) =
+            process_entries(&entry_refs, &template).unwrap();
         assert!(result.contains("file with spaces.txt"));
         assert!(!result.contains("'file with spaces.txt'"));
         assert!(warning.is_none());

@@ -11,14 +11,13 @@ use ratatui::{
     text::Line,
     widgets::{Block, Borders, ListState, Padding as RatatuiPadding},
 };
-use rustc_hash::FxHashSet;
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_results_list(
     f: &mut Frame,
     rect: Rect,
     entries: &[Entry],
-    selected_entries: &FxHashSet<Entry>,
+    selected_entries: &[Entry],
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
     colorscheme: &Colorscheme,
