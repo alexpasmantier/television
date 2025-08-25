@@ -416,11 +416,13 @@ impl LayeredConfig {
         for actions in keybindings.inner.values() {
             for action in actions.as_slice() {
                 if let Action::ExternalAction(action_name) = action {
-                    assert!(
-                        channel_actions.contains_key(action_name),
-                        "Action '{}' referenced in keybinding not found in actions section",
-                        action_name
-                    );
+                    if !channel_actions.contains_key(action_name) {
+                        eprintln!(
+                            "Action '{}' referenced in keybinding not found in actions section",
+                            action_name
+                        );
+                        std::process::exit(1);
+                    }
                 }
             }
         }
