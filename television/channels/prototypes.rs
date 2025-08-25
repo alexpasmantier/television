@@ -40,98 +40,6 @@ impl TemplateInner {
             Err(_) => Ok(TemplateInner::Raw(template.to_string())),
         }
     }
-
-    pub fn format(&self, input: &str) -> Result<String> {
-        match self {
-            TemplateInner::StringPipeline(template) => {
-                template.format(input).map_err(|e| {
-                    anyhow::anyhow!(
-                        "Failed to format template '{}' with '{}': {}",
-                        self.raw(),
-                        input,
-                        e
-                    )
-                })
-            }
-            TemplateInner::Raw(raw) => Ok(raw.replace("{}", input)),
-        }
-    }
-
-    /// Format template with multiple inputs, using the first template section.
-    ///
-    /// This method enables multi-input formatting where multiple values are passed
-    /// to a single template section and joined with the specified separator.
-    /// This is useful for commands that need to operate on multiple selected items.
-    ///
-    /// # Arguments
-    ///
-    /// * `inputs` - Slice of input strings to be formatted
-    /// * `separator` - Separator to join multiple inputs (typically " " for shell commands)
-    ///
-    /// # Returns
-    ///
-    /// * `Ok(String)` - The formatted result
-    /// * `Err(anyhow::Error)` - Error if formatting fails
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use television::channels::prototypes::Template;
-    /// let template = Template::parse("diff {}").unwrap();
-    /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
-    /// assert_eq!(result, "diff file1.txt file2.txt");
-    ///
-    /// let template_with_pipeline = Template::parse("diff {upper}").unwrap();
-    /// let result = template_with_pipeline.format_with_inputs(&["file1.txt", "'file 2.txt'"], " ").unwrap();
-    /// assert_eq!(result, "diff FILE1.TXT 'FILE 2.TXT'");
-    /// ```
-    pub fn format_with_inputs(
-        &self,
-        inputs: &[&str],
-        separator: &str,
-    ) -> Result<String> {
-        tracing::debug!(
-            "Template format_with_inputs: '{}' with inputs: {:?}, separator: '{}'",
-            self.raw(),
-            inputs,
-            separator
-        );
-
-        match self {
-            TemplateInner::StringPipeline(template) => {
-                // For structured templates, use format_with_inputs
-                if template.template_section_count() > 0 {
-                    template.format_with_inputs(&[inputs], &[separator])
-                        .map_err(|e| {
-                            anyhow::anyhow!(
-                                "Failed to format structured template '{}' with {} inputs: {}",
-                                self.raw(),
-                                inputs.len(),
-                                e
-                            )
-                        })
-                } else {
-                    // No template sections, just return the literal text
-                    Ok(template.template_string().to_string())
-                }
-            }
-            TemplateInner::Raw(raw) => {
-                // For raw templates, replace {} with joined inputs
-                let joined_inputs = inputs.join(separator);
-                Ok(raw.replace("{}", &joined_inputs))
-            }
-        }
-    }
-
-    /// Get template sections for introspection (used in one-to-one argument distribution)
-    pub fn get_template_sections_count(&self) -> usize {
-        match self {
-            TemplateInner::StringPipeline(template) => {
-                template.template_section_count()
-            }
-            TemplateInner::Raw(raw) => raw.match_indices("{}").count(),
-        }
-    }
 }
 
 /// Template with embedded selector configuration
@@ -190,19 +98,36 @@ impl Template {
     }
 
     pub fn format(&self, input: &str) -> Result<String> {
-        self.template.format(input)
+        match &self.template {
+            TemplateInner::StringPipeline(template) => {
+                template.format(input).map_err(|e| {
+                    anyhow::anyhow!(
+                        "Failed to format template '{}' with '{}': {}",
+                        self.raw(),
+                        input,
+                        e
+                    )
+                })
+            }
+            TemplateInner::Raw(raw) => Ok(raw.replace("{}", input)),
+        }
     }
 
-    /// Format template with multiple inputs, using the first template section.
+    /// Format template with multiple inputs using selector configuration
     ///
-    /// This method enables multi-input formatting where multiple values are passed
-    /// to a single template section and joined with the specified separator.
-    /// This is useful for commands that need to operate on multiple selected items.
+    /// This method handles input distribution to template placeholders based on the
+    /// configured selector mode. Different modes provide different behaviors for
+    /// mapping multiple selected items to template placeholders.
+    ///
+    /// # Selector Modes
+    /// - `one_to_one`: Maps each input to its own template section (1:1 mapping)
+    /// - `single`: Uses only the first input, repeated for all template sections
+    /// - `concatenate`: Uses all inputs (joined with separator) for each template section
     ///
     /// # Arguments
     ///
-    /// * `inputs` - Slice of input strings to be formatted
-    /// * `separator` - Separator to join multiple inputs (typically " " for shell commands)
+    /// * `inputs` - Slice of input strings to format into the template
+    /// * `separator` - String used to join inputs when concatenating
     ///
     /// # Returns
     ///
@@ -213,25 +138,150 @@ impl Template {
     ///
     /// ```
     /// use television::channels::prototypes::Template;
-    /// let template = Template::parse("diff {}").unwrap();
+    /// use television::selector::SelectorMode;
+    ///
+    /// // OneToOne mode: each input maps to one template section
+    /// let mut template = Template::parse("diff {} {}").unwrap();
+    /// template.mode = SelectorMode::OneToOne;
     /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
     /// assert_eq!(result, "diff file1.txt file2.txt");
     ///
-    /// let template_with_pipeline = Template::parse("diff {upper}").unwrap();
-    /// let result = template_with_pipeline.format_with_inputs(&["file1.txt", "'file 2.txt'"], " ").unwrap();
-    /// assert_eq!(result, "diff FILE1.TXT 'FILE 2.TXT'");
+    /// // Single mode: only first input used, repeated for all sections
+    /// template.mode = SelectorMode::Single;
+    /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
+    /// assert_eq!(result, "diff file1.txt file1.txt");
+    ///
+    /// // Concatenate mode: all inputs joined with separator for each section
+    /// template.mode = SelectorMode::Concatenate;
+    /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
+    /// assert_eq!(result, "diff file1.txt file2.txt file1.txt file2.txt");
+    ///
+    /// // Works with string pipelines too
+    /// let mut pipeline_template = Template::parse("echo {upper}").unwrap();
+    /// pipeline_template.mode = SelectorMode::Concatenate;
+    /// let result = pipeline_template.format_with_inputs(&["hello", "world"], " ").unwrap();
+    /// assert_eq!(result, "echo HELLO WORLD");
     /// ```
     pub fn format_with_inputs(
         &self,
         inputs: &[&str],
         separator: &str,
     ) -> Result<String> {
-        self.template.format_with_inputs(inputs, separator)
+        tracing::debug!(
+            "Template format_with_inputs: '{}' with inputs: {:?}, separator: '{}', mode: {:?}",
+            self.raw(),
+            inputs,
+            separator,
+            self.mode
+        );
+
+        match &self.template {
+            TemplateInner::StringPipeline(template) => {
+                // For structured templates, use format_with_inputs
+                let section_count = template.template_section_count();
+                if section_count > 0 {
+                    // Distribute inputs to template sections based on selector mode:
+                    //
+                    // OneToOne: Map each input to its own template section (1:1)
+                    //   Template: "diff {} {}" + inputs: ["file1", "file2"] → "diff file1 file2"
+                    //
+                    // Single: Use only first input, repeated for all template sections
+                    //   Template: "diff {} {}" + inputs: ["file1", "file2"] → "diff file1 file1"
+                    //
+                    // Concatenate: Use all inputs (joined with separator) for each template section
+                    //   Template: "diff {} {}" + inputs: ["file1", "file2"] → "diff file1 file2 file1 file2"
+                    //
+                    match self.mode {
+                        SelectorMode::OneToOne => {
+                            tracing::debug!(
+                                "Using one-to-one mapping: {} inputs for {} template sections",
+                                inputs.len(),
+                                section_count
+                            );
+                            // Create individual slices: each input goes to one template section
+                            // [input1] → section1, [input2] → section2, etc.
+                            let input_arrays: Vec<&[&str]> = inputs
+                                .iter()
+                                .map(std::slice::from_ref)
+                                .collect();
+                            let separators: Vec<&str> =
+                                vec![separator; section_count];
+                            template.format_with_inputs(&input_arrays, &separators)
+                                .map_err(|e| {
+                                    anyhow::anyhow!(
+                                        "Failed to format structured template '{}' with one-to-one mapping ({} inputs): {}",
+                                        self.raw(),
+                                        inputs.len(),
+                                        e
+                                    )
+                                })
+                        }
+                        SelectorMode::Single => {
+                            tracing::debug!(
+                                "Using single mapping: using first of {} inputs for {} template sections",
+                                inputs.len(),
+                                section_count
+                            );
+                            // Use only first input, replicated for all template sections
+                            // [first_input] → section1, [first_input] → section2, etc.
+                            let first_input_slice =
+                                std::slice::from_ref(&inputs[0]);
+                            let input_arrays: Vec<&[&str]> =
+                                vec![first_input_slice; section_count];
+                            let separators: Vec<&str> =
+                                vec![separator; section_count];
+                            template.format_with_inputs(&input_arrays, &separators)
+                                .map_err(|e| {
+                                    anyhow::anyhow!(
+                                        "Failed to format structured template '{}' with single input: {}",
+                                        self.raw(),
+                                        e
+                                    )
+                                })
+                        }
+                        SelectorMode::Concatenate => {
+                            tracing::debug!(
+                                "Using concatenate mapping: {} inputs for {} template sections",
+                                inputs.len(),
+                                section_count
+                            );
+                            // Use all inputs for each template section (will be concatenated with separator)
+                            // [all_inputs] → section1, [all_inputs] → section2, etc.
+                            let input_arrays: Vec<&[&str]> =
+                                vec![inputs; section_count];
+                            let separators: Vec<&str> =
+                                vec![separator; section_count];
+                            template.format_with_inputs(&input_arrays, &separators)
+                                .map_err(|e| {
+                                    anyhow::anyhow!(
+                                        "Failed to format structured template '{}' with {} inputs: {}",
+                                        self.raw(),
+                                        inputs.len(),
+                                        e
+                                    )
+                                })
+                        }
+                    }
+                } else {
+                    // No template sections, just return the literal text
+                    Ok(template.template_string().to_string())
+                }
+            }
+            TemplateInner::Raw(_) => {
+                // For raw templates, just defer to format with first element
+                self.format(inputs.first().unwrap_or(&""))
+            }
+        }
     }
 
     /// Get template sections for introspection (used in one-to-one argument distribution)
     pub fn get_template_sections_count(&self) -> usize {
-        self.template.get_template_sections_count()
+        match &self.template {
+            TemplateInner::StringPipeline(template) => {
+                template.template_section_count()
+            }
+            TemplateInner::Raw(raw) => raw.match_indices("{}").count(),
+        }
     }
 
     /// Get the placeholder count for this template
@@ -287,8 +337,8 @@ impl<'de> Deserialize<'de> for Template {
             {
                 // Handle new struct format with selector fields
                 let mut template: Option<TemplateInner> = None;
-                let mut mode = SelectorMode::Single;
-                let mut separator = String::new();
+                let mut mode = SelectorMode::default();
+                let mut separator = " ".to_string();
                 let mut shell_escaping = false;
 
                 while let Some(key) = map.next_key::<String>()? {

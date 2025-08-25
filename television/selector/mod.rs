@@ -1,5 +1,5 @@
 use crate::channels::{entry::Entry, prototypes::Template};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use shlex::try_quote;
 use std::{borrow::Cow, cmp::Ordering};
@@ -78,7 +78,7 @@ pub fn process_entries(
         return Err(anyhow::anyhow!("Cannot process empty entries"));
     }
 
-    let is_single_entry = entries.len() == 1;
+    let _is_single_entry = entries.len() == 1;
 
     debug!(
         "Processing {} entries with selector mode: {:?}",
@@ -86,19 +86,7 @@ pub fn process_entries(
         template.mode
     );
 
-    // For single entry, use simple processing
-    if is_single_entry {
-        let entry = entries[0];
-        let entry_str = if template.shell_escaping {
-            try_quote(&entry.raw)?.into_owned()
-        } else {
-            entry.raw.clone()
-        };
-        let formatted = template.format(&entry_str)?;
-        return Ok((formatted, None));
-    }
-
-    // Multiple entries processing
+    // Process entries with shell escaping if enabled
     let entries_processed: Vec<String> = entries
         .iter()
         .map(|&entry| {
@@ -112,7 +100,7 @@ pub fn process_entries(
         })
         .collect();
 
-    // Analyze template and generate warning message
+    // Generate warning for template mismatches (for debugging)
     let placeholder_count = get_template_placeholder_count(template);
     debug!(
         "Template analysis: {} placeholders detected, {} entries provided, mode: {:?}",
@@ -128,38 +116,16 @@ pub fn process_entries(
     );
 
     if let Some(ref warning_msg) = warning {
-        debug!("Generated warning: {}", warning_msg);
+        debug!("Template mismatch detected: {}", warning_msg);
+        debug!("Mode: {:?} will handle mismatch gracefully", template.mode);
     }
 
-    // Format template with processed entries
-    let formatted = match template.mode {
-        SelectorMode::Single => {
-            // Use only the first entry
-            let first_entry = &entries_processed[0];
-            template.format(first_entry)?
-        }
-        SelectorMode::Concatenate => {
-            // Join all entries with separator and pass to template
-            let entries_refs: Vec<&str> =
-                entries_processed.iter().map(AsRef::as_ref).collect();
-            template.format_with_inputs(&entries_refs, &template.separator)?
-        }
-        SelectorMode::OneToOne => {
-            // Map each entry to one template placeholder
-            // Use template's built-in functionality for one-to-one mapping
-            let entries_refs: Vec<&str> =
-                entries_processed.iter().map(AsRef::as_ref).collect();
-            template.format_with_inputs(
-                &entries_refs,
-                &template.separator,
-            ).map_err(|e| {
-                anyhow::anyhow!(
-                    "Failed to format template with one-to-one mapping: {}",
-                    e
-                )
-            })?
-        }
-    };
+    // Use centralized template processing - Template handles all modes internally
+    let entries_refs: Vec<&str> =
+        entries_processed.iter().map(AsRef::as_ref).collect();
+    let formatted = template
+        .format_with_inputs(&entries_refs, &template.separator)
+        .context("Failed to format template with entries")?;
 
     Ok((formatted, warning))
 }

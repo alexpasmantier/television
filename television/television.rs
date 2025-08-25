@@ -559,11 +559,28 @@ impl Television {
             // try to receive a preview update
             let entry = selected_entry.as_ref().unwrap();
             if let Ok(mut preview) = receiver.try_recv() {
+                // Determine entries to use for template processing
+                let entries_for_templates: Vec<&str> =
+                    if self.channel.selected_entries().is_empty() {
+                        // No multi-selection: use hovered entry
+                        vec![&entry.raw]
+                    } else {
+                        // Multi-selection: use selected entries
+                        self.channel
+                            .selected_entries()
+                            .iter()
+                            .map(|entry| entry.raw.as_str())
+                            .collect()
+                    };
+
                 if let Some(template) =
                     &self.merged_config.preview_panel_header
                 {
                     preview.title = template
-                        .format(&entry.raw)
+                        .format_with_inputs(
+                            &entries_for_templates,
+                            &template.separator,
+                        )
                         .unwrap_or_else(|_| entry.raw.clone());
                 }
 
@@ -571,7 +588,10 @@ impl Television {
                     &self.merged_config.preview_panel_footer
                 {
                     preview.footer = template
-                        .format(&entry.raw)
+                        .format_with_inputs(
+                            &entries_for_templates,
+                            &template.separator,
+                        )
                         .unwrap_or_else(|_| String::new());
                 }
 

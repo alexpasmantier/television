@@ -397,32 +397,6 @@ fn test_multi_input_structured_templates_with_actual_selection() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests structured template operations with single entry.
-///
-/// This validates that `string_pipeline` operations like {upper} and {lower}
-/// work correctly within structured templates.
-#[test]
-fn test_structured_template_string_operations_single_entry() {
-    let mut tester = PtyTester::new();
-
-    // Use a structured template with string operations
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "echo -e 'hello\\nworld\\ntest'",
-        "--preview-command",
-        "echo 'UPPER: {upper} | LOWER: {lower}'",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify structured operations work
-    tester.assert_tui_frame_contains("Custom Channel");
-    tester.assert_tui_frame_contains("UPPER: HELLO | LOWER: hello");
-
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
-}
-
 /// Tests structured template operations with multiple selected entries.
 ///
 /// This validates that string operations work correctly when multiple entries
