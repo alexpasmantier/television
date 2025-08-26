@@ -21,6 +21,7 @@ pub mod modes;
 pub mod monitoring;
 pub mod preview;
 pub mod selection;
+pub mod selector;
 pub mod source;
 pub mod special;
 pub mod ui;
