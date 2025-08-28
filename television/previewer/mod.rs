@@ -256,47 +256,20 @@ impl Previewer {
     }
 }
 
-/// Try to run the given command on the given entries and send the result
-/// to the main thread via the given channel.
+/// Generate preview content from entries using configured selector mode
 ///
-/// This function handles both single and multiple entry scenarios with different
-/// processing strategies and configuration-aware template formatting.
+/// Handles both single and multiple entry scenarios with integrated caching.
 ///
-/// ## Single Entry Processing
-/// - Uses existing caching system for performance optimization
-/// - Standard template formatting with optional shell escaping
-/// - Supports both `Raw` and `StringPipeline` template types
-/// - Caches successful results and errors to avoid re-execution
+/// - **Single entry**: Uses caching for performance, standard template formatting
+/// - **Multiple entries**: Applies selector mode distribution, no caching to avoid stale data
+/// - **Shell escaping**: Applied when configured for safe command execution
 ///
-/// ## Multi-Select Processing
-/// - `SelectorMode::Concatenate`: Joins all selected entries with the configured
-///   separator and treats them as a single input for all template placeholders.
-///   Ideal for commands that accept multiple arguments (e.g., `cat file1 file2`).
-///
-/// - `SelectorMode::OneToOne`: Maps each selected entry to individual template
-///   placeholders in sequence. Analyzes template placeholder count and generates
-///   warnings for mismatches. Best for commands with distinct argument slots
-///   (e.g., `diff {} {}` expects exactly two files).
-///
-/// ## Shell Escaping
-/// When `config.selector_shell_escaping` is enabled, all entry values are processed
-/// through `shlex::try_quote()` to safely handle special characters, spaces, and
-/// shell metacharacters in file paths and entry names.
-///
-/// ## Warning Generation
-/// For `OneToOne` mode, automatically detects argument mapping issues:
-/// - Excess entries: More selections than template placeholders
-/// - Missing arguments: Fewer selections than template placeholders
-/// - Warnings appear in the preview footer for user feedback
-///
-/// This function is responsible for the following tasks:
-/// 1. execute a command with the preview configuration and selector settings
-/// 2. analyze template structure and perform argument distribution based on selector mode
-/// 3. generate user warnings for argument mapping mismatches in `OneToOne` mode
-/// 4. apply shell escaping when configured for safe command execution
-/// 5. ensure the result sent on the channel is well-formed with appropriate title/footer
-/// 6. cache the result for future use (single entry only)
-/// 7. send the result to the main thread via the channel
+/// # Arguments
+/// * `command` - Command specification with template and execution settings
+/// * `offset_expr` - Optional template for calculating preview scroll offset
+/// * `entries` - Selected entries to process (must not be empty)
+/// * `results_handle` - Channel for sending generated preview to main thread
+/// * `cache` - Optional cache for single-entry previews
 pub fn try_preview(
     command: &CommandSpec,
     offset_expr: &Option<Template>,

@@ -42,15 +42,43 @@ impl TemplateInner {
     }
 }
 
-/// Template with embedded selector configuration
+/// Template with embedded selector configuration for multi-select scenarios
+///
+/// Combines a template string with selector configuration to handle both single
+/// and multiple selected entries. Templates can be raw strings with `{}` placeholders
+/// or structured string pipelines with transformations.
+///
+/// # Multi-Select Behavior
+///
+/// The [`SelectorMode`] determines how multiple selections are distributed:
+/// - `OneToOne`: Each selection maps to a placeholder (`diff {} {}` + `[a, b]` → `diff a b`)
+/// - `Concatenate`: All selections joined for each placeholder (default)
+/// - `Single`: Only first selection used for all placeholders
+///
+/// # Example
+///
+/// ```rust
+/// use television::channels::prototypes::Template;
+/// use television::selector::SelectorMode;
+///
+/// let mut template = Template::parse("diff {} {}").unwrap();
+/// template.mode = SelectorMode::OneToOne;
+/// template.shell_escaping = true;
+///
+/// let result = template.format_with_inputs(&["file1.txt", "file with spaces.txt"], " ").unwrap();
+/// // Result: "diff file1.txt 'file with spaces.txt'"
+/// ```
 #[derive(Clone, Debug, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct Template {
     #[serde(flatten)]
     #[allow(clippy::struct_field_names)]
     template: TemplateInner,
+    /// Controls how multiple selections are distributed to placeholders
     pub mode: SelectorMode,
+    /// String separator used to join multiple selections in Concatenate mode
     pub separator: String,
+    /// Whether to apply shell escaping to entry values before template formatting
     pub shell_escaping: bool,
 }
 
@@ -113,16 +141,16 @@ impl Template {
         }
     }
 
-    /// Format template with multiple inputs using selector configuration
+    /// Format template with multiple inputs using configured selector mode
     ///
     /// This method handles input distribution to template placeholders based on the
     /// configured selector mode. Different modes provide different behaviors for
     /// mapping multiple selected items to template placeholders.
     ///
     /// # Selector Modes
-    /// - `one_to_one`: Maps each input to its own template section (1:1 mapping)
-    /// - `single`: Uses only the first input, repeated for all template sections
-    /// - `concatenate`: Uses all inputs (joined with separator) for each template section
+    /// - `OneToOne`: Maps each input to its own template section (1:1 mapping)
+    /// - `Single`: Uses only the first input, repeated for all template sections
+    /// - `Concatenate`: Uses all inputs (joined with separator) for each template section
     ///
     /// # Arguments
     ///
@@ -141,20 +169,20 @@ impl Template {
     /// use television::selector::SelectorMode;
     ///
     /// // OneToOne mode: each input maps to one template section
-    /// let mut template = Template::parse("diff {} {}").unwrap();
+    /// let mut template = Template::parse("echo {} {}").unwrap();
     /// template.mode = SelectorMode::OneToOne;
     /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
-    /// assert_eq!(result, "diff file1.txt file2.txt");
+    /// assert_eq!(result, "echo file1.txt file2.txt");
     ///
     /// // Single mode: only first input used, repeated for all sections
     /// template.mode = SelectorMode::Single;
     /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
-    /// assert_eq!(result, "diff file1.txt file1.txt");
+    /// assert_eq!(result, "echo file1.txt file1.txt");
     ///
     /// // Concatenate mode: all inputs joined with separator for each section
     /// template.mode = SelectorMode::Concatenate;
     /// let result = template.format_with_inputs(&["file1.txt", "file2.txt"], " ").unwrap();
-    /// assert_eq!(result, "diff file1.txt file2.txt file1.txt file2.txt");
+    /// assert_eq!(result, "echo file1.txt file2.txt file1.txt file2.txt");
     ///
     /// // Works with string pipelines too
     /// let mut pipeline_template = Template::parse("echo {upper}").unwrap();
@@ -207,14 +235,14 @@ impl Template {
                             let separators: Vec<&str> =
                                 vec![separator; section_count];
                             template.format_with_inputs(&input_arrays, &separators)
-                                .map_err(|e| {
-                                    anyhow::anyhow!(
-                                        "Failed to format structured template '{}' with one-to-one mapping ({} inputs): {}",
-                                        self.raw(),
-                                        inputs.len(),
-                                        e
-                                    )
-                                })
+                            .map_err(|e| {
+                                anyhow::anyhow!(
+                                    "Failed to format structured template '{}' with one-to-one mapping ({} inputs): {}",
+                                    self.raw(),
+                                    inputs.len(),
+                                    e
+                                )
+                            })
                         }
                         SelectorMode::Single => {
                             tracing::debug!(
@@ -231,13 +259,13 @@ impl Template {
                             let separators: Vec<&str> =
                                 vec![separator; section_count];
                             template.format_with_inputs(&input_arrays, &separators)
-                                .map_err(|e| {
-                                    anyhow::anyhow!(
-                                        "Failed to format structured template '{}' with single input: {}",
-                                        self.raw(),
-                                        e
-                                    )
-                                })
+                            .map_err(|e| {
+                                anyhow::anyhow!(
+                                    "Failed to format structured template '{}' with single input: {}",
+                                    self.raw(),
+                                    e
+                                )
+                            })
                         }
                         SelectorMode::Concatenate => {
                             tracing::debug!(
@@ -252,14 +280,14 @@ impl Template {
                             let separators: Vec<&str> =
                                 vec![separator; section_count];
                             template.format_with_inputs(&input_arrays, &separators)
-                                .map_err(|e| {
-                                    anyhow::anyhow!(
-                                        "Failed to format structured template '{}' with {} inputs: {}",
-                                        self.raw(),
-                                        inputs.len(),
-                                        e
-                                    )
-                                })
+                            .map_err(|e| {
+                                anyhow::anyhow!(
+                                    "Failed to format structured template '{}' with {} inputs: {}",
+                                    self.raw(),
+                                    inputs.len(),
+                                    e
+                                )
+                            })
                         }
                     }
                 } else {

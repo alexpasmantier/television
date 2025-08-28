@@ -36,7 +36,7 @@ fn test_results_max_selections_zero_value() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests basic multi-selection functionality
+/// Tests basic multi-selection with default Concatenate mode
 #[test]
 fn test_basic_multi_selection() {
     let mut tester = PtyTester::new();
@@ -99,7 +99,7 @@ fn test_selection_limit_enforcement() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests selector mode "single" - only first selected item is used.
+/// Tests Single selector mode - uses only first selected entry for all placeholders
 #[test]
 fn test_selector_mode_single() {
     let mut tester = PtyTester::new();
@@ -184,7 +184,7 @@ fn test_deselecting_items() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
 
-/// Tests selector mode `one_to_one` - each selected item maps to one template placeholder.
+/// Tests OneToOne selector mode - maps each selected entry to individual template placeholders
 #[test]
 fn test_selector_mode_one_to_one() {
     let mut tester = PtyTester::new();

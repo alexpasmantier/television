@@ -5,16 +5,30 @@ use shlex::try_quote;
 use std::borrow::Cow;
 use tracing::debug;
 
-/// Defines how multiple selected arguments are distributed to template processing
+/// Controls how multiple selected entries are distributed to template placeholders
+///
+/// Each mode provides a different strategy for mapping selected items to template sections.
+///
+/// - [`Single`](SelectorMode::Single): Use only the first selected item
+/// - [`Concatenate`](SelectorMode::Concatenate): Join all items with separator (default)
+/// - [`OneToOne`](SelectorMode::OneToOne): Map each item to individual placeholders
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum SelectorMode {
-    /// Use only the first selected item
+    /// Use only the first selected item for all placeholders
+    ///
+    /// Template: `"diff {} {}"`, Selected: `["file1.txt", "file2.txt"]` → `"diff file1.txt file1.txt"`
     Single,
-    /// Concatenate all selected items with separator and provide to all template placeholders (default)
+
+    /// Join all selected items with separator for each placeholder (default)
+    ///
+    /// Template: `"diff {} {}"`, Selected: `["file1.txt", "file2.txt"]` → `"diff file1.txt file2.txt file1.txt file2.txt"`
     #[default]
     Concatenate,
-    /// Map each selected item to one template placeholder (1:1 mapping)
+
+    /// Map each selected item to individual placeholders (1:1 mapping)
+    ///
+    /// Template: `"diff {} {}"`, Selected: `["file1.txt", "file2.txt"]` → `"diff file1.txt file2.txt"`
     OneToOne,
 }
 

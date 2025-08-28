@@ -96,7 +96,6 @@ pub fn format_command(
         entries.len()
     );
 
-    // Use unified selector system to process entries
     let entry_refs: Vec<&Entry> = entries.iter().collect();
     let formatted_command = process_entries(&entry_refs, template)?;
 
@@ -237,7 +236,6 @@ mod tests {
         let result = format_command(&entries, &template).unwrap();
 
         // Result should contain both files quoted correctly
-        // Note: Order may vary due to hash set ordering, and quoting mechanism uses double quotes
         assert!(result.contains("nvim"));
         assert!(result.contains("\"file1\\'s.txt\""));
         assert!(result.contains("file2.txt"));
