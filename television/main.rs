@@ -113,10 +113,7 @@ async fn main() -> Result<()> {
             // Use selector system for consistent output processing
             let entry_refs: Vec<&Entry> = entries.iter().collect();
             match process_entries(&entry_refs, output_template) {
-                Ok((formatted_output, warning)) => {
-                    if let Some(warning_msg) = warning {
-                        debug!("Selector warning: {}", warning_msg);
-                    }
+                Ok(formatted_output) => {
                     writeln!(bufwriter, "{}", formatted_output)?;
                 }
                 Err(e) => {

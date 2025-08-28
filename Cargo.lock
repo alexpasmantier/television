@@ -1943,7 +1943,7 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 [[package]]
 name = "string_pipeline"
 version = "0.12.0"
-source = "git+https://github.com/lalvarezt/string_pipeline?rev=bdb1a0d#bdb1a0d5bf58c6ab3508eb7626df6450ec30356c"
+source = "git+https://github.com/lalvarezt/string_pipeline?rev=2ccb4d3d#2ccb4d3d76d27db94afdb0d70b75db47afacba52"
 dependencies = [
  "clap",
  "clap_mangen",

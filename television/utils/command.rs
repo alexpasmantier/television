@@ -98,11 +98,7 @@ pub fn format_command(
 
     // Use unified selector system to process entries
     let entry_refs: Vec<&Entry> = entries.iter().collect();
-    let (formatted_command, warning) = process_entries(&entry_refs, template)?;
-
-    if let Some(warning_msg) = warning {
-        debug!("Selector warning: {}", warning_msg);
-    }
+    let formatted_command = process_entries(&entry_refs, template)?;
 
     debug!("Final command: {:?}", formatted_command);
     Ok(formatted_command)

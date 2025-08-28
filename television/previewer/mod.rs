@@ -331,9 +331,8 @@ pub fn try_preview(
     let template = command.get_nth(0);
 
     // Use the unified selector system to process entries
-    let (formatted_command, warning_message) =
-        process_entries(entries, template)
-            .context("Failed to process entries for preview")?;
+    let formatted_command = process_entries(entries, template)
+        .context("Failed to process entries for preview")?;
 
     debug!("Executing formatted command: {}", formatted_command);
 
@@ -348,8 +347,8 @@ pub fn try_preview(
         format!("{} selected items", entries.len())
     };
 
-    // Determine footer content (warnings for multi-select, empty for single entry)
-    let footer = warning_message.unwrap_or_else(String::new);
+    // Footer content is empty
+    let footer = String::new();
 
     let preview: Preview = {
         if child.status.success() {

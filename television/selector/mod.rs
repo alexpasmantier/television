@@ -2,7 +2,7 @@ use crate::channels::{entry::Entry, prototypes::Template};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use shlex::try_quote;
-use std::{borrow::Cow, cmp::Ordering};
+use std::borrow::Cow;
 use tracing::debug;
 
 /// Defines how multiple selected arguments are distributed to template processing
@@ -18,44 +18,6 @@ pub enum SelectorMode {
     OneToOne,
 }
 
-/// Extract placeholder count from a template, with caching for efficiency
-fn get_template_placeholder_count(template: &Template) -> usize {
-    let count = template.template_section_count();
-    debug!("Template has {} sections", count);
-    count
-}
-
-/// Generate warning message for argument mapping mismatches
-fn generate_argument_mapping_warning(
-    entries_count: usize,
-    placeholder_count: usize,
-    mode: &SelectorMode,
-) -> Option<String> {
-    match mode {
-        SelectorMode::Single => {
-            // No warnings for single mode - only first entry is used
-            None
-        }
-        SelectorMode::Concatenate => {
-            // No warnings for concatenate mode - all entries go into one section
-            None
-        }
-        SelectorMode::OneToOne => {
-            match entries_count.cmp(&placeholder_count) {
-                Ordering::Greater => Some(format!(
-                    "WARNING: Excess entries ignored (using {} of {} selected)",
-                    placeholder_count, entries_count
-                )),
-                Ordering::Less => Some(format!(
-                    "WARNING: Empty placeholders detected ({} entries for {} placeholders)",
-                    entries_count, placeholder_count
-                )),
-                Ordering::Equal => None, // Perfect match, no warning needed
-            }
-        }
-    }
-}
-
 /// Process multiple entries through a template using selector configuration
 ///
 /// This function handles both single and multiple entries:
@@ -65,20 +27,17 @@ fn generate_argument_mapping_warning(
 /// # Arguments
 /// * `entries` - Collection of entries to process
 /// * `template` - Template to format entries with
-/// * `config` - Selector configuration for this context
 ///
 /// # Returns
-/// * `Ok((formatted_string, optional_warning))` - The formatted result and any warnings
+/// * `Ok(String)` - The formatted result
 /// * `Err(anyhow::Error)` - If processing fails
 pub fn process_entries(
     entries: &[&Entry],
     template: &Template,
-) -> Result<(String, Option<String>)> {
+) -> Result<String> {
     if entries.is_empty() {
         return Err(anyhow::anyhow!("Cannot process empty entries"));
     }
-
-    let _is_single_entry = entries.len() == 1;
 
     debug!(
         "Processing {} entries with selector mode: {:?}",
@@ -100,26 +59,6 @@ pub fn process_entries(
         })
         .collect();
 
-    // Generate warning for template mismatches (for debugging)
-    let placeholder_count = get_template_placeholder_count(template);
-    debug!(
-        "Template analysis: {} placeholders detected, {} entries provided, mode: {:?}",
-        placeholder_count,
-        entries_processed.len(),
-        template.mode
-    );
-
-    let warning = generate_argument_mapping_warning(
-        entries_processed.len(),
-        placeholder_count,
-        &template.mode,
-    );
-
-    if let Some(ref warning_msg) = warning {
-        debug!("Template mismatch detected: {}", warning_msg);
-        debug!("Mode: {:?} will handle mismatch gracefully", template.mode);
-    }
-
     // Use centralized template processing - Template handles all modes internally
     let entries_refs: Vec<&str> =
         entries_processed.iter().map(AsRef::as_ref).collect();
@@ -127,7 +66,7 @@ pub fn process_entries(
         .format_with_inputs(&entries_refs, &template.separator)
         .context("Failed to format template with entries")?;
 
-    Ok((formatted, warning))
+    Ok(formatted)
 }
 
 #[cfg(test)]
@@ -157,10 +96,8 @@ mod tests {
         let template = Template::parse("cat {}").unwrap();
 
         let entry_refs: Vec<&Entry> = entries.iter().collect();
-        let (result, warning) =
-            process_entries(&entry_refs, &template).unwrap();
+        let result = process_entries(&entry_refs, &template).unwrap();
         assert_eq!(result, "cat test.txt");
-        assert!(warning.is_none());
     }
 
     #[test]
@@ -176,12 +113,10 @@ mod tests {
         template.shell_escaping = true;
 
         let entry_refs: Vec<&Entry> = entries.iter().collect();
-        let (result, warning) =
-            process_entries(&entry_refs, &template).unwrap();
+        let result = process_entries(&entry_refs, &template).unwrap();
         // Result should contain both files
         assert!(result.contains("file1.txt"));
         assert!(result.contains("'file 2.txt'")); // quoted due to space
-        assert!(warning.is_none());
     }
 
     #[test]
@@ -192,10 +127,62 @@ mod tests {
         template.shell_escaping = false;
 
         let entry_refs: Vec<&Entry> = entries.iter().collect();
-        let (result, warning) =
-            process_entries(&entry_refs, &template).unwrap();
+        let result = process_entries(&entry_refs, &template).unwrap();
         assert!(result.contains("file with spaces.txt"));
         assert!(!result.contains("'file with spaces.txt'"));
-        assert!(warning.is_none());
+    }
+
+    #[test]
+    fn test_concatenate_mode_multi_placeholder() {
+        let entries = vec![
+            Entry::new("file1.txt".to_string()),
+            Entry::new("file2.txt".to_string()),
+        ];
+
+        let mut template = Template::parse("cmd {} {}").unwrap();
+        template.mode = SelectorMode::Concatenate;
+        template.separator = " ".to_string();
+        template.shell_escaping = false;
+
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let result = process_entries(&entry_refs, &template).unwrap();
+        // In concatenate mode, all inputs go to each placeholder
+        assert_eq!(result, "cmd file1.txt file2.txt file1.txt file2.txt");
+    }
+
+    #[test]
+    fn test_single_mode_multi_placeholder() {
+        let entries = vec![
+            Entry::new("file1.txt".to_string()),
+            Entry::new("file2.txt".to_string()),
+        ];
+
+        let mut template = Template::parse("diff {} {}").unwrap();
+        template.mode = SelectorMode::Single;
+        template.separator = " ".to_string();
+        template.shell_escaping = false;
+
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let result = process_entries(&entry_refs, &template).unwrap();
+        // Should use only first entry for both placeholders
+        assert_eq!(result, "diff file1.txt file1.txt");
+    }
+
+    #[test]
+    fn test_empty_entries() {
+        let entries: Vec<Entry> = vec![];
+        let template = Template::parse("cat {}").unwrap();
+
+        let entry_refs: Vec<&Entry> = entries.iter().collect();
+        let result = process_entries(&entry_refs, &template);
+
+        // Should return error for empty entries
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("Cannot process empty entries")
+        );
     }
 }
