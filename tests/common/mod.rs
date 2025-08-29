@@ -476,3 +476,100 @@ impl TempConfig {
         fs::write(self.cable_dir.join(name).with_extension("toml"), contents)
     }
 }
+
+/// A temporary data directory for television data storage during tests.
+///
+/// This handles all television data files including frecency, history, and log files.
+///
+/// # Example
+/// ```rs
+/// // Initialize a temporary data directory with empty frecency
+/// let temp_data = TempDataDir::init_with_empty_frecency();
+///
+/// // Use it with tv command
+/// let cmd = tv_with_args(&["--source-command", "echo 'test'"]);
+/// cmd.env("TELEVISION_DATA", temp_data.path());
+/// ```
+pub struct TempDataDir {
+    pub frecency_file: PathBuf,
+    pub history_file: PathBuf,
+    pub log_file: PathBuf,
+    tempdir: TempDir,
+}
+
+impl TempDataDir {
+    /// Create a temporary data directory.
+    pub fn init() -> Self {
+        let dir = tempdir().expect("tempdir creation failed");
+        let frecency_file = dir.path().join("frecency.json");
+        let history_file = dir.path().join("history.json");
+        let log_file = dir.path().join("television.log");
+        Self {
+            frecency_file,
+            history_file,
+            log_file,
+            tempdir: dir,
+        }
+    }
+
+    /// Create a temporary data directory with empty frecency.json file.
+    pub fn init_with_empty_frecency() -> Self {
+        let temp_data = Self::init();
+        fs::write(&temp_data.frecency_file, "[]")
+            .expect("Failed to create empty frecency file");
+        temp_data
+    }
+
+    /// Create a temporary data directory with empty history.json file.
+    pub fn init_with_empty_history() -> Self {
+        let temp_data = Self::init();
+        fs::write(&temp_data.history_file, "[]")
+            .expect("Failed to create empty history file");
+        temp_data
+    }
+
+    /// Create a temporary data directory with both empty frecency and history files.
+    pub fn init_with_empty_data() -> Self {
+        let temp_data = Self::init();
+        fs::write(&temp_data.frecency_file, "[]")
+            .expect("Failed to create empty frecency file");
+        fs::write(&temp_data.history_file, "[]")
+            .expect("Failed to create empty history file");
+        temp_data
+    }
+
+    /// Get the path to the temporary data directory.
+    pub fn path(&self) -> &str {
+        self.tempdir.path().to_str().unwrap()
+    }
+
+    /// Get the tempdir reference for creating additional files.
+    pub fn tempdir(&self) -> &TempDir {
+        &self.tempdir
+    }
+
+    /// Read the frecency file contents.
+    pub fn read_frecency(&self) -> io::Result<String> {
+        fs::read_to_string(&self.frecency_file)
+    }
+
+    /// Read the history file contents.
+    pub fn read_history(&self) -> io::Result<String> {
+        fs::read_to_string(&self.history_file)
+    }
+
+    /// Read the log file contents.
+    pub fn read_log(&self) -> io::Result<String> {
+        fs::read_to_string(&self.log_file)
+    }
+
+    /// Write content to the frecency file.
+    pub fn write_frecency(&self, content: &str) -> io::Result<()> {
+        fs::write(&self.frecency_file, content)
+    }
+
+    /// Write content to the history file.
+    pub fn write_history(&self, content: &str) -> io::Result<()> {
+        fs::write(&self.history_file, content)
+    }
+}

@@ -222,6 +222,16 @@ pub struct HistoryConfig {
     pub global_mode: Option<bool>,
 }
 
+#[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
+pub struct FrecencyConfig {
+    /// Whether to enable frecency scoring for this channel
+    #[serde(default)]
+    pub enabled: Option<bool>,
+    /// Whether to use global frecency for this channel (overrides global setting)
+    #[serde(default)]
+    pub global_mode: Option<bool>,
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct ChannelPrototype {
     pub metadata: Metadata,
@@ -237,6 +247,8 @@ pub struct ChannelPrototype {
     pub watch: f64,
     #[serde(default)]
     pub history: HistoryConfig,
+    #[serde(default)]
+    pub frecency: FrecencyConfig,
     #[serde(default)]
     pub actions: FxHashMap<String, ActionSpec>,
 }
@@ -268,6 +280,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            frecency: FrecencyConfig::default(),
             actions: FxHashMap::default(),
         }
     }
@@ -293,6 +306,7 @@ impl ChannelPrototype {
             keybindings: None,
             watch: 0.0,
             history: HistoryConfig::default(),
+            frecency: FrecencyConfig::default(),
             actions: FxHashMap::default(),
         }
     }
