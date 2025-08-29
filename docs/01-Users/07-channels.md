@@ -294,3 +294,155 @@ separator = " "
 - `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
 depending on the entries content it might be beneficial to change to another
 one (default: `" "` - space)
+
+## Selector Modes
+
+Channels can be configured to handle multiple selected entries through selector modes, which determine how selections are distributed to template placeholders in preview commands, UI elements, and actions.
+
+### Single Mode
+
+Uses only the **first selected entry** for all template placeholders. Additional selections are ignored.
+
+```toml
+[preview.command]
+template = "cat {}"
+mode = "single"
+```
+
+**Behavior:**
+
+- With selections `["file1.txt", "file2.txt"]` → generates `cat file1.txt`
+- With multiple placeholders: `template = "diff {} {}"` → generates `diff file1.txt file1.txt`
+
+##### Concatenate Mode (Default)
+
+Joins **all selected entries** with the configured separator and provides the concatenated result to **each template placeholder**.
+
+```toml
+[preview.command]
+template = "cat {}"
+mode = "concatenate"
+separator = " "
+```
+
+**Single placeholder behavior:**
+
+- With selections `["file1.txt", "file2.txt"]` → generates `cat file1.txt file2.txt`
+
+**Multiple placeholder behavior (important!):**
+
+```toml
+[preview.command]
+template = "diff {} {}"
+mode = "concatenate"
+separator = " "
+```
+
+- With selections `["file1.txt", "file2.txt"]` → generates `diff file1.txt file2.txt file1.txt file2.txt`
+
+> **Note:** In concatenate mode, the concatenated string is provided to **every** placeholder, which can result in repetitive output with multi-placeholder templates.
+
+### One-to-One Mode
+
+Maps each selected entry to individual template placeholders **in sequence**. This mode handles mismatches gracefully:
+
+```toml
+[preview.command]
+template = "diff {} {}"
+mode = "one_to_one"
+```
+
+**Mismatch handling:**
+
+- **More selections than placeholders:** Extra selections are ignored
+  - Selections `["a", "b", "c"]` + template `"diff {} {}"` → `diff a b`
+- **Fewer selections than placeholders:** Missing placeholders get empty strings
+  - Selections `["a"]` + template `"diff {} {}"` → `diff a`
+- **Perfect match:** Each selection maps to one placeholder
+  - Selections `["a", "b"]` + template `"diff {} {}"` → `diff a b`
+
+### Examples
+
+**Git Diff Channel**:
+
+```toml
+[metadata]
+name = "git-diff"
+description = "A channel to select files from git diff commands"
+
+[source]
+command = "git log --graph --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
+output = "{strip_ansi|split: :1}"
+
+[ui]
+results_max_selections = 2
+
+[ui.preview_panel.footer]
+template = "diff {strip_ansi|split: :1}..{strip_ansi|split: :1}"
+mode = "one_to_one"
+
+[preview.command]
+template = "git diff --color=always {strip_ansi|split: :1}..{strip_ansi|split: :1}"
+mode = "one_to_one"
+shell_escaping = true
+```
+
+**Files Channel**:
+
+```toml
+[source.output]
+template = "{}"
+mode = "concatenate"
+separator = "\n"
+
+[ui.preview_panel.footer]
+template = "{}"
+mode = "concatenate"
+separator = " - "
+
+[actions.edit.command]
+template = "${EDITOR:-vim} {}"
+mode = "concatenate"
+separator = " "
+shell_escaping = true
+```
+
+### Configuration Options
+
+**Selection Limits:**
+
+```toml
+[ui]
+results_max_selections = 5    # limit to 5 simultaneous selections
+# results_max_selections = 0    # disable multi-selection
+# results_max_selections = 65535 # unlimited (default)
+```
+
+**Shell Escaping:**
+
+```toml
+[preview.command]
+template = "cat {}"
+shell_escaping = true  # handles spaces and special characters
+```
+
+With selection `["file with spaces.txt"]` → generates `cat 'file with spaces.txt'`
+
+**Different Separators:**
+
+```toml
+# Newline-separated list
+[source.output]
+mode = "concatenate"
+separator = "\n"
+
+# Dash-separated display
+[ui.preview_panel.footer]
+mode = "concatenate"
+separator = " - "
+
+# Space-separated for commands
+[preview.command]
+mode = "concatenate"
+separator = " "
+```

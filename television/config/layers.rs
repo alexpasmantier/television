@@ -287,6 +287,16 @@ impl LayeredConfig {
                 Some(self.channel.ui.as_ref()?.results_panel.as_ref()?.padding)
             })
             .unwrap_or(self.base_config.ui.results_panel.padding);
+        let results_max_selections = self
+            .channel_cli
+            .results_max_selections
+            .or_else(|| {
+                self.channel
+                    .ui
+                    .as_ref()
+                    .and_then(|ui| ui.results_max_selections)
+            })
+            .unwrap_or(self.base_config.ui.results_max_selections);
         let preview_panel_size = self
             .channel_cli
             .preview_size
@@ -455,6 +465,7 @@ impl LayeredConfig {
             // results panel
             results_panel_border_type,
             results_panel_padding,
+            results_max_selections,
             // preview panel
             preview_panel_size,
             preview_panel_header,
@@ -546,6 +557,7 @@ pub struct MergedConfig {
     // results panel
     pub results_panel_border_type: BorderType,
     pub results_panel_padding: Padding,
+    pub results_max_selections: u16,
     // preview panel
     pub preview_panel_size: u16,
     pub preview_panel_header: Option<Template>,

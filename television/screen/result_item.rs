@@ -126,7 +126,7 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
     max_width: u16,
     result_fg: Color,
     match_fg: Color,
-) -> Vec<Span> {
+) -> Vec<Span<'_>> {
     let mut spans = Vec::with_capacity(16);
 
     let (mut entry_name, mut match_ranges) = make_result_item_printable(item);
@@ -212,7 +212,7 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
     max_width: u16,
     result_fg: Color,
     match_fg: Color,
-) -> Vec<Span> {
+) -> Vec<Span<'_>> {
     let text = item.raw();
     let match_ranges = item.match_ranges().unwrap_or(&[]);
     let parsed = text.into_text().unwrap();

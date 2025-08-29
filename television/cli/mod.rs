@@ -88,6 +88,7 @@ pub struct ChannelCli {
     // Results panel configuration
     pub results_border: Option<BorderType>,
     pub results_padding: Option<Padding>,
+    pub results_max_selections: Option<u16>,
 
     // Status bar configuration
     pub hide_status_bar: bool,
@@ -333,6 +334,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             // Results panel configuration
             results_border,
             results_padding,
+            results_max_selections: cli.results_max_selections,
 
             // Status bar configuration
             hide_status_bar: cli.hide_status_bar,
