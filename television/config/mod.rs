@@ -114,12 +114,9 @@ impl ConfigEnv {
     pub fn init() -> Result<Self> {
         let data_dir = get_data_dir();
         let config_dir = get_config_dir();
-        let cable_dir = config_dir.join(CABLE_DIR_NAME);
 
         std::fs::create_dir_all(&config_dir)
             .context("Failed creating configuration directory")?;
-        std::fs::create_dir_all(&cable_dir)
-            .context("Failed creating cable directory")?;
         std::fs::create_dir_all(&data_dir)
             .context("Failed creating data directory")?;
 
@@ -304,7 +301,22 @@ pub fn get_config_dir() -> PathBuf {
 }
 
 fn default_cable_dir() -> PathBuf {
-    get_config_dir().join(CABLE_DIR_NAME)
+    // Must check to see if the cable config dir already exists for
+    // backwards compatibility. Cannot unconditionally use the CABLE_DIR
+    // environment variable, or else a user could download a packaged television
+    // that has CABLE_DIR set, which would clobber their cable dir at the base_config
+    // cable_dir
+    let config_dir = get_config_dir().join(CABLE_DIR_NAME);
+
+    if let Some(path) = std::env::var_os("CABLE_DIR") {
+        if let Ok(false) | Err(_) = std::fs::exists(&config_dir) {
+            path.into()
+        } else {
+            config_dir
+        }
+    } else {
+        config_dir
+    }
 }
 
 fn project_directory() -> Option<ProjectDirs> {
