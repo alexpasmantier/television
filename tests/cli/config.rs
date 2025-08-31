@@ -121,3 +121,54 @@ fn test_cable_dir_flag_fails_to_load_custom_cable_dir() {
     // CLI should exit with error message, not show TUI
     tester.assert_raw_output_contains("Directory does not exist");
 }
+
+/// Tests that the CABLE_DIR envvar loads channels from a custom directory.
+#[test]
+fn test_cable_dir_envvar_loads_custom_cable_dir() {
+    let mut tester = PtyTester::new();
+
+    let mut cmd =
+        tv_with_args(&["files", "--config-file", DEFAULT_CONFIG_FILE]);
+
+    // This loads channels from our test cable directory instead of the default location
+    cmd.env("CABLE_DIR", "cable/unix");
+
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the channel was found and loaded successfully
+    tester.assert_tui_frame_contains(
+        "╭───────────────────────── files ──────────────────────────╮",
+    );
+
+    // Send Ctrl+C to exit cleanly
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
+
+/// Tests that the --cable-dir CLI flag overrides the CABLE_DIR default directory.
+#[test]
+fn test_cable_dir_flag_overrides_cable_dir_envvar() {
+    let mut tester = PtyTester::new();
+
+    // This loads channels from our test cable directory instead of the default location
+    let mut cmd = tv_with_args(&[
+        "files",
+        "--cable-dir",
+        "cable/unix",
+        "--config-file",
+        DEFAULT_CONFIG_FILE,
+    ]);
+
+    // This is an invalid location.
+    cmd.env("CABLE_DIR", "cable/unix1");
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the channel was found and loaded successfully
+    tester.assert_tui_frame_contains(
+        "╭───────────────────────── files ──────────────────────────╮",
+    );
+
+    // Send Ctrl+C to exit cleanly
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+}
