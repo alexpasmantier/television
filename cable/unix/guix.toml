@@ -1,0 +1,20 @@
+[metadata]
+name = "guix"
+description = "A channel to search for and select Guix packages"
+requirements = ["guix"]
+
+[source]
+command = ["guix package --list-available=.*"]
+display = "{trim|replace:s/\\s+/ /g|split: :0}"
+output = "{trim|replace:s/\\s+/ /g|split: :0}"
+
+[preview]
+command = "guix package --show={trim|replace:s/\\s+/ /g|split: :0}"
+
+[keybindings]
+f12 = "actions:shell"
+
+[actions.shell]
+description = "Spawns a shell with the selected package"
+command = "guix shell {trim|replace:s/\\s+/ /g|split: :0}"
+mode = "execute"
