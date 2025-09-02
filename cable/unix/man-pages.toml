@@ -1,0 +1,24 @@
+[metadata]
+name = "man-pages"
+description = "Browse and preview system manual pages"
+requirements = ["apropos", "man", "col"]
+
+[source]
+# List all man pages using apropos
+command = "apropos ."
+
+[preview]
+# Show the man page for the selected entry
+command = "man '{0}' | col -bx"
+env = { "MANWIDTH" = "80" }
+
+[keybindings]
+enter = "actions:open"
+
+[actions.open]
+description = "Open the selected man page in the system pager"
+command = "man '{0}'"
+mode = "execute"
+
+[ui.preview_panel]
+header = "{0}"

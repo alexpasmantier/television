@@ -240,9 +240,15 @@ command = "bat -n --color=always '{}'"
 
 [keybindings]
 shortcut = "f1"
+f12 = "actions:edit"
 
 [preview.env]
 BAT_THEME = "ansi"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
 
 ```
 
@@ -405,6 +411,40 @@ command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
 
 ---
 
+### *just-recipes*
+
+A channel to select recipes from Justfiles
+
+![tv running the just-recipes channel](../../assets/channels/just-recipes.png)
+**Requirements:** `just`
+
+**Code:** *just-recipes.toml*
+
+```toml
+[metadata]
+name = "just-recipes"
+description = "A channel to select recipes from Justfiles"
+requirements = [ "just",]
+
+[source]
+command = [ "just --summary | tr '[:blank:]' '\n'",]
+
+[preview]
+command = "just -s {}"
+
+[keybindings]
+ctrl-x = "actions:execute-recipe"
+
+[actions.execute-recipe]
+description = "Execute a justfile recipe"
+command = "just {}"
+mode = "execute"
+
+```
+
+
+---
+
 ### *k8s-deployments*
 
 List and preview Deployments in a Kubernetes Cluster.
@@ -548,6 +588,46 @@ size = 60
 description = "Delete the selected Service"
 command = "kubectl delete -n {0} services/{1}"
 mode = "execute"
+
+```
+
+
+---
+
+### *man-pages*
+
+Browse and preview system manual pages
+
+![tv running the man-pages channel](../../assets/channels/man-pages.png)
+**Requirements:** `apropos`, `man`, `col`
+
+**Code:** *man-pages.toml*
+
+```toml
+[metadata]
+name = "man-pages"
+description = "Browse and preview system manual pages"
+requirements = [ "apropos", "man", "col",]
+
+[source]
+command = "apropos ."
+
+[preview]
+command = "man '{0}' | col -bx"
+
+[keybindings]
+enter = "actions:open"
+
+[preview.env]
+MANWIDTH = "80"
+
+[actions.open]
+description = "Open the selected man page in the system pager"
+command = "man '{0}'"
+mode = "execute"
+
+[ui.preview_panel]
+header = "{0}"
 
 ```
 
