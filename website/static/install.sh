@@ -153,10 +153,10 @@ install_binary() {
     
     # Map architecture to release naming
     case "$OS-$ARCH" in
-        linux-x86_64) BINARY_TARGET="linux-x86_64" ;;
-        linux-aarch64) BINARY_TARGET="linux-aarch64" ;;
-        macos-x86_64) BINARY_TARGET="darwin-x86_64" ;;
-        macos-aarch64) BINARY_TARGET="darwin-aarch64" ;;
+        linux-x86_64) BINARY_TARGET="x86_64-unknown-linux-musl" ;;
+        linux-aarch64) BINARY_TARGET="aarch64-unknown-linux-gnu" ;;
+        macos-x86_64) BINARY_TARGET="x86_64-apple-darwin" ;;
+        macos-aarch64) BINARY_TARGET="aarch64-apple-darwin" ;;
         *) error "No pre-compiled binary available for $OS-$ARCH" ;;
     esac
     
@@ -167,10 +167,11 @@ install_binary() {
         error "Failed to fetch latest version. Please check your internet connection."
     fi
     
-    TARBALL="tv-$VER-$BINARY_TARGET.tar.gz"
+    DIRNAME="tv-$VER-$BINARY_TARGET"
+    TARBALL="$DIRNAME.tar.gz"
     URL="https://github.com/alexpasmantier/television/releases/download/$VER/$TARBALL"
     
-    info "Downloading Television $VER for $BINARY_TARGET..."
+    info "Downloading Television $VER for $OS-$ARCH..."
     if ! curl -LO "$URL"; then
         error "Failed to download binary package"
     fi
@@ -187,11 +188,11 @@ install_binary() {
     
     info "Installing to $INSTALL_DIR..."
     sudo mkdir -p "$INSTALL_DIR"
-    sudo mv tv "$INSTALL_DIR/tv"
+    sudo mv "$DIRNAME/tv" "$INSTALL_DIR/tv"
     sudo chmod +x "$INSTALL_DIR/tv"
     
     # Clean up
-    rm -f "$TARBALL"
+    rm -rf $DIRNAME*
     
     success "Television $VER installed successfully to $INSTALL_DIR/tv!"
 }
@@ -227,7 +228,7 @@ main() {
     esac
     
     echo ""
-    info "Installation complete! You can now use 'tv' command."
+    info "Installation complete! You can now use the 'tv' command."
     info "Run 'tv --help' to get started."
     info "Documentation: https://github.com/alexpasmantier/television"
 }
