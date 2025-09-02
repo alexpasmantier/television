@@ -296,6 +296,17 @@ pub struct Cli {
     #[arg(long, value_name = "STRING", verbatim_doc_comment)]
     pub results_padding: Option<String>,
 
+    /// Maximum number of entries that can be selected.
+    ///
+    /// When a channel is specified: Overrides the max selections defined in the channel prototype or global config.
+    /// When no channel is specified: Sets the max selections for the ad-hoc channel.
+    ///
+    /// - 0 = multi-selection disabled
+    /// - 1-65535 = enabled with that limit
+    /// - Not specified = use config default (unlimited)
+    #[arg(long, value_name = "INTEGER", verbatim_doc_comment, value_parser = clap::value_parser!(u16))]
+    pub results_max_selections: Option<u16>,
+
     /// The delimiter byte to use for splitting the source's command output into entries.
     ///
     /// This can be useful when the source command outputs multiline entries and you want to

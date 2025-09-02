@@ -120,10 +120,7 @@ async fn test_app_basic_search() {
         .unwrap();
 
     assert!(output.selected_entries.is_some());
-    assert_eq!(
-        &output.selected_entries.unwrap().drain().next().unwrap().raw,
-        "./file1.txt"
-    );
+    assert_eq!(&output.selected_entries.unwrap()[0].raw, "./file1.txt");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -185,7 +182,7 @@ async fn test_app_exact_search_multiselect() {
     assert!(selected_entries.is_some());
     // should contain a single entry with the prompt
     assert!(!selected_entries.as_ref().unwrap().is_empty());
-    assert_eq!(selected_entries.unwrap().drain().next().unwrap().raw, "fie");
+    assert_eq!(selected_entries.unwrap()[0].raw, "fie");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -245,10 +242,7 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
         .unwrap();
 
     assert!(output.selected_entries.is_some());
-    assert_eq!(
-        &output.selected_entries.unwrap().drain().next().unwrap().raw,
-        "file1.txt"
-    );
+    assert_eq!(&output.selected_entries.unwrap()[0].raw, "file1.txt");
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

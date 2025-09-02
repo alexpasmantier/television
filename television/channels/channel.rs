@@ -6,8 +6,6 @@ use crate::{
     matcher::{Matcher, config::Config, injector::Injector},
     utils::command::shell_command,
 };
-use rustc_hash::{FxBuildHasher, FxHashSet};
-use std::collections::HashSet;
 use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 use std::sync::Arc;
@@ -25,7 +23,7 @@ pub struct Channel {
     pub source_output: Option<Template>,
     pub supports_preview: bool,
     matcher: Matcher<String>,
-    selected_entries: FxHashSet<Entry>,
+    selected_entries: Vec<Entry>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
     current_source_index: usize,
     /// Indicates if the channel is currently reloading to prevent UI flickering
@@ -53,7 +51,7 @@ impl Channel {
             source_output,
             supports_preview,
             matcher,
-            selected_entries: HashSet::with_hasher(FxBuildHasher),
+            selected_entries: Vec::new(),
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
@@ -140,15 +138,17 @@ impl Channel {
         }
     }
 
-    pub fn selected_entries(&self) -> &FxHashSet<Entry> {
+    pub fn selected_entries(&self) -> &[Entry] {
         &self.selected_entries
     }
 
     pub fn toggle_selection(&mut self, entry: &Entry) {
-        if self.selected_entries.contains(entry) {
-            self.selected_entries.remove(entry);
+        if let Some(pos) =
+            self.selected_entries.iter().position(|e| e == entry)
+        {
+            self.selected_entries.remove(pos);
         } else {
-            self.selected_entries.insert(entry.clone());
+            self.selected_entries.push(entry.clone());
         }
     }
 

@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 pub const DEFAULT_UI_SCALE: u16 = 100;
 pub const DEFAULT_PREVIEW_SIZE: u16 = 50;
 pub const DEFAULT_PROMPT: &str = ">";
+pub const DEFAULT_RESULTS_MAX_SELECTIONS: u16 = u16::MAX;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
@@ -89,6 +90,10 @@ pub struct HelpPanelConfig {
 
 fn default_help_hidden() -> bool {
     true
+}
+
+fn default_results_max_selections() -> u16 {
+    DEFAULT_RESULTS_MAX_SELECTIONS
 }
 
 impl Default for HelpPanelConfig {
@@ -190,6 +195,8 @@ pub struct UiConfig {
     pub ui_scale: u16,
     pub orientation: Orientation,
     pub theme: String,
+    #[serde(default = "default_results_max_selections")]
+    pub results_max_selections: u16,
 
     // Feature-specific configurations
     pub input_bar: InputBarConfig,
@@ -210,6 +217,7 @@ impl Default for UiConfig {
             ui_scale: DEFAULT_UI_SCALE,
             orientation: Orientation::Landscape,
             theme: String::from(DEFAULT_THEME),
+            results_max_selections: DEFAULT_RESULTS_MAX_SELECTIONS,
             input_bar: InputBarConfig::default(),
             status_bar: StatusBarConfig::default(),
             preview_panel: PreviewPanelConfig::default(),

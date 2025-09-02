@@ -15,7 +15,6 @@ use crate::{
 };
 use anyhow::Result;
 use ratatui::{Frame, layout::Rect};
-use rustc_hash::FxHashSet;
 use std::{hash::Hash, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -24,7 +23,7 @@ use std::{hash::Hash, time::Instant};
 /// This struct is passed along to the UI thread as part of the `TvState` struct.
 pub struct ChannelState {
     pub current_channel_name: String,
-    pub selected_entries: FxHashSet<Entry>,
+    pub selected_entries: Vec<Entry>,
     pub total_count: u32,
     pub running: bool,
     pub current_command: String,
@@ -33,7 +32,7 @@ pub struct ChannelState {
 impl ChannelState {
     pub fn new(
         current_channel_name: String,
-        selected_entries: FxHashSet<Entry>,
+        selected_entries: Vec<Entry>,
         total_count: u32,
         running: bool,
         current_command: String,

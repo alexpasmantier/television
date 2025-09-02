@@ -47,6 +47,9 @@ orientation = "landscape"
 # repository. You may also create your own theme by creating a new file in a `themes`
 # directory in your configuration directory (see the `config.toml` location above).
 theme = "default"
+# Maximum number of entries that can be selected in multi-selection mode
+# 0 = multi-selection disabled, 1-65535 = enabled with that limit, 65535 = unlimited (default)
+# results_max_selections = 65535
 
 # Feature-specific configurations
 # Each feature can have its own configuration section

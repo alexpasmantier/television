@@ -10,7 +10,7 @@ use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::App,
     cable::{Cable, cable_empty_exit, load_cable},
-    channels::prototypes::ChannelPrototype,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     cli::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
@@ -18,6 +18,7 @@ use television::{
     config::{Config, ConfigEnv},
     errors::os_error_exit,
     gh::update_local_channels,
+    selector::process_entries,
     television::Mode,
     utils::clipboard::CLIPBOARD,
     utils::{
@@ -105,8 +106,32 @@ async fn main() -> Result<()> {
         writeln!(bufwriter, "{}", key)?;
     }
     if let Some(entries) = output.selected_entries {
-        for entry in &entries {
-            writeln!(bufwriter, "{}", entry.output()?)?;
+        // Use the output template if available
+        if let Some(output_template) =
+            &app.television.merged_config.channel_source_output
+        {
+            // Use selector system for consistent output processing
+            let entry_refs: Vec<&Entry> = entries.iter().collect();
+            match process_entries(&entry_refs, output_template) {
+                Ok(formatted_output) => {
+                    writeln!(bufwriter, "{}", formatted_output)?;
+                }
+                Err(e) => {
+                    debug!(
+                        "Failed to process entries with selector: {}, falling back to individual entry output",
+                        e
+                    );
+                    // Fallback to individual entry output
+                    for entry in &entries {
+                        writeln!(bufwriter, "{}", entry.output()?)?;
+                    }
+                }
+            }
+        } else {
+            // No output template, use individual entry output
+            for entry in &entries {
+                writeln!(bufwriter, "{}", entry.output()?)?;
+            }
         }
     }
     bufwriter.flush()?;
