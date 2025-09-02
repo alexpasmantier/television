@@ -228,7 +228,7 @@ main() {
     esac
     
     echo ""
-    info "Installation complete! You can now use 'tv' command."
+    info "Installation complete! You can now use the 'tv' command."
     info "Run 'tv --help' to get started."
     info "Documentation: https://github.com/alexpasmantier/television"
 }
