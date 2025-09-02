@@ -4,14 +4,14 @@
 _disable_bracketed_paste() {
     # Check if bracketed paste is defined, for compatibility with older versions
     if [[ -n $zle_bracketed_paste ]]; then
-        print -nr ${zle_bracketed_paste[2]} >/dev/tty
+        print -nr ${zle_bracketed_paste[2]} >${TTY:-/dev/tty}
     fi
 }
 
 _enable_bracketed_paste() {
     # Check if bracketed paste is defined, for compatibility with older versions
     if [[ -n $zle_bracketed_paste ]]; then
-        print -nr ${zle_bracketed_paste[1]} >/dev/tty
+        print -nr ${zle_bracketed_paste[1]} >${TTY:-/dev/tty}
     fi
 }
 
