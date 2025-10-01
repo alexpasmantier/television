@@ -4,6 +4,61 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.4](https://github.com/alexpasmantier/television/releases/tag/0.13.4) - 2025-10-01
+
+### ⛰️  Features
+
+- [fb28c72](https://github.com/alexpasmantier/television/commit/fb28c7244bc3ba266c3c4f99984e28391056b481) *(cable)* Add man page channel by @jeffwindsor in [#706](https://github.com/alexpasmantier/television/pull/706)
+
+- [dcd6f20](https://github.com/alexpasmantier/television/commit/dcd6f20c37770f69bcff605f5ddae78d3388e59a) *(channels)* Add procs channel to manage running processes by @Efterklang in [#719](https://github.com/alexpasmantier/television/pull/719)
+
+- [3fee320](https://github.com/alexpasmantier/television/commit/3fee3206a7506f2bc819f79f21c5bf3ad88bf4b6) *(channels)* Channel for managing distrobox containers by @mheuvel-dev in [#725](https://github.com/alexpasmantier/television/pull/725)
+
+- [2f6855f](https://github.com/alexpasmantier/television/commit/2f6855f09572eaca58bb411d5e7e613e261d1293) *(channels)* Channel for guix packages by @gs-101 in [#717](https://github.com/alexpasmantier/television/pull/717)
+
+- [b3a44be](https://github.com/alexpasmantier/television/commit/b3a44becb47023b653a886c0e459775f0006b5a7) *(uncategorized)* Add external actions support for the help panel by @lalvarezt in [#712](https://github.com/alexpasmantier/television/pull/712)
+
+- [19e4bc2](https://github.com/alexpasmantier/television/commit/19e4bc27283874969e7ec389d8dd72c4f3c18bf0) *(uncategorized)* Interactively toggling between landscape and portrait layout by @alexpasmantier in [#702](https://github.com/alexpasmantier/television/pull/702)
+
+### 🐛 Bug Fixes
+
+- [9b489d8](https://github.com/alexpasmantier/television/commit/9b489d8bdbf0b00c36910bb41ad6a9267f11f38f) *(channels)* Deduplicate history command in nu-history channel by @Efterklang
+
+- [22d334d](https://github.com/alexpasmantier/television/commit/22d334d4957e43e88b8e1de6a90eecebd2d8a349) *(shell)* Use $TTY for paste bracketing override by @forivall in [#707](https://github.com/alexpasmantier/television/pull/707)
+
+- [9fbfbf6](https://github.com/alexpasmantier/television/commit/9fbfbf626e388ba9fc2bb05c7d3e50d2241de315) *(uncategorized)* Update binary target in install.sh by @AlexElizard in [#714](https://github.com/alexpasmantier/television/pull/714)
+
+### 📚 Documentation
+
+- [66eadb3](https://github.com/alexpasmantier/television/commit/66eadb384bb45df12c0336df68b21b17abdb9bec) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#726](https://github.com/alexpasmantier/television/pull/726)
+
+### 🧪 Testing
+
+- [7c5adaf](https://github.com/alexpasmantier/television/commit/7c5adaf5c669041bbcee02ff6e92e424ed17c7f1) *(uncategorized)* Support passing custom tv binary path via env `TV_BIN_PATH` by @jcgruenhage in [#715](https://github.com/alexpasmantier/television/pull/715)
+
+### ⚙️ Miscellaneous Tasks
+
+- [42c3dce](https://github.com/alexpasmantier/television/commit/42c3dce8621220947eff76bd432c70772784976c) *(scripts)* Prefer os-specific channel screenshots over generic ones by @alexpasmantier
+
+- [44a6224](https://github.com/alexpasmantier/television/commit/44a6224e4d9c4185a36dd942036fdf854fcc46bf) *(uncategorized)* Release version 0.13.4 by @alexpasmantier
+
+- [77d20d2](https://github.com/alexpasmantier/television/commit/77d20d27c7ceeb715a681e315f6fa9967a1b779f) *(uncategorized)* Fix generate-cable-docs.yml by @alexpasmantier
+
+- [5aa990d](https://github.com/alexpasmantier/television/commit/5aa990d27455b238569fc3cf5729e751847bfcc9) *(uncategorized)* Update changelog by @alexpasmantier
+
+
+
+### New Contributors
+* @Efterklang made their first contribution in [#719](https://github.com/alexpasmantier/television/pull/719)
+* @gs-101 made their first contribution in [#717](https://github.com/alexpasmantier/television/pull/717)
+* @jcgruenhage made their first contribution in [#715](https://github.com/alexpasmantier/television/pull/715)
+* @AlexElizard made their first contribution in [#714](https://github.com/alexpasmantier/television/pull/714)
+* @jeffwindsor made their first contribution in [#706](https://github.com/alexpasmantier/television/pull/706)
+* @forivall made their first contribution in [#707](https://github.com/alexpasmantier/television/pull/707)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.3...0.13.4
+
+
 ## [0.13.3](https://github.com/alexpasmantier/television/releases/tag/0.13.3) - 2025-08-13
 
 ### ⛰️  Features
@@ -48,19 +103,14 @@ All notable changes to this project will be documented in this file.
 
 - [d878244](https://github.com/alexpasmantier/television/commit/d878244d8015be60fa879bc2050404e097523006) *(website)* Prepare for algolia search by @alexpasmantier
 
-- [1794435](https://github.com/alexpasmantier/television/commit/179443545e98a5bf054ee6fd3ac61527517b7126) *(uncategorized)* Release version 0.13.3
+- [1794435](https://github.com/alexpasmantier/television/commit/179443545e98a5bf054ee6fd3ac61527517b7126) *(uncategorized)* Release version 0.13.3 by @alexpasmantier
 
 
 
 ### New Contributors
-* @kapobajza made their first contribution in [#700](https://github.com/alexpasmantier/television/pull/700)
-* @alexpasmantier made their first contribution
-* @dependabot[bot] made their first contribution in [#699](https://github.com/alexpasmantier/television/pull/699)
 * @pastalian made their first contribution
 * @mheuvel-dev made their first contribution in [#691](https://github.com/alexpasmantier/television/pull/691)
 * @0323pin made their first contribution in [#690](https://github.com/alexpasmantier/television/pull/690)
-* @LeoVen made their first contribution in [#688](https://github.com/alexpasmantier/television/pull/688)
-* @github-actions[bot] made their first contribution in [#687](https://github.com/alexpasmantier/television/pull/687)
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.2...0.13.3
 
