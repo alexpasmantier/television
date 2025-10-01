@@ -8,6 +8,7 @@
 name: Generate Cable Docs
 permissions:
   contents: write
+  pull-requests: write
 on:
   pull_request:
     paths:
@@ -42,6 +43,6 @@ jobs:
           body: 'This PR was created by a GitHub Action to update the channel documentation.'
           branch: bot/auto-cable-docs-update
           base: main
-          add-paths: docs/community_channels
+          add-paths: docs
           delete-branch: true
           signoff: true
