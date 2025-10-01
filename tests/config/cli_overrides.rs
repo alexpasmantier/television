@@ -232,3 +232,43 @@ fn test_empty_cli_args_dont_override() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
 }
+
+#[test]
+fn test_action_id_mismatch_validation_error() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    // Create a channel with mismatched action reference
+    let channel_content = r#"
+        [metadata]
+        name = "validation-test"
+        description = "Channel for testing action validation"
+
+        [source]
+        command = "echo 'test-item-1'; echo 'test-item-2'"
+
+        [keybindings]
+        f12 = ["actions:edit_text", "toggle_preview"]
+
+        [actions.edit]
+        description = "Edit the selected file"
+        command = "vi '{}'"
+    "#;
+
+    temp_config
+        .write_channel("validation-test", channel_content)
+        .unwrap();
+
+    let cmd = tv_with_args(&[
+        "validation-test",
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+    ]);
+
+    tester.spawn_command(cmd);
+
+    // The validation should now panic with our message
+    tester.assert_raw_output_contains(
+        "Action 'edit_text' referenced in keybinding not found in actions section",
+    );
+}

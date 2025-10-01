@@ -622,6 +622,25 @@ pub fn format_string(template: &str, source: &str, delimiter: &str) -> String {
     formatted_string
 }
 
+/// Convert a string to title case (capitalize first letter of each word)
+/// Handles both spaces and underscores as word separators
+pub fn to_title_case(s: &str) -> String {
+    s.replace('_', " ")
+        .split_whitespace()
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                None => String::new(),
+                Some(first) => {
+                    first.to_uppercase().collect::<String>()
+                        + &chars.as_str().to_lowercase()
+                }
+            }
+        })
+        .collect::<Vec<String>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
