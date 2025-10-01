@@ -1,8 +1,5 @@
-use std::path::PathBuf;
-
-use rustc_hash::FxHashMap;
-
 use crate::{
+    action::Action,
     channels::prototypes::{
         ActionSpec, BinaryRequirement, ChannelPrototype, CommandSpec, Template,
     },
@@ -14,6 +11,8 @@ use crate::{
     keymap::InputMap,
     screen::layout::{InputPosition, Orientation},
 };
+use rustc_hash::FxHashMap;
+use std::path::PathBuf;
 
 pub struct LayeredConfig {
     /// The base configuration that is loaded from the config file.
@@ -412,6 +411,21 @@ impl LayeredConfig {
             merged_bindings
         };
         let event_bindings = self.base_config.events.clone();
+
+        // Validate that all external actions referenced in keybindings exist in channel actions
+        for actions in keybindings.inner.values() {
+            for action in actions.as_slice() {
+                if let Action::ExternalAction(action_name) = action {
+                    if !channel_actions.contains_key(action_name) {
+                        eprintln!(
+                            "Action '{}' referenced in keybinding not found in actions section",
+                            action_name
+                        );
+                        std::process::exit(1);
+                    }
+                }
+            }
+        }
 
         MergedConfig {
             // General
