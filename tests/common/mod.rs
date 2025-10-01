@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use std::cell::LazyCell;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::{fs, io};
@@ -364,7 +365,9 @@ pub fn f(c: u8) -> String {
 pub const ENTER: &str = "\r";
 pub const ESC: &str = "\x1b";
 
-pub const TV_BIN_PATH: &str = "./target/debug/tv";
+pub const TV_BIN_PATH: LazyCell<&str> = LazyCell::new(|| {
+    option_env!("TV_BIN_PATH").unwrap_or("./target/debug/tv")
+});
 pub const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
     "--cable-dir",
     DEFAULT_CABLE_DIR,
@@ -374,7 +377,7 @@ pub const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
 
 /// A command builder initialized with the tv binary path.
 pub fn tv() -> CommandBuilder {
-    CommandBuilder::new(TV_BIN_PATH)
+    CommandBuilder::new(*TV_BIN_PATH)
 }
 
 /// A command builder initialized with the tv binary path and the provided arguments.

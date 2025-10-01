@@ -113,7 +113,7 @@ fn test_tv_pipes_correctly() -> io::Result<()> {
         dbg!("Skipping test_tv_pipes_correctly in CI environment");
         return Ok(());
     }
-    let mut tv_command = Command::new(TV_BIN_PATH)
+    let mut tv_command = Command::new(*TV_BIN_PATH)
         .args(LOCAL_CONFIG_AND_CABLE)
         .args(["--input", "Cargo.toml"])
         .arg("--take-1")
