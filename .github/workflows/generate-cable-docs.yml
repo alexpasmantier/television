@@ -10,7 +10,7 @@ permissions:
   contents: write
   pull-requests: write
 on:
-  pull_request:
+  push:
     paths:
       - 'cable/**'
       - 'assets/channels/**'
@@ -44,5 +44,3 @@ jobs:
           branch: bot/auto-cable-docs-update
           base: main
           add-paths: docs
-          delete-branch: true
-          signoff: true

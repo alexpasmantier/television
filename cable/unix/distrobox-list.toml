@@ -1,0 +1,42 @@
+[metadata]
+name = "distrobox-list"
+description = "A channel to select a container from distrobox"
+requirements = ["distrobox", "bat"]
+
+[source]
+command = ["distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tail --lines=+2"]
+
+[preview]
+command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+
+[keybindings]
+ctrl-e = "actions:distrobox-enter"
+ctrl-l = "actions:distrobox-list"
+ctrl-r = "actions:distrobox-rm"
+ctrl-s = "actions:distrobox-stop"
+ctrl-u = "actions:distrobox-upgrade"
+
+[actions.distrobox-enter]
+description = "Enter a distrobox"
+command = "distrobox enter {}"
+mode = "execute"
+
+[actions.distrobox-list]
+description = "List a distrobox"
+command = "distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name'"
+mode = "execute"
+
+[actions.distrobox-rm]
+description = "Remove a distrobox"
+command = "distrobox rm {}"
+mode = "execute"
+
+[actions.distrobox-stop]
+description = "Stop a distrobox"
+command = "distrobox stop {}"
+mode = "execute"
+
+[actions.distrobox-upgrade]
+description = "Upgrade a distrobox"
+command = "distrobox upgrade {}"
+mode = "execute"
