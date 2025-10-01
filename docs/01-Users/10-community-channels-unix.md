@@ -132,6 +132,64 @@ shortcut = "f2"
 
 ---
 
+### *distrobox-list*
+
+A channel to select a container from distrobox
+
+![tv running the distrobox-list channel](../../assets/channels/distrobox-list.png)
+**Requirements:** `distrobox`, `bat`
+
+**Code:** *distrobox-list.toml*
+
+```toml
+[metadata]
+name = "distrobox-list"
+description = "A channel to select a container from distrobox"
+requirements = [ "distrobox", "bat",]
+
+[source]
+command = [ "distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tail --lines=+2",]
+
+[preview]
+command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+
+[keybindings]
+ctrl-e = "actions:distrobox-enter"
+ctrl-l = "actions:distrobox-list"
+ctrl-r = "actions:distrobox-rm"
+ctrl-s = "actions:distrobox-stop"
+ctrl-u = "actions:distrobox-upgrade"
+
+[actions.distrobox-enter]
+description = "Enter a distrobox"
+command = "distrobox enter {}"
+mode = "execute"
+
+[actions.distrobox-list]
+description = "List a distrobox"
+command = "distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name'"
+mode = "execute"
+
+[actions.distrobox-rm]
+description = "Remove a distrobox"
+command = "distrobox rm {}"
+mode = "execute"
+
+[actions.distrobox-stop]
+description = "Stop a distrobox"
+command = "distrobox stop {}"
+mode = "execute"
+
+[actions.distrobox-upgrade]
+description = "Upgrade a distrobox"
+command = "distrobox upgrade {}"
+mode = "execute"
+
+```
+
+
+---
+
 ### *docker-images*
 
 A channel to select from Docker images
@@ -411,6 +469,42 @@ command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
 
 ---
 
+### *guix*
+
+A channel to search for and select Guix packages
+
+![tv running the guix channel](../../assets/channels/guix.png)
+**Requirements:** `guix`
+
+**Code:** *guix.toml*
+
+```toml
+[metadata]
+name = "guix"
+description = "A channel to search for and select Guix packages"
+requirements = [ "guix",]
+
+[source]
+command = [ "guix package --list-available=.*",]
+display = "{trim|replace:s/\\s+/ /g|split: :0}"
+output = "{trim|replace:s/\\s+/ /g|split: :0}"
+
+[preview]
+command = "guix package --show={trim|replace:s/\\s+/ /g|split: :0}"
+
+[keybindings]
+f12 = "actions:shell"
+
+[actions.shell]
+description = "Spawns a shell with the selected package"
+command = "guix shell {trim|replace:s/\\s+/ /g|split: :0}"
+mode = "execute"
+
+```
+
+
+---
+
 ### *just-recipes*
 
 A channel to select recipes from Justfiles
@@ -648,7 +742,42 @@ name = "nu-history"
 description = "A channel to select from your nu history"
 
 [source]
-command = "nu -c 'open $nu.history-path | lines | reverse | to text'"
+command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
+
+```
+
+
+---
+
+### *procs*
+
+A channel to find and manage running processes
+
+**Requirements:** `ps`, `awk`
+
+**Code:** *procs.toml*
+
+```toml
+[metadata]
+name = "procs"
+description = "A channel to find and manage running processes"
+requirements = [ "ps", "awk",]
+
+[source]
+command = "ps -e -o pid=,ucomm= | awk '{print $1, $2}'"
+display = "{split: :1}"
+output = "{split: :0}"
+
+[preview]
+command = "ps -p '{split: :0}' -o user,pid,ppid,state,%cpu,%mem,command | fold"
+
+[keybindings]
+ctrl-k = "actions:kill"
+
+[actions.kill]
+description = "Kill the selected process (SIGKILL)"
+command = "kill -9 {split: :0}"
+mode = "execute"
 
 ```
 

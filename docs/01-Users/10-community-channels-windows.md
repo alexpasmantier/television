@@ -314,7 +314,7 @@ name = "nu-history"
 description = "A channel to select from your nu history"
 
 [source]
-command = "nu -c 'open $nu.history-path | lines | reverse | to text'"
+command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
 
 ```
 
