@@ -1,5 +1,6 @@
 use anyhow::Result;
 use colored::Colorize;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::path::Path;
 use tracing::debug;
 use ureq::get;
@@ -97,7 +98,7 @@ fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
         );
     }
     Ok(nodes
-        .iter()
+        .par_iter()
         .filter_map(|node| {
             if node.is_file() {
                 node.download_url.clone()

@@ -52,6 +52,7 @@ colored = "3.0.0"
 serde_with = "3.13.0"
 which = "8.0.0"
 clap_complete = "4.5.55"
+rayon = "1.11.0"
 
 
 # target specific dependencies
