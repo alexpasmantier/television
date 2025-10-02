@@ -8,9 +8,10 @@ use crate::{
 use anyhow::Result;
 use lazy_regex::{Lazy, Regex, regex};
 use rustc_hash::FxHashSet;
+#[cfg(unix)]
+use std::os::unix::process::CommandExt;
 use std::{
     collections::HashMap,
-    os::unix::process::CommandExt,
     process::{Command, ExitStatus, Stdio},
 };
 use tracing::debug;
@@ -170,6 +171,7 @@ pub fn execute_action(
         &action_spec.command.env,
     );
 
+    #[cfg(unix)]
     match action_spec.mode {
         ExecutionMode::Execute => {
             let err = cmd.exec();
@@ -184,6 +186,22 @@ pub fn execute_action(
             let mut child = cmd.spawn()?;
             Ok(child.wait()?)
         }
+    }
+
+    // On windows we can't replace the current process, so we always fork
+    #[cfg(not(unix))]
+    {
+        if action_spec.mode == ExecutionMode::Execute {
+            debug!(
+                "ExecutionMode::Execute is not supported on Windows. Falling back to Fork."
+            );
+        }
+        cmd.stdin(Stdio::inherit())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit());
+
+        let mut child = cmd.spawn()?;
+        Ok(child.wait()?)
     }
 }
 
