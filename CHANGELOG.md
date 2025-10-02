@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.5](https://github.com/alexpasmantier/television/releases/tag/0.13.5) - 2025-10-02
+
+### 🐛 Bug Fixes
+
+- [2feedf1](https://github.com/alexpasmantier/television/commit/2feedf16ec99430a99d77815f0b54927ffc70ee8) *(windows)* Actions now always create a new process on windows by @alexpasmantier in [#731](https://github.com/alexpasmantier/television/pull/731)
+
+### ⚡ Performance
+
+- [428a2d0](https://github.com/alexpasmantier/television/commit/428a2d0d567b05962a7996ca894a1dd3ffd8f3c1) *(uncategorized)* Update channels concurrently by @alexpasmantier in [#730](https://github.com/alexpasmantier/television/pull/730)
+
+### ⚙️ Miscellaneous Tasks
+
+- [69e300c](https://github.com/alexpasmantier/television/commit/69e300cc8b7f3347feab09794c6af80099b7f185) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#728](https://github.com/alexpasmantier/television/pull/728)
+
+- [ee9ae50](https://github.com/alexpasmantier/television/commit/ee9ae5087b96a22cc8c4e385acdcc049e4787c42) *(uncategorized)* Release version 0.13.5 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.4...0.13.5
+
+
 ## [0.13.4](https://github.com/alexpasmantier/television/releases/tag/0.13.4) - 2025-10-01
 
 ### ⛰️  Features
