@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
       - name: Setup node env
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v6
         with:
           node-version-file: "website/.nvmrc"
       - name: Install pnpm
