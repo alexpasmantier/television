@@ -818,6 +818,32 @@ header = "{strip_ansi|split:\\::..2}"
 
 ---
 
+### *tldr*
+
+A channel to browse through tldr entries
+
+![tv running the tldr channel](../../assets/channels/tldr.png)
+**Requirements:** `tldr`
+
+**Code:** *tldr.toml*
+
+```toml
+[metadata]
+name = "tldr"
+description = "A channel to browse through tldr entries"
+requirements = [ "tldr",]
+
+[source]
+command = "tldr -l"
+
+[preview]
+command = "tldr {} --color=always"
+
+```
+
+
+---
+
 ### *zsh-history*
 
 A channel to select from your zsh history
