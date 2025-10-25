@@ -3,6 +3,7 @@
 //! These tests verify Television's intelligent channel detection and shell integration
 //! features, ensuring that the autocomplete prompt can automatically select appropriate
 //! channels based on command analysis.
+#![allow(clippy::borrow_interior_mutable_const)]
 
 use std::{
     io,
