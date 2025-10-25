@@ -7,6 +7,7 @@ pub mod config;
 pub mod draw;
 pub mod errors;
 pub mod event;
+pub mod frecency;
 pub mod gh;
 pub mod history;
 pub mod input;

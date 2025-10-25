@@ -28,6 +28,17 @@ history_size = 200
 # When false: history navigation is scoped to the current channel
 global_history = false
 
+# Frecency settings
+# ----------------
+# Maximum number of entries to keep in the frecency list (default: 0)
+# Enable frecency (frequency + recency) scoring to boost previously selected entries
+# Set to 0 to disable frecency functionality entirely
+frecency_size = 0
+# Whether to use global frecency across all channels (default: false)
+# When true: frecency scoring considers selections from all channels
+# When false: frecency scoring is scoped to the current channel
+global_frecency = false
+
 [ui]
 # How much space to allocate for the UI (in percentage of the screen)
 # ┌─────────────────────────┐

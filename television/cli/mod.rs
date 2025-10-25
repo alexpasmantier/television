@@ -127,7 +127,10 @@ pub struct ChannelCli {
 #[derive(Debug, Clone, Default)]
 pub struct GlobalCli {
     pub workdir: Option<PathBuf>,
+    pub history_size: Option<usize>,
     pub global_history: bool,
+    pub frecency_size: Option<usize>,
+    pub global_frecency: bool,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
     pub command: Option<Command>,
@@ -368,9 +371,12 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             watch_interval: cli.watch,
         },
         global: GlobalCli {
-            // Workdir and global history
+            // Workdir, global history and frecency
             workdir: working_directory,
+            history_size: cli.history_size,
             global_history: cli.global_history,
+            frecency_size: cli.frecency_size,
+            global_frecency: cli.global_frecency,
 
             // Configuration sources
             config_file: cli.config_file.map(|p| expand_tilde(&p)),
