@@ -820,7 +820,7 @@ header = "{strip_ansi|split:\\::..2}"
 
 ### *tldr*
 
-A channel to browse through tldr entries
+Browse and preview TLDR help pages for command-line tools
 
 ![tv running the tldr channel](../../assets/channels/tldr.png)
 **Requirements:** `tldr`
@@ -830,14 +830,22 @@ A channel to browse through tldr entries
 ```toml
 [metadata]
 name = "tldr"
-description = "A channel to browse through tldr entries"
+description = "Browse and preview TLDR help pages for command-line tools"
 requirements = [ "tldr",]
 
 [source]
-command = "tldr -l"
+command = "tldr --list"
 
 [preview]
-command = "tldr {} --color=always"
+command = "tldr '{0}'"
+
+[keybindings]
+ctrl-e = "actions:open"
+
+[actions.open]
+description = "Open the selected TLDR page"
+command = "tldr '{0}'"
+mode = "execute"
 
 ```
 
