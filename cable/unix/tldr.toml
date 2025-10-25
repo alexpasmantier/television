@@ -1,0 +1,10 @@
+[metadata]
+name = "tldr"
+description = "A channel to browse through tldr entries"
+requirements = ["tldr"]
+
+[source]
+command = "tldr -l"
+
+[preview]
+command = "tldr {} --color=always"
