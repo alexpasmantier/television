@@ -1,5 +1,8 @@
-#![allow(dead_code)]
-
+#![allow(
+    dead_code,
+    clippy::borrow_interior_mutable_const,
+    clippy::declare_interior_mutable_const
+)]
 use std::cell::LazyCell;
 use std::path::PathBuf;
 use std::time::Duration;
