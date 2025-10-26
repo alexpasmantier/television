@@ -53,7 +53,13 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|| base_config.application.cable_dir.clone());
 
     debug!("Loading cable channels...");
-    let cable = load_cable(&cable_dir).unwrap_or_default();
+    let mut cable = load_cable(&cable_dir).unwrap_or_default();
+    // if we need cable but it's empty, assume it's the user's first run and
+    // try to update channels automatically
+    if cable.is_empty() && !readable_stdin && cli.global.command.is_none() {
+        update_local_channels(&false)?;
+        cable = load_cable(&cable_dir).unwrap();
+    }
 
     // handle subcommands
     debug!("Handling subcommands...");
