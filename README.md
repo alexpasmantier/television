@@ -100,3 +100,9 @@ tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --p
 This project was inspired by the **awesome** work done by the [telescope](https://github.com/nvim-telescope/telescope.nvim) neovim plugin.
 
 It also leverages the great [helix](https://github.com/helix-editor/helix) editor's nucleo fuzzy matching library, the [tokio](https://github.com/tokio-rs/tokio) async runtime as well as the **formidable** [ratatui](https://github.com/ratatui/ratatui) library.
+
+A special thanks to tv's contributors for their help and support:
+
+<a href="https://github.com/alexpasmantier/television/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=alexpasmantier/television" />
+</a>
