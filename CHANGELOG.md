@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.6](https://github.com/alexpasmantier/television/releases/tag/0.13.6) - 2025-10-26
+
+### ⛰️  Features
+
+- [e785e59](https://github.com/alexpasmantier/television/commit/e785e598c1be5174e4bb8063a53a0ac4322c8111) *(cable)* Add tldr channel by @alexpasmantier
+
+- [74af02a](https://github.com/alexpasmantier/television/commit/74af02ae6a683dce77a066ec525264a8b01afa11) *(channels)* Channel for selecting tv channels by @mheuvel-dev in [#738](https://github.com/alexpasmantier/television/pull/738)
+
+- [0a256c4](https://github.com/alexpasmantier/television/commit/0a256c470fb2031d343baa9763ab38c1b218d731) *(channels)* Channel for selecting tldr pages by @mheuvel-dev in [#737](https://github.com/alexpasmantier/television/pull/737)
+
+### 🐛 Bug Fixes
+
+- [f34b6c3](https://github.com/alexpasmantier/television/commit/f34b6c325612d70c61163b65bf487ba1aaa50eb8) *(ci)* Fix push command when packaging for apt by @alexpasmantier
+
+- [1950cb9](https://github.com/alexpasmantier/television/commit/1950cb95a6309e54a4a956e6d475773208c4d40a) *(tests)* Use exponential backoff when waiting on the pty child process by @alexpasmantier
+
+- [3486897](https://github.com/alexpasmantier/television/commit/348689702316d07e367f0f99b0f56842010604b8) *(tests)* Ignore interior mutability clippy warning by @alexpasmantier
+
+### 🚜 Refactor
+
+- [bffa6e6](https://github.com/alexpasmantier/television/commit/bffa6e6b3da665a033692167be9ad81482e5df1d) *(ux)* Automatically update channels on first run by @alexpasmantier
+
+### 📚 Documentation
+
+- [a7a7911](https://github.com/alexpasmantier/television/commit/a7a79110746027cc6f28d2737dcc2c633bfff3b7) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#749](https://github.com/alexpasmantier/television/pull/749)
+
+- [7850a55](https://github.com/alexpasmantier/television/commit/7850a55e2988bf5ceebdbac14ab61f4371da79b2) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#748](https://github.com/alexpasmantier/television/pull/748)
+
+- [6311d8e](https://github.com/alexpasmantier/television/commit/6311d8e1e756eeac4912e416b255ecb8629e19a9) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#746](https://github.com/alexpasmantier/television/pull/746)
+
+- [dd13418](https://github.com/alexpasmantier/television/commit/dd13418408cccae2b5296336a7e26df97df10954) *(uncategorized)* Add contributors graph to the README by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [51a70c3](https://github.com/alexpasmantier/television/commit/51a70c3a59076f4aa8f7abfecdc9fa927ca5d9d9) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#732](https://github.com/alexpasmantier/television/pull/732)
+
+- [725484f](https://github.com/alexpasmantier/television/commit/725484f5d8ad125f19ce606d5aa1515108bc5c8b) *(uncategorized)* Release version 0.13.6 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.5...0.13.6
+
+
 ## [0.13.5](https://github.com/alexpasmantier/television/releases/tag/0.13.5) - 2025-10-02
 
 ### 🐛 Bug Fixes
