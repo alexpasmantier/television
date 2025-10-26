@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.7](https://github.com/alexpasmantier/television/releases/tag/0.13.7) - 2025-10-26
+
+### 🐛 Bug Fixes
+
+- [389f6f9](https://github.com/alexpasmantier/television/commit/389f6f918d2ef97b2522350c1de7dddca5f37fba) *(clippy)* Update to stable 1.90 syntax by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [5488e8b](https://github.com/alexpasmantier/television/commit/5488e8b04a39d05a23bc23edadd5cb28f40014aa) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#750](https://github.com/alexpasmantier/television/pull/750)
+
+- [5d41b5e](https://github.com/alexpasmantier/television/commit/5d41b5e2360a502988f3b40dc57dc7b0debf6e8b) *(rust)* Update rust toolchain to 1.90 and update deps by @alexpasmantier
+
+- [2e0a9ad](https://github.com/alexpasmantier/television/commit/2e0a9adbde57e2d977e51fec07a1612d4fbfe0f5) *(uncategorized)* Release version 0.13.7 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.6...0.13.7
+
+
 ## [0.13.6](https://github.com/alexpasmantier/television/releases/tag/0.13.6) - 2025-10-26
 
 ### ⛰️  Features
