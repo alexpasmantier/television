@@ -81,10 +81,10 @@ impl Channel {
         self.reloading
             .store(true, std::sync::atomic::Ordering::Relaxed);
 
-        if let Some(handle) = self.crawl_handle.take() {
-            if !handle.is_finished() {
-                handle.abort();
-            }
+        if let Some(handle) = self.crawl_handle.take()
+            && !handle.is_finished()
+        {
+            handle.abort();
         }
         self.matcher.restart();
         self.load();

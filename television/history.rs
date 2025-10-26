@@ -89,10 +89,11 @@ impl History {
         }
 
         // Don't add duplicate consecutive queries
-        if let Some(last_entry) = self.entries.last() {
-            if last_entry.query == query && last_entry.channel == channel {
-                return Ok(());
-            }
+        if let Some(last_entry) = self.entries.last()
+            && last_entry.query == query
+            && last_entry.channel == channel
+        {
+            return Ok(());
         }
 
         // Trim history if it's going to exceed `max_size`

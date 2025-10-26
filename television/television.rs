@@ -463,9 +463,9 @@ const RENDERING_INTERVAL_FAST: u64 = 3;
 impl Television {
     fn should_render(&self, action: &Action) -> bool {
         (self.ticks < FIRST_TICKS_TO_RENDER
-            || self.ticks % RENDERING_INTERVAL == 0
+            || self.ticks.is_multiple_of(RENDERING_INTERVAL)
             || (self.channel.running()
-                && self.ticks % RENDERING_INTERVAL_FAST == 0)
+                && self.ticks.is_multiple_of(RENDERING_INTERVAL_FAST))
             || matches!(
                 action,
                 Action::AddInputChar(_)
@@ -553,12 +553,12 @@ impl Television {
         preview: &Preview,
         preview_window: Option<&Rect>,
     ) -> u16 {
-        if let Some(window) = preview_window {
-            if let Some(target_line) = preview.line_number {
-                // this places the target line 3 lines above the center of the preview window
-                return target_line
-                    .saturating_sub((window.height / 2).saturating_sub(3));
-            }
+        if let Some(window) = preview_window
+            && let Some(target_line) = preview.line_number
+        {
+            // this places the target line 3 lines above the center of the preview window
+            return target_line
+                .saturating_sub((window.height / 2).saturating_sub(3));
         }
         0
     }
@@ -639,14 +639,14 @@ impl Television {
     }
 
     pub fn handle_toggle_selection(&mut self, action: &Action) {
-        if matches!(self.mode, Mode::Channel) {
-            if let Some(entry) = &self.currently_selected {
-                self.channel.toggle_selection(entry);
-                if matches!(action, Action::ToggleSelectionDown) {
-                    self.move_cursor(Movement::Next, 1);
-                } else {
-                    self.move_cursor(Movement::Prev, 1);
-                }
+        if matches!(self.mode, Mode::Channel)
+            && let Some(entry) = &self.currently_selected
+        {
+            self.channel.toggle_selection(entry);
+            if matches!(action, Action::ToggleSelectionDown) {
+                self.move_cursor(Movement::Next, 1);
+            } else {
+                self.move_cursor(Movement::Prev, 1);
             }
         }
     }
@@ -676,16 +676,16 @@ impl Television {
     }
 
     pub fn handle_copy_entry_to_clipboard(&mut self) {
-        if self.mode == Mode::Channel {
-            if let Some(entries) = self.get_selected_entries() {
-                let copied_string = entries
-                    .iter()
-                    .map(|e| e.raw.clone())
-                    .collect::<Vec<_>>()
-                    .join(" ");
+        if self.mode == Mode::Channel
+            && let Some(entries) = self.get_selected_entries()
+        {
+            let copied_string = entries
+                .iter()
+                .map(|e| e.raw.clone())
+                .collect::<Vec<_>>()
+                .join(" ");
 
-                tokio::spawn(CLIPBOARD.set(copied_string));
-            }
+            tokio::spawn(CLIPBOARD.set(copied_string));
         }
     }
 

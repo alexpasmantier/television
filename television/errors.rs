@@ -7,10 +7,10 @@ use tracing::error;
 pub fn init() -> Result<()> {
     panic::set_hook(Box::new(move |panic_info| {
         // Clean up the terminal
-        if let Ok(mut t) = Tui::new(std::io::stderr(), &TuiMode::Fullscreen) {
-            if let Err(err) = t.exit() {
-                error!("Unable to exit terminal: {:?}", err);
-            }
+        if let Ok(mut t) = Tui::new(std::io::stderr(), &TuiMode::Fullscreen)
+            && let Err(err) = t.exit()
+        {
+            error!("Unable to exit terminal: {:?}", err);
         }
 
         // In release builds, use human-panic to generate a friendly crash report:

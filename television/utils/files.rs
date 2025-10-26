@@ -92,14 +92,13 @@ where
         }
         if let Ok(mut f) = File::open(p) {
             let mut buffer = [0u8; 256];
-            if let Ok(bytes_read) = f.read(&mut buffer) {
-                if bytes_read > 0
-                    && proportion_of_printable_ascii_characters(
-                        &buffer[..bytes_read],
-                    ) > PRINTABLE_ASCII_THRESHOLD
-                {
-                    return FileType::Text;
-                }
+            if let Ok(bytes_read) = f.read(&mut buffer)
+                && bytes_read > 0
+                && proportion_of_printable_ascii_characters(
+                    &buffer[..bytes_read],
+                ) > PRINTABLE_ASCII_THRESHOLD
+            {
+                return FileType::Text;
             }
         } else {
             warn!("Error opening file: {:?}", path);

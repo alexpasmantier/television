@@ -256,14 +256,14 @@ pub fn try_preview(
     debug!("Preview command: {}", command);
 
     // Check if the entry is already cached
-    if let Some(cache) = &cache {
-        if let Some(preview) = cache.lock().get(entry) {
-            debug!("Preview for entry '{}' found in cache", entry.raw);
-            results_handle.send(preview).with_context(
-                || "Failed to send cached preview result to main thread.",
-            )?;
-            return Ok(());
-        }
+    if let Some(cache) = &cache
+        && let Some(preview) = cache.lock().get(entry)
+    {
+        debug!("Preview for entry '{}' found in cache", entry.raw);
+        results_handle.send(preview).with_context(
+            || "Failed to send cached preview result to main thread.",
+        )?;
+        return Ok(());
     }
 
     let formatted_command = command.get_nth(0).format(&entry.raw)?;
