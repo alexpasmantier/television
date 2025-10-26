@@ -15,7 +15,7 @@ categories = [
   "development-tools",
 ]
 exclude = ["website", ".github", "apt", "website", "assets"]
-rust-version = "1.87"
+rust-version = "1.90"
 build = "build.rs"
 
 [lib]
