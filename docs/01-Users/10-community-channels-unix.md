@@ -104,6 +104,40 @@ command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
 
 ---
 
+### *channels*
+
+Select a television channel
+
+![tv running the channels channel](../../assets/channels/channels.png)
+**Requirements:** `tv`, `bat`
+
+**Code:** *channels.toml*
+
+```toml
+[metadata]
+name = "channels"
+description = "Select a television channel"
+requirements = [ "tv", "bat",]
+
+[source]
+command = [ "tv list-channels",]
+
+[preview]
+command = "bat -pn --color always ${XDG_CONFIG_HOME:-$HOME/.config}/television/cable/{}.toml"
+
+[keybindings]
+enter = "actions:channel-enter"
+
+[actions.channel-enter]
+description = "Enter a television channel"
+command = "tv {}"
+mode = "execute"
+
+```
+
+
+---
+
 ### *dirs*
 
 A channel to select from directories
