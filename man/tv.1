@@ -1,6 +1,6 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH television 1  "television 0.13.6" 
+.TH television 1  "television 0.13.7" 
 .SH NAME
 television \- Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH SYNOPSIS
@@ -9,7 +9,7 @@ television \- Cross\-platform, fast and extensible general purpose fuzzy finder 
 Cross\-platform, fast and extensible general purpose fuzzy finder TUI.
 .SH OPTIONS
 .TP
-\fB\-\-preview\-offset\fR=\fISTRING\fR
+\fB\-\-preview\-offset\fR \fI<STRING>\fR
 A preview line number offset template to use to scroll the preview to for each
 entry.
 
@@ -57,7 +57,7 @@ Show the status bar on startup (only works if feature is enabled).
 This flag works identically in both channel mode and ad\-hoc mode.
 This overrides any channel configuration that might have it disabled.
 .TP
-\fB\-t\fR, \fB\-\-tick\-rate\fR=\fIINT\fR
+\fB\-t\fR, \fB\-\-tick\-rate\fR \fI<INT>\fR
 The application\*(Aqs tick rate.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -67,7 +67,7 @@ second. This can be used to control responsiveness and CPU usage on
 very slow machines or very fast ones but the default should be a good
 compromise for most users.
 .TP
-\fB\-\-watch\fR=\fIFLOAT\fR
+\fB\-\-watch\fR \fI<FLOAT>\fR
 Watch mode: reload the source command every N seconds.
 
 When a channel is specified: Overrides the watch interval defined in the channel prototype.
@@ -77,7 +77,7 @@ When set to a positive number, the application will automatically
 reload the source command at the specified interval. This is useful
 for monitoring changing data sources. Set to 0 to disable (default).
 .TP
-\fB\-k\fR, \fB\-\-keybindings\fR=\fISTRING\fR
+\fB\-k\fR, \fB\-\-keybindings\fR \fI<STRING>\fR
 Keybindings to override the default keybindings.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -88,7 +88,7 @@ expressions using the configuration file formalism.
 
 Example: `tv \-\-keybindings=\*(Aqquit="esc";select_next_entry=["down","ctrl\-j"]\*(Aq`
 .TP
-\fB\-\-expect\fR=\fISTRING\fR
+\fB\-\-expect\fR \fI<STRING>\fR
 Keys that can be used to confirm the current selection in addition to the default ones
 (typically `enter`).
 
@@ -98,7 +98,7 @@ that was used to confirm the selection before outputting the selected entry.
 Example: `tv \-\-expect=\*(Aqctrl\-q\*(Aq` will output `ctr\-q\\n<selected_entry>` when `ctrl\-q` is
 pressed to confirm the selection.
 .TP
-\fB\-i\fR, \fB\-\-input\fR=\fISTRING\fR
+\fB\-i\fR, \fB\-\-input\fR \fI<STRING>\fR
 Input text to pass to the channel to prefill the prompt.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -106,7 +106,7 @@ This flag works identically in both channel mode and ad\-hoc mode.
 This can be used to provide a default value for the prompt upon
 startup.
 .TP
-\fB\-\-input\-header\fR=\fISTRING\fR
+\fB\-\-input\-header\fR \fI<STRING>\fR
 Input field header template.
 
 When a channel is specified: Overrides the input header defined in the channel prototype.
@@ -116,7 +116,7 @@ The given value is parsed as a `MultiTemplate`. It is evaluated against
 the current channel name and the resulting text is shown as the input
 field title. Defaults to the current channel name when omitted.
 .TP
-\fB\-\-input\-prompt\fR=\fISTRING\fR
+\fB\-\-input\-prompt\fR \fI<STRING>\fR
 Input prompt string
 
 When a channel is specified: This overrides the prompt defined in the channel prototype.
@@ -125,7 +125,7 @@ When no channel is specified: Sets the input prompt for the ad\-hoc channel.
 The given value is used as the prompt string shown before the input field.
 Defaults to ">" when omitted.
 .TP
-\fB\-\-input\-border\fR=\fIINPUT_BORDER\fR
+\fB\-\-input\-border\fR \fI<INPUT_BORDER>\fR
 Sets the input panel border type.
 
 Available options are: `none`, `plain`, `rounded`, `thick`.
@@ -134,14 +134,14 @@ Available options are: `none`, `plain`, `rounded`, `thick`.
 .br
 [\fIpossible values: \fRnone, plain, rounded, thick]
 .TP
-\fB\-\-input\-padding\fR=\fISTRING\fR
+\fB\-\-input\-padding\fR \fI<STRING>\fR
 Sets the input panel padding.
 
 Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
 
 Example: `\-\-input\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
 .TP
-\fB\-\-preview\-header\fR=\fISTRING\fR
+\fB\-\-preview\-header\fR \fI<STRING>\fR
 Preview header template
 
 When a channel is specified: This overrides the header defined in the channel prototype.
@@ -150,7 +150,7 @@ When no channel is specified: This flag requires \-\-preview\-command to be set.
 The given value is parsed as a `MultiTemplate`. It is evaluated for every
 entry and its result is displayed above the preview panel.
 .TP
-\fB\-\-preview\-footer\fR=\fISTRING\fR
+\fB\-\-preview\-footer\fR \fI<STRING>\fR
 Preview footer template
 
 When a channel is specified: This overrides the footer defined in the channel prototype.
@@ -159,7 +159,7 @@ When no channel is specified: This flag requires \-\-preview\-command to be set.
 The given value is parsed as a `MultiTemplate`. It is evaluated for every
 entry and its result is displayed below the preview panel.
 .TP
-\fB\-\-preview\-border\fR=\fIPREVIEW_BORDER\fR
+\fB\-\-preview\-border\fR \fI<PREVIEW_BORDER>\fR
 Sets the preview panel border type.
 
 Available options are: `none`, `plain`, `rounded`, `thick`.
@@ -168,7 +168,7 @@ Available options are: `none`, `plain`, `rounded`, `thick`.
 .br
 [\fIpossible values: \fRnone, plain, rounded, thick]
 .TP
-\fB\-\-preview\-padding\fR=\fISTRING\fR
+\fB\-\-preview\-padding\fR \fI<STRING>\fR
 Sets the preview panel padding.
 
 Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
@@ -178,7 +178,7 @@ Example: `\-\-preview\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
 \fB\-\-hide\-preview\-scrollbar\fR
 Hide preview panel scrollbar.
 .TP
-\fB\-s\fR, \fB\-\-source\-command\fR=\fISTRING\fR
+\fB\-s\fR, \fB\-\-source\-command\fR \fI<STRING>\fR
 Source command to use for the current channel.
 
 When a channel is specified: This overrides the command defined in the channel prototype.
@@ -195,7 +195,7 @@ which should go mostly unnoticed for typical human interaction workloads.
 
 Example: `tv \-\-source\-command="echo \-e \*(Aq\\x1b[31mRed\\x1b[0m\*(Aq" \-\-ansi`
 .TP
-\fB\-\-source\-display\fR=\fISTRING\fR
+\fB\-\-source\-display\fR \fI<STRING>\fR
 Source display template to use for the current channel.
 
 When a channel is specified: This overrides the display template defined in the channel prototype.
@@ -204,7 +204,7 @@ When no channel is specified: This flag requires \-\-source\-command to be set.
 The template is used to format each entry in the results list.
 Example: `{split:/:\-1}` (show only the last path segment)
 .TP
-\fB\-\-source\-output\fR=\fISTRING\fR
+\fB\-\-source\-output\fR \fI<STRING>\fR
 Source output template to use for the current channel.
 
 When a channel is specified: This overrides the output template defined in the channel prototype.
@@ -213,7 +213,7 @@ When no channel is specified: This flag requires \-\-source\-command to be set.
 The template is used to format the final output when an entry is selected.
 Example: "{}" (output the full entry)
 .TP
-\fB\-\-results\-border\fR=\fIRESULTS_BORDER\fR
+\fB\-\-results\-border\fR \fI<RESULTS_BORDER>\fR
 Sets the results panel border type.
 
 Available options are: `none`, `plain`, `rounded`, `thick`.
@@ -222,20 +222,20 @@ Available options are: `none`, `plain`, `rounded`, `thick`.
 .br
 [\fIpossible values: \fRnone, plain, rounded, thick]
 .TP
-\fB\-\-results\-padding\fR=\fISTRING\fR
+\fB\-\-results\-padding\fR \fI<STRING>\fR
 Sets the results panel padding.
 
 Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
 
 Example: `\-\-results\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
 .TP
-\fB\-\-source\-entry\-delimiter\fR=\fISTRING\fR
+\fB\-\-source\-entry\-delimiter\fR \fI<STRING>\fR
 The delimiter byte to use for splitting the source\*(Aqs command output into entries.
 
 This can be useful when the source command outputs multiline entries and you want to
 rely on another delimiter to split the entries such a null byte or a custom character.
 .TP
-\fB\-p\fR, \fB\-\-preview\-command\fR=\fISTRING\fR
+\fB\-p\fR, \fB\-\-preview\-command\fR \fI<STRING>\fR
 Preview command to use for the current channel.
 
 When a channel is specified: This overrides the preview command defined in the channel prototype.
@@ -254,7 +254,7 @@ Whether to cache the preview command output for each entry.
 This can be useful when the preview command is expensive to run
 and you want to avoid running it multiple times for the same entry.
 .TP
-\fB\-\-layout\fR=\fILAYOUT\fR
+\fB\-\-layout\fR \fI<LAYOUT>\fR
 Layout orientation for the UI.
 
 When a channel is specified: Overrides the layout/orientation defined in the channel prototype.
@@ -266,7 +266,7 @@ Options are "landscape" or "portrait".
 .br
 [\fIpossible values: \fRlandscape, portrait]
 .TP
-\fB\-\-autocomplete\-prompt\fR=\fISTRING\fR
+\fB\-\-autocomplete\-prompt\fR \fI<STRING>\fR
 Try to guess the channel from the provided input prompt.
 
 This flag automatically selects channel mode by guessing the appropriate channel.
@@ -357,7 +357,7 @@ Show the help panel on startup (only works if feature is enabled).
 This flag works identically in both channel mode and ad\-hoc mode.
 This overrides any channel configuration that might have it disabled.
 .TP
-\fB\-\-ui\-scale\fR=\fIINTEGER\fR
+\fB\-\-ui\-scale\fR \fI<INTEGER>\fR
 Change the display size in relation to the available area.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -365,18 +365,18 @@ This flag works identically in both channel mode and ad\-hoc mode.
 This will crop the UI to a centered rectangle of the specified
 percentage of the available area.
 .TP
-\fB\-\-preview\-size\fR=\fIINTEGER\fR
+\fB\-\-preview\-size\fR \fI<INTEGER>\fR
 Percentage of the screen to allocate to the preview panel (1\-99).
 
 When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
 When no channel is specified: This flag requires \-\-preview\-command to be set.
 .TP
-\fB\-\-config\-file\fR=\fIPATH\fR
+\fB\-\-config\-file\fR \fI<PATH>\fR
 Provide a custom configuration file to use.
 
 This flag works identically in both channel mode and ad\-hoc mode.
 .TP
-\fB\-\-cable\-dir\fR=\fIPATH\fR
+\fB\-\-cable\-dir\fR \fI<PATH>\fR
 Provide a custom cable directory to use.
 
 This flag works identically in both channel mode and ad\-hoc mode.
@@ -389,14 +389,14 @@ This flag only works in channel mode.
 When enabled, history navigation will show entries from all channels.
 When disabled (default), history navigation is scoped to the current channel.
 .TP
-\fB\-\-height\fR=\fIINTEGER\fR
+\fB\-\-height\fR \fI<INTEGER>\fR
 Height in lines for non\-fullscreen mode.
 
 This flag works identically in both channel mode and ad\-hoc mode.
 
 When specified, the picker will be displayed as a non\-fullscreen interface.
 .TP
-\fB\-\-width\fR=\fIINTEGER\fR
+\fB\-\-width\fR \fI<INTEGER>\fR
 Width in columns for non\-fullscreen mode.
 
 This flag can only be used in combination with \-\-inline or \-\-height.
@@ -454,6 +454,6 @@ Downloads the latest collection of default channel prototypes from github and sa
 television\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
-v0.13.6
+v0.13.7
 .SH AUTHORS
 Alexandre Pasmantier <alex.pasmant@gmail.com>
