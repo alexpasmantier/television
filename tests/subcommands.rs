@@ -9,7 +9,7 @@ fn tv_version() {
     let mut child = tester.spawn_command(tv_with_args(&["--version"]));
 
     tester.assert_raw_output_contains("television");
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests the `tv list-channels` command.
@@ -53,7 +53,7 @@ fn tv_list_channels() {
         );
     }
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]
@@ -63,5 +63,5 @@ fn tv_init_zsh() {
     let mut child = tester
         .spawn_command(tv_local_config_and_cable_with_args(&["init", "zsh"]));
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

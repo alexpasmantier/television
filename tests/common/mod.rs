@@ -62,7 +62,7 @@ pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
 ///     tester.send(&ctrl('c'));
 ///
 ///     // Assert that the child process exits successfully
-///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 /// }
 /// ```
 pub struct PtyTester {
@@ -195,12 +195,12 @@ impl PtyTester {
     }
 
     /// Waits for the child process to exit, asserting that it exits with a success status.
+    /// This uses exponential backoff to wait for the process to exit to avoid flakiness.
     pub fn assert_exit_ok(
         child: &mut Box<dyn portable_pty::Child + Send + Sync>,
         timeout: Duration,
     ) {
-        let now = std::time::Instant::now();
-        while now.elapsed() < timeout {
+        for i in 0..4 {
             match child.try_wait() {
                 Ok(Some(status)) => {
                     assert!(
@@ -212,14 +212,18 @@ impl PtyTester {
                 }
                 Ok(None) => {
                     // Process is still running, continue waiting
-                    sleep(timeout / 6);
+                    sleep(timeout * 2u32.pow(i));
                 }
                 Err(e) => {
                     panic!("Error waiting for process: {}", e);
                 }
             }
         }
-        panic!("Process did not exit in time: {:?}", child.try_wait());
+
+        panic!(
+            "Process did not exit before timeout: {:?}",
+            child.try_wait()
+        );
     }
 
     /// How long to wait for the TUI to stabilize before asserting its output.

@@ -65,7 +65,7 @@ fn test_channel_keybindings_merge_with_user_config() {
     tester.assert_tui_frame_contains("Preview ON");
 
     tester.send(&ctrl('r'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests channel UI configuration merging
@@ -132,7 +132,7 @@ fn test_channel_ui_merging() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests channel source command variations and output parsing
@@ -185,7 +185,7 @@ fn test_channel_source_command_variations() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests channel configuration with environment variables
@@ -231,7 +231,7 @@ fn test_channel_environment_variables() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that CLI completely overrides channel prototype settings
@@ -306,5 +306,5 @@ fn test_cli_completely_overrides_channel() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

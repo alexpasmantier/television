@@ -27,7 +27,7 @@ fn test_layout_landscape() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --layout portrait arranges panels vertically stacked.
@@ -47,7 +47,7 @@ fn test_layout_portrait() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --layout portrait arranges panels vertically stacked.
@@ -85,7 +85,7 @@ fn test_toggle_layout() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --input-header customizes the text above the search input in Channel Mode.
@@ -104,7 +104,7 @@ fn test_input_header_in_channel_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --input-header works in Ad-hoc Mode.
@@ -124,7 +124,7 @@ fn test_input_header_in_adhoc_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --input-prompt customizes the prompt symbol in Channel Mode.
@@ -143,7 +143,7 @@ fn test_input_prompt_in_channel_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --input-prompt works in Ad-hoc Mode.
@@ -163,7 +163,7 @@ fn test_input_prompt_in_adhoc_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the default input prompt "> " is used when no custom prompt is specified.
@@ -181,7 +181,7 @@ fn test_default_input_prompt() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --ui-scale adjusts the overall interface size.
@@ -201,7 +201,7 @@ fn test_ui_scale() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-remote hides the remote control panel.
@@ -218,7 +218,7 @@ fn test_no_remote_hides_remote_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-status-bar starts the interface with the status bar hidden.
@@ -236,7 +236,7 @@ fn test_hide_status_bar_flag_hides_status_bar() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --show-remote starts the interface with the remote control panel visible.
@@ -256,7 +256,7 @@ fn test_show_remote_flag_shows_remote_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-remote prevents the remote control panel from showing at startup.
@@ -273,7 +273,7 @@ fn test_hide_remote_flag_hides_remote_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-remote conflicts with --no-remote.
@@ -328,7 +328,7 @@ fn test_no_help_panel_disables_help_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-help-panel starts the interface with the help panel hidden.
@@ -349,7 +349,7 @@ fn test_hide_help_panel_starts_with_help_hidden() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --show-help-panel ensures the help panel is visible.
@@ -367,7 +367,7 @@ fn test_show_help_panel_starts_with_help_visible() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-help-panel conflicts with --no-help-panel.
@@ -454,7 +454,7 @@ fn test_tui_with_height_and_width() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
     unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
@@ -475,7 +475,7 @@ fn test_no_preview_disables_preview_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --show-preview starts the interface with the preview panel visible.
@@ -493,7 +493,7 @@ fn test_show_preview_starts_with_preview_visible() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-status-bar disables the status bar entirely.
@@ -511,7 +511,7 @@ fn test_no_status_bar_disables_status_bar() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --show-status-bar starts the interface with the status bar visible.
@@ -529,7 +529,7 @@ fn test_show_status_bar_starts_with_status_visible() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-preview-scrollbar hides the preview panel scrollbar.
@@ -550,7 +550,7 @@ fn test_hide_preview_scrollbar_hides_scrollbar() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-preview conflicts with preview-related flags.
@@ -617,6 +617,6 @@ fn test_tui_with_height_only() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
     unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
