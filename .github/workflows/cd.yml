@@ -324,4 +324,4 @@ jobs:
 
           git add .
           git commit -m "feat: [bot] update apt package repository" || echo "No changes to commit"
-          git push origin main
+          git push origin HEAD:main
