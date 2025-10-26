@@ -56,7 +56,7 @@ fn test_cli_ui_overrides_config_file() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests CLI overrides of channel-specific configuration
@@ -107,7 +107,7 @@ fn test_cli_overrides_channel_source_and_preview() {
     tester.assert_not_tui_frame_contains("channel-item-1");
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests CLI working directory parameter
@@ -137,7 +137,7 @@ fn test_cli_working_directory_override() {
     // Should find our test file in the target directory
     tester.assert_raw_output_contains("working-dir-test.txt");
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests CLI input headers and footers override channel config
@@ -200,7 +200,7 @@ fn test_cli_header_footer_overrides() {
     ]);
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that empty CLI arguments don't override non-empty config values
@@ -230,7 +230,7 @@ fn test_empty_cli_args_dont_override() {
     tester.assert_tui_frame_contains("config-prompt>");
 
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]

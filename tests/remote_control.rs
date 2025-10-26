@@ -18,7 +18,7 @@ fn tv_remote_control_shows() {
     tester.send(&ctrl('c'));
     tester.send(&ctrl('c'));
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]
@@ -38,5 +38,5 @@ fn tv_remote_control_zaps() {
     tester.send(&ctrl('c'));
     tester.send(&ctrl('c'));
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

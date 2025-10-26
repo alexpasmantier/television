@@ -11,7 +11,7 @@ fn tv_ctrl_c() {
     tester.send(&ctrl('c'));
 
     // Check if the child process exited with a timeout
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Test that the various channels open correctly, spawn a UI that contains the
@@ -32,7 +32,7 @@ macro_rules! test_channel {
             ));
 
             tester.send(&ctrl('c'));
-            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+            PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
         }
     )*
     }
@@ -67,5 +67,5 @@ fn test_channel_shortcuts() {
 
     // Send Ctrl-C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

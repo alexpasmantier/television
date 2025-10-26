@@ -27,7 +27,7 @@ fn test_toggle_preview_keybinding() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the toggle remote control keybinding functionality works correctly.
@@ -50,7 +50,7 @@ fn test_toggle_remote_control_keybinding() {
 
     // Send Ctrl+C again to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the toggle status bar keybinding functionality works correctly.
@@ -74,7 +74,7 @@ fn test_toggle_status_bar_keybinding() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the toggle help keybinding functionality works correctly.
@@ -94,7 +94,7 @@ fn test_toggle_help_keybinding() {
 
     // Send Ctrl+C to exit (help panel should close and app should exit)
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the preview scrolling keybindings functionality works correctly.
@@ -126,7 +126,7 @@ fn test_scroll_preview_keybindings() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the reload source keybinding functionality works correctly.
@@ -162,7 +162,7 @@ fn test_reload_source_keybinding() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the cycle sources keybinding functionality works correctly.
@@ -183,7 +183,7 @@ fn test_cycle_sources_keybinding() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that preview toggle is disabled when in remote control mode.
@@ -236,5 +236,5 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

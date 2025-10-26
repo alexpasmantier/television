@@ -20,7 +20,7 @@ fn test_source_command_in_adhoc_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --source-command can override channel defaults in Channel Mode.
@@ -41,7 +41,7 @@ fn test_source_command_override_in_channel_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --source-display formats how entries appear in the results list.
@@ -64,7 +64,7 @@ fn test_source_display_with_source_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY * 2);
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --source-output formats the final output when an entry is selected.
