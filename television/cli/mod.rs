@@ -211,19 +211,16 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         })
     });
 
-    if cli.autocomplete_prompt.is_some() {
-        if let Some(ch) = &cli.channel {
-            if !Path::new(ch).exists() {
-                let mut cmd = Cli::command();
-                let arg1 = "'--autocomplete-prompt <STRING>'".yellow();
-                let arg2 = "'[CHANNEL]'".yellow();
-                let msg = format!(
-                    "The argument {} cannot be used with {}",
-                    arg1, arg2
-                );
-                cmd.error(ErrorKind::ArgumentConflict, msg).exit();
-            }
-        }
+    if cli.autocomplete_prompt.is_some()
+        && let Some(ch) = &cli.channel
+        && !Path::new(ch).exists()
+    {
+        let mut cmd = Cli::command();
+        let arg1 = "'--autocomplete-prompt <STRING>'".yellow();
+        let arg2 = "'[CHANNEL]'".yellow();
+        let msg =
+            format!("The argument {} cannot be used with {}", arg1, arg2);
+        cmd.error(ErrorKind::ArgumentConflict, msg).exit();
     }
 
     // Validate interdependent flags for ad-hoc mode (when no channel is specified)
