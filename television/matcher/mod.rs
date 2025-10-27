@@ -8,6 +8,10 @@ pub mod matched_item;
 
 const MATCHER_TICK_TIMEOUT: u64 = 2;
 
+/// Type alias for a frecency key extractor function.
+pub type FrecencyKeyExtractor<I> =
+    Arc<dyn Fn(&I) -> Option<String> + Send + Sync>;
+
 /// The status of the fuzzy matcher.
 ///
 /// This currently only contains a boolean indicating whether the matcher is
@@ -285,7 +289,7 @@ where
     pub fn attach_frecency(
         &mut self,
         store: Arc<nucleo::frecency::FrecencyStore>,
-        key_extractor: Arc<dyn Fn(&I) -> Option<String> + Send + Sync>,
+        key_extractor: FrecencyKeyExtractor<I>,
     ) {
         self.inner.attach_frecency(store, key_extractor);
     }

@@ -40,6 +40,9 @@ use tokio::sync::mpsc::{
 };
 use tracing::{debug, error};
 
+/// Type alias for a string-based frecency key extractor function.
+type StringKeyExtractor = Arc<dyn Fn(&String) -> Option<String> + Send + Sync>;
+
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum Mode {
     Channel,
@@ -272,9 +275,8 @@ impl Television {
             }
             SortingStrategy::Frecency => {
                 if let Some(store) = &self.frecency_store {
-                    let key_extractor: Arc<
-                        dyn Fn(&String) -> Option<String> + Send + Sync,
-                    > = Arc::new(|item: &String| Some(item.clone()));
+                    let key_extractor: StringKeyExtractor =
+                        Arc::new(|item: &String| Some(item.clone()));
                     self.channel
                         .matcher
                         .attach_frecency(store.clone(), key_extractor);
