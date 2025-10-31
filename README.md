@@ -1,7 +1,7 @@
 <div align="center">
 
 [<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)  
-**A cross-platform, fast and extensible general purpose fuzzy finder for the terminal.**
+**A fast and hackable fuzzy finder for the terminal.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
@@ -15,25 +15,26 @@
 
 ## About
 
-`Television` is a cross-platform, fast and extensible fuzzy finder for the terminal.
+`Television` is a fast and hackable fuzzy finder for the terminal.
 
-It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker
-images, you name it) using a fuzzy matching algorithm and is designed to be extensible.
-
-It is inspired by the neovim [telescope](https://github.com/nvim-telescope/telescope.nvim) plugin and leverages [tokio](https://github.com/tokio-rs/tokio) and the [nucleo](https://github.com/helix-editor/nucleo) matcher used by the [helix](https://github.com/helix-editor/helix) editor to ensure optimal performance.
-
-## Installation
-
-See [installation docs](https://alexpasmantier.github.io/television/docs/Users/installation).
+It lets you search in real time through any kind of data source (called "channels") such as:
+- files and directories
+- code
+- notes
+- processes
+- git repositories
+- environment variables
+- docker containers
+- ...and much more ([creating your own channels](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels))
 
 ## TL;DR
 
-Create a channel: _~/.config/television/cable/files.toml_
+Create a new channel: _~/.config/television/cable/files.toml_
 
 ```toml
 [metadata]
 name = "files"
-description = "A channel to select files and directories"
+description = "A channel to search through files and directories"
 requirements = ["fd", "bat"]
 
 [source]
@@ -42,23 +43,6 @@ command = "fd -t f"
 [preview]
 command = "bat -n --color=always '{}'"
 env = { BAT_THEME = "Catppuccin Mocha" }
-
-[ui]
-preview_panel = { "size" = 70, "scrollbar" = true }
-
-[keybindings]
-shortcut = "f1"
-f12 = "actions:edit"
-f11 = ["actions:rm", "reload_source"]
-
-[actions.edit]
-description = "Opens the selected entries with the default editor (falls back to vim)"
-command = "${EDITOR:-vim} {}"
-mode = "execute"
-
-[actions.rm]
-description = "Removes the selected entries"
-command = "rm {}"
 ```
 
 Start searching:
@@ -69,19 +53,80 @@ tv files
 
 ![tv files](./assets/tv-transparent.png)
 
-Switch channels using the remote control and pick from a list of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix) which
-you can install with `tv update-channels`:
+Switch channels using the remote control and pick from a list of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix) or [create your own!](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels).
 
 ![tv remote](./assets/tv-files-remote.png)
 
 See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/channels) for more info on how to set these up.
+
+## Installation
+
+### Automatic installation script:
+```sh
+curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
+```
+
+### Package managers:
+[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
+#### MacOS:
+- [Homebrew](https://brew.sh/):
+```sh
+brew install television
+```
+#### Linux:
+- [Arch Linux](https://archlinux.org/):
+```sh
+pacman -S television
+```
+- Debian/Ubuntu:
+```sh
+VER=`curl -s "https://api.github.com/repos/alexpasmantier/television/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/'`
+curl -LO https://github.com/alexpasmantier/television/releases/download/$VER/tv-$VER-x86_64-unknown-linux-musl.deb
+echo $VER
+sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
+```
+- Chimera Linux:
+```sh
+apk add chimera-repo-user
+apk add television
+```
+- Nix:
+```sh
+nix run nixpkgs#television
+```
+#### Windows:
+- [Scoop](https://scoop.sh/):
+```sh
+scoop bucket add extras
+scoop install television
+```
+- [Winget](https://github.com/microsoft/winget-cli):
+```sh
+winget install --exact --id alexpasmantier.television
+```
+#### NetBSD:
+- [pkgsrc](https://pkgsrc.se/textproc/television):
+```sh
+pkgin install television
+```
+#### Cross-platform:
+- [Cargo](https://doc.rust-lang.org/cargo/):
+```sh
+cargo install television
+```
+- [Conda-forge](https://anaconda.org/conda-forge/television):
+```sh
+pixi global install television
+```
+### Precompiled binaries:
+Download the latest release from the [releases page](https://www.github.com/alexpasmantier/television/releases).
 
 ## Usage
 
 ```bash
 tv  # default channel
 
-tv [channel]  # e.g. `tv files`, `tv env`, `tv git-repos`, etc.
+tv [channel]  # e.g. `tv files`, `tv env`, `tv git-repos`, `tv my-awesome-channel` etc.
 
 # pipe the output of your program into tv
 my_program | tv
@@ -94,6 +139,8 @@ tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --p
 
 > [!TIP]
 > 🐚 _Television has **builtin shell integration**. More info [here](https://alexpasmantier.github.io/television/docs/Users/shell-integration)._
+
+For more information, check out the [docs](https://alexpasmantier.github.io/television/).
 
 ## Credits
 
