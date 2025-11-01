@@ -6,7 +6,10 @@ use crate::{
     },
     utils::{
         indices::truncate_highlighted_string,
-        strings::make_result_item_printable,
+        strings::{
+            ReplaceNonPrintableConfig, make_result_item_printable,
+            replace_non_printable,
+        },
     },
 };
 use ansi_to_tui::IntoText;
@@ -255,7 +258,14 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                         .take(highlight_start - cursor)
                         .collect();
                     if !s.is_empty() {
-                        highlighted_spans.push(Span::styled(s, span.style));
+                        highlighted_spans.push(Span::styled(
+                            replace_non_printable(
+                                s.as_bytes(),
+                                &ReplaceNonPrintableConfig::default(),
+                            )
+                            .0,
+                            span.style,
+                        ));
                     }
                     cursor = highlight_start;
                 } else {
@@ -266,15 +276,28 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                         .take(highlight_end - cursor)
                         .collect();
                     if !s.is_empty() {
-                        highlighted_spans
-                            .push(Span::styled(s, span.style.fg(match_fg)));
+                        highlighted_spans.push(Span::styled(
+                            replace_non_printable(
+                                s.as_bytes(),
+                                &ReplaceNonPrintableConfig::default(),
+                            )
+                            .0,
+                            span.style.fg(match_fg),
+                        ));
                     }
                     cursor = highlight_end;
                 }
             } else {
                 let s: String = span.content.chars().skip(cursor).collect();
                 if !s.is_empty() {
-                    highlighted_spans.push(Span::styled(s, span.style));
+                    highlighted_spans.push(Span::styled(
+                        replace_non_printable(
+                            s.as_bytes(),
+                            &ReplaceNonPrintableConfig::default(),
+                        )
+                        .0,
+                        span.style,
+                    ));
                 }
                 break;
             }
@@ -447,6 +470,32 @@ mod tests {
         assert_eq!(spans[4], Span::raw("an").reset().fg(Color::Yellow));
         assert_eq!(spans[5], Span::raw("d ").reset());
         assert_eq!(spans[6], Span::raw("Green").reset().fg(Color::Green));
+    }
+
+    #[test]
+    fn test_build_entry_spans_ansi_with_ansi_and_tabs() {
+        let entry =
+            Entry::new("\x1b[31mRed\x1b[0m\t\x1b[32mGreen\x1b[0m".to_string())
+                .with_match_indices(&[1, 4, 5]);
+        let spans =
+            build_entry_spans_ansi(&entry, 200, Color::Blue, Color::Yellow);
+
+        assert_eq!(
+            spans.len(),
+            6,
+            "Expected 6 spans but got {:?}",
+            spans
+                .iter()
+                .map(|s| (s.content.clone(), s.style.fg))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(spans[0], Span::raw("R").fg(Color::Red));
+        assert_eq!(spans[1], Span::raw("e").fg(Color::Yellow));
+        assert_eq!(spans[2], Span::raw("d").fg(Color::Red));
+        assert_eq!(spans[3].content, Span::raw("    ").content);
+        assert_eq!(spans[3].style, Style::reset());
+        assert_eq!(spans[4], Span::raw("Gr").reset().fg(Color::Yellow));
+        assert_eq!(spans[5], Span::raw("een").reset().fg(Color::Green));
     }
 
     #[test]
