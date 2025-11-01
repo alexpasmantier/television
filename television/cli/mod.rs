@@ -128,6 +128,7 @@ pub struct ChannelCli {
 pub struct GlobalCli {
     pub workdir: Option<PathBuf>,
     pub global_history: bool,
+    pub sorting_strategy: Option<args::SortingStrategy>,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
     pub command: Option<Command>,
@@ -365,9 +366,10 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             watch_interval: cli.watch,
         },
         global: GlobalCli {
-            // Workdir and global history
+            // Workdir, global history and sorting strategy
             workdir: working_directory,
             global_history: cli.global_history,
+            sorting_strategy: cli.sorting_strategy,
 
             // Configuration sources
             config_file: cli.config_file.map(|p| expand_tilde(&p)),

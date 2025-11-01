@@ -8,6 +8,10 @@ pub mod matched_item;
 
 const MATCHER_TICK_TIMEOUT: u64 = 2;
 
+/// Type alias for a frecency key extractor function.
+pub type FrecencyKeyExtractor<I> =
+    Arc<dyn Fn(&I) -> Option<String> + Send + Sync>;
+
 /// The status of the fuzzy matcher.
 ///
 /// This currently only contains a boolean indicating whether the matcher is
@@ -264,5 +268,29 @@ where
         self.status = Status::default();
         self.last_pattern.clear();
         self.col_indices_buffer.clear();
+    }
+
+    /// Set whether the matcher should sort results by score.
+    pub fn set_sort_results(&mut self, enabled: bool) {
+        self.inner.sort_results(enabled);
+    }
+
+    /// Attach a frecency store to prioritize frequently and recently used items.
+    ///
+    /// When attached, items will be ranked by:
+    /// 1. Frecency score (highest first)
+    /// 2. Fuzzy match score
+    /// 3. Length
+    /// 4. Index
+    ///
+    /// # Arguments
+    /// * `store` - The frecency store to use
+    /// * `key_extractor` - Function to extract the frecency key from an item
+    pub fn attach_frecency(
+        &mut self,
+        store: Arc<nucleo::frecency::FrecencyStore>,
+        key_extractor: FrecencyKeyExtractor<I>,
+    ) {
+        self.inner.attach_frecency(store, key_extractor);
     }
 }

@@ -43,7 +43,7 @@ pub fn draw(c: &mut Criterion) {
                 );
                 // Wait for the channel to finish loading
                 let mut tv =
-                    Television::new(tx, layered_config, cable.clone());
+                    Television::new(tx, layered_config, cable.clone(), None);
                 tv.find("television");
                 for _ in 0..5 {
                     // tick the matcher

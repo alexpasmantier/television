@@ -6,3 +6,6 @@ requirements = ["fish"]
 
 [source]
 command = "fish -c 'history'"
+
+[sorting]
+strategy = "disabled"

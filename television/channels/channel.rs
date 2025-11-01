@@ -24,7 +24,7 @@ pub struct Channel {
     pub source_display: Option<Template>,
     pub source_output: Option<Template>,
     pub supports_preview: bool,
-    matcher: Matcher<String>,
+    pub matcher: Matcher<String>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
     current_source_index: usize,
