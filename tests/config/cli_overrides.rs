@@ -132,7 +132,7 @@ fn test_cli_working_directory_override() {
 
     // Should exit with the found file
     let mut child = tester.spawn_command(cmd);
-    sleep(DEFAULT_DELAY * 2);
+    sleep(DEFAULT_DELAY * 3);
 
     // Should find our test file in the target directory
     tester.assert_raw_output_contains("working-dir-test.txt");

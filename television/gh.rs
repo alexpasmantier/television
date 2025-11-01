@@ -36,12 +36,16 @@ enum NodeType {
 const GITHUB_API_BASE_URL: &str =
     "https://api.github.com/repos/alexpasmantier/television/contents/";
 
-fn make_gh_content_request(gh_dir: &Path) -> Result<Vec<GhNode>> {
+fn make_gh_content_request(
+    gh_dir: &Path,
+    git_ref: &str,
+) -> Result<Vec<GhNode>> {
     let url = format!("{}{}", GITHUB_API_BASE_URL, gh_dir.to_str().unwrap());
     debug!("Making GitHub API request to: {}", url);
     get(&url)
         .header("User-Agent", "television-client")
         .header("Accept", "application/vnd.github+json")
+        .query("ref", git_ref)
         .call()
         .map_err(|e| {
             anyhow::anyhow!("Request to '{}' failed with: {}", url, e)
@@ -88,8 +92,13 @@ const DEFAULT_CABLE_DIR_PATH: &str = "cable/unix";
 #[cfg(windows)]
 const DEFAULT_CABLE_DIR_PATH: &str = "cable/windows";
 
-fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
-    let nodes = make_gh_content_request(Path::new(DEFAULT_CABLE_DIR_PATH))?;
+fn get_default_prototypes_from_repo(
+    tv_version: &str,
+) -> Result<Vec<DownloadedPrototype>> {
+    let nodes = make_gh_content_request(
+        Path::new(DEFAULT_CABLE_DIR_PATH),
+        tv_version,
+    )?;
     for node in &nodes {
         println!(
             "  Discovered channel: {}\t\tdownload url: {}",
@@ -117,8 +126,13 @@ fn get_default_prototypes_from_repo() -> Result<Vec<DownloadedPrototype>> {
 }
 
 pub fn update_local_channels(force: &bool) -> Result<()> {
-    println!("{}", "Fetching latest cable channels...".bold());
-    let default_prototypes = get_default_prototypes_from_repo()?;
+    let tv_version = env!("CARGO_PKG_VERSION");
+    println!(
+        "{}{}",
+        "Fetching cable channels for ".bold(),
+        tv_version.green().bold()
+    );
+    let default_prototypes = get_default_prototypes_from_repo(tv_version)?;
     println!("{}", "\nSaving channels locally...".bold());
     let cable_path = get_config_dir().join(CABLE_DIR_NAME);
     if !cable_path.exists() {
