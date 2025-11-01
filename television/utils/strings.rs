@@ -509,32 +509,22 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
 pub fn make_result_item_printable(
     result_item: &(impl ResultItem + ?Sized),
 ) -> (String, Vec<(u32, u32)>) {
-    // PERF: fast path for ascii
-    if result_item.display().is_ascii() {
-        match result_item.match_ranges() {
-            // If there are no match ranges, we can return the display string directly
-            None => {
-                return (result_item.display().to_string(), Vec::new());
-            }
-            // Otherwise, check if we can return the display string without further processing
-            Some(ranges) => {
-                if !result_item
-                    .display()
-                    .chars()
-                    .any(|c| c == '\t' || c == '\n' || c.is_control())
-                {
-                    return (
-                        result_item.display().to_string(),
-                        ranges.to_vec(),
-                    );
-                }
-            }
-        }
+    let display_str = result_item.display();
+
+    // PERF: we might not need processing at all for ASCII strings with no special characters
+    if display_str.is_ascii()
+        && !display_str
+            .chars()
+            .any(|c| c == '\t' || c == '\n' || c.is_control())
+    {
+        return (
+            display_str.to_string(),
+            result_item.match_ranges().unwrap_or_default().to_vec(),
+        );
     }
 
     // Full processing for non-ASCII strings or strings that need preprocessing
-    let (printable, transformation_offsets) =
-        preprocess_line(result_item.display());
+    let (printable, transformation_offsets) = preprocess_line(display_str);
     let mut match_indices = Vec::new();
 
     if let Some(ranges) = result_item.match_ranges() {
