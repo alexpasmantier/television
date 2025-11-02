@@ -3,24 +3,25 @@
 //! These tests verify Television's configuration and directory handling capabilities,
 //! ensuring that users can customize their setup and work in different directories.
 
+use tempfile::TempDir;
+
 use super::super::common::*;
-use std::path::Path;
 
 /// Tests that the PATH positional argument correctly sets the working directory.
 #[test]
 fn test_path_as_positional_argument_sets_working_directory() {
     let mut tester = PtyTester::new();
-    let tmp_dir = Path::new(TARGET_DIR);
+    let tmp_dir = TempDir::new().unwrap();
 
     // Create initial files to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // Starts the files channel in the specified temporary directory
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--input",
         "UNIQUE16CHARID",
-        tmp_dir.to_str().unwrap(),
+        tmp_dir.path().to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
