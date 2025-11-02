@@ -373,19 +373,22 @@ impl Layout {
         };
 
         // the remote control is a centered popup
-        let remote_control =
-            if !merged_config.remote_disabled && mode == Mode::RemoteControl {
-                let remote_control_rect = centered_rect_with_dimensions(
-                    &Dimensions::new(
-                        area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
-                        REMOTE_LOGO_HEIGHT_U16,
-                    ),
-                    area,
-                );
-                Some(remote_control_rect)
-            } else {
-                None
-            };
+        let remote_control = if !merged_config.remote_disabled
+            && mode == Mode::RemoteControl
+        {
+            let remote_control_rect = centered_rect_with_dimensions(
+                &Dimensions::new(
+                    area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
+                    // on smaller screens (< logo + 3 vert padding top & btm), we won't display the
+                    // logo
+                    REMOTE_LOGO_HEIGHT_U16.min(area.height.saturating_sub(6)),
+                ),
+                area,
+            );
+            Some(remote_control_rect)
+        } else {
+            None
+        };
 
         // the help panel is positioned at bottom-right, accounting for status bar
         let help_panel = if merged_config.help_panel_disabled
