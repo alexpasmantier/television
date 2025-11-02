@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.8](https://github.com/alexpasmantier/television/releases/tag/0.13.8) - 2025-11-02
+
+### 🐛 Bug Fixes
+
+- [fecdc4b](https://github.com/alexpasmantier/television/commit/fecdc4bb7b7ae1733c22f2a13f0f3cd1d5fd4c90) *(channels)* `update-channels` now takes into account the user's version of tv by @alexpasmantier in [#761](https://github.com/alexpasmantier/television/pull/761)
+
+- [5975e6c](https://github.com/alexpasmantier/television/commit/5975e6cc8add1090c8a2bd3601bcc28328c85a6b) *(remote)* Use relative rc picker state when rendering remote control by @alexpasmantier in [#762](https://github.com/alexpasmantier/television/pull/762)
+
+- [01706b1](https://github.com/alexpasmantier/television/commit/01706b18961a28590956198af4665bdd97774546) *(tests)* Use a proper tempdir when testing custom cli dirs by @alexpasmantier
+
+- [bae2241](https://github.com/alexpasmantier/television/commit/bae2241244f2c71fc52b5fff5f334be94d5f5e6b) *(ui)* Add string sanitizing for ansi result items by @alexpasmantier
+
+### 📚 Documentation
+
+- [3f3dd83](https://github.com/alexpasmantier/television/commit/3f3dd837edce815778724a2b7eb8dad9acb48484) *(uncategorized)* Add installation docs to readme and a couple of extra tweaks by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [15e7d49](https://github.com/alexpasmantier/television/commit/15e7d4999301af6d238f0e118f572d1404721569) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#751](https://github.com/alexpasmantier/television/pull/751)
+
+- [c894137](https://github.com/alexpasmantier/television/commit/c894137b61de44d9f9fe7a54dbab8328ec812312) *(uncategorized)* Release version 0.13.8 by @alexpasmantier
+
+- [6556d23](https://github.com/alexpasmantier/television/commit/6556d23f3cd8504fe8f6504f6f2913df6a718be2) *(uncategorized)* Nix flake update toolchain sha256 and the lock file by @tukanoidd in [#754](https://github.com/alexpasmantier/television/pull/754)
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.7...0.13.8
+
+
 ## [0.13.7](https://github.com/alexpasmantier/television/releases/tag/0.13.7) - 2025-10-26
 
 ### 🐛 Bug Fixes
