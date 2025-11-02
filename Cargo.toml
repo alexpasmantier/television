@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.13.7"
+version = "0.13.8"
 edition = "2024"
 description = "Cross-platform, fast and extensible general purpose fuzzy finder TUI."
 license = "MIT"
