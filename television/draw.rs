@@ -230,8 +230,10 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_remote_control(
             f,
             layout.remote_control.unwrap(),
+            // FIXME: the way the code is mutualized right now requires only having the entries we
+            // want to display here (i.e. we need to filter here before passing them down)
             &ctx.tv_state.rc_picker.entries,
-            &mut ctx.tv_state.rc_picker.state.clone(),
+            &mut ctx.tv_state.rc_picker.relative_state.clone(),
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
             ctx.config.remote_show_channel_descriptions,

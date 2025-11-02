@@ -353,7 +353,8 @@ impl Television {
         if self
             .remote_control
             .as_ref()
-            .map_or(0, RemoteControl::result_count)
+            .expect("remote control should be Some when in RC mode")
+            .result_count()
             == 0
         {
             return None;
@@ -386,28 +387,32 @@ impl Television {
 
     /// Unified cursor movement for both Channel and Remote-control pickers.
     pub fn move_cursor(&mut self, movement: Movement, step: u32) {
-        let viewport =
-            self.ui_state.layout.results.height.saturating_sub(2) as usize;
-
         match self.mode {
             Mode::Channel => {
-                let total = self.channel.result_count() as usize;
-                if total == 0 {
-                    return;
-                }
-                self.results_picker
-                    .move_cursor(movement, step, total, viewport);
+                self.results_picker.move_cursor(
+                    movement,
+                    step,
+                    self.channel.result_count() as usize,
+                    self.ui_state.layout.results.height.saturating_sub(2)
+                        as usize,
+                );
             }
             Mode::RemoteControl => {
-                let total = self
+                let total_results = self
                     .remote_control
                     .as_ref()
-                    .map_or(0, RemoteControl::result_count)
+                    .expect("remote control should be Some when in RC mode")
+                    .result_count()
                     as usize;
-                if total == 0 {
-                    return;
-                }
-                self.rc_picker.move_cursor(movement, step, total, viewport);
+                self.rc_picker.move_cursor(
+                    movement,
+                    step,
+                    total_results,
+                    self.ui_state.layout.remote_control.expect(
+                        "remote UI panel should be contained in the layout when in RC mode"
+                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
+                        as usize,
+                );
             }
         }
     }
@@ -572,16 +577,13 @@ impl Television {
         }
 
         {
-            // Capture immutable data (`offset`, `height`) first, then mutate
-            // the picker entries to satisfy the borrow-checker.
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
             let height = self.ui_state.layout.results.height.into();
 
-            let entries = &mut self.results_picker.entries;
-            // Re-use the existing allocation instead of constructing a new
-            // `Vec` every tick:
-            entries.clear();
-            entries.extend(self.channel.results(height, offset));
+            self.results_picker.entries.clear();
+            self.results_picker
+                .entries
+                .extend(self.channel.results(height, offset));
         }
         self.results_picker.total_items = self.channel.result_count();
     }
@@ -595,21 +597,23 @@ impl Television {
         }
 
         {
-            // Capture immutable data (`offset`, `height`) first, then mutate
-            // the picker entries to satisfy the borrow-checker.
             let offset = u32::try_from(self.rc_picker.offset()).unwrap();
-            let height = self.ui_state.layout.results.height.into();
+            let height = self
+                .ui_state
+                .layout
+                .remote_control
+                .unwrap_or_default()
+                .height
+                .saturating_sub(5)
+                .into();
             let new_entries = self
                 .remote_control
                 .as_mut()
                 .unwrap()
                 .results(height, offset);
 
-            let entries = &mut self.rc_picker.entries;
-            // Re-use the existing allocation instead of constructing a new
-            // `Vec` every tick:
-            entries.clear();
-            entries.extend(new_entries);
+            self.rc_picker.entries.clear();
+            self.rc_picker.entries.extend(new_entries);
         }
         self.rc_picker.total_items =
             self.remote_control.as_ref().unwrap().total_count();
@@ -719,18 +723,14 @@ impl Television {
             | Action::GoToPrevChar => {
                 self.handle_input_action(action);
             }
-            Action::SelectNextEntry => match self.mode {
-                Mode::Channel | Mode::RemoteControl => {
-                    self.move_cursor(Movement::Next, 1);
-                }
-            },
-            Action::SelectPrevEntry => match self.mode {
-                Mode::Channel | Mode::RemoteControl => {
-                    self.move_cursor(Movement::Prev, 1);
-                }
-            },
-            Action::SelectNextPage => match self.mode {
-                Mode::Channel | Mode::RemoteControl => {
+            Action::SelectNextEntry => {
+                self.move_cursor(Movement::Next, 1);
+            }
+            Action::SelectPrevEntry => {
+                self.move_cursor(Movement::Prev, 1);
+            }
+            Action::SelectNextPage => {
+                if matches!(self.mode, Mode::Channel) {
                     self.move_cursor(
                         Movement::Next,
                         self.ui_state
@@ -741,9 +741,9 @@ impl Television {
                             .into(),
                     );
                 }
-            },
-            Action::SelectPrevPage => match self.mode {
-                Mode::Channel | Mode::RemoteControl => {
+            }
+            Action::SelectPrevPage => {
+                if matches!(self.mode, Mode::Channel) {
                     self.move_cursor(
                         Movement::Prev,
                         self.ui_state
@@ -754,7 +754,7 @@ impl Television {
                             .into(),
                     );
                 }
-            },
+            }
             Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
             Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
             Action::ScrollPreviewHalfPageDown => {

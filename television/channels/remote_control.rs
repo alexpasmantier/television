@@ -91,12 +91,12 @@ impl RemoteControl {
         let injector = matcher.injector();
 
         // Sort channels based on configuration
-        let mut sorted_channels: Vec<_> = cable_channels.iter().collect();
+        let mut channels: Vec<_> = cable_channels.iter().collect();
         if sort_alphabetically {
-            sorted_channels.sort_by(|a, b| a.0.cmp(b.0));
+            channels.sort_by(|a, b| a.0.cmp(b.0));
         }
 
-        for (channel_name, prototype) in sorted_channels {
+        for (channel_name, prototype) in channels {
             let channel_shortcut = prototype
                 .keybindings
                 .as_ref()

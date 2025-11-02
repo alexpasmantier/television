@@ -2,7 +2,10 @@ use crate::{
     channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
     screen::{
         colors::{Colorscheme, GeneralColorscheme},
-        logo::{REMOTE_LOGO_WIDTH_U16, build_remote_logo_paragraph},
+        logo::{
+            REMOTE_LOGO_HEIGHT_U16, REMOTE_LOGO_WIDTH_U16,
+            build_remote_logo_paragraph,
+        },
         result_item,
     },
     utils::input::Input,
@@ -29,37 +32,25 @@ pub fn draw_remote_control(
     colorscheme: &Colorscheme,
     show_channel_descriptions: bool,
 ) -> Result<()> {
-    let layout = if show_channel_descriptions {
-        Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(
-                [
-                    Constraint::Fill(1),
-                    Constraint::Fill(1),
-                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
-                ]
-                .as_ref(),
-            )
-            .split(rect)
-    } else {
-        Layout::default()
-            .direction(Direction::Horizontal)
-            .constraints(
-                [
-                    Constraint::Fill(1),
-                    Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2),
-                ]
-                .as_ref(),
-            )
-            .split(rect)
-    };
+    let show_logo = rect.height >= REMOTE_LOGO_HEIGHT_U16;
+    let mut constraints = vec![Constraint::Fill(1)];
+    if show_channel_descriptions {
+        constraints.push(Constraint::Fill(1));
+    }
+    if show_logo {
+        constraints.push(Constraint::Length(REMOTE_LOGO_WIDTH_U16 + 2));
+    }
+
+    let layout = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints(constraints)
+        .split(rect);
 
     // Clear the popup area
     f.render_widget(Clear, rect);
 
     let selected_entry = entries.get(picker_state.selected().unwrap_or(0));
 
-    draw_rc_logo(f, layout[layout.len() - 1], &colorscheme.general);
     draw_search_panel(
         f,
         layout[0],
@@ -71,6 +62,9 @@ pub fn draw_remote_control(
 
     if show_channel_descriptions {
         draw_information_panel(f, layout[1], selected_entry, colorscheme);
+    }
+    if show_logo {
+        draw_rc_logo(f, layout[layout.len() - 1], &colorscheme.general);
     }
 
     Ok(())
