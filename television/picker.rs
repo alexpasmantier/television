@@ -119,7 +119,7 @@ impl<T> Picker<T> {
         movement: Movement,
         step: u32,
         total_items: usize,
-        viewport_height: usize,
+        picker_ui_height: usize,
     ) {
         // Early return for empty collections
         if total_items == 0 {
@@ -128,10 +128,10 @@ impl<T> Picker<T> {
 
         match movement {
             Movement::Next => {
-                self.select_next(step, total_items, viewport_height);
+                self.select_next(step, total_items, picker_ui_height);
             }
             Movement::Prev => {
-                self.select_prev(step, total_items, viewport_height);
+                self.select_prev(step, total_items, picker_ui_height);
             }
         }
     }
@@ -156,6 +156,7 @@ impl<Entry> Picker<Entry> {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Cursor movement: `Movement::Next` or `Movement::Prev`.
 pub enum Movement {
     Next,
     Prev,
