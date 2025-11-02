@@ -1,7 +1,8 @@
 use std::thread::sleep;
 
+use tempfile::TempDir;
+
 use super::super::common::*;
-use std::path::Path;
 
 /// Tests CLI override of UI configuration from config file
 #[test]
@@ -114,11 +115,14 @@ fn test_cli_overrides_channel_source_and_preview() {
 #[test]
 fn test_cli_working_directory_override() {
     let mut tester = PtyTester::new();
-    let target_dir = Path::new(TARGET_DIR);
+    let temp_dir = TempDir::new().unwrap();
 
     // Create a test file in the target directory
-    std::fs::write(target_dir.join("working-dir-test.txt"), "test content")
-        .unwrap();
+    std::fs::write(
+        temp_dir.path().join("working-dir-test.txt"),
+        "test content",
+    )
+    .unwrap();
 
     let cmd = tv_with_args(&[
         "files",
@@ -127,7 +131,7 @@ fn test_cli_working_directory_override() {
         "--input",
         "working-dir-test",
         "--take-1-fast",
-        target_dir.to_str().unwrap(), // PATH as positional argument
+        &temp_dir.path().to_string_lossy(), // PATH as positional argument
     ]);
 
     // Should exit with the found file

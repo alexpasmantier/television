@@ -3,6 +3,8 @@
 //! These tests verify that external actions defined in channel TOML files work correctly,
 //! including keybinding integration and command execution.
 
+use tempfile::TempDir;
+
 use super::super::common::*;
 use std::{fs, thread::sleep, time::Duration};
 
@@ -26,7 +28,7 @@ fn test_external_action_lsman_with_f9() {
     let mut tester = PtyTester::new();
 
     // Use TARGET_DIR for consistency with other tests
-    let cable_dir = std::path::Path::new(TARGET_DIR).join("custom_cable");
+    let cable_dir = TempDir::new().unwrap().path().join("custom_cable");
     fs::create_dir_all(&cable_dir).unwrap();
 
     // Create a custom files.toml with external actions
@@ -91,7 +93,7 @@ mode = "execute"
 fn test_external_action_thebatman_with_f8() {
     let mut tester = PtyTester::new();
 
-    let cable_dir = std::path::Path::new(TARGET_DIR).join("custom_cable_f8");
+    let cable_dir = TempDir::new().unwrap().path().join("custom_cable_f8");
     fs::create_dir_all(&cable_dir).unwrap();
 
     // Create a custom files.toml with external actions

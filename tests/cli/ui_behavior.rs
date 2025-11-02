@@ -4,8 +4,9 @@
 //! ensuring users can effectively navigate and control the interface during operation.
 //! These are integration tests that combine CLI setup with interactive behavior.
 
+use tempfile::TempDir;
+
 use super::super::common::*;
-use std::path::Path;
 
 /// Tests that the toggle preview keybinding functionality works correctly.
 #[test]
@@ -133,17 +134,17 @@ fn test_scroll_preview_keybindings() {
 #[test]
 fn test_reload_source_keybinding() {
     let mut tester = PtyTester::new();
-    let tmp_dir = Path::new(TARGET_DIR);
+    let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // Start with the files channel
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--input",
         "UNIQUE16CHARID",
-        tmp_dir.to_str().unwrap(),
+        tmp_dir.path().to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
@@ -151,7 +152,8 @@ fn test_reload_source_keybinding() {
     tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // add another file to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDcontrol.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDcontrol.txt"), "")
+        .unwrap();
 
     // Send Ctrl+R to reload the source command
     tester.send(&ctrl('r'));
