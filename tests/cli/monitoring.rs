@@ -3,17 +3,18 @@
 //! These tests verify Television's live monitoring capabilities,
 //! ensuring users can enable real-time data updates.
 
+use tempfile::TempDir;
+
 use super::super::common::*;
-use std::path::Path;
 
 /// Tests that --watch enables live monitoring with automatic source command re-execution.
 #[test]
 fn test_watch_reloads_source_command() {
     let mut tester = PtyTester::new();
-    let tmp_dir = Path::new(TARGET_DIR);
+    let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This monitors the temp directory and updates every 0.5 seconds
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -23,7 +24,7 @@ fn test_watch_reloads_source_command() {
         "ls",
         "--input",
         "UNIQUE16CHARID",
-        tmp_dir.to_str().unwrap(),
+        tmp_dir.path().to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
@@ -31,7 +32,8 @@ fn test_watch_reloads_source_command() {
     tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
 
     // Create a second file
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDcontrol.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDcontrol.txt"), "")
+        .unwrap();
 
     // Wait longer than watch interval
     std::thread::sleep(std::time::Duration::from_millis(2000));
