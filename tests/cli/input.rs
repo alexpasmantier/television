@@ -3,11 +3,9 @@
 //! These tests verify Television's input handling and user interaction features,
 //! ensuring users can customize their interaction experience and search behavior.
 
-use std::path::Path;
+use tempfile::TempDir;
 
 use super::super::common::*;
-
-const TARGET_DIR: &str = "tests/target_dir";
 
 /// Tests that the --input flag pre-fills the search box with specified text.
 #[test]
@@ -85,10 +83,10 @@ fn test_multiple_keybindings_override() {
 #[test]
 fn test_exact_matching_enabled() {
     let mut tester = PtyTester::new();
-    let tmp_dir = Path::new(TARGET_DIR);
+    let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -96,7 +94,7 @@ fn test_exact_matching_enabled() {
         "--exact",
         "--input",
         "UNIQUE16CHARIDfile",
-        tmp_dir.to_str().unwrap(),
+        tmp_dir.path().to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
@@ -111,10 +109,10 @@ fn test_exact_matching_enabled() {
 #[test]
 fn test_exact_matching_enabled_fails() {
     let mut tester = PtyTester::new();
-    let tmp_dir = Path::new(TARGET_DIR);
+    let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
-    std::fs::write(tmp_dir.join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This enables exact substring matching instead of the default fuzzy matching
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -122,7 +120,7 @@ fn test_exact_matching_enabled_fails() {
         "--exact",
         "--input",
         "UNIQUE16CHARIDfl",
-        tmp_dir.to_str().unwrap(),
+        tmp_dir.path().to_str().unwrap(),
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
