@@ -98,7 +98,7 @@ _tv_shell_history() {
     zle reset-prompt
     if [[ -n $output ]]; then
         RBUFFER=""
-        LBUFFER=$output
+        LBUFFER=$(echo "$output")
 
         # uncomment this to automatically accept the line
         # (i.e. run the command without having to press enter twice)
