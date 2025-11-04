@@ -15,8 +15,7 @@ name = "alias"
 description = "A channel to select from shell aliases"
 
 [source]
-command = "alias"
-interactive = true
+command = "$SHELL -ic 'alias'"
 output = "{split:=:0}"
 
 ```
