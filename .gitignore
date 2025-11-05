@@ -18,6 +18,9 @@ Cargo.lock
 
 .data/*.log
 
+# Zed
+.zed/
+
 # Direnv (Nix Shell)
 .direnv/
 .DS_Store
