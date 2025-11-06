@@ -466,11 +466,18 @@ const RENDERING_INTERVAL: u64 = 10;
 const RENDERING_INTERVAL_FAST: u64 = 3;
 
 impl Television {
+    /// This contains the logic to determine whether a render should be performed
+    /// based on the current tick count, channel state, and the action that
+    /// triggered the update.
     fn should_render(&self, action: &Action) -> bool {
+        // always render the first N ticks
         (self.ticks < FIRST_TICKS_TO_RENDER
+            // then render at regular intervals
             || self.ticks.is_multiple_of(RENDERING_INTERVAL)
+            // more frequently if the channel is running
             || (self.channel.running()
                 && self.ticks.is_multiple_of(RENDERING_INTERVAL_FAST))
+            // always render on input actions that modify the ui state
             || matches!(
                 action,
                 Action::AddInputChar(_)
@@ -798,6 +805,9 @@ impl Television {
                             .as_mut()
                             .unwrap()
                             .find(EMPTY_STRING);
+                        // Reset `ticks` to force an immediate render
+                        // See `Television::should_render` for more details
+                        self.ticks = 0;
                     }
                     Mode::RemoteControl => {
                         // Reset the RC picker when leaving remote control mode
