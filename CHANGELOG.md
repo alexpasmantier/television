@@ -4,6 +4,42 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.9](https://github.com/alexpasmantier/television/releases/tag/0.13.9) - 2025-11-06
+
+### ⛰️  Features
+
+- [0ad27ac](https://github.com/alexpasmantier/television/commit/0ad27ac0e57a7146a6f306162e0b195e7bec2a13) *(files)* New `goto_parent_dir` default action on the files channel by @alexpasmantier
+
+### 🐛 Bug Fixes
+
+- [99c7c65](https://github.com/alexpasmantier/television/commit/99c7c65075cebc71231f14168d50f24036dfc218) *(cable)* Fix alias channel cli invocation sometimes going to bg by @alexpasmantier
+
+- [550b970](https://github.com/alexpasmantier/television/commit/550b970bfd32854dc0abaa7d69123c35c052905c) *(tests)* Clean target_dir leftovers and use temp dirs instead by @alexpasmantier
+
+- [b8ed31e](https://github.com/alexpasmantier/television/commit/b8ed31e07ed8ad159541f2d2f932bb7919b37e2c) *(ux)* Force immediate render when remote loads its channels by @alexpasmantier
+
+- [e36008b](https://github.com/alexpasmantier/television/commit/e36008bec4bbc6fab3b06d840e6e65da54c998dc) *(zsh)* Correctly output newlines in shell integration *history* mode by @alexpasmantier
+
+### 📚 Documentation
+
+- [307131e](https://github.com/alexpasmantier/television/commit/307131e05a7410552ddaaf2b1f0620c14851b312) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#766](https://github.com/alexpasmantier/television/pull/766)
+
+- [9bda5cc](https://github.com/alexpasmantier/television/commit/9bda5ccbf53c5c446e2d04a781badb39a96c3c00) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#765](https://github.com/alexpasmantier/television/pull/765)
+
+### ⚙️ Miscellaneous Tasks
+
+- [23f4d70](https://github.com/alexpasmantier/television/commit/23f4d70eeab4ee09789c0ae56d22762d39a56b01) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#763](https://github.com/alexpasmantier/television/pull/763)
+
+- [bdda055](https://github.com/alexpasmantier/television/commit/bdda055c361180f7938a65bf62d5932e506d4a67) *(uncategorized)* Release version 0.13.9 by @alexpasmantier
+
+- [397c677](https://github.com/alexpasmantier/television/commit/397c6770f1c72cf906ec83edfe32c9b294b13544) *(uncategorized)* Add zed editor config files to gitignore by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.8...0.13.9
+
+
 ## [0.13.8](https://github.com/alexpasmantier/television/releases/tag/0.13.8) - 2025-11-02
 
 ### 🐛 Bug Fixes
