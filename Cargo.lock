@@ -2022,7 +2022,7 @@ dependencies = [
 
 [[package]]
 name = "television"
-version = "0.13.8"
+version = "0.13.9"
 dependencies = [
  "ansi-to-tui",
  "anyhow",
