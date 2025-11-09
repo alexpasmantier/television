@@ -585,7 +585,8 @@ impl Television {
 
         {
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
-            let height = self.ui_state.layout.results.height.into();
+            let height =
+                self.ui_state.layout.results.height.saturating_sub(2).into(); // -2 for borders
 
             self.results_picker.entries.clear();
             self.results_picker
