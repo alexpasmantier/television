@@ -167,9 +167,9 @@ requirements = ["rg", "bat"]  # any binary requirements my channel needs
 
 ```toml
 [source]
-command = "rg . --no-heading --line-number"
-display = "[{split:\\::..2}]\t{split:\\::2}"  # what's displayed in the UI
-output = "{split:\\::..2}"  # what's outputed on selection
+command = "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always"
+# display = "[{split:\\::..2}]\t{split:\\::2}"  # what's displayed in the UI (incompatible with `ansi = true`)
+output = "{strip_ansi|split:\\::..2}"
 ansi = true  # whether the results are ANSI formatted
 ```
 
@@ -292,5 +292,5 @@ separator = " "
   - `execute` - Run command and become the new process
   - `fork` - Run command in a subprocess, allowing you to return to tv upon completion
 - `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
-depending on the entries content it might be beneficial to change to another
-one (default: `" "` - space)
+  depending on the entries content it might be beneficial to change to another
+  one (default: `" "` - space)
