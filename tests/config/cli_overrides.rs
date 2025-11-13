@@ -1,5 +1,3 @@
-use std::thread::sleep;
-
 use tempfile::TempDir;
 
 use super::super::common::*;
@@ -136,7 +134,9 @@ fn test_cli_working_directory_override() {
 
     // Should exit with the found file
     let mut child = tester.spawn_command(cmd);
-    sleep(DEFAULT_DELAY * 3);
+    // wait for completion so that the TUI doesn't interfere with
+    // what we're capturing
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 
     // Should find our test file in the target directory
     tester.assert_raw_output_contains("working-dir-test.txt");
