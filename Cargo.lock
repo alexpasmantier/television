@@ -588,6 +588,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dashmap"
+version = "6.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5041cc499144891f3790297212f32a74fb938e5136a14943f338ef9e0ae276cf"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "hashbrown 0.14.5",
+ "lock_api",
+ "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
 name = "deranged"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -688,6 +702,15 @@ name = "error-code"
 version = "3.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dea2df4cf52843e0452895c455a1a2cfbb842a1e7329671acf418fdc53ed4c59"
+
+[[package]]
+name = "fast-strip-ansi"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "105d2d6bfe89682bfc2b6227b6b582d12682c65f889a89ce6e896026a6b31dec"
+dependencies = [
+ "vt-push-parser",
+]
 
 [[package]]
 name = "fastrand"
@@ -850,6 +873,12 @@ name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "hashbrown"
+version = "0.14.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "hashbrown"
@@ -1953,26 +1982,21 @@ checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
 
 [[package]]
 name = "string_pipeline"
-version = "0.12.0"
+version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8d7043de9eb4072c03851ec3682a133c26b91b9f8fcc4d52bf911abe2614de12"
+checksum = "edcdd26a6907177dfa4a9655d25df707a19285109a98400ac7051ea67f4cffad"
 dependencies = [
  "clap",
  "clap_mangen",
+ "dashmap",
+ "fast-strip-ansi",
+ "memchr",
  "once_cell",
+ "parking_lot",
  "pest",
  "pest_derive",
  "regex",
- "strip-ansi-escapes",
-]
-
-[[package]]
-name = "strip-ansi-escapes"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2a8f8038e7e7969abb3f1b7c2a811225e9296da208539e0f79c5251d6cac0025"
-dependencies = [
- "vte 0.14.1",
+ "smallvec",
 ]
 
 [[package]]
@@ -2440,6 +2464,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
+name = "vt-push-parser"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f8a8f80d386fd6819e90195fb12b03744a67046e8c22bde0407863d6c172d02"
+dependencies = [
+ "hex",
+ "smallvec",
+]
+
+[[package]]
 name = "vt100"
 version = "0.15.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2448,7 +2482,7 @@ dependencies = [
  "itoa",
  "log",
  "unicode-width 0.1.14",
- "vte 0.11.1",
+ "vte",
 ]
 
 [[package]]
@@ -2460,15 +2494,6 @@ dependencies = [
  "arrayvec",
  "utf8parse",
  "vte_generate_state_changes",
-]
-
-[[package]]
-name = "vte"
-version = "0.14.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "231fdcd7ef3037e8330d8e17e61011a2c244126acc0a982f4040ac3f9f0bc077"
-dependencies = [
- "memchr",
 ]
 
 [[package]]
