@@ -12,7 +12,7 @@ pub enum Shell {
     Bash,
     Zsh,
     Fish,
-    PowerShell,
+    Psh,
     Cmd,
     Nu,
 }
@@ -25,7 +25,7 @@ impl Default for Shell {
 
     #[cfg(windows)]
     fn default() -> Self {
-        Shell::PowerShell
+        Shell::Psh
     }
 }
 
@@ -42,7 +42,7 @@ impl TryFrom<Shell> for clap_complete::Shell {
             Shell::Bash => Ok(clap_complete::Shell::Bash),
             Shell::Zsh => Ok(clap_complete::Shell::Zsh),
             Shell::Fish => Ok(clap_complete::Shell::Fish),
-            Shell::PowerShell => Ok(clap_complete::Shell::PowerShell),
+            Shell::Psh => Ok(clap_complete::Shell::PowerShell),
             Shell::Cmd => Err(ShellError::UnsupportedShell(
                 "Cmd shell is not supported for completion scripts"
                     .to_string(),
@@ -60,7 +60,7 @@ impl Display for Shell {
             Shell::Bash => write!(f, "bash"),
             Shell::Zsh => write!(f, "zsh"),
             Shell::Fish => write!(f, "fish"),
-            Shell::PowerShell => write!(f, "powershell"),
+            Shell::Psh => write!(f, "powershell"),
             Shell::Cmd => write!(f, "cmd"),
             Shell::Nu => write!(f, "nu"),
         }
@@ -80,7 +80,7 @@ impl TryFrom<&str> for Shell {
         } else if value.contains("fish") {
             Ok(Shell::Fish)
         } else if value.contains("powershell") {
-            Ok(Shell::PowerShell)
+            Ok(Shell::Psh)
         } else if value.contains("cmd") {
             Ok(Shell::Cmd)
         } else {
@@ -105,7 +105,7 @@ impl Shell {
             Shell::Bash => "bash",
             Shell::Zsh => "zsh",
             Shell::Fish => "fish",
-            Shell::PowerShell => "powershell",
+            Shell::Psh => "powershell",
             Shell::Cmd => "cmd",
             Shell::Nu => "nu",
         }
@@ -118,7 +118,7 @@ impl From<CliShell> for Shell {
             CliShell::Bash => Shell::Bash,
             CliShell::Zsh => Shell::Zsh,
             CliShell::Fish => Shell::Fish,
-            CliShell::PowerShell => Shell::PowerShell,
+            CliShell::PowerShell => Shell::Psh,
             CliShell::Cmd => Shell::Cmd,
             CliShell::Nu => Shell::Nu,
         }
@@ -131,7 +131,7 @@ impl From<&CliShell> for Shell {
             CliShell::Bash => Shell::Bash,
             CliShell::Zsh => Shell::Zsh,
             CliShell::Fish => Shell::Fish,
-            CliShell::PowerShell => Shell::PowerShell,
+            CliShell::PowerShell => Shell::Psh,
             CliShell::Cmd => Shell::Cmd,
             CliShell::Nu => Shell::Nu,
         }
@@ -142,6 +142,7 @@ const COMPLETION_ZSH: &str = include_str!("shell/completion.zsh");
 const COMPLETION_BASH: &str = include_str!("shell/completion.bash");
 const COMPLETION_FISH: &str = include_str!("shell/completion.fish");
 const COMPLETION_NU: &str = include_str!("shell/completion.nu");
+const COMPLETION_POWERSHELL: &str = include_str!("shell/completion.ps1");
 
 // create the appropriate key binding for each supported shell
 pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
@@ -150,7 +151,10 @@ pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
         Shell::Zsh => Ok(format!(r"^{character}")),
         Shell::Fish => Ok(format!(r"\c{character}")),
         Shell::Nu => Ok(format!(r"Ctrl-{character}")),
-        _ => anyhow::bail!("This shell is not yet supported: {:?}", shell),
+        Shell::Psh => Ok(format!(r"Ctrl+{}", character.to_ascii_lowercase())),
+        Shell::Cmd => {
+            anyhow::bail!("This shell is not yet supported: {:?}", shell)
+        }
     }
 }
 
@@ -160,7 +164,10 @@ pub fn completion_script(shell: Shell) -> Result<&'static str> {
         Shell::Zsh => Ok(COMPLETION_ZSH),
         Shell::Fish => Ok(COMPLETION_FISH),
         Shell::Nu => Ok(COMPLETION_NU),
-        _ => anyhow::bail!("This shell is not yet supported: {:?}", shell),
+        Shell::Psh => Ok(COMPLETION_POWERSHELL),
+        Shell::Cmd => {
+            anyhow::bail!("This shell is not yet supported: {:?}", shell)
+        }
     }
 }
 
@@ -189,7 +196,7 @@ pub fn render_autocomplete_script_template(
     let clap_autocomplete =
         render_clap_autocomplete(shell).unwrap_or_default();
 
-    Ok(script + &clap_autocomplete)
+    Ok(clap_autocomplete + &script)
 }
 
 fn render_clap_autocomplete(shell: Shell) -> Option<String> {
@@ -248,9 +255,20 @@ mod tests {
     #[test]
     fn test_powershell_ctrl_keybinding() {
         let character = 's';
-        let shell = Shell::PowerShell;
+        let shell = Shell::Psh;
         let result = ctrl_keybinding(shell, character);
-        assert!(result.is_err());
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Ctrl+s");
+    }
+
+    #[test]
+    fn test_powershell_ctrl_keybinding_uppercase_input() {
+        // PowerShell keybindings should be lowercase even if input is uppercase
+        let character = 'S';
+        let shell = Shell::Psh;
+        let result = ctrl_keybinding(shell, character);
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "Ctrl+s");
     }
 
     #[test]
@@ -286,5 +304,30 @@ mod tests {
         assert!(result.is_ok());
         let result = result.unwrap();
         assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_powershell_clap_completion() {
+        let shell = Shell::Psh;
+        let result = render_autocomplete_script_template(
+            shell,
+            "",
+            &ShellIntegrationConfig::default(),
+        );
+        assert!(result.is_ok());
+        let result = result.unwrap();
+        // PowerShell completion should contain the completion function
+        assert!(result.contains("Register-ArgumentCompleter"));
+    }
+
+    #[test]
+    fn test_powershell_completion_script() {
+        let shell = Shell::Psh;
+        let result = completion_script(shell);
+        assert!(result.is_ok());
+        let script = result.unwrap();
+        assert!(script.contains("Invoke-TvSmartAutocomplete"));
+        assert!(script.contains("Invoke-TvShellHistory"));
+        assert!(script.contains("Set-PSReadLineKeyHandler"));
     }
 }

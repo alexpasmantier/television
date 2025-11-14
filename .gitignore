@@ -35,3 +35,4 @@ Cargo.lock
 
 # test artifacts
 target_dir/
+notes.md
