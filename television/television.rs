@@ -133,8 +133,6 @@ impl Television {
             merged_config.channel_source_output,
             merged_config.channel_preview_command.is_some(),
         );
-        channel.load();
-
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
             std::env::current_dir()
