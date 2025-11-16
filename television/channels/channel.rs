@@ -263,11 +263,15 @@ async fn load_candidates(
 
         // if the command didn't produce any output, check stderr and display that instead
         if !produced_output {
+            let tv_message =
+                "Command produced no output on stdout, checking stderr...";
+            injector.push(tv_message.to_string(), |e, cols| {
+                cols[0] = e.clone().into();
+            });
             let reader = BufReader::new(child.stderr.take().unwrap());
-            for line in reader.lines() {
-                let line = line.unwrap();
-                if !line.trim().is_empty() {
-                    let () = injector.push(line, |e, cols| {
+            for l in reader.lines().map_while(Result::ok) {
+                if !l.trim().is_empty() {
+                    let () = injector.push(l, |e, cols| {
                         cols[0] = e.clone().into();
                     });
                 }
