@@ -42,7 +42,7 @@ pub fn shell_command<S>(
     let mut cmd = Command::new(shell.executable());
 
     cmd.arg(match shell {
-        Shell::PowerShell => "-Command",
+        Shell::Psh => "-Command",
         Shell::Cmd => "/C",
         _ => "-c",
     });
