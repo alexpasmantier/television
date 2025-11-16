@@ -58,6 +58,28 @@ mkdir ($nu.data-dir | path join "vendor/autoload")
 tv init nu | save -f ($nu.data-dir | path join "vendor/autoload/tv.nu")
 ```
 
+### PowerShell
+
+To enable shell integration for PowerShell, run:
+
+```powershell
+tv init power-shell | Out-File -FilePath $PROFILE -Append
+```
+
+This generates the shell integration script and appends it to your PowerShell profile so that it is loaded at startup.
+
+To find your PowerShell profile location, run:
+
+```powershell
+$PROFILE
+```
+
+If the profile doesn't exist yet, you can create it with:
+
+```powershell
+New-Item -Path $PROFILE -Type File -Force
+```
+
 ## Configuring autocompletion
 
 Shell integration works by setting a dedicated shell keybinding that launches `tv` with the current prompt buffer so that `tv` may guess which channel (builtin or cable) is the most appropriate.
@@ -126,6 +148,18 @@ Then add to your `is-interactive` block in your `~/.config/fish/config.fish` fil
 
 ```fish
 source $HOME/.config/television/shell/integration.fish
+```
+
+#### PowerShell
+
+```powershell
+tv init power-shell | Out-File -FilePath ~/.config/television/shell/integration.ps1
+```
+
+Then add to your PowerShell profile:
+
+```powershell
+. $HOME/.config/television/shell/integration.ps1
 ```
 
 For all shells you'll have to restart it (or similar) to integrate the changes.

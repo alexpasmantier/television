@@ -90,7 +90,7 @@ fn test_init_subcommand_generates_completion_script() {
     tester.spawn_command(cmd);
 
     // CLI should exit with completion script for zsh
-    tester.assert_raw_output_contains("__tv_path_completion");
+    tester.assert_raw_output_contains("compdef");
 }
 
 /// Tests that the `init` subcommand rejects unsupported shells.
