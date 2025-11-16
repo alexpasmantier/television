@@ -298,6 +298,8 @@ impl App {
         // Start watch timer if configured
         self.start_watch_timer();
 
+        self.television.channel.load();
+
         // Main loop
         debug!("Starting event handling loop");
         let action_tx = self.action_tx.clone();
