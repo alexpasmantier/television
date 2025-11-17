@@ -150,7 +150,7 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
     let chars: Vec<char> = entry_name.chars().collect();
     let mut idx = 0;
     for &(start, end) in &match_ranges {
-        let start = start as usize;
+        let start = (start as usize).min(chars.len());
         let end = end as usize;
         if idx < start {
             let text: String = chars[idx..start].iter().collect();
@@ -158,13 +158,14 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
                 spans.push(Span::styled(text, Style::default().fg(result_fg)));
             }
         }
-        if start < end {
-            let text: String = chars[start..end].iter().collect();
+        let safe_end = end.min(chars.len());
+        if start < safe_end {
+            let text: String = chars[start..safe_end].iter().collect();
             if !text.is_empty() {
                 spans.push(Span::styled(text, Style::default().fg(match_fg)));
             }
         }
-        idx = end;
+        idx = safe_end;
     }
     if idx < chars.len() {
         let text: String = chars[idx..].iter().collect();
@@ -548,6 +549,42 @@ mod tests {
         assert_eq!(
             spans[2],
             Span::styled("b", Style::default().fg(Color::Blue))
+        );
+    }
+
+    #[test]
+    fn test_build_entry_spans_out_of_bounds_range() {
+        // Test that out-of-bounds end indices are handled gracefully
+        let entry =
+            Entry::new("test".to_string()).with_match_indices(&[0, 10]); // End index beyond string length
+        let spans = build_entry_spans(&entry, 200, Color::Blue, Color::Red);
+
+        // The indices produce two ranges: (0,1) and (10,11). The second range
+        // starts beyond the string length and is clamped; the implementation
+        // will therefore produce two spans: the highlighted first char and
+        // the remaining non-highlighted tail.
+        assert_eq!(spans.len(), 2);
+        assert_eq!(
+            spans[0],
+            Span::styled("t", Style::default().fg(Color::Red))
+        );
+        assert_eq!(
+            spans[1],
+            Span::styled("est", Style::default().fg(Color::Blue))
+        );
+    }
+
+    #[test]
+    fn test_build_entry_spans_start_out_of_bounds() {
+        // Test that out-of-bounds start indices are handled gracefully
+        let entry =
+            Entry::new("test".to_string()).with_match_indices(&[10, 12]); // Start index beyond string length
+        let spans = build_entry_spans(&entry, 200, Color::Blue, Color::Red);
+
+        assert_eq!(spans.len(), 1);
+        assert_eq!(
+            spans[0],
+            Span::styled("test", Style::default().fg(Color::Blue))
         );
     }
 }
