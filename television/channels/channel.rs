@@ -187,7 +187,7 @@ impl Channel {
 const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
 
 #[allow(clippy::unused_async)]
-async fn load_candidates(
+pub async fn load_candidates(
     command: CommandSpec,
     entry_delimiter: Option<char>,
     command_index: usize,
