@@ -41,10 +41,10 @@ pub fn shell_command<S>(
     let shell = Shell::from_env().unwrap_or_default();
     let mut cmd = Command::new(shell.executable());
 
-    cmd.arg(match shell {
-        Shell::Psh => "-Command",
-        Shell::Cmd => "/C",
-        _ => "-c",
+    cmd.args(match shell {
+        Shell::Psh => vec!["-NoLogo", "-NoProfile", "-Command"],
+        Shell::Cmd => vec!["/C"],
+        _ => vec!["-c"],
     });
 
     #[cfg(unix)]
