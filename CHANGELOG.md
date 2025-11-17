@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.10](https://github.com/alexpasmantier/television/releases/tag/0.13.10) - 2025-11-16
+
+### ⛰️  Features
+
+- [0df7303](https://github.com/alexpasmantier/television/commit/0df7303306d8048f001047074f3e2c54aa483174) *(pwsh)* Add pwsh shell integration by @alexpasmantier in [#772](https://github.com/alexpasmantier/television/pull/772)
+
+### 🐛 Bug Fixes
+
+- [963334e](https://github.com/alexpasmantier/television/commit/963334ee317e771a5e5e82330336b1713dc858d0) *(channels)* Fix alias channel SIGTTOU signal issue by @alexpasmantier in [#770](https://github.com/alexpasmantier/television/pull/770)
+
+- [3680c8e](https://github.com/alexpasmantier/television/commit/3680c8e78bf746578b01f297f4246fbfa011d6f1) *(results)* Update to string_pipeline 0.13.0 to fix the tab issue by @alexpasmantier
+
+- [2b1d96c](https://github.com/alexpasmantier/television/commit/2b1d96c56f95cee1faf814cf56b3c6caccd17176) *(results)* Account for border when calculating the slice of results to display by @alexpasmantier
+
+- [adb2909](https://github.com/alexpasmantier/television/commit/adb29090419c2d472dcc40e4dfef9340e2f54c67) *(tests)* Break out with last frame on frame stability timeout by @alexpasmantier
+
+- [d4738bd](https://github.com/alexpasmantier/television/commit/d4738bd8af2c25882276afad0da0084821493379) *(tests)* Fix flaky cli working directory override test by @alexpasmantier
+
+- [b34ee41](https://github.com/alexpasmantier/television/commit/b34ee41e89191e6a3fbeff3a7489a22d8f2da492) *(windows)* Do not panic when channel command not in path by @alexpasmantier
+
+### 📚 Documentation
+
+- [f4a0a14](https://github.com/alexpasmantier/television/commit/f4a0a1489752ccca65c4661cd0722de9fada0562) *(channels)* Update channel example and add warning about display + ANSI by @alexpasmantier
+
+- [a3eb52b](https://github.com/alexpasmantier/television/commit/a3eb52b446fe9d65ca433ef05ae8fa4c185eb40f) *(config)* Add an option reference section to the website by @alexpasmantier in [#769](https://github.com/alexpasmantier/television/pull/769)
+
+### ⚙️ Miscellaneous Tasks
+
+- [3a9d430](https://github.com/alexpasmantier/television/commit/3a9d430e194ecc7c72a4421d485ad07fdcc99459) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#768](https://github.com/alexpasmantier/television/pull/768)
+
+- [fa217e9](https://github.com/alexpasmantier/television/commit/fa217e92f380f1978f755169b82ca57636b84800) *(uncategorized)* Release version 0.13.10 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.9...0.13.10
+
+
 ## [0.13.9](https://github.com/alexpasmantier/television/releases/tag/0.13.9) - 2025-11-06
 
 ### ⛰️  Features
