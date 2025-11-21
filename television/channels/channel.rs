@@ -6,6 +6,7 @@ use crate::{
     matcher::{Matcher, config::Config, injector::Injector},
     utils::command::shell_command,
 };
+use fast_strip_ansi::strip_ansi_string;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::process::Stdio;
@@ -215,8 +216,6 @@ pub async fn load_candidates(
         let delimiter =
             entry_delimiter.as_ref().map(|d| *d as u8).unwrap_or(b'\n');
 
-        let strip_ansi = Template::parse("{strip_ansi}").unwrap();
-
         while {
             buf.clear();
             let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
@@ -232,24 +231,17 @@ pub async fn load_candidates(
             }
 
             if let Ok(line) = std::str::from_utf8(&buf) {
-                let owned_line = line.to_string();
-
                 if !ansi && display.is_none() {
-                    let () = injector.push(owned_line, |e, cols| {
+                    let () = injector.push(line.to_string(), |e, cols| {
                         cols[0] = e.as_str().into();
                     });
                     produced_output = true;
                     continue;
                 }
 
-                let () = injector.push(owned_line, |e, cols| {
+                let () = injector.push(line.to_string(), |e, cols| {
                     if ansi {
-                        cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
-                            panic!(
-                                "Failed to strip ANSI from entry '{}'",
-                                e
-                            );
-                        }).into();
+                        cols[0] = strip_ansi_string(line).into();
                     } else if let Some(display) = &display {
                         let formatted = display.format(e).unwrap_or_else(|_| {
                             panic!(
