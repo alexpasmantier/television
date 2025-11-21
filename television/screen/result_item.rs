@@ -147,29 +147,60 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
         return spans;
     }
 
-    let chars: Vec<char> = entry_name.chars().collect();
+    // Build a map of char index -> byte index for efficient slicing
+    // This avoids collecting all chars into a Vec
+    let char_to_byte: Vec<usize> = entry_name
+        .char_indices()
+        .map(|(byte_idx, _)| byte_idx)
+        .chain(std::iter::once(entry_name.len()))
+        .collect();
+
     let mut idx = 0;
-    for &(start, end) in &match_ranges {
+    for (start, end) in match_ranges.iter().copied() {
         let start = start as usize;
         let end = end as usize;
-        if idx < start {
-            let text: String = chars[idx..start].iter().collect();
-            if !text.is_empty() {
-                spans.push(Span::styled(text, Style::default().fg(result_fg)));
+
+        // Add unmatched text before this range
+        if idx < start
+            && start < char_to_byte.len()
+            && idx < char_to_byte.len()
+        {
+            let byte_start = char_to_byte[idx];
+            let byte_end = char_to_byte[start];
+            if byte_start < byte_end {
+                spans.push(Span::styled(
+                    entry_name[byte_start..byte_end].to_string(),
+                    Style::default().fg(result_fg),
+                ));
             }
         }
-        if start < end {
-            let text: String = chars[start..end].iter().collect();
-            if !text.is_empty() {
-                spans.push(Span::styled(text, Style::default().fg(match_fg)));
+
+        // Add matched text
+        if start < end
+            && end < char_to_byte.len()
+            && start < char_to_byte.len()
+        {
+            let byte_start = char_to_byte[start];
+            let byte_end = char_to_byte[end];
+            if byte_start < byte_end {
+                spans.push(Span::styled(
+                    entry_name[byte_start..byte_end].to_string(),
+                    Style::default().fg(match_fg),
+                ));
             }
         }
         idx = end;
     }
-    if idx < chars.len() {
-        let text: String = chars[idx..].iter().collect();
-        if !text.is_empty() {
-            spans.push(Span::styled(text, Style::default().fg(result_fg)));
+
+    // Add remaining unmatched text
+    if idx < char_to_byte.len().saturating_sub(1) {
+        let byte_start = char_to_byte[idx];
+        let byte_end = entry_name.len();
+        if byte_start < byte_end {
+            spans.push(Span::styled(
+                entry_name[byte_start..byte_end].to_string(),
+                Style::default().fg(result_fg),
+            ));
         }
     }
     spans
