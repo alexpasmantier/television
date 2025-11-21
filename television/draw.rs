@@ -16,7 +16,7 @@ use crate::{
 use anyhow::Result;
 use ratatui::{Frame, layout::Rect};
 use rustc_hash::FxHashSet;
-use std::{hash::Hash, time::Instant};
+use std::{hash::Hash, sync::Arc, time::Instant};
 
 #[derive(Debug, Clone, PartialEq)]
 /// The state of the current television channel.
@@ -106,8 +106,8 @@ impl TvState {
 pub struct Ctx {
     pub tv_state: TvState,
     pub config: MergedConfig,
-    pub colorscheme: Colorscheme,
-    pub app_metadata: AppMetadata,
+    pub colorscheme: Arc<Colorscheme>,
+    pub app_metadata: Arc<AppMetadata>,
     pub instant: Instant,
     pub layout: Layout,
 }
@@ -116,8 +116,8 @@ impl Ctx {
     pub fn new(
         tv_state: TvState,
         config: MergedConfig,
-        colorscheme: Colorscheme,
-        app_metadata: AppMetadata,
+        colorscheme: Arc<Colorscheme>,
+        app_metadata: Arc<AppMetadata>,
         instant: Instant,
         layout: Layout,
     ) -> Self {
