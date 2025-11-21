@@ -8,12 +8,13 @@ use crate::{
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
-use std::io::{BufRead, BufReader};
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
-use tracing::{debug, trace};
+use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::process::Command as TokioCommand;
+use tracing::debug;
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
@@ -196,15 +197,15 @@ pub async fn load_candidates(
     injector: Injector<String>,
 ) {
     debug!("Loading candidates from command: {:?}", command);
-    let mut child = shell_command(
+    let mut std_command = shell_command(
         command.get_nth(command_index).raw(),
         command.interactive,
         &command.env,
-    )
-    .stdout(Stdio::piped())
-    .stderr(Stdio::piped())
-    .spawn()
-    .expect("failed to execute process");
+    );
+    std_command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = TokioCommand::from(std_command)
+        .spawn()
+        .expect("failed to execute process");
 
     if let Some(out) = child.stdout.take() {
         let mut produced_output = false;
@@ -216,48 +217,53 @@ pub async fn load_candidates(
 
         let strip_ansi = Template::parse("{strip_ansi}").unwrap();
 
-        loop {
+        while {
             buf.clear();
-            let n = reader.read_until(delimiter, &mut buf).unwrap();
-            if n == 0 {
-                break; // EOF
-            }
-
+            let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
+            n > 0
+        } {
             // Remove trailing delimiter
             if buf.last() == Some(&delimiter) {
                 buf.pop();
             }
 
-            if buf.is_empty() {
+            if buf.is_empty() || buf.iter().all(u8::is_ascii_whitespace) {
                 continue;
             }
 
-            if let Ok(l) = std::str::from_utf8(&buf) {
-                trace!("Read line: {}", l);
-                if !l.trim().is_empty() {
-                    let () = injector.push(l.to_string(), |e, cols| {
-                        if ansi {
-                            cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
-                                panic!(
-                                    "Failed to strip ANSI from entry '{}'",
-                                    e
-                                );
-                            }).into();
-                        } else if let Some(display) = &display {
-                            let formatted = display.format(e).unwrap_or_else(|_| {
-                                panic!(
-                                    "Failed to format display expression '{}' with entry '{}'",
-                                    display.raw(),
-                                    e
-                                );
-                            });
-                            cols[0] = formatted.into();
-                        } else {
-                            cols[0] = e.clone().into();
-                        }
+            if let Ok(line) = std::str::from_utf8(&buf) {
+                let owned_line = line.to_string();
+
+                if !ansi && display.is_none() {
+                    let () = injector.push(owned_line, |e, cols| {
+                        cols[0] = e.as_str().into();
                     });
                     produced_output = true;
+                    continue;
                 }
+
+                let () = injector.push(owned_line, |e, cols| {
+                    if ansi {
+                        cols[0] = strip_ansi.format(e).unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to strip ANSI from entry '{}'",
+                                e
+                            );
+                        }).into();
+                    } else if let Some(display) = &display {
+                        let formatted = display.format(e).unwrap_or_else(|_| {
+                            panic!(
+                                "Failed to format display expression '{}' with entry '{}'",
+                                display.raw(),
+                                e
+                            );
+                        });
+                        cols[0] = formatted.into();
+                    } else {
+                        cols[0] = e.clone().into();
+                    }
+                });
+                produced_output = true;
             }
         }
 
@@ -268,17 +274,19 @@ pub async fn load_candidates(
             injector.push(tv_message.to_string(), |e, cols| {
                 cols[0] = e.clone().into();
             });
-            let reader = BufReader::new(child.stderr.take().unwrap());
-            for l in reader.lines().map_while(Result::ok) {
-                if !l.trim().is_empty() {
-                    let () = injector.push(l, |e, cols| {
-                        cols[0] = e.clone().into();
-                    });
+            let stderr = child.stderr.take().unwrap();
+            let mut reader = BufReader::new(stderr).lines();
+            while let Ok(Some(line)) = reader.next_line().await {
+                if line.trim().is_empty() {
+                    continue;
                 }
+                let () = injector.push(line, |e, cols| {
+                    cols[0] = e.clone().into();
+                });
             }
         }
     }
-    let _ = child.wait();
+    let _ = child.wait().await;
 }
 
 #[cfg(test)]
