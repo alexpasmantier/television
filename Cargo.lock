@@ -2061,6 +2061,7 @@ dependencies = [
  "crossterm",
  "devicons",
  "directories",
+ "fast-strip-ansi",
  "human-panic",
  "lazy-regex",
  "nucleo",
