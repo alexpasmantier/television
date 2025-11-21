@@ -10,11 +10,12 @@ use crate::{
 };
 use anyhow::Result;
 use devicons::FileIcon;
+use smallvec::SmallVec;
 
 #[derive(Debug, Clone)]
 pub struct CableEntry {
     pub channel_name: String,
-    pub match_ranges: Option<Vec<(u32, u32)>>,
+    pub match_ranges: Option<SmallVec<[(u32, u32); 8]>>,
     pub shortcut: Option<Key>,
     pub description: Option<String>,
     pub requirements: Vec<BinaryRequirement>,

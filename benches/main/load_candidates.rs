@@ -12,7 +12,7 @@ pub fn load_candidates_by_size(c: &mut Criterion) {
     let sizes = vec![10_000, 100_000, 1_000_000];
 
     for size in sizes {
-        group.throughput(Throughput::Elements(size as u64));
+        group.throughput(Throughput::Elements(size));
 
         group.bench_with_input(
             BenchmarkId::new("default_delimiter", size),
