@@ -18,6 +18,7 @@
 `Television` is a fast and hackable fuzzy finder for the terminal.
 
 It lets you search in real time through any kind of data source (called "channels") such as:
+
 - files and directories
 - code
 - notes
@@ -62,63 +63,92 @@ See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/c
 ## Installation
 
 ### Automatic installation script:
+
 ```sh
 curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 ```
 
 ### Package managers:
+
 [![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
+
 #### MacOS:
+
 - [Homebrew](https://brew.sh/):
+
 ```sh
 brew install television
 ```
+
 #### Linux:
+
 - [Arch Linux](https://archlinux.org/):
+
 ```sh
 pacman -S television
 ```
+
 - Debian/Ubuntu:
+
 ```sh
 VER=`curl -s "https://api.github.com/repos/alexpasmantier/television/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/'`
 curl -LO https://github.com/alexpasmantier/television/releases/download/$VER/tv-$VER-x86_64-unknown-linux-musl.deb
 echo $VER
 sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
 ```
+
 - Chimera Linux:
+
 ```sh
 apk add chimera-repo-user
 apk add television
 ```
+
 - Nix:
+
 ```sh
 nix run nixpkgs#television
 ```
+
 #### Windows:
+
 - [Scoop](https://scoop.sh/):
+
 ```sh
 scoop bucket add extras
 scoop install television
 ```
+
 - [Winget](https://github.com/microsoft/winget-cli):
+
 ```sh
 winget install --exact --id alexpasmantier.television
 ```
+
 #### NetBSD:
+
 - [pkgsrc](https://pkgsrc.se/textproc/television):
+
 ```sh
 pkgin install television
 ```
+
 #### Cross-platform:
+
 - [Cargo](https://doc.rust-lang.org/cargo/):
+
 ```sh
 cargo install television
 ```
+
 - [Conda-forge](https://anaconda.org/conda-forge/television):
+
 ```sh
 pixi global install television
 ```
+
 ### Precompiled binaries:
+
 Download the latest release from the [releases page](https://www.github.com/alexpasmantier/television/releases).
 
 ## Usage
@@ -141,6 +171,13 @@ tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --p
 > 🐚 _Television has **builtin shell integration**. More info [here](https://alexpasmantier.github.io/television/docs/Users/shell-integration)._
 
 For more information, check out the [docs](https://alexpasmantier.github.io/television/).
+
+## Using tv inside your favorite editor
+
+- **Neovim**: [tv.nvim](https://github.com/alexpasmantier/tv.nvim) (lua)
+- **Vim**: [tv.vim](https://github.com/prabirshrestha/tv.vim) (vimscript)
+- **Zed**: [Easy Telescope-style file finder in Zed using television](https://github.com/zed-industries/zed/discussions/22581)
+- **VSCode**: [using television as a file picker inside vscode](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
 
 ## Credits
 
