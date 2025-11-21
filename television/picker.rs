@@ -1,5 +1,6 @@
 use crate::utils::{input::Input, strings::EMPTY_STRING};
 use ratatui::widgets::ListState;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq, Hash)]
 pub struct Picker<T> {
@@ -7,7 +8,7 @@ pub struct Picker<T> {
     pub(crate) relative_state: ListState,
     inverted: bool,
     pub(crate) input: Input,
-    pub entries: Vec<T>,
+    pub entries: Arc<Vec<T>>,
     pub total_items: u32,
 }
 
@@ -24,7 +25,7 @@ impl<T> Picker<T> {
             relative_state: ListState::default(),
             inverted: false,
             input: Input::new(input.unwrap_or(EMPTY_STRING.to_string())),
-            entries: Vec::new(),
+            entries: Arc::new(Vec::new()),
             total_items: 0,
         }
     }

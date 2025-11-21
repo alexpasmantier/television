@@ -33,7 +33,7 @@ use anyhow::Result;
 use ratatui::layout::Rect;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -77,8 +77,8 @@ pub struct Television {
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
     pub spinner: Spinner,
     pub spinner_state: SpinnerState,
-    pub app_metadata: AppMetadata,
-    pub colorscheme: Colorscheme,
+    pub app_metadata: Arc<AppMetadata>,
+    pub colorscheme: Arc<Colorscheme>,
     pub ticks: u64,
     pub ui_state: UiState,
     pub current_command_index: usize,
@@ -185,8 +185,8 @@ impl Television {
             preview_handles,
             spinner,
             spinner_state: SpinnerState::from(&spinner),
-            app_metadata,
-            colorscheme,
+            app_metadata: Arc::new(app_metadata),
+            colorscheme: Arc::new(colorscheme),
             ticks: 0,
             ui_state: UiState::default(),
             current_command_index: 0,
@@ -586,10 +586,8 @@ impl Television {
             let height =
                 self.ui_state.layout.results.height.saturating_sub(2).into(); // -2 for borders
 
-            self.results_picker.entries.clear();
-            self.results_picker
-                .entries
-                .extend(self.channel.results(height, offset));
+            self.results_picker.entries =
+                Arc::new(self.channel.results(height, offset));
         }
         self.results_picker.total_items = self.channel.result_count();
     }
@@ -618,8 +616,7 @@ impl Television {
                 .unwrap()
                 .results(height, offset);
 
-            self.rc_picker.entries.clear();
-            self.rc_picker.entries.extend(new_entries);
+            self.rc_picker.entries = Arc::new(new_entries);
         }
         self.rc_picker.total_items =
             self.remote_control.as_ref().unwrap().total_count();

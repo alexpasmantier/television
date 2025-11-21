@@ -48,6 +48,10 @@ impl Default for Config {
     }
 }
 
+#[allow(
+    clippy::large_enum_variant,
+    reason = "requests are almost exclusively preview jobs"
+)]
 #[derive(PartialEq, Eq)]
 pub enum Request {
     Preview(Ticket),
