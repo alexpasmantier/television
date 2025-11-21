@@ -10,6 +10,7 @@ use parking_lot::Mutex;
 use ratatui::text::Text;
 use tokio::{
     sync::mpsc::{UnboundedReceiver, UnboundedSender},
+    task::spawn_blocking,
     time::timeout,
 };
 use tracing::debug;
@@ -201,32 +202,33 @@ impl Previewer {
                         }
                         let results_handle = self.results.clone();
                         self.last_job_entry = Some(ticket.entry.clone());
-                        // try to execute the preview with a timeout
                         let preview_command = self.command.clone();
                         let cache = self.cache.clone();
                         let offset_expr = self.offset_expr.clone();
-                        match timeout(
-                            self.config.job_timeout,
-                            tokio::spawn(async move {
-                                if let Err(e) = try_preview(
-                                    &preview_command,
-                                    &offset_expr,
-                                    &ticket.entry,
-                                    &results_handle,
-                                    &cache,
-                                ) {
-                                    debug!(
-                                        "Failed to generate preview for entry '{}': {}",
-                                        ticket.entry.raw,
-                                        e
-                                    );
-                                }
-                            }),
-                        )
-                        .await
-                        {
-                            Ok(_) => {
+                        let job = spawn_blocking(move || {
+                            try_preview(
+                                &preview_command,
+                                &offset_expr,
+                                &ticket.entry,
+                                &results_handle,
+                                &cache,
+                            )
+                        });
+                        match timeout(self.config.job_timeout, job).await {
+                            Ok(Ok(Ok(()))) => {
                                 debug!("Preview job completed successfully");
+                            }
+                            Ok(Ok(Err(e))) => debug!(
+                                "Failed to generate preview for entry '{}': {}",
+                                &self.last_job_entry.unwrap().raw,
+                                e
+                            ),
+                            Ok(Err(join_err)) => {
+                                debug!(
+                                    "Preview join error for '{}': {}",
+                                    self.last_job_entry.unwrap().raw,
+                                    join_err
+                                );
                             }
                             Err(e) => {
                                 debug!("Preview job timeout: {}", e);
