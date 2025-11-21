@@ -3,6 +3,7 @@ use crate::{
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
+use smallvec::SmallVec;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq)]
@@ -14,7 +15,7 @@ pub struct Entry {
     /// The output string that will be used when the entry is selected.
     pub output: Option<Template>,
     /// The optional ranges for matching characters (based on `self.display`).
-    pub match_ranges: Option<Vec<(u32, u32)>>,
+    pub match_ranges: Option<SmallVec<[(u32, u32); 8]>>,
     /// Whether the entry contains ANSI escape sequences.
     pub ansi: bool,
 }
@@ -45,12 +46,12 @@ impl PartialEq<Entry> for Entry {
 /// use television::channels::entry::into_ranges;
 /// let indices = vec![1, 2, 7, 8];
 /// let ranges = into_ranges(&indices);
-/// assert_eq!(ranges, vec![(1, 3), (7, 9)]);
+/// assert_eq!(ranges[..], [(1, 3), (7, 9)]);
 /// ```
-pub fn into_ranges(indices: &[u32]) -> Vec<(u32, u32)> {
-    indices
-        .iter()
-        .fold(Vec::new(), |mut acc: Vec<(u32, u32)>, x| {
+pub fn into_ranges(indices: &[u32]) -> SmallVec<[(u32, u32); 8]> {
+    indices.iter().fold(
+        SmallVec::new(),
+        |mut acc: SmallVec<[(u32, u32); 8]>, x| {
             if let Some(last) = acc.last_mut() {
                 if last.1 == *x {
                     last.1 = *x + 1;
@@ -61,7 +62,8 @@ pub fn into_ranges(indices: &[u32]) -> Vec<(u32, u32)> {
                 acc.push((*x, *x + 1));
             }
             return acc;
-        })
+        },
+    )
 }
 
 impl Entry {
@@ -160,25 +162,25 @@ mod tests {
     #[test]
     fn test_empty_input() {
         let ranges: Vec<u32> = vec![];
-        assert_eq!(into_ranges(&ranges), Vec::<(u32, u32)>::new());
+        assert_eq!(into_ranges(&ranges).as_slice(), &[]);
     }
 
     #[test]
     fn test_single_range() {
         let ranges = vec![1, 2];
-        assert_eq!(into_ranges(&ranges), vec![(1, 3)]);
+        assert_eq!(into_ranges(&ranges).as_slice(), &[(1, 3)]);
     }
 
     #[test]
     fn test_contiguous_ranges() {
         let ranges = vec![1, 2, 3, 4];
-        assert_eq!(into_ranges(&ranges), vec![(1, 5)]);
+        assert_eq!(into_ranges(&ranges).as_slice(), &[(1, 5)]);
     }
 
     #[test]
     fn test_non_contiguous_ranges() {
         let ranges = vec![1, 3, 5];
-        assert_eq!(into_ranges(&ranges), vec![(1, 2), (3, 4), (5, 6)]);
+        assert_eq!(into_ranges(&ranges).as_slice(), &[(1, 2), (3, 4), (5, 6)]);
     }
 
     #[test]
