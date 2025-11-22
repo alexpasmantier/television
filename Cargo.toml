@@ -38,7 +38,7 @@ better-panic = "0.3"
 signal-hook = "0.3"
 human-panic = "2.0"
 parking_lot = "0.12"
-nucleo = "0.5"
+nucleo = { git = "https://github.com/lalvarezt/nucleo", branch = "frecency" }
 toml = "0.8"
 lazy-regex = { version = "3.4.1", features = [
   "lite",
