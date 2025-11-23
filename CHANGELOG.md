@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.11](https://github.com/alexpasmantier/television/releases/tag/0.13.11) - 2025-11-23
+
+### 🐛 Bug Fixes
+
+- [3a71a99](https://github.com/alexpasmantier/television/commit/3a71a99b0291ba3996c282e9d086705762304c84) *(pwsh)* Always use `-NoLogo -NoProfile` when starting pwsh commands by @alexpasmantier in [#775](https://github.com/alexpasmantier/television/pull/775)
+
+- [b336421](https://github.com/alexpasmantier/television/commit/b336421752d8d3050c6e8f4093e3c738ace5ace6) *(uncategorized)* No more edge case highlight computing panics by @alexpasmantier
+
+### 📚 Documentation
+
+- [3dcc3db](https://github.com/alexpasmantier/television/commit/3dcc3db7c5296bb2ef02a8fbc764b433e6732e10) *(uncategorized)* Update readme with editor integrations by @alexpasmantier
+
+### ⚡ Performance
+
+- [492881f](https://github.com/alexpasmantier/television/commit/492881f823641a429feb59cc00f309801930abf4) *(uncategorized)* Use `tokio::process::Command` for previews by @alexpasmantier
+
+- [0a385f9](https://github.com/alexpasmantier/television/commit/0a385f9b0545990747b6964e262388a3a59b83eb) *(uncategorized)* Faster ansi escape sequences stripping with `--ansi` by @alexpasmantier
+
+- [0136626](https://github.com/alexpasmantier/television/commit/0136626a8be6a46279105e8dc5ea6fa2d0a852f1) *(uncategorized)* Avoid blocking async runtime when streaming in candidates by @alexpasmantier
+
+- [d2034a8](https://github.com/alexpasmantier/television/commit/d2034a873fba421ff3d3d2548594744bf3584b45) *(uncategorized)* Add rendering benchmark by @alexpasmantier
+
+- [a6b5240](https://github.com/alexpasmantier/television/commit/a6b5240de00d2d3f7af5e6c3e7f35ee931ea308f) *(uncategorized)* Avoid heap allocations when passing context to render thread by @alexpasmantier
+
+- [ad166f1](https://github.com/alexpasmantier/television/commit/ad166f1ed3fd2c1ba67d92aef7ab8b145c1b5167) *(uncategorized)* Use smallvec for match ranges to avoid unnecessary allocations by @alexpasmantier
+
+- [56f19be](https://github.com/alexpasmantier/television/commit/56f19bee3db1a8390f55c60dc6795ab7742ab9d1) *(uncategorized)* Add `load_candidates` benchmark by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [c535e08](https://github.com/alexpasmantier/television/commit/c535e08d584fd7dfa5ba1d50b05c5620a9026cc6) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#773](https://github.com/alexpasmantier/television/pull/773)
+
+- [3cabec2](https://github.com/alexpasmantier/television/commit/3cabec2bdeabce3a4176303d7b8729fbdb7b99c8) *(uncategorized)* Release version 0.13.11 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.10...0.13.11
+
+
 ## [0.13.10](https://github.com/alexpasmantier/television/releases/tag/0.13.10) - 2025-11-16
 
 ### ⛰️  Features
