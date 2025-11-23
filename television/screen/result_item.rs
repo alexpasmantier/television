@@ -153,13 +153,16 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
         let start = start as usize;
         let end = end as usize;
         if idx < start {
-            let text: String = chars[idx..start].iter().collect();
+            // PERF: spans actually accept copy on write
+            let text: String =
+                chars.iter().skip(idx).take(start - idx).collect();
             if !text.is_empty() {
                 spans.push(Span::styled(text, Style::default().fg(result_fg)));
             }
         }
         if start < end {
-            let text: String = chars[start..end].iter().collect();
+            let text: String =
+                chars.iter().skip(start).take(end - start).collect();
             if !text.is_empty() {
                 spans.push(Span::styled(text, Style::default().fg(match_fg)));
             }
@@ -167,7 +170,7 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
         idx = end;
     }
     if idx < chars.len() {
-        let text: String = chars[idx..].iter().collect();
+        let text: String = chars.iter().skip(idx).collect();
         if !text.is_empty() {
             spans.push(Span::styled(text, Style::default().fg(result_fg)));
         }
