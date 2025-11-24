@@ -149,7 +149,14 @@ pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
     match shell {
         Shell::Bash => Ok(format!(r"\C-{character}")),
         Shell::Zsh => Ok(format!(r"^{character}")),
-        Shell::Fish => Ok(format!(r"\c{character}")),
+        Shell::Fish => {
+            if character == ' ' {
+                Ok(r"ctrl-space".to_string())
+            } else {
+                let lower_char = character.to_ascii_lowercase();
+                Ok(format!(r"ctrl-{lower_char}"))
+            }
+        }
         Shell::Nu => Ok(format!(r"Ctrl-{character}")),
         Shell::Psh => Ok(format!(r"Ctrl+{}", character.to_ascii_lowercase())),
         Shell::Cmd => {
@@ -249,7 +256,7 @@ mod tests {
         let shell = Shell::Fish;
         let result = ctrl_keybinding(shell, character);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "\\cs");
+        assert_eq!(result.unwrap(), "ctrl-s");
     }
 
     #[test]
