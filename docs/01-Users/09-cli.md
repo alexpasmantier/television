@@ -361,7 +361,7 @@ Television's options are organized by functionality. Each option behaves differe
 
 - **Both Modes**: Same behavior
 - **Behavior**: Automatically uses all available space below the cursor,
-minimum height is ensured (set by default at 15 lines)
+  minimum height is ensured (set by default at 15 lines)
 - **Conflicts**: Cannot be used with `--height`
 - **Use Case**: Use of all available space without entering fullscreen mode
 
@@ -452,7 +452,7 @@ minimum height is ensured (set by default at 15 lines)
 **Purpose**: Uses a custom configuration file instead of the default
 
 - **Both Modes**: Same behavior
-- **Default**: `~/.config/tv/config.toml` (Linux/macOS) or `%APPDATA%\tv\config.toml` (Windows)
+- **Default**: `~/.config/television/config.toml` (Linux/macOS) or `%LocalAppData%\tv\config.toml` (Windows)
 - **Use Case**: Multiple configurations for different workflows
 
 #### `--cable-dir <PATH>`
@@ -460,7 +460,7 @@ minimum height is ensured (set by default at 15 lines)
 **Purpose**: Uses a custom directory for channel definitions
 
 - **Both Modes**: Same behavior
-- **Default**: `~/.config/tv/cable/` (Linux/macOS) or `%APPDATA%\tv\cable\` (Windows)
+- **Default**: `~/.config/television/cable/` (Linux/macOS) or `%LocalAppData%\television\cable\` (Windows)
 - **Use Case**: Custom channel collections or shared team channels
 
 ### 📚 History Options
@@ -562,13 +562,13 @@ Television uses a layered configuration system where each layer can override the
 
 #### User Configuration File
 
-- **Linux/macOS**: `~/.config/tv/config.toml`
-- **Windows**: `%APPDATA%\tv\config.toml`
+- **Linux/macOS**: `~/.config/television/config.toml`
+- **Windows**: `%LocalAppData%\television\config.toml`
 
 #### Channel Definitions (Cable Directory)
 
-- **Linux/macOS**: `~/.config/tv/cable/`
-- **Windows**: `%APPDATA%\tv\cable\`
+- **Linux/macOS**: `~/.config/television/cable/`
+- **Windows**: `%LocalAppData%\television\cable\`
 
 > **Tip**: Use `--config-file` and `--cable-dir` flags to override these default locations
 
@@ -580,12 +580,12 @@ Television allows you to control the visibility and behavior of UI panels throug
 
 Television supports four main UI panels:
 
-| Panel             | Purpose                                           | Default State | CLI Controls                                                |
-| ----------------- | ------------------------------------------------- | ------------- | ----------------------------------------------------------- |
-| **Preview Panel** | Shows contextual information for selected entries | Visible       | `--no-preview`, `--hide-preview`, `--show-preview`          |
-| **Status Bar**    | Displays application status and available actions | Visible       | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
-| **Help Panel**    | Shows contextual help and keyboard shortcuts      | Hidden        | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
-| **Remote Control**| Provides channel switching interface              | Hidden        | `--no-remote`, `--hide-remote`, `--show-remote`             |
+| Panel              | Purpose                                           | Default State | CLI Controls                                                |
+| ------------------ | ------------------------------------------------- | ------------- | ----------------------------------------------------------- |
+| **Preview Panel**  | Shows contextual information for selected entries | Visible       | `--no-preview`, `--hide-preview`, `--show-preview`          |
+| **Status Bar**     | Displays application status and available actions | Visible       | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
+| **Help Panel**     | Shows contextual help and keyboard shortcuts      | Hidden        | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
+| **Remote Control** | Provides channel switching interface              | Hidden        | `--no-remote`, `--hide-remote`, `--show-remote`             |
 
 #### CLI Panel Control Examples
 
