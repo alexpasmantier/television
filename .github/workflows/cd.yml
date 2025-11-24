@@ -19,7 +19,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout the repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
       - name: Generate a changelog
@@ -85,7 +85,7 @@ jobs:
             use-cross: true
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
@@ -189,7 +189,7 @@ jobs:
       PCRE2_SYS_STATIC: 1
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Install packages (Ubuntu)
         shell: bash
         run: |
@@ -271,7 +271,7 @@ jobs:
     needs: [create-release, publish-release, publish-release-deb]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Import GPG key
         uses: crazy-max/ghaction-import-gpg@v6
         with:
