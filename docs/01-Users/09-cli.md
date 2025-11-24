@@ -460,7 +460,8 @@ minimum height is ensured (set by default at 15 lines)
 **Purpose**: Uses a custom directory for channel definitions
 
 - **Both Modes**: Same behavior
-- **Default**: `~/.config/tv/cable/` (Linux/macOS) or `%APPDATA%\tv\cable\` (Windows)
+- **Default**: `~/.config/tv/cable/` (Linux/macOS) or `%APPDATA%\tv\cable\` (Windows),
+                or `$CABLE_DIR` if set and `.config/tv/cable` doesn't exist.
 - **Use Case**: Custom channel collections or shared team channels
 
 ### 📚 History Options
