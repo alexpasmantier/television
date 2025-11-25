@@ -173,6 +173,22 @@ output = "{strip_ansi|split:\\::..2}"
 ansi = true  # whether the results are ANSI formatted
 ```
 
+##### Multiple Source Commands (Source Cycling)
+
+You can specify multiple source commands in a channel, allowing users to cycle between different search variations:
+
+```toml
+[source]
+command = ["fd -t f", "fd -t f -H"]  # First shows normal files, second includes hidden files
+```
+
+When multiple commands are configured:
+
+- Only the first command runs initially
+- Press <kbd>Ctrl</kbd>+<kbd>S</kbd> (default keybinding for `cycle_sources`) to switch between commands
+
+**Note**: This feature is currently only available in channel mode (not available when using `--source-command` from the CLI).
+
 #### `[preview]`
 
 ```toml

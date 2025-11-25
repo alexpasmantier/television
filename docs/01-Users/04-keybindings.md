@@ -14,6 +14,9 @@ Default keybindings are as follows:
 |                                                <kbd>Ctrl</kbd> + <kbd>t</kbd>                                                 | Toggle remote control mode                         |
 |                                                <kbd>Ctrl</kbd> + <kbd>h</kbd>                                                 | Toggle the help panel                              |
 |                                                <kbd>Ctrl</kbd> + <kbd>o</kbd>                                                 | Toggle the preview panel                           |
+|                                                <kbd>Ctrl</kbd> + <kbd>r</kbd>                                                 | Reload the current source                          |
+|                                                <kbd>Ctrl</kbd> + <kbd>s</kbd>                                                 | Cycle through source commands (channel mode only)  |
+|                                                <kbd>Ctrl</kbd> + <kbd>l</kbd>                                                 | Switch between landscape and portrait layout       |
 |                                                        <kbd>Esc</kbd>                                                         | Quit the application                               |
 
 These keybindings are all configurable via tv's configuration file (see [Configuration](./configuration)).
