@@ -1,0 +1,37 @@
+# Television channel for sesh session management
+# https://github.com/joshmedeski/sesh
+
+[metadata]
+name = "sesh"
+description = "Session manager integrating tmux sessions, zoxide directories, and config paths"
+requirements = ["sesh", "fd"]
+
+[source]
+# Multiple source commands for cycling through different modes
+# Press Ctrl+S to cycle between sources
+command = [
+  "sesh list --icons",                          # all sessions (default)
+  "sesh list -t --icons",                       # tmux sessions only
+  "sesh list -c --icons",                       # config directories
+  "sesh list -z --icons",                       # zoxide directories
+  "fd -H -d 2 -t d -E .Trash . ~"               # find directories
+]
+ansi = true
+output = "{strip_ansi|split: :1}"
+
+[preview]
+command = "sesh preview '{strip_ansi|split: :1}'"
+
+[keybindings]
+enter = "actions:connect"
+ctrl-d = "actions:kill_session"
+
+[actions.connect]
+description = "Connect to selected session"
+command = "sesh connect '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.kill_session]
+description = "Kill selected tmux session (press Ctrl+r to reload)"
+command = "tmux kill-session -t '{strip_ansi|split: :1}'"
+mode = "fork"
