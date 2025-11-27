@@ -823,6 +823,47 @@ mode = "execute"
 
 ---
 
+### *sesh*
+
+Session manager integrating tmux sessions, zoxide directories, and config paths
+
+**Requirements:** `sesh`, `fd`
+
+**Code:** *sesh.toml*
+
+```toml
+[metadata]
+name = "sesh"
+description = "Session manager integrating tmux sessions, zoxide directories, and config paths"
+requirements = [ "sesh", "fd",]
+
+[source]
+command = [ "sesh list --icons", "sesh list -t --icons", "sesh list -c --icons", "sesh list -z --icons", "fd -H -d 2 -t d -E .Trash . ~",]
+ansi = true
+output = "{strip_ansi|split: :1}"
+
+[preview]
+command = "sesh preview '{strip_ansi|split: :1}'"
+
+[keybindings]
+enter = "actions:connect"
+ctrl-d = "actions:kill_session"
+
+[actions.connect]
+description = "Connect to selected session"
+command = "sesh connect '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.kill_session]
+description = "Kill selected tmux session (press Ctrl+r to reload)"
+command = "tmux kill-session -t '{strip_ansi|split: :1}'"
+mode = "fork"
+
+```
+
+
+---
+
 ### *text*
 
 A channel to find and select text from files
