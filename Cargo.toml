@@ -2,7 +2,7 @@
 name = "television"
 version = "0.13.11"
 edition = "2024"
-description = "Cross-platform, fast and extensible general purpose fuzzy finder TUI."
+description = "A portable and hackable fuzzy finder for the terminal"
 license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 repository = "https://github.com/alexpasmantier/television"
@@ -133,8 +133,23 @@ from_iter_instead_of_collect = "allow"
 maintainer = "Alexandre Pasmantier <alex.pasmant@gmail.com>"
 copyright = "Copyright 2025 Alexandre Pasmantier <alex.pasmant@gmail.com>"
 extended-description = """\
-Television is a cross-platform, fast and extensible fuzzy finder TUI.
-It integrates with your shell and lets you quickly search through any kind of data source (files, git repositories, environment variables, docker images, you name it) using a fuzzy matching algorithm and is designed to be easily extensible."""
+Television is a portable and hackable fuzzy finder for the terminal.
+
+It lets you search in real time through any kind of data source (called "channels") such as:
+
+    files and directories
+    code
+    notes
+    processes
+    git repositories
+    environment variables
+    docker containers
+    ...and much more
+
+
+with support for previewing results, customizable actions and keybindings, and integration with your favorite
+shell and editor.
+"""
 section = "utils"
 priority = "optional"
 depends = "$auto"
