@@ -790,7 +790,7 @@ command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
 
 ### *path*
 
-A channel to select from path variable
+Investigate PATH contents
 
 **Requirements:** `fd`, `bat`
 
@@ -799,7 +799,7 @@ A channel to select from path variable
 ```toml
 [metadata]
 name = "path"
-description = "A channel to select from path variable"
+description = "Investigate PATH contents"
 requirements = [ "fd", "bat",]
 
 [source]
