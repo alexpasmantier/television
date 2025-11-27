@@ -1,6 +1,6 @@
 [metadata]
 name = "path"
-description = "A channel to select from path variable"
+description = "Investigate PATH contents"
 requirements = ["fd", "bat"]
 
 [source]
