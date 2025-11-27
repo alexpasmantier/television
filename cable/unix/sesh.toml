@@ -24,7 +24,7 @@ command = "sesh preview '{strip_ansi|split: :1}'"
 
 [keybindings]
 enter = "actions:connect"
-ctrl-d = "actions:kill_session"
+ctrl-d = [ "actions:kill_session", "reload_source" ]
 
 [actions.connect]
 description = "Connect to selected session"
