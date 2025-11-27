@@ -9,10 +9,7 @@ dest="${XDG_CONFIG_HOME:-$HOME/.config}/television"
 
 mkdir -p "$dest"
 
-auth_header=()
-[[ -n "${GITHUB_TOKEN:-}" ]] && auth_header=(-H "Authorization: Bearer $GITHUB_TOKEN")
-
-curl -sS -L "${auth_header[@]}" \
+curl -sS -L --fail \
   "https://api.github.com/repos/$owner/$repo/git/trees/$ref?recursive=1" \
 | jq -r --arg root "$root/" '
     .tree[]
@@ -28,4 +25,3 @@ curl -sS -L "${auth_header[@]}" \
   done
 
 echo "Done -> $dest"
-
