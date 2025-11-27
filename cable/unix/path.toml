@@ -1,0 +1,10 @@
+[metadata]
+name = "path"
+description = "Investigate PATH contents"
+requirements = ["fd", "bat"]
+
+[source]
+command = "printf '%s\n' \"$PATH\" | tr ':' '\n'"
+
+[preview]
+command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --color=always"

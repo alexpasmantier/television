@@ -788,6 +788,31 @@ command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
 
 ---
 
+### *path*
+
+A channel to select from path variable
+
+**Requirements:** `fd`, `bat`
+
+**Code:** *path.toml*
+
+```toml
+[metadata]
+name = "path"
+description = "A channel to select from path variable"
+requirements = [ "fd", "bat",]
+
+[source]
+command = "printf '%s\n' \"$PATH\" | tr ':' '\n'"
+
+[preview]
+command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --color=always"
+
+```
+
+
+---
+
 ### *procs*
 
 A channel to find and manage running processes
