@@ -1,7 +1,7 @@
 <div align="center">
 
 [<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)  
-**A fast and hackable fuzzy finder for the terminal.**
+**A portable and hackable fuzzy finder for the terminal.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
@@ -15,7 +15,7 @@
 
 ## About
 
-`Television` is a fast and hackable fuzzy finder for the terminal.
+`Television` is a portable and hackable fuzzy finder for the terminal.
 
 It lets you search in real time through any kind of data source (called "channels") such as:
 
@@ -27,6 +27,9 @@ It lets you search in real time through any kind of data source (called "channel
 - environment variables
 - docker containers
 - ...and much more ([creating your own channels](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels))
+
+with support for previewing results, customizable actions and keybindings, and integration with your favorite
+shell and editor.
 
 ## TL;DR
 
@@ -54,7 +57,7 @@ tv files
 
 ![tv files](./assets/tv-transparent.png)
 
-Switch channels using the remote control and pick from a list of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix) or [create your own!](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels).
+Switch channels using the remote control and pick from a list of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix) or [create your own](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels).
 
 ![tv remote](./assets/tv-files-remote.png)
 
@@ -62,33 +65,31 @@ See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/c
 
 ## Installation
 
-### Automatic installation script:
+1. [Automatically select the best installation method](#automatically-select-the-best-installation-method)
+2. [Linux](#linux)
+3. [MacOS](#macos)
+4. [Windows](#windows)
+5. [NetBSD](#netbsd)
+6. [Cross-platform](#cross-platform)
+7. [Precompiled binaries](#precompiled-binaries)
+
+### Automatically select the best installation method
+Running the following command will detect your OS and install `television` using the best available method:
 
 ```sh
 curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 ```
 
-### Package managers:
+### Linux
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
-
-#### MacOS:
-
-- [Homebrew](https://brew.sh/):
-
-```sh
-brew install television
-```
-
-#### Linux:
-
-- [Arch Linux](https://archlinux.org/):
+- [Arch Linux](https://archlinux.org/), [Manjaro](https://manjaro.org/), [EndeavourOS](https://endeavouros.com/), etc.:
 
 ```sh
 pacman -S television
 ```
 
-- Debian/Ubuntu:
+- [Debian](https://www.debian.org/), [Ubuntu](https://ubuntu.com/), [Linux Mint](https://linuxmint.com/),
+[Pop!_OS](https://pop.system76.com/), etc.:
 
 ```sh
 VER=`curl -s "https://api.github.com/repos/alexpasmantier/television/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/'`
@@ -97,21 +98,27 @@ echo $VER
 sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
 ```
 
-- Chimera Linux:
+- [ChimeraOS](https://chimeraos.org/), [Alpine Linux](https://alpinelinux.org/):
 
 ```sh
 apk add chimera-repo-user
 apk add television
 ```
 
-- Nix:
+- [NixOS](https://nixos.org/) and other systems with [Nix package manager](https://nixos.org/download.html):
 
 ```sh
 nix run nixpkgs#television
 ```
 
-#### Windows:
+### MacOS
+- [Homebrew](https://brew.sh/):
 
+```sh
+brew install television
+```
+
+### Windows
 - [Scoop](https://scoop.sh/):
 
 ```sh
@@ -125,7 +132,7 @@ scoop install television
 winget install --exact --id alexpasmantier.television
 ```
 
-#### NetBSD:
+### NetBSD
 
 - [pkgsrc](https://pkgsrc.se/textproc/television):
 
@@ -133,7 +140,8 @@ winget install --exact --id alexpasmantier.television
 pkgin install television
 ```
 
-#### Cross-platform:
+
+### Cross-platform
 
 - [Cargo](https://doc.rust-lang.org/cargo/):
 
@@ -147,7 +155,7 @@ cargo install television
 pixi global install television
 ```
 
-### Precompiled binaries:
+### Precompiled binaries
 
 Download the latest release from the [releases page](https://www.github.com/alexpasmantier/television/releases).
 
