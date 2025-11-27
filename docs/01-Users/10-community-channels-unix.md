@@ -853,7 +853,6 @@ mode = "execute"
 Session manager integrating tmux sessions, zoxide directories, and config paths
 
 ![tv running the sesh channel](../../assets/channels/sesh.png)
-
 **Requirements:** `sesh`, `fd`
 
 **Code:** *sesh.toml*
@@ -874,7 +873,7 @@ command = "sesh preview '{strip_ansi|split: :1}'"
 
 [keybindings]
 enter = "actions:connect"
-ctrl-d = "actions:kill_session"
+ctrl-d = [ "actions:kill_session", "reload_source",]
 
 [actions.connect]
 description = "Connect to selected session"
