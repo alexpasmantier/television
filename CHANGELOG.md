@@ -4,6 +4,60 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.13.12](https://github.com/alexpasmantier/television/releases/tag/0.13.12) - 2025-11-28
+
+### ⛰️  Features
+
+- [3b10039](https://github.com/alexpasmantier/television/commit/3b10039621f8c310048c9780444a8892fdfee634) *(channels)* Add channel for selecting PATH directories by @hayderhassan in [#786](https://github.com/alexpasmantier/television/pull/786)
+
+- [a775bff](https://github.com/alexpasmantier/television/commit/a775bff2e4913c30a76afbb0a02e18ac0d5e4a32) *(channels)* Add sesh session manager channel by @josephschmitt in [#787](https://github.com/alexpasmantier/television/pull/787)
+
+- [81971a1](https://github.com/alexpasmantier/television/commit/81971a19356610bdbdbd7910c593fd1f6b4ab052) *(config)* Add `z` (Zoxide) to `dirs` channel triggers by @nagromc in [#776](https://github.com/alexpasmantier/television/pull/776)
+
+### 🐛 Bug Fixes
+
+- [0efad53](https://github.com/alexpasmantier/television/commit/0efad53d967a4c5877f59d040b6c3f657e2feb58) *(channels)* Run reload source after kill_session action by @josephschmitt in [#790](https://github.com/alexpasmantier/television/pull/790)
+
+- [c38cf95](https://github.com/alexpasmantier/television/commit/c38cf950449cf987fa8539bb52e7ae59c42083e0) *(fish)* Proper handling of ctrl-space for fish integration by @alexpasmantier
+
+### 📚 Documentation
+
+- [6f9168a](https://github.com/alexpasmantier/television/commit/6f9168a61f6e325a92bbbe48fd6537605bcd6dce) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#792](https://github.com/alexpasmantier/television/pull/792)
+
+- [90b1df8](https://github.com/alexpasmantier/television/commit/90b1df82e343b5a6c6b73e36b99b23f974daf42f) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#789](https://github.com/alexpasmantier/television/pull/789)
+
+- [27189bf](https://github.com/alexpasmantier/television/commit/27189bf6215a5d895f223b335d5e16322c97fb69) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#788](https://github.com/alexpasmantier/television/pull/788)
+
+- [69c7b70](https://github.com/alexpasmantier/television/commit/69c7b70c00a6fc54ac2bfad79ef68501753afc6e) *(channels)* Add screenshot for sesh by @josephschmitt in [#791](https://github.com/alexpasmantier/television/pull/791)
+
+- [b09a0dc](https://github.com/alexpasmantier/television/commit/b09a0dc246988f4a0134ae117be383e374cbb29c) *(config)* Fix misleading windows config paths in docs by @alexpasmantier in [#784](https://github.com/alexpasmantier/television/pull/784)
+
+- [d4b32eb](https://github.com/alexpasmantier/television/commit/d4b32eb0e3e9776df78c424b11f6b224133d2cdd) *(windows)* Clean up misleading path leftover by @alexpasmantier
+
+- [3d506ae](https://github.com/alexpasmantier/television/commit/3d506ae5c05a73f9d2d9d9d69e4a9ddaf22a5555) *(uncategorized)* Refactor installation methods section by @alexpasmantier
+
+- [ad21f54](https://github.com/alexpasmantier/television/commit/ad21f54aabaedccfc6c82a47a2db50e738d8b081) *(uncategorized)* Add cycle sources docs and other missing keybindings by @alexpasmantier in [#785](https://github.com/alexpasmantier/television/pull/785)
+
+### ⚙️ Miscellaneous Tasks
+
+- [a85e3d9](https://github.com/alexpasmantier/television/commit/a85e3d9f4145f67cfbc6a78867500b80472fa0d0) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#780](https://github.com/alexpasmantier/television/pull/780)
+
+- [8601a18](https://github.com/alexpasmantier/television/commit/8601a1819d81e09660fd95bdcbd994a2e374a88f) *(uncategorized)* Release version 0.13.12 by @alexpasmantier
+
+- [ae42426](https://github.com/alexpasmantier/television/commit/ae42426ba7044013b3fa710cb11809dffed2db22) *(uncategorized)* Bump website dependencies + cargo deps by @alexpasmantier
+
+- [614aabe](https://github.com/alexpasmantier/television/commit/614aabecdee52afaa89813d624adfd7da068cf3b) *(uncategorized)* Bump cargo deps by @alexpasmantier
+
+
+
+### New Contributors
+* @josephschmitt made their first contribution in [#791](https://github.com/alexpasmantier/television/pull/791)
+* @hayderhassan made their first contribution in [#786](https://github.com/alexpasmantier/television/pull/786)
+* @nagromc made their first contribution in [#776](https://github.com/alexpasmantier/television/pull/776)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.11...0.13.12
+
+
 ## [0.13.11](https://github.com/alexpasmantier/television/releases/tag/0.13.11) - 2025-11-23
 
 ### 🐛 Bug Fixes
