@@ -122,7 +122,7 @@ requirements = [ "tv", "bat",]
 command = [ "tv list-channels",]
 
 [preview]
-command = "bat -pn --color always ${XDG_CONFIG_HOME:-$HOME/.config}/television/cable/{}.toml"
+command = "bat -pn --color always ${XDG_CONFIG_HOME:-$HOME/.config}/television/cable/**/{}.toml"
 
 [keybindings]
 enter = "actions:channel-enter"
