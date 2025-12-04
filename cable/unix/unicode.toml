@@ -1,0 +1,43 @@
+[metadata]
+name = "unicode"
+description = '''Search and insert unicode characters
+
+The UnicodeData.txt file is included by many packages.
+
+In addition to:
+
+Alpine Linux: unicode-character-database
+Arch: unicode-character-database
+Debian/Ubuntu: unicode-data
+Fedora / RHEL / CentOS unicode-ucd
+Gentoo: app-i18n/unicode-data
+NixOS: unicode/unicode-data
+openSUSE: unicode-ucd
+
+UnicodData.txt may also aleady be provided by:
+
+1) Many java packages
+2) Latex packages
+3) Still others
+
+It may in some cases be necessary to alter UNICODE_FILE below.
+
+'''
+requirements = ["awk", "perl"]
+
+[source]
+command = '''
+UNICODE_FILE="/usr/share/unicode/ucd/UnicodeData.txt"
+awk -F';' '
+  $2 !~ /^</ { print $1 "|" $2 }
+' "$UNICODE_FILE" \
+| perl -CS -F'\|' -lane '
+    $code = $F[0];
+    $desc = $F[1];
+    $char = chr(hex($code));
+    print "U+$code|$char|$desc" if $char =~ /\p{Print}/;
+'
+'''
+
+display = "{split:|:0}    {split:|:1}    {split:|:2}"
+output = "{split:|:1}"
