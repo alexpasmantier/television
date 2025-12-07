@@ -1,6 +1,6 @@
 use crate::{
     action::Action, channels::prototypes::ChannelPrototype,
-    config::KeyBindings, errors::unknown_channel_exit, event::Key,
+    config::Keybindings, errors::unknown_channel_exit, event::Key,
 };
 use colored::Colorize;
 use rustc_hash::FxHashMap;
@@ -53,13 +53,13 @@ impl Cable {
     /// Get a hash map of channel names and their related shortcut bindings.
     ///
     /// (e.g. "files" -> "F1", "dirs" -> "F2", etc.)
-    pub fn get_channels_shortcut_keybindings(&self) -> KeyBindings {
-        let bindings = self
+    pub fn get_channels_shortcut_keybindings(&self) -> Keybindings {
+        let bindings: Vec<(Key, Action)> = self
             .iter()
             .filter_map(|(name, prototype)| {
                 if let Some(keybindings) = &prototype.keybindings {
                     keybindings.shortcut.as_ref().map(|key| {
-                        (*key, Action::SwitchToChannel(name.clone()).into())
+                        (*key, Action::SwitchToChannel(name.clone()))
                     })
                 } else {
                     None
@@ -67,7 +67,7 @@ impl Cable {
             })
             .collect();
 
-        KeyBindings { inner: bindings }
+        Keybindings::from(bindings)
     }
 
     /// Get a channel prototype's shortcut binding.

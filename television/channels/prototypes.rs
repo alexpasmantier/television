@@ -1,7 +1,7 @@
 use crate::cli::parse_source_entry_delimiter;
 use crate::config::ui::{InputBarConfig, ThemeOverrides};
 use crate::{
-    config::{KeyBindings, ui},
+    config::{Keybindings, ui},
     event::Key,
     screen::layout::Orientation,
 };
@@ -206,7 +206,7 @@ pub struct ChannelKeyBindings {
     /// Regular action -> binding mappings living at channel level.
     #[serde(flatten)]
     #[serde(default)]
-    pub bindings: KeyBindings,
+    pub bindings: Keybindings,
 }
 
 impl ChannelKeyBindings {

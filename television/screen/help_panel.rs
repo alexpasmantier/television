@@ -1,7 +1,7 @@
 use crate::event::Key;
 use crate::{
     action::{Action, Actions},
-    config::{KeyBindings, layers::MergedConfig},
+    config::{Keybindings, layers::MergedConfig},
     screen::colors::Colorscheme,
     television::Mode,
     utils::strings::to_title_case,
@@ -159,7 +159,7 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
 /// Adds keybinding lines for specific keys to the given lines vector
 fn add_keybinding_lines_for_keys(
     lines: &mut Vec<Line<'static>>,
-    keybindings: &KeyBindings,
+    keybindings: &Keybindings,
     mode: Mode,
     colorscheme: &Colorscheme,
     category_name: &str,
@@ -284,6 +284,7 @@ fn generate_help_content(
             .key_actions
             .iter()
             .map(|(key, actions)| (*key, actions.first().unwrap().clone()))
+            .collect::<Vec<_>>()
             .into(),
         mode,
         colorscheme,

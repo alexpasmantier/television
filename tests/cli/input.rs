@@ -37,7 +37,7 @@ fn test_keybindings_override_default() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "a=\"quit\";ctrl-c=false;esc=false",
+            "a=\"quit\";ctrl-c=\"no_op\";esc=\"no_op\"",
         ]));
 
     // Test that ESC no longer quits (default behavior is overridden)
@@ -62,7 +62,7 @@ fn test_multiple_keybindings_override() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "a=\"quit\";ctrl-t=\"toggle_remote_control\";esc=false",
+            "a=\"quit\";ctrl-t=\"toggle_remote_control\";esc=\"no_op\"",
         ]));
 
     // Verify ESC doesn't quit (default overridden)

@@ -3,7 +3,7 @@ use crossterm::event::{
         BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
         Insert, Left, PageDown, PageUp, Right, Tab, Up,
     },
-    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent, MouseEventKind,
+    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -68,92 +68,6 @@ pub enum Key {
     Null,
     Esc,
     Tab,
-}
-
-/// Unified input event type that encompasses all possible inputs.
-///
-/// This enum provides a unified interface for handling different types of input
-/// events in Television, including keyboard input, mouse events, terminal resize
-/// events, and custom events. It enables the new binding system to map any
-/// type of input to actions.
-///
-/// # Variants
-///
-/// - `Key(Key)` - Keyboard input events
-/// - `Mouse(MouseInputEvent)` - Mouse events with position information
-/// - `Resize(u16, u16)` - Terminal resize events with new dimensions
-/// - `Custom(String)` - Custom events for extensibility
-///
-/// # Usage in Bindings
-///
-/// ```rust
-/// use television::event::{InputEvent, Key, MouseInputEvent};
-/// use television::keymap::InputMap;
-///
-/// let input_map = InputMap::default();
-///
-/// // Handle keyboard input
-/// let key_event = InputEvent::Key(Key::Enter);
-/// let actions = input_map.get_actions_for_input(&key_event);
-/// assert_eq!(actions, None); // No bindings in empty map
-///
-/// // Handle mouse input
-/// let mouse_event = InputEvent::Mouse(MouseInputEvent {
-///     kind: crossterm::event::MouseEventKind::Down(crossterm::event::MouseButton::Left),
-///     position: (10, 5),
-/// });
-/// let actions = input_map.get_actions_for_input(&mouse_event);
-/// assert_eq!(actions, None); // No bindings in empty map
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum InputEvent {
-    /// Keyboard input event
-    Key(Key),
-    /// Mouse event with position information
-    Mouse(MouseInputEvent),
-    /// Terminal resize event with new dimensions (width, height)
-    Resize(u16, u16),
-    /// Custom event for extensibility
-    Custom(String),
-}
-
-/// Mouse event with position information for input mapping.
-///
-/// This structure combines a mouse event type with its screen coordinates,
-/// enabling position-aware mouse handling in the binding system. It provides
-/// the information needed to map mouse events to appropriate actions.
-///
-/// # Fields
-///
-/// - `kind` - The type of mouse event (click, scroll, etc.)
-/// - `position` - Screen coordinates as (column, row) tuple
-///
-/// # Examples
-///
-/// ```rust
-/// use television::event::MouseInputEvent;
-/// use crossterm::event::{MouseEventKind, MouseButton};
-///
-/// // Left mouse button click at position (10, 5)
-/// let click_event = MouseInputEvent {
-///     kind: MouseEventKind::Down(MouseButton::Left),
-///     position: (10, 5),
-/// };
-/// assert_eq!(click_event.position, (10, 5));
-///
-/// // Mouse scroll up at position (20, 15)
-/// let scroll_event = MouseInputEvent {
-///     kind: MouseEventKind::ScrollUp,
-///     position: (20, 15),
-/// };
-/// assert_eq!(scroll_event.position, (20, 15));
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct MouseInputEvent {
-    /// The type of mouse event (click, scroll, etc.)
-    pub kind: MouseEventKind,
-    /// Screen coordinates as (column, row)
-    pub position: (u16, u16),
 }
 
 impl<'de> Deserialize<'de> for Key {
