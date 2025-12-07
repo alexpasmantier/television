@@ -107,15 +107,9 @@ sort_alphabetically = true
 # text_fg = "#ffffff"
 # selection_bg = "#444444"
 # match_fg = "#ff0000"
-# The default size of the preview panel (in percentage of the screen)
 
 # Keybindings and Events
 # ----------------------------------------------------------------------------
-#
-# NEW CONFIGURATION FORMAT:
-# -------------------------
-# The keybindings are now structured as Key -> Action mappings
-# This provides better discoverability and eliminates configuration complexity
 #
 [keybindings]
 # Application control
@@ -174,16 +168,6 @@ home = "go_to_input_start"
 ctrl-a = "go_to_input_start"
 end = "go_to_input_end"
 ctrl-e = "go_to_input_end"
-
-# Event bindings
-# ----------------------------------------------------------------------------
-# Event bindings map non-keyboard events to actions
-# This includes mouse events, resize events, and custom events
-[events]
-# Mouse events
-# -----------
-mouse-scroll-up = "scroll_preview_up"
-mouse-scroll-down = "scroll_preview_down"
 
 # Shell integration
 # ----------------------------------------------------------------------------

@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use rustc_hash::FxHashMap;
 
-pub fn invert_flat_hashmap<K, V>(hashmap: &FxHashMap<K, V>) -> FxHashMap<V, K>
+pub fn invert_hashmap<K, V>(hashmap: &FxHashMap<K, V>) -> FxHashMap<V, K>
 where
     K: Eq + Hash + Clone,
     V: Eq + Hash + Clone,

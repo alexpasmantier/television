@@ -13,7 +13,7 @@ use std::{
 };
 use tracing::{debug, warn};
 
-pub use keybindings::{EventBindings, EventType, KeyBindings, merge_bindings};
+pub use keybindings::{Keybindings, merge_keybindings};
 pub use themes::Theme;
 pub use ui::UiConfig;
 
@@ -82,7 +82,7 @@ impl Hash for AppConfig {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Hash)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
 pub struct Config {
     /// General application configuration
     #[allow(clippy::struct_field_names)]
@@ -90,10 +90,7 @@ pub struct Config {
     pub application: AppConfig,
     /// Keybindings configuration
     #[serde(default)]
-    pub keybindings: KeyBindings,
-    /// Event bindings configuration
-    #[serde(default)]
-    pub events: EventBindings,
+    pub keybindings: Keybindings,
     /// UI configuration
     #[serde(default)]
     pub ui: UiConfig,
@@ -232,24 +229,19 @@ impl Config {
 
         // merge keybindings with default keybindings
         let keybindings =
-            merge_bindings(default.keybindings.clone(), &new.keybindings);
+            merge_keybindings(default.keybindings.clone(), &new.keybindings);
         new.keybindings = keybindings;
-
-        // merge event bindings with default event bindings
-        let events = merge_bindings(default.events.clone(), &new.events);
-        new.events = events;
 
         Config {
             application: new.application,
             keybindings: new.keybindings,
-            events: new.events,
             ui: new.ui,
             shell_integration: new.shell_integration,
         }
     }
 
-    pub fn merge_channel_keybindings(&mut self, other: &KeyBindings) {
-        self.keybindings = merge_bindings(self.keybindings.clone(), other);
+    pub fn merge_channel_keybindings(&mut self, other: &Keybindings) {
+        self.keybindings = merge_keybindings(self.keybindings.clone(), other);
     }
 }
 
@@ -368,7 +360,6 @@ mod tests {
 
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
-        assert_eq!(config.events, default_config.events);
         assert_eq!(config.ui, default_config.ui);
         // backwards compatibility
         assert_eq!(
@@ -425,7 +416,6 @@ mod tests {
         // With new architecture, we add directly to the bindings map
         default_config
             .keybindings
-            .inner
             .insert(Key::CtrlEnter, Action::ConfirmSelection.into());
 
         default_config.shell_integration.keybindings.insert(
@@ -435,7 +425,6 @@ mod tests {
 
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
-        assert_eq!(config.events, default_config.events);
         assert_eq!(config.ui, default_config.ui);
         assert_eq!(
             config.shell_integration.commands,

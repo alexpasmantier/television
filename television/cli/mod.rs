@@ -4,7 +4,7 @@ use crate::{
     channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
-        KeyBindings, get_config_dir, get_data_dir, merge_bindings,
+        Keybindings, get_config_dir, get_data_dir, merge_keybindings,
         ui::{BorderType, Padding},
     },
     errors::cli_parsing_error_exit,
@@ -117,7 +117,7 @@ pub struct ChannelCli {
     pub select_1: bool,
     pub take_1: bool,
     pub take_1_fast: bool,
-    pub keybindings: Option<KeyBindings>,
+    pub keybindings: Option<Keybindings>,
 
     // Watch
     pub watch_interval: Option<f64>,
@@ -169,7 +169,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         keybindings = match keybindings {
             Some(kb) => {
                 // Merge expect bindings into existing keybindings
-                Some(merge_bindings(kb, &expect_bindings))
+                Some(merge_keybindings(kb, &expect_bindings))
             }
             None => {
                 // Initialize keybindings with expect bindings
@@ -459,7 +459,7 @@ const CLI_PADDING_DELIMITER: char = ';';
 fn parse_keybindings_literal(
     cli_keybindings: &str,
     delimiter: char,
-) -> Result<KeyBindings> {
+) -> Result<Keybindings> {
     let toml_definition = cli_keybindings
         .split(delimiter)
         .fold(String::new(), |acc, kb| acc + kb + "\n");
@@ -590,8 +590,8 @@ pub fn guess_channel_from_prompt(
 ///    Key::Esc => Actions::single(Action::Expect(Key::Esc)),
 /// }
 /// ```
-fn parse_expect_bindings(expect: &str) -> Result<KeyBindings> {
-    let mut bindings = KeyBindings::default();
+fn parse_expect_bindings(expect: &str) -> Result<Keybindings> {
+    let mut bindings = Keybindings::new();
     for s in expect.split(CLI_KEYBINDINGS_DELIMITER) {
         let s = s.trim();
         if s.is_empty() {
@@ -699,7 +699,7 @@ mod tests {
 
         let post_processed_cli = post_process(cli, false);
 
-        let mut expected = KeyBindings::default();
+        let mut expected = Keybindings::new();
         expected.insert(Key::Esc, Action::Quit.into());
         expected.insert(Key::Down, Action::SelectNextEntry.into());
         expected.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
@@ -798,7 +798,7 @@ mod tests {
         let expect = "ctrl-q;esc";
         let bindings = parse_expect_bindings(expect).unwrap();
 
-        let mut expected = KeyBindings::default();
+        let mut expected = Keybindings::new();
         expected.insert(
             Key::Ctrl('q'),
             Actions::single(Action::Expect(Key::Ctrl('q'))),
