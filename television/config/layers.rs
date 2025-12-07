@@ -5,7 +5,7 @@ use crate::{
     },
     cli::{ChannelCli, GlobalCli, PostProcessedCli},
     config::{
-        Config,
+        Config, merge_keybindings,
         ui::{BorderType, Padding, ThemeOverrides},
     },
     keymap::InputMap,
@@ -401,19 +401,20 @@ impl LayeredConfig {
             let mut merged_bindings = self.base_config.keybindings.clone();
             // Merge channel-specific keybindings
             if let Some(channel_bindings) = &self.channel.keybindings {
-                merged_bindings
-                    .extend(channel_bindings.bindings.inner.clone());
+                merged_bindings = merge_keybindings(
+                    merged_bindings,
+                    &channel_bindings.bindings,
+                );
             }
             // Merge CLI keybindings
             if let Some(cli_bindings) = &self.channel_cli.keybindings {
-                merged_bindings.extend(cli_bindings.inner.clone());
+                merged_bindings =
+                    merge_keybindings(merged_bindings, cli_bindings);
             }
             merged_bindings
         };
-        let event_bindings = self.base_config.events.clone();
-
         // Validate that all external actions referenced in keybindings exist in channel actions
-        for actions in keybindings.inner.values() {
+        for (_, actions) in keybindings.iter() {
             for action in actions.as_slice() {
                 if let Action::ExternalAction(action_name) = action
                     && !channel_actions.contains_key(action_name)
@@ -446,7 +447,7 @@ impl LayeredConfig {
             input,
 
             // Bindings
-            input_map: InputMap::from((&keybindings, &event_bindings)),
+            input_map: InputMap::from(&keybindings),
 
             // UI
             ui_scale,

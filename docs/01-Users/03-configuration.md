@@ -172,15 +172,6 @@ Map keyboard keys to actions. Keys can be specified as:
 | `select_prev_history`           | Navigate to previous history entry      |
 | `select_next_history`           | Navigate to next history entry          |
 
-### Event Bindings (`[events]`)
-
-Map non-keyboard events to actions:
-
-| Event               | Description             |
-| ------------------- | ----------------------- |
-| `mouse-scroll-up`   | Mouse scroll up event   |
-| `mouse-scroll-down` | Mouse scroll down event |
-
 ### Shell Integration (`[shell_integration]`)
 
 This section is a very quick overview of the shell integration options. For more details on what this is and how to set

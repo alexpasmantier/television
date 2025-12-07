@@ -94,7 +94,6 @@ pub enum Action {
     #[serde(skip)]
     Error(String),
     /// No operation.
-    #[serde(skip)]
     NoOp,
     // Channel actions
     /// Toggle between different source commands.

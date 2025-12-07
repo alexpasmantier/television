@@ -7,6 +7,9 @@ use std::{
 use tracing::debug;
 
 const HISTORY_FILE_NAME: &str = "history.json";
+/// Default maximum number of history entries to retain
+///
+/// This is all entries whatever the channel.
 pub const DEFAULT_HISTORY_SIZE: usize = 200;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,6 +23,7 @@ pub struct HistoryEntry {
 }
 
 impl PartialEq for HistoryEntry {
+    /// same query same channel
     fn eq(&self, other: &Self) -> bool {
         self.query == other.query && self.channel == other.channel
     }

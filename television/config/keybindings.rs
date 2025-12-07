@@ -5,277 +5,42 @@ use crate::{
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
-use std::hash::Hash;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
+use std::ops::DerefMut;
 use std::str::FromStr;
-use tracing::{debug, trace};
+use tracing::debug;
 
-/// Generic bindings structure that maps any key type to actions.
-///
-/// This is the core structure for storing key/event bindings in Television.
-/// It provides a flexible mapping system that can work with different key types
-/// (keyboard keys, mouse events, etc.) and supports serialization to/from TOML.
-///
-/// # Type Parameters
-///
-/// * `K` - The key type (must implement `Display`, `FromStr`, `Eq`, `Hash`)
-///
-/// # Examples
-///
-/// ```rust
-/// use television::config::keybindings::{Bindings, KeyBindings};
-/// use television::event::Key;
-/// use television::action::Action;
-///
-/// // Create new empty bindings
-/// let mut bindings = KeyBindings::new();
-///
-/// // Add a binding
-/// bindings.insert(Key::Enter, Action::ConfirmSelection.into());
-/// assert_eq!(bindings.len(), 1);
-/// ```
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
-pub struct Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-{
-    #[serde(
-        flatten,
-        serialize_with = "serialize_bindings",
-        deserialize_with = "deserialize_bindings"
-    )]
-    pub inner: FxHashMap<K, Actions>,
-}
+/// A hashmap of keyboard key bindings to actions.
+#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Keybindings(pub FxHashMap<Key, Actions>);
 
-impl<K> Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-{
-    /// Creates a new empty bindings collection.
-    ///
-    /// # Returns
-    ///
-    /// A new `Bindings` instance with no key mappings.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use television::config::keybindings::KeyBindings;
-    ///
-    /// let bindings = KeyBindings::new();
-    /// assert!(bindings.is_empty());
-    /// ```
-    pub fn new() -> Self {
-        Bindings {
-            inner: FxHashMap::default(),
-        }
-    }
-}
+impl Deref for Keybindings {
+    type Target = FxHashMap<Key, Actions>;
 
-/// A set of keybindings that maps keyboard keys directly to actions.
-///
-/// This type alias represents the primary keybinding system in Television, where
-/// keyboard keys are mapped directly to actions.
-///
-/// # Features
-///
-/// - Direct key-to-action mapping
-/// - Support for single and multiple actions per key
-/// - Key unbinding support (setting to `false`)
-/// - Modifier key combinations (Ctrl, Alt, Shift, Super/Cmd)
-///
-/// # Configuration Format
-///
-/// ```toml
-/// # Single action
-/// esc = "quit"
-/// enter = "confirm_selection"
-///
-/// # Multiple actions
-/// "ctrl-s" = ["reload_source", "copy_entry_to_clipboard"]
-///
-/// # Unbind a key
-/// "ctrl-c" = false
-/// ```
-///
-/// # Examples
-///
-/// ```rust
-/// use television::config::keybindings::KeyBindings;
-/// use television::event::Key;
-/// use television::action::Action;
-///
-/// let mut bindings = KeyBindings::new();
-/// bindings.insert(Key::Enter, Action::ConfirmSelection.into());
-/// bindings.insert(Key::Esc, Action::Quit.into());
-/// assert_eq!(bindings.len(), 2);
-/// ```
-pub type KeyBindings = Bindings<Key>;
-
-/// Types of events that can be bound to actions.
-///
-/// This enum defines the various non-keyboard events that can trigger actions
-/// in Television, such as mouse events and terminal resize events.
-///
-/// # Variants
-///
-/// - `MouseClick` - Mouse button click events
-/// - `MouseScrollUp` - Mouse wheel scroll up
-/// - `MouseScrollDown` - Mouse wheel scroll down
-/// - `Resize` - Terminal window resize events
-/// - `Custom(String)` - Custom event types for extensibility
-///
-/// # Configuration
-///
-/// Events use kebab-case naming in TOML configuration:
-///
-/// ```toml
-/// mouse-click = "confirm_selection"
-/// mouse-scroll-up = "scroll_preview_up"
-/// resize = "refresh_layout"
-/// ```
-///
-/// # Examples
-///
-/// ```rust
-/// use television::config::keybindings::EventType;
-/// use std::str::FromStr;
-///
-/// let event = EventType::from_str("mouse-click").unwrap();
-/// assert_eq!(event, EventType::MouseClick);
-///
-/// let custom = EventType::Custom("my-event".to_string());
-/// assert_eq!(custom.to_string(), "my-event");
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum EventType {
-    MouseClick,
-    MouseScrollUp,
-    MouseScrollDown,
-    Resize,
-    Custom(String),
-}
-
-impl FromStr for EventType {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s {
-            "mouse-click" => EventType::MouseClick,
-            "mouse-scroll-up" => EventType::MouseScrollUp,
-            "mouse-scroll-down" => EventType::MouseScrollDown,
-            "resize" => EventType::Resize,
-            custom => EventType::Custom(custom.to_string()),
-        })
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for EventType {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        Ok(EventType::from_str(&s).unwrap())
-    }
-}
-
-impl Display for EventType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EventType::MouseClick => write!(f, "mouse-click"),
-            EventType::MouseScrollUp => write!(f, "mouse-scroll-up"),
-            EventType::MouseScrollDown => write!(f, "mouse-scroll-down"),
-            EventType::Resize => write!(f, "resize"),
-            EventType::Custom(name) => write!(f, "{}", name),
-        }
-    }
-}
-
-/// A set of event bindings that maps non-keyboard events to actions.
-///
-/// This type alias provides bindings for mouse events, resize events,
-/// and other non-keyboard interactions. It uses the same underlying
-/// `Bindings` structure as `KeyBindings` but for `EventType` instead of `Key`.
-///
-/// # Default Bindings
-///
-/// - `mouse-scroll-up` → `scroll_preview_up`
-/// - `mouse-scroll-down` → `scroll_preview_down`
-///
-/// # Configuration Example
-///
-/// ```toml
-/// [event-bindings]
-/// mouse-click = "confirm_selection"
-/// mouse-scroll-up = "scroll_preview_up"
-/// resize = "refresh_layout"
-/// ```
-///
-/// # Examples
-///
-/// ```rust
-/// use television::config::keybindings::{EventBindings, EventType};
-/// use television::action::Action;
-///
-/// let mut bindings = EventBindings::new();
-/// bindings.insert(EventType::MouseClick, Action::ConfirmSelection.into());
-/// assert_eq!(bindings.len(), 1);
-/// ```
-pub type EventBindings = Bindings<EventType>;
-
-impl<K, I> From<I> for Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-    I: IntoIterator<Item = (K, Action)>,
-{
-    fn from(iter: I) -> Self {
-        Bindings {
-            inner: iter
-                .into_iter()
-                .map(|(k, a)| (k, Actions::from(a)))
-                .collect(),
-        }
-    }
-}
-
-impl<K> Hash for Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-{
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        // Hash based on the bindings map
-        for (key, actions) in &self.inner {
-            key.hash(state);
-            actions.hash(state);
-        }
-    }
-}
-
-impl<K> Deref for Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-{
-    type Target = FxHashMap<K, Actions>;
     fn deref(&self) -> &Self::Target {
-        &self.inner
+        &self.0
     }
 }
 
-impl<K> DerefMut for Bindings<K>
-where
-    K: Display + FromStr + Eq + Hash,
-    K::Err: Display,
-{
+impl DerefMut for Keybindings {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
+        &mut self.0
+    }
+}
+
+impl From<Vec<(Key, Action)>> for Keybindings {
+    fn from(bindings: Vec<(Key, Action)>) -> Self {
+        let mut map = FxHashMap::default();
+        for (key, action) in bindings {
+            map.insert(key, action.into());
+        }
+        Keybindings(map)
+    }
+}
+
+impl Keybindings {
+    pub fn new() -> Self {
+        Keybindings(FxHashMap::default())
     }
 }
 
@@ -293,117 +58,39 @@ where
 /// # Examples
 ///
 /// ```rust
-/// use television::config::keybindings::{KeyBindings, merge_bindings};
+/// use television::config::keybindings::{Keybindings, merge_keybindings};
 /// use television::event::Key;
 /// use television::action::Action;
 ///
-/// let base = KeyBindings::from(vec![
+/// let base = Keybindings::from(vec![
 ///     (Key::Enter, Action::ConfirmSelection),
 ///     (Key::Esc, Action::Quit),
 /// ]);
 ///
-/// let custom = KeyBindings::from(vec![
+/// let custom = Keybindings::from(vec![
 ///     (Key::Esc, Action::NoOp), // Override quit with no-op
 ///     (Key::Tab, Action::ToggleSelectionDown), // Add new binding
 /// ]);
 ///
-/// let merged = merge_bindings(base, &custom);
+/// let merged = merge_keybindings(base, &custom);
 /// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
 /// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
 /// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelectionDown.into()));
 /// ```
-pub fn merge_bindings<K>(
-    mut bindings: Bindings<K>,
-    new_bindings: &Bindings<K>,
-) -> Bindings<K>
-where
-    K: Display + FromStr + Clone + Eq + Hash + std::fmt::Debug,
-    K::Err: Display,
-{
-    debug!("bindings before: {:?}", bindings.inner);
+pub fn merge_keybindings(
+    mut base: Keybindings,
+    new: &Keybindings,
+) -> Keybindings {
+    debug!("bindings before: {:?}", base.0);
 
     // Merge new bindings - they take precedence over existing ones
-    for (key, actions) in &new_bindings.inner {
-        bindings.inner.insert(key.clone(), actions.clone());
+    for (key, actions) in &new.0 {
+        base.0.insert(*key, actions.clone());
     }
 
-    debug!("bindings after: {:?}", bindings.inner);
+    debug!("bindings after: {:?}", base.0);
 
-    bindings
-}
-
-impl Default for Bindings<Key> {
-    fn default() -> Self {
-        let mut bindings = FxHashMap::default();
-
-        // Quit actions
-        bindings.insert(Key::Esc, Action::Quit.into());
-        bindings.insert(Key::Ctrl('c'), Action::Quit.into());
-
-        // Navigation
-        bindings.insert(Key::Down, Action::SelectNextEntry.into());
-        bindings.insert(Key::Ctrl('n'), Action::SelectNextEntry.into());
-        bindings.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
-        bindings.insert(Key::Up, Action::SelectPrevEntry.into());
-        bindings.insert(Key::Ctrl('p'), Action::SelectPrevEntry.into());
-        bindings.insert(Key::Ctrl('k'), Action::SelectPrevEntry.into());
-
-        // History navigation
-        bindings.insert(Key::CtrlUp, Action::SelectPrevHistory.into());
-        bindings.insert(Key::CtrlDown, Action::SelectNextHistory.into());
-
-        // Selection actions
-        bindings.insert(Key::Enter, Action::ConfirmSelection.into());
-        bindings.insert(Key::Tab, Action::ToggleSelectionDown.into());
-        bindings.insert(Key::BackTab, Action::ToggleSelectionUp.into());
-
-        // Preview actions
-        bindings
-            .insert(Key::PageDown, Action::ScrollPreviewHalfPageDown.into());
-        bindings.insert(Key::PageUp, Action::ScrollPreviewHalfPageUp.into());
-
-        // Clipboard and toggles
-        bindings.insert(Key::Ctrl('y'), Action::CopyEntryToClipboard.into());
-        bindings.insert(Key::Ctrl('r'), Action::ReloadSource.into());
-        bindings.insert(Key::Ctrl('s'), Action::CycleSources.into());
-
-        // UI Features
-        bindings.insert(Key::Ctrl('t'), Action::ToggleRemoteControl.into());
-        bindings.insert(Key::Ctrl('o'), Action::TogglePreview.into());
-        bindings.insert(Key::Ctrl('h'), Action::ToggleHelp.into());
-        bindings.insert(Key::F(12), Action::ToggleStatusBar.into());
-        bindings.insert(Key::Ctrl('l'), Action::ToggleOrientation.into());
-
-        // Input field actions
-        bindings.insert(Key::Backspace, Action::DeletePrevChar.into());
-        bindings.insert(Key::Ctrl('w'), Action::DeletePrevWord.into());
-        bindings.insert(Key::Ctrl('u'), Action::DeleteLine.into());
-        bindings.insert(Key::Delete, Action::DeleteNextChar.into());
-        bindings.insert(Key::Left, Action::GoToPrevChar.into());
-        bindings.insert(Key::Right, Action::GoToNextChar.into());
-        bindings.insert(Key::Home, Action::GoToInputStart.into());
-        bindings.insert(Key::Ctrl('a'), Action::GoToInputStart.into());
-        bindings.insert(Key::End, Action::GoToInputEnd.into());
-        bindings.insert(Key::Ctrl('e'), Action::GoToInputEnd.into());
-
-        Bindings { inner: bindings }
-    }
-}
-
-impl Default for Bindings<EventType> {
-    fn default() -> Self {
-        let mut bindings = FxHashMap::default();
-
-        // Mouse events
-        bindings
-            .insert(EventType::MouseScrollUp, Action::ScrollPreviewUp.into());
-        bindings.insert(
-            EventType::MouseScrollDown,
-            Action::ScrollPreviewDown.into(),
-        );
-
-        Bindings { inner: bindings }
-    }
+    base
 }
 
 /// Parses a string representation of a key event into a `KeyEvent`.
@@ -711,142 +398,6 @@ impl FromStr for Key {
     }
 }
 
-/// Generic serializer that converts any key type to string for TOML compatibility.
-///
-/// This function enables serialization of the bindings `HashMap` to TOML format
-/// by converting keys to their string representation using the `Display` trait.
-/// This is used internally by serde when serializing `Bindings` structs.
-///
-/// # Arguments
-///
-/// * `bindings` - The bindings `HashMap` to serialize
-/// * `serializer` - The serde serializer instance
-///
-/// # Type Parameters
-///
-/// * `K` - Key type that implements `Display`
-/// * `S` - Serializer type
-///
-/// # Returns
-///
-/// Result of the serialization operation
-fn serialize_bindings<K, S>(
-    bindings: &FxHashMap<K, Actions>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    K: Display,
-    S: serde::Serializer,
-{
-    use serde::ser::SerializeMap;
-    let mut map = serializer.serialize_map(Some(bindings.len()))?;
-    for (key, actions) in bindings {
-        map.serialize_entry(&key.to_string(), actions)?;
-    }
-    map.end()
-}
-
-/// Generic deserializer that parses string keys back to key enum.
-///
-/// This function enables deserialization from TOML format by parsing string keys
-/// back into their appropriate key types using the `FromStr` trait. It also handles
-/// special cases like boolean values for key unbinding.
-///
-/// # Special Value Handling
-///
-/// - `false` - Binds the key to `Action::NoOp` (effectively unbinding)
-/// - `true` - Ignores the binding (preserves existing or default binding)
-/// - String/Array - Normal action binding
-///
-/// # Arguments
-///
-/// * `deserializer` - The serde deserializer instance
-///
-/// # Type Parameters
-///
-/// * `K` - Key type that implements `FromStr`, `Eq`, and `Hash`
-/// * `D` - Deserializer type
-///
-/// # Returns
-///
-/// Result containing the parsed bindings `HashMap` or deserialization error
-fn deserialize_bindings<'de, K, D>(
-    deserializer: D,
-) -> Result<FxHashMap<K, Actions>, D::Error>
-where
-    K: FromStr + Eq + std::hash::Hash,
-    K::Err: std::fmt::Display,
-    D: serde::Deserializer<'de>,
-{
-    use serde::de::{MapAccess, Visitor};
-    use std::fmt;
-
-    struct BindingsVisitor<K>(std::marker::PhantomData<K>);
-
-    impl<'de, K> Visitor<'de> for BindingsVisitor<K>
-    where
-        K: FromStr + Eq + std::hash::Hash,
-        K::Err: std::fmt::Display,
-    {
-        type Value = FxHashMap<K, Actions>;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter
-                .write_str("a map with string keys and action/actions values")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-        where
-            A: MapAccess<'de>,
-        {
-            use serde::de::Error;
-            use toml::Value;
-
-            debug!("Starting deserialize_bindings for configuration");
-            let mut bindings = FxHashMap::default();
-            while let Some((key_str, raw_value)) =
-                map.next_entry::<String, Value>()?
-            {
-                trace!(
-                    "Processing binding: key='{}', value={:?}",
-                    key_str, raw_value
-                );
-                let key = K::from_str(&key_str).map_err(|e| {
-                    debug!("Failed to parse key '{}': {}", key_str, e);
-                    Error::custom(e)
-                })?;
-
-                match raw_value {
-                    Value::Boolean(false) => {
-                        debug!("Unbinding key '{}' (set to NoOp)", key_str);
-                        bindings.insert(key, Action::NoOp.into());
-                    }
-                    Value::Boolean(true) => {
-                        trace!("Ignoring key '{}' (set to true)", key_str);
-                    }
-                    actions_value => {
-                        // Try to deserialize as Actions (handles both single and multiple)
-                        let actions = Actions::deserialize(actions_value)
-                            .map_err(|e| {
-                                debug!("Failed to deserialize actions for key '{}': {}", key_str, e);
-                                Error::custom(e)
-                            })?;
-                        trace!(
-                            "Binding key '{}' to actions: {:?}",
-                            key_str, actions
-                        );
-                        bindings.insert(key, actions);
-                    }
-                }
-            }
-            debug!("Deserialized {} key bindings", bindings.len());
-            Ok(bindings)
-        }
-    }
-
-    deserializer.deserialize_map(BindingsVisitor(std::marker::PhantomData))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -956,7 +507,7 @@ mod tests {
 
     #[test]
     fn test_deserialize_keybindings() {
-        let keybindings: KeyBindings = toml::from_str(
+        let keybindings: Keybindings = toml::from_str(
             r#"
                 "esc" = "quit"
                 "ctrl-c" = "quit"
@@ -982,7 +533,7 @@ mod tests {
 
         assert_eq!(
             keybindings,
-            KeyBindings::from(vec![
+            Keybindings::from(vec![
                 (Key::Esc, Action::Quit),
                 (Key::Ctrl('c'), Action::Quit),
                 (Key::Down, Action::SelectNextEntry),
@@ -1007,75 +558,68 @@ mod tests {
 
     #[test]
     fn test_merge_keybindings() {
-        let base_keybindings = KeyBindings::from(vec![
+        let base = Keybindings::from(vec![
             (Key::Esc, Action::Quit),
             (Key::Down, Action::SelectNextEntry),
             (Key::Ctrl('n'), Action::SelectNextEntry),
             (Key::Up, Action::SelectPrevEntry),
         ]);
-        let custom_keybindings = KeyBindings::from(vec![
+        let new = Keybindings::from(vec![
             (Key::Ctrl('j'), Action::SelectNextEntry),
             (Key::Ctrl('k'), Action::SelectPrevEntry),
             (Key::PageDown, Action::SelectNextPage),
         ]);
 
-        let merged = merge_bindings(base_keybindings, &custom_keybindings);
+        let merged = merge_keybindings(base, &new);
 
         // Should contain both base and custom keybindings
-        assert!(merged.inner.contains_key(&Key::Esc));
-        assert_eq!(merged.inner.get(&Key::Esc), Some(&Action::Quit.into()));
-        assert!(merged.inner.contains_key(&Key::Down));
+        assert!(merged.0.contains_key(&Key::Esc));
+        assert_eq!(merged.0.get(&Key::Esc), Some(&Action::Quit.into()));
+        assert!(merged.0.contains_key(&Key::Down));
         assert_eq!(
-            merged.inner.get(&Key::Down),
+            merged.0.get(&Key::Down),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.inner.contains_key(&Key::Ctrl('j')));
+        assert!(merged.0.contains_key(&Key::Ctrl('j')));
         assert_eq!(
-            merged.inner.get(&Key::Ctrl('j')),
+            merged.0.get(&Key::Ctrl('j')),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.inner.contains_key(&Key::PageDown));
+        assert!(merged.0.contains_key(&Key::PageDown));
         assert_eq!(
-            merged.inner.get(&Key::PageDown),
+            merged.0.get(&Key::PageDown),
             Some(&Action::SelectNextPage.into())
         );
     }
 
     #[test]
     fn test_deserialize_unbinding() {
-        let keybindings: KeyBindings = toml::from_str(
+        let keybindings: Keybindings = toml::from_str(
             r#"
                 "esc" = "quit"
-                "ctrl-c" = false
+                "ctrl-c" = "no_op"
                 "down" = "select_next_entry"
-                "up" = true
             "#,
         )
         .unwrap();
 
         // Normal action binding should work
+        assert_eq!(keybindings.0.get(&Key::Esc), Some(&Action::Quit.into()));
         assert_eq!(
-            keybindings.inner.get(&Key::Esc),
-            Some(&Action::Quit.into())
-        );
-        assert_eq!(
-            keybindings.inner.get(&Key::Down),
+            keybindings.0.get(&Key::Down),
             Some(&Action::SelectNextEntry.into())
         );
 
         // false should bind to NoOp (unbinding)
         assert_eq!(
-            keybindings.inner.get(&Key::Ctrl('c')),
+            keybindings.0.get(&Key::Ctrl('c')),
             Some(&Action::NoOp.into())
         );
-
-        // true should be ignored (no binding created)
-        assert_eq!(keybindings.inner.get(&Key::Up), None);
     }
 
     #[test]
     fn test_deserialize_multiple_actions_per_key() {
-        let keybindings: KeyBindings = toml::from_str(
+        let keybindings: Keybindings = toml::from_str(
             r#"
                 "esc" = "quit"
                 "ctrl-s" = ["reload_source", "copy_entry_to_clipboard"]
@@ -1085,14 +629,11 @@ mod tests {
         .unwrap();
 
         // Single action should work
-        assert_eq!(
-            keybindings.inner.get(&Key::Esc),
-            Some(&Action::Quit.into())
-        );
+        assert_eq!(keybindings.0.get(&Key::Esc), Some(&Action::Quit.into()));
 
         // Multiple actions should work
         assert_eq!(
-            keybindings.inner.get(&Key::Ctrl('s')),
+            keybindings.0.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -1101,7 +642,7 @@ mod tests {
 
         // Three actions should work
         assert_eq!(
-            keybindings.inner.get(&Key::F(1)),
+            keybindings.0.get(&Key::F(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -1112,7 +653,7 @@ mod tests {
 
     #[test]
     fn test_merge_keybindings_with_multiple_actions() {
-        let base_keybindings = KeyBindings::from(vec![
+        let base_keybindings = Keybindings::from(vec![
             (Key::Esc, Action::Quit),
             (Key::Enter, Action::ConfirmSelection),
         ]);
@@ -1126,15 +667,13 @@ mod tests {
             ]),
         );
         custom_bindings.insert(Key::Esc, Action::NoOp.into()); // Override
-        let custom_keybindings = KeyBindings {
-            inner: custom_bindings,
-        };
+        let custom_keybindings = Keybindings(custom_bindings);
 
-        let merged = merge_bindings(base_keybindings, &custom_keybindings);
+        let merged = merge_keybindings(base_keybindings, &custom_keybindings);
 
         // Custom multiple actions should be present
         assert_eq!(
-            merged.inner.get(&Key::Ctrl('s')),
+            merged.0.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -1142,18 +681,18 @@ mod tests {
         );
 
         // Override should work
-        assert_eq!(merged.inner.get(&Key::Esc), Some(&Action::NoOp.into()));
+        assert_eq!(merged.0.get(&Key::Esc), Some(&Action::NoOp.into()));
 
         // Original binding should be preserved
         assert_eq!(
-            merged.inner.get(&Key::Enter),
+            merged.0.get(&Key::Enter),
             Some(&Action::ConfirmSelection.into())
         );
     }
 
     #[test]
     fn test_complex_configuration_with_all_features() {
-        let keybindings: KeyBindings = toml::from_str(
+        let keybindings: Keybindings = toml::from_str(
             r#"
                 # Single actions
                 esc = "quit"
@@ -1164,7 +703,7 @@ mod tests {
                 f1 = ["toggle_help", "toggle_preview", "toggle_status_bar"]
 
                 # Unbinding
-                ctrl-c = false
+                ctrl-c = "no_op"
 
                 # Single action in array format (should work)
                 tab = ["toggle_selection_down"]
@@ -1172,26 +711,26 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(keybindings.inner.len(), 6); // ctrl-c=false creates NoOp binding
+        assert_eq!(keybindings.0.len(), 6);
 
         // Verify all binding types work correctly
         assert_eq!(
-            keybindings.inner.get(&Key::Esc),
+            keybindings.0.get(&Key::Esc),
             Some(&Actions::single(Action::Quit))
         );
         assert_eq!(
-            keybindings.inner.get(&Key::Enter),
+            keybindings.0.get(&Key::Enter),
             Some(&Action::ConfirmSelection.into())
         );
         assert_eq!(
-            keybindings.inner.get(&Key::Ctrl('s')),
+            keybindings.0.get(&Key::Ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
         );
         assert_eq!(
-            keybindings.inner.get(&Key::F(1)),
+            keybindings.0.get(&Key::F(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -1199,11 +738,11 @@ mod tests {
             ]))
         );
         assert_eq!(
-            keybindings.inner.get(&Key::Ctrl('c')),
+            keybindings.0.get(&Key::Ctrl('c')),
             Some(&Actions::single(Action::NoOp))
         );
         assert_eq!(
-            keybindings.inner.get(&Key::Tab),
+            keybindings.0.get(&Key::Tab),
             Some(&Actions::multiple(vec![Action::ToggleSelectionDown]))
         );
     }

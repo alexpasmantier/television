@@ -8,9 +8,7 @@ use crate::{
         prototypes::{ActionSpec, ExecutionMode},
     },
     config::layers::LayeredConfig,
-    event::{
-        ControlEvent, Event, EventLoop, InputEvent, Key, MouseInputEvent,
-    },
+    event::{ControlEvent, Event, EventLoop, Key},
     history::History,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
@@ -415,21 +413,9 @@ impl App {
                     }
                 }
             }
-            Event::Mouse(mouse_event) => {
-                // Convert mouse event to InputEvent and use the input_map
-                if self.television.mode == Mode::Channel {
-                    let input_event = InputEvent::Mouse(MouseInputEvent {
-                        kind: mouse_event.kind,
-                        position: (mouse_event.column, mouse_event.row),
-                    });
-                    self.television
-                        .merged_config
-                        .input_map
-                        .get_actions_for_input(&input_event)
-                        .unwrap_or_else(|| vec![Action::NoOp])
-                } else {
-                    vec![Action::NoOp]
-                }
+            Event::Mouse(_) => {
+                // Mouse events are currently not handled
+                vec![Action::NoOp]
             }
             // terminal events
             Event::Tick => vec![Action::Tick],
