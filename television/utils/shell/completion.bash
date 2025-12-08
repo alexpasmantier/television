@@ -38,7 +38,7 @@ __tv_path_completion() {
             
             # Call tv with proper arguments and process output
             matches=$(
-                tv "$dir" --autocomplete-prompt "$lbuf" --inline --input "$leftover" < /dev/tty | while IFS= read -r item; do
+                tv "$dir" --autocomplete-prompt "$lbuf" --no-status-bar --inline --input "$leftover" < /dev/tty | while IFS= read -r item; do
                     item="${item%$suffix}$suffix"
                     dirP="$dir/"
                     [[ "$dirP" == "./" ]] && dirP=""
@@ -113,7 +113,7 @@ tv_shell_history() {
     printf "\n"
 
     # Get history using tv with the same arguments as zsh version
-    output=$(tv bash-history --input "$current_prompt" --inline)
+    output=$(tv bash-history --no-status-bar --input "$current_prompt" --inline)
 
     if [[ -n "$output" ]]; then
         # Clear the right side of cursor and set new line

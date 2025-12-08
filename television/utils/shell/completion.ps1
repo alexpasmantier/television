@@ -65,7 +65,7 @@ function Invoke-TvSmartAutocomplete {
         # This ensures stdin comes from console, stdout is captured, and stderr (TUI) goes to console
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = "tv"
-        $psi.Arguments = "--inline --autocomplete-prompt `"$lhsEscaped`" --input `"$lastWordEscaped`""
+        $psi.Arguments = "--no-status-bar --inline --autocomplete-prompt `"$lhsEscaped`" --input `"$lastWordEscaped`""
         $psi.UseShellExecute = $false
         $psi.RedirectStandardOutput = $true
         $psi.RedirectStandardError = $false  # Let TUI render to console
@@ -147,7 +147,7 @@ function Invoke-TvShellHistory {
         # Use .NET Process class for explicit stream control
         $psi = New-Object System.Diagnostics.ProcessStartInfo
         $psi.FileName = "tv"
-        $psi.Arguments = "pwsh-history --inline --input `"$currentPromptEscaped`""
+        $psi.Arguments = "pwsh-history --inline --no-status-bar --input `"$currentPromptEscaped`""
         $psi.UseShellExecute = $false
         $psi.RedirectStandardOutput = $true
         $psi.RedirectStandardError = $false  # Let TUI render to console
