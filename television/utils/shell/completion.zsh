@@ -33,7 +33,7 @@ __tv_path_completion() {
       zle -I
       matches=$(
         shift
-        tv "$dir" --autocomplete-prompt "$lbuf" --inline --input "$leftover" < /dev/tty | while read -r item; do
+        tv "$dir" --autocomplete-prompt "$lbuf" --inline --no-status-bar --input "$leftover" < /dev/tty | while read -r item; do
           item="${item%$suffix}$suffix"
           dirP="$dir/"
           [[ $dirP = "./" ]] && dirP=""
@@ -93,7 +93,7 @@ _tv_shell_history() {
 
     local output
 
-    output=$(history -n -1 0 | tv --input "$current_prompt" --inline $*)
+    output=$(history -n -1 0 | tv --no-status-bar --input "$current_prompt" --inline $*)
 
     zle reset-prompt
     if [[ -n $output ]]; then
