@@ -196,19 +196,20 @@ impl Television {
         cached: bool,
         offset_expr: Option<Template>,
     ) -> (UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>) {
-        let (pv_request_tx, pv_request_rx) = unbounded_channel();
-        let (pv_preview_tx, pv_preview_rx) = unbounded_channel();
+        let (preview_requests_tx, preview_requests_rx) = unbounded_channel();
+        let (preview_results_tx, preview_results_rx) = unbounded_channel();
         let previewer = Previewer::new(
             command,
             offset_expr,
             // NOTE: this could be a per-channel configuration option in the future
             PreviewerConfig::default(),
-            pv_request_rx,
-            pv_preview_tx,
+            preview_requests_rx,
+            preview_requests_tx.clone(),
+            preview_results_tx,
             cached,
         );
         tokio::spawn(async move { previewer.run().await });
-        (pv_request_tx, pv_preview_rx)
+        (preview_requests_tx, preview_results_rx)
     }
 
     pub fn update_ui_state(&mut self, ui_state: UiState) {
@@ -501,6 +502,7 @@ impl Television {
                     | Action::ToggleOrientation
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
+                    | Action::CyclePreviews
                     | Action::ReloadSource
             ))
             // We want to avoid too much rendering while the channel is reloading
@@ -700,6 +702,16 @@ impl Television {
         }
     }
 
+    pub fn cycle_previews(&mut self) {
+        if self.mode == Mode::Channel
+            && let Some((sender, _)) = &self.preview_handles
+        {
+            sender.send(PreviewRequest::CycleCommand).expect(
+                "Failed to send cycle preview command request to previewer",
+            );
+        }
+    }
+
     pub fn handle_reload_source(&mut self) {
         if self.mode == Mode::Channel {
             let current_pattern = self.current_pattern.clone();
@@ -775,6 +787,9 @@ impl Television {
             }
             Action::CycleSources => {
                 self.cycle_sources();
+            }
+            Action::CyclePreviews => {
+                self.cycle_previews();
             }
             Action::ReloadSource | Action::WatchTimer => {
                 self.handle_reload_source();

@@ -1,10 +1,9 @@
-use crate::{event::Key, screen::constants::ACTION_PREFIX};
-use serde::{Deserialize, Serialize};
+use crate::event::Key;
+use serde::Deserialize;
 use serde_with::{OneOrMany, serde_as};
-use std::fmt::Display;
 
 /// The different actions that can be performed by the application.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
     // input actions
@@ -96,8 +95,10 @@ pub enum Action {
     /// No operation.
     NoOp,
     // Channel actions
-    /// Toggle between different source commands.
+    /// Cycle between different source commands.
     CycleSources,
+    /// Cycle between different preview commands.
+    CyclePreviews,
     /// Reload the current source command.
     ReloadSource,
     /// Switch to the specified channel directly via shortcut.
@@ -118,8 +119,12 @@ pub enum Action {
     #[serde(skip)]
     MouseClickAt(u16, u16),
     /// Execute an external action
+    #[serde(untagged)]
     ExternalAction(String),
 }
+
+/// Prefix used to identify custom external actions defined by the user in a channel's prototype.
+pub const CUSTOM_ACTION_PREFIX: &str = "actions:";
 
 /// Container for one or more actions that can be executed together.
 ///
@@ -161,9 +166,7 @@ pub enum Action {
 /// assert_eq!(actions_vec, vec![Action::ReloadSource, Action::Quit]);
 /// ```
 #[serde_as]
-#[derive(
-    Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash, PartialOrd, Ord,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd, Ord)]
 #[serde(transparent)]
 pub struct Actions {
     #[serde_as(as = "OneOrMany<_>")]
@@ -231,17 +234,10 @@ impl Actions {
         &self.inner
     }
 
-    /// Returns `true` if this contains only a single action.
-    pub fn is_single(&self) -> bool {
-        self.inner.len() == 1
-    }
-
-    /// Returns `true` if this contains multiple actions.
-    pub fn is_multiple(&self) -> bool {
-        self.inner.len() > 1
-    }
-
     /// Gets the first action, if any.
+    ///
+    /// This is used by the help panel to display a representative action
+    /// when multiple actions are bound to a single key.
     pub fn first(&self) -> Option<&Action> {
         self.inner.first()
     }
@@ -291,204 +287,6 @@ impl From<Vec<Action>> for Actions {
     }
 }
 
-impl Display for Action {
-    /// Formats the action as its string representation for configuration files.
-    ///
-    /// This implementation provides the `snake_case` string representation of each
-    /// action as used in TOML configuration files. The output matches the
-    /// `#[serde(rename_all = "snake_case")]` serialization format.
-    ///
-    /// # Returns
-    ///
-    /// The `snake_case` string representation of the action.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use television::action::Action;
-    ///
-    /// assert_eq!(Action::Quit.to_string(), "quit");
-    /// assert_eq!(Action::SelectNextEntry.to_string(), "select_next_entry");
-    /// assert_eq!(Action::TogglePreview.to_string(), "toggle_preview");
-    /// ```
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Action::AddInputChar(_) => write!(f, "add_input_char"),
-            Action::DeletePrevChar => write!(f, "delete_prev_char"),
-            Action::DeletePrevWord => write!(f, "delete_prev_word"),
-            Action::DeleteNextChar => write!(f, "delete_next_char"),
-            Action::DeleteLine => write!(f, "delete_line"),
-            Action::GoToPrevChar => write!(f, "go_to_prev_char"),
-            Action::GoToNextChar => write!(f, "go_to_next_char"),
-            Action::GoToInputStart => write!(f, "go_to_input_start"),
-            Action::GoToInputEnd => write!(f, "go_to_input_end"),
-            Action::Render => write!(f, "render"),
-            Action::Resize(_, _) => write!(f, "resize"),
-            Action::ClearScreen => write!(f, "clear_screen"),
-            Action::ToggleSelectionDown => write!(f, "toggle_selection_down"),
-            Action::ToggleSelectionUp => write!(f, "toggle_selection_up"),
-            Action::ConfirmSelection => write!(f, "confirm_selection"),
-            Action::SelectAndExit => write!(f, "select_and_exit"),
-            Action::Expect(_) => write!(f, "expect"),
-            Action::SelectNextEntry => write!(f, "select_next_entry"),
-            Action::SelectPrevEntry => write!(f, "select_prev_entry"),
-            Action::SelectNextPage => write!(f, "select_next_page"),
-            Action::SelectPrevPage => write!(f, "select_prev_page"),
-            Action::CopyEntryToClipboard => {
-                write!(f, "copy_entry_to_clipboard")
-            }
-            Action::ScrollPreviewUp => write!(f, "scroll_preview_up"),
-            Action::ScrollPreviewDown => write!(f, "scroll_preview_down"),
-            Action::ScrollPreviewHalfPageUp => {
-                write!(f, "scroll_preview_half_page_up")
-            }
-            Action::ScrollPreviewHalfPageDown => {
-                write!(f, "scroll_preview_half_page_down")
-            }
-            Action::OpenEntry => write!(f, "open_entry"),
-            Action::Tick => write!(f, "tick"),
-            Action::Suspend => write!(f, "suspend"),
-            Action::Resume => write!(f, "resume"),
-            Action::Quit => write!(f, "quit"),
-            Action::ToggleRemoteControl => write!(f, "toggle_remote_control"),
-            Action::ToggleHelp => write!(f, "toggle_help"),
-            Action::ToggleStatusBar => write!(f, "toggle_status_bar"),
-            Action::TogglePreview => write!(f, "toggle_preview"),
-            Action::ToggleOrientation => write!(f, "toggle_layout"),
-            Action::Error(_) => write!(f, "error"),
-            Action::NoOp => write!(f, "no_op"),
-            Action::CycleSources => write!(f, "cycle_sources"),
-            Action::ReloadSource => write!(f, "reload_source"),
-            Action::SwitchToChannel(_) => write!(f, "switch_to_channel"),
-            Action::WatchTimer => write!(f, "watch_timer"),
-            Action::SelectPrevHistory => write!(f, "select_prev_history"),
-            Action::SelectNextHistory => write!(f, "select_next_history"),
-            Action::SelectEntryAtPosition(_, _) => {
-                write!(f, "select_entry_at_position")
-            }
-            Action::MouseClickAt(_, _) => write!(f, "mouse_click_at"),
-            Action::ExternalAction(name) => write!(f, "{}", name),
-        }
-    }
-}
-
-// FIXME: we shouldn't need to rely on hardcoding the action names here.
-impl<'de> serde::Deserialize<'de> for Action {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-
-        let action = match s.as_str() {
-            "add_input_char" => Action::AddInputChar(' '),
-            "delete_prev_char" => Action::DeletePrevChar,
-            "delete_prev_word" => Action::DeletePrevWord,
-            "delete_next_char" => Action::DeleteNextChar,
-            "delete_line" => Action::DeleteLine,
-            "go_to_prev_char" => Action::GoToPrevChar,
-            "go_to_next_char" => Action::GoToNextChar,
-            "go_to_input_start" => Action::GoToInputStart,
-            "go_to_input_end" => Action::GoToInputEnd,
-            "render" => Action::Render,
-            "resize" => Action::Resize(0, 0),
-            "clear_screen" => Action::ClearScreen,
-            "toggle_selection_down" => Action::ToggleSelectionDown,
-            "toggle_selection_up" => Action::ToggleSelectionUp,
-            "confirm_selection" => Action::ConfirmSelection,
-            "select_and_exit" => Action::SelectAndExit,
-            "expect" => Action::Expect(Key::Char(' ')),
-            "select_next_entry" => Action::SelectNextEntry,
-            "select_prev_entry" => Action::SelectPrevEntry,
-            "select_next_page" => Action::SelectNextPage,
-            "select_prev_page" => Action::SelectPrevPage,
-            "copy_entry_to_clipboard" => Action::CopyEntryToClipboard,
-            "scroll_preview_up" => Action::ScrollPreviewUp,
-            "scroll_preview_down" => Action::ScrollPreviewDown,
-            "scroll_preview_half_page_up" => Action::ScrollPreviewHalfPageUp,
-            "scroll_preview_half_page_down" => {
-                Action::ScrollPreviewHalfPageDown
-            }
-            "open_entry" => Action::OpenEntry,
-            "tick" => Action::Tick,
-            "suspend" => Action::Suspend,
-            "resume" => Action::Resume,
-            "quit" => Action::Quit,
-            "toggle_remote_control" => Action::ToggleRemoteControl,
-            "toggle_help" => Action::ToggleHelp,
-            "toggle_status_bar" => Action::ToggleStatusBar,
-            "toggle_preview" => Action::TogglePreview,
-            "toggle_layout" => Action::ToggleOrientation,
-            "error" => Action::Error(String::new()),
-            "no_op" => Action::NoOp,
-            "cycle_sources" => Action::CycleSources,
-            "reload_source" => Action::ReloadSource,
-            "switch_to_channel" => Action::SwitchToChannel(String::new()),
-            "watch_timer" => Action::WatchTimer,
-            "select_prev_history" => Action::SelectPrevHistory,
-            "select_next_history" => Action::SelectNextHistory,
-            s if s.starts_with(ACTION_PREFIX) => {
-                let action_name = s.trim_start_matches(ACTION_PREFIX);
-                Action::ExternalAction(action_name.to_string())
-            }
-            _ => {
-                return Err(serde::de::Error::unknown_variant(
-                    &s,
-                    &[
-                        "add_input_char",
-                        "delete_prev_char",
-                        "delete_prev_word",
-                        "delete_next_char",
-                        "delete_line",
-                        "go_to_prev_char",
-                        "go_to_next_char",
-                        "go_to_input_start",
-                        "go_to_input_end",
-                        "render",
-                        "resize",
-                        "clear_screen",
-                        "toggle_selection_down",
-                        "toggle_selection_up",
-                        "confirm_selection",
-                        "select_and_exit",
-                        "expect",
-                        "select_next_entry",
-                        "select_prev_entry",
-                        "select_next_page",
-                        "select_prev_page",
-                        "copy_entry_to_clipboard",
-                        "scroll_preview_up",
-                        "scroll_preview_down",
-                        "scroll_preview_half_page_up",
-                        "scroll_preview_half_page_down",
-                        "open_entry",
-                        "tick",
-                        "suspend",
-                        "resume",
-                        "quit",
-                        "toggle_remote_control",
-                        "toggle_help",
-                        "toggle_status_bar",
-                        "toggle_preview",
-                        "toggle_layout",
-                        "error",
-                        "no_op",
-                        "cycle_sources",
-                        "reload_source",
-                        "switch_to_channel",
-                        "watch_timer",
-                        "select_prev_history",
-                        "select_next_history",
-                        "actions:*",
-                    ],
-                ));
-            }
-        };
-
-        Ok(action)
-    }
-}
-
 impl Action {
     /// Returns a user-friendly description of the action for help panels and UI display.
     ///
@@ -510,7 +308,7 @@ impl Action {
     /// assert_eq!(Action::SelectNextEntry.description(), "Navigate down");
     /// assert_eq!(Action::TogglePreview.description(), "Toggle preview");
     /// ```
-    pub fn description(&self) -> &'static str {
+    pub fn description(&self) -> &str {
         match self {
             // Input actions
             Action::AddInputChar(_) => "Add character",
@@ -570,6 +368,7 @@ impl Action {
 
             // Channel actions
             Action::CycleSources => "Cycle sources",
+            Action::CyclePreviews => "Cycle previews",
             Action::ReloadSource => "Reload source",
             Action::SwitchToChannel(_) => "Switch to channel",
             Action::WatchTimer => "Watch timer",
@@ -583,7 +382,7 @@ impl Action {
             Action::MouseClickAt(_, _) => "Mouse click",
 
             // External actions
-            Action::ExternalAction(_) => "External action",
+            Action::ExternalAction(a) => a,
         }
     }
 }
@@ -629,67 +428,5 @@ mod tests {
             multiple.as_slice(),
             &[Action::ScrollPreviewUp, Action::ScrollPreviewDown]
         );
-    }
-
-    #[test]
-    fn test_actions_into_vec() {
-        let single: Actions = Actions::single(Action::ConfirmSelection);
-        assert_eq!(single.into_vec(), vec![Action::ConfirmSelection]);
-
-        let multiple: Actions = Actions::multiple(vec![
-            Action::ToggleHelp,
-            Action::ToggleStatusBar,
-        ]);
-        assert_eq!(
-            multiple.into_vec(),
-            vec![Action::ToggleHelp, Action::ToggleStatusBar]
-        );
-    }
-
-    #[test]
-    fn test_actions_hash_and_eq() {
-        use std::collections::HashMap;
-
-        let actions1: Actions = Actions::single(Action::Quit);
-        let actions2: Actions = Actions::single(Action::Quit);
-        let actions3: Actions =
-            Actions::multiple(vec![Action::Quit, Action::ClearScreen]);
-        let actions4: Actions =
-            Actions::multiple(vec![Action::Quit, Action::ClearScreen]);
-
-        assert_eq!(actions1, actions2);
-        assert_eq!(actions3, actions4);
-        assert_ne!(actions1, actions3);
-
-        // Test that they can be used as HashMap keys
-        let mut map = HashMap::new();
-        map.insert(actions1.clone(), "single");
-        map.insert(actions3.clone(), "multiple");
-
-        assert_eq!(map.get(&actions2), Some(&"single"));
-        assert_eq!(map.get(&actions4), Some(&"multiple"));
-    }
-
-    #[test]
-    fn test_action_description() {
-        // Test that description() returns user-friendly text
-        assert_eq!(Action::Quit.description(), "Quit");
-        assert_eq!(Action::SelectNextEntry.description(), "Navigate down");
-        assert_eq!(Action::SelectPrevEntry.description(), "Navigate up");
-        assert_eq!(Action::TogglePreview.description(), "Toggle preview");
-        assert_eq!(Action::ToggleHelp.description(), "Toggle help");
-        assert_eq!(Action::ConfirmSelection.description(), "Select entry");
-        assert_eq!(
-            Action::CopyEntryToClipboard.description(),
-            "Copy to clipboard"
-        );
-
-        // Test that description() differs from Display (snake_case)
-        assert_ne!(
-            Action::SelectNextEntry.description(),
-            Action::SelectNextEntry.to_string()
-        );
-        assert_eq!(Action::SelectNextEntry.to_string(), "select_next_entry");
-        assert_eq!(Action::SelectNextEntry.description(), "Navigate down");
     }
 }

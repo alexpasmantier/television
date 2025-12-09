@@ -141,6 +141,7 @@ enter = "confirm_selection"
 # --------------------
 pagedown = "scroll_preview_half_page_down"
 pageup = "scroll_preview_half_page_up"
+ctrl-f = "cycle_previews"
 
 # Data operations
 # --------------

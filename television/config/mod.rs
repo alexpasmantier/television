@@ -82,7 +82,7 @@ impl Hash for AppConfig {
 }
 
 #[allow(dead_code)]
-#[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq)]
+#[derive(Clone, Debug, Default, Deserialize, PartialEq)]
 pub struct Config {
     /// General application configuration
     #[allow(clippy::struct_field_names)]
@@ -176,10 +176,6 @@ impl Config {
             let final_cfg =
                 Self::merge_with_default(&default_config, user_cfg);
 
-            debug!(
-                "Configuration: \n{}",
-                toml::to_string(&final_cfg).unwrap()
-            );
             Ok(final_cfg)
         } else {
             // otherwise, create the default configuration file

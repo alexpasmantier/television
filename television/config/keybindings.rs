@@ -4,14 +4,14 @@ use crate::{
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::ops::Deref;
 use std::ops::DerefMut;
 use std::str::FromStr;
 use tracing::debug;
 
 /// A hashmap of keyboard key bindings to actions.
-#[derive(Default, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct Keybindings(pub FxHashMap<Key, Actions>);
 
 impl Deref for Keybindings {
