@@ -255,121 +255,162 @@ fn is_emoji(ch: char) -> bool {
     .any(|range| range.contains(&ch))
 }
 
-#[allow(clippy::missing_panics_doc)]
-/// Replaces non-printable characters in the given byte slice with default printable characters.
+/// Replace non-printable characters in the input byte slice according to the provided
+/// configuration.
 ///
-/// The tab width is used to determine how many spaces to replace a tab character with.
+/// This is an optimized version using bulk copying for consecutive ASCII printable runs.
+///
 /// The default printable character for non-printable characters is the Unicode symbol for NULL.
+///
+/// This version scans ahead to find runs of printable ASCII characters and copies them
+/// in bulk using unsafe byte operations, which is significantly faster than character-by-character
+/// push operations.
 ///
 /// The function returns a tuple containing the processed string and a vector of offsets introduced
 /// by the transformation.
 ///
 /// # Examples
 /// ```
-/// use television::utils::strings::{replace_non_printable, ReplaceNonPrintableConfig};
+/// use television::utils::strings::{replace_non_printable_bulk, ReplaceNonPrintableConfig};
 ///
 /// let input = b"Hello, World!";
-/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
+/// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello, World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
 /// let input = b"Hello,\tWorld!";
-/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default().tab_width(4));
+/// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default().tab_width(4));
 /// assert_eq!(output, "Hello,    World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,3,3,3,3,3,3]);
 ///
 /// let input = b"Hello,\nWorld!";
-/// let (output, offsets) = replace_non_printable(input, &ReplaceNonPrintableConfig::default());
+/// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello,World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
 /// ```
-pub fn replace_non_printable(
+#[allow(clippy::missing_panics_doc)]
+pub fn replace_non_printable_bulk(
     input: &[u8],
     config: &ReplaceNonPrintableConfig,
 ) -> (String, Vec<i16>) {
     let mut output = String::with_capacity(input.len());
-    let mut offsets = Vec::new();
+    let mut offsets = Vec::with_capacity(input.len());
     let mut cumulative_offset: i16 = 0;
 
     let mut idx = 0;
     let len = input.len();
+
     while idx < len {
-        offsets.push(cumulative_offset);
-        if let Some((chr, skip_ahead)) = try_parse_utf8_char(&input[idx..]) {
-            idx += skip_ahead;
-            match chr {
-                // tab
-                TAB_CHARACTER if config.replace_tab => {
-                    output.push_str(&" ".repeat(config.tab_width));
-                    cumulative_offset +=
-                        i16::try_from(config.tab_width).unwrap() - 1;
-                }
-                // line feed
-                LINE_FEED_CHARACTER | CARRIAGE_RETURN_CHARACTER
-                    if config.replace_line_feed =>
-                {
-                    cumulative_offset -= 1;
-                }
-
-                // Carriage return
-                '\r' if config.replace_line_feed => {
-                    // Do not add to output, just adjust offset
-                    cumulative_offset -= 1;
-                }
-
-                // ASCII control characters from 0x00 to 0x1F
-                // + control characters from \u{007F} to \u{009F}
-                // + BOM
-                NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
-                | DELETE_CHARACTER..=APPLICATION_PROGRAM_COMMAND_CHARACTER
-                | BOM_CHARACTER
-                    if config.replace_control_characters =>
-                {
-                    output.push(NULL_SYMBOL);
-                }
-                // CJK Unified Ideographs
-                // ex: 解
-                c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
-                    output.push(c);
-                }
-                // Korean: Hangul syllables
-                // ex: 가 or 한
-                c if ('\u{AC00}'..='\u{D7AF}').contains(&c) => {
-                    output.push(c);
-                }
-                // some emojis
-                // ex: 😀
-                c if is_emoji(c) => {
-                    output.push(c);
-                }
-                // Japanese (contiguous ranges for katakana and hiragana)
-                // ex: katakana -> ア and hiragana -> あ
-                c if ('\u{3040}'..='\u{30FF}').contains(&c) => {
-                    output.push(c);
-                }
-                // Thai
-                // ex: ส or ดี
-                c if ('\u{0E00}'..='\u{0E7F}').contains(&c) => output.push(c),
-                // Devanagari (most common Indic script)
-                c if ('\u{0900}'..='\u{097F}').contains(&c) => output.push(c),
-                // Nerd fonts
-                c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
-                    output.push(c);
-                }
-                // Other unit width symbols
-                c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
-                    output.push(c);
-                }
-                // Unicode characters above 0x0700 seem unstable with ratatui
-                c if c > '\u{0700}' => {
-                    output.push(NULL_SYMBOL);
-                }
-                // everything else
-                c => output.push(c),
+        // Scan for a run of printable ASCII bytes (0x20-0x7E)
+        let run_start = idx;
+        while idx < len {
+            let byte = input[idx];
+            if (0x20..=0x7E).contains(&byte) {
+                idx += 1;
+            } else {
+                break;
             }
-        } else {
-            output.push(NULL_SYMBOL);
-            idx += 1;
+        }
+
+        // Bulk copy the ASCII run if we found any
+        if idx > run_start {
+            let ascii_run = &input[run_start..idx];
+            // SAFETY: We've verified all bytes are in 0x20-0x7E range, which is valid UTF-8
+            unsafe {
+                let str_slice = std::str::from_utf8_unchecked(ascii_run);
+                output.push_str(str_slice);
+            }
+            // Add offsets for each byte in the run
+            offsets.extend(std::iter::repeat_n(
+                cumulative_offset,
+                ascii_run.len(),
+            ));
+        }
+
+        // Handle special character if we're not at the end
+        if idx < len {
+            offsets.push(cumulative_offset);
+            if let Some((chr, skip_ahead)) = try_parse_utf8_char(&input[idx..])
+            {
+                idx += skip_ahead;
+                match chr {
+                    // tab
+                    TAB_CHARACTER if config.replace_tab => {
+                        output.push_str(&" ".repeat(config.tab_width));
+                        cumulative_offset +=
+                            i16::try_from(config.tab_width).unwrap() - 1;
+                    }
+                    // line feed and carriage return
+                    LINE_FEED_CHARACTER | CARRIAGE_RETURN_CHARACTER
+                        if config.replace_line_feed =>
+                    {
+                        cumulative_offset -= 1;
+                    }
+
+                    // ASCII control characters from 0x00 to 0x1F
+                    // + control characters from \u{007F} to \u{009F}
+                    // + BOM
+                    NULL_CHARACTER..=UNIT_SEPARATOR_CHARACTER
+                    | DELETE_CHARACTER
+                        ..=APPLICATION_PROGRAM_COMMAND_CHARACTER
+                    | BOM_CHARACTER
+                        if config.replace_control_characters =>
+                    {
+                        output.push(NULL_SYMBOL);
+                    }
+                    // CJK Unified Ideographs
+                    c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // Korean: Hangul syllables
+                    c if ('\u{AC00}'..='\u{D7AF}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // some emojis
+                    c if is_emoji(c) => {
+                        output.push(c);
+                    }
+                    // Japanese (contiguous ranges for katakana and hiragana)
+                    c if ('\u{3040}'..='\u{30FF}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // Thai
+                    c if ('\u{0E00}'..='\u{0E7F}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // Devanagari (most common Indic script)
+                    c if ('\u{0900}'..='\u{097F}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // Most NF chars are in Private Use Area (e000-f8ff, f0001-f1af0)
+                    // with exceptions for Octicons (2665-26a1)
+                    c if ('\u{e000}'..='\u{f8ff}').contains(&c)
+                        || ('\u{2665}'..='\u{26a1}').contains(&c)
+                        || ('\u{f0001}'..='\u{f1af0}').contains(&c) =>
+                    {
+                        if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) {
+                            output.push(c);
+                        } else if c > '\u{0700}' {
+                            output.push(NULL_SYMBOL);
+                        } else {
+                            output.push(c);
+                        }
+                    }
+                    // Other unit width symbols
+                    c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
+                        output.push(c);
+                    }
+                    // Unicode characters above 0x0700 seem unstable with ratatui
+                    c if c > '\u{0700}' => {
+                        output.push(NULL_SYMBOL);
+                    }
+                    // everything else
+                    c => output.push(c),
+                }
+            } else {
+                output.push(NULL_SYMBOL);
+                idx += 1;
+            }
         }
     }
 
@@ -439,7 +480,7 @@ const MAX_LINE_LENGTH: usize = 300;
 /// assert_eq!(offsets, vec![0; 300]);
 /// ```
 pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
-    replace_non_printable(
+    replace_non_printable_bulk(
         {
             if line.len() > MAX_LINE_LENGTH {
                 slice_up_to_char_boundary(line, MAX_LINE_LENGTH)
@@ -709,8 +750,8 @@ mod tests {
         test_slice_at_char_boundaries("👋🌍!", 0, 9, "👋🌍!");
     }
 
-    fn test_replace_non_printable(input: &str, expected: &str) {
-        let (actual, _offset) = replace_non_printable(
+    fn test_replace_non_printable_bulk(input: &str, expected: &str) {
+        let (actual, _offset) = replace_non_printable_bulk(
             input.as_bytes(),
             ReplaceNonPrintableConfig::default().tab_width(2),
         );
@@ -719,13 +760,13 @@ mod tests {
 
     #[test]
     fn test_replace_non_printable_ascii() {
-        test_replace_non_printable("Hello, World!", "Hello, World!");
+        test_replace_non_printable_bulk("Hello, World!", "Hello, World!");
     }
 
     #[test]
     fn test_replace_non_printable_tab() {
-        test_replace_non_printable("Hello\tWorld!", "Hello  World!");
-        test_replace_non_printable(
+        test_replace_non_printable_bulk("Hello\tWorld!", "Hello  World!");
+        test_replace_non_printable_bulk(
             "	-- AND
 ", "  -- AND",
         );
@@ -733,34 +774,34 @@ mod tests {
 
     #[test]
     fn test_replace_non_printable_line_feed() {
-        test_replace_non_printable("Hello\nWorld!", "HelloWorld!");
+        test_replace_non_printable_bulk("Hello\nWorld!", "HelloWorld!");
     }
 
     #[test]
     fn test_replace_non_printable_null() {
-        test_replace_non_printable("Hello\x00World!", "Hello␀World!");
-        test_replace_non_printable("Hello World!\0", "Hello World!␀");
+        test_replace_non_printable_bulk("Hello\x00World!", "Hello␀World!");
+        test_replace_non_printable_bulk("Hello World!\0", "Hello World!␀");
     }
 
     #[test]
     fn test_replace_non_printable_delete() {
-        test_replace_non_printable("Hello\x7FWorld!", "Hello␀World!");
+        test_replace_non_printable_bulk("Hello\x7FWorld!", "Hello␀World!");
     }
 
     #[test]
     fn test_replace_non_printable_bom() {
-        test_replace_non_printable("Hello\u{FEFF}World!", "Hello␀World!");
+        test_replace_non_printable_bulk("Hello\u{FEFF}World!", "Hello␀World!");
     }
 
     #[test]
     fn test_replace_non_printable_start_txt() {
-        test_replace_non_printable("Àì", "Àì␀");
+        test_replace_non_printable_bulk("Àì", "Àì␀");
     }
 
     #[test]
     fn test_replace_non_printable_range_tab() {
         let input = b"Hello,\tWorld!";
-        let (output, offsets) = replace_non_printable(
+        let (output, offsets) = replace_non_printable_bulk(
             input,
             &ReplaceNonPrintableConfig::default(),
         );
@@ -771,7 +812,7 @@ mod tests {
     #[test]
     fn test_replace_non_printable_range_line_feed() {
         let input = b"Hello,\nWorld!";
-        let (output, offsets) = replace_non_printable(
+        let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
         );
@@ -783,7 +824,7 @@ mod tests {
     fn test_cjk_characters() {
         let input = "你好,世界!".as_bytes();
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "你好,世界!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
     }
@@ -792,7 +833,7 @@ mod tests {
     fn test_thai_characters() {
         let input = "สวัสดี!".as_bytes(); // สวัสดี is 6 characters + !
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "สวัสดี!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0]);
     }
@@ -801,7 +842,7 @@ mod tests {
     fn test_emoji_characters() {
         let input = "Hello 🌍!".as_bytes();
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "Hello 🌍!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0]);
     }
@@ -809,7 +850,7 @@ mod tests {
     fn test_devanagari_characters() {
         let input = "नमस्ते".as_bytes(); // नमस्ते is 6 characters
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "नमस्ते");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
     }
@@ -817,7 +858,7 @@ mod tests {
     fn test_hiragana_characters() {
         let input = "こんにちは".as_bytes();
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "こんにちは");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0]);
     }
@@ -826,7 +867,7 @@ mod tests {
     fn test_katakana_characters() {
         let input = "コンニチハ".as_bytes();
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "コンニチハ");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0]);
     }
@@ -834,14 +875,14 @@ mod tests {
     fn test_korean_characters() {
         let input = "안녕하세요!".as_bytes();
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable(input, &config);
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "안녕하세요!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
     }
     #[test]
     fn test_replace_non_printable_no_range_changes() {
         let input = b"Hello,\x00World!";
-        let (output, offsets) = replace_non_printable(
+        let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
         );
@@ -849,7 +890,7 @@ mod tests {
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
         let input = b"Hello,\x7FWorld!";
-        let (output, offsets) = replace_non_printable(
+        let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
         );

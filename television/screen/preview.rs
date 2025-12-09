@@ -3,7 +3,7 @@ use crate::{
     previewer::{Preview, state::PreviewState},
     screen::colors::Colorscheme,
     utils::strings::{
-        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable_bulk,
         shrink_with_ellipsis,
     },
 };
@@ -176,7 +176,7 @@ fn draw_content_outer_block(
     // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
-            &replace_non_printable(
+            &replace_non_printable_bulk(
                 preview.title.as_bytes(),
                 &ReplaceNonPrintableConfig::default(),
             )

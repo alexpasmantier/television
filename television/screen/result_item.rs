@@ -8,7 +8,7 @@ use crate::{
         indices::truncate_highlighted_string,
         strings::{
             ReplaceNonPrintableConfig, make_result_item_printable,
-            replace_non_printable,
+            replace_non_printable_bulk,
         },
     },
 };
@@ -262,7 +262,7 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                         .collect();
                     if !s.is_empty() {
                         highlighted_spans.push(Span::styled(
-                            replace_non_printable(
+                            replace_non_printable_bulk(
                                 s.as_bytes(),
                                 &ReplaceNonPrintableConfig::default(),
                             )
@@ -280,7 +280,7 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                         .collect();
                     if !s.is_empty() {
                         highlighted_spans.push(Span::styled(
-                            replace_non_printable(
+                            replace_non_printable_bulk(
                                 s.as_bytes(),
                                 &ReplaceNonPrintableConfig::default(),
                             )
@@ -294,7 +294,7 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                 let s: String = span.content.chars().skip(cursor).collect();
                 if !s.is_empty() {
                     highlighted_spans.push(Span::styled(
-                        replace_non_printable(
+                        replace_non_printable_bulk(
                             s.as_bytes(),
                             &ReplaceNonPrintableConfig::default(),
                         )
