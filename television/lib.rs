@@ -13,6 +13,7 @@ pub mod input;
 pub mod keymap;
 pub mod logging;
 pub mod matcher;
+pub mod mouse;
 pub mod picker;
 pub mod previewer;
 pub mod render;

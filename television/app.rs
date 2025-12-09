@@ -10,6 +10,7 @@ use crate::{
     config::layers::ConfigLayers,
     event::{ControlEvent, Event, EventLoop, Key},
     history::History,
+    mouse::get_action_for_mouse_event,
     render::{RenderingTask, UiState, render},
     television::{Mode, Television},
     tui::{IoStream, Tui, TuiMode},
@@ -413,9 +414,12 @@ impl App {
                     }
                 }
             }
-            Event::Mouse(_) => {
-                // Mouse events are currently not handled
-                vec![Action::NoOp]
+            Event::Mouse(me) => {
+                vec![get_action_for_mouse_event(
+                    me,
+                    &self.television.ui_state.layout,
+                    self.television.mode,
+                )]
             }
             // terminal events
             Event::Tick => vec![Action::Tick],
