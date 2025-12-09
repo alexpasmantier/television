@@ -281,7 +281,7 @@ fn generate_help_content(
         &mut lines,
         &config
             .input_map
-            .key_actions
+            .global_keybindings
             .iter()
             .map(|(key, actions)| (*key, actions.first().unwrap().clone()))
             .collect::<Vec<_>>()
@@ -293,12 +293,16 @@ fn generate_help_content(
 
     // Check if we have external actions before adding the section
     let has_external_actions =
-        config.input_map.key_actions.iter().any(|(_, actions)| {
-            actions
-                .as_slice()
-                .iter()
-                .any(|a| matches!(a, Action::ExternalAction(_)))
-        });
+        config
+            .input_map
+            .global_keybindings
+            .iter()
+            .any(|(_, actions)| {
+                actions
+                    .as_slice()
+                    .iter()
+                    .any(|a| matches!(a, Action::ExternalAction(_)))
+            });
 
     if has_external_actions {
         lines.push(Line::from(""));
@@ -312,7 +316,7 @@ fn generate_help_content(
 
         add_actions_keybindings_section(
             &mut lines,
-            &config.input_map.key_actions,
+            &config.input_map.global_keybindings,
             colorscheme,
             mode,
         );

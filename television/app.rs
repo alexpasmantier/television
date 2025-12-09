@@ -7,7 +7,7 @@ use crate::{
         entry::Entry,
         prototypes::{ActionSpec, ExecutionMode},
     },
-    config::layers::LayeredConfig,
+    config::layers::ConfigLayers,
     event::{ControlEvent, Event, EventLoop, Key},
     history::History,
     render::{RenderingTask, UiState, render},
@@ -112,7 +112,7 @@ const EVENT_BUF_SIZE: usize = 4;
 const ACTION_BUF_SIZE: usize = 8;
 
 impl App {
-    pub fn new(layered_config: LayeredConfig, cable_channels: Cable) -> Self {
+    pub fn new(layered_config: ConfigLayers, cable_channels: Cable) -> Self {
         let (action_tx, action_rx) = mpsc::unbounded_channel();
         let (render_tx, render_rx) = mpsc::unbounded_channel();
         let (_, event_rx) = mpsc::unbounded_channel();
@@ -216,7 +216,7 @@ impl App {
             self.television
                 .merged_config
                 .input_map
-                .merge_key_bindings(&shortcut_keybindings);
+                .merge_globals_with(&shortcut_keybindings);
         }
         debug!(
             "Updated input_map (with shortcuts): {:?}",
@@ -400,7 +400,7 @@ impl App {
                     .television
                     .merged_config
                     .input_map
-                    .get_actions_for_key(&keycode)
+                    .get_actions_for_key(&keycode, &self.television.mode)
                 {
                     let actions_vec = actions.as_slice().to_vec();
                     debug!("Keybinding found: {actions_vec:?}");

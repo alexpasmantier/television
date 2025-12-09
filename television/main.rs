@@ -5,7 +5,7 @@ use std::io::{BufWriter, IsTerminal, Write, stdout};
 use std::path::PathBuf;
 use std::process::exit;
 use television::cli::ChannelCli;
-use television::config::layers::LayeredConfig;
+use television::config::layers::ConfigLayers;
 use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::App,
@@ -83,7 +83,7 @@ async fn main() -> Result<()> {
     );
 
     let layered_config =
-        LayeredConfig::new(base_config, channel_prototype, cli.clone());
+        ConfigLayers::new(base_config, channel_prototype, cli.clone());
 
     CLIPBOARD.with(<_>::default);
 

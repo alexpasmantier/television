@@ -8,7 +8,7 @@ use television::{
     cable::Cable,
     channels::prototypes::ChannelPrototype,
     cli::{ChannelCli, PostProcessedCli},
-    config::{default_config_from_file, layers::LayeredConfig},
+    config::{default_config_from_file, layers::ConfigLayers},
 };
 use tokio::{
     task::JoinHandle,
@@ -46,7 +46,7 @@ fn setup_app(
     // this speeds up the tests
     config.application.tick_rate = 100;
 
-    let layered_config = LayeredConfig::new(
+    let layered_config = ConfigLayers::new(
         config,
         chan,
         PostProcessedCli {

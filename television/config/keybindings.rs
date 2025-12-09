@@ -42,6 +42,10 @@ impl Keybindings {
     pub fn new() -> Self {
         Keybindings(FxHashMap::default())
     }
+
+    pub fn merge(self, new: &Keybindings) -> Keybindings {
+        merge_keybindings(self, new)
+    }
 }
 
 /// Merges two binding collections, with new bindings taking precedence.

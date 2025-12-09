@@ -2,104 +2,58 @@ use std::hash::Hash;
 
 use crate::{
     action::{Action, Actions},
-    config::Keybindings,
+    config::{Keybindings, merge_keybindings},
     event::Key,
+    television::Mode,
     utils::hashmaps::invert_hashmap,
 };
 use rustc_hash::FxHashMap;
 
 #[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct InputMap {
-    /// Maps keyboard keys to their associated actions
-    pub key_actions: FxHashMap<Key, Actions>,
+    pub global_keybindings: Keybindings,
+    pub channel_keybindings: Keybindings,
 
-    /// Used to query key based on an `Actions` instance.
+    /// This is a reverse mapping of global and channel keybindings
+    /// to facilitate lookups from actions to keys.
     actions_keys: FxHashMap<Actions, Key>,
 }
 
 impl Hash for InputMap {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        for (key, actions) in &self.key_actions {
-            (key, actions).hash(state);
+        for (a, k) in &self.actions_keys {
+            (a, k).hash(state);
         }
     }
 }
 
 impl InputMap {
-    pub fn new(key_actions: FxHashMap<Key, Actions>) -> Self {
-        let actions_keys = invert_hashmap(&key_actions);
+    pub fn new(global: Keybindings, channel: Keybindings) -> Self {
+        let merged = merge_keybindings(global.clone(), &channel);
+        let actions_keys = invert_hashmap(&merged);
         Self {
-            key_actions,
+            global_keybindings: global,
+            channel_keybindings: channel,
             actions_keys,
         }
     }
 
-    /// Gets all actions bound to a specific key.
+    /// Gets all actions bound to a specific key for the current mode.
     ///
-    /// Returns a reference to the `Actions` (single or multiple) bound to
-    /// the given key, or `None` if no binding exists.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The key to look up
-    ///
-    /// # Returns
-    ///
-    /// - `Some(&Actions)` - The actions bound to the key
-    /// - `None` - No binding exists for this key
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use television::keymap::InputMap;
-    /// use television::event::Key;
-    /// use television::action::{Action, Actions};
-    ///
-    /// let mut input_map = InputMap::default();
-    /// input_map.key_actions.insert(Key::Enter, Actions::single(Action::ConfirmSelection));
-    ///
-    /// let actions = input_map.get_actions_for_key(&Key::Enter).unwrap();
-    /// assert_eq!(actions.as_slice(), &[Action::ConfirmSelection]);
-    /// ```
-    pub fn get_actions_for_key(&self, key: &Key) -> Option<&Actions> {
-        self.key_actions.get(key)
-    }
-
-    /// Gets the first action bound to a specific key (backward compatibility).
-    ///
-    /// This method provides backward compatibility with the old single-action
-    /// binding system. For keys with multiple actions, it returns only the
-    /// first action. Use `get_actions_for_key()` to get all actions.
-    ///
-    /// # Arguments
-    ///
-    /// * `key` - The key to look up
-    ///
-    /// # Returns
-    ///
-    /// - `Some(Action)` - The first action bound to the key
-    /// - `None` - No binding exists for this key
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use television::keymap::InputMap;
-    /// use television::event::Key;
-    /// use television::action::{Action, Actions};
-    ///
-    /// let mut input_map = InputMap::default();
-    /// input_map.key_actions.insert(
-    ///     Key::Ctrl('r'),
-    ///     Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen])
-    /// );
-    ///
-    /// // Returns only the first action
-    /// assert_eq!(input_map.get_action_for_key(&Key::Ctrl('r')), Some(Action::ReloadSource));
-    /// ```
-    pub fn get_action_for_key(&self, key: &Key) -> Option<Action> {
-        self.key_actions
-            .get(key)
-            .and_then(|actions| actions.first().cloned())
+    /// - `Mode::Channel` checks both global and channel-specific keybindings.
+    /// - `Mode::RemoteControl` only checks global keybindings.
+    pub fn get_actions_for_key(
+        &self,
+        key: &Key,
+        mode: &Mode,
+    ) -> Option<&Actions> {
+        match mode {
+            Mode::RemoteControl => self.global_keybindings.get(key),
+            Mode::Channel => self
+                .channel_keybindings
+                .get(key)
+                .or_else(|| self.global_keybindings.get(key)),
+        }
     }
 
     /// Gets the key associated with a specific action.
@@ -108,43 +62,20 @@ impl InputMap {
             .get(&Actions::single(action.clone()))
             .copied()
     }
-}
 
-impl From<Keybindings> for InputMap {
-    fn from(keybindings: Keybindings) -> Self {
-        Self {
-            actions_keys: invert_hashmap(&keybindings),
-            key_actions: keybindings.0,
-        }
-    }
-}
-
-impl From<&Keybindings> for InputMap {
-    fn from(keybindings: &Keybindings) -> Self {
-        Self {
-            key_actions: keybindings.0.clone(),
-            actions_keys: invert_hashmap(keybindings),
-        }
-    }
-}
-
-impl InputMap {
-    pub fn merge(&mut self, other: &InputMap) {
-        for (key, action) in &other.key_actions {
-            self.key_actions.insert(*key, action.clone());
-        }
-        // Update actions_keys to reflect the merged actions
-        for (key, actions) in &other.key_actions {
-            self.actions_keys.insert(actions.clone(), *key);
-        }
-    }
-
-    pub fn merge_key_bindings(&mut self, keybindings: &Keybindings) {
+    /// Merges another set of global keybindings into the existing ones.
+    ///
+    /// This won't override channel specific keybindings.
+    pub fn merge_globals_with(&mut self, keybindings: &Keybindings) {
         for (key, action) in keybindings.iter() {
-            self.key_actions.insert(*key, action.clone());
+            self.global_keybindings.insert(*key, action.clone());
         }
         // Update actions_keys to reflect the merged actions
+        // but only if they aren't already mapped in channel specific keybindings
         for (key, actions) in keybindings.iter() {
+            if self.channel_keybindings.contains_key(key) {
+                continue;
+            }
             self.actions_keys.insert(actions.clone(), *key);
         }
     }
@@ -156,156 +87,143 @@ mod tests {
     use crate::event::Key;
 
     #[test]
-    fn test_input_map_from_keybindings() {
-        let keybindings = Keybindings::from(vec![
-            (Key::Char('j'), Action::SelectNextEntry),
-            (Key::Char('k'), Action::SelectPrevEntry),
-            (Key::Char('q'), Action::Quit),
-        ]);
-
-        let input_map: InputMap = (&keybindings).into();
-        assert_eq!(
-            input_map.get_action_for_key(&Key::Char('j')),
-            Some(Action::SelectNextEntry)
-        );
-        assert_eq!(
-            input_map.get_action_for_key(&Key::Char('k')),
-            Some(Action::SelectPrevEntry)
-        );
-        assert_eq!(
-            input_map.get_action_for_key(&Key::Char('q')),
-            Some(Action::Quit)
-        );
-    }
-
-    #[test]
-    fn test_input_map_merge() {
-        let mut input_map1 = InputMap::default();
-        input_map1
-            .key_actions
-            .insert(Key::Char('a'), Action::SelectNextEntry.into());
-        input_map1
-            .key_actions
-            .insert(Key::Char('b'), Action::SelectPrevEntry.into());
-
-        let mut input_map2 = InputMap::default();
-        input_map2
-            .key_actions
-            .insert(Key::Char('c'), Action::Quit.into());
-        input_map2
-            .key_actions
-            .insert(Key::Char('a'), Action::Quit.into()); // This should overwrite
-
-        input_map1.merge(&input_map2);
-        assert_eq!(
-            input_map1.get_action_for_key(&Key::Char('a')),
-            Some(Action::Quit)
-        );
-        assert_eq!(
-            input_map1.get_action_for_key(&Key::Char('b')),
-            Some(Action::SelectPrevEntry)
-        );
-        assert_eq!(
-            input_map1.get_action_for_key(&Key::Char('c')),
-            Some(Action::Quit)
-        );
-    }
-
-    #[test]
     fn test_input_map_multiple_actions_per_key() {
-        let mut key_actions = FxHashMap::default();
-        key_actions.insert(
+        let mut keybindings = Keybindings::default();
+        keybindings.insert(
             Key::Ctrl('s'),
             Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard,
             ]),
         );
-        key_actions.insert(Key::Esc, Actions::single(Action::Quit));
+        keybindings.insert(Key::Esc, Actions::single(Action::Quit));
 
-        let input_map = InputMap {
-            key_actions,
-            actions_keys: FxHashMap::default(),
-        };
+        let input_map = InputMap::new(keybindings, Keybindings::default());
 
         // Test getting all actions for multiple action binding
-        let ctrl_s_actions =
-            input_map.get_actions_for_key(&Key::Ctrl('s')).unwrap();
+        let ctrl_s_actions = input_map
+            .get_actions_for_key(&Key::Ctrl('s'), &Mode::Channel)
+            .unwrap();
         assert_eq!(
             ctrl_s_actions.as_slice(),
             &[Action::ReloadSource, Action::CopyEntryToClipboard]
-        );
-
-        // Test backward compatibility method returns first action
-        assert_eq!(
-            input_map.get_action_for_key(&Key::Ctrl('s')),
-            Some(Action::ReloadSource)
-        );
-
-        // Test single action still works
-        assert_eq!(
-            input_map.get_action_for_key(&Key::Esc),
-            Some(Action::Quit)
-        );
-    }
-
-    #[test]
-    fn test_input_map_merge_multiple_actions() {
-        let mut input_map1 = InputMap::default();
-        input_map1
-            .key_actions
-            .insert(Key::Char('a'), Actions::single(Action::SelectNextEntry));
-
-        let mut input_map2 = InputMap::default();
-        input_map2.key_actions.insert(
-            Key::Char('a'),
-            Actions::multiple(vec![Action::ReloadSource, Action::Quit]), // This should overwrite
-        );
-        input_map2.key_actions.insert(
-            Key::Char('b'),
-            Actions::multiple(vec![Action::TogglePreview, Action::ToggleHelp]),
-        );
-
-        input_map1.merge(&input_map2);
-
-        // Verify the multiple actions overwrite worked
-        let actions_a =
-            input_map1.get_actions_for_key(&Key::Char('a')).unwrap();
-        assert_eq!(
-            actions_a.as_slice(),
-            &[Action::ReloadSource, Action::Quit]
-        );
-
-        // Verify the new multiple actions were added
-        let actions_b =
-            input_map1.get_actions_for_key(&Key::Char('b')).unwrap();
-        assert_eq!(
-            actions_b.as_slice(),
-            &[Action::TogglePreview, Action::ToggleHelp]
         );
     }
 
     #[test]
     fn test_input_map_from_keybindings_with_multiple_actions() {
-        let mut bindings = FxHashMap::default();
+        let mut bindings = Keybindings::default();
         bindings.insert(
             Key::Ctrl('r'),
             Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen]),
         );
         bindings.insert(Key::Esc, Actions::single(Action::Quit));
 
-        let input_map: InputMap = Keybindings(bindings).into();
+        let input_map: InputMap =
+            InputMap::new(bindings, Keybindings::default());
 
         // Test multiple actions are preserved
-        let ctrl_r_actions =
-            input_map.get_actions_for_key(&Key::Ctrl('r')).unwrap();
+        let ctrl_r_actions = input_map
+            .get_actions_for_key(&Key::Ctrl('r'), &Mode::Channel)
+            .unwrap();
         assert_eq!(
             ctrl_r_actions.as_slice(),
             &[Action::ReloadSource, Action::ClearScreen]
         );
 
         // Test single actions still work
-        let esc_actions = input_map.get_actions_for_key(&Key::Esc).unwrap();
+        let esc_actions = input_map
+            .get_actions_for_key(&Key::Esc, &Mode::Channel)
+            .unwrap();
         assert_eq!(esc_actions.as_slice(), &[Action::Quit]);
+    }
+
+    #[test]
+    fn test_input_map_constructor_no_intersection() {
+        let mut global_bindings = Keybindings::default();
+        global_bindings
+            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+
+        let mut channel_bindings = Keybindings::default();
+        channel_bindings
+            .insert(Key::Ctrl('x'), Actions::single(Action::DeletePrevChar));
+
+        let input_map =
+            InputMap::new(global_bindings.clone(), channel_bindings.clone());
+
+        // Test global keybindings
+        let enter_actions = input_map
+            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .unwrap();
+        assert_eq!(enter_actions.as_slice(), &[Action::ConfirmSelection]);
+
+        // Test channel keybindings
+        let esc_actions = input_map
+            .get_actions_for_key(&Key::Ctrl('x'), &Mode::Channel)
+            .unwrap();
+        assert_eq!(esc_actions.as_slice(), &[Action::DeletePrevChar]);
+    }
+
+    #[test]
+    fn test_input_map_constructor_with_intersection() {
+        let mut global_bindings = Keybindings::default();
+        global_bindings
+            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+        global_bindings.insert(Key::Esc, Actions::single(Action::Quit));
+
+        let mut channel_bindings = Keybindings::default();
+        channel_bindings.insert(
+            Key::Enter,
+            Actions::single(Action::ExternalAction(String::from(
+                "custom_enter",
+            ))),
+        );
+
+        let input_map =
+            InputMap::new(global_bindings.clone(), channel_bindings.clone());
+
+        let channel_action = input_map
+            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .unwrap();
+        assert_eq!(
+            channel_action.as_slice(),
+            &[Action::ExternalAction(String::from("custom_enter"))]
+        );
+
+        let remote_action = input_map
+            .get_actions_for_key(&Key::Enter, &Mode::RemoteControl)
+            .unwrap();
+        assert_eq!(remote_action.as_slice(), &[Action::ConfirmSelection]);
+    }
+
+    #[test]
+    fn test_input_map_get_actions_for_key() {
+        let mut global_bindings = Keybindings::default();
+        global_bindings
+            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+
+        let mut channel_bindings = Keybindings::default();
+        channel_bindings.insert(
+            Key::Enter,
+            Actions::single(Action::ExternalAction(String::from(
+                "custom_enter",
+            ))),
+        );
+
+        let input_map =
+            InputMap::new(global_bindings.clone(), channel_bindings.clone());
+
+        let global_action = input_map
+            .get_actions_for_key(&Key::Enter, &Mode::RemoteControl)
+            .unwrap();
+        assert_eq!(global_action.as_slice(), &[Action::ConfirmSelection]);
+
+        let channel_action = input_map
+            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .unwrap();
+        assert_eq!(
+            channel_action.as_slice(),
+            &[Action::ExternalAction(String::from("custom_enter"))]
+        );
     }
 }
