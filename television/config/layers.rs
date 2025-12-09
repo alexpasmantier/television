@@ -1,5 +1,5 @@
 use crate::{
-    action::Action,
+    action::{Action, CUSTOM_ACTION_PREFIX},
     channels::prototypes::{
         ActionSpec, BinaryRequirement, ChannelPrototype, CommandSpec, Template,
     },
@@ -416,12 +416,15 @@ impl ConfigLayers {
         if let Some(channel_bindings) = &self.channel.keybindings {
             for (_, actions) in channel_bindings.bindings.iter() {
                 for action in actions.as_slice() {
-                    if let Action::ExternalAction(action_name) = action
-                        && !channel_actions.contains_key(action_name)
+                    if let Action::ExternalAction(custom_with_prefix) = action
+                        && !channel_actions.contains_key(
+                            custom_with_prefix
+                                .trim_start_matches(CUSTOM_ACTION_PREFIX),
+                        )
                     {
                         eprintln!(
                             "Action '{}' referenced in keybinding not found in actions section.",
-                            action_name
+                            custom_with_prefix
                         );
                         std::process::exit(1);
                     }

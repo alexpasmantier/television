@@ -1,7 +1,7 @@
 use std::{thread::sleep, time::Duration};
 
 use crate::{
-    action::Action,
+    action::{Action, CUSTOM_ACTION_PREFIX},
     cable::Cable,
     channels::{
         entry::Entry,
@@ -569,12 +569,14 @@ impl App {
                         if let Some(selected_entries) =
                             self.television.get_selected_entries()
                         {
-                            if let Some(action_spec) = self
-                                .television
-                                .merged_config
-                                .channel_actions
-                                .get(action_name)
-                                .cloned()
+                            if let Some(action_spec) =
+                                self.television
+                                    .merged_config
+                                    .channel_actions
+                                    .get(action_name.trim_start_matches(
+                                        CUSTOM_ACTION_PREFIX,
+                                    ))
+                                    .cloned()
                             {
                                 match action_spec.mode {
                                     // suspend the TUI and execute the action

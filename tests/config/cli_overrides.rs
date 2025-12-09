@@ -273,6 +273,6 @@ fn test_action_id_mismatch_validation_error() {
 
     // The validation should now panic with our message
     tester.assert_raw_output_contains(
-        "Action 'edit_text' referenced in keybinding not found in actions section",
+        "Action 'actions:edit_text' referenced in keybinding not found in actions section",
     );
 }
