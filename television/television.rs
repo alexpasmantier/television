@@ -81,7 +81,6 @@ pub struct Television {
     pub colorscheme: Arc<Colorscheme>,
     pub ticks: u64,
     pub ui_state: UiState,
-    pub current_command_index: usize,
 }
 
 impl Television {
@@ -189,7 +188,6 @@ impl Television {
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             ui_state: UiState::default(),
-            current_command_index: 0,
         }
     }
 
@@ -286,7 +284,6 @@ impl Television {
         // Set preview state enabled based on both channel capability and UI configuration
         self.preview_state.enabled = channel_prototype.preview.is_some()
             && !self.merged_config.preview_panel_hidden;
-        self.current_command_index = 0;
         self.channel = CableChannel::new(
             self.merged_config.channel_source_command.clone(),
             self.merged_config.channel_source_entry_delimiter,
