@@ -62,7 +62,7 @@ fn test_multiple_keybindings_override() {
     let mut child =
         tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
             "--keybindings",
-            "a=\"quit\";ctrl-t=\"toggle_remote_control\";esc=\"no_op\"",
+            "a=\"quit\";ctrl-x=\"toggle_remote_control\";esc=\"no_op\"",
         ]));
 
     // Verify ESC doesn't quit (default overridden)
@@ -70,12 +70,12 @@ fn test_multiple_keybindings_override() {
     tester.assert_tui_running(&mut child);
 
     // Test that Ctrl+T opens remote control panel (custom keybinding works)
-    tester.send(&ctrl('t'));
+    tester.send(&ctrl('x'));
     tester.assert_tui_frame_contains("(1) (2) (3)"); // Remote control indicators
+    tester.send(&ctrl('t'));
 
-    // Use "a" to quit remote control mode, then "a" again to quit the application
-    tester.send("'a'"); // Exit remote control
-    tester.send("'a'"); // Exit application
+    // Use "a" to quit the application
+    tester.send("'a'");
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 

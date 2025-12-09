@@ -9,7 +9,7 @@ use crate::{
     },
     config::{
         Theme,
-        layers::{LayeredConfig, MergedConfig},
+        layers::{ConfigLayers, MergedConfig},
     },
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
@@ -62,7 +62,7 @@ pub enum MatchingMode {
 
 pub struct Television {
     action_tx: UnboundedSender<Action>,
-    pub layered_config: LayeredConfig,
+    pub layered_config: ConfigLayers,
     pub merged_config: MergedConfig,
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
@@ -90,13 +90,13 @@ impl Television {
     #[must_use]
     pub fn new(
         action_tx: UnboundedSender<Action>,
-        layered_config: LayeredConfig,
+        layered_config: ConfigLayers,
         cable_channels: Cable,
     ) -> Self {
         let merged_config = {
             // this is to keep the outer merged config immutable
             let mut m = layered_config.merge();
-            m.input_map.merge_key_bindings(
+            m.input_map.merge_globals_with(
                 &cable_channels.get_channels_shortcut_keybindings(),
             );
             m
@@ -268,7 +268,7 @@ impl Television {
         self.merged_config = self.layered_config.merge();
         // merge channel shortcuts if remote control is enabled
         if let Some(rc) = &mut self.remote_control {
-            self.merged_config.input_map.merge_key_bindings(
+            self.merged_config.input_map.merge_globals_with(
                 &rc.cable_channels.get_channels_shortcut_keybindings(),
             );
         }
@@ -888,12 +888,12 @@ impl Television {
 #[cfg(test)]
 mod test {
     use crate::{
-        action::Action,
+        action::{Action, Actions},
         cable::Cable,
         cli::{ChannelCli, GlobalCli},
-        config::layers::LayeredConfig,
+        config::layers::ConfigLayers,
         event::Key,
-        television::{MatchingMode, Television},
+        television::{MatchingMode, Mode, Television},
     };
 
     #[test]
@@ -931,7 +931,7 @@ mod test {
             },
         };
         let layered_config =
-            LayeredConfig::new(config, prototype, cli_args.clone());
+            ConfigLayers::new(config, prototype, cli_args.clone());
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
             layered_config,
@@ -967,7 +967,7 @@ mod test {
             .unwrap();
 
         let cli_args = PostProcessedCli::default();
-        let layered_config = LayeredConfig::new(
+        let layered_config = ConfigLayers::new(
             config.clone(),
             prototype.clone(),
             cli_args.clone(),
@@ -981,8 +981,8 @@ mod test {
         assert_eq!(
             tv.merged_config
                 .input_map
-                .get_action_for_key(&Key::Ctrl('j')),
-            Some(Action::SelectNextEntry),
+                .get_actions_for_key(&Key::Ctrl('j'), &Mode::Channel),
+            Some(&Actions::single(Action::SelectNextEntry)),
         );
     }
 }
