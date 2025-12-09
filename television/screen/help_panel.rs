@@ -91,6 +91,7 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::CopyEntryToClipboard
                 | Action::ReloadSource
                 | Action::CycleSources
+                | Action::CyclePreviews
                 | Action::SelectPrevHistory
                 | Action::SelectNextHistory
                 // UI toggles - global
