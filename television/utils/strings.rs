@@ -238,6 +238,48 @@ impl Default for ReplaceNonPrintableConfig {
     }
 }
 
+/// Check if a byte is printable ASCII (0x20-0x7E)
+#[allow(clippy::inline_always)]
+#[inline(always)]
+fn is_printable_ascii_byte(byte: u8) -> bool {
+    // Printable ASCII is 0x20 (space) through 0x7E (~)
+    byte.wrapping_sub(0x20) < 0x5F
+}
+
+/// Returns the count of consecutive printable ASCII bytes
+///
+/// This processes 16 bytes at a time to enable compiler optimizations.
+#[inline]
+fn scan_printable_ascii(input: &[u8]) -> usize {
+    let mut idx = 0;
+    let len = input.len();
+
+    while idx + 16 <= len {
+        let chunk = &input[idx..idx + 16];
+        let all_printable = chunk.iter().all(|&b| is_printable_ascii_byte(b));
+
+        if all_printable {
+            idx += 16;
+        } else {
+            // Find the first non-printable byte in this chunk
+            for &byte in chunk {
+                if is_printable_ascii_byte(byte) {
+                    idx += 1;
+                } else {
+                    return idx;
+                }
+            }
+        }
+    }
+
+    // Handle remaining bytes (< 16)
+    while idx < len && is_printable_ascii_byte(input[idx]) {
+        idx += 1;
+    }
+
+    idx
+}
+
 fn is_emoji(ch: char) -> bool {
     [
         // emoticons
@@ -293,6 +335,14 @@ pub fn replace_non_printable_bulk(
     input: &[u8],
     config: &ReplaceNonPrintableConfig,
 ) -> (String, Vec<i16>) {
+    // Fast path: if the entire input is printable ASCII, we can skip all processing
+    if scan_printable_ascii(input) == input.len() {
+        // SAFETY: We've verified all bytes are printable ASCII (0x20-0x7E)
+        let output = unsafe { String::from_utf8_unchecked(input.to_vec()) };
+        let offsets = vec![0; input.len()];
+        return (output, offsets);
+    }
+
     let mut output = String::with_capacity(input.len());
     let mut offsets = Vec::with_capacity(input.len());
     let mut cumulative_offset: i16 = 0;
@@ -301,16 +351,10 @@ pub fn replace_non_printable_bulk(
     let len = input.len();
 
     while idx < len {
-        // Scan for a run of printable ASCII bytes (0x20-0x7E)
+        // Scan for a run of printable ASCII bytes and bulk copy them
         let run_start = idx;
-        while idx < len {
-            let byte = input[idx];
-            if (0x20..=0x7E).contains(&byte) {
-                idx += 1;
-            } else {
-                break;
-            }
-        }
+        let ascii_count = scan_printable_ascii(&input[idx..]);
+        idx += ascii_count;
 
         // Bulk copy the ASCII run if we found any
         if idx > run_start {
