@@ -25,7 +25,8 @@ use crate::{
     utils::{
         command::shell_command,
         strings::{
-            EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable,
+            EMPTY_STRING, ReplaceNonPrintableConfig,
+            replace_non_printable_bulk,
         },
     },
 };
@@ -315,7 +316,7 @@ pub async fn try_preview(
             text.lines.iter_mut().for_each(|line| {
                 // replace non-printable characters
                 line.spans.iter_mut().for_each(|span| {
-                    span.content = replace_non_printable(
+                    span.content = replace_non_printable_bulk(
                         &span.content.bytes().collect::<Vec<_>>(),
                         &ReplaceNonPrintableConfig::default(),
                     )
@@ -349,7 +350,7 @@ pub async fn try_preview(
             text.lines.iter_mut().for_each(|line| {
                 // replace non-printable characters
                 line.spans.iter_mut().for_each(|span| {
-                    span.content = replace_non_printable(
+                    span.content = replace_non_printable_bulk(
                         &span.content.bytes().collect::<Vec<_>>(),
                         &ReplaceNonPrintableConfig::default(),
                     )

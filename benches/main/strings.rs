@@ -1,6 +1,6 @@
 use criterion::{Criterion, black_box, criterion_group};
 use television::utils::strings::{
-    ReplaceNonPrintableConfig, replace_non_printable,
+    ReplaceNonPrintableConfig, replace_non_printable_bulk,
 };
 
 /// Benchmark for pure ASCII text (most common case)
@@ -11,7 +11,9 @@ pub fn replace_non_printable_ascii(c: &mut Criterion) {
     let config = ReplaceNonPrintableConfig::default();
 
     c.bench_function("replace_non_printable_ascii", |b| {
-        b.iter(|| replace_non_printable(black_box(input), black_box(&config)));
+        b.iter(|| {
+            replace_non_printable_bulk(black_box(input), black_box(&config))
+        });
     });
 }
 
@@ -21,7 +23,9 @@ pub fn replace_non_printable_with_tabs(c: &mut Criterion) {
     let config = ReplaceNonPrintableConfig::default();
 
     c.bench_function("replace_non_printable_with_tabs", |b| {
-        b.iter(|| replace_non_printable(black_box(input), black_box(&config)));
+        b.iter(|| {
+            replace_non_printable_bulk(black_box(input), black_box(&config))
+        });
     });
 }
 
@@ -34,7 +38,7 @@ pub fn replace_non_printable_with_control_chars(c: &mut Criterion) {
 
     c.bench_function("replace_non_printable_with_control_chars", |b| {
         b.iter(|| {
-            replace_non_printable(black_box(&input), black_box(&config))
+            replace_non_printable_bulk(black_box(&input), black_box(&config))
         });
     });
 }
@@ -45,7 +49,9 @@ pub fn replace_non_printable_unicode(c: &mut Criterion) {
     let config = ReplaceNonPrintableConfig::default();
 
     c.bench_function("replace_non_printable_unicode", |b| {
-        b.iter(|| replace_non_printable(black_box(input), black_box(&config)));
+        b.iter(|| {
+            replace_non_printable_bulk(black_box(input), black_box(&config))
+        });
     });
 }
 
@@ -62,7 +68,9 @@ pub fn replace_non_printable_mixed(c: &mut Criterion) {
     let config = ReplaceNonPrintableConfig::default();
 
     c.bench_function("replace_non_printable_mixed", |b| {
-        b.iter(|| replace_non_printable(black_box(input), black_box(&config)));
+        b.iter(|| {
+            replace_non_printable_bulk(black_box(input), black_box(&config))
+        });
     });
 }
 
@@ -74,7 +82,7 @@ pub fn replace_non_printable_large_ascii(c: &mut Criterion) {
 
     c.bench_function("replace_non_printable_large_ascii", |b| {
         b.iter(|| {
-            replace_non_printable(
+            replace_non_printable_bulk(
                 black_box(input.as_bytes()),
                 black_box(&config),
             )
@@ -89,12 +97,15 @@ pub fn replace_non_printable_nerd_fonts(c: &mut Criterion) {
     let config = ReplaceNonPrintableConfig::default();
 
     c.bench_function("replace_non_printable_nerd_fonts", |b| {
-        b.iter(|| replace_non_printable(black_box(input), black_box(&config)));
+        b.iter(|| {
+            replace_non_printable_bulk(black_box(input), black_box(&config))
+        });
     });
 }
 
 criterion_group!(
     benches,
+    // Original implementation
     replace_non_printable_ascii,
     replace_non_printable_with_tabs,
     replace_non_printable_with_control_chars,
