@@ -72,6 +72,7 @@ pub async fn render<W: Write>(
     'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
         frame_start = std::time::Instant::now();
         num_instructions = buffer.len();
+        // we only keep the last render instruction in the buffer
         if let Some(last_render) = buffer
             .iter()
             .rfind(|e| matches!(e, RenderingTask::Render(_)))
@@ -145,7 +146,7 @@ pub async fn render<W: Write>(
                 }
             }
         }
-        // Sleep to limit the frame rate
+        // yield back to the scheduler until the next frame
         let elapsed = frame_start.elapsed();
         if elapsed.as_millis() < MAX_FRAME_RATE {
             let sleep_duration = std::time::Duration::from_millis(

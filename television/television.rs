@@ -454,7 +454,7 @@ const FIRST_TICKS_TO_RENDER: u64 = 10;
 /// Render every N ticks.
 ///
 /// Without any user input, this is the default rendering interval.
-const RENDERING_INTERVAL: u64 = 10;
+const RENDERING_INTERVAL: u64 = 25;
 /// Render every N ticks if the channel is currently running.
 ///
 /// This ensures that the UI stays in sync with the channel

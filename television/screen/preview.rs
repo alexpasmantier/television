@@ -103,7 +103,9 @@ fn build_ansi_text_paragraph<'a>(
 ) -> Paragraph<'a> {
     if let Some(target_line) = target_line {
         // Highlight the target line
-        if let Some(line) = text.lines.get_mut((target_line - 1) as usize) {
+        if let Some(line) =
+            text.lines.get_mut((target_line.saturating_sub(1)) as usize)
+        {
             for span in &mut line.spans {
                 span.style = span.style.bg(highlight_bg);
             }
