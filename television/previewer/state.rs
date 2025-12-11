@@ -44,7 +44,7 @@ impl PreviewState {
         if self.preview.title != preview.title
             || self.preview.content != preview.content
             || self.preview.footer != preview.footer
-            || self.preview.line_number != preview.line_number
+            || self.preview.target_line != preview.target_line
             || self.scroll != scroll
         {
             self.preview = preview;
@@ -58,6 +58,7 @@ impl PreviewState {
         let num_skipped_lines =
             self.scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE);
 
+        // PERF: this allocates every time
         let cropped_content = self
             .preview
             .content
@@ -70,11 +71,12 @@ impl PreviewState {
 
         let adjusted_line_number = self
             .preview
-            .line_number
+            .target_line
             .map(|line| line.saturating_sub(num_skipped_lines));
 
         PreviewState::new(
             self.enabled,
+            // PERF: this allocates every time
             Preview::new(
                 self.preview.entry_raw.clone(),
                 &self.preview.title,

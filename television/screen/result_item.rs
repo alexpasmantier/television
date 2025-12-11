@@ -221,7 +221,7 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
 ) -> Vec<Span<'_>> {
     let text = item.raw();
     let match_ranges = item.match_ranges().unwrap_or(&[]);
-    let parsed = text.into_text().unwrap();
+    let parsed = text.to_text().unwrap();
     let spans = &parsed.lines[0].spans;
 
     // If there are no ANSI codes, fall back to the simple span builder
