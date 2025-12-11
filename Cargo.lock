@@ -2232,6 +2232,7 @@ dependencies = [
  "fast-strip-ansi",
  "human-panic",
  "lazy-regex",
+ "memchr",
  "nucleo",
  "parking_lot",
  "portable-pty",

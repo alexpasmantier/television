@@ -53,6 +53,7 @@ clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
 fast-strip-ansi = "0.11"
+memchr = "2.7"
 
 
 # target specific dependencies

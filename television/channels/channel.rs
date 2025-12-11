@@ -7,13 +7,15 @@ use crate::{
     utils::command::shell_command,
 };
 use fast_strip_ansi::strip_ansi_string;
+use memchr::memchr_iter;
+use nucleo::Utf32String;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
 use tracing::debug;
 
@@ -186,7 +188,10 @@ impl Channel {
     }
 }
 
+// 1 Mb
+const BUF_READER_CAPACITY: usize = 1024 * 1024;
 const DEFAULT_LINE_BUFFER_SIZE: usize = 512;
+const DEFAULT_NEWLINE_DELIMITER: u8 = b'\n';
 
 #[allow(clippy::unused_async)]
 pub async fn load_candidates(
@@ -210,11 +215,13 @@ pub async fn load_candidates(
 
     if let Some(out) = child.stdout.take() {
         let mut produced_output = false;
-        let mut reader = BufReader::new(out);
+        let mut reader = BufReader::with_capacity(BUF_READER_CAPACITY, out);
         let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
 
-        let delimiter =
-            entry_delimiter.as_ref().map(|d| *d as u8).unwrap_or(b'\n');
+        let delimiter = entry_delimiter
+            .as_ref()
+            .map(|d| *d as u8)
+            .unwrap_or(DEFAULT_NEWLINE_DELIMITER);
 
         while {
             buf.clear();
@@ -222,6 +229,7 @@ pub async fn load_candidates(
             n > 0
         } {
             // Remove trailing delimiter
+            // PERF: could we avoid the check?
             if buf.last() == Some(&delimiter) {
                 buf.pop();
             }
@@ -278,6 +286,60 @@ pub async fn load_candidates(
             }
         }
     }
+    let _ = child.wait().await;
+}
+
+// PERF: batching?
+pub async fn load_candidates_fast(
+    command: CommandSpec,
+    entry_delimiter: Option<char>,
+    command_index: usize,
+    ansi: bool,
+    display: Option<Template>,
+    injector: Injector<()>,
+) {
+    let mut std_command = shell_command(
+        command.get_nth(command_index).raw(),
+        command.interactive,
+        &command.env,
+    );
+    std_command.stdout(Stdio::piped()).stderr(Stdio::piped());
+    let mut child = TokioCommand::from(std_command)
+        .spawn()
+        .expect("failed to execute process");
+
+    if let Some(out) = child.stdout.take() {
+        let mut produced_output = false;
+        let mut reader = BufReader::with_capacity(BUF_READER_CAPACITY, out);
+        let mut buf = Vec::with_capacity(BUF_READER_CAPACITY);
+        let mut rest = Vec::with_capacity(BUF_READER_CAPACITY);
+
+        let delimiter = entry_delimiter
+            .as_ref()
+            .map(|d| *d as u8)
+            .unwrap_or(DEFAULT_NEWLINE_DELIMITER);
+
+        loop {
+            buf.clear();
+            let n = reader.read(&mut buf).await.unwrap_or(0);
+            if n > 0 {
+                let mut start = 0;
+                // PERF: try a parallel version here ?  (parallelize utf8 parsing)
+                for position in memchr_iter(delimiter, &buf) {
+                    let () = injector.push((), |(), cols| {
+                        cols[0] = Utf32String::from(String::from_utf8_lossy(
+                            &buf[start..position],
+                        ));
+                    });
+                    start = position + 1;
+                }
+                // replace rest with the remaining bytes
+                rest.clear();
+                rest.extend_from_slice(&buf[start..n]);
+            }
+        }
+    }
+
     let _ = child.wait().await;
 }
 
