@@ -45,7 +45,7 @@ pub fn render(c: &mut Criterion) {
         b.iter(|| {
             let ctx = black_box(Box::new(tv.dump_context()));
             television::draw::draw(
-                black_box(&ctx),
+                black_box(*ctx),
                 black_box(&mut terminal.get_frame()),
                 black_box(Rect::new(0, 0, width, height)),
             )

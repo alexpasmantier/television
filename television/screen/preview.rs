@@ -1,9 +1,9 @@
 use crate::{
     config::ui::{BorderType, Padding},
-    previewer::{Preview, state::PreviewState},
+    previewer::state::PreviewState,
     screen::colors::Colorscheme,
     utils::strings::{
-        EMPTY_STRING, ReplaceNonPrintableConfig, replace_non_printable_bulk,
+        ReplaceNonPrintableConfig, replace_non_printable_bulk,
         shrink_with_ellipsis,
     },
 };
@@ -22,7 +22,7 @@ use ratatui::{
 pub fn draw_preview_content_block(
     f: &mut Frame,
     rect: Rect,
-    preview_state: &PreviewState,
+    preview_state: PreviewState,
     colorscheme: &Colorscheme,
     border_type: &BorderType,
     padding: &Padding,
@@ -34,7 +34,8 @@ pub fn draw_preview_content_block(
         colorscheme,
         *border_type,
         *padding,
-        &preview_state.preview,
+        &preview_state.preview.title,
+        &preview_state.preview.footer,
     );
     let total_lines =
         preview_state.preview.total_lines.saturating_sub(1) as usize;
@@ -42,7 +43,7 @@ pub fn draw_preview_content_block(
 
     // render the preview content
     let rp = build_preview_paragraph(
-        preview_state.preview.content.clone(),
+        preview_state.preview.content,
         preview_state.preview.line_number,
         colorscheme.preview.highlight_bg,
     );
@@ -111,73 +112,21 @@ fn build_ansi_text_paragraph<'a>(
     Paragraph::new(text).block(preview_block)
 }
 
-pub fn build_meta_preview_paragraph<'a>(
-    inner: Rect,
-    message: &str,
-    fill_char: char,
-) -> Paragraph<'a> {
-    let message_len = message.len();
-    if message_len + 8 > inner.width as usize {
-        return Paragraph::new(Text::from(EMPTY_STRING));
-    }
-    let fill_char_str = fill_char.to_string();
-    let fill_line = fill_char_str.repeat(inner.width as usize);
-
-    // Build the paragraph content with slanted lines and center the custom message
-    let mut lines = Vec::new();
-
-    // Calculate the vertical center
-    let vertical_center = inner.height as usize / 2;
-    let horizontal_padding = (inner.width as usize - message_len) / 2 - 4;
-
-    // Fill the paragraph with slanted lines and insert the centered custom message
-    for i in 0..inner.height {
-        if i as usize == vertical_center {
-            // Center the message horizontally in the middle line
-            let line = format!(
-                "{}  {}  {}",
-                fill_char_str.repeat(horizontal_padding),
-                message,
-                fill_char_str.repeat(
-                    inner.width as usize - horizontal_padding - message_len
-                )
-            );
-            lines.push(Line::from(line));
-        } else if i as usize + 1 == vertical_center
-            || (i as usize).saturating_sub(1) == vertical_center
-        {
-            let line = format!(
-                "{}  {}  {}",
-                fill_char_str.repeat(horizontal_padding),
-                " ".repeat(message_len),
-                fill_char_str.repeat(
-                    inner.width as usize - horizontal_padding - message_len
-                )
-            );
-            lines.push(Line::from(line));
-        } else {
-            lines.push(Line::from(fill_line.clone()));
-        }
-    }
-
-    // Create a paragraph with the generated content
-    Paragraph::new(Text::from(lines))
-}
-
 fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
     colorscheme: &Colorscheme,
     border_type: BorderType,
     padding: Padding,
-    preview: &Preview,
+    preview_title: &str,
+    preview_footer: &str,
 ) -> Rect {
     let mut preview_title_spans = vec![Span::from(" ")];
     // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable_bulk(
-                preview.title.as_bytes(),
+                preview_title.as_bytes(),
                 &ReplaceNonPrintableConfig::default(),
             )
             .0,
@@ -195,10 +144,10 @@ fn draw_content_outer_block(
     );
 
     // preview footer
-    if !preview.footer.is_empty() {
+    if !preview_footer.is_empty() {
         let footer_line = Line::from(vec![
             Span::from(" "),
-            Span::from(preview.footer.as_str()),
+            Span::from(preview_footer),
             Span::from(" "),
         ])
         .alignment(Alignment::Center)
