@@ -1,5 +1,6 @@
 use crate::cli::parse_source_entry_delimiter;
 use crate::config::ui::{InputBarConfig, ThemeOverrides};
+use crate::utils::strings::SPACE;
 use crate::{
     config::{Keybindings, ui},
     event::Key,
@@ -178,7 +179,7 @@ pub enum ExecutionMode {
 }
 
 fn default_separator() -> String {
-    " ".to_string()
+    SPACE.to_string()
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]

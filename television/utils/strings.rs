@@ -154,6 +154,7 @@ pub fn try_parse_utf8_char(input: &[u8]) -> Option<(char, usize)> {
 }
 
 pub const EMPTY_STRING: &str = "";
+pub const SPACE: &str = " ";
 pub const TAB_WIDTH: usize = 4;
 
 /// The Unicode symbol to use for non-printable characters.
@@ -380,7 +381,7 @@ pub fn replace_non_printable_bulk(
                 match chr {
                     // tab
                     TAB_CHARACTER if config.replace_tab => {
-                        output.push_str(&" ".repeat(config.tab_width));
+                        output.push_str(&SPACE.repeat(config.tab_width));
                         cumulative_offset +=
                             i16::try_from(config.tab_width).unwrap() - 1;
                     }
@@ -700,7 +701,7 @@ pub fn format_string(template: &str, source: &str, delimiter: &str) -> String {
 /// Convert a string to title case (capitalize first letter of each word)
 /// Handles both spaces and underscores as word separators
 pub fn to_title_case(s: &str) -> String {
-    s.replace('_', " ")
+    s.replace('_', SPACE)
         .split_whitespace()
         .map(|word| {
             let mut chars = word.chars();
