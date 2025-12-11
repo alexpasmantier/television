@@ -3,7 +3,7 @@ use crate::{
     previewer::state::PreviewState,
     screen::colors::Colorscheme,
     utils::strings::{
-        ReplaceNonPrintableConfig, replace_non_printable_bulk,
+        ReplaceNonPrintableConfig, SPACE, replace_non_printable_bulk,
         shrink_with_ellipsis,
     },
 };
@@ -123,7 +123,7 @@ fn draw_content_outer_block(
     preview_title: &str,
     preview_footer: Option<String>,
 ) -> Rect {
-    let mut preview_title_spans = vec![Span::from(" ")];
+    let mut preview_title_spans = vec![Span::from(SPACE)];
     // preview header
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
@@ -136,7 +136,7 @@ fn draw_content_outer_block(
         ),
         Style::default().fg(colorscheme.preview.title_fg).bold(),
     ));
-    preview_title_spans.push(Span::from(" "));
+    preview_title_spans.push(Span::from(SPACE));
 
     let mut block = Block::default();
     block = block.title_top(
@@ -148,9 +148,9 @@ fn draw_content_outer_block(
     // preview footer
     if let Some(preview_footer) = preview_footer {
         let footer_line = Line::from(vec![
-            Span::from(" "),
+            Span::from(SPACE),
             Span::from(preview_footer),
-            Span::from(" "),
+            Span::from(SPACE),
         ])
         .alignment(Alignment::Center)
         .style(Style::default().fg(colorscheme.preview.title_fg));

@@ -1,4 +1,6 @@
-use crate::{action::Action, draw::Ctx, television::Mode};
+use crate::{
+    action::Action, draw::Ctx, television::Mode, utils::strings::SPACE,
+};
 use ratatui::{
     Frame,
     layout::{
@@ -22,7 +24,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         .split(area);
 
     // === LEFT SECTION: Mode bubble and channel info ===
-    let mut left_spans = vec![Span::raw(" ")]; // Initial spacing
+    let mut left_spans = vec![Span::raw(SPACE)]; // Initial spacing
 
     // Get mode-specific styling
     let (mode_text, mode_fg, mode_bg) = match ctx.tv_state.mode {
@@ -115,7 +117,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
                 Style::default()
                     .fg(ctx.colorscheme.help.metadata_field_name_fg),
             ),
-            Span::raw(" "),
+            Span::raw(SPACE),
             Span::styled(
                 keybinding.to_string(),
                 Style::default().fg(key_color).add_modifier(Modifier::BOLD),
@@ -170,7 +172,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
                     .fg(ctx.colorscheme.general.border_fg)
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw(" "),
+            Span::raw(SPACE),
         ]);
         middle_spans.extend(hint_spans);
     }

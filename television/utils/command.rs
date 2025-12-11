@@ -3,7 +3,7 @@ use crate::{
         entry::Entry,
         prototypes::{ActionSpec, ExecutionMode, Template},
     },
-    utils::shell::Shell,
+    utils::{shell::Shell, strings::SPACE},
 };
 use anyhow::Result;
 use lazy_regex::{Lazy, Regex, regex};
@@ -117,7 +117,7 @@ pub fn format_command(
             .iter()
             .map(|entry| format!("'{}'", entry.raw.replace('\'', r"\'")))
             .collect();
-        let entries_joined = quoted_entries.join(" ");
+        let entries_joined = quoted_entries.join(SPACE);
         let formatted_command = template_str.replace("{}", &entries_joined);
         debug!("Multiple entries command: {:?}", formatted_command);
         Ok(formatted_command)

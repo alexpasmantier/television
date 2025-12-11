@@ -26,7 +26,9 @@ use crate::{
         spinner::{Spinner, SpinnerState},
     },
     utils::{
-        clipboard::CLIPBOARD, metadata::AppMetadata, strings::EMPTY_STRING,
+        clipboard::CLIPBOARD,
+        metadata::AppMetadata,
+        strings::{EMPTY_STRING, SPACE},
     },
 };
 use anyhow::Result;
@@ -681,7 +683,7 @@ impl Television {
                 .iter()
                 .map(|e| e.raw.clone())
                 .collect::<Vec<_>>()
-                .join(" ");
+                .join(SPACE);
 
             tokio::spawn(CLIPBOARD.set(copied_string));
         }
