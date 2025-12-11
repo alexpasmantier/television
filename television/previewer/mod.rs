@@ -113,6 +113,7 @@ impl Ticket {
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Preview {
+    pub entry_raw: String,
     pub title: String,
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
@@ -127,6 +128,7 @@ const DEFAULT_PREVIEW_TITLE: &str = "Select an entry to preview";
 impl Default for Preview {
     fn default() -> Self {
         Self {
+            entry_raw: EMPTY_STRING.to_string(),
             title: DEFAULT_PREVIEW_TITLE.to_string(),
             content: Text::from(EMPTY_STRING),
             line_number: None,
@@ -138,6 +140,7 @@ impl Default for Preview {
 
 impl Preview {
     fn new(
+        entry_raw: String,
         title: &str,
         content: Text<'static>,
         line_number: Option<u16>,
@@ -145,6 +148,7 @@ impl Preview {
         footer: String,
     ) -> Self {
         Self {
+            entry_raw,
             title: title.to_string(),
             content,
             line_number,
@@ -335,6 +339,7 @@ pub async fn try_preview(
             };
 
             Preview::new(
+                entry.raw.clone(),
                 entry.display(),
                 text,
                 line_number,
@@ -362,6 +367,7 @@ pub async fn try_preview(
             let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
             Preview::new(
+                entry.raw.clone(),
                 entry.display(),
                 text,
                 None,
@@ -376,7 +382,6 @@ pub async fn try_preview(
     if let Some(cache) = &cache {
         // FIXME: we should really just wrap the preview in an Arc to avoid cloning here
         cache.lock().insert(&entry, &preview);
-        debug!("Preview for entry '{}' cached", entry.raw);
     }
     // FIXME: ... and just send an Arc here as well
     results_handle

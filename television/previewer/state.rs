@@ -76,6 +76,7 @@ impl PreviewState {
         PreviewState::new(
             self.enabled,
             Preview::new(
+                self.preview.entry_raw.clone(),
                 &self.preview.title,
                 Text::from(cropped_content),
                 adjusted_line_number,

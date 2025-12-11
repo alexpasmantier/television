@@ -517,43 +517,43 @@ impl Television {
         &mut self,
         selected_entry: &Option<Entry>,
     ) -> Result<()> {
-        if selected_entry.is_none() {
+        if let Some(selected_entry) = selected_entry {
+            if let Some((sender, receiver)) = &mut self.preview_handles {
+                // send a preview request if the preview state is out of sync
+                // with the currently selected entry
+                if selected_entry.raw != self.preview_state.preview.entry_raw {
+                    sender.send(PreviewRequest::Preview(Ticket::new(
+                        selected_entry.clone(),
+                    )))?;
+                }
+                // try to receive a preview update
+                if let Ok(mut preview) = receiver.try_recv() {
+                    if let Some(template) =
+                        &self.merged_config.preview_panel_header
+                    {
+                        preview.title = template
+                            .format(&selected_entry.raw)
+                            .unwrap_or_else(|_| selected_entry.raw.clone());
+                    }
+
+                    if let Some(template) =
+                        &self.merged_config.preview_panel_footer
+                    {
+                        preview.footer = template
+                            .format(&selected_entry.raw)
+                            .unwrap_or_else(|_| String::new());
+                    }
+
+                    let initial_scroll = Self::calculate_scroll(
+                        &preview,
+                        self.ui_state.layout.preview_window.as_ref(),
+                    );
+                    self.preview_state.update(preview, initial_scroll);
+                    self.action_tx.send(Action::Render)?;
+                }
+            }
+        } else {
             self.preview_state.reset();
-            return Ok(());
-        }
-        if let Some((sender, receiver)) = &mut self.preview_handles {
-            // send a preview request if the selected entry has changed
-            if *selected_entry != self.currently_selected {
-                sender.send(PreviewRequest::Preview(Ticket::new(
-                    selected_entry.as_ref().unwrap().clone(),
-                )))?;
-            }
-            // try to receive a preview update
-            let entry = selected_entry.as_ref().unwrap();
-            if let Ok(mut preview) = receiver.try_recv() {
-                if let Some(template) =
-                    &self.merged_config.preview_panel_header
-                {
-                    preview.title = template
-                        .format(&entry.raw)
-                        .unwrap_or_else(|_| entry.raw.clone());
-                }
-
-                if let Some(template) =
-                    &self.merged_config.preview_panel_footer
-                {
-                    preview.footer = template
-                        .format(&entry.raw)
-                        .unwrap_or_else(|_| String::new());
-                }
-
-                let initial_scroll = Self::calculate_scroll(
-                    &preview,
-                    self.ui_state.layout.preview_window.as_ref(),
-                );
-                self.preview_state.update(preview, initial_scroll);
-                self.action_tx.send(Action::Render)?;
-            }
         }
         Ok(())
     }
