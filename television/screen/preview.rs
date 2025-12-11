@@ -35,7 +35,7 @@ pub fn draw_preview_content_block(
         *border_type,
         *padding,
         &preview_state.preview.title,
-        &preview_state.preview.footer,
+        preview_state.preview.footer,
     );
     let total_lines =
         preview_state.preview.total_lines.saturating_sub(1) as usize;
@@ -121,7 +121,7 @@ fn draw_content_outer_block(
     border_type: BorderType,
     padding: Padding,
     preview_title: &str,
-    preview_footer: &str,
+    preview_footer: Option<String>,
 ) -> Rect {
     let mut preview_title_spans = vec![Span::from(" ")];
     // preview header
@@ -146,7 +146,7 @@ fn draw_content_outer_block(
     );
 
     // preview footer
-    if !preview_footer.is_empty() {
+    if let Some(preview_footer) = preview_footer {
         let footer_line = Line::from(vec![
             Span::from(" "),
             Span::from(preview_footer),

@@ -121,6 +121,8 @@ impl Television {
                     command,
                     merged_config.channel_preview_cached,
                     merged_config.channel_preview_offset.clone(),
+                    merged_config.preview_panel_header.clone(),
+                    merged_config.preview_panel_footer.clone(),
                 )
             });
 
@@ -195,12 +197,16 @@ impl Television {
         command: &CommandSpec,
         cached: bool,
         offset_expr: Option<Template>,
+        title_template: Option<Template>,
+        footer_template: Option<Template>,
     ) -> (UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>) {
         let (preview_requests_tx, preview_requests_rx) = unbounded_channel();
         let (preview_results_tx, preview_results_rx) = unbounded_channel();
         let previewer = Previewer::new(
             command,
             offset_expr,
+            title_template,
+            footer_template,
             // NOTE: this could be a per-channel configuration option in the future
             PreviewerConfig::default(),
             preview_requests_rx,
@@ -279,6 +285,8 @@ impl Television {
                         command,
                         self.merged_config.channel_preview_cached,
                         self.merged_config.channel_preview_offset.clone(),
+                        self.merged_config.preview_panel_header.clone(),
+                        self.merged_config.preview_panel_footer.clone(),
                     )
                 },
             );
@@ -527,23 +535,7 @@ impl Television {
                     )))?;
                 }
                 // try to receive a preview update
-                if let Ok(mut preview) = receiver.try_recv() {
-                    if let Some(template) =
-                        &self.merged_config.preview_panel_header
-                    {
-                        preview.title = template
-                            .format(&selected_entry.raw)
-                            .unwrap_or_else(|_| selected_entry.raw.clone());
-                    }
-
-                    if let Some(template) =
-                        &self.merged_config.preview_panel_footer
-                    {
-                        preview.footer = template
-                            .format(&selected_entry.raw)
-                            .unwrap_or_else(|_| String::new());
-                    }
-
+                if let Ok(preview) = receiver.try_recv() {
                     let initial_scroll = Self::calculate_scroll(
                         &preview,
                         self.ui_state.layout.preview_window.as_ref(),
