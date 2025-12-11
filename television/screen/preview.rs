@@ -44,7 +44,7 @@ pub fn draw_preview_content_block(
     // render the preview content
     let rp = build_preview_paragraph(
         preview_state.preview.content,
-        preview_state.preview.line_number,
+        preview_state.preview.target_line,
         colorscheme.preview.highlight_bg,
     );
     f.render_widget(Clear, inner);

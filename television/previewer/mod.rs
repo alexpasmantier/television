@@ -118,7 +118,7 @@ pub struct Preview {
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
     pub content: Text<'static>,
-    pub line_number: Option<u16>,
+    pub target_line: Option<u16>,
     pub total_lines: u16,
     pub footer: Option<String>,
 }
@@ -131,7 +131,7 @@ impl Default for Preview {
             entry_raw: EMPTY_STRING.to_string(),
             title: DEFAULT_PREVIEW_TITLE.to_string(),
             content: Text::from(EMPTY_STRING),
-            line_number: None,
+            target_line: None,
             total_lines: 1,
             footer: None,
         }
@@ -142,7 +142,7 @@ impl Preview {
     fn new(
         entry_raw: String,
         title: &str,
-        content: Text<'static>,
+        displayable_content: Text<'static>,
         line_number: Option<u16>,
         total_lines: u16,
         footer: Option<String>,
@@ -150,8 +150,8 @@ impl Preview {
         Self {
             entry_raw,
             title: title.to_string(),
-            content,
-            line_number,
+            content: displayable_content,
+            target_line: line_number,
             total_lines,
             footer,
         }

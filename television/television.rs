@@ -555,7 +555,7 @@ impl Television {
         preview_window: Option<&Rect>,
     ) -> u16 {
         if let Some(window) = preview_window
-            && let Some(target_line) = preview.line_number
+            && let Some(target_line) = preview.target_line
         {
             // this places the target line 3 lines above the center of the preview window
             return target_line
