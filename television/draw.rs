@@ -170,7 +170,7 @@ impl UiComponent for StatusBarComponent<'_> {
 /// A `Result` containing the layout of the current frame if the drawing was successful.
 /// This layout can then be sent back to the main thread to serve for tasks where having that
 /// information can be useful or lead to optimizations.
-pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
+pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
 
     let layout =
@@ -209,7 +209,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
-        let status_component = StatusBarComponent::new(ctx);
+        let status_component = StatusBarComponent::new(&ctx);
         status_component.draw(f, status_bar_area);
     }
 
@@ -217,7 +217,7 @@ pub fn draw(ctx: &Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_preview_content_block(
             f,
             preview_rect,
-            &ctx.tv_state.preview_state,
+            ctx.tv_state.preview_state,
             &ctx.colorscheme,
             &ctx.config.preview_panel_border_type,
             &ctx.config.preview_panel_padding,

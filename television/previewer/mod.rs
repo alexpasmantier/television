@@ -372,11 +372,13 @@ pub async fn try_preview(
     };
 
     // Cache the preview if caching is enabled
-    // Note: we're caching errors as well to avoid re-running potentially expensive commands
+    // NOTE: we're caching errors as well to avoid re-running potentially expensive commands
     if let Some(cache) = &cache {
+        // FIXME: we should really just wrap the preview in an Arc to avoid cloning here
         cache.lock().insert(&entry, &preview);
         debug!("Preview for entry '{}' cached", entry.raw);
     }
+    // FIXME: ... and just send an Arc here as well
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")
