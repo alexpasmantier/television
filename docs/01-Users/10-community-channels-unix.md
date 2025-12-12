@@ -949,6 +949,29 @@ mode = "fork"
 
 ---
 
+### *ssh-hosts*
+
+A channel to select hosts from your SSH config
+
+![tv running the ssh-hosts channel](../../assets/channels/ssh-hosts.png)
+**Requirements:** `grep`, `tr`, `cut`
+
+**Code:** *ssh-hosts.toml*
+
+```toml
+[metadata]
+name = "ssh-hosts"
+description = "A channel to select hosts from your SSH config"
+requirements = [ "grep", "tr", "cut",]
+
+[source]
+command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
+
+```
+
+
+---
+
 ### *text*
 
 A channel to find and select text from files
