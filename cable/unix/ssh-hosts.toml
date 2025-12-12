@@ -1,0 +1,7 @@
+[metadata]
+name = "ssh-hosts"
+description = "A channel to select hosts from your SSH config"
+requirements = ["grep","tr","cut"]
+
+[source]
+command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
