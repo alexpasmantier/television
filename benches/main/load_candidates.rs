@@ -1,5 +1,8 @@
 use criterion::criterion_group;
 use criterion::{BenchmarkId, Criterion, Throughput, black_box};
+use television::channels::entry_processor::{
+    AnsiProcessor, DisplayProcessor, PlainProcessor,
+};
 use television::channels::prototypes::SourceSpec;
 use television::matcher::{Matcher, config::Config};
 use tokio::runtime::Runtime;
@@ -31,16 +34,15 @@ pub fn load_candidates_by_size(c: &mut Criterion) {
                     ))
                     .unwrap();
 
-                    let mut matcher =
-                        Matcher::<String>::new(&Config::default());
+                    // Plain mode uses Matcher<()> for memory efficiency
+                    let mut matcher = Matcher::<()>::new(&Config::default());
                     let injector = matcher.injector();
 
                     television::channels::channel::load_candidates(
                         black_box(source_spec.command),
                         black_box(source_spec.entry_delimiter),
                         black_box(0),
-                        black_box(source_spec.ansi),
-                        black_box(source_spec.display),
+                        black_box(PlainProcessor),
                         injector,
                     )
                     .await;
@@ -73,15 +75,15 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
             ))
             .unwrap();
 
-            let mut matcher = Matcher::<String>::new(&Config::default());
+            // Plain mode uses Matcher<()>
+            let mut matcher = Matcher::<()>::new(&Config::default());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
-                black_box(source_spec.ansi),
-                black_box(source_spec.display),
+                black_box(PlainProcessor),
                 injector,
             )
             .await;
@@ -102,6 +104,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
             ))
             .unwrap();
 
+            // ANSI mode uses Matcher<String> to store original
             let mut matcher = Matcher::<String>::new(&Config::default());
             let injector = matcher.injector();
 
@@ -109,8 +112,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
-                black_box(source_spec.ansi),
-                black_box(source_spec.display),
+                black_box(AnsiProcessor),
                 injector,
             )
             .await;
@@ -139,15 +141,15 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
             ))
             .unwrap();
 
-            let mut matcher = Matcher::<String>::new(&Config::default());
+            // Plain mode uses Matcher<()>
+            let mut matcher = Matcher::<()>::new(&Config::default());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
-                black_box(source_spec.ansi),
-                black_box(source_spec.display),
+                black_box(PlainProcessor),
                 injector,
             )
             .await;
@@ -167,6 +169,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
             ))
             .unwrap();
 
+            // Display mode uses Matcher<String> to store original
             let mut matcher = Matcher::<String>::new(&Config::default());
             let injector = matcher.injector();
 
@@ -174,8 +177,9 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
-                black_box(source_spec.ansi),
-                black_box(source_spec.display),
+                black_box(DisplayProcessor {
+                    template: source_spec.display.unwrap(),
+                }),
                 injector,
             )
             .await;

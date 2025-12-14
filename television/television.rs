@@ -2,7 +2,7 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{
-        channel::Channel as CableChannel,
+        channel::ChannelKind as CableChannel,
         entry::Entry,
         prototypes::{ChannelPrototype, CommandSpec, Template},
         remote_control::{CableEntry, RemoteControl},
@@ -160,8 +160,11 @@ impl Television {
         channel.find(&pattern);
         let spinner = Spinner::default();
 
-        let preview_state =
-            PreviewState::new(channel.supports_preview, Preview::default(), 0);
+        let preview_state = PreviewState::new(
+            channel.supports_preview(),
+            Preview::default(),
+            0,
+        );
 
         let remote_control = if merged_config.remote_disabled {
             None
@@ -519,8 +522,7 @@ impl Television {
             // to prevent UI flickering.
             && !self
                 .channel
-                .reloading
-                .load(std::sync::atomic::Ordering::Relaxed)
+                .reloading()
     }
 
     pub fn update_preview_state(
