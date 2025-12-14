@@ -128,7 +128,7 @@ fn draw_content_outer_block(
     preview_title_spans.push(Span::styled(
         shrink_with_ellipsis(
             &replace_non_printable_bulk(
-                preview_title.as_bytes(),
+                preview_title,
                 &ReplaceNonPrintableConfig::default(),
             )
             .0,

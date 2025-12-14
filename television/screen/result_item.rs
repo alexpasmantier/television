@@ -135,10 +135,10 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
     let (mut entry_name, mut match_ranges) = make_result_item_printable(item);
 
     // Truncate if too long.
-    if UnicodeWidthStr::width(entry_name.as_str()) > max_width as usize {
+    if UnicodeWidthStr::width(entry_name.as_ref()) > max_width as usize {
         let (name, ranges) =
             truncate_highlighted_string(&entry_name, &match_ranges, max_width);
-        entry_name = name;
+        entry_name = std::borrow::Cow::Owned(name);
         match_ranges = ranges;
     }
 
@@ -153,7 +153,6 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
         let start = start as usize;
         let end = end as usize;
         if idx < start {
-            // PERF: spans actually accept copy on write
             let text: String =
                 chars.iter().skip(idx).take(start - idx).collect();
             if !text.is_empty() {
@@ -263,10 +262,11 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                     if !s.is_empty() {
                         highlighted_spans.push(Span::styled(
                             replace_non_printable_bulk(
-                                s.as_bytes(),
+                                &s,
                                 &ReplaceNonPrintableConfig::default(),
                             )
-                            .0,
+                            .0
+                            .into_owned(),
                             span.style,
                         ));
                     }
@@ -281,10 +281,11 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                     if !s.is_empty() {
                         highlighted_spans.push(Span::styled(
                             replace_non_printable_bulk(
-                                s.as_bytes(),
+                                &s,
                                 &ReplaceNonPrintableConfig::default(),
                             )
-                            .0,
+                            .0
+                            .into_owned(),
                             span.style.fg(match_fg),
                         ));
                     }
@@ -295,10 +296,11 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
                 if !s.is_empty() {
                     highlighted_spans.push(Span::styled(
                         replace_non_printable_bulk(
-                            s.as_bytes(),
+                            &s,
                             &ReplaceNonPrintableConfig::default(),
                         )
-                        .0,
+                        .0
+                        .into_owned(),
                         span.style,
                     ));
                 }

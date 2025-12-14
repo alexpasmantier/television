@@ -335,10 +335,11 @@ pub async fn try_preview(
                 // replace non-printable characters
                 line.spans.iter_mut().for_each(|span| {
                     span.content = replace_non_printable_bulk(
-                        &span.content.bytes().collect::<Vec<_>>(),
+                        &span.content,
                         &ReplaceNonPrintableConfig::default(),
                     )
                     .0
+                    .into_owned()
                     .into();
                 });
             });
@@ -383,10 +384,11 @@ pub async fn try_preview(
                 // replace non-printable characters
                 line.spans.iter_mut().for_each(|span| {
                     span.content = replace_non_printable_bulk(
-                        &span.content.bytes().collect::<Vec<_>>(),
+                        &span.content,
                         &ReplaceNonPrintableConfig::default(),
                     )
                     .0
+                    .into_owned()
                     .into();
                 });
             });

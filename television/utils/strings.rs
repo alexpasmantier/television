@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use lazy_regex::{Lazy, Regex, regex};
 
 use crate::screen::result_item::ResultItem;
@@ -316,32 +318,31 @@ fn is_emoji(ch: char) -> bool {
 /// ```
 /// use television::utils::strings::{replace_non_printable_bulk, ReplaceNonPrintableConfig};
 ///
-/// let input = b"Hello, World!";
+/// let input = "Hello, World!";
 /// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello, World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,0,0,0,0,0,0]);
 ///
-/// let input = b"Hello,\tWorld!";
+/// let input = "Hello,\tWorld!";
 /// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default().tab_width(4));
 /// assert_eq!(output, "Hello,    World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,3,3,3,3,3,3]);
 ///
-/// let input = b"Hello,\nWorld!";
+/// let input = "Hello,\nWorld!";
 /// let (output, offsets) = replace_non_printable_bulk(input, &ReplaceNonPrintableConfig::default());
 /// assert_eq!(output, "Hello,World!");
 /// assert_eq!(offsets, vec![0,0,0,0,0,0,0,-1,-1,-1,-1,-1,-1]);
 /// ```
 #[allow(clippy::missing_panics_doc)]
-pub fn replace_non_printable_bulk(
-    input: &[u8],
+pub fn replace_non_printable_bulk<'a>(
+    input: &'a str,
     config: &ReplaceNonPrintableConfig,
-) -> (String, Vec<i16>) {
+) -> (Cow<'a, str>, Vec<i16>) {
+    let input_bytes = input.as_bytes();
+
     // Fast path: if the entire input is printable ASCII, we can skip all processing
-    if scan_printable_ascii(input) == input.len() {
-        // SAFETY: We've verified all bytes are printable ASCII (0x20-0x7E)
-        let output = unsafe { String::from_utf8_unchecked(input.to_vec()) };
-        let offsets = vec![0; input.len()];
-        return (output, offsets);
+    if scan_printable_ascii(input_bytes) == input_bytes.len() {
+        return (Cow::Borrowed(input), vec![0; input.len()]);
     }
 
     let mut output = String::with_capacity(input.len());
@@ -349,17 +350,17 @@ pub fn replace_non_printable_bulk(
     let mut cumulative_offset: i16 = 0;
 
     let mut idx = 0;
-    let len = input.len();
+    let len = input_bytes.len();
 
     while idx < len {
         // Scan for a run of printable ASCII bytes and bulk copy them
         let run_start = idx;
-        let ascii_count = scan_printable_ascii(&input[idx..]);
+        let ascii_count = scan_printable_ascii(&input_bytes[idx..]);
         idx += ascii_count;
 
         // Bulk copy the ASCII run if we found any
         if idx > run_start {
-            let ascii_run = &input[run_start..idx];
+            let ascii_run = &input_bytes[run_start..idx];
             // SAFETY: We've verified all bytes are in 0x20-0x7E range, which is valid UTF-8
             unsafe {
                 let str_slice = std::str::from_utf8_unchecked(ascii_run);
@@ -375,7 +376,8 @@ pub fn replace_non_printable_bulk(
         // Handle special character if we're not at the end
         if idx < len {
             offsets.push(cumulative_offset);
-            if let Some((chr, skip_ahead)) = try_parse_utf8_char(&input[idx..])
+            if let Some((chr, skip_ahead)) =
+                try_parse_utf8_char(&input_bytes[idx..])
             {
                 idx += skip_ahead;
                 match chr {
@@ -459,7 +461,7 @@ pub fn replace_non_printable_bulk(
         }
     }
 
-    (output, offsets)
+    (std::borrow::Cow::Owned(output), offsets)
 }
 
 /// The threshold for considering a buffer to be printable ASCII.
@@ -524,7 +526,7 @@ const MAX_LINE_LENGTH: usize = 300;
 /// assert_eq!(processed.len(), 300);
 /// assert_eq!(offsets, vec![0; 300]);
 /// ```
-pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
+pub fn preprocess_line(line: &str) -> (Cow<'_, str>, Vec<i16>) {
     replace_non_printable_bulk(
         {
             if line.len() > MAX_LINE_LENGTH {
@@ -532,8 +534,7 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
             } else {
                 line
             }
-        }
-        .as_bytes(),
+        },
         &ReplaceNonPrintableConfig::default(),
     )
 }
@@ -594,23 +595,9 @@ pub fn preprocess_line(line: &str) -> (String, Vec<i16>) {
 /// `u32`.
 pub fn make_result_item_printable(
     result_item: &(impl ResultItem + ?Sized),
-) -> (String, Vec<(u32, u32)>) {
-    let display_str = result_item.display();
-
-    // PERF: we might not need processing at all for ASCII strings with no special characters
-    if display_str.is_ascii()
-        && !display_str
-            .chars()
-            .any(|c| c == '\t' || c == '\n' || c.is_control())
-    {
-        return (
-            display_str.to_string(),
-            result_item.match_ranges().unwrap_or_default().to_vec(),
-        );
-    }
-
-    // Full processing for non-ASCII strings or strings that need preprocessing
-    let (printable, transformation_offsets) = preprocess_line(display_str);
+) -> (std::borrow::Cow<'_, str>, Vec<(u32, u32)>) {
+    let (printable, transformation_offsets) =
+        preprocess_line(result_item.display());
     let mut match_indices = Vec::new();
 
     if let Some(ranges) = result_item.match_ranges() {
@@ -797,7 +784,7 @@ mod tests {
 
     fn test_replace_non_printable_bulk(input: &str, expected: &str) {
         let (actual, _offset) = replace_non_printable_bulk(
-            input.as_bytes(),
+            input,
             ReplaceNonPrintableConfig::default().tab_width(2),
         );
         assert_eq!(actual, expected);
@@ -845,7 +832,7 @@ mod tests {
 
     #[test]
     fn test_replace_non_printable_range_tab() {
-        let input = b"Hello,\tWorld!";
+        let input = "Hello,\tWorld!";
         let (output, offsets) = replace_non_printable_bulk(
             input,
             &ReplaceNonPrintableConfig::default(),
@@ -856,7 +843,7 @@ mod tests {
 
     #[test]
     fn test_replace_non_printable_range_line_feed() {
-        let input = b"Hello,\nWorld!";
+        let input = "Hello,\nWorld!";
         let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
@@ -867,7 +854,7 @@ mod tests {
 
     #[test]
     fn test_cjk_characters() {
-        let input = "你好,世界!".as_bytes();
+        let input = "你好,世界!";
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "你好,世界!");
@@ -876,7 +863,7 @@ mod tests {
 
     #[test]
     fn test_thai_characters() {
-        let input = "สวัสดี!".as_bytes(); // สวัสดี is 6 characters + !
+        let input = "สวัสดี!"; // สวัสดี is 6 characters + !
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "สวัสดี!");
@@ -885,7 +872,7 @@ mod tests {
 
     #[test]
     fn test_emoji_characters() {
-        let input = "Hello 🌍!".as_bytes();
+        let input = "Hello 🌍!";
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "Hello 🌍!");
@@ -893,7 +880,7 @@ mod tests {
     }
     #[test]
     fn test_devanagari_characters() {
-        let input = "नमस्ते".as_bytes(); // नमस्ते is 6 characters
+        let input = "नमस्ते"; // नमस्ते is 6 characters
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "नमस्ते");
@@ -901,7 +888,7 @@ mod tests {
     }
     #[test]
     fn test_hiragana_characters() {
-        let input = "こんにちは".as_bytes();
+        let input = "こんにちは";
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "こんにちは");
@@ -910,7 +897,7 @@ mod tests {
 
     #[test]
     fn test_katakana_characters() {
-        let input = "コンニチハ".as_bytes();
+        let input = "コンニチハ";
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "コンニチハ");
@@ -918,7 +905,7 @@ mod tests {
     }
     #[test]
     fn test_korean_characters() {
-        let input = "안녕하세요!".as_bytes();
+        let input = "안녕하세요!";
         let config = ReplaceNonPrintableConfig::default();
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "안녕하세요!");
@@ -926,7 +913,7 @@ mod tests {
     }
     #[test]
     fn test_replace_non_printable_no_range_changes() {
-        let input = b"Hello,\x00World!";
+        let input = "Hello,\x00World!";
         let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
@@ -934,7 +921,7 @@ mod tests {
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
 
-        let input = b"Hello,\x7FWorld!";
+        let input = "Hello,\x7FWorld!";
         let (output, offsets) = replace_non_printable_bulk(
             input,
             ReplaceNonPrintableConfig::default().tab_width(2),
