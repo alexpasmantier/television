@@ -4,12 +4,18 @@ NAME := 'television'
 default:
 	just --list
 
-alias r := run
+alias r := run-staging
 
 # Run the program in debug mode with logs enabled
 @run:
 	echo "Running {{ NAME }}..."
 	RUST_LOG=debug cargo run
+	echo "Done"
+
+# Run the program in staging mode (optimized but no lto)
+@run-staging:
+	echo "Running {{ NAME }} in staging mode..."
+	cargo run --profile staging
 	echo "Done"
 
 # Setup the project environment for local development
