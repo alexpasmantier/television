@@ -90,9 +90,8 @@ harness = false
 
 
 [profile.staging]
-inherits = "dev"
+inherits = "release"
 opt-level = 3
-debug = true
 lto = false
 
 [profile.profiling]
