@@ -4,6 +4,92 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.14.0](https://github.com/alexpasmantier/television/releases/tag/0.14.0) - 2025-12-16
+
+### ⛰️  Features
+
+- [c2ebd0f](https://github.com/alexpasmantier/television/commit/c2ebd0fceed095e4920178274eea2a495c14b3de) *(channel)* Add ssh hosts channel by @matawed in [#806](https://github.com/alexpasmantier/television/pull/806)
+
+- [b971a50](https://github.com/alexpasmantier/television/commit/b971a5093cf3743ef612c4b30bb5eb5b4dd3d6cc) *(channel)* Add unicode cable channel by @boydkelly
+
+- [d9850d5](https://github.com/alexpasmantier/television/commit/d9850d5c89d32cf319a40aa0a2b3524978933c20) *(channel)* Add gh channels by @universalmind303
+
+- [905218d](https://github.com/alexpasmantier/television/commit/905218dcaa09cf6b65652b3c2f3f7d10cfbb1203) *(mouse)* General mouse scrolling support for results, previews and remote by @alexpasmantier
+
+- [58eb640](https://github.com/alexpasmantier/television/commit/58eb64073567536d2916f9e627ab961f6039293c) *(previews)* Support multiple preview commands + new `cycle_preview` action by @alexpasmantier in [#808](https://github.com/alexpasmantier/television/pull/808)
+
+### 🐛 Bug Fixes
+
+- [5d1f358](https://github.com/alexpasmantier/television/commit/5d1f3586df0d8bd7b527d885894f2863f31edf5f) *(bindings)* Deactivate custom channel bindings when remote is active by @alexpasmantier
+
+- [237ed5f](https://github.com/alexpasmantier/television/commit/237ed5fd0b76cd73b4dbdef67c781e64a4fe372d) *(channels-preview)* Preview configs in cable subdirectories by @hayderhassan in [#794](https://github.com/alexpasmantier/television/pull/794)
+
+- [effbe0c](https://github.com/alexpasmantier/television/commit/effbe0ce69a950f13fa026cd6a6259e3b820df7b) *(preview)* Better preview sync with results picker by @alexpasmantier
+
+- [2b5408f](https://github.com/alexpasmantier/television/commit/2b5408f3e0fb20a52ce1edcda0b3338264641e5d) *(shell)* Don't display status bar for shell integration by @alexpasmantier
+
+- [5bc59a5](https://github.com/alexpasmantier/television/commit/5bc59a56dbcf271cd549c9a2fa4ddfef46a6b875) *(update-channels)* Prevent overwriting user configs by @hayderhassan in [#795](https://github.com/alexpasmantier/television/pull/795)
+
+### 🚜 Refactor
+
+- [dd27ffa](https://github.com/alexpasmantier/television/commit/dd27ffa78071f04f6e17cd4d3cc1391eafd6c5d1) *(events)* Drop overcomplicated events abstractions by @alexpasmantier in [#807](https://github.com/alexpasmantier/television/pull/807) [**breaking**]
+
+- [984a8a2](https://github.com/alexpasmantier/television/commit/984a8a230219531e8a8701f4a092207d926c57ef) *(uncategorized)* Cleanup hardcoded space strings by @alexpasmantier
+
+### 📚 Documentation
+
+- [b29f036](https://github.com/alexpasmantier/television/commit/b29f036ec4c36626164bb88a52aaa3d3185b2f04) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#809](https://github.com/alexpasmantier/television/pull/809)
+
+- [9451bfe](https://github.com/alexpasmantier/television/commit/9451bfea95534288d19255b52fa7c079e00b9ec9) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#805](https://github.com/alexpasmantier/television/pull/805)
+
+- [16d80f8](https://github.com/alexpasmantier/television/commit/16d80f8f3740e509c3c2763ae21b54784b2295a2) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#801](https://github.com/alexpasmantier/television/pull/801)
+
+- [3b9ddf6](https://github.com/alexpasmantier/television/commit/3b9ddf6e39aca9068d3719552df2c96bd74d4c2a) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#797](https://github.com/alexpasmantier/television/pull/797)
+
+### ⚡ Performance
+
+- [f6f8d8b](https://github.com/alexpasmantier/television/commit/f6f8d8bd9e3659fcd6ae1e48006e46d65aa0b294) *(channel)* Batching + threadpool to significantly reduce loading times by @alexpasmantier
+
+- [077e37e](https://github.com/alexpasmantier/television/commit/077e37e5b855525a99bfae342132d74f96b8676a) *(preview)* Avoid utf8 roundtrip when processing previews by @alexpasmantier
+
+- [ab197b9](https://github.com/alexpasmantier/television/commit/ab197b9debe6e2f0f3c8ac8685763c70c31ba5c2) *(preview)* Add preview bench by @alexpasmantier
+
+- [e7cdb63](https://github.com/alexpasmantier/television/commit/e7cdb63ee0eb5a714eeffbf62ece96120bd70f80) *(preview)* Move header and footer template processing to previewer thread by @alexpasmantier
+
+- [166b709](https://github.com/alexpasmantier/television/commit/166b709adba8bb191793c903c4c158d61c28526d) *(rendering)* Adjust idle rendering interval by @alexpasmantier
+
+- [92cbcee](https://github.com/alexpasmantier/television/commit/92cbceecacbf2d82299b86840f5c7926f3d17cc1) *(rendering)* Avoiding extra indirections and preview cloning by @alexpasmantier
+
+- [cb92cce](https://github.com/alexpasmantier/television/commit/cb92cce9b40be3e966dbd8e1590de03f117cb214) *(results)* Zero copy ansi parsing when rendering result items by @alexpasmantier
+
+- [deb6214](https://github.com/alexpasmantier/television/commit/deb6214606c0a67c7dcdc8cdb59fef3ba328db43) *(strings)* Further compiler optimizations on string procressing by @alexpasmantier
+
+- [47d3387](https://github.com/alexpasmantier/television/commit/47d3387e70ad60145219bfe139dba0353b4a9432) *(strings)* Drastic performance improvements on string processing (x2-x10) by @alexpasmantier
+
+- [cae7572](https://github.com/alexpasmantier/television/commit/cae7572c85ede536a5312b9e671a74474a175ea2) *(uncategorized)* String processing benchmarks by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [546b804](https://github.com/alexpasmantier/television/commit/546b804e1640e435dfc1501259dc70b466051e4e) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#796](https://github.com/alexpasmantier/television/pull/796)
+
+- [c73f964](https://github.com/alexpasmantier/television/commit/c73f9643cc8f233990426490ac77f43ac4268f61) *(television)* Delete unused command index attribute by @alexpasmantier
+
+- [dd1a34a](https://github.com/alexpasmantier/television/commit/dd1a34a26510826cf492105fa8c66ee923bbd62d) *(uncategorized)* Release version 0.14.0 by @alexpasmantier
+
+### Build
+
+- [8d6372b](https://github.com/alexpasmantier/television/commit/8d6372bdefee7cbbb0ad212d6470896f41635367) *(uncategorized)* Add staging profile + justfile command by @alexpasmantier
+
+
+
+### New Contributors
+* @matawed made their first contribution in [#806](https://github.com/alexpasmantier/television/pull/806)
+* @boydkelly made their first contribution
+* @universalmind303 made their first contribution
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.13.12...0.14.0
+
+
 ## [0.13.12](https://github.com/alexpasmantier/television/releases/tag/0.13.12) - 2025-11-28
 
 ### ⛰️  Features
