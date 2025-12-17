@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.14.1](https://github.com/alexpasmantier/television/releases/tag/0.14.1) - 2025-12-17
+
+### 🐛 Bug Fixes
+
+- [63d5249](https://github.com/alexpasmantier/television/commit/63d524931ccd5750565eeff309b0ba718aa2d189) *(channel)* Add forgotten quote in preview command by @mheuvel-dev in [#813](https://github.com/alexpasmantier/television/pull/813)
+
+### 📚 Documentation
+
+- [8395fc7](https://github.com/alexpasmantier/television/commit/8395fc779373b0dd092c59833f5ac4f078663f89) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#814](https://github.com/alexpasmantier/television/pull/814)
+
+### ⚙️ Miscellaneous Tasks
+
+- [c9326ad](https://github.com/alexpasmantier/television/commit/c9326ad478416fcbb306c168c226f00ff1af3d71) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#812](https://github.com/alexpasmantier/television/pull/812)
+
+- [a55a630](https://github.com/alexpasmantier/television/commit/a55a630cd056eca18c2336e5b8bdd99b760bf0c1) *(uncategorized)* Release version 0.14.1 by @alexpasmantier
+
+
+
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.14.0...0.14.1
+
+
 ## [0.14.0](https://github.com/alexpasmantier/television/releases/tag/0.14.0) - 2025-12-16
 
 ### ⛰️  Features
