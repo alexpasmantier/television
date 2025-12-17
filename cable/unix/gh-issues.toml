@@ -26,6 +26,6 @@ command = '''gh issue view '{strip_ansi|split:#:1|split:   :0}' --json number,ti
 "",
 "  \u001b[90m────────────────────────────────────────────────────────────\u001b[39m",
 "",
-(.body // "")
+(.body // "")'
 '''
 
