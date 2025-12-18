@@ -1,7 +1,8 @@
 <div align="center">
 
-[<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)  
-**A portable and hackable fuzzy finder for the terminal.**
+[<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)
+
+**A very fast, portable and hackable fuzzy finder for the terminal.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
 ![docs.rs](https://img.shields.io/docsrs/television-channels)
@@ -9,13 +10,14 @@
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 [![Discord](https://img.shields.io/discord/1366133668535341116?logo=discord)](https://discord.gg/hQBrzsJgUg)
 
-![tv's files channel](./assets/tv-transparent.png)
+<img width="1694" height="1005" alt="2025-12-18-013816_hyprshot" src="https://github.com/user-attachments/assets/d512a358-5d36-48f7-b40e-695c644c75b7" />
+
 
 </div>
 
 ## About
 
-`Television` is a portable and hackable fuzzy finder for the terminal.
+`Television` is a very fast, portable and hackable fuzzy finder for the terminal.
 
 It lets you search in real time through any kind of data source (called "channels") such as:
 
