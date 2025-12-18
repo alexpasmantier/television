@@ -93,6 +93,7 @@ impl TryFrom<&str> for Shell {
 
 impl Shell {
     #[allow(clippy::borrow_interior_mutable_const)]
+    #[cfg(unix)]
     pub fn from_env() -> Result<Self> {
         if let Ok(shell) = std::env::var(SHELL_ENV_VAR) {
             Shell::try_from(shell.as_str())
@@ -100,6 +101,31 @@ impl Shell {
             debug!("Environment variable {} not set", SHELL_ENV_VAR);
             Ok(Shell::default())
         }
+    }
+
+    #[cfg(windows)]
+    /// There isn't a straightforward way of doing this on Windows so we poke around
+    /// to make an educated guess.
+    pub fn from_env() -> Result<Self> {
+        // If SHELL is set, try to use it
+        if let Ok(shell) = std::env::var(SHELL_ENV_VAR) {
+            return Shell::try_from(shell.as_str());
+        }
+        if std::env::var("POWERSHELL_DISTRIBUTION_CHANNEL").is_ok()
+            || std::env::var("PSModulePath").is_ok()
+        {
+            return Ok(Shell::Psh);
+        }
+        // Otherwise, fall back to COMSPEC
+        if let Ok(shell) = std::env::var("COMSPEC") {
+            if shell.to_lowercase().contains("powershell") {
+                return Ok(Shell::Psh);
+            } else if shell.to_lowercase().contains("cmd") {
+                return Ok(Shell::Cmd);
+            }
+        }
+        debug!("Environment variable COMSPEC not set");
+        Ok(Shell::default())
     }
 
     pub fn executable(&self) -> &'static str {
