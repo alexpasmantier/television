@@ -198,6 +198,7 @@ where
 
             let indices: Vec<u32> =
                 self.col_indices_buffer.drain(..).collect();
+            // PERF: this ends up being quite expensive
             let matched_string = item.matcher_columns[0].to_string();
 
             results.push(matched_item::MatchedItem {
