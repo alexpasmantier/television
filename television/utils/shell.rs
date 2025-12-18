@@ -83,6 +83,8 @@ impl TryFrom<&str> for Shell {
             Ok(Shell::Psh)
         } else if value.contains("cmd") {
             Ok(Shell::Cmd)
+        } else if value.contains("nu") {
+            Ok(Shell::Nu)
         } else {
             Err(anyhow::anyhow!("Unsupported shell: {}", value))
         }
