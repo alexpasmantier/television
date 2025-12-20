@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+
+## [unreleased]
+
+### ⛰️  Features
+
+- [fb41de7](https://github.com/alexpasmantier/television/commit/fb41de7c2938c78d330d2bea7e4affc705e45171) *(uncategorized)* Tv's binary now comes bundled with a set of default channels by @alexpasmantier in [#821](https://github.com/alexpasmantier/television/pull/821)
+
+### 🐛 Bug Fixes
+
+- [874400d](https://github.com/alexpasmantier/television/commit/874400d4ac72e3f543b9fb7b2e688261817cc4af) *(shell)* Honor $SHELL previews for nushell by @alexpasmantier in [#818](https://github.com/alexpasmantier/television/pull/818)
+
+- [9628b53](https://github.com/alexpasmantier/television/commit/9628b533e9ec504cdd98c8458b079220bb579250) *(windows)* Improve shell discovery heuristics on windows by @alexpasmantier in [#819](https://github.com/alexpasmantier/television/pull/819)
+
+### 📚 Documentation
+
+- [85fd34a](https://github.com/alexpasmantier/television/commit/85fd34a83a71857bbb92dc98ca90f332a1a491df) *(uncategorized)* Update readme title by @alexpasmantier
+
+- [a52c33a](https://github.com/alexpasmantier/television/commit/a52c33a8f2cec916b4f7007f95fec93333f72076) *(uncategorized)* Update demo image with latest version by @alexpasmantier
+
+### ⚙️ Miscellaneous Tasks
+
+- [32ce5f3](https://github.com/alexpasmantier/television/commit/32ce5f345f8e1ffcbc4b2c8ba5c83043b7a637d4) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#815](https://github.com/alexpasmantier/television/pull/815)
+
+
+
+
+
 ## [0.14.1](https://github.com/alexpasmantier/television/releases/tag/0.14.1) - 2025-12-17
 
 ### 🐛 Bug Fixes
