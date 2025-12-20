@@ -1,6 +1,6 @@
 <div align="center">
 
-[<img src="./assets/television-title.png">](https://alexpasmantier.github.io/television/)
+# Television (tv)
 
 **A very fast, portable and hackable fuzzy finder for the terminal.**
 
