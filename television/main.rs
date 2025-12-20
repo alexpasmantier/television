@@ -9,7 +9,7 @@ use television::config::layers::ConfigLayers;
 use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::App,
-    cable::{Cable, cable_empty_exit, load_cable},
+    cable::{Cable, load_cable},
     channels::prototypes::ChannelPrototype,
     cli::{
         args::{Cli, Command},
@@ -53,13 +53,7 @@ async fn main() -> Result<()> {
         .unwrap_or_else(|| base_config.application.cable_dir.clone());
 
     debug!("Loading cable channels...");
-    let mut cable = load_cable(&cable_dir).unwrap_or_default();
-    // if we need cable but it's empty, assume it's the user's first run and
-    // try to update channels automatically
-    if cable.is_empty() && !readable_stdin && cli.global.command.is_none() {
-        update_local_channels(&false)?;
-        cable = load_cable(&cable_dir).unwrap();
-    }
+    let cable = load_cable(&cable_dir);
 
     // handle subcommands
     debug!("Handling subcommands...");
@@ -75,12 +69,8 @@ async fn main() -> Result<()> {
 
     // determine the base channel prototype
     debug!("Determining base channel prototype...");
-    let channel_prototype = determine_channel(
-        &cli.channel,
-        &base_config,
-        readable_stdin,
-        Some(&cable),
-    );
+    let channel_prototype =
+        determine_channel(&cli.channel, &base_config, readable_stdin, &cable);
 
     let layered_config =
         ConfigLayers::new(base_config, channel_prototype, cli.clone());
@@ -179,36 +169,30 @@ pub fn determine_channel(
     cli: &ChannelCli,
     config: &Config,
     readable_stdin: bool,
-    cable: Option<&Cable>,
+    cable: &Cable,
 ) -> ChannelPrototype {
     // Determine the base channel prototype
     if readable_stdin {
         ChannelPrototype::stdin()
     } else if let Some(prompt) = &cli.autocomplete_prompt {
-        if cable.is_none() {
-            cable_empty_exit()
-        }
         debug!("Using autocomplete prompt: {:?}", prompt);
         let prototype = guess_channel_from_prompt(
             prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
-            cable.unwrap(),
+            cable,
         );
         debug!("Using guessed channel: {:?}", prototype);
         prototype
     } else if cli.channel.is_none() && cli.source_command.is_some() {
         create_adhoc_channel(cli)
     } else {
-        if cable.is_none() {
-            cable_empty_exit()
-        }
         let channel_name = cli
             .channel
             .as_ref()
             .unwrap_or(&config.application.default_channel);
         debug!("Using channel: {:?}", channel_name);
-        cable.unwrap().get_channel(channel_name)
+        cable.get_channel(channel_name)
     }
 }
 
@@ -237,12 +221,8 @@ mod tests {
                 ChannelPrototype::new("dirs", "ls"),
                 ChannelPrototype::new("git", "git status"),
             ]));
-        let channel = determine_channel(
-            &cli.channel,
-            config,
-            readable_stdin,
-            Some(&channels),
-        );
+        let channel =
+            determine_channel(&cli.channel, config, readable_stdin, &channels);
 
         assert_eq!(
             channel.metadata.name, expected_channel.metadata.name,
@@ -385,12 +365,8 @@ mod tests {
         };
         let config = Config::default();
 
-        let channel = determine_channel(
-            &cli.channel,
-            &config,
-            false,
-            Some(&Cable::default()),
-        );
+        let channel =
+            determine_channel(&cli.channel, &config, false, &Cable::default());
 
         assert_eq!(channel.metadata.name, "Custom Channel");
         assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
