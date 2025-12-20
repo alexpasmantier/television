@@ -23,16 +23,13 @@ use clap::{Parser, Subcommand, ValueEnum};
 pub struct Cli {
     /// Which channel shall we watch?
     ///
-    /// When specified: The application operates in 'channel mode' where the selected
-    /// channel provides the base configuration, and CLI flags act as overrides.
+    /// Channels provide predefined configurations including source commands,
+    /// preview commands, UI settings, and more.
     ///
-    /// When omitted: The application operates in 'ad-hoc mode' where you must provide
-    /// at least --source-command to create a custom channel. In this mode, preview
-    /// and source flags have stricter validation rules.
+    /// To list available channels, use the `list-channels` subcommand.
     ///
-    /// A list of the available channels can be displayed using the
-    /// `list-channels` command. The channel can also be changed from within
-    /// the application.
+    /// To pull the latest collection of channels from github, use the
+    /// `update-channels` subcommand.
     #[arg(index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
@@ -572,7 +569,7 @@ pub enum Command {
         #[arg(value_enum)]
         shell: Shell,
     },
-    /// Downloads the latest collection of default channel prototypes from github
+    /// Downloads the latest collection of channel prototypes from github
     /// and saves them to the local configuration directory.
     UpdateChannels {
         /// Force update on already existing channels.

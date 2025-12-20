@@ -1,4 +1,3 @@
-# UNTESTED
 [metadata]
 name = "docker-images"
 description = "A channel to select from Docker images"

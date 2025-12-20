@@ -2,7 +2,6 @@ use crate::{
     action::Action, channels::prototypes::ChannelPrototype,
     config::Keybindings, errors::unknown_channel_exit, event::Key,
 };
-use colored::Colorize;
 use rustc_hash::FxHashMap;
 use std::{
     ops::Deref,
@@ -115,44 +114,40 @@ where
         .collect::<Vec<_>>()
 }
 
-fn load_prototypes<I>(cable_files: I) -> Vec<ChannelPrototype>
-where
-    I: IntoIterator<Item = PathBuf>,
-{
-    cable_files
+fn load_prototypes(
+    toml_prototypes: FxHashMap<PathBuf, String>,
+) -> Vec<ChannelPrototype> {
+    toml_prototypes
         .into_iter()
-        .filter_map(|p| match std::fs::read_to_string(&p) {
-            Ok(content) => {
-                match toml::from_str::<ChannelPrototype>(&content) {
-                    Ok(prototype) => {
-                        debug!(
-                            "Loaded cable channel prototype from {:?}: {}",
-                            p, prototype.metadata.name
-                        );
-                        Some(prototype)
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "Failed to parse cable channel file {}: {}",
-                            p.display(),
-                            e
-                        );
-                        None
-                    }
+        .filter_map(|(path, content)| {
+            match toml::from_str::<ChannelPrototype>(&content) {
+                Ok(prototype) => {
+                    debug!(
+                        "Loaded cable channel prototype from {}: {}",
+                        path.display(),
+                        prototype.metadata.name
+                    );
+                    Some(prototype)
                 }
-            }
-            Err(e) => {
-                error!("Failed to read cable channel file {:?}: {}", p, e);
-                None
+                Err(e) => {
+                    eprintln!(
+                        "Failed to parse cable channel file {}: {}",
+                        path.display(),
+                        e
+                    );
+                    None
+                }
             }
         })
         .collect()
 }
 
-/// Load cable channels from the config directory.
+/// Load cable channels from the provided directory.
 ///
-/// Cable is loaded by compiling all files located in the `cable/` subdirectory
-/// of the user's configuration directory, unless a custom directory is provided.
+/// The resulting cable channels are a combination of the default cable channels
+/// merged with any user-defined channels found in the specified directory, custom
+/// channels taking precedence over defaults. For a list of default cable channels,
+/// see `DEFAULT_CABLE_FILES`.
 ///
 /// # Example:
 /// ```ignore
@@ -163,7 +158,7 @@ where
 ///    ├── channel_2.toml
 ///    └── ...
 /// ```
-pub fn load_cable<P>(cable_dir: P) -> Option<Cable>
+pub fn load_cable<P>(cable_dir: P) -> Cable
 where
     P: AsRef<Path>,
 {
@@ -172,34 +167,63 @@ where
     let cable_files = get_cable_files(cable_dir);
     debug!("Found cable channel files: {:?}", cable_files);
 
-    if cable_files.is_empty() {
-        return None;
-    }
+    let mut cable_map: FxHashMap<PathBuf, String> = DEFAULT_CABLE_FILES
+        .iter()
+        .map(|(name, content)| (PathBuf::from(*name), (*content).to_string()))
+        .collect();
 
-    let prototypes = load_prototypes(cable_files);
+    cable_map.extend(
+        cable_files
+            .into_iter()
+            .filter_map(|path| match std::fs::read_to_string(&path) {
+                Ok(content) => {
+                    Some((path.file_name().unwrap().into(), content))
+                }
+                Err(e) => {
+                    error!(
+                        "Failed to read cable channel file {}: {}",
+                        path.display(),
+                        e
+                    );
+                    None
+                }
+            })
+            .collect::<FxHashMap<_, _>>(),
+    );
+
+    let prototypes = load_prototypes(cable_map);
 
     debug!("Loaded {} cable channels", prototypes.len());
 
-    Some(Cable::from_prototypes(prototypes))
+    Cable::from_prototypes(prototypes)
 }
 
-pub fn cable_empty_exit() -> ! {
-    println!(
-        "{}",
-        "It seems you don't have any cable channels configured yet.\n"
-            .blue()
-            .bold()
-    );
-    println!(
-        "Run {} to get the latest default cable channels and/or add your own (https://alexpasmantier.github.io/television/docs/Users/channels#creating-your-own-channels).\n",
-        "`tv update-channels`".green().bold(),
-    );
-    println!(
-        "More info: {}",
-        "https://github.com/alexpasmantier/television/blob/main/README.md"
-            .blue()
-            .bold()
-    );
-
-    std::process::exit(1);
-}
+const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
+    ("alias.toml", include_str!("../cable/unix/alias.toml")),
+    (
+        "bash-history.toml",
+        include_str!("../cable/unix/bash-history.toml"),
+    ),
+    ("dirs.toml", include_str!("../cable/unix/dirs.toml")),
+    (
+        "docker-images.toml",
+        include_str!("../cable/unix/docker-images.toml"),
+    ),
+    (
+        "docker-containers.toml",
+        include_str!("../cable/unix/docker-images.toml"),
+    ),
+    ("env.toml", include_str!("../cable/unix/env.toml")),
+    ("files.toml", include_str!("../cable/unix/files.toml")),
+    (
+        "git-branch.toml",
+        include_str!("../cable/unix/git-branch.toml"),
+    ),
+    ("git-diff.toml", include_str!("../cable/unix/git-diff.toml")),
+    ("git-log.toml", include_str!("../cable/unix/git-log.toml")),
+    (
+        "git-repos.toml",
+        include_str!("../cable/unix/git-repos.toml"),
+    ),
+    ("text.toml", include_str!("../cable/unix/text.toml")),
+];
