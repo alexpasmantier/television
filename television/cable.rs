@@ -198,6 +198,7 @@ where
     Cable::from_prototypes(prototypes)
 }
 
+#[cfg(unix)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     ("alias.toml", include_str!("../cable/unix/alias.toml")),
     (
@@ -207,10 +208,6 @@ const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     ("dirs.toml", include_str!("../cable/unix/dirs.toml")),
     (
         "docker-images.toml",
-        include_str!("../cable/unix/docker-images.toml"),
-    ),
-    (
-        "docker-containers.toml",
         include_str!("../cable/unix/docker-images.toml"),
     ),
     ("env.toml", include_str!("../cable/unix/env.toml")),
@@ -226,4 +223,33 @@ const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
         include_str!("../cable/unix/git-repos.toml"),
     ),
     ("text.toml", include_str!("../cable/unix/text.toml")),
+];
+
+#[cfg(windows)]
+const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
+    ("alias.toml", include_str!("../cable/windows/alias.toml")),
+    ("dirs.toml", include_str!("../cable/windows/dirs.toml")),
+    (
+        "docker-images.toml",
+        include_str!("../cable/windows/docker-images.toml"),
+    ),
+    ("env.toml", include_str!("../cable/windows/env.toml")),
+    ("files.toml", include_str!("../cable/windows/files.toml")),
+    (
+        "git-branch.toml",
+        include_str!("../cable/windows/git-branch.toml"),
+    ),
+    (
+        "git-diff.toml",
+        include_str!("../cable/windows/git-diff.toml"),
+    ),
+    (
+        "git-log.toml",
+        include_str!("../cable/windows/git-log.toml"),
+    ),
+    (
+        "git-repos.toml",
+        include_str!("../cable/windows/git-repos.toml"),
+    ),
+    ("text.toml", include_str!("../cable/windows/text.toml")),
 ];
