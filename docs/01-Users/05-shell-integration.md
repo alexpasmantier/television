@@ -84,7 +84,7 @@ New-Item -Path $PROFILE -Type File -Force
 
 Shell integration works by setting a dedicated shell keybinding that launches `tv` with the current prompt buffer so that `tv` may guess which channel (builtin or cable) is the most appropriate.
 
-Which channel gets effectively chosen for different commands can be tweaked in the `shell_integration` section of the [configuration file](https://github.com/alexpasmantier/television/wiki/Configuration-file):
+Which channel gets effectively chosen for different commands can be tweaked in the `shell_integration` section of the [configuration file](./03-configuration.md):
 
 ```toml
 [shell_integration.channel_triggers]
@@ -122,7 +122,7 @@ Run the following command to make sure the destination directory exists, you can
 mkdir -p ~/.config/television/shell
 ```
 
-_Note:_ Remember to remove the line added in [Enabling Shell Integration](https://github.com/alexpasmantier/television/wiki/Shell-Autocompletion#enabling-shell-integration) to avoid sourcing the file twice.
+_Note:_ Remember to remove the line added in the "Enabling shell integration" section to avoid sourcing the file twice.
 
 #### Zsh
 

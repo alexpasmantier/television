@@ -10,10 +10,13 @@ Locations where `television` expects the user configuration file to be located f
 | -------- | :------------------------------------: |
 | Linux    | `$HOME/.config/television/config.toml` |
 | macOS    | `$HOME/.config/television/config.toml` |
-| Windows  |   `%LocalAppData%\television\config`   |
+| Windows  | `%LocalAppData%\television\config.toml` |
 
 Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
 `$XDG_CONFIG_HOME/television/config.toml` if the environment variable is set.
+
+If `TELEVISION_CONFIG` is set, tv uses that directory instead (for example,
+`$TELEVISION_CONFIG/config.toml`).
 
 ## Default configuration file
 
@@ -168,6 +171,7 @@ Map keyboard keys to actions. Keys can be specified as:
 | `toggle_preview`                | Toggle preview panel visibility         |
 | `toggle_layout`                 | Switch between landscape and portrait   |
 | `cycle_sources`                 | Cycle through available source commands |
+| `cycle_previews`                | Cycle through available preview commands |
 | `reload_source`                 | Reload the current source               |
 | `select_prev_history`           | Navigate to previous history entry      |
 | `select_next_history`           | Navigate to next history entry          |
