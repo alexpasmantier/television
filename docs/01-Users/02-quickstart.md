@@ -2,8 +2,7 @@
 
 ## Getting started with tv
 
-tv ships with built-in channels, so you can use it for all sorts of things without having to ever learn about [custom
-channels](./07-channels.md). Just run `tv` with or without a channel name:
+tv uses `channels` to define different sources of data to browse and preview. It comes with several built-in channels for common tasks like browsing files, searching text, and viewing git repositories.
 
 ```sh
 tv            # uses the default channel (usually "files")
@@ -18,6 +17,12 @@ To get a list of available channels, run:
 tv list-channels
 ```
 
+To pull in the latest community channels from the github repo, run:
+
+```sh
+tv update-channels
+```
+
 You can also pipe output into tv to search through command results, logs, or any
 stream of text:
 
@@ -27,8 +32,7 @@ git log --oneline | tv
 my_program_that_generates_logs | tv
 ```
 
-And if you need a one-off channel for a specific task, tv's command line options let you
-create temporary channels on the fly:
+And if you need a one-off channel for a specific task, tv's command line options let you create temporary channels on the fly:
 
 ```sh
 tv --source-command "rg --line-number --no-heading TODO ."
@@ -37,6 +41,9 @@ tv --source-command "fd -t f" --preview-command "bat -n --color=always '{}'" --p
 
 ## Custom channels
 
+You can create custom channels for any specific task you want to do regularly. Channels are defined using TOML files that specify how to get the data, how to preview it, and any keybindings or actions you want to add.
+
+### Example: TLDR pages channel
 Create a channel: _~/.config/television/cable/tldr.toml_
 
 ```toml

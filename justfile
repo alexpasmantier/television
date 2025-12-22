@@ -171,3 +171,11 @@ bump-version kind='patch':
 	python scripts/generate_cable_docs.py
 	echo "Docs generated in docs/cable_channels.md"
 	rm -rf .venv
+
+# Update CLI docs from tv --help
+@update-cli-help:
+	sh -ec 'help_output=$(cargo run --quiet -- --help); { \
+		printf "%s\n" '\''```text'\''; \
+		printf "%s\n" "$help_output"; \
+		printf "%s\n" '\''```'\''; \
+	} > docs/01-Users/09-cli.md'

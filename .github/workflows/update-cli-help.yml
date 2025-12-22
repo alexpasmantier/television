@@ -1,0 +1,33 @@
+name: Update CLI Help
+permissions:
+  contents: write
+on:
+  push:
+    paths:
+      - 'television/cli/args.rs'
+  workflow_dispatch:
+jobs:
+  update-cli-help:
+    name: Update CLI Help Docs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Update CLI docs
+        run: just update-cli-help
+      - name: if docs changed, create a PR
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'docs(cli): update tv --help output (auto)'
+          title: 'docs(cli): update tv --help output (auto)'
+          body: 'This PR was created by a GitHub Action to update the embedded tv --help output.'
+          branch: bot/auto-cli-help-update
+          base: main
+          add-paths: docs/01-Users/09-cli.md
