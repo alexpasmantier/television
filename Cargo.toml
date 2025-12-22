@@ -2,7 +2,7 @@
 name = "television"
 version = "0.14.1"
 edition = "2024"
-description = "A portable and hackable fuzzy finder for the terminal"
+description = "A very fast, portable and hackable fuzzy finder for the terminal"
 license = "MIT"
 authors = ["Alexandre Pasmantier <alex.pasmant@gmail.com>"]
 repository = "https://github.com/alexpasmantier/television"
