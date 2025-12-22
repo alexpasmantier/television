@@ -8,7 +8,7 @@ https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television
 
 ### ⭐ Zed Editor File Finder
 
-This is a drop-in file editor setup for the [zed editor](https://zed.dev/) leveraging television, a task, and keybinding.
+This is a drop-in file finder setup for the [zed editor](https://zed.dev/) leveraging television, a task, and keybinding.
 
 ![tv-zed-editor-compressed](https://github.com/user-attachments/assets/fc50f835-a282-438a-bbad-507320017765)
 
@@ -55,7 +55,7 @@ credit: https://github.com/prabirshrestha/tv.vim
 
 ### ⭐ Zed Editor Live Grep
 
-This is a drop-in project search setup for the [zed editor](https://zed.dev/) with similar setup to the [file finder](https://github.com/alexpasmantier/television/wiki/Showcase#--zed-editor-file-finder).
+This is a drop-in project search setup for the [zed editor](https://zed.dev/) with a setup similar to the file finder above.
 
 https://github.com/user-attachments/assets/5afb94af-f10a-4cac-9f51-0aa97b771bf0
 
@@ -93,7 +93,7 @@ You can replace `space f w` with your keybinding
 
 **Improve performance**
 
-If there's a delay before the Live Grep window lauches you can optimize this by spawning it in a different shell, eg. `bash` or `sh`.|
+If there's a delay before the Live Grep window launches you can optimize this by spawning it in a different shell, eg. `bash` or `sh`.
 In the example below zed will use sh to spawn the process:
 
 `tasks.json`
@@ -111,7 +111,7 @@ In the example below zed will use sh to spawn the process:
   },
 ```
 
-If you neeed further optimalization you can add commandline args like `--noediting`, `--norc`, `--noprofile` to the shell process:
+If you need further optimization you can add command line args like `--noediting`, `--norc`, `--noprofile` to the shell process:
 
 `tasks.json`
 
@@ -139,6 +139,6 @@ or
 
 > Note that you need to have `tv` in your `$PATH`
 
-> This optimizations can also be applied to [file finder](https://github.com/alexpasmantier/television/wiki/Showcase#--zed-editor-file-finder).
+> These optimizations can also be applied to the file finder above.
 
 Huge thanks to [eddiebergman](https://github.com/eddiebergman) and [thomdabrowski](https://github.com/thomdabrowski) for these optimizations, [original thread](https://github.com/zed-industries/zed/discussions/22581#discussioncomment-11860946)

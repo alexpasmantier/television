@@ -452,7 +452,7 @@ Television's options are organized by functionality. Each option behaves differe
 **Purpose**: Uses a custom configuration file instead of the default
 
 - **Both Modes**: Same behavior
-- **Default**: `~/.config/television/config.toml` (Linux/macOS) or `%LocalAppData%\tv\config.toml` (Windows)
+- **Default**: `~/.config/television/config.toml` (Linux/macOS) or `%LocalAppData%\television\config.toml` (Windows)
 - **Use Case**: Multiple configurations for different workflows
 
 #### `--cable-dir <PATH>`

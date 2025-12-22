@@ -77,6 +77,8 @@ The logs are written to a file called `television.log` in a directory that depen
 | macOS    | `$XDG_DATA_HOME/television/television.log` or `$HOME/Library/Application\ Support/television/television.log` |
 | Windows  | `%LocalAppData%\television\television.log`                                                          |
 
+If `TELEVISION_DATA` is set, logs will be written to `$TELEVISION_DATA/television.log` instead.
+
 To check for linting and formatting issues (and fix them automatically), run:
 
 ```shell
