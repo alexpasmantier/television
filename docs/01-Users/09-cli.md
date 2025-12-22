@@ -32,6 +32,92 @@ Arguments:
           interact with.
 
 Options:
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
+
+Source:
+  -s, --source-command <STRING>
+          Source command to use for the current channel.
+          
+          When a channel is specified: This overrides the command defined in the channel prototype.
+          When no channel is specified: This creates an ad-hoc channel with the given command.
+          
+          Example: `find . -name '*.rs'`
+
+      --ansi
+          Whether tv should extract and parse ANSI style codes from the source command output.
+          
+          This is useful when the source command outputs colored text or other ANSI styles and you
+          want `tv` to preserve them in the UI. It does come with a slight performance cost but
+          which should go mostly unnoticed for typical human interaction workloads.
+          
+          Example: `tv --source-command="echo -e 'Red'" --ansi`
+
+      --source-display <STRING>
+          Source display template to use for the current channel.
+          
+          When a channel is specified: This overrides the display template defined in the channel prototype.
+          When no channel is specified: This flag requires --source-command to be set.
+          
+          The template is used to format each entry in the results list.
+          Example: `{split:/:-1}` (show only the last path segment)
+
+      --source-output <STRING>
+          Source output template to use for the current channel.
+          
+          When a channel is specified: This overrides the output template defined in the channel prototype.
+          When no channel is specified: This flag requires --source-command to be set.
+          
+          The template is used to format the final output when an entry is selected.
+          Example: "{}" (output the full entry)
+
+      --source-entry-delimiter <STRING>
+          The delimiter byte to use for splitting the source's command output into entries.
+          
+          This can be useful when the source command outputs multiline entries and you want to
+          rely on another delimiter to split the entries such a null byte or a custom character.
+
+Preview:
+  -p, --preview-command <STRING>
+          Preview command to use for the current channel.
+          
+          When a channel is specified: This overrides the preview command defined in the channel prototype.
+          When no channel is specified: This enables preview functionality for the ad-hoc channel.
+          
+          Example: "cat {}" (where {} will be replaced with the entry)
+          
+          Parts of the entry can be extracted positionally using the `delimiter`
+          option.
+          Example: "echo {0} {1}" will split the entry by the delimiter and pass
+          the first two fields to the command.
+
+      --preview-header <STRING>
+          Preview header template
+          
+          When a channel is specified: This overrides the header defined in the channel prototype.
+          When no channel is specified: This flag requires --preview-command to be set.
+          
+          The given value is parsed as a `MultiTemplate`. It is evaluated for every
+          entry and its result is displayed above the preview panel.
+
+      --preview-footer <STRING>
+          Preview footer template
+          
+          When a channel is specified: This overrides the footer defined in the channel prototype.
+          When no channel is specified: This flag requires --preview-command to be set.
+          
+          The given value is parsed as a `MultiTemplate`. It is evaluated for every
+          entry and its result is displayed below the preview panel.
+
+      --cache-preview
+          Whether to cache the preview command output for each entry.
+          
+          This can be useful when the preview command is expensive to run
+          and you want to avoid running it multiple times for the same entry.
+
       --preview-offset <STRING>
           A preview line number offset template to use to scroll the preview to for each
           entry.
@@ -61,66 +147,30 @@ Options:
           This flag works identically in both channel mode and ad-hoc mode.
           This overrides any channel configuration that might have it disabled.
 
-      --no-status-bar
-          Disable the status bar entirely on startup.
+      --preview-border <PREVIEW_BORDER>
+          Sets the preview panel border type.
           
-          This flag works identically in both channel mode and ad-hoc mode.
-          When set, no status bar will be shown regardless of channel configuration
-          or status bar-related flags.
+          Available options are: `none`, `plain`, `rounded`, `thick`.
+          
+          [possible values: none, plain, rounded, thick]
 
-      --hide-status-bar
-          Hide the status bar on startup (only works if feature is enabled).
+      --preview-padding <STRING>
+          Sets the preview panel padding.
           
-          This flag works identically in both channel mode and ad-hoc mode.
-          The status bar remains functional and can be toggled visible later.
+          Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+          
+          Example: `--preview-padding='top=1;left=2;bottom=1;right=2'`
 
-      --show-status-bar
-          Show the status bar on startup (only works if feature is enabled).
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          This overrides any channel configuration that might have it disabled.
+      --hide-preview-scrollbar
+          Hide preview panel scrollbar.
 
-  -t, --tick-rate <INT>
-          The application's tick rate.
+      --preview-size <INTEGER>
+          Percentage of the screen to allocate to the preview panel (1-99).
           
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          The tick rate is the number of times the application will update per
-          second. This can be used to control responsiveness and CPU usage on
-          very slow machines or very fast ones but the default should be a good
-          compromise for most users.
+          When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
+          When no channel is specified: This flag requires --preview-command to be set.
 
-      --watch <FLOAT>
-          Watch mode: reload the source command every N seconds.
-          
-          When a channel is specified: Overrides the watch interval defined in the channel prototype.
-          When no channel is specified: Sets the watch interval for the ad-hoc channel.
-          
-          When set to a positive number, the application will automatically
-          reload the source command at the specified interval. This is useful
-          for monitoring changing data sources. Set to 0 to disable (default).
-
-  -k, --keybindings <STRING>
-          Keybindings to override the default keybindings.
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          This can be used to override the default keybindings with a custom subset.
-          The keybindings are specified as a semicolon separated list of keybinding
-          expressions using the configuration file formalism.
-          
-          Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
-
-      --expect <STRING>
-          Keys that can be used to confirm the current selection in addition to the default ones
-          (typically `enter`).
-          
-          When this is set, confirming the selection will first output an extra line with the key
-          that was used to confirm the selection before outputting the selected entry.
-          
-          Example: `tv --expect='ctrl-q'` will output `ctr-q\n<selected_entry>` when `ctrl-q` is
-          pressed to confirm the selection.
-
+Input:
   -i, --input <STRING>
           Input text to pass to the channel to prefill the prompt.
           
@@ -162,75 +212,25 @@ Options:
           
           Example: `--input-padding='top=1;left=2;bottom=1;right=2'`
 
-      --preview-header <STRING>
-          Preview header template
+UI:
+      --no-status-bar
+          Disable the status bar entirely on startup.
           
-          When a channel is specified: This overrides the header defined in the channel prototype.
-          When no channel is specified: This flag requires --preview-command to be set.
-          
-          The given value is parsed as a `MultiTemplate`. It is evaluated for every
-          entry and its result is displayed above the preview panel.
+          This flag works identically in both channel mode and ad-hoc mode.
+          When set, no status bar will be shown regardless of channel configuration
+          or status bar-related flags.
 
-      --preview-footer <STRING>
-          Preview footer template
+      --hide-status-bar
+          Hide the status bar on startup (only works if feature is enabled).
           
-          When a channel is specified: This overrides the footer defined in the channel prototype.
-          When no channel is specified: This flag requires --preview-command to be set.
-          
-          The given value is parsed as a `MultiTemplate`. It is evaluated for every
-          entry and its result is displayed below the preview panel.
+          This flag works identically in both channel mode and ad-hoc mode.
+          The status bar remains functional and can be toggled visible later.
 
-      --preview-border <PREVIEW_BORDER>
-          Sets the preview panel border type.
+      --show-status-bar
+          Show the status bar on startup (only works if feature is enabled).
           
-          Available options are: `none`, `plain`, `rounded`, `thick`.
-          
-          [possible values: none, plain, rounded, thick]
-
-      --preview-padding <STRING>
-          Sets the preview panel padding.
-          
-          Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
-          
-          Example: `--preview-padding='top=1;left=2;bottom=1;right=2'`
-
-      --hide-preview-scrollbar
-          Hide preview panel scrollbar.
-
-  -s, --source-command <STRING>
-          Source command to use for the current channel.
-          
-          When a channel is specified: This overrides the command defined in the channel prototype.
-          When no channel is specified: This creates an ad-hoc channel with the given command.
-          
-          Example: `find . -name '*.rs'`
-
-      --ansi
-          Whether tv should extract and parse ANSI style codes from the source command output.
-          
-          This is useful when the source command outputs colored text or other ANSI styles and you
-          want `tv` to preserve them in the UI. It does come with a slight performance cost but
-          which should go mostly unnoticed for typical human interaction workloads.
-          
-          Example: `tv --source-command="echo -e '\x1b[31mRed\x1b[0m'" --ansi`
-
-      --source-display <STRING>
-          Source display template to use for the current channel.
-          
-          When a channel is specified: This overrides the display template defined in the channel prototype.
-          When no channel is specified: This flag requires --source-command to be set.
-          
-          The template is used to format each entry in the results list.
-          Example: `{split:/:-1}` (show only the last path segment)
-
-      --source-output <STRING>
-          Source output template to use for the current channel.
-          
-          When a channel is specified: This overrides the output template defined in the channel prototype.
-          When no channel is specified: This flag requires --source-command to be set.
-          
-          The template is used to format the final output when an entry is selected.
-          Example: "{}" (output the full entry)
+          This flag works identically in both channel mode and ad-hoc mode.
+          This overrides any channel configuration that might have it disabled.
 
       --results-border <RESULTS_BORDER>
           Sets the results panel border type.
@@ -246,31 +246,6 @@ Options:
           
           Example: `--results-padding='top=1;left=2;bottom=1;right=2'`
 
-      --source-entry-delimiter <STRING>
-          The delimiter byte to use for splitting the source's command output into entries.
-          
-          This can be useful when the source command outputs multiline entries and you want to
-          rely on another delimiter to split the entries such a null byte or a custom character.
-
-  -p, --preview-command <STRING>
-          Preview command to use for the current channel.
-          
-          When a channel is specified: This overrides the preview command defined in the channel prototype.
-          When no channel is specified: This enables preview functionality for the ad-hoc channel.
-          
-          Example: "cat {}" (where {} will be replaced with the entry)
-          
-          Parts of the entry can be extracted positionally using the `delimiter`
-          option.
-          Example: "echo {0} {1}" will split the entry by the delimiter and pass
-          the first two fields to the command.
-
-      --cache-preview
-          Whether to cache the preview command output for each entry.
-          
-          This can be useful when the preview command is expensive to run
-          and you want to avoid running it multiple times for the same entry.
-
       --layout <LAYOUT>
           Layout orientation for the UI.
           
@@ -280,6 +255,98 @@ Options:
           Options are "landscape" or "portrait".
           
           [possible values: landscape, portrait]
+
+      --no-remote
+          Disable the remote control.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will disable the remote control panel and associated actions
+          entirely. This is useful when the remote control is not needed or
+          when the user wants `tv` to run in single-channel mode (e.g. when
+          using it as a file picker for a script or embedding it in a larger
+          application).
+
+      --hide-remote
+          Hide the remote control on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The remote control remains functional and can be toggled visible later.
+
+      --show-remote
+          Show the remote control on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+
+      --no-help-panel
+          Disable the help panel entirely on startup.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          When set, no help panel will be shown regardless of channel configuration
+          or help panel-related flags.
+
+      --hide-help-panel
+          Hide the help panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The help panel remains functional and can be toggled visible later.
+
+      --show-help-panel
+          Show the help panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          This overrides any channel configuration that might have it disabled.
+
+      --ui-scale <INTEGER>
+          Change the display size in relation to the available area.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will crop the UI to a centered rectangle of the specified
+          percentage of the available area.
+
+      --height <INTEGER>
+          Height in lines for non-fullscreen mode.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          When specified, the picker will be displayed as a non-fullscreen interface.
+
+      --width <INTEGER>
+          Width in columns for non-fullscreen mode.
+          
+          This flag can only be used in combination with --inline or --height.
+          When specified, the picker will be constrained to the specified width.
+
+      --inline
+          Use all available empty space at the bottom of the terminal as an inline interface.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          When enabled, the picker will be displayed as an inline interface that uses
+          all available empty space at the bottom of the terminal. If there is insufficient
+          space to meet the minimum height the terminal will scroll.
+
+Behavior:
+  -t, --tick-rate <INT>
+          The application's tick rate.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          The tick rate is the number of times the application will update per
+          second. This can be used to control responsiveness and CPU usage on
+          very slow machines or very fast ones but the default should be a good
+          compromise for most users.
+
+      --watch <FLOAT>
+          Watch mode: reload the source command every N seconds.
+          
+          When a channel is specified: Overrides the watch interval defined in the channel prototype.
+          When no channel is specified: Sets the watch interval for the ad-hoc channel.
+          
+          When set to a positive number, the application will automatically
+          reload the source command at the specified interval. This is useful
+          for monitoring changing data sources. Set to 0 to disable (default).
 
       --autocomplete-prompt <STRING>
           Try to guess the channel from the provided input prompt.
@@ -331,61 +398,29 @@ Options:
           appears in the results, without waiting for the channel to finish loading.
           This is the fastest option when you just want the first result.
 
-      --no-remote
-          Disable the remote control.
+Keybindings:
+  -k, --keybindings <STRING>
+          Keybindings to override the default keybindings.
           
           This flag works identically in both channel mode and ad-hoc mode.
           
-          This will disable the remote control panel and associated actions
-          entirely. This is useful when the remote control is not needed or
-          when the user wants `tv` to run in single-channel mode (e.g. when
-          using it as a file picker for a script or embedding it in a larger
-          application).
-
-      --hide-remote
-          Hide the remote control on startup (only works if feature is enabled).
+          This can be used to override the default keybindings with a custom subset.
+          The keybindings are specified as a semicolon separated list of keybinding
+          expressions using the configuration file formalism.
           
-          This flag works identically in both channel mode and ad-hoc mode.
-          The remote control remains functional and can be toggled visible later.
+          Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
 
-      --show-remote
-          Show the remote control on startup (only works if feature is enabled).
+      --expect <STRING>
+          Keys that can be used to confirm the current selection in addition to the default ones
+          (typically `enter`).
           
-          This flag works identically in both channel mode and ad-hoc mode.
+          When this is set, confirming the selection will first output an extra line with the key
+          that was used to confirm the selection before outputting the selected entry.
+          
+          Example: `tv --expect='ctrl-q'` will output `ctr-q\n<selected_entry>` when `ctrl-q` is
+          pressed to confirm the selection.
 
-      --no-help-panel
-          Disable the help panel entirely on startup.
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          When set, no help panel will be shown regardless of channel configuration
-          or help panel-related flags.
-
-      --hide-help-panel
-          Hide the help panel on startup (only works if feature is enabled).
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          The help panel remains functional and can be toggled visible later.
-
-      --show-help-panel
-          Show the help panel on startup (only works if feature is enabled).
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          This overrides any channel configuration that might have it disabled.
-
-      --ui-scale <INTEGER>
-          Change the display size in relation to the available area.
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          This will crop the UI to a centered rectangle of the specified
-          percentage of the available area.
-
-      --preview-size <INTEGER>
-          Percentage of the screen to allocate to the preview panel (1-99).
-          
-          When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
-          When no channel is specified: This flag requires --preview-command to be set.
-
+Configuration:
       --config-file <PATH>
           Provide a custom configuration file to use.
           
@@ -396,6 +431,7 @@ Options:
           
           This flag works identically in both channel mode and ad-hoc mode.
 
+History:
       --global-history
           Use global history instead of channel-specific history.
           
@@ -403,32 +439,4 @@ Options:
           
           When enabled, history navigation will show entries from all channels.
           When disabled (default), history navigation is scoped to the current channel.
-
-      --height <INTEGER>
-          Height in lines for non-fullscreen mode.
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          When specified, the picker will be displayed as a non-fullscreen interface.
-
-      --width <INTEGER>
-          Width in columns for non-fullscreen mode.
-          
-          This flag can only be used in combination with --inline or --height.
-          When specified, the picker will be constrained to the specified width.
-
-      --inline
-          Use all available empty space at the bottom of the terminal as an inline interface.
-          
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          When enabled, the picker will be displayed as an inline interface that uses
-          all available empty space at the bottom of the terminal. If there is insufficient
-          space to meet the minimum height the terminal will scroll.
-
-  -h, --help
-          Print help (see a summary with '-h')
-
-  -V, --version
-          Print version
 ```
