@@ -1,719 +1,434 @@
-# CLI Reference
-
-Television (`tv`) is a cross-platform, fast and extensible general purpose fuzzy finder TUI. This document provides a comprehensive reference for all CLI options, modes, restrictions, and usage patterns.
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Operating Modes](#operating-modes)
-- [Basic Usage](#basic-usage)
-- [Arguments](#arguments)
-- [Options](#options)
-- [Subcommands](#subcommands)
-- [Usage Rules and Restrictions](#usage-rules-and-restrictions)
-- [Configuration](#configuration)
-- [Template System](#template-system)
-- [Examples](#examples)
-
-## Overview
-
-Television supports two primary operating modes that determine how CLI flags are interpreted and validated:
-
-1. **Channel Mode**: When a channel is specified, the application uses the channel's configuration as a base and CLI flags act as overrides
-2. **Ad-hoc Mode**: When no channel is specified, the application creates a custom channel from CLI flags with stricter validation
-
-## Operating Modes
-
-### Channel Mode
-
-**Activated when**: A channel name is provided as the first argument or via `--autocomplete-prompt`
-
-**Behavior**:
-
-- Channel provides base configuration (source commands, preview commands, UI settings)
-- CLI flags act as **overrides** to channel defaults
-- More permissive validation - allows most combination of flags
-- Minimal dependency checking since channel provides sensible defaults
-
-**Example**:
-
-```bash
-tv files --preview-command "bat -n --color=always '{}'"
-```
-
-### Ad-hoc Mode
-
-**Activated when**: No channel is specified and no `--autocomplete-prompt` is used
-
-**Behavior**:
-
-- Creates a custom channel on-the-fly from CLI flags
-- Requires `--source-command` to generate any entries
-- **Stricter validation** ensures necessary components are present
-- All functionality depends on explicitly provided flags
-
-**Example**:
-
-```bash
-tv --source-command "find . -name '*.rs'" --preview-command "bat -n --color=always '{}'"
-```
-
-## Basic Usage
-
-```
-tv [OPTIONS] [CHANNEL] [PATH]
-```
-
-### Arguments
-
-Television has intelligent positional argument handling with special path detection logic.
-
-#### Position 1: `[CHANNEL]`
-
-**Purpose**: Channel name to activate Channel Mode
-
-- **Standard behavior**: When a valid channel name is provided, activates Channel Mode
-- **Special path detection**: If the argument exists as a path on the filesystem, it's automatically treated as a working directory instead
-- **Effect when path detected**: Switches to Ad-hoc Mode and uses the path as the working directory
-- **Required**: No (falls back to `default_channel` from the global config)
-- **Examples**:
-
-  ```bash
-  tv files               # Uses 'files' channel
-  tv /home/user/docs     # Auto-detects path, uses as working directory
-  tv ./projects          # Auto-detects relative path
-  ```
-
-#### Position 2: `[PATH]`
-
-**Purpose**: Working directory to start in
-
-- **Behavior**: Sets the working directory for the application
-- **Required**: No
-- **Precedence**: Only used if Position 1 was not detected as a path
-- **Default**: Current directory
-- **Example**: `tv files /home/user/projects`
-
-#### ⚡ Smart Path Detection Logic
-
-Television automatically detects when the first argument is a filesystem path:
-
-1. **Path Check**: If Position 1 exists as a file or directory on the filesystem
-2. **Mode Switch**: Automatically switches to Ad-hoc Mode (no channel)
-3. **Directory Assignment**: Uses the detected path as the working directory
-4. **Requirement**: When this happens, `--source-command` becomes required (Ad-hoc Mode rules apply)
-
-**Examples of Smart Detection**:
-
-```bash
-# No arguments - uses default_channel from config
-tv
-
-# Channel name provided - Channel Mode
-tv files
-
-# Existing path provided - triggers path detection → uses default_channel
-tv /home/user/docs    # Uses default_channel in /home/user/docs directory
-
-# Non-existent path - treated as channel name → error if channel doesn't exist
-tv /nonexistent/path  # Error: Channel not found
-
-# Channel + explicit working directory - Channel Mode
-tv files /home/user/docs
-
-# The key nuance: same name, different behavior based on filesystem
-tv myproject          # Channel Mode (if 'myproject' is a channel name)
-tv ./myproject        # Channel Mode with default_channel (if './myproject' directory exists)
-
-# Ambiguous case - path detection takes precedence
-tv docs               # If 'docs' directory exists → default_channel + path detection
-                      # If 'docs' directory doesn't exist → 'docs' channel
-```
-
-> **💡 Tip**: This smart detection makes Television intuitive - you can just specify a directory and it automatically knows you want to work in that location.
-
-## Options
-
-Television's options are organized by functionality. Each option behaves differently depending on whether you're using Channel Mode (with a channel specified) or Ad-hoc Mode (no channel).
-
-### 🎯 Source and Data Options
-
-#### `--source-command <STRING>`
-
-**Purpose**: Defines the command that generates entries for the picker
-
-- **Channel Mode**: Overrides the channel's default source command
-- **Ad-hoc Mode**: ⚠️ **Required** - without this, no entries will be generated
-- **Example**: `--source-command "find . -name '*.py'"`
-
-#### `--source-display <STRING>`
-
-**Purpose**: Template for formatting how entries appear in the results list
-
-- **Both Modes**: Same behavior
-- **Requires**: `--source-command` (in ad-hoc mode)
-- **Example**: `--source-display "{split:/:-1} ({split:/:0..-1|join:-})"`
-
-#### `--source-output <STRING>`
-
-**Purpose**: Template for formatting the final output when an entry is selected
-
-- **Both Modes**: Same behavior
-- **Requires**: `--source-command` (in ad-hoc mode)
-- **Example**: `--source-output "code {}"`
-
-### 👁️ Preview Options
-
-#### `--no-preview`
-
-**Purpose**: Disable preview feature, toggling is not possible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with any `--preview-*` or `--*-preview` flags
-- **Use Case**: Minimal interface
-
-#### `--hide-preview`
-
-**Purpose**: Starts the interface with the preview panel hidden
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-preview` or `--show-preview`
-- **Use Case**: Start with clean interface, toggle preview later
-
-#### `--show-preview`
-
-**Purpose**: Starts the interface with the preview panel visible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-preview` or `--hide-preview`
-- **Use Case**: Ensure preview is always available
-
-#### `-p, --preview-command <STRING>`
-
-**Purpose**: Command to generate preview content for the selected entry
-
-- **Both Modes**: Same behavior
-- **Requires**: `--source-command` (in ad-hoc mode)
-- **Conflicts**: Cannot be used with `--no-preview`
-- **Example**: `--preview-command "bat -n --color=always '{}'"`
-
-#### `--preview-header <STRING>`
-
-**Purpose**: Template for text displayed above the preview panel
-
-- **Both Modes**: Same behavior
-- **Requires**: `--preview-command` (in ad-hoc mode)
-- **Conflicts**: Cannot be used with `--no-preview`
-- **Example**: `--preview-header "File: {split:/:-1|upper}"`
-
-#### `--preview-footer <STRING>`
-
-**Purpose**: Template for text displayed below the preview panel
-
-- **Both Modes**: Same behavior
-- **Requires**: `--preview-command` (in ad-hoc mode)
-- **Conflicts**: Cannot be used with `--no-preview`
-
-#### `--preview-offset <STRING>`
-
-**Purpose**: Template that determines the scroll position in the preview
-
-- **Both Modes**: Same behavior
-- **Requires**: `--preview-command` (in ad-hoc mode)
-- **Conflicts**: Cannot be used with `--no-preview`
-- **Example**: `--preview-offset "10"` (start at line 10)
-
-#### `--preview-size <INTEGER>`
-
-**Purpose**: Width of the preview panel as a percentage
-
-- **Both Modes**: Same behavior
-- **Default**: 50% of screen width
-- **Range**: 1-99
-- **Conflicts**: Cannot be used with `--no-preview`
-
-### ℹ️ Status Bar Options
-
-#### `--no-status-bar`
-
-**Purpose**: Disable status bar feature, toggling is not possible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--hide-status-bar` or `--show-status-bar`
-- **Use Case**: Minimal interface
-
-#### `--hide-status-bar`
-
-**Purpose**: Starts the interface with the status bar hidden
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-status-bar` or `--show-status-bar`
-- **Use Case**: Clean interface with option to show status later
-
-#### `--show-status-bar`
-
-**Purpose**: Starts the interface with the status bar visible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-status-bar` or `--hide-status-bar`
-- **Use Case**: Ensure status information is always available
-
-### 📡 Remote Control Options
-
-#### `--no-remote`
-
-**Purpose**: Disable remote control feature, toggling is not possible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--hide-remote` or `--show-remote`
-- **Use Case**: Single-channel mode, embedded usage
-
-#### `--hide-remote`
-
-**Purpose**: Starts the interface with the remote control hidden
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-remote` or `--show-remote`
-- **Use Case**: Start in single-channel mode, access remote later
-
-#### `--show-remote`
-
-**Purpose**: Starts the interface with the remote control visible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-remote` or `--hide-remote`
-- **Use Case**: Ensure channel switching is always available
-
-### ❓ Help Panel Options
-
-#### `--no-help-panel`
-
-**Purpose**: Disable help panel feature, toggling is not possible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--hide-help-panel` or `--show-help-panel`
-- **Use Case**: Minimal interface
-
-#### `--hide-help-panel`
-
-**Purpose**: Starts the interface with the help panel hidden
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-help-panel` or `--show-help-panel`
-- **Use Case**: Clean interface with option to show help later
-
-#### `--show-help-panel`
-
-**Purpose**: Starts the interface with the help panel visible
-
-- **Both Modes**: Same behavior
-- **Conflicts**: Cannot be used with `--no-help-panel` or `--hide-help-panel`
-- **Use Case**: Ensure help information is always available
-
-### 🎨 Interface and Layout Options
-
-#### `--layout <LAYOUT>`
-
-**Purpose**: Controls the overall interface orientation
-
-- **Both Modes**: Same behavior
-- **Values**: `landscape` (side-by-side), `portrait` (stacked)
-- **Default**: `landscape`
-
-#### `--input-header <STRING>`
-
-**Purpose**: Template for text displayed above the input field
-
-- **Both Modes**: Same behavior
-- **Default**: Channel name (channel mode) or empty (ad-hoc mode)
-- **Example**: `--input-header "Search files:"`
-
-#### `--ui-scale <INTEGER>`
-
-**Purpose**: Scales the entire interface size
-
-- **Both Modes**: Same behavior
-- **Default**: 100%
-- **Range**: 10-100%
-- **Use Case**: Adapt to different screen sizes or preferences
-
-#### `--height <INTEGER>`
-
-**Purpose**: Sets a fixed height for non-fullscreen mode
-
-- **Both Modes**: Same behavior
-- **Range**: 6 or higher (minimum UI height required)
-- **Conflicts**: Cannot be used with `--inline`
-- **Use Case**: Precise control over interface height
-
-#### `--width <INTEGER>`
-
-**Purpose**: Sets a fixed width for non-fullscreen mode
-
-- **Both Modes**: Same behavior
-- **Range**: 10 or higher (minimum UI width required)
-- **Requires**: Must be used with `--inline` or `--height`
-- **Use Case**: Precise control over interface width
-
-#### `--inline`
-
-**Purpose**: Uses all available empty space at the bottom of the terminal
-
-- **Both Modes**: Same behavior
-- **Behavior**: Automatically uses all available space below the cursor,
-  minimum height is ensured (set by default at 15 lines)
-- **Conflicts**: Cannot be used with `--height`
-- **Use Case**: Use of all available space without entering fullscreen mode
-
-### ⌨️ Input and Interaction Options
-
-#### `-i, --input <STRING>`
-
-**Purpose**: Pre-fills the input prompt with specified text
-
-- **Both Modes**: Same behavior
-- **Use Case**: Continue a previous search or provide default query
-- **Example**: `-i "main.py"`
-
-#### `-k, --keybindings <STRING>`
-
-**Purpose**: Overrides default keyboard shortcuts
-
-- **Both Modes**: Same behavior
-- **Format**: `action1=["key1","key2"];action2=["key3"]`
-- **Example**: `-k 'quit=["q","esc"];select=["enter","space"]'`
-
-#### `--exact`
-
-**Purpose**: Changes matching behavior from fuzzy to exact substring matching
-
-- **Both Modes**: Same behavior
-- **Default**: Fuzzy matching
-- **Use Case**: When you need precise substring matches
-
-### ⚡ Selection Behavior Options
-
-> **Note**: These options are mutually exclusive - only one can be used at a time.
-
-#### `--select-1`
-
-**Purpose**: Automatically selects and returns the entry if only one is found
-
-- **Both Modes**: Same behavior
-- **Use Case**: Scripting scenarios where single results should be auto-selected
-
-#### `--take-1`
-
-**Purpose**: Takes the first entry after loading completes
-
-- **Both Modes**: Same behavior
-- **Use Case**: Scripts that always want the first/best result
-
-#### `--take-1-fast`
-
-**Purpose**: Takes the first entry immediately as it appears
-
-- **Both Modes**: Same behavior
-- **Use Case**: Maximum speed scripts that don't care about all options
-
-### ⚙️ Performance and Monitoring Options
-
-#### `-t, --tick-rate <FLOAT>`
-
-**Purpose**: Controls how frequently the interface updates (times per second)
-
-- **Both Modes**: Same behavior
-- **Default**: Auto-calculated based on system performance
-- **Validation**: Must be positive number
-- **Example**: `--tick-rate 30` (30 updates per second)
-
-#### `--watch <FLOAT>`
-
-**Purpose**: Automatically re-runs the source command at regular intervals
-
-- **Both Modes**: Same behavior
-- **Default**: 0 (disabled)
-- **Units**: Seconds between updates
-- **Conflicts**: Cannot be used with selection options (`--select-1`, `--take-1`, `--take-1-fast`)
-- **Example**: `--watch 2.0` (update every 2 seconds)
-
-### 📁 Directory and Configuration Options
-
-#### `[PATH]` (Positional Argument 2)
-
-**Purpose**: Sets the working directory for the command
-
-- **Both Modes**: Same behavior
-- **Default**: Current directory
-- **Example**: `tv files /home/user/projects`
-
-#### `--config-file <PATH>`
-
-**Purpose**: Uses a custom configuration file instead of the default
-
-- **Both Modes**: Same behavior
-- **Default**: `~/.config/television/config.toml` (Linux/macOS) or `%LocalAppData%\television\config.toml` (Windows)
-- **Use Case**: Multiple configurations for different workflows
-
-#### `--cable-dir <PATH>`
-
-**Purpose**: Uses a custom directory for channel definitions
-
-- **Both Modes**: Same behavior
-- **Default**: `~/.config/television/cable/` (Linux/macOS) or `%LocalAppData%\television\cable\` (Windows)
-- **Use Case**: Custom channel collections or shared team channels
-
-### 📚 History Options
-
-#### `--global-history`
-
-**Purpose**: Enables global history for the current session
-
-- **Both Modes**: Same behavior
-- **Default**: Channel-specific history (scoped to current channel)
-- **Use Case**: Cross-channel workflow when you want to see all recent searches
-- **Example**: `tv files --global-history`
-
-### 🔧 Special Mode Options
-
-#### `--autocomplete-prompt <STRING>`
-
-**Purpose**: ⚡ **Activates Channel Mode** - Auto-detects channel from shell command
-
-- **Effect**: Switches to Channel Mode automatically
-- **Behavior**: Analyzes the provided command to determine appropriate channel
-- **Conflicts**: Cannot be used with `[CHANNEL]` positional argument
-- **Use Case**: Shell integration and smart channel detection
-- **Example**: `--autocomplete-prompt "git log --oneline"`
-
-## Subcommands
-
-### `list-channels`
-
-Lists all available channels in the cable directory.
-
-```bash
-tv list-channels
-```
-
-### `init <SHELL>`
-
-Generates shell completion script for the specified shell.
-
-**Supported shells**: `bash`, `zsh`, `fish`, `powershell`, `cmd`
-
-```bash
-tv init zsh > ~/.zshrc.d/tv-completion.zsh
-```
-
-### `update-channels`
-
-Downloads the latest channel prototypes from GitHub.
-
-```bash
-tv update-channels
-```
-
-## Usage Rules and Restrictions
-
-> **Note**: Detailed requirements and conflicts for each flag are covered in the [Options](#options) section above. This section provides a high-level overview of the key rules.
-
-### 🎯 Ad-hoc Mode Requirements
-
-When using Television without a channel, certain flags become mandatory:
-
-- **`--source-command` is required** - without this, no entries will be generated
-- **Preview dependencies** - all `--preview-*` flags require `--preview-command` to be functional
-- **Source formatting dependencies** - `--source-display` and `--source-output` require `--source-command`
-
-### 🚫 Mutually Exclusive Options
-
-These option groups cannot be used together:
-
-- **Selection behavior**: Only one of `--select-1`, `--take-1`, or `--take-1-fast`
-- **Preview control**: `--no-preview` conflicts with all `--preview-*` flags and `--hide-preview`/`--show-preview`
-- **Preview visibility**: Only one of `--no-preview`, `--hide-preview`, or `--show-preview`
-- **Status bar control**: Only one of `--no-status-bar`, `--hide-status-bar`, or `--show-status-bar`
-- **Remote control**: Only one of `--no-remote`, `--hide-remote`, or `--show-remote`
-- **Help panel control**: Only one of `--no-help-panel`, `--hide-help-panel`, or `--show-help-panel`
-- **Channel selection**: Cannot use both `[CHANNEL]` argument and `--autocomplete-prompt`
-- **Watch vs selection**: `--watch` cannot be used with auto-selection flags
-
-### ✅ Channel Mode Benefits
-
-Channels provide sensible defaults, making the tool more flexible:
-
-- Preview and source flags work independently (channel provides missing pieces)
-- All UI options have reasonable defaults
-- Less strict validation since channels fill in the gaps
-
-## Configuration
-
-### ⚡ Configuration Priority
-
-Television uses a layered configuration system where each layer can override the previous:
-
-1. **CLI flags** - Highest priority, overrides everything
-2. **Channel configuration** - Channel-specific settings
-3. **User config file** - Personal preferences
-4. **Built-in defaults** - Fallback values
-
-### 📁 Configuration Locations
-
-#### User Configuration File
-
-- **Linux/macOS**: `~/.config/television/config.toml`
-- **Windows**: `%LocalAppData%\television\config.toml`
-
-#### Channel Definitions (Cable Directory)
-
-- **Linux/macOS**: `~/.config/television/cable/`
-- **Windows**: `%LocalAppData%\television\cable\`
-
-> **Tip**: Use `--config-file` and `--cable-dir` flags to override these default locations
-
-### 🎛️ UI Panel Control
-
-Television allows you to control the visibility and behavior of UI panels through CLI flags. Each panel can be hidden, shown, or disabled entirely.
-
-#### UI Panel Overview
-
-Television supports four main UI panels:
-
-| Panel              | Purpose                                           | Default State | CLI Controls                                                |
-| ------------------ | ------------------------------------------------- | ------------- | ----------------------------------------------------------- |
-| **Preview Panel**  | Shows contextual information for selected entries | Visible       | `--no-preview`, `--hide-preview`, `--show-preview`          |
-| **Status Bar**     | Displays application status and available actions | Visible       | `--no-status-bar`, `--hide-status-bar`, `--show-status-bar` |
-| **Help Panel**     | Shows contextual help and keyboard shortcuts      | Hidden        | `--no-help-panel`, `--hide-help-panel`, `--show-help-panel` |
-| **Remote Control** | Provides channel switching interface              | Hidden        | `--no-remote`, `--hide-remote`, `--show-remote`             |
-
-#### CLI Panel Control Examples
-
-```bash
-# Control visibility
-tv files --hide-preview --show-status-bar
-
-# Show normally hidden panels
-tv files --show-help-panel --show-remote
-
-# Disable panels entirely
-tv files --no-preview --no-remote
-
-# Mixed control
-tv files --hide-status-bar --show-remote
-```
-
-## Template System
-
-Television uses a powerful template system for dynamic content generation. Templates are enclosed in curly braces `{}` and support complex operations.
-
-### Template-Enabled Flags
-
-| Flag Category | Flags Using Templates                                     |
-| ------------- | --------------------------------------------------------- |
-| **Source**    | `--source-command`, `--source-display`, `--source-output` |
-| **Preview**   | `--preview-command`, `--preview-offset`                   |
-| **Headers**   | `--input-header`, `--preview-header`, `--preview-footer`  |
-
-### Basic Template Syntax
-
-Templates support a wide range of operations that can be chained together:
-
 ```text
-{operation1|operation2|operation3}
-```
+A portable and hackable fuzzy finder for the terminal
 
-### Core Template Operations
+Usage: tv [OPTIONS] [CHANNEL] [PATH] [COMMAND]
 
-| Operation                 | Description                  | Example                              |
-| ------------------------- | ---------------------------- | ------------------------------------ |
-| `{}`                      | Full entry (passthrough)     | `{}` → original entry                |
-| `{split:SEPARATOR:RANGE}` | Split text and extract parts | `{split:/:‑1}` → last path component |
-| `{upper}`                 | Convert to uppercase         | `{upper}` → "HELLO"                  |
-| `{lower}`                 | Convert to lowercase         | `{lower}` → "hello"                  |
-| `{trim}`                  | Remove whitespace            | `{trim}` → "text"                    |
-| `{append:TEXT}`           | Add text to end              | `{append:.txt}` → "file.txt"         |
-| `{prepend:TEXT}`          | Add text to beginning        | `{prepend:/home/}` → "/home/file"    |
+Commands:
+  list-channels    Lists the available channels
+  init             Initializes shell completion ("tv init zsh")
+  update-channels  Downloads the latest collection of channel prototypes from github and saves them to the local configuration directory
+  help             Print this message or the help of the given subcommand(s)
 
-### Advanced Template Operations
+Arguments:
+  [CHANNEL]
+          Which channel shall we watch?
+          
+          Channels provide predefined configurations including source commands,
+          preview commands, UI settings, and more.
+          
+          To list available channels, use the `list-channels` subcommand.
+          
+          To pull the latest collection of channels from github, use the
+          `update-channels` subcommand.
 
-| Operation                               | Description                 | Example                                  |
-| --------------------------------------- | --------------------------- | ---------------------------------------- |
-| `{replace:s/PATTERN/REPLACEMENT/FLAGS}` | Regex find and replace      | `{replace:s/\\.py$/.backup/}`            |
-| `{regex_extract:PATTERN}`               | Extract matching text       | `{regex_extract:\\d+}` → extract numbers |
-| `{filter:PATTERN}`                      | Keep items matching pattern | `{split:,:..\|filter:^test}`             |
-| `{sort}`                                | Sort list items             | `{split:,:..\|sort}`                     |
-| `{unique}`                              | Remove duplicates           | `{split:,:..\|unique}`                   |
-| `{join:SEPARATOR}`                      | Join list with separator    | `{split:,:..\|join:-}`                   |
+  [PATH]
+          The working directory to start the application in.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This can be used to specify a different working directory for the
+          application to start in. This is useful when the application is
+          started from a different directory than the one the user wants to
+          interact with.
 
-### Template Examples
+Options:
+      --preview-offset <STRING>
+          A preview line number offset template to use to scroll the preview to for each
+          entry.
+          
+          When a channel is specified: This overrides the offset defined in the channel prototype.
+          When no channel is specified: This flag requires --preview-command to be set.
+          
+          This template uses the same syntax as the `preview` option and will be formatted
+          using the currently selected entry.
 
-```text
-# File path manipulation
-{split:/:-1}                    # Get filename from path
-{split:/:0..-1|join:/}          # Get directory from path
+      --no-preview
+          Disable the preview panel entirely on startup.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          When set, no preview panel will be shown regardless of channel configuration
+          or preview-related flags.
 
-# Text processing
-{split: :..|map:{upper}|join:_} # "hello world" → "HELLO_WORLD"
-{trim|replace:s/\s+/_/g}        # Replace spaces with underscores
+      --hide-preview
+          Hide the preview panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The preview remains functional and can be toggled visible later.
 
-# Data extraction
-{regex_extract:@(.+)}           # Extract email domain
-{split:,:..|filter:^[A-Z]}      # Filter items starting with uppercase
-```
+      --show-preview
+          Show the preview panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          This overrides any channel configuration that might have it disabled.
 
-### Range Specifications
+      --no-status-bar
+          Disable the status bar entirely on startup.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          When set, no status bar will be shown regardless of channel configuration
+          or status bar-related flags.
 
-| Syntax  | Description                      |
-| ------- | -------------------------------- |
-| `N`     | Single index (0-based)           |
-| `N..M`  | Range exclusive (items N to M-1) |
-| `N..=M` | Range inclusive (items N to M)   |
-| `N..`   | From N to end                    |
-| `..M`   | From start to M-1                |
-| `..`    | All items                        |
-| `-1`    | Last item                        |
-| `-N`    | N-th from end                    |
+      --hide-status-bar
+          Hide the status bar on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The status bar remains functional and can be toggled visible later.
 
-For complete template documentation, see the [Template System Documentation](https://github.com/lalvarezt/string_pipeline/blob/main/docs/template-system.md).
+      --show-status-bar
+          Show the status bar on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          This overrides any channel configuration that might have it disabled.
 
-## Examples
+  -t, --tick-rate <INT>
+          The application's tick rate.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          The tick rate is the number of times the application will update per
+          second. This can be used to control responsiveness and CPU usage on
+          very slow machines or very fast ones but the default should be a good
+          compromise for most users.
 
-> **Note**: More detailed examples with explanations are included in each option's documentation above.
+      --watch <FLOAT>
+          Watch mode: reload the source command every N seconds.
+          
+          When a channel is specified: Overrides the watch interval defined in the channel prototype.
+          When no channel is specified: Sets the watch interval for the ad-hoc channel.
+          
+          When set to a positive number, the application will automatically
+          reload the source command at the specified interval. This is useful
+          for monitoring changing data sources. Set to 0 to disable (default).
 
-### 🎯 Quick Start Examples
+  -k, --keybindings <STRING>
+          Keybindings to override the default keybindings.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This can be used to override the default keybindings with a custom subset.
+          The keybindings are specified as a semicolon separated list of keybinding
+          expressions using the configuration file formalism.
+          
+          Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
 
-#### Channel Mode (Recommended)
+      --expect <STRING>
+          Keys that can be used to confirm the current selection in addition to the default ones
+          (typically `enter`).
+          
+          When this is set, confirming the selection will first output an extra line with the key
+          that was used to confirm the selection before outputting the selected entry.
+          
+          Example: `tv --expect='ctrl-q'` will output `ctr-q\n<selected_entry>` when `ctrl-q` is
+          pressed to confirm the selection.
 
-```bash
-# Basic usage - use built-in channels
-tv files                    # Browse files in current directory
-tv git-log                  # Browse git commit history
-tv docker-images            # Browse Docker images
+  -i, --input <STRING>
+          Input text to pass to the channel to prefill the prompt.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This can be used to provide a default value for the prompt upon
+          startup.
 
-# Channel + customization
-tv files --preview-command "bat -n --color=always '{}'"
-tv git-log --layout portrait
+      --input-header <STRING>
+          Input field header template.
+          
+          When a channel is specified: Overrides the input header defined in the channel prototype.
+          When no channel is specified: Sets the input header for the ad-hoc channel.
+          
+          The given value is parsed as a `MultiTemplate`. It is evaluated against
+          the current channel name and the resulting text is shown as the input
+          field title. Defaults to the current channel name when omitted.
 
-# Feature visibility control
-tv files --hide-preview --show-status-bar    # Clean interface, status visible
-tv files --show-remote                       # Force remote control visible
-```
+      --input-prompt <STRING>
+          Input prompt string
+          
+          When a channel is specified: This overrides the prompt defined in the channel prototype.
+          When no channel is specified: Sets the input prompt for the ad-hoc channel.
+          
+          The given value is used as the prompt string shown before the input field.
+          Defaults to ">" when omitted.
 
-#### Ad-hoc Mode (Custom Commands)
+      --input-border <INPUT_BORDER>
+          Sets the input panel border type.
+          
+          Available options are: `none`, `plain`, `rounded`, `thick`.
+          
+          [possible values: none, plain, rounded, thick]
 
-```bash
-# Simple custom finder
-tv --source-command "find . -name '*.md'"
+      --input-padding <STRING>
+          Sets the input panel padding.
+          
+          Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+          
+          Example: `--input-padding='top=1;left=2;bottom=1;right=2'`
 
-# Live system monitoring with hidden UI elements
-tv --source-command "ps aux | tail -n +2" \
-   --watch 1.0 \
-   --hide-preview \
-   --hide-status-bar
+      --preview-header <STRING>
+          Preview header template
+          
+          When a channel is specified: This overrides the header defined in the channel prototype.
+          When no channel is specified: This flag requires --preview-command to be set.
+          
+          The given value is parsed as a `MultiTemplate`. It is evaluated for every
+          entry and its result is displayed above the preview panel.
 
-# Clean interface with selective visibility
-tv --source-command "docker ps -a" \
-   --hide-preview \
-   --show-status-bar
+      --preview-footer <STRING>
+          Preview footer template
+          
+          When a channel is specified: This overrides the footer defined in the channel prototype.
+          When no channel is specified: This flag requires --preview-command to be set.
+          
+          The given value is parsed as a `MultiTemplate`. It is evaluated for every
+          entry and its result is displayed below the preview panel.
+
+      --preview-border <PREVIEW_BORDER>
+          Sets the preview panel border type.
+          
+          Available options are: `none`, `plain`, `rounded`, `thick`.
+          
+          [possible values: none, plain, rounded, thick]
+
+      --preview-padding <STRING>
+          Sets the preview panel padding.
+          
+          Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+          
+          Example: `--preview-padding='top=1;left=2;bottom=1;right=2'`
+
+      --hide-preview-scrollbar
+          Hide preview panel scrollbar.
+
+  -s, --source-command <STRING>
+          Source command to use for the current channel.
+          
+          When a channel is specified: This overrides the command defined in the channel prototype.
+          When no channel is specified: This creates an ad-hoc channel with the given command.
+          
+          Example: `find . -name '*.rs'`
+
+      --ansi
+          Whether tv should extract and parse ANSI style codes from the source command output.
+          
+          This is useful when the source command outputs colored text or other ANSI styles and you
+          want `tv` to preserve them in the UI. It does come with a slight performance cost but
+          which should go mostly unnoticed for typical human interaction workloads.
+          
+          Example: `tv --source-command="echo -e '\x1b[31mRed\x1b[0m'" --ansi`
+
+      --source-display <STRING>
+          Source display template to use for the current channel.
+          
+          When a channel is specified: This overrides the display template defined in the channel prototype.
+          When no channel is specified: This flag requires --source-command to be set.
+          
+          The template is used to format each entry in the results list.
+          Example: `{split:/:-1}` (show only the last path segment)
+
+      --source-output <STRING>
+          Source output template to use for the current channel.
+          
+          When a channel is specified: This overrides the output template defined in the channel prototype.
+          When no channel is specified: This flag requires --source-command to be set.
+          
+          The template is used to format the final output when an entry is selected.
+          Example: "{}" (output the full entry)
+
+      --results-border <RESULTS_BORDER>
+          Sets the results panel border type.
+          
+          Available options are: `none`, `plain`, `rounded`, `thick`.
+          
+          [possible values: none, plain, rounded, thick]
+
+      --results-padding <STRING>
+          Sets the results panel padding.
+          
+          Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+          
+          Example: `--results-padding='top=1;left=2;bottom=1;right=2'`
+
+      --source-entry-delimiter <STRING>
+          The delimiter byte to use for splitting the source's command output into entries.
+          
+          This can be useful when the source command outputs multiline entries and you want to
+          rely on another delimiter to split the entries such a null byte or a custom character.
+
+  -p, --preview-command <STRING>
+          Preview command to use for the current channel.
+          
+          When a channel is specified: This overrides the preview command defined in the channel prototype.
+          When no channel is specified: This enables preview functionality for the ad-hoc channel.
+          
+          Example: "cat {}" (where {} will be replaced with the entry)
+          
+          Parts of the entry can be extracted positionally using the `delimiter`
+          option.
+          Example: "echo {0} {1}" will split the entry by the delimiter and pass
+          the first two fields to the command.
+
+      --cache-preview
+          Whether to cache the preview command output for each entry.
+          
+          This can be useful when the preview command is expensive to run
+          and you want to avoid running it multiple times for the same entry.
+
+      --layout <LAYOUT>
+          Layout orientation for the UI.
+          
+          When a channel is specified: Overrides the layout/orientation defined in the channel prototype.
+          When no channel is specified: Sets the layout orientation for the ad-hoc channel.
+          
+          Options are "landscape" or "portrait".
+          
+          [possible values: landscape, portrait]
+
+      --autocomplete-prompt <STRING>
+          Try to guess the channel from the provided input prompt.
+          
+          This flag automatically selects channel mode by guessing the appropriate channel.
+          It conflicts with manually specifying a channel since it determines the channel automatically.
+          
+          This can be used to automatically select a channel based on the input
+          prompt by using the `shell_integration` mapping in the configuration
+          file.
+
+      --exact
+          Use substring matching instead of fuzzy matching.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will use substring matching instead of fuzzy matching when
+          searching for entries. This is useful when the user wants to search for
+          an exact match instead of a fuzzy match e.g. to improve performance.
+
+      --select-1
+          Automatically select and output the first entry if there is only one
+          entry.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          Note that most channels stream entries asynchronously which means that
+          knowing if there's only one entry will require waiting for the channel
+          to finish loading first.
+          
+          For most channels and workloads this shouldn't be a problem since the
+          loading times are usually very short and will go unnoticed by the user.
+
+      --take-1
+          Take the first entry from the list after the channel has finished loading.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will wait for the channel to finish loading all entries and then
+          automatically select and output the first entry. Unlike `select_1`, this
+          will always take the first entry regardless of how many entries are available.
+
+      --take-1-fast
+          Take the first entry from the list as soon as it becomes available.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will immediately select and output the first entry as soon as it
+          appears in the results, without waiting for the channel to finish loading.
+          This is the fastest option when you just want the first result.
+
+      --no-remote
+          Disable the remote control.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will disable the remote control panel and associated actions
+          entirely. This is useful when the remote control is not needed or
+          when the user wants `tv` to run in single-channel mode (e.g. when
+          using it as a file picker for a script or embedding it in a larger
+          application).
+
+      --hide-remote
+          Hide the remote control on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The remote control remains functional and can be toggled visible later.
+
+      --show-remote
+          Show the remote control on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+
+      --no-help-panel
+          Disable the help panel entirely on startup.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          When set, no help panel will be shown regardless of channel configuration
+          or help panel-related flags.
+
+      --hide-help-panel
+          Hide the help panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          The help panel remains functional and can be toggled visible later.
+
+      --show-help-panel
+          Show the help panel on startup (only works if feature is enabled).
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          This overrides any channel configuration that might have it disabled.
+
+      --ui-scale <INTEGER>
+          Change the display size in relation to the available area.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          This will crop the UI to a centered rectangle of the specified
+          percentage of the available area.
+
+      --preview-size <INTEGER>
+          Percentage of the screen to allocate to the preview panel (1-99).
+          
+          When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
+          When no channel is specified: This flag requires --preview-command to be set.
+
+      --config-file <PATH>
+          Provide a custom configuration file to use.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+
+      --cable-dir <PATH>
+          Provide a custom cable directory to use.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+
+      --global-history
+          Use global history instead of channel-specific history.
+          
+          This flag only works in channel mode.
+          
+          When enabled, history navigation will show entries from all channels.
+          When disabled (default), history navigation is scoped to the current channel.
+
+      --height <INTEGER>
+          Height in lines for non-fullscreen mode.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          When specified, the picker will be displayed as a non-fullscreen interface.
+
+      --width <INTEGER>
+          Width in columns for non-fullscreen mode.
+          
+          This flag can only be used in combination with --inline or --height.
+          When specified, the picker will be constrained to the specified width.
+
+      --inline
+          Use all available empty space at the bottom of the terminal as an inline interface.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          When enabled, the picker will be displayed as an inline interface that uses
+          all available empty space at the bottom of the terminal. If there is insufficient
+          space to meet the minimum height the terminal will scroll.
+
+  -h, --help
+          Print help (see a summary with '-h')
+
+  -V, --version
+          Print version
 ```
