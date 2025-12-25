@@ -161,9 +161,14 @@ pub struct Cli {
     ///
     /// This can be useful when the preview command is expensive to run
     /// and you want to avoid running it multiple times for the same entry.
+    ///
+    /// This is enabled by default since most channels will benefit from it.
+    ///
+    /// This can be disabled for special cases e.g. where the preview command output changes
+    /// frequently and/or you want live udpates.
     #[arg(
         long,
-        default_value = "false",
+        default_value = "true",
         verbatim_doc_comment,
         conflicts_with = "no_preview",
         help_heading = "Preview"

@@ -386,8 +386,18 @@ pub struct PreviewSpec {
     pub command: CommandSpec,
     #[serde(default)]
     pub offset: Option<Template>,
-    #[serde(default)]
+    #[serde(default = "cached_default")]
     pub cached: bool,
+}
+
+/// Preview caching is enabled by default.
+///
+/// This makes sense since most channels will benefit from caching by reducing
+/// redundant preview command executions when navigating back and forth between entries.
+///
+/// Users may opt-out for special cases where you want the preview to live update.
+fn cached_default() -> bool {
+    true
 }
 
 impl PreviewSpec {
