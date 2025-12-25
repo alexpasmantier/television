@@ -1,5 +1,5 @@
 ```text
-A portable and hackable fuzzy finder for the terminal
+A very fast, portable and hackable fuzzy finder for the terminal
 
 Usage: tv [OPTIONS] [CHANNEL] [PATH] [COMMAND]
 
