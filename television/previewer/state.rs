@@ -11,8 +11,6 @@ pub struct PreviewState {
 }
 
 const PREVIEW_MIN_SCROLL_LINES: u16 = 3;
-pub const ANSI_BEFORE_CONTEXT_SIZE: u16 = 3;
-const ANSI_CONTEXT_SIZE: u16 = 150;
 
 impl PreviewState {
     pub fn new(enabled: bool, preview: Preview, scroll: u16) -> Self {
@@ -41,11 +39,9 @@ impl PreviewState {
     }
 
     pub fn update(&mut self, preview: Preview, scroll: u16) {
-        if self.preview.title != preview.title
+        if self.preview.entry_raw != preview.entry_raw
             || self.preview.content != preview.content
-            || self.preview.footer != preview.footer
             || self.preview.target_line != preview.target_line
-            || self.scroll != scroll
         {
             self.preview = preview;
             self.scroll = scroll;
@@ -54,33 +50,30 @@ impl PreviewState {
 
     // FIXME: does this really need to happen for every render?
     // What if we did it only when the preview content or scroll changes?
-    pub fn for_render_context(&self) -> Self {
-        let num_skipped_lines =
-            self.scroll.saturating_sub(ANSI_BEFORE_CONTEXT_SIZE);
-
+    pub fn for_render_context(&self, height: usize) -> Self {
         // PERF: this allocates every time
-        let cropped_content = self
-            .preview
-            .content
-            .lines
-            .iter()
-            .skip(num_skipped_lines as usize)
-            .take(ANSI_CONTEXT_SIZE as usize)
-            .cloned()
-            .collect::<Vec<_>>();
+        let scroll = self.scroll as usize;
+        let num_lines = self.preview.total_lines.saturating_sub(
+            u16::try_from(scroll).expect("scroll should fit in a u16"),
+        ) as usize;
+        let cropped_content: Text<'_> = self.preview.content.lines
+            [scroll..scroll + num_lines.min(height)]
+            .to_vec()
+            .into();
 
         let adjusted_line_number = self
             .preview
             .target_line
-            .map(|line| line.saturating_sub(num_skipped_lines));
+            .map(|line| line.saturating_sub(self.scroll));
 
         PreviewState::new(
             self.enabled,
             // PERF: this allocates every time
             Preview::new(
                 self.preview.entry_raw.clone(),
+                self.preview.formatted_command.clone(),
                 &self.preview.title,
-                Text::from(cropped_content),
+                cropped_content,
                 adjusted_line_number,
                 self.preview.total_lines,
                 self.preview.footer.clone(),

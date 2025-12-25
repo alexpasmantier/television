@@ -14,7 +14,7 @@ use tokio::{
     task::spawn,
     time::timeout,
 };
-use tracing::debug;
+use tracing::{debug, trace, warn};
 
 use crate::{
     channels::{
@@ -114,6 +114,7 @@ impl Ticket {
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct Preview {
     pub entry_raw: String,
+    pub formatted_command: String,
     pub title: String,
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
@@ -129,6 +130,7 @@ impl Default for Preview {
     fn default() -> Self {
         Self {
             entry_raw: EMPTY_STRING.to_string(),
+            formatted_command: EMPTY_STRING.to_string(),
             title: DEFAULT_PREVIEW_TITLE.to_string(),
             content: Text::from(EMPTY_STRING),
             target_line: None,
@@ -141,6 +143,7 @@ impl Default for Preview {
 impl Preview {
     fn new(
         entry_raw: String,
+        formatted_command: String,
         title: &str,
         displayable_content: Text<'static>,
         line_number: Option<u16>,
@@ -149,6 +152,7 @@ impl Preview {
     ) -> Self {
         Self {
             entry_raw,
+            formatted_command,
             title: title.to_string(),
             content: displayable_content,
             target_line: line_number,
@@ -238,38 +242,38 @@ impl Previewer {
                         ));
                         match timeout(self.config.job_timeout, job).await {
                             Ok(Ok(Ok(()))) => {
-                                debug!("Preview job completed successfully");
+                                trace!("Preview job completed successfully");
                             }
-                            Ok(Ok(Err(e))) => debug!(
+                            Ok(Ok(Err(e))) => warn!(
                                 "Failed to generate preview for entry '{}': {}",
                                 &self.last_job_entry.clone().unwrap().raw,
                                 e
                             ),
                             Ok(Err(join_err)) => {
-                                debug!(
+                                warn!(
                                     "Preview join error for '{}': {}",
                                     self.last_job_entry.clone().unwrap().raw,
                                     join_err
                                 );
                             }
                             Err(e) => {
-                                debug!("Preview job timeout: {}", e);
+                                warn!("Preview job timeout: {}", e);
                             }
                         }
                     }
                     Request::CycleCommand => {
-                        debug!("Cycling preview command.");
+                        trace!("Cycling preview command.");
                         self.cycle_command();
                     }
                     Request::Shutdown => {
-                        debug!(
+                        trace!(
                             "Received shutdown signal, breaking out of the previewer loop."
                         );
                         break;
                     }
                 }
             } else {
-                debug!(
+                trace!(
                     "Preview request channel closed and no messages left, breaking out of the previewer loop."
                 );
                 break;
@@ -279,11 +283,6 @@ impl Previewer {
 
     pub fn cycle_command(&mut self) {
         self.cycle_index = (self.cycle_index + 1) % self.command.inner.len();
-        // we also need to invalidate the cache since the command has changed
-        if let Some(cache) = &self.cache {
-            cache.lock().clear();
-            debug!("Preview cache cleared");
-        }
         // re-request preview for the last entry if any
         if let Some(entry) = &self.last_job_entry {
             let _ = self
@@ -291,6 +290,61 @@ impl Previewer {
                 .send(Request::Preview(Ticket::new(entry.clone())));
         }
     }
+}
+
+fn sanitize_text(text: &mut Text<'static>) {
+    text.lines.iter_mut().for_each(|line| {
+        // replace non-printable characters
+        line.spans.iter_mut().for_each(|span| {
+            span.content = replace_non_printable_bulk(
+                &span.content,
+                &ReplaceNonPrintableConfig::default(),
+            )
+            .0
+            .into_owned()
+            .into();
+        });
+    });
+}
+
+fn build_preview_from_text(
+    formatted_command: &str,
+    entry: &Entry,
+    text: Text<'static>,
+    title_template: Option<&Template>,
+    footer_template: Option<&Template>,
+    offset_expr: Option<&Template>,
+) -> Result<Preview> {
+    let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
+
+    // try to extract a line number from the offset expression if provided
+    let line_number = if let Some(offset_expr) = offset_expr.as_ref() {
+        let offset_str = offset_expr.format(&entry.raw)?;
+        offset_str.parse::<u16>().ok()
+    } else {
+        None
+    };
+
+    let title = if let Some(title_template) = title_template.as_ref() {
+        title_template.format(&entry.raw)?
+    } else {
+        entry.display().to_string()
+    };
+    let footer = if let Some(footer_template) = footer_template.as_ref() {
+        Some(footer_template.format(&entry.raw)?)
+    } else {
+        None
+    };
+
+    Ok(Preview::new(
+        entry.raw.clone(),
+        formatted_command.to_string(),
+        &title,
+        text,
+        line_number,
+        total_lines,
+        footer,
+    ))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -304,114 +358,68 @@ pub async fn try_preview(
     results_handle: UnboundedSender<Preview>,
     cache: Option<Arc<Mutex<Cache>>>,
 ) -> Result<()> {
-    debug!("Preview command: {}", command);
+    let formatted_command = command.get_nth(cycle_index).format(&entry.raw)?;
 
     // Check if the entry is already cached
     if let Some(cache) = &cache
-        && let Some(preview) = cache.lock().get(&entry)
+        && let Some(text) = cache.lock().get(&formatted_command)
     {
-        debug!("Preview for entry '{}' found in cache", entry.raw);
+        trace!("Preview for command '{}' found in cache", formatted_command);
+        let preview = build_preview_from_text(
+            &formatted_command,
+            &entry,
+            text,
+            title_template.as_ref(),
+            footer_template.as_ref(),
+            offset_expr.as_ref(),
+        )?;
         results_handle.send(preview).with_context(
             || "Failed to send cached preview result to main thread.",
         )?;
         return Ok(());
     }
 
-    let formatted_command = command.get_nth(cycle_index).format(&entry.raw)?;
-
+    debug!("Executing preview command: {}", &formatted_command);
     let command =
         shell_command(&formatted_command, command.interactive, &command.env);
 
     let child = TokioCommand::from(command).output().await?;
 
-    let preview: Preview = {
-        if child.status.success() {
-            let mut text = child
-                .stdout
-                .into_text()
-                .unwrap_or_else(|_| Text::from(EMPTY_STRING));
-
-            text.lines.iter_mut().for_each(|line| {
-                // replace non-printable characters
-                line.spans.iter_mut().for_each(|span| {
-                    span.content = replace_non_printable_bulk(
-                        &span.content,
-                        &ReplaceNonPrintableConfig::default(),
-                    )
-                    .0
-                    .into_owned()
-                    .into();
-                });
-            });
-
-            let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
-
-            let line_number = if let Some(offset_expr) = offset_expr {
-                let offset_str = offset_expr.format(&entry.raw)?;
-                offset_str.parse::<u16>().ok()
-            } else {
-                None
-            };
-
-            // compute title
-            let title = if let Some(title_template) = title_template {
-                title_template.format(&entry.raw)?
-            } else {
-                entry.display().to_string()
-            };
-            // compute footer
-            let footer = if let Some(footer_template) = footer_template {
-                Some(footer_template.format(&entry.raw)?)
-            } else {
-                None
-            };
-
-            Preview::new(
-                entry.raw.clone(),
-                &title,
-                text,
-                line_number,
-                total_lines,
-                footer,
-            )
-        } else {
-            let mut text = child
-                .stderr
-                .into_text()
-                .unwrap_or_else(|_| Text::from(EMPTY_STRING));
-
-            text.lines.iter_mut().for_each(|line| {
-                // replace non-printable characters
-                line.spans.iter_mut().for_each(|span| {
-                    span.content = replace_non_printable_bulk(
-                        &span.content,
-                        &ReplaceNonPrintableConfig::default(),
-                    )
-                    .0
-                    .into_owned()
-                    .into();
-                });
-            });
-
-            let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
-
-            Preview::new(
-                entry.raw.clone(),
-                entry.display(),
-                text,
-                None,
-                total_lines,
-                None,
-            )
-        }
+    let mut text = if child.status.success() {
+        child
+            .stdout
+            .into_text()
+            .unwrap_or_else(|_| Text::from(EMPTY_STRING))
+    } else {
+        child
+            .stderr
+            .into_text()
+            .unwrap_or_else(|_| Text::from(EMPTY_STRING))
     };
 
-    // Cache the preview if caching is enabled
-    // NOTE: we're caching errors as well to avoid re-running potentially expensive commands
-    if let Some(cache) = &cache {
-        // FIXME: we should really just wrap the preview in an Arc to avoid cloning here
-        cache.lock().insert(&entry, &preview);
-    }
+    sanitize_text(&mut text);
+
+    let preview = if let Some(cache) = &cache {
+        let preview = build_preview_from_text(
+            &formatted_command,
+            &entry,
+            text.clone(),
+            title_template.as_ref(),
+            footer_template.as_ref(),
+            offset_expr.as_ref(),
+        )?;
+        cache.lock().insert(&formatted_command, &text);
+        preview
+    } else {
+        build_preview_from_text(
+            &formatted_command,
+            &entry,
+            text,
+            title_template.as_ref(),
+            footer_template.as_ref(),
+            offset_expr.as_ref(),
+        )?
+    };
     // FIXME: ... and just send an Arc here as well
     results_handle
         .send(preview)

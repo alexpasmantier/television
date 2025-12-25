@@ -242,7 +242,13 @@ impl Television {
             self.rc_picker.clone(),
             channel_state,
             self.spinner,
-            self.preview_state.for_render_context(),
+            self.preview_state.for_render_context(
+                self.ui_state
+                    .layout
+                    .preview_window
+                    .as_ref()
+                    .map_or(0, |r| r.height as usize),
+            ),
         );
 
         Ctx::new(
@@ -533,6 +539,9 @@ impl Television {
             if let Some((sender, receiver)) = &mut self.preview_handles {
                 // send a preview request if the preview state is out of sync
                 // with the currently selected entry
+                // FIXME: this can't only rely on raw (ex: lines numbers may change for text
+                // but we don't want to regenerate the preview if the file is the same)
+                // NOTE: this is fine for now since we'll get a cache hit if cache is enabled
                 if selected_entry.raw != self.preview_state.preview.entry_raw {
                     sender.send(PreviewRequest::Preview(Ticket::new(
                         selected_entry.clone(),
