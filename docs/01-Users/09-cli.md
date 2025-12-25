@@ -117,6 +117,11 @@ Preview:
           
           This can be useful when the preview command is expensive to run
           and you want to avoid running it multiple times for the same entry.
+          
+          This is enabled by default since most channels will benefit from it.
+          
+          This can be disabled for special cases e.g. where the preview command output changes
+          frequently and/or you want live udpates.
 
       --preview-offset <STRING>
           A preview line number offset template to use to scroll the preview to for each
