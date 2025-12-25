@@ -1,13 +1,120 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH television 1  "television 0.14.1" 
+.TH television 1  "television 0.14.2" 
 .SH NAME
-television \- A portable and hackable fuzzy finder for the terminal
+television \- A very fast, portable and hackable fuzzy finder for the terminal
 .SH SYNOPSIS
-\fBtelevision\fR [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-\-expect\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-input\-prompt\fR] [\fB\-\-input\-border\fR] [\fB\-\-input\-padding\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-preview\-border\fR] [\fB\-\-preview\-padding\fR] [\fB\-\-hide\-preview\-scrollbar\fR] [\fB\-s\fR|\fB\-\-source\-command\fR] [\fB\-\-ansi\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-results\-border\fR] [\fB\-\-results\-padding\fR] [\fB\-\-source\-entry\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-cache\-preview\fR] [\fB\-\-layout\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-preview\-size\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
+\fBtelevision\fR [\fB\-s\fR|\fB\-\-source\-command\fR] [\fB\-\-ansi\fR] [\fB\-\-source\-display\fR] [\fB\-\-source\-output\fR] [\fB\-\-source\-entry\-delimiter\fR] [\fB\-p\fR|\fB\-\-preview\-command\fR] [\fB\-\-preview\-header\fR] [\fB\-\-preview\-footer\fR] [\fB\-\-cache\-preview\fR] [\fB\-\-preview\-offset\fR] [\fB\-\-no\-preview\fR] [\fB\-\-hide\-preview\fR] [\fB\-\-show\-preview\fR] [\fB\-\-preview\-border\fR] [\fB\-\-preview\-padding\fR] [\fB\-\-hide\-preview\-scrollbar\fR] [\fB\-\-preview\-size\fR] [\fB\-i\fR|\fB\-\-input\fR] [\fB\-\-input\-header\fR] [\fB\-\-input\-prompt\fR] [\fB\-\-input\-border\fR] [\fB\-\-input\-padding\fR] [\fB\-\-no\-status\-bar\fR] [\fB\-\-hide\-status\-bar\fR] [\fB\-\-show\-status\-bar\fR] [\fB\-\-results\-border\fR] [\fB\-\-results\-padding\fR] [\fB\-\-layout\fR] [\fB\-\-no\-remote\fR] [\fB\-\-hide\-remote\fR] [\fB\-\-show\-remote\fR] [\fB\-\-no\-help\-panel\fR] [\fB\-\-hide\-help\-panel\fR] [\fB\-\-show\-help\-panel\fR] [\fB\-\-ui\-scale\fR] [\fB\-\-height\fR] [\fB\-\-width\fR] [\fB\-\-inline\fR] [\fB\-t\fR|\fB\-\-tick\-rate\fR] [\fB\-\-watch\fR] [\fB\-\-autocomplete\-prompt\fR] [\fB\-\-exact\fR] [\fB\-\-select\-1\fR] [\fB\-\-take\-1\fR] [\fB\-\-take\-1\-fast\fR] [\fB\-k\fR|\fB\-\-keybindings\fR] [\fB\-\-expect\fR] [\fB\-\-config\-file\fR] [\fB\-\-cable\-dir\fR] [\fB\-\-global\-history\fR] [\fB\-h\fR|\fB\-\-help\fR] [\fB\-V\fR|\fB\-\-version\fR] [\fICHANNEL\fR] [\fIPATH\fR] [\fIsubcommands\fR]
 .SH DESCRIPTION
-A portable and hackable fuzzy finder for the terminal
+A very fast, portable and hackable fuzzy finder for the terminal
 .SH OPTIONS
+.TP
+\fB\-h\fR, \fB\-\-help\fR
+Print help (see a summary with \*(Aq\-h\*(Aq)
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print version
+.TP
+[\fICHANNEL\fR]
+Which channel shall we watch?
+
+Channels provide predefined configurations including source commands,
+preview commands, UI settings, and more.
+
+To list available channels, use the `list\-channels` subcommand.
+
+To pull the latest collection of channels from github, use the
+`update\-channels` subcommand.
+.TP
+[\fIPATH\fR]
+The working directory to start the application in.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This can be used to specify a different working directory for the
+application to start in. This is useful when the application is
+started from a different directory than the one the user wants to
+interact with.
+.SH SOURCE
+.TP
+\fB\-s\fR, \fB\-\-source\-command\fR \fI<STRING>\fR
+Source command to use for the current channel.
+
+When a channel is specified: This overrides the command defined in the channel prototype.
+When no channel is specified: This creates an ad\-hoc channel with the given command.
+
+Example: `find . \-name \*(Aq*.rs\*(Aq`
+.TP
+\fB\-\-ansi\fR
+Whether tv should extract and parse ANSI style codes from the source command output.
+
+This is useful when the source command outputs colored text or other ANSI styles and you
+want `tv` to preserve them in the UI. It does come with a slight performance cost but
+which should go mostly unnoticed for typical human interaction workloads.
+
+Example: `tv \-\-source\-command="echo \-e \*(AqRed\*(Aq" \-\-ansi`
+.TP
+\fB\-\-source\-display\fR \fI<STRING>\fR
+Source display template to use for the current channel.
+
+When a channel is specified: This overrides the display template defined in the channel prototype.
+When no channel is specified: This flag requires \-\-source\-command to be set.
+
+The template is used to format each entry in the results list.
+Example: `{split:/:\-1}` (show only the last path segment)
+.TP
+\fB\-\-source\-output\fR \fI<STRING>\fR
+Source output template to use for the current channel.
+
+When a channel is specified: This overrides the output template defined in the channel prototype.
+When no channel is specified: This flag requires \-\-source\-command to be set.
+
+The template is used to format the final output when an entry is selected.
+Example: "{}" (output the full entry)
+.TP
+\fB\-\-source\-entry\-delimiter\fR \fI<STRING>\fR
+The delimiter byte to use for splitting the source\*(Aqs command output into entries.
+
+This can be useful when the source command outputs multiline entries and you want to
+rely on another delimiter to split the entries such a null byte or a custom character.
+.SH PREVIEW
+.TP
+\fB\-p\fR, \fB\-\-preview\-command\fR \fI<STRING>\fR
+Preview command to use for the current channel.
+
+When a channel is specified: This overrides the preview command defined in the channel prototype.
+When no channel is specified: This enables preview functionality for the ad\-hoc channel.
+
+Example: "cat {}" (where {} will be replaced with the entry)
+
+Parts of the entry can be extracted positionally using the `delimiter`
+option.
+Example: "echo {0} {1}" will split the entry by the delimiter and pass
+the first two fields to the command.
+.TP
+\fB\-\-preview\-header\fR \fI<STRING>\fR
+Preview header template
+
+When a channel is specified: This overrides the header defined in the channel prototype.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed above the preview panel.
+.TP
+\fB\-\-preview\-footer\fR \fI<STRING>\fR
+Preview footer template
+
+When a channel is specified: This overrides the footer defined in the channel prototype.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+
+The given value is parsed as a `MultiTemplate`. It is evaluated for every
+entry and its result is displayed below the preview panel.
+.TP
+\fB\-\-cache\-preview\fR
+Whether to cache the preview command output for each entry.
+
+This can be useful when the preview command is expensive to run
+and you want to avoid running it multiple times for the same entry.
 .TP
 \fB\-\-preview\-offset\fR \fI<STRING>\fR
 A preview line number offset template to use to scroll the preview to for each
@@ -38,65 +145,31 @@ Show the preview panel on startup (only works if feature is enabled).
 This flag works identically in both channel mode and ad\-hoc mode.
 This overrides any channel configuration that might have it disabled.
 .TP
-\fB\-\-no\-status\-bar\fR
-Disable the status bar entirely on startup.
+\fB\-\-preview\-border\fR \fI<PREVIEW_BORDER>\fR
+Sets the preview panel border type.
 
-This flag works identically in both channel mode and ad\-hoc mode.
-When set, no status bar will be shown regardless of channel configuration
-or status bar\-related flags.
+Available options are: `none`, `plain`, `rounded`, `thick`.
+.br
+
+.br
+[\fIpossible values: \fRnone, plain, rounded, thick]
 .TP
-\fB\-\-hide\-status\-bar\fR
-Hide the status bar on startup (only works if feature is enabled).
+\fB\-\-preview\-padding\fR \fI<STRING>\fR
+Sets the preview panel padding.
 
-This flag works identically in both channel mode and ad\-hoc mode.
-The status bar remains functional and can be toggled visible later.
+Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
+
+Example: `\-\-preview\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
 .TP
-\fB\-\-show\-status\-bar\fR
-Show the status bar on startup (only works if feature is enabled).
-
-This flag works identically in both channel mode and ad\-hoc mode.
-This overrides any channel configuration that might have it disabled.
+\fB\-\-hide\-preview\-scrollbar\fR
+Hide preview panel scrollbar.
 .TP
-\fB\-t\fR, \fB\-\-tick\-rate\fR \fI<INT>\fR
-The application\*(Aqs tick rate.
+\fB\-\-preview\-size\fR \fI<INTEGER>\fR
+Percentage of the screen to allocate to the preview panel (1\-99).
 
-This flag works identically in both channel mode and ad\-hoc mode.
-
-The tick rate is the number of times the application will update per
-second. This can be used to control responsiveness and CPU usage on
-very slow machines or very fast ones but the default should be a good
-compromise for most users.
-.TP
-\fB\-\-watch\fR \fI<FLOAT>\fR
-Watch mode: reload the source command every N seconds.
-
-When a channel is specified: Overrides the watch interval defined in the channel prototype.
-When no channel is specified: Sets the watch interval for the ad\-hoc channel.
-
-When set to a positive number, the application will automatically
-reload the source command at the specified interval. This is useful
-for monitoring changing data sources. Set to 0 to disable (default).
-.TP
-\fB\-k\fR, \fB\-\-keybindings\fR \fI<STRING>\fR
-Keybindings to override the default keybindings.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-This can be used to override the default keybindings with a custom subset.
-The keybindings are specified as a semicolon separated list of keybinding
-expressions using the configuration file formalism.
-
-Example: `tv \-\-keybindings=\*(Aqquit="esc";select_next_entry=["down","ctrl\-j"]\*(Aq`
-.TP
-\fB\-\-expect\fR \fI<STRING>\fR
-Keys that can be used to confirm the current selection in addition to the default ones
-(typically `enter`).
-
-When this is set, confirming the selection will first output an extra line with the key
-that was used to confirm the selection before outputting the selected entry.
-
-Example: `tv \-\-expect=\*(Aqctrl\-q\*(Aq` will output `ctr\-q\\n<selected_entry>` when `ctrl\-q` is
-pressed to confirm the selection.
+When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
+When no channel is specified: This flag requires \-\-preview\-command to be set.
+.SH INPUT
 .TP
 \fB\-i\fR, \fB\-\-input\fR \fI<STRING>\fR
 Input text to pass to the channel to prefill the prompt.
@@ -140,78 +213,26 @@ Sets the input panel padding.
 Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
 
 Example: `\-\-input\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
+.SH UI
 .TP
-\fB\-\-preview\-header\fR \fI<STRING>\fR
-Preview header template
+\fB\-\-no\-status\-bar\fR
+Disable the status bar entirely on startup.
 
-When a channel is specified: This overrides the header defined in the channel prototype.
-When no channel is specified: This flag requires \-\-preview\-command to be set.
-
-The given value is parsed as a `MultiTemplate`. It is evaluated for every
-entry and its result is displayed above the preview panel.
+This flag works identically in both channel mode and ad\-hoc mode.
+When set, no status bar will be shown regardless of channel configuration
+or status bar\-related flags.
 .TP
-\fB\-\-preview\-footer\fR \fI<STRING>\fR
-Preview footer template
+\fB\-\-hide\-status\-bar\fR
+Hide the status bar on startup (only works if feature is enabled).
 
-When a channel is specified: This overrides the footer defined in the channel prototype.
-When no channel is specified: This flag requires \-\-preview\-command to be set.
-
-The given value is parsed as a `MultiTemplate`. It is evaluated for every
-entry and its result is displayed below the preview panel.
+This flag works identically in both channel mode and ad\-hoc mode.
+The status bar remains functional and can be toggled visible later.
 .TP
-\fB\-\-preview\-border\fR \fI<PREVIEW_BORDER>\fR
-Sets the preview panel border type.
+\fB\-\-show\-status\-bar\fR
+Show the status bar on startup (only works if feature is enabled).
 
-Available options are: `none`, `plain`, `rounded`, `thick`.
-.br
-
-.br
-[\fIpossible values: \fRnone, plain, rounded, thick]
-.TP
-\fB\-\-preview\-padding\fR \fI<STRING>\fR
-Sets the preview panel padding.
-
-Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
-
-Example: `\-\-preview\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
-.TP
-\fB\-\-hide\-preview\-scrollbar\fR
-Hide preview panel scrollbar.
-.TP
-\fB\-s\fR, \fB\-\-source\-command\fR \fI<STRING>\fR
-Source command to use for the current channel.
-
-When a channel is specified: This overrides the command defined in the channel prototype.
-When no channel is specified: This creates an ad\-hoc channel with the given command.
-
-Example: `find . \-name \*(Aq*.rs\*(Aq`
-.TP
-\fB\-\-ansi\fR
-Whether tv should extract and parse ANSI style codes from the source command output.
-
-This is useful when the source command outputs colored text or other ANSI styles and you
-want `tv` to preserve them in the UI. It does come with a slight performance cost but
-which should go mostly unnoticed for typical human interaction workloads.
-
-Example: `tv \-\-source\-command="echo \-e \*(Aq\\x1b[31mRed\\x1b[0m\*(Aq" \-\-ansi`
-.TP
-\fB\-\-source\-display\fR \fI<STRING>\fR
-Source display template to use for the current channel.
-
-When a channel is specified: This overrides the display template defined in the channel prototype.
-When no channel is specified: This flag requires \-\-source\-command to be set.
-
-The template is used to format each entry in the results list.
-Example: `{split:/:\-1}` (show only the last path segment)
-.TP
-\fB\-\-source\-output\fR \fI<STRING>\fR
-Source output template to use for the current channel.
-
-When a channel is specified: This overrides the output template defined in the channel prototype.
-When no channel is specified: This flag requires \-\-source\-command to be set.
-
-The template is used to format the final output when an entry is selected.
-Example: "{}" (output the full entry)
+This flag works identically in both channel mode and ad\-hoc mode.
+This overrides any channel configuration that might have it disabled.
 .TP
 \fB\-\-results\-border\fR \fI<RESULTS_BORDER>\fR
 Sets the results panel border type.
@@ -229,31 +250,6 @@ Format: `top=INTEGER;left=INTEGER;bottom=INTEGER;right=INTEGER`
 
 Example: `\-\-results\-padding=\*(Aqtop=1;left=2;bottom=1;right=2\*(Aq`
 .TP
-\fB\-\-source\-entry\-delimiter\fR \fI<STRING>\fR
-The delimiter byte to use for splitting the source\*(Aqs command output into entries.
-
-This can be useful when the source command outputs multiline entries and you want to
-rely on another delimiter to split the entries such a null byte or a custom character.
-.TP
-\fB\-p\fR, \fB\-\-preview\-command\fR \fI<STRING>\fR
-Preview command to use for the current channel.
-
-When a channel is specified: This overrides the preview command defined in the channel prototype.
-When no channel is specified: This enables preview functionality for the ad\-hoc channel.
-
-Example: "cat {}" (where {} will be replaced with the entry)
-
-Parts of the entry can be extracted positionally using the `delimiter`
-option.
-Example: "echo {0} {1}" will split the entry by the delimiter and pass
-the first two fields to the command.
-.TP
-\fB\-\-cache\-preview\fR
-Whether to cache the preview command output for each entry.
-
-This can be useful when the preview command is expensive to run
-and you want to avoid running it multiple times for the same entry.
-.TP
 \fB\-\-layout\fR \fI<LAYOUT>\fR
 Layout orientation for the UI.
 
@@ -265,56 +261,6 @@ Options are "landscape" or "portrait".
 
 .br
 [\fIpossible values: \fRlandscape, portrait]
-.TP
-\fB\-\-autocomplete\-prompt\fR \fI<STRING>\fR
-Try to guess the channel from the provided input prompt.
-
-This flag automatically selects channel mode by guessing the appropriate channel.
-It conflicts with manually specifying a channel since it determines the channel automatically.
-
-This can be used to automatically select a channel based on the input
-prompt by using the `shell_integration` mapping in the configuration
-file.
-.TP
-\fB\-\-exact\fR
-Use substring matching instead of fuzzy matching.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-This will use substring matching instead of fuzzy matching when
-searching for entries. This is useful when the user wants to search for
-an exact match instead of a fuzzy match e.g. to improve performance.
-.TP
-\fB\-\-select\-1\fR
-Automatically select and output the first entry if there is only one
-entry.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-Note that most channels stream entries asynchronously which means that
-knowing if there\*(Aqs only one entry will require waiting for the channel
-to finish loading first.
-
-For most channels and workloads this shouldn\*(Aqt be a problem since the
-loading times are usually very short and will go unnoticed by the user.
-.TP
-\fB\-\-take\-1\fR
-Take the first entry from the list after the channel has finished loading.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-This will wait for the channel to finish loading all entries and then
-automatically select and output the first entry. Unlike `select_1`, this
-will always take the first entry regardless of how many entries are available.
-.TP
-\fB\-\-take\-1\-fast\fR
-Take the first entry from the list as soon as it becomes available.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-
-This will immediately select and output the first entry as soon as it
-appears in the results, without waiting for the channel to finish loading.
-This is the fastest option when you just want the first result.
 .TP
 \fB\-\-no\-remote\fR
 Disable the remote control.
@@ -365,30 +311,6 @@ This flag works identically in both channel mode and ad\-hoc mode.
 This will crop the UI to a centered rectangle of the specified
 percentage of the available area.
 .TP
-\fB\-\-preview\-size\fR \fI<INTEGER>\fR
-Percentage of the screen to allocate to the preview panel (1\-99).
-
-When a channel is specified: This overrides any `preview_size` defined in configuration files or channel prototypes.
-When no channel is specified: This flag requires \-\-preview\-command to be set.
-.TP
-\fB\-\-config\-file\fR \fI<PATH>\fR
-Provide a custom configuration file to use.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-.TP
-\fB\-\-cable\-dir\fR \fI<PATH>\fR
-Provide a custom cable directory to use.
-
-This flag works identically in both channel mode and ad\-hoc mode.
-.TP
-\fB\-\-global\-history\fR
-Use global history instead of channel\-specific history.
-
-This flag only works in channel mode.
-
-When enabled, history navigation will show entries from all channels.
-When disabled (default), history navigation is scoped to the current channel.
-.TP
 \fB\-\-height\fR \fI<INTEGER>\fR
 Height in lines for non\-fullscreen mode.
 
@@ -410,36 +332,119 @@ This flag works identically in both channel mode and ad\-hoc mode.
 When enabled, the picker will be displayed as an inline interface that uses
 all available empty space at the bottom of the terminal. If there is insufficient
 space to meet the minimum height the terminal will scroll.
+.SH BEHAVIOR
 .TP
-\fB\-h\fR, \fB\-\-help\fR
-Print help (see a summary with \*(Aq\-h\*(Aq)
-.TP
-\fB\-V\fR, \fB\-\-version\fR
-Print version
-.TP
-[\fICHANNEL\fR]
-Which channel shall we watch?
-
-When specified: The application operates in \*(Aqchannel mode\*(Aq where the selected
-channel provides the base configuration, and CLI flags act as overrides.
-
-When omitted: The application operates in \*(Aqad\-hoc mode\*(Aq where you must provide
-at least \-\-source\-command to create a custom channel. In this mode, preview
-and source flags have stricter validation rules.
-
-A list of the available channels can be displayed using the
-`list\-channels` command. The channel can also be changed from within
-the application.
-.TP
-[\fIPATH\fR]
-The working directory to start the application in.
+\fB\-t\fR, \fB\-\-tick\-rate\fR \fI<INT>\fR
+The application\*(Aqs tick rate.
 
 This flag works identically in both channel mode and ad\-hoc mode.
 
-This can be used to specify a different working directory for the
-application to start in. This is useful when the application is
-started from a different directory than the one the user wants to
-interact with.
+The tick rate is the number of times the application will update per
+second. This can be used to control responsiveness and CPU usage on
+very slow machines or very fast ones but the default should be a good
+compromise for most users.
+.TP
+\fB\-\-watch\fR \fI<FLOAT>\fR
+Watch mode: reload the source command every N seconds.
+
+When a channel is specified: Overrides the watch interval defined in the channel prototype.
+When no channel is specified: Sets the watch interval for the ad\-hoc channel.
+
+When set to a positive number, the application will automatically
+reload the source command at the specified interval. This is useful
+for monitoring changing data sources. Set to 0 to disable (default).
+.TP
+\fB\-\-autocomplete\-prompt\fR \fI<STRING>\fR
+Try to guess the channel from the provided input prompt.
+
+This flag automatically selects channel mode by guessing the appropriate channel.
+It conflicts with manually specifying a channel since it determines the channel automatically.
+
+This can be used to automatically select a channel based on the input
+prompt by using the `shell_integration` mapping in the configuration
+file.
+.TP
+\fB\-\-exact\fR
+Use substring matching instead of fuzzy matching.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This will use substring matching instead of fuzzy matching when
+searching for entries. This is useful when the user wants to search for
+an exact match instead of a fuzzy match e.g. to improve performance.
+.TP
+\fB\-\-select\-1\fR
+Automatically select and output the first entry if there is only one
+entry.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+Note that most channels stream entries asynchronously which means that
+knowing if there\*(Aqs only one entry will require waiting for the channel
+to finish loading first.
+
+For most channels and workloads this shouldn\*(Aqt be a problem since the
+loading times are usually very short and will go unnoticed by the user.
+.TP
+\fB\-\-take\-1\fR
+Take the first entry from the list after the channel has finished loading.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This will wait for the channel to finish loading all entries and then
+automatically select and output the first entry. Unlike `select_1`, this
+will always take the first entry regardless of how many entries are available.
+.TP
+\fB\-\-take\-1\-fast\fR
+Take the first entry from the list as soon as it becomes available.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This will immediately select and output the first entry as soon as it
+appears in the results, without waiting for the channel to finish loading.
+This is the fastest option when you just want the first result.
+.SH KEYBINDINGS
+.TP
+\fB\-k\fR, \fB\-\-keybindings\fR \fI<STRING>\fR
+Keybindings to override the default keybindings.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+
+This can be used to override the default keybindings with a custom subset.
+The keybindings are specified as a semicolon separated list of keybinding
+expressions using the configuration file formalism.
+
+Example: `tv \-\-keybindings=\*(Aqquit="esc";select_next_entry=["down","ctrl\-j"]\*(Aq`
+.TP
+\fB\-\-expect\fR \fI<STRING>\fR
+Keys that can be used to confirm the current selection in addition to the default ones
+(typically `enter`).
+
+When this is set, confirming the selection will first output an extra line with the key
+that was used to confirm the selection before outputting the selected entry.
+
+Example: `tv \-\-expect=\*(Aqctrl\-q\*(Aq` will output `ctr\-q\\n<selected_entry>` when `ctrl\-q` is
+pressed to confirm the selection.
+.SH CONFIGURATION
+.TP
+\fB\-\-config\-file\fR \fI<PATH>\fR
+Provide a custom configuration file to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.TP
+\fB\-\-cable\-dir\fR \fI<PATH>\fR
+Provide a custom cable directory to use.
+
+This flag works identically in both channel mode and ad\-hoc mode.
+.SH HISTORY
+.TP
+\fB\-\-global\-history\fR
+Use global history instead of channel\-specific history.
+
+This flag only works in channel mode.
+
+When enabled, history navigation will show entries from all channels.
+When disabled (default), history navigation is scoped to the current channel.
 .SH SUBCOMMANDS
 .TP
 television\-list\-channels(1)
@@ -449,11 +454,11 @@ television\-init(1)
 Initializes shell completion ("tv init zsh")
 .TP
 television\-update\-channels(1)
-Downloads the latest collection of default channel prototypes from github and saves them to the local configuration directory
+Downloads the latest collection of channel prototypes from github and saves them to the local configuration directory
 .TP
 television\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
-v0.14.1
+v0.14.2
 .SH AUTHORS
 Alexandre Pasmantier <alex.pasmant@gmail.com>
