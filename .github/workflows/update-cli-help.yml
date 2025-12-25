@@ -18,6 +18,8 @@ jobs:
         uses: actions/checkout@v6
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
+      - name: Install just
+        run: sudo apt-get install -y just
       - uses: Swatinem/rust-cache@v2
       - name: Update CLI docs
         run: just update-cli-help
