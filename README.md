@@ -218,7 +218,7 @@ tv [channel]  # e.g. `tv files`, `tv env`, `tv git-repos`, `tv my-awesome-channe
 # pipe the output of your program into tv
 my_program | tv
 
-fd -t f . | tv --preview 'bat -n --color=always {}'
+fd -t f . | tv --preview-command 'bat -n --color=always {}'
 
 # or build your own channel on the fly
 tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --preview-size 70
