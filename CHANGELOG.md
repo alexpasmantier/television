@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.14.3](https://github.com/alexpasmantier/television/releases/tag/0.14.3) - 2025-12-28
+
+### 🚜 Refactor
+
+- [c4aaa16](https://github.com/alexpasmantier/television/commit/c4aaa162560e5c7deceb6c5f5bc042b57230a4d3) *(previews)* Preview caching is now an opt-out feature by @alexpasmantier
+
+- [903d034](https://github.com/alexpasmantier/television/commit/903d034510d51f8a3c561fbc1b1715768190410c) *(zsh)* Use the dedicated channel for the zsh history shell integration by @alexpasmantier in [#830](https://github.com/alexpasmantier/television/pull/830)
+
+### 📚 Documentation
+
+- [8c15b9b](https://github.com/alexpasmantier/television/commit/8c15b9b5b16a2a640c5b045b0ba2c1f878b050e7) *(cli)* Update tv --help output (auto) by @github-actions[bot] in [#827](https://github.com/alexpasmantier/television/pull/827)
+
+- [aa2b210](https://github.com/alexpasmantier/television/commit/aa2b210bcb9c19c55e058aa254cd0beb5e4980a6) *(cli)* Update tv --help output (auto) by @github-actions[bot] in [#825](https://github.com/alexpasmantier/television/pull/825)
+
+- [976d83f](https://github.com/alexpasmantier/television/commit/976d83fdff167e792e918d20a0f2e02e9e99836a) *(uncategorized)* Fix command option in README for tv preview by @driftcell in [#828](https://github.com/alexpasmantier/television/pull/828)
+
+### ⚡ Performance
+
+- [78acbc7](https://github.com/alexpasmantier/television/commit/78acbc7b03fea6bc0416daf9df7bbd686cac6258) *(preview)* Caching strategy improvements by @alexpasmantier in [#826](https://github.com/alexpasmantier/television/pull/826)
+
+### ⚙️ Miscellaneous Tasks
+
+- [f994ff7](https://github.com/alexpasmantier/television/commit/f994ff724389b9ca758b1f43c3dd55fa91886afb) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#824](https://github.com/alexpasmantier/television/pull/824)
+
+- [5379d40](https://github.com/alexpasmantier/television/commit/5379d40fcfcec9f4fa8f37591b795387f4aacd3d) *(uncategorized)* Release version 0.14.3 by @alexpasmantier
+
+
+
+### New Contributors
+* @driftcell made their first contribution in [#828](https://github.com/alexpasmantier/television/pull/828)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.14.2...0.14.3
+
+
 ## [0.14.2](https://github.com/alexpasmantier/television/releases/tag/0.14.2) - 2025-12-25
 
 ### ⛰️  Features
