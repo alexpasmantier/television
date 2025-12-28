@@ -1,6 +1,6 @@
 .ie \n(.g .ds Aq \(aq
 .el .ds Aq '
-.TH television 1  "television 0.14.2" 
+.TH television 1  "television 0.14.3" 
 .SH NAME
 television \- A very fast, portable and hackable fuzzy finder for the terminal
 .SH SYNOPSIS
@@ -115,6 +115,11 @@ Whether to cache the preview command output for each entry.
 
 This can be useful when the preview command is expensive to run
 and you want to avoid running it multiple times for the same entry.
+
+This is enabled by default since most channels will benefit from it.
+
+This can be disabled for special cases e.g. where the preview command output changes
+frequently and/or you want live udpates.
 .TP
 \fB\-\-preview\-offset\fR \fI<STRING>\fR
 A preview line number offset template to use to scroll the preview to for each
@@ -459,6 +464,6 @@ Downloads the latest collection of channel prototypes from github and saves them
 television\-help(1)
 Print this message or the help of the given subcommand(s)
 .SH VERSION
-v0.14.2
+v0.14.3
 .SH AUTHORS
 Alexandre Pasmantier <alex.pasmant@gmail.com>
