@@ -106,11 +106,11 @@ Start searching:
 tv tldr
 ```
 
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](./docs/01-Users/10-community-channels-unix.md):
+Switch channels using the remote control and pick from a large choice of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix):
 
 ![tv remote](./assets/tv-files-remote.png)
 
-See the [channels docs](./07-channels.md) for more info on how to set these up.
+See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/channels/) for more info on how to set these up.
 
 ## Installation
 
@@ -233,7 +233,7 @@ For more information, check out the [docs](https://alexpasmantier.github.io/tele
 
 - **Neovim**: [tv.nvim](https://github.com/alexpasmantier/tv.nvim) (lua)
 - **Vim**: [tv.vim](https://github.com/prabirshrestha/tv.vim) (vimscript)
-- **Zed**: [Easy Telescope-style file finder in Zed using television](https://github.com/zed-industries/zed/discussions/22581)
+- **Zed**: [Easy Telescope-style file finder in Zed using television](https://zed.dev/blog/hidden-gems-part-2#emulate-vims-telescope-via-television)
 - **VSCode**: [using television as a file picker inside vscode](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
 
 ## Credits
