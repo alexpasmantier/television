@@ -106,7 +106,7 @@ Start searching:
 tv tldr
 ```
 
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](./10-community-channels-unix.md):
+Switch channels using the remote control and pick from a large choice of [community-maintained channels](./docs/01-Users/10-community-channels-unix.md):
 
 ![tv remote](./assets/tv-files-remote.png)
 
