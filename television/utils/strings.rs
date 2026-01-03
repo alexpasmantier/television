@@ -170,37 +170,82 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
-const NF_RANGE_DEVICONS: std::ops::RangeInclusive<char> =
-    '\u{e700}'..='\u{e8ef}';
-const NF_RANGE_SETI: std::ops::RangeInclusive<char> = '\u{e5fa}'..='\u{e6b7}';
-const NF_RANGE_FONT_AWESOME: std::ops::RangeInclusive<char> =
-    '\u{ed00}'..='\u{f2ff}';
-const NF_RANGE_FONT_AWESOME_EXT: std::ops::RangeInclusive<char> =
-    '\u{e200}'..='\u{e2a9}';
-const NF_RANGE_MATERIAL: std::ops::RangeInclusive<char> =
-    '\u{f0001}'..='\u{f1af0}';
-const NF_RANGE_WEATHER: std::ops::RangeInclusive<char> =
-    '\u{e300}'..='\u{e3e3}';
+const NF_RANGE_IEC_POWER_1: std::ops::RangeInclusive<char> =
+    '\u{23fb}'..='\u{23fe}';
+const NF_RANGE_BOX_DRAWING: std::ops::RangeInclusive<char> =
+    '\u{2500}'..='\u{259f}';
+const NF_RANGE_POWERLINE_EXTRA_1: std::ops::RangeInclusive<char> =
+    '\u{2630}'..='\u{2630}';
 const NF_RANGE_OCTICONS_1: std::ops::RangeInclusive<char> =
-    '\u{f400}'..='\u{f533}';
+    '\u{2665}'..='\u{2665}';
 const NF_RANGE_OCTICONS_2: std::ops::RangeInclusive<char> =
-    '\u{2665}'..='\u{26a1}';
+    '\u{26a1}'..='\u{26a1}';
+const NF_RANGE_HEAVY_ANGLE_BRACKETS: std::ops::RangeInclusive<char> =
+    '\u{276c}'..='\u{2771}';
+const NF_RANGE_IEC_POWER_2: std::ops::RangeInclusive<char> =
+    '\u{2b58}'..='\u{2b58}';
+const NF_RANGE_POMICONS: std::ops::RangeInclusive<char> =
+    '\u{e000}'..='\u{e00a}';
 const NF_RANGE_POWERLINE_1: std::ops::RangeInclusive<char> =
     '\u{e0a0}'..='\u{e0a2}';
+const NF_RANGE_POWERLINE_EXTRA_2: std::ops::RangeInclusive<char> =
+    '\u{e0a3}'..='\u{e0a3}';
 const NF_RANGE_POWERLINE_2: std::ops::RangeInclusive<char> =
     '\u{e0b0}'..='\u{e0b3}';
+const NF_RANGE_POWERLINE_EXTRA_3: std::ops::RangeInclusive<char> =
+    '\u{e0b4}'..='\u{e0c8}';
+const NF_RANGE_POWERLINE_EXTRA_4: std::ops::RangeInclusive<char> =
+    '\u{e0ca}'..='\u{e0ca}';
+const NF_RANGE_POWERLINE_EXTRA_5: std::ops::RangeInclusive<char> =
+    '\u{e0cc}'..='\u{e0d7}';
+const NF_RANGE_FONT_AWESOME_EXT: std::ops::RangeInclusive<char> =
+    '\u{e200}'..='\u{e2a9}';
+const NF_RANGE_WEATHER: std::ops::RangeInclusive<char> =
+    '\u{e300}'..='\u{e3e3}';
+const NF_RANGE_SETI: std::ops::RangeInclusive<char> = '\u{e5fa}'..='\u{e6b7}';
+const NF_RANGE_DEVICONS: std::ops::RangeInclusive<char> =
+    '\u{e700}'..='\u{e8ef}';
+const NF_RANGE_CODICONS: std::ops::RangeInclusive<char> =
+    '\u{ea60}'..='\u{ec1e}';
+const NF_RANGE_FONT_AWESOME_1: std::ops::RangeInclusive<char> =
+    '\u{ed00}'..='\u{efce}';
+const NF_RANGE_PROGRESS: std::ops::RangeInclusive<char> =
+    '\u{ee00}'..='\u{ee0b}';
+const NF_RANGE_FONT_AWESOME_2: std::ops::RangeInclusive<char> =
+    '\u{f000}'..='\u{f2ff}';
+const NF_RANGE_FONT_LOGOS: std::ops::RangeInclusive<char> =
+    '\u{f300}'..='\u{f381}';
+const NF_RANGE_OCTICONS_3: std::ops::RangeInclusive<char> =
+    '\u{f400}'..='\u{f533}';
+const NF_RANGE_MATERIAL: std::ops::RangeInclusive<char> =
+    '\u{f0001}'..='\u{f1af0}';
 
-const ALL_NF_RANGES: [&std::ops::RangeInclusive<char>; 10] = [
-    &NF_RANGE_DEVICONS,
-    &NF_RANGE_SETI,
-    &NF_RANGE_FONT_AWESOME,
-    &NF_RANGE_FONT_AWESOME_EXT,
-    &NF_RANGE_MATERIAL,
-    &NF_RANGE_WEATHER,
+const ALL_NF_RANGES: [&std::ops::RangeInclusive<char>; 25] = [
+    &NF_RANGE_IEC_POWER_1,
+    &NF_RANGE_BOX_DRAWING,
+    &NF_RANGE_POWERLINE_EXTRA_1,
     &NF_RANGE_OCTICONS_1,
     &NF_RANGE_OCTICONS_2,
+    &NF_RANGE_HEAVY_ANGLE_BRACKETS,
+    &NF_RANGE_IEC_POWER_2,
+    &NF_RANGE_POMICONS,
     &NF_RANGE_POWERLINE_1,
+    &NF_RANGE_POWERLINE_EXTRA_2,
     &NF_RANGE_POWERLINE_2,
+    &NF_RANGE_POWERLINE_EXTRA_3,
+    &NF_RANGE_POWERLINE_EXTRA_4,
+    &NF_RANGE_POWERLINE_EXTRA_5,
+    &NF_RANGE_FONT_AWESOME_EXT,
+    &NF_RANGE_WEATHER,
+    &NF_RANGE_SETI,
+    &NF_RANGE_DEVICONS,
+    &NF_RANGE_CODICONS,
+    &NF_RANGE_FONT_AWESOME_1,
+    &NF_RANGE_PROGRESS,
+    &NF_RANGE_FONT_AWESOME_2,
+    &NF_RANGE_FONT_LOGOS,
+    &NF_RANGE_OCTICONS_3,
+    &NF_RANGE_MATERIAL,
 ];
 
 const VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE: std::ops::RangeInclusive<char> =
@@ -429,19 +474,9 @@ pub fn replace_non_printable_bulk<'a>(
                     c if ('\u{0900}'..='\u{097F}').contains(&c) => {
                         output.push(c);
                     }
-                    // Most NF chars are in Private Use Area (e000-f8ff, f0001-f1af0)
-                    // with exceptions for Octicons (2665-26a1)
-                    c if ('\u{e000}'..='\u{f8ff}').contains(&c)
-                        || ('\u{2665}'..='\u{26a1}').contains(&c)
-                        || ('\u{f0001}'..='\u{f1af0}').contains(&c) =>
-                    {
-                        if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) {
-                            output.push(c);
-                        } else if c > '\u{0700}' {
-                            output.push(NULL_SYMBOL);
-                        } else {
-                            output.push(c);
-                        }
+                    // Nerd Font glyphs, including non-PUA ranges listed in the wiki table.
+                    c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
+                        output.push(c);
                     }
                     // Other unit width symbols
                     c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
@@ -928,6 +963,37 @@ mod tests {
         );
         assert_eq!(output, "Hello,␀World!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn test_nerd_font_glyph_ranges_from_table() {
+        let input = concat!(
+            "\u{23FB}",  // IEC power
+            "\u{2500}",  // Box drawing
+            "\u{2630}",  // Powerline extra
+            "\u{2665}",  // Octicons
+            "\u{26A1}",  // Octicons
+            "\u{276C}",  // Heavy angle brackets
+            "\u{2B58}",  // IEC power
+            "\u{E000}",  // Pomicons
+            "\u{E0A3}",  // Powerline extra
+            "\u{E0B4}",  // Powerline extra
+            "\u{E0CA}",  // Powerline extra
+            "\u{E0CC}",  // Powerline extra
+            "\u{EA60}",  // Codicons
+            "\u{ED00}",  // Font Awesome
+            "\u{EE00}",  // Progress
+            "\u{F000}",  // Font Awesome
+            "\u{F300}",  // Font Logos
+            "\u{F400}",  // Octicons
+            "\u{F0001}"  // Material Design
+        );
+        let (output, offsets) = replace_non_printable_bulk(
+            input,
+            &ReplaceNonPrintableConfig::default(),
+        );
+        assert_eq!(output, input);
+        assert_eq!(offsets.len(), input.chars().count());
     }
 
     fn test_proportion_of_printable_ascii_characters(
