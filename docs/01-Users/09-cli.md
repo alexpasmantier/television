@@ -24,12 +24,7 @@ Arguments:
   [PATH]
           The working directory to start the application in.
           
-          This flag works identically in both channel mode and ad-hoc mode.
-          
-          This can be used to specify a different working directory for the
-          application to start in. This is useful when the application is
-          started from a different directory than the one the user wants to
-          interact with.
+          Defaults to the current directory.
 
 Options:
   -h, --help
