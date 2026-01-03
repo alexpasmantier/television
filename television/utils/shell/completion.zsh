@@ -93,7 +93,7 @@ _tv_shell_history() {
 
     local output
 
-    output=$(tv zsh-history --no-status-bar --input "$current_prompt" --inline $*)
+    output=$(history -n -1 0 | tv --no-status-bar --input "$current_prompt" --inline $*)
 
     zle reset-prompt
     if [[ -n $output ]]; then
