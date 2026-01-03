@@ -95,47 +95,9 @@ tv my-awesome-channel
 
 The complete channel format spec can be found below.
 
-## Templating syntax
-
-Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
-
-Here's a quick TLDR if you're feeling lazy:
-
-**Basic transformations:**
-
-```bash
-# Extract middle items: "a,b,c,d,e"
-"{split:,:1..3}"
-# Output: "b,c"
-
-# Clean and format names: "  john  , jane , bob  "
-'{split:,:..|map:{trim|upper|append:!}}'
-# Output: "JOHN!,JANE!,BOB!"
-
-# Extract numbers and pad with zeros: "item1,thing22,stuff333"
-'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}'
-# Output: "001,022,333"
-```
-
-**More niche use-cases:**
-
-```bash
-# Filter files, format as list: "app.py,readme.md,test.py,data.json"
-'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}'
-# Output: "• app.py\n• test.py"
-
-# Extract domains from URLs: "https://github.com,https://google.com"
-'{split:,:..|map:{regex_extract://([^/]+):1|upper}}'
-# Output: "GITHUB.COM,GOOGLE.COM"
-
-# Debug complex processing: "apple Banana cherry Date"
-"{split: :..|filter:^[A-Z]|sort:desc}"
-# Output: Date,Banana
-```
-
 ## Channel specification
 
-#### high-level sections
+### high-level sections
 
 ```toml
 [metadata]
@@ -157,7 +119,7 @@ Here's a quick TLDR if you're feeling lazy:
 # define external actions
 ```
 
-#### `[metadata]`
+### `[metadata]`
 
 ```toml
 [metadata]
@@ -166,7 +128,7 @@ description = "A short description about what my channel does"
 requirements = ["rg", "bat"]  # any binary requirements my channel needs
 ```
 
-#### `[source]`
+### `[source]`
 
 ```toml
 [source]
@@ -192,7 +154,7 @@ When multiple commands are configured:
 
 **Note**: This feature is currently only available in channel mode (not available when using `--source-command` from the CLI).
 
-#### `[preview]`
+### `[preview]`
 
 ```toml
 [preview]
@@ -201,7 +163,7 @@ env = { BAT_THEME = "ansi" }  # extra envs to use when generating preview
 offset = '{split:\::1}'  # extracts preview offset information from the entry
 ```
 
-#### `[ui]`
+### `[ui]`
 
 ```toml
 [ui]
@@ -241,7 +203,7 @@ hidden = true
 # disabled = false  # uncomment to disable remote control for this channel
 ```
 
-#### `[keybindings]`
+### `[keybindings]`
 
 ```toml
 [keybindings]
@@ -255,16 +217,22 @@ confirm_selection = "ctrl-y"
 
 See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.
 
-#### `[actions]`
+### `[actions]`
 
 External actions allow you to define custom commands that can be executed on
 selected entries. Actions are triggered via keybindings using the
 `actions:<action_name>` syntax.
 
-**Simple Braces Syntactic Sugar:**
+#### Action specification:
 
-For most use cases, you can use simple `{}` braces which automatically handle
-quoting and multiple entries:
+| Field         | Description                                                                                                                                                                                                      |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `description` | Optional description of what the action does                                                                                                                                                                     |
+| `command`     | Command template to execute (supports [templating syntax](#templating-syntax))                                                                                                                                   |
+| `mode`        | Execution mode: `fork` runs command in a subprocess, allowing you to return to tv upon completion (default); `execute` runs command and becomes the new process                                                  |
+| `separator`   | Character(s) to use when joining **multiple selected entries** when using complex template processing; depending on the entries content it might be beneficial to change to another one (default: `" "` - space) |
+
+#### Example:
 
 ```toml
 [actions.edit]
@@ -275,7 +243,7 @@ command = "nvim {}"
 # Files with quotes: nvim 'file\'s name.txt'
 ```
 
-**Advanced Template Processing:**
+#### Advanced Template Processing:
 
 For complex formatting needs, use the full [templating syntax](#templating-syntax):
 
@@ -303,13 +271,40 @@ separator = " "
 # Note: 3 args here, instead of 2
 ```
 
-**Action specification:**
+## Templating syntax
 
-- `description` - Optional description of what the action does
-- `command` - Command template to execute (supports [templating syntax](#templating-syntax))
-- `mode` - Execution mode:
-  - `execute` - Run command and become the new process
-  - `fork` - Run command in a subprocess, allowing you to return to tv upon completion
-- `separator` - Character(s) to use when joining **multiple selected entries** when using complex template processing,
-  depending on the entries content it might be beneficial to change to another
-  one (default: `" "` - space)
+Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
+
+Here's a quick TLDR if you're feeling lazy:
+
+**Basic transformations:**
+
+```bash
+# Extract middle items: "a,b,c,d,e"
+"{split:,:1..3}"
+# Output: "b,c"
+
+# Clean and format names: "  john  , jane , bob  "
+'{split:,:..|map:{trim|upper|append:!}}'
+# Output: "JOHN!,JANE!,BOB!"
+
+# Extract numbers and pad with zeros: "item1,thing22,stuff333"
+'{split:,:..|map:{regex_extract:\d+|pad:3:0:left}}'
+# Output: "001,022,333"
+```
+
+**More niche use-cases:**
+
+```bash
+# Filter files, format as list: "app.py,readme.md,test.py,data.json"
+'{split:,:..|filter:\.py$|sort|map:{prepend:• }|join:\n}'
+# Output: "• app.py\n• test.py"
+
+# Extract domains from URLs: "https://github.com,https://google.com"
+'{split:,:..|map:{regex_extract://([^/]+):1|upper}}'
+# Output: "GITHUB.COM,GOOGLE.COM"
+
+# Debug complex processing: "apple Banana cherry Date"
+"{split: :..|filter:^[A-Z]|sort:desc}"
+# Output: Date,Banana
+```
