@@ -152,6 +152,9 @@ Here's a quick TLDR if you're feeling lazy:
 
 [keybindings]
 # customize keybindings
+
+[actions]
+# define external actions
 ```
 
 #### `[metadata]`
