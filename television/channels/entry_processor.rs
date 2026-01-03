@@ -4,6 +4,13 @@ use crate::{
 };
 use fast_strip_ansi::strip_ansi_string;
 
+/// Implementors of this trait define two things:
+/// - how to push lines into the matcher, including any preprocessing steps (e.g. stripping ANSI
+///   codes, applying templates, etc.)
+/// - how to construct the final Entry objects used by the rest of the application from the matched
+///   items
+///
+/// The associated type `Data` defines the type of data stored in the matcher for each line.
 pub trait EntryProcessor: Send + Sync + Clone + 'static {
     type Data: Send + Sync + Clone + 'static;
 
@@ -18,7 +25,10 @@ pub trait EntryProcessor: Send + Sync + Clone + 'static {
     fn has_ansi(&self) -> bool;
 }
 
-/// no transformation: matches the raw line as-is
+/// A processor that does no special processing: matches the raw lines as-is and stores
+/// them directly into the first matcher column.
+///
+/// Uses `Matcher<()>` since no extra data is needed which reduces memory usage.
 #[derive(Clone, Debug)]
 pub struct PlainProcessor;
 
@@ -49,8 +59,13 @@ impl EntryProcessor for PlainProcessor {
     }
 }
 
-/// ANSI mode: strips ANSI codes for matching
-/// Uses Matcher<String> to store original with ANSI codes
+/// A processor that preserves ANSI codes in the matched lines by storing two versions of each
+/// line in the matcher:
+///
+/// - the original line with ANSI codes
+/// - a stripped version without ANSI codes for matching (matcher column 0)
+///
+/// Uses `Matcher<String>` to store original with ANSI codes.
 #[derive(Clone, Debug)]
 pub struct AnsiProcessor;
 
@@ -83,8 +98,10 @@ impl EntryProcessor for AnsiProcessor {
     }
 }
 
-/// Display mode: applies custom template for matching
-/// Uses Matcher<String> to store original
+/// A processor that applies a display template to each line before matching, also storing the
+/// original line into the matcher for further uses (e.g. output templates).
+///
+/// Uses `Matcher<String>` to store original lines.
 #[derive(Clone, Debug)]
 pub struct DisplayProcessor {
     pub template: Template,
