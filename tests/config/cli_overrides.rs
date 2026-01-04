@@ -237,6 +237,41 @@ fn test_empty_cli_args_dont_override() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
+/// Tests CLI override of input bar position
+#[test]
+fn test_cli_input_position_override() {
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_with_args(&[
+        "files",
+        "--cable-dir",
+        DEFAULT_CABLE_DIR,
+        "--input-prompt",
+        "position-prompt>",
+        "--input-position",
+        "bottom",
+    ]);
+
+    let mut child = tester.spawn_command_tui(cmd);
+
+    let frame = tester.get_tui_frame();
+    let prompt_index = frame
+        .find("position-prompt>")
+        .expect("Expected input prompt in frame");
+    let results_index = frame
+        .find("Results")
+        .expect("Expected results header in frame");
+
+    assert!(
+        prompt_index > results_index,
+        "Expected input bar below results when using --input-position=bottom.\nFrame:\n{}",
+        frame
+    );
+
+    tester.send(&ctrl('c'));
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
 #[test]
 fn test_action_id_mismatch_validation_error() {
     let mut tester = PtyTester::new();
