@@ -53,6 +53,15 @@ impl Display for InputPosition {
     }
 }
 
+impl From<crate::cli::args::InputPosition> for InputPosition {
+    fn from(value: crate::cli::args::InputPosition) -> Self {
+        match value {
+            crate::cli::args::InputPosition::Top => InputPosition::Top,
+            crate::cli::args::InputPosition::Bottom => InputPosition::Bottom,
+        }
+    }
+}
+
 #[derive(
     Debug,
     Clone,

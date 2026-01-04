@@ -9,7 +9,7 @@ use crate::{
     },
     errors::cli_parsing_error_exit,
     event::Key,
-    screen::layout::Orientation,
+    screen::layout::{InputPosition, Orientation},
     utils::paths::expand_tilde,
 };
 use anyhow::{Result, anyhow};
@@ -105,6 +105,7 @@ pub struct ChannelCli {
     pub input: Option<String>,
     pub input_header: Option<String>,
     pub input_prompt: Option<String>,
+    pub input_position: Option<InputPosition>,
     pub input_border: Option<BorderType>,
     pub input_padding: Option<Padding>,
 
@@ -280,6 +281,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
 
     // Determine layout
     let layout: Option<Orientation> = cli.layout.map(Orientation::from);
+    let input_position = cli.input_position.map(InputPosition::from);
 
     // borders
     let input_border = cli.input_border.map(BorderType::from);
@@ -347,6 +349,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             input: cli.input,
             input_header: cli.input_header,
             input_prompt: cli.input_prompt,
+            input_position,
             input_border,
             input_padding,
 

@@ -291,9 +291,19 @@ pub struct Cli {
     )]
     pub input_prompt: Option<String>,
 
-    /// Sets the input panel border type.
+    /// Input bar position.
     ///
-    /// Available options are: `none`, `plain`, `rounded`, `thick`.
+    /// Sets whether the input panel is shown at the top or bottom of the UI.
+    #[arg(
+        long,
+        value_enum,
+        value_name = "INPUT_POSITION",
+        verbatim_doc_comment,
+        help_heading = "Input"
+    )]
+    pub input_position: Option<InputPosition>,
+
+    /// Sets the input panel border type.
     #[arg(long, value_enum, verbatim_doc_comment, help_heading = "Input")]
     pub input_border: Option<BorderType>,
 
@@ -333,8 +343,6 @@ pub struct Cli {
     pub show_status_bar: bool,
 
     /// Sets the results panel border type.
-    ///
-    /// Available options are: `none`, `plain`, `rounded`, `thick`.
     #[arg(long, value_enum, verbatim_doc_comment, help_heading = "UI")]
     pub results_border: Option<BorderType>,
 
@@ -355,8 +363,6 @@ pub struct Cli {
     ///
     /// When a channel is specified: Overrides the layout/orientation defined in the channel prototype.
     /// When no channel is specified: Sets the layout orientation for the ad-hoc channel.
-    ///
-    /// Options are "landscape" or "portrait".
     #[arg(long, value_enum, verbatim_doc_comment, help_heading = "UI")]
     pub layout: Option<LayoutOrientation>,
 
@@ -666,6 +672,12 @@ pub enum Shell {
 pub enum LayoutOrientation {
     Landscape,
     Portrait,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
+pub enum InputPosition {
+    Top,
+    Bottom,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
