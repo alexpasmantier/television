@@ -202,12 +202,15 @@ impl ConfigLayers {
                 || self.base_config.ui.status_bar.separator_close.clone(),
                 |sb| sb.separator_close.clone(),
             );
-        let input_bar_position = self
-            .channel
-            .ui
-            .as_ref()
-            .and_then(|ui| ui.input_bar.as_ref())
-            .map_or(self.base_config.ui.input_bar.position, |ib| ib.position);
+        let input_bar_position = self.channel_cli.input_position.unwrap_or(
+            self.channel
+                .ui
+                .as_ref()
+                .and_then(|ui| ui.input_bar.as_ref())
+                .map_or(self.base_config.ui.input_bar.position, |ib| {
+                    ib.position
+                }),
+        );
 
         // CLI > channel > base config fields
         let ui_scale = self.channel_cli.ui_scale.unwrap_or(

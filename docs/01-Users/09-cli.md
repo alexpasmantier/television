@@ -198,10 +198,15 @@ Input:
           The given value is used as the prompt string shown before the input field.
           Defaults to ">" when omitted.
 
+      --input-position <INPUT_POSITION>
+          Input bar position.
+          
+          Sets whether the input panel is shown at the top or bottom of the UI.
+          
+          [possible values: top, bottom]
+
       --input-border <INPUT_BORDER>
           Sets the input panel border type.
-          
-          Available options are: `none`, `plain`, `rounded`, `thick`.
           
           [possible values: none, plain, rounded, thick]
 
@@ -235,8 +240,6 @@ UI:
       --results-border <RESULTS_BORDER>
           Sets the results panel border type.
           
-          Available options are: `none`, `plain`, `rounded`, `thick`.
-          
           [possible values: none, plain, rounded, thick]
 
       --results-padding <STRING>
@@ -251,8 +254,6 @@ UI:
           
           When a channel is specified: Overrides the layout/orientation defined in the channel prototype.
           When no channel is specified: Sets the layout orientation for the ad-hoc channel.
-          
-          Options are "landscape" or "portrait".
           
           [possible values: landscape, portrait]
 
