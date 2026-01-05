@@ -11,7 +11,7 @@ use anyhow::Result;
 use ratatui::{
     Frame,
     layout::{Alignment, Rect},
-    prelude::{Color, Line, Span, Style, Stylize, Text},
+    prelude::{Color, Line, Span, Style, Text},
     widgets::{
         Block, Borders, Clear, Padding as RatatuiPadding, Paragraph,
         Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,

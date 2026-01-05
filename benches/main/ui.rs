@@ -1,8 +1,9 @@
+use criterion::Criterion;
 use criterion::criterion_group;
-use criterion::{Criterion, black_box};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
+use std::hint::black_box;
 use television::channels::prototypes::ChannelPrototype;
 use television::config::layers::ConfigLayers;
 use television::picker::Movement;

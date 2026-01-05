@@ -1,5 +1,6 @@
-use criterion::{Criterion, black_box, criterion_group};
+use criterion::{Criterion, criterion_group};
 use rustc_hash::FxHashMap;
+use std::hint::black_box;
 use television::{
     channels::{
         entry::Entry,

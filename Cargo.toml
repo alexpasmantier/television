@@ -33,7 +33,7 @@ rustc-hash = "2.1"
 unicode-width = "0.2"
 clap = { version = "4.5", features = ["derive", "cargo", "string"] }
 serde = { version = "1.0", features = ["derive"] }
-ratatui = { version = "0.29", features = ["serde", "macros"] }
+ratatui = { version = "0.30", features = ["serde", "macros"] }
 better-panic = "0.3"
 signal-hook = "0.3"
 human-panic = "2.0"
@@ -41,7 +41,7 @@ parking_lot = "0.12"
 nucleo = "0.5"
 toml = "0.8"
 lazy-regex = { version = "3.4", features = ["lite"], default-features = false }
-ansi-to-tui = "7.0"
+ansi-to-tui = "8.0"
 walkdir = "2.5"
 string_pipeline = "0.13"
 ureq = "3.0"
