@@ -1025,7 +1025,7 @@ requirements = [ "tldr",]
 command = "tldr --list"
 
 [preview]
-command = "tldr '{0}'"
+command = "tldr '{0}' --color always"
 
 [keybindings]
 ctrl-e = "actions:open"
