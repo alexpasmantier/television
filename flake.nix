@@ -4,7 +4,6 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
-    flake-utils.url = "github:numtide/flake-utils";
     crane.url = "github:ipetkov/crane";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
@@ -64,7 +63,10 @@
             license = lib.licenses.mit;
             platforms = lib.platforms.unix;
             mainProgram = "tv";
-            maintainers = [ lib.maintainers.doprz ];
+            maintainers = [
+              lib.maintainers.doprz
+              "tukanoidd"
+            ];
           };
 
           # Common arguments can be set here to avoid repeating them later
