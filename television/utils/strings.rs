@@ -482,6 +482,10 @@ pub fn replace_non_printable_bulk<'a>(
                     c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
                         output.push(c);
                     }
+                    // Braille Unicode characters
+                    c if ('\u{2800}'..='\u{28FF}').contains(&c) => {
+                        output.push(c);
+                    }
                     // Unicode characters above 0x0700 seem unstable with ratatui
                     c if c > '\u{0700}' => {
                         output.push(NULL_SYMBOL);
@@ -945,6 +949,14 @@ mod tests {
         let (output, offsets) = replace_non_printable_bulk(input, &config);
         assert_eq!(output, "안녕하세요!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0]);
+    }
+    #[test]
+    fn test_braille_characters() {
+        let input = "⠓⠑⠇⠇⠕⠀⠺⠕⠗⠇⠙";
+        let config = ReplaceNonPrintableConfig::default();
+        let (output, offsets) = replace_non_printable_bulk(input, &config);
+        assert_eq!(output, "⠓⠑⠇⠇⠕⠀⠺⠕⠗⠇⠙");
+        assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
     }
     #[test]
     fn test_replace_non_printable_no_range_changes() {
