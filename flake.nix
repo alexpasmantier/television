@@ -78,8 +78,9 @@
             strictDeps = true;
             doCheck = false; # NOTE: tests/common/mod.rs:139 fails
 
-            nativeBuildInputs = [
-              pkgs.makeWrapper
+            nativeBuildInputs = with pkgs; [
+              makeWrapper
+              installShellFiles
             ];
 
             buildInputs =
@@ -99,10 +100,16 @@
               # here *without* rebuilding all dependency crates
               # MY_CUSTOM_VAR = "some value";
 
-              # Wrap the binary to include runtime dependencies in PATH
+              # Wrap the binary to include runtime dependencies in PATH and install shell completions
               postInstall = ''
                 wrapProgram $out/bin/tv \
                   --prefix PATH : ${lib.makeBinPath runtimeDeps} \
+
+                installShellCompletion --cmd tv \
+                  television/utils/shell/completion.bash \
+                  television/utils/shell/completion.zsh \
+                  television/utils/shell/completion.fish \
+                  television/utils/shell/completion.nu
               '';
 
             }
