@@ -482,6 +482,10 @@ pub fn replace_non_printable_bulk<'a>(
                     c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
                         output.push(c);
                     }
+                    // Braille Unicode characters
+                    c if ('\u{2800}'..='\u{28FF}').contains(&c) => {
+                        output.push(c);
+                    },
                     // Unicode characters above 0x0700 seem unstable with ratatui
                     c if c > '\u{0700}' => {
                         output.push(NULL_SYMBOL);
