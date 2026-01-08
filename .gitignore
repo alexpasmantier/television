@@ -41,3 +41,6 @@ result-*
 
 # Ignore automatically generated direnv output
 .direnv
+
+# Development shell completions, see television/utils/shell/README.md
+dev_shell_integration.*
