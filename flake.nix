@@ -61,9 +61,10 @@
           meta = {
             description = "A very fast, portable and hackable fuzzy finder for the terminal";
             homepage = "https://github.com/alexpasmantier/television";
-            license = pkgs.lib.licenses.mit;
-            platforms = pkgs.lib.platforms.unix;
+            license = lib.licenses.mit;
+            platforms = lib.platforms.unix;
             mainProgram = "tv";
+            maintainers = [ lib.maintainers.doprz ];
           };
 
           # Common arguments can be set here to avoid repeating them later
