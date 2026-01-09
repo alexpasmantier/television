@@ -21,8 +21,6 @@ Cargo.lock
 # Zed
 .zed/
 
-# Direnv (Nix Shell)
-.direnv/
 .DS_Store
 
 # obsidian
@@ -36,3 +34,13 @@ Cargo.lock
 # test artifacts
 target_dir/
 notes.md
+
+# Ignore build outputs from performing a nix-build or `nix build` command
+result
+result-*
+
+# Ignore automatically generated direnv output
+.direnv
+
+# Development shell completions, see television/utils/shell/README.md
+dev_shell_integration.*
