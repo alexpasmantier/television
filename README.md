@@ -157,7 +157,11 @@ apk add television
 - [NixOS](https://nixos.org/) and other systems with [Nix package manager](https://nixos.org/download.html):
 
 ```sh
+# Stable version from nixpkgs
 nix run nixpkgs#television
+
+# Latest nightly version from GitHub
+nix run github:alexpasmantier/television
 ```
 
 ### MacOS
