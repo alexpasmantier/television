@@ -910,7 +910,14 @@ mode = "execute"
 ### *sesh*
 
 Session manager integrating tmux sessions, zoxide directories, and config paths
+:::info
 
+While creating the `tmux` keybinds for the `sesh` channel, make sure to include `display-popup -E -w <x>% -h <y>%`, otherwise `television` will crash, since it won't have a window to render to. An example keybind would be:
+```bash
+bind-key "G" display-popup -E -w 80% -h 80% "tv sesh --no-status-bar --no-remote --preview-size=70"
+```
+
+:::
 ![tv running the sesh channel](../../assets/channels/sesh.png)
 **Requirements:** `sesh`, `fd`
 
