@@ -222,6 +222,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.config.preview_panel_border_type,
             &ctx.config.preview_panel_padding,
             ctx.config.preview_panel_scrollbar,
+            ctx.config.preview_panel_word_wrap,
         )?;
     }
 

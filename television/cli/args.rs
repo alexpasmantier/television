@@ -228,6 +228,18 @@ pub struct Cli {
     )]
     pub preview_padding: Option<String>,
 
+    /// Enables preview panel word wrap.
+    ///
+    /// Example: `--preview-word-wrap`
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        conflicts_with = "no_preview",
+        help_heading = "Preview"
+    )]
+    pub preview_word_wrap: bool,
+
     /// Hide preview panel scrollbar.
     #[arg(
         long,

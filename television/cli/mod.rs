@@ -83,6 +83,7 @@ pub struct ChannelCli {
     pub preview_footer: Option<Template>,
     pub preview_border: Option<BorderType>,
     pub preview_padding: Option<Padding>,
+    pub preview_word_wrap: bool,
     pub hide_preview_scrollbar: bool,
 
     // Results panel configuration
@@ -323,6 +324,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             hide_preview: cli.hide_preview,
             show_preview: cli.show_preview,
             hide_preview_scrollbar: cli.hide_preview_scrollbar,
+            preview_word_wrap: cli.preview_word_wrap,
             preview_size: cli.preview_size,
             preview_header,
             preview_footer,

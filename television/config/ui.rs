@@ -61,6 +61,7 @@ pub struct PreviewPanelConfig {
     pub scrollbar: bool,
     pub border_type: BorderType,
     pub padding: Padding,
+    pub word_wrap: bool,
     pub hidden: bool,
 }
 
@@ -74,6 +75,7 @@ impl Default for PreviewPanelConfig {
             border_type: BorderType::default(),
             padding: Padding::uniform(0),
             hidden: false,
+            word_wrap: false,
         }
     }
 }
