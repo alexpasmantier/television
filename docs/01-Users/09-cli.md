@@ -161,6 +161,11 @@ Preview:
           
           Example: `--preview-padding='top=1;left=2;bottom=1;right=2'`
 
+      --preview-word-wrap
+          Enables preview panel word wrap.
+          
+          Example: `--preview-word-wrap`
+
       --hide-preview-scrollbar
           Hide preview panel scrollbar.
 
