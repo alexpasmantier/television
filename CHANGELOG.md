@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.14.5](https://github.com/alexpasmantier/television/releases/tag/0.14.5) - 2026-01-10
+
+### ⛰️  Features
+
+- [250e7ac](https://github.com/alexpasmantier/television/commit/250e7aced1775ee27937b5e1b317db162617e7db) *(preview)* Add word wrapping to the preview panel by @xosxos in [#849](https://github.com/alexpasmantier/television/pull/849)
+
+- [d6553e7](https://github.com/alexpasmantier/television/commit/d6553e7ce917b424129fa1660586c8ea2d764f04) *(preview)* Accept Braille Unicode characters by @xosxos in [#848](https://github.com/alexpasmantier/television/pull/848)
+
+- [e338cbe](https://github.com/alexpasmantier/television/commit/e338cbe92e388992d91d876749c1552486d88317) *(tldr)* Colored tldr preview by @alexpasmantier
+
+### 🚜 Refactor
+
+- [0bd20fc](https://github.com/alexpasmantier/television/commit/0bd20fc8e70ebd58e2e3c0a65265051e43afadbf) *(nix)* Flake using flake-parts, crane, and rust-overlay by @doprz in [#846](https://github.com/alexpasmantier/television/pull/846)
+
+### 📚 Documentation
+
+- [35243a4](https://github.com/alexpasmantier/television/commit/35243a46b89fc71cfaed4db0ffaef2751fdb0668) *(cable)* Update channel documentation (auto) by @github-actions[bot] in [#845](https://github.com/alexpasmantier/television/pull/845)
+
+- [c25f721](https://github.com/alexpasmantier/television/commit/c25f72145e6041bf5ca05735300441949002f756) *(cli)* Update tv --help output (auto) by @github-actions[bot] in [#850](https://github.com/alexpasmantier/television/pull/850)
+
+### ⚙️ Miscellaneous Tasks
+
+- [7914dc0](https://github.com/alexpasmantier/television/commit/7914dc08eb4cfd3f3435bfc636a89feba1619b72) *(changelog)* Update changelog (auto) by @github-actions[bot] in [#842](https://github.com/alexpasmantier/television/pull/842)
+
+- [c6db6b6](https://github.com/alexpasmantier/television/commit/c6db6b6452fd0325fcdc685bea7e15cf281765ea) *(uncategorized)* Release version 0.14.5 by @alexpasmantier
+
+
+
+### New Contributors
+* @doprz made their first contribution in [#846](https://github.com/alexpasmantier/television/pull/846)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.14.4...0.14.5
+
+
 ## [0.14.4](https://github.com/alexpasmantier/television/releases/tag/0.14.4) - 2026-01-04
 
 ### ⛰️  Features
