@@ -27,6 +27,7 @@ pub fn draw_preview_content_block(
     border_type: &BorderType,
     padding: &Padding,
     scrollbar: bool,
+    word_wrap: bool,
 ) -> Result<()> {
     let inner = draw_content_outer_block(
         f,
@@ -46,6 +47,7 @@ pub fn draw_preview_content_block(
         preview_state.preview.content,
         preview_state.preview.target_line,
         colorscheme.preview.highlight_bg,
+        word_wrap,
     );
     f.render_widget(Clear, inner);
     f.render_widget(rp, inner);
@@ -73,10 +75,21 @@ pub fn draw_preview_content_block(
 }
 
 pub fn build_preview_paragraph(
-    content: Text<'static>,
-    line_number: Option<u16>,
+    mut text: Text<'static>,
+    target_line: Option<u16>,
     highlight_bg: Color,
+    word_wrap: bool,
 ) -> Paragraph<'static> {
+    // Highlight the target line
+    if let Some(target_line) = target_line
+        && let Some(line) =
+            text.lines.get_mut((target_line.saturating_sub(1)) as usize)
+    {
+        for span in &mut line.spans {
+            span.style = span.style.bg(highlight_bg);
+        }
+    }
+
     let preview_block =
         Block::default()
             .style(Style::default())
@@ -87,31 +100,13 @@ pub fn build_preview_paragraph(
                 left: 1,
             });
 
-    build_ansi_text_paragraph(
-        content,
-        preview_block,
-        line_number,
-        highlight_bg,
-    )
-}
+    let paragraph = Paragraph::new(text).block(preview_block);
 
-fn build_ansi_text_paragraph<'a>(
-    mut text: Text<'a>,
-    preview_block: Block<'a>,
-    target_line: Option<u16>,
-    highlight_bg: Color,
-) -> Paragraph<'a> {
-    if let Some(target_line) = target_line {
-        // Highlight the target line
-        if let Some(line) =
-            text.lines.get_mut((target_line.saturating_sub(1)) as usize)
-        {
-            for span in &mut line.spans {
-                span.style = span.style.bg(highlight_bg);
-            }
-        }
+    if word_wrap {
+        paragraph.wrap(ratatui::widgets::Wrap { trim: true })
+    } else {
+        paragraph
     }
-    Paragraph::new(text).block(preview_block)
 }
 
 fn draw_content_outer_block(

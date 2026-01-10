@@ -361,6 +361,20 @@ impl ConfigLayers {
                 Some(self.channel.ui.as_ref()?.preview_panel.as_ref()?.padding)
             })
             .unwrap_or(self.base_config.ui.preview_panel.padding);
+
+        // If the CLI sets word-wrap to true, we respect that
+        let preview_panel_word_wrap = if self.channel_cli.preview_word_wrap {
+            true
+        // Otherwise, we check the channel UI config
+        } else if let Some(ui) = self.channel.ui.as_ref()
+            && let Some(panel) = ui.preview_panel.as_ref()
+        {
+            panel.word_wrap
+        // And if no config is present, we check the base UI config
+        } else {
+            self.base_config.ui.preview_panel.word_wrap
+        };
+
         let preview_panel_disabled =
             self.global_cli.no_preview || self.channel_cli.no_preview;
         let preview_panel_hidden = if preview_panel_disabled {
@@ -489,6 +503,7 @@ impl ConfigLayers {
             preview_panel_scrollbar,
             preview_panel_border_type,
             preview_panel_padding,
+            preview_panel_word_wrap,
             preview_panel_hidden,
             preview_panel_disabled,
             // help panel
@@ -582,6 +597,7 @@ pub struct MergedConfig {
     pub preview_panel_scrollbar: bool,
     pub preview_panel_border_type: BorderType,
     pub preview_panel_padding: Padding,
+    pub preview_panel_word_wrap: bool,
     pub preview_panel_hidden: bool,
     pub preview_panel_disabled: bool,
     // help panel
