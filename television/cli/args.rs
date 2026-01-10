@@ -230,11 +230,13 @@ pub struct Cli {
 
     /// Enables preview panel word wrap.
     ///
-    /// Example: `--word-wrap`
+    /// Example: `--preview-word-wrap`
     #[arg(
-        long = "word-wrap",
+        long,
+        default_value = "false",
         verbatim_doc_comment,
-        conflicts_with = "no_preview"
+        conflicts_with = "no_preview",
+        help_heading = "Preview"
     )]
     pub preview_word_wrap: bool,
 

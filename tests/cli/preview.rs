@@ -145,7 +145,7 @@ fn test_preview_size_with_preview_command() {
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
-/// Tests that --word-wrap enables preview panel word wrapping.
+/// Tests that --preview-word-wrap enables preview panel word wrapping.
 #[test]
 fn test_preview_word_wrap_with_preview_command() {
     let mut tester = PtyTester::new();
@@ -153,7 +153,7 @@ fn test_preview_word_wrap_with_preview_command() {
     // This sets the preview panel to 10% of screen width
     let cmd = tv_local_config_and_cable_with_args(&[
         "files",
-        "--word-wrap",
+        "--preview-word-wrap",
         "-p",
         "echo 'Hello world'",
         "--preview-size",
