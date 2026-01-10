@@ -1,4 +1,5 @@
-use criterion::{Criterion, black_box, criterion_group};
+use criterion::{Criterion, criterion_group};
+use std::hint::black_box;
 use television::utils::strings::{
     ReplaceNonPrintableConfig, replace_non_printable_bulk,
 };

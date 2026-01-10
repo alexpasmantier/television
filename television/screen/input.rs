@@ -9,11 +9,11 @@ use ratatui::{
     layout::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
-    style::{Style, Stylize},
+    style::Style,
     text::{Line, Span},
     widgets::{
         Block, Borders, ListState, Padding as RatatuiPadding, Paragraph,
-        block::Position,
+        TitlePosition,
     },
 };
 
@@ -38,8 +38,8 @@ pub fn draw_input_box(
     let header = header.as_ref().map_or(channel_name, |v| v);
     let mut input_block = Block::default()
         .title_position(match position {
-            InputPosition::Top => Position::Top,
-            InputPosition::Bottom => Position::Bottom,
+            InputPosition::Top => TitlePosition::Top,
+            InputPosition::Bottom => TitlePosition::Bottom,
         })
         .title(
             Line::from(format!(" {} ", header))
