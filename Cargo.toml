@@ -35,11 +35,11 @@ clap = { version = "4.5", features = ["derive", "cargo", "string"] }
 serde = { version = "1.0", features = ["derive"] }
 ratatui = { version = "0.30", features = ["serde", "macros"] }
 better-panic = "0.3"
-signal-hook = "0.3"
+signal-hook = "0.4"
 human-panic = "2.0"
 parking_lot = "0.12"
 nucleo = "0.5"
-toml = "0.8"
+toml = "0.9"
 lazy-regex = { version = "3.4", features = ["lite"], default-features = false }
 ansi-to-tui = "8.0"
 walkdir = "2.5"
@@ -52,7 +52,7 @@ which = "8.0"
 clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
-fast-strip-ansi = "0.11"
+fast-strip-ansi = "0.13"
 
 
 # target specific dependencies
@@ -68,10 +68,10 @@ clipboard-win = "5.4.0"
 
 
 [dev-dependencies]
-criterion = { version = "0.5", features = ["async_tokio"] }
+criterion = { version = "0.8", features = ["async_tokio"] }
 tempfile = "3.16.0"
 portable-pty = "0.9.0"
-vt100 = "0.15"
+vt100 = "0.16"
 
 
 [build-dependencies]
