@@ -17,7 +17,6 @@ use anyhow::Result;
 use devicons::FileIcon;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
-    style::Stylize,
     widgets::{Block, List, ListDirection, ListState},
 };
 use unicode_width::UnicodeWidthStr;
@@ -357,6 +356,7 @@ mod tests {
     use super::*;
     use crate::channels::entry::Entry;
     use ratatui::prelude::{Color, Span};
+    use ratatui::style::Stylize;
     use ratatui::text::Line;
 
     #[test]

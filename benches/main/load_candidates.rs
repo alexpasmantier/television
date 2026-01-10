@@ -1,5 +1,6 @@
 use criterion::criterion_group;
-use criterion::{BenchmarkId, Criterion, Throughput, black_box};
+use criterion::{BenchmarkId, Criterion, Throughput};
+use std::hint::black_box;
 use television::channels::entry_processor::{
     AnsiProcessor, DisplayProcessor, PlainProcessor,
 };
