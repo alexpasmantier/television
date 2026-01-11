@@ -51,6 +51,12 @@ Source:
           
           Example: `tv --source-command="echo -e 'Red'" --ansi`
 
+      --no-sort
+          Disable automatic sorting of entries based on match quality.
+          
+          This is useful when you want to preserve the original order of entries
+          as provided by the source command.
+
       --source-display <STRING>
           Source display template to use for the current channel.
           
