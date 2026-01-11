@@ -10,5 +10,4 @@ pub mod preview;
 pub mod remote_control;
 pub mod result_item;
 pub mod results;
-pub mod spinner;
 pub mod status_bar;

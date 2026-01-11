@@ -23,7 +23,6 @@ use crate::{
     screen::{
         colors::Colorscheme,
         layout::{InputPosition, Orientation},
-        spinner::{Spinner, SpinnerState},
     },
     utils::{
         clipboard::CLIPBOARD,
@@ -77,8 +76,6 @@ pub struct Television {
     pub preview_state: PreviewState,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
-    pub spinner: Spinner,
-    pub spinner_state: SpinnerState,
     pub app_metadata: Arc<AppMetadata>,
     pub colorscheme: Arc<Colorscheme>,
     pub ticks: u64,
@@ -159,7 +156,6 @@ impl Television {
         );
 
         channel.find(&pattern);
-        let spinner = Spinner::default();
 
         let preview_state = PreviewState::new(
             channel.supports_preview(),
@@ -190,8 +186,6 @@ impl Television {
             rc_picker: Picker::default(),
             preview_state,
             preview_handles,
-            spinner,
-            spinner_state: SpinnerState::from(&spinner),
             app_metadata: Arc::new(app_metadata),
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
@@ -242,7 +236,6 @@ impl Television {
             self.results_picker.clone(),
             self.rc_picker.clone(),
             channel_state,
-            self.spinner,
             self.preview_state.for_render_context(
                 self.ui_state
                     .layout
@@ -479,7 +472,7 @@ const RENDERING_INTERVAL: u64 = 25;
 /// Render every N ticks if the channel is currently running.
 ///
 /// This ensures that the UI stays in sync with the channel
-/// state (displaying a spinner, updating results, etc.).
+/// state (loading indicator, updating results, etc.).
 const RENDERING_INTERVAL_FAST: u64 = 3;
 
 impl Television {
@@ -893,10 +886,6 @@ impl Television {
         self.ticks += 1;
 
         Ok(if self.should_render(action) {
-            if self.channel.running() {
-                self.spinner.tick();
-            }
-
             Some(Action::Render)
         } else {
             None

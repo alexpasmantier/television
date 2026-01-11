@@ -8,7 +8,7 @@ use crate::{
         input::draw_input_box, layout::Layout,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
-        spinner::Spinner, status_bar,
+        status_bar,
     },
     television::Mode,
     utils::metadata::AppMetadata,
@@ -70,7 +70,6 @@ pub struct TvState {
     pub results_picker: Picker<Entry>,
     pub rc_picker: Picker<CableEntry>,
     pub channel_state: ChannelState,
-    pub spinner: Spinner,
     pub preview_state: PreviewState,
 }
 
@@ -82,7 +81,6 @@ impl TvState {
         results_picker: Picker<Entry>,
         rc_picker: Picker<CableEntry>,
         channel_state: ChannelState,
-        spinner: Spinner,
         preview_state: PreviewState,
     ) -> Self {
         Self {
@@ -91,7 +89,6 @@ impl TvState {
             results_picker,
             rc_picker,
             channel_state,
-            spinner,
             preview_state,
         }
     }
@@ -198,7 +195,6 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.tv_state.results_picker.state,
         ctx.tv_state.channel_state.running,
         &ctx.tv_state.channel_state.current_channel_name,
-        &ctx.tv_state.spinner,
         &ctx.colorscheme,
         ctx.config.input_bar_position,
         &ctx.config.input_bar_header,
