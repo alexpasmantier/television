@@ -97,6 +97,7 @@ requirements = [ "bash",]
 
 [source]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
+sort_results = false
 
 ```
 
@@ -368,6 +369,7 @@ requirements = [ "fish",]
 
 [source]
 command = "fish -c 'history'"
+sort_results = false
 
 ```
 
@@ -502,6 +504,7 @@ requirements = [ "git",]
 command = "git log --graph --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
 output = "{strip_ansi|split: :1}"
 ansi = true
+sort_results = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :1}' | head -n 1000"
@@ -529,6 +532,7 @@ requirements = [ "git",]
 command = "git reflog --decorate --color=always"
 output = "{0|strip_ansi}"
 ansi = true
+sort_results = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0|strip_ansi}'"
@@ -841,6 +845,7 @@ description = "A channel to select from your nu history"
 
 [source]
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
+sort_results = false
 
 ```
 
@@ -1105,6 +1110,7 @@ requirements = [ "zsh",]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.zsh_history}"
 display = "{split:;:1..}"
 output = "{split:;:1..}"
+sort_results = false
 
 ```
 
