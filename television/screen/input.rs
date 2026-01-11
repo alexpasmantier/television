@@ -1,6 +1,6 @@
 use crate::{
     config::ui::{BorderType, DEFAULT_PROMPT, Padding},
-    screen::{colors::Colorscheme, layout::InputPosition, spinner::Spinner},
+    screen::{colors::Colorscheme, layout::InputPosition},
     utils::input::Input,
 };
 use anyhow::Result;
@@ -9,13 +9,15 @@ use ratatui::{
     layout::{
         Alignment, Constraint, Direction, Layout as RatatuiLayout, Rect,
     },
-    style::Style,
+    style::{Color, Style},
     text::{Line, Span},
     widgets::{
         Block, Borders, ListState, Padding as RatatuiPadding, Paragraph,
         TitlePosition,
     },
 };
+
+const LOADING_CHAR: &str = "●";
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
@@ -27,7 +29,6 @@ pub fn draw_input_box(
     results_picker_state: &ListState,
     matcher_running: bool,
     channel_name: &str,
-    spinner: &Spinner,
     colorscheme: &Colorscheme,
     position: InputPosition,
     header: &Option<String>,
@@ -65,30 +66,32 @@ pub fn draw_input_box(
 
     f.render_widget(input_block, rect);
 
-    // split input block into 4 parts: prompt symbol, input, result count, spinner
+    // split input block into 4 parts: prompt symbol, input, result count, indicator
+    let indicator_len = if matcher_running { 2 } else { 0 };
+    let constraints = [
+        // prompt symbol + space
+        Constraint::Length(
+            prompt
+                .as_ref()
+                .map(|p| {
+                    u16::try_from(p.chars().count() + 1)
+                        .expect("Prompt length should fit in u16")
+                })
+                .unwrap_or(2),
+        ),
+        // input field
+        Constraint::Fill(1),
+        // result count
+        Constraint::Length(
+            3 * (u16::try_from(total_count.max(1).ilog10()).unwrap() + 1) + 3,
+        ),
+        // loading symbol
+        Constraint::Length(indicator_len),
+    ];
+
     let inner_input_chunks = RatatuiLayout::default()
         .direction(Direction::Horizontal)
-        .constraints([
-            // prompt symbol + space
-            Constraint::Length(
-                prompt
-                    .as_ref()
-                    .map(|p| {
-                        u16::try_from(p.chars().count() + 1)
-                            .expect("Prompt length should fit in u16")
-                    })
-                    .unwrap_or(2),
-            ),
-            // input field
-            Constraint::Fill(1),
-            // result count
-            Constraint::Length(
-                3 * (u16::try_from(total_count.max(1).ilog10()).unwrap() + 1)
-                    + 3,
-            ),
-            // spinner
-            Constraint::Length(1),
-        ])
+        .constraints(constraints)
         .split(input_block_inner);
 
     let arrow_block = Block::default();
@@ -116,7 +119,10 @@ pub fn draw_input_box(
     f.render_widget(input, inner_input_chunks[1]);
 
     if matcher_running {
-        f.render_widget(spinner, inner_input_chunks[3]);
+        f.render_widget(
+            Span::styled(LOADING_CHAR, Style::default().fg(Color::Green)),
+            inner_input_chunks[3],
+        );
     }
 
     let result_count_block = Block::default();
