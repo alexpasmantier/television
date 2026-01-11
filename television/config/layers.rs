@@ -99,6 +99,9 @@ impl ConfigLayers {
             .channel_cli
             .watch_interval
             .unwrap_or(self.channel.watch);
+        // only sort results if --no-sort is not set and channel config has it enabled
+        let sort_results =
+            !self.channel_cli.no_sort && self.channel.source.sort_results;
         let channel_name = self
             .channel_cli
             .channel
@@ -471,6 +474,7 @@ impl ConfigLayers {
             take_1,
             take_1_fast,
             input,
+            sort_results,
 
             // Bindings
             input_map,
@@ -565,6 +569,7 @@ pub struct MergedConfig {
     pub take_1: bool,
     pub take_1_fast: bool,
     pub input: Option<String>,
+    pub sort_results: bool,
 
     // Bindings
     pub input_map: InputMap,

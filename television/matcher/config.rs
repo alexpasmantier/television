@@ -14,6 +14,8 @@ pub struct Config {
     pub prefer_prefix: bool,
     /// The number of threads to use for matching.
     pub n_threads: Option<usize>,
+    /// Whether to sort results based on score.
+    pub sort_results: bool,
 }
 
 impl Default for Config {
@@ -26,6 +28,7 @@ impl Default for Config {
                     .unwrap_or(4)
                     .min(8),
             ),
+            sort_results: true,
         }
     }
 }
@@ -47,12 +50,19 @@ impl Config {
         self.n_threads = n_threads;
         self
     }
+
+    /// Set whether or not to sort results based on matching score
+    pub fn sort_results(mut self, sort_results: bool) -> Self {
+        self.sort_results = sort_results;
+        self
+    }
 }
 
 impl From<&Config> for nucleo::Config {
     fn from(config: &Config) -> Self {
         let mut nucleo_config = nucleo::Config::DEFAULT;
         nucleo_config.prefer_prefix = config.prefer_prefix;
+        nucleo_config.sort_results = config.sort_results;
         nucleo_config
     }
 }

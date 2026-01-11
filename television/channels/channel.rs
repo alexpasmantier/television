@@ -42,9 +42,12 @@ impl<P: EntryProcessor> Channel<P> {
         source_entry_delimiter: Option<char>,
         source_output: Option<Template>,
         supports_preview: bool,
+        sort_results: bool,
         processor: P,
     ) -> Self {
-        let config = Config::default().prefer_prefix(true);
+        let config = Config::default()
+            .prefer_prefix(true)
+            .sort_results(sort_results);
         let matcher = Matcher::new(&config);
         let current_source_index = 0;
         Self {
@@ -386,6 +389,7 @@ impl ChannelKind {
         source_display: Option<Template>,
         source_output: Option<Template>,
         supports_preview: bool,
+        sort_results: bool,
     ) -> Self {
         match (source_ansi, source_display) {
             (false, None) => ChannelKind::Plain(Channel::new(
@@ -393,6 +397,7 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
+                sort_results,
                 PlainProcessor,
             )),
             (true, None) => ChannelKind::Ansi(Channel::new(
@@ -400,6 +405,7 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
+                sort_results,
                 AnsiProcessor,
             )),
             (_, Some(template)) => ChannelKind::Display(Channel::new(
@@ -407,6 +413,7 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
+                sort_results,
                 DisplayProcessor { template },
             )),
         }
