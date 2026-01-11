@@ -70,6 +70,7 @@ pub struct ChannelCli {
     pub source_entry_delimiter: Option<char>,
     pub autocomplete_prompt: Option<String>,
     pub ansi: bool,
+    pub no_sort: bool,
 
     // Preview configuration
     pub preview_command: Option<Template>,
@@ -311,6 +312,7 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             source_display,
             source_output,
             source_entry_delimiter,
+            no_sort: cli.no_sort,
 
             // Autocomplete and ANSI configuration
             autocomplete_prompt: cli.autocomplete_prompt,

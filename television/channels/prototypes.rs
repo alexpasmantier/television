@@ -263,6 +263,7 @@ impl ChannelPrototype {
                 ansi: false,
                 display: None,
                 output: None,
+                sort_results: true,
             },
             preview: None,
             ui: None,
@@ -362,6 +363,12 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
+    #[serde(default = "default_sort_results")]
+    pub sort_results: bool,
+}
+
+const fn default_sort_results() -> bool {
+    true
 }
 
 /// Just a helper function to adapt cli parsing to serde deserialization.

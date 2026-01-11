@@ -7,6 +7,7 @@ requirements = ["git"]
 command = "git reflog --decorate --color=always"
 output = "{0|strip_ansi}"
 ansi = true
+sort_results = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0|strip_ansi}'"
