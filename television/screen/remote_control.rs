@@ -234,7 +234,7 @@ fn draw_rc_channels(
         )
         .padding(Padding::right(1));
 
-    let channel_list = result_item::build_results_list(
+    let mut channel_list = result_item::build_results_list(
         rc_block,
         entries,
         picker_state,
@@ -243,6 +243,14 @@ fn draw_rc_channels(
         area.width,
         |_| None,
     );
+
+    // dim entries for which the requirements are not met
+    for mut item in channel_list. {
+        let entry = &entries[item.index];
+        if !entry.meets_requirements() {
+            item.style = item.style.dim();
+        }
+    }
 
     f.render_stateful_widget(channel_list, area, picker_state);
 }

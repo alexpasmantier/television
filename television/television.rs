@@ -664,6 +664,7 @@ impl Television {
             }
             Mode::RemoteControl => {
                 if let Some(entry) = self.get_selected_cable_entry() {
+                    // TODO: add check for requirements
                     let new_channel = self
                         .remote_control
                         .as_ref()

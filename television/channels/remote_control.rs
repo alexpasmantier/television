@@ -49,6 +49,10 @@ impl CableEntry {
         self.requirements = requirements;
         self
     }
+
+    pub fn meets_requirements(&self) -> bool {
+        self.requirements.iter().all(BinaryRequirement::is_met)
+    }
 }
 
 impl ResultItem for CableEntry {
