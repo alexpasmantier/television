@@ -1409,8 +1409,7 @@ dependencies = [
 [[package]]
 name = "nucleo"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5262af4c94921c2646c5ac6ff7900c2af9cbb08dc26a797e18130a7019c039d4"
+source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#7d1e62bdb32c838fba936b4bc75bbf2fe5a19749"
 dependencies = [
  "nucleo-matcher",
  "parking_lot",
@@ -1420,8 +1419,7 @@ dependencies = [
 [[package]]
 name = "nucleo-matcher"
 version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf33f538733d1a5a3494b836ba913207f14d9d4a1d3cd67030c5061bdd2cac85"
+source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#7d1e62bdb32c838fba936b4bc75bbf2fe5a19749"
 dependencies = [
  "memchr",
  "unicode-segmentation",

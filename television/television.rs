@@ -135,6 +135,7 @@ impl Television {
             merged_config.channel_source_display,
             merged_config.channel_source_output,
             merged_config.channel_preview_command.is_some(),
+            merged_config.sort_results,
         );
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
@@ -311,6 +312,7 @@ impl Television {
             self.merged_config.channel_source_display.clone(),
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
+            self.merged_config.sort_results,
         );
         self.channel.load();
     }

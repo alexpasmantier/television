@@ -133,3 +133,28 @@ fn test_exact_matching_enabled_fails() {
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
+
+/// Tests that --no-sort keeps results in the source order for selection.
+#[test]
+fn test_no_sort_preserves_source_order() {
+    let mut tester = PtyTester::new();
+
+    // The second entry is a stronger fuzzy match for "ab".
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo 'a-weak-b'; echo 'ab-strong'",
+        "--input",
+        "ab",
+        "--no-sort",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("a-weak-b"),
+        "Expected output to contain 'a-weak-b', but got:\n{:?}",
+        output
+    );
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}

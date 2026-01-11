@@ -38,7 +38,7 @@ better-panic = "0.3"
 signal-hook = "0.4"
 human-panic = "2.0"
 parking_lot = "0.12"
-nucleo = "0.5"
+nucleo = { git = "https://github.com/alexpasmantier/nucleo.git", branch = "television" }
 toml = "0.9"
 lazy-regex = { version = "3.4", features = ["lite"], default-features = false }
 ansi-to-tui = "8.0"

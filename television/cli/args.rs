@@ -57,6 +57,18 @@ pub struct Cli {
     )]
     pub ansi: bool,
 
+    /// Disable automatic sorting of entries based on match quality.
+    ///
+    /// This is useful when you want to preserve the original order of entries
+    /// as provided by the source command.
+    #[arg(
+        long,
+        default_value = "false",
+        verbatim_doc_comment,
+        help_heading = "Source"
+    )]
+    pub no_sort: bool,
+
     /// Source display template to use for the current channel.
     ///
     /// When a channel is specified: This overrides the display template defined in the channel prototype.
