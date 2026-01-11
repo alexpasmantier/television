@@ -5,7 +5,6 @@ pub mod input;
 pub mod keybindings;
 pub mod layout;
 pub mod logo;
-pub mod mode;
 pub mod preview;
 pub mod remote_control;
 pub mod result_item;
