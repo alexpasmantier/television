@@ -676,7 +676,7 @@ pub enum Command {
     /// Downloads the latest collection of channel prototypes from github
     /// and saves them to the local configuration directory.
     UpdateChannels {
-        /// Force update on already existing channels.
+        /// Force update on unsupported and already existing channels.
         #[arg(long, default_value = "false")]
         force: bool,
     },
