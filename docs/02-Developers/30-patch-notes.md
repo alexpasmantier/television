@@ -14,7 +14,7 @@
 
 This section is meant as a quick recap of what you should know when upgrading to 0.12.0.
 
-It is in no means exhaustive. If you're really interested in the complete changelog, feel free to [skip ahead](#changelog).
+It is by no means exhaustive. If you're really interested in the complete changelog, feel free to [skip ahead](#changelog).
 
 ### Channels refactor and lots of new features
 

@@ -122,7 +122,7 @@ Preview:
           This is enabled by default since most channels will benefit from it.
           
           This can be disabled for special cases e.g. where the preview command output changes
-          frequently and/or you want live udpates.
+          frequently and/or you want live updates.
 
       --preview-offset <STRING>
           A preview line number offset template to use to scroll the preview to for each
