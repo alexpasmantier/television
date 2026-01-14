@@ -17,7 +17,7 @@ To get a list of available channels, run:
 tv list-channels
 ```
 
-To pull in the latest community channels from the github repo, run:
+To pull in the latest community channels from the GitHub repo, run:
 
 ```sh
 tv update-channels
