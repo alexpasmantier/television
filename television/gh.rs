@@ -7,7 +7,7 @@ use ureq::get;
 
 use crate::{
     cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT},
-    channels::prototypes::ChannelPrototype,
+    channels::prototypes::{BinaryRequirement, ChannelPrototype},
     config::get_config_dir,
 };
 
@@ -151,6 +151,38 @@ pub fn update_local_channels(force: &bool) -> Result<()> {
             );
             continue;
         }
+        // skip prototypes with unmet binary requirements unless force is true
+        if !force {
+            let mut channel_requirements =
+                toml::from_str::<ChannelPrototype>(&p.content)?
+                    .metadata
+                    .requirements;
+
+            channel_requirements
+                .iter_mut()
+                .for_each(BinaryRequirement::init);
+
+            let missing_requirements = channel_requirements
+                .iter_mut()
+                .filter(|r| !r.is_met())
+                .collect::<Vec<&mut BinaryRequirement>>();
+
+            if !missing_requirements.is_empty() {
+                println!(
+                    "  Channel {} requirement {} is unavailable on this system, SKIPPING...",
+                    p.name.blue().bold(),
+                    missing_requirements
+                        .iter()
+                        .map(|r| r.bin_name.as_str())
+                        .collect::<Vec<&str>>()
+                        .join(", ")
+                        .red()
+                        .bold()
+                );
+                continue;
+            }
+        }
+
         std::fs::write(&file_path, p.content)?;
         println!(
             "  Saved channel {} to {}",
