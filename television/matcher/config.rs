@@ -1,3 +1,6 @@
+// Re-export nucleo types for custom sorting
+pub use nucleo::{Item, Match, SortFn, SortStrategy};
+
 /// The configuration of the fuzzy matcher.
 ///
 /// This contains the number of threads to use, whether to ignore case, whether
