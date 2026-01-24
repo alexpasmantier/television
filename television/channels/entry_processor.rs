@@ -23,6 +23,12 @@ pub trait EntryProcessor: Send + Sync + Clone + 'static {
     ) -> Entry;
 
     fn has_ansi(&self) -> bool;
+
+    /// Extract the frecency key from a matched item for lookup.
+    ///
+    /// This should return the same value that becomes `Entry.raw` so that
+    /// frecency lookups match correctly.
+    fn frecency_key(item: &nucleo::Item<'_, Self::Data>) -> String;
 }
 
 /// A processor that does no special processing: matches the raw lines as-is and stores
@@ -56,6 +62,10 @@ impl EntryProcessor for PlainProcessor {
 
     fn has_ansi(&self) -> bool {
         false
+    }
+
+    fn frecency_key(item: &nucleo::Item<'_, Self::Data>) -> String {
+        item.matcher_columns[0].to_string()
     }
 }
 
@@ -95,6 +105,10 @@ impl EntryProcessor for AnsiProcessor {
 
     fn has_ansi(&self) -> bool {
         true
+    }
+
+    fn frecency_key(item: &nucleo::Item<'_, Self::Data>) -> String {
+        item.data.clone()
     }
 }
 
@@ -142,5 +156,9 @@ impl EntryProcessor for DisplayProcessor {
 
     fn has_ansi(&self) -> bool {
         false
+    }
+
+    fn frecency_key(item: &nucleo::Item<'_, Self::Data>) -> String {
+        item.data.clone()
     }
 }

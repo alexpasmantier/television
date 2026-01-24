@@ -6,4 +6,5 @@ requirements = ["bash"]
 
 [source]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
-sort_results = false
+no_sort = true
+frecency = false
