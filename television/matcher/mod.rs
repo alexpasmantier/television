@@ -266,4 +266,45 @@ where
         self.last_pattern.clear();
         self.col_indices_buffer.clear();
     }
+
+    /// Set the sorting strategy for match results.
+    ///
+    /// This allows you to customize how results are sorted:
+    /// - `SortStrategy::Score` (default): Sort by match score, then length, then index
+    /// - `SortStrategy::None`: No sorting by score; items ordered by index (insertion order)
+    /// - `SortStrategy::Custom(fn)`: Custom comparison function
+    ///
+    /// # Example: Custom frecency sorting
+    /// ```ignore
+    /// use std::cmp::Ordering;
+    /// use std::sync::Arc;
+    /// use rustc_hash::FxHashMap;
+    /// use television::matcher::config::{SortStrategy, Match, Item};
+    ///
+    /// // Frecency scores for items (shared across threads)
+    /// let frecency: Arc<FxHashMap<String, u64>> = Arc::new(/* ... */);
+    /// let frecency_clone = frecency.clone();
+    ///
+    /// matcher.set_sort_strategy(SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
+    ///     // Get frecency scores (higher is more recent/frequent)
+    ///     let f1 = frecency_clone.get(&i1.matcher_columns[0].to_string()).unwrap_or(&0);
+    ///     let f2 = frecency_clone.get(&i2.matcher_columns[0].to_string()).unwrap_or(&0);
+    ///     // Sort by frecency descending
+    ///     f2.cmp(f1)
+    /// })));
+    /// ```
+    pub fn set_sort_strategy(&mut self, strategy: config::SortStrategy<I>) {
+        self.inner.set_sort_strategy(strategy);
+    }
+
+    /// Set whether to reverse the input order.
+    ///
+    /// When enabled, items with higher indices (added later) will appear first
+    /// when scores are equal. This is useful for channels like shell history
+    /// where more recent entries should appear at the top.
+    ///
+    /// Defaults to `false`.
+    pub fn reverse_items(&mut self, reverse: bool) {
+        self.inner.reverse_items(reverse);
+    }
 }

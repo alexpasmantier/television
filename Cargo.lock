@@ -1409,7 +1409,7 @@ dependencies = [
 [[package]]
 name = "nucleo"
 version = "0.5.0"
-source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#7d1e62bdb32c838fba936b4bc75bbf2fe5a19749"
+source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#06bfecc65b53c5fae34ce52f5b18796409f9b8ae"
 dependencies = [
  "nucleo-matcher",
  "parking_lot",
@@ -1419,7 +1419,7 @@ dependencies = [
 [[package]]
 name = "nucleo-matcher"
 version = "0.3.1"
-source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#7d1e62bdb32c838fba936b4bc75bbf2fe5a19749"
+source = "git+https://github.com/alexpasmantier/nucleo.git?branch=television#06bfecc65b53c5fae34ce52f5b18796409f9b8ae"
 dependencies = [
  "memchr",
  "unicode-segmentation",
