@@ -486,7 +486,9 @@ fn parse_padding_literal(
 }
 
 pub fn list_channels(cable: &Cable) {
-    for c in cable.keys() {
+    let mut channels: Vec<_> = cable.keys().collect();
+    channels.sort();
+    for c in channels {
         println!("{c}");
     }
 }
