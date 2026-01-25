@@ -56,6 +56,16 @@ impl Display for Mode {
     }
 }
 
+/// State for the missing requirements popup dialog.
+///
+/// This popup is shown when a user attempts to switch to a channel
+/// that has unmet binary requirements.
+#[derive(Debug, Clone)]
+pub struct MissingRequirementsPopup {
+    pub channel_name: String,
+    pub missing_requirements: Vec<String>,
+}
+
 #[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
 pub enum MatchingMode {
     Substring,
@@ -83,6 +93,8 @@ pub struct Television {
     pub ui_state: UiState,
     /// Frecency manager for ranking previously-selected entries
     frecency: FrecencyHandle,
+    /// Popup shown when attempting to switch to a channel with missing requirements
+    pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
 
 impl Television {
@@ -207,6 +219,7 @@ impl Television {
             ticks: 0,
             ui_state: UiState::default(),
             frecency,
+            missing_requirements_popup: None,
         }
     }
 
@@ -262,6 +275,7 @@ impl Television {
                     .as_ref()
                     .map_or(0, |r| r.height as usize),
             ),
+            self.missing_requirements_popup.clone(),
         );
 
         Ctx::new(
@@ -697,6 +711,24 @@ impl Television {
             }
             Mode::RemoteControl => {
                 if let Some(entry) = self.get_selected_cable_entry() {
+                    // Check for missing requirements
+                    let missing: Vec<String> = entry
+                        .requirements
+                        .iter()
+                        .filter(|r| !r.is_met())
+                        .map(|r| r.bin_name.clone())
+                        .collect();
+
+                    if !missing.is_empty() {
+                        // Show popup instead of changing channel
+                        self.missing_requirements_popup =
+                            Some(MissingRequirementsPopup {
+                                channel_name: entry.channel_name.clone(),
+                                missing_requirements: missing,
+                            });
+                        return Ok(());
+                    }
+
                     let new_channel = self
                         .remote_control
                         .as_ref()
@@ -755,6 +787,20 @@ impl Television {
     }
 
     pub fn handle_action(&mut self, action: &Action) -> Result<()> {
+        // If popup is showing, only allow certain actions to dismiss it
+        if self.missing_requirements_popup.is_some() {
+            match action {
+                // These actions dismiss the popup and stay in RemoteControl mode
+                Action::ConfirmSelection
+                | Action::Quit
+                | Action::ToggleRemoteControl => {
+                    self.missing_requirements_popup = None;
+                    return Ok(());
+                }
+                _ => return Ok(()),
+            }
+        }
+
         // handle actions
         match action {
             Action::AddInputChar(_)

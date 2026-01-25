@@ -5,6 +5,7 @@ pub mod input;
 pub mod keybindings;
 pub mod layout;
 pub mod logo;
+pub mod missing_requirements_popup;
 pub mod preview;
 pub mod remote_control;
 pub mod result_item;
