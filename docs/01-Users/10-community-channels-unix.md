@@ -1904,7 +1904,7 @@ description = "List and manage systemd services"
 requirements = [ "systemctl",]
 
 [source]
-command = [ "systemctl list-units --type=service --no-pager --no-legend | awk '{print $1, $2, $3, $4}'", "systemctl list-units --type=service --all --no-pager --no-legend | awk '{print $1, $2, $3, $4}'",]
+command = [ "systemctl list-units --type=service --no-pager --no-legend --plain", "systemctl list-units --type=service --all --no-pager --no-legend --plain",]
 display = "{split: :0}"
 
 [preview]
