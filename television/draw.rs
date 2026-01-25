@@ -28,15 +28,20 @@ pub struct ChannelState {
     pub total_count: u32,
     pub running: bool,
     pub current_command: String,
+    pub source_index: usize,
+    pub source_count: usize,
 }
 
 impl ChannelState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         current_channel_name: String,
         selected_entries: FxHashSet<Entry>,
         total_count: u32,
         running: bool,
         current_command: String,
+        source_index: usize,
+        source_count: usize,
     ) -> Self {
         Self {
             current_channel_name,
@@ -44,6 +49,8 @@ impl ChannelState {
             total_count,
             running,
             current_command,
+            source_index,
+            source_count,
         }
     }
 }
@@ -57,6 +64,8 @@ impl Hash for ChannelState {
         self.total_count.hash(state);
         self.running.hash(state);
         self.current_command.hash(state);
+        self.source_index.hash(state);
+        self.source_count.hash(state);
     }
 }
 
@@ -184,6 +193,8 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.colorscheme,
         &ctx.config.results_panel_padding,
         &ctx.config.results_panel_border_type,
+        ctx.tv_state.channel_state.source_index,
+        ctx.tv_state.channel_state.source_count,
     )?;
 
     draw_input_box(
