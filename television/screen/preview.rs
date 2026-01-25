@@ -37,6 +37,8 @@ pub fn draw_preview_content_block(
         *padding,
         &preview_state.preview.title,
         preview_state.preview.footer,
+        preview_state.preview.preview_index,
+        preview_state.preview.preview_count,
     );
     let total_lines =
         preview_state.preview.total_lines.saturating_sub(1) as usize;
@@ -109,6 +111,7 @@ pub fn build_preview_paragraph(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
@@ -117,7 +120,20 @@ fn draw_content_outer_block(
     padding: Padding,
     preview_title: &str,
     preview_footer: Option<String>,
+    preview_index: usize,
+    preview_count: usize,
 ) -> Rect {
+    let indicator = if preview_count > 1 {
+        let dots: String = (0..preview_count)
+            .map(|i| if i == preview_index { "●" } else { "○" })
+            .collect::<Vec<_>>()
+            .join(" ");
+        format!(" ⟨ {} ⟩", dots)
+    } else {
+        String::new()
+    };
+    let indicator_len = u16::try_from(indicator.chars().count()).unwrap_or(0);
+
     let mut preview_title_spans = vec![Span::from(SPACE)];
     // preview header
     preview_title_spans.push(Span::styled(
@@ -127,10 +143,17 @@ fn draw_content_outer_block(
                 &ReplaceNonPrintableConfig::default(),
             )
             .0,
-            rect.width.saturating_sub(4) as usize,
+            rect.width.saturating_sub(4 + indicator_len) as usize,
         ),
         Style::default().fg(colorscheme.preview.title_fg).bold(),
     ));
+
+    if preview_count > 1 {
+        preview_title_spans.push(Span::styled(
+            indicator,
+            Style::default().fg(colorscheme.input.results_count_fg),
+        ));
+    }
     preview_title_spans.push(Span::from(SPACE));
 
     let mut block = Block::default();
