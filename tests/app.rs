@@ -229,16 +229,11 @@ async fn test_app_exact_search_positive() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn test_app_exits_when_select_1_and_only_one_result() {
     let prototype = ChannelPrototype::new("some_channel", "echo file1.txt");
-    let (f, tx) = setup_app(Some(prototype), true, false);
+    let (f, _tx) = setup_app(Some(prototype), true, false);
 
-    // tick a few times to get the results
-    for _ in 0..=10 {
-        tx.send(Action::Tick).unwrap();
-    }
-
-    // check the output with a timeout
-    // Note: we don't need to send a confirm action here, as the app should
-    // exit automatically when there's only one result
+    // Note: When select_1 is enabled in headless mode, the app automatically
+    // generates tick events, loads the channel, and exits when there's exactly
+    // one result. No manual tick sending is needed.
     let output = timeout(DEFAULT_TIMEOUT, f)
         .await
         .expect("app did not finish within the default timeout")
@@ -255,12 +250,11 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
 async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
     let prototype =
         ChannelPrototype::new("some_channel", "echo 'file1.txt\nfile2.txt'");
-    let (f, tx) = setup_app(Some(prototype), true, false);
+    let (f, _tx) = setup_app(Some(prototype), true, false);
 
-    // tick a few times to get the results
-    for _ in 0..=10 {
-        tx.send(Action::Tick).unwrap();
-    }
+    // Note: When select_1 is enabled in headless mode, the app automatically
+    // generates tick events and loads the channel. With more than one result,
+    // the app should NOT auto-exit and keep running.
 
     // check that the app is still running after the default timeout
     let output = timeout(DEFAULT_TIMEOUT, f).await;

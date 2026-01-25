@@ -306,13 +306,36 @@ impl App {
         }
 
         // Event loop
-        if !headless {
+        let has_auto_select = self.television.merged_config.select_1
+            || self.television.merged_config.take_1
+            || self.television.merged_config.take_1_fast;
+        if headless && has_auto_select {
+            // In headless mode with auto-selection, we need a minimal event source
+            // that sends Tick events so the channel can load and auto-selection
+            // logic can run. Without this, the app would block waiting for events.
+            debug!("Starting headless tick loop for auto-selection");
+            let (tx, rx) = mpsc::unbounded_channel();
+            let tick_rate = self.television.merged_config.tick_rate;
+            tokio::spawn(async move {
+                let tick_interval =
+                    Duration::from_secs_f64(1.0 / tick_rate as f64);
+                loop {
+                    tokio::time::sleep(tick_interval).await;
+                    if tx.send(Event::Tick).is_err() {
+                        break;
+                    }
+                }
+            });
+            self.event_rx = rx;
+        } else if !headless {
             debug!("Starting backend event loop");
             let event_loop =
                 EventLoop::new(self.television.merged_config.tick_rate);
             self.event_rx = event_loop.rx;
             self.event_control_tx = event_loop.control_tx;
         }
+        // Note: In headless mode without auto-selection (used in tests),
+        // events are controlled manually via the action channel.
 
         // Start watch timer if configured
         self.start_watch_timer();

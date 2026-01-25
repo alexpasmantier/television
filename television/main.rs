@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Parser;
 use std::env;
-use std::io::{BufWriter, IsTerminal, Write, stdout};
+use std::io::{BufWriter, IsTerminal, Write, stderr, stdout};
 use std::path::PathBuf;
 use std::process::exit;
 use television::cli::ChannelCli;
@@ -92,7 +92,16 @@ async fn main() -> Result<()> {
 
     stdout().flush()?;
     debug!("Running application...");
-    let output = app.run(stdout().is_terminal(), false).await?;
+
+    // Run in headless mode when auto-selection is enabled and no TTY is available.
+    // This allows piping output without requiring a terminal for the TUI.
+    let has_auto_select = app.television.merged_config.select_1
+        || app.television.merged_config.take_1
+        || app.television.merged_config.take_1_fast;
+    let no_tty_available = !stdout().is_terminal() && !stderr().is_terminal();
+    let headless = has_auto_select && no_tty_available;
+
+    let output = app.run(stdout().is_terminal(), headless).await?;
     info!("App output: {:?}", output);
 
     let stdout_handle = stdout().lock();
