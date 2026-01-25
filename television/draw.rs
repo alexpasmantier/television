@@ -6,11 +6,12 @@ use crate::{
     screen::{
         colors::Colorscheme, help_panel::draw_help_panel,
         input::draw_input_box, layout::Layout,
+        missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
         status_bar,
     },
-    television::Mode,
+    television::{MissingRequirementsPopup, Mode},
     utils::metadata::AppMetadata,
 };
 use anyhow::Result;
@@ -80,6 +81,7 @@ pub struct TvState {
     pub rc_picker: Picker<CableEntry>,
     pub channel_state: ChannelState,
     pub preview_state: PreviewState,
+    pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
 
 impl TvState {
@@ -91,6 +93,7 @@ impl TvState {
         rc_picker: Picker<CableEntry>,
         channel_state: ChannelState,
         preview_state: PreviewState,
+        missing_requirements_popup: Option<MissingRequirementsPopup>,
     ) -> Self {
         Self {
             mode,
@@ -99,6 +102,7 @@ impl TvState {
             rc_picker,
             channel_state,
             preview_state,
+            missing_requirements_popup,
         }
     }
 }
@@ -246,6 +250,10 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.colorscheme,
             ctx.config.remote_show_channel_descriptions,
         )?;
+    }
+
+    if let Some(popup) = &ctx.tv_state.missing_requirements_popup {
+        draw_missing_requirements_popup(f, area, popup, &ctx.colorscheme);
     }
 
     // floating help panel (rendered last to appear on top)
