@@ -122,6 +122,8 @@ pub struct Preview {
     pub target_line: Option<u16>,
     pub total_lines: u16,
     pub footer: Option<String>,
+    pub preview_index: usize,
+    pub preview_count: usize,
 }
 
 const DEFAULT_PREVIEW_TITLE: &str = "Select an entry to preview";
@@ -136,11 +138,14 @@ impl Default for Preview {
             target_line: None,
             total_lines: 1,
             footer: None,
+            preview_index: 0,
+            preview_count: 1,
         }
     }
 }
 
 impl Preview {
+    #[allow(clippy::too_many_arguments)]
     fn new(
         entry_raw: String,
         formatted_command: String,
@@ -149,6 +154,8 @@ impl Preview {
         line_number: Option<u16>,
         total_lines: u16,
         footer: Option<String>,
+        preview_index: usize,
+        preview_count: usize,
     ) -> Self {
         Self {
             entry_raw,
@@ -158,6 +165,8 @@ impl Preview {
             target_line: line_number,
             total_lines,
             footer,
+            preview_index,
+            preview_count,
         }
     }
 }
@@ -307,6 +316,7 @@ fn sanitize_text(text: &mut Text<'static>) {
     });
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_preview_from_text(
     formatted_command: &str,
     entry: &Entry,
@@ -314,6 +324,8 @@ fn build_preview_from_text(
     title_template: Option<&Template>,
     footer_template: Option<&Template>,
     offset_expr: Option<&Template>,
+    preview_index: usize,
+    preview_count: usize,
 ) -> Result<Preview> {
     let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
@@ -344,6 +356,8 @@ fn build_preview_from_text(
         line_number,
         total_lines,
         footer,
+        preview_index,
+        preview_count,
     ))
 }
 
@@ -358,6 +372,7 @@ pub async fn try_preview(
     results_handle: UnboundedSender<Preview>,
     cache: Option<Arc<Mutex<Cache>>>,
 ) -> Result<()> {
+    let preview_count = command.inner.len();
     let formatted_command = command.get_nth(cycle_index).format(&entry.raw)?;
 
     // Check if the entry is already cached
@@ -372,6 +387,8 @@ pub async fn try_preview(
             title_template.as_ref(),
             footer_template.as_ref(),
             offset_expr.as_ref(),
+            cycle_index,
+            preview_count,
         )?;
         results_handle.send(preview).with_context(
             || "Failed to send cached preview result to main thread.",
@@ -407,6 +424,8 @@ pub async fn try_preview(
             title_template.as_ref(),
             footer_template.as_ref(),
             offset_expr.as_ref(),
+            cycle_index,
+            preview_count,
         )?;
         cache.lock().insert(&formatted_command, &text);
         preview
@@ -418,6 +437,8 @@ pub async fn try_preview(
             title_template.as_ref(),
             footer_template.as_ref(),
             offset_expr.as_ref(),
+            cycle_index,
+            preview_count,
         )?
     };
     // FIXME: ... and just send an Arc here as well

@@ -228,6 +228,14 @@ impl<P: EntryProcessor> Channel<P> {
     pub fn reloading(&self) -> bool {
         self.reloading.load(std::sync::atomic::Ordering::Relaxed)
     }
+
+    pub fn source_index(&self) -> usize {
+        self.current_source_index
+    }
+
+    pub fn source_count(&self) -> usize {
+        self.source_command.inner.len()
+    }
 }
 
 const DEFAULT_LINE_BUFFER_SIZE: usize = 256;
@@ -492,6 +500,8 @@ impl ChannelKind {
         shutdown() -> (),
         supports_preview() -> bool,
         reloading() -> bool,
+        source_index() -> usize,
+        source_count() -> usize,
     );
 }
 

@@ -77,6 +77,8 @@ impl PreviewState {
                 adjusted_line_number,
                 self.preview.total_lines,
                 self.preview.footer.clone(),
+                self.preview.preview_index,
+                self.preview.preview_count,
             ),
             self.scroll,
         )

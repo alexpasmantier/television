@@ -246,6 +246,8 @@ impl Television {
             self.channel.total_count(),
             self.channel.running(),
             self.channel.current_command().to_string(),
+            self.channel.source_index(),
+            self.channel.source_count(),
         );
         let tv_state = TvState::new(
             self.mode,
