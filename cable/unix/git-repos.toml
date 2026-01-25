@@ -14,3 +14,17 @@ display = "{split:/:-1}"
 
 [preview]
 command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-e = "actions:edit"
+
+[actions.cd]
+description = "Open a new shell in the selected repository"
+command = "cd '{}' && $SHELL"
+mode = "execute"
+
+[actions.edit]
+description = "Open the repository in editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"

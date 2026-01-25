@@ -12,3 +12,17 @@ frecency = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0|strip_ansi}'"
+
+[keybindings]
+ctrl-o = "actions:checkout"
+ctrl-r = "actions:reset"
+
+[actions.checkout]
+description = "Checkout the selected reflog entry"
+command = "git checkout '{0|strip_ansi}'"
+mode = "execute"
+
+[actions.reset]
+description = "Reset --hard to the selected reflog entry"
+command = "git reset --hard '{0|strip_ansi}'"
+mode = "execute"

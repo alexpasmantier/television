@@ -1,7 +1,18 @@
 [metadata]
 name = "ssh-hosts"
 description = "A channel to select hosts from your SSH config"
-requirements = ["grep","tr","cut"]
+requirements = ["grep", "tr", "cut", "awk"]
 
 [source]
 command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
+
+[preview]
+command = "awk '/^Host / { found=0 } /^Host (.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
+
+[keybindings]
+enter = "actions:connect"
+
+[actions.connect]
+description = "SSH into the selected host"
+command = "ssh '{}'"
+mode = "execute"
