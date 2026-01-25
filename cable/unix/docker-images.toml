@@ -7,6 +7,25 @@ requirements = ["docker", "jq"]
 command = "docker images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
 output = "{split: :-1}"
 
-
 [preview]
 command = "docker image inspect '{split: :-1}' | jq -C"
+
+[keybindings]
+ctrl-r = "actions:run"
+ctrl-d = "actions:remove"
+ctrl-s = "actions:shell"
+
+[actions.run]
+description = "Run a container from the selected image"
+command = "docker run -it '{split: :-1}'"
+mode = "execute"
+
+[actions.shell]
+description = "Run a shell in the selected image"
+command = "docker run -it '{split: :-1}' /bin/sh"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected image"
+command = "docker rmi '{split: :-1}'"
+mode = "execute"

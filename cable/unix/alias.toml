@@ -6,3 +6,9 @@ description = "A channel to select from shell aliases"
 # you may need to adjust the command depending on your shell
 command = "$SHELL -ic 'alias'"
 output = "{split:=:0}"
+
+[preview]
+command = "$SHELL -ic 'alias' | grep -E '^(alias )?{split:=:0}='"
+
+[ui.preview_panel]
+size = 30

@@ -12,3 +12,23 @@ frecency = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :1}' | head -n 1000"
+
+[keybindings]
+ctrl-y = "actions:cherry-pick"
+ctrl-r = "actions:revert"
+ctrl-o = "actions:checkout"
+
+[actions.cherry-pick]
+description = "Cherry-pick the selected commit"
+command = "git cherry-pick '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.revert]
+description = "Revert the selected commit"
+command = "git revert '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.checkout]
+description = "Checkout the selected commit"
+command = "git checkout '{strip_ansi|split: :1}'"
+mode = "execute"

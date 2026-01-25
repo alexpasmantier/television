@@ -11,10 +11,28 @@ output = "{split: :0}"
 [preview]
 command = "ps -p '{split: :0}' -o user,pid,ppid,state,%cpu,%mem,command | fold"
 
+[keybindings]
+ctrl-k = "actions:kill"
+ctrl-t = "actions:term"
+ctrl-s = "actions:stop"
+ctrl-c = "actions:cont"
+
 [actions.kill]
 description = "Kill the selected process (SIGKILL)"
 command = "kill -9 {split: :0}"
 mode = "execute"
 
-[keybindings]
-ctrl-k = "actions:kill"
+[actions.term]
+description = "Terminate the selected process (SIGTERM)"
+command = "kill -15 {split: :0}"
+mode = "execute"
+
+[actions.stop]
+description = "Stop/pause the selected process (SIGSTOP)"
+command = "kill -STOP {split: :0}"
+mode = "fork"
+
+[actions.cont]
+description = "Continue/resume the selected process (SIGCONT)"
+command = "kill -CONT {split: :0}"
+mode = "fork"

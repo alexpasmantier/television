@@ -9,3 +9,29 @@ output = "{split: :0}"
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0}'"
+
+[keybindings]
+enter = "actions:checkout"
+ctrl-d = "actions:delete"
+ctrl-m = "actions:merge"
+ctrl-r = "actions:rebase"
+
+[actions.checkout]
+description = "Checkout the selected branch"
+command = "git checkout '{0}'"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected branch"
+command = "git branch -d '{0}'"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected branch into current branch"
+command = "git merge '{0}'"
+mode = "execute"
+
+[actions.rebase]
+description = "Rebase current branch onto the selected branch"
+command = "git rebase '{0}'"
+mode = "execute"

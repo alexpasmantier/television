@@ -8,3 +8,23 @@ command = "git diff --name-only HEAD"
 
 [preview]
 command = "git diff HEAD --color=always -- '{}'"
+
+[keybindings]
+ctrl-s = "actions:stage"
+ctrl-r = "actions:restore"
+ctrl-e = "actions:edit"
+
+[actions.stage]
+description = "Stage the selected file"
+command = "git add '{}'"
+mode = "fork"
+
+[actions.restore]
+description = "Discard changes in the selected file"
+command = "git restore '{}'"
+mode = "fork"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
