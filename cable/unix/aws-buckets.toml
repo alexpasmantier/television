@@ -10,5 +10,6 @@ output = "{split: :3|trim}"
 [preview]
 command = "aws s3 ls s3://{split: :3|trim} --human-readable --summarize"
 
-[ui.preview_panel]
-size = 60
+[ui]
+layout = "portrait"
+preview_panel = { size = 60 }

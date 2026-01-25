@@ -1,0 +1,25 @@
+[metadata]
+name = "todo-comments"
+description = "Find TODO, FIXME, HACK, and XXX comments in codebase"
+requirements = ["rg", "bat"]
+
+[source]
+command = "rg -n --color=always '(TODO|FIXME|HACK|XXX|BUG|WARN):?'"
+ansi = true
+output = "{strip_ansi|split:\\::..2}"
+
+[preview]
+command = "bat -n --color=always --highlight-line '{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+env = { BAT_THEME = "ansi" }
+offset = "{strip_ansi|split:\\::1}"
+
+[ui]
+preview_panel = { header = "{strip_ansi|split:\\::..2}" }
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Open file in editor at the comment"
+command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+mode = "execute"

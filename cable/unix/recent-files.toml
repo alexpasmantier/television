@@ -1,0 +1,22 @@
+[metadata]
+name = "recent-files"
+description = "List recently modified files (via git or filesystem)"
+requirements = ["git", "bat"]
+
+[source]
+command = [
+  "git diff --name-only HEAD~10 HEAD 2>/dev/null || find . -type f -mtime -7 -not -path '*/.*' 2>/dev/null | head -100",
+  "find . -type f -mmin -60 -not -path '*/.*' 2>/dev/null | head -100",
+]
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"

@@ -1,0 +1,24 @@
+[metadata]
+name = "git-worktrees"
+description = "List and switch between git worktrees"
+requirements = ["git"]
+
+[source]
+command = "git worktree list --porcelain | grep '^worktree' | cut -d' ' -f2-"
+
+[preview]
+command = "cd '{}' && git log --oneline -10 --color=always && echo && git status --short"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-d = "actions:remove"
+
+[actions.cd]
+description = "Change to the selected worktree"
+command = "cd '{}' && $SHELL"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected worktree"
+command = "git worktree remove '{}'"
+mode = "execute"

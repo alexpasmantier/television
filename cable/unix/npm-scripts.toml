@@ -1,0 +1,22 @@
+[metadata]
+name = "npm-scripts"
+description = "List and run npm scripts from package.json"
+requirements = ["jq"]
+
+[source]
+command = "jq -r '.scripts | to_entries[] | \"\\(.key)\\t\\(.value)\"' package.json 2>/dev/null"
+display = "{split:\\t:0}"
+
+[preview]
+command = "jq -r '.scripts[\"{split:\\t:0}\"]' package.json"
+
+[ui.preview_panel]
+size = 30
+
+[keybindings]
+enter = "actions:run"
+
+[actions.run]
+description = "Run the selected npm script"
+command = "npm run '{split:\\t:0}'"
+mode = "execute"

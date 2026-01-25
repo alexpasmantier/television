@@ -9,6 +9,9 @@ command = '''gh pr list --state open --limit 100 --json number,title,createdAt,a
 output = '{strip_ansi|split:#:1|split:   :0}'
 ansi = true
 
+[ui]
+layout = "portrait"
+
 [preview]
 command = '''gh pr view '{strip_ansi|split:#:1|split:   :0}' --json number,title,body,state,headRefName,baseRefName,author,createdAt,updatedAt,mergeable,changedFiles,additions,deletions,labels,assignees,reviewDecision,headRepository,headRepositoryOwner | jq -r '
 "  " + .title,

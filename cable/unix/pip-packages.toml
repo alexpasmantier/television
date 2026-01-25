@@ -1,0 +1,27 @@
+[metadata]
+name = "pip-packages"
+description = "List installed Python packages"
+requirements = ["pip"]
+
+[source]
+command = "pip list --format=freeze 2>/dev/null | cut -d= -f1"
+
+[preview]
+command = "pip show '{}'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-u = "actions:upgrade"
+ctrl-d = "actions:uninstall"
+
+[actions.upgrade]
+description = "Upgrade the selected package"
+command = "pip install --upgrade '{}'"
+mode = "execute"
+
+[actions.uninstall]
+description = "Uninstall the selected package"
+command = "pip uninstall '{}'"
+mode = "execute"
