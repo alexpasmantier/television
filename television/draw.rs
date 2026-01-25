@@ -1,4 +1,5 @@
 use crate::{
+    action::Action,
     channels::{entry::Entry, remote_control::CableEntry},
     config::layers::MergedConfig,
     picker::Picker,
@@ -187,6 +188,10 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         Layout::build(area, &ctx.config, ctx.tv_state.mode, &ctx.colorscheme);
 
     // results list
+    let cycle_sources_key = ctx
+        .config
+        .input_map
+        .get_key_for_action(&Action::CycleSources);
     draw_results_list(
         f,
         layout.results,
@@ -199,6 +204,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.results_panel_border_type,
         ctx.tv_state.channel_state.source_index,
         ctx.tv_state.channel_state.source_count,
+        cycle_sources_key,
     )?;
 
     draw_input_box(
@@ -225,6 +231,10 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     }
 
     if let Some(preview_rect) = layout.preview_window {
+        let cycle_previews_key = ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::CyclePreviews);
         draw_preview_content_block(
             f,
             preview_rect,
@@ -234,6 +244,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.config.preview_panel_padding,
             ctx.config.preview_panel_scrollbar,
             ctx.config.preview_panel_word_wrap,
+            cycle_previews_key,
         )?;
     }
 

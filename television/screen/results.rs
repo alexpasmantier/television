@@ -1,6 +1,7 @@
 use crate::{
     channels::entry::Entry,
     config::ui::{BorderType, Padding},
+    event::Key,
     screen::{colors::Colorscheme, layout::InputPosition, result_item},
 };
 use anyhow::Result;
@@ -26,6 +27,7 @@ pub fn draw_results_list(
     results_panel_border_type: &BorderType,
     source_index: usize,
     source_count: usize,
+    cycle_key: Option<Key>,
 ) -> Result<()> {
     let title = if source_count > 1 {
         let mut spans = vec![Span::from(" Results ")];
@@ -37,6 +39,12 @@ pub fn draw_results_list(
             format!("⟨ {} ⟩", dots),
             Style::default().fg(colorscheme.input.results_count_fg),
         ));
+        if let Some(key) = cycle_key {
+            spans.push(Span::styled(
+                format!(" {}", key),
+                Style::default().fg(colorscheme.general.border_fg),
+            ));
+        }
         spans.push(Span::from(" "));
         Line::from(spans).alignment(Alignment::Center)
     } else {
