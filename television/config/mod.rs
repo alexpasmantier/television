@@ -45,6 +45,9 @@ pub struct AppConfig {
     /// Whether to use global history (all channels) or channel-specific history (default)
     #[serde(default = "default_global_history")]
     pub global_history: bool,
+    /// Maximum number of frecency entries to keep per channel
+    #[serde(default = "default_frecency_max_entries")]
+    pub frecency_max_entries: usize,
 }
 
 impl Default for AppConfig {
@@ -56,6 +59,7 @@ impl Default for AppConfig {
             default_channel: default_channel(),
             history_size: default_history_size(),
             global_history: default_global_history(),
+            frecency_max_entries: default_frecency_max_entries(),
         }
     }
 }
@@ -72,12 +76,19 @@ fn default_global_history() -> bool {
     false
 }
 
+const DEFAULT_FRECENCY_MAX_ENTRIES: usize = 1000;
+
+fn default_frecency_max_entries() -> usize {
+    DEFAULT_FRECENCY_MAX_ENTRIES
+}
+
 impl Hash for AppConfig {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.data_dir.hash(state);
         self.tick_rate.hash(state);
         self.history_size.hash(state);
         self.global_history.hash(state);
+        self.frecency_max_entries.hash(state);
     }
 }
 

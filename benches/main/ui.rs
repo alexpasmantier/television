@@ -4,8 +4,10 @@ use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 use ratatui::layout::Rect;
 use std::hint::black_box;
+use std::sync::Arc;
 use television::channels::prototypes::ChannelPrototype;
 use television::config::layers::ConfigLayers;
+use television::frecency::Frecency;
 use television::picker::Movement;
 use television::{
     action::Action,
@@ -38,13 +40,19 @@ pub fn draw(c: &mut Criterion) {
                 let (tx, _) = tokio::sync::mpsc::unbounded_channel();
                 let channel_prototype = cable.get_channel("files");
                 let layered_config = ConfigLayers::new(
-                    config,
+                    config.clone(),
                     channel_prototype.clone(),
                     PostProcessedCli::default(),
                 );
+                let frecency =
+                    Arc::new(Frecency::new(100, &config.application.data_dir));
                 // Wait for the channel to finish loading
-                let mut tv =
-                    Television::new(tx, layered_config, cable.clone());
+                let mut tv = Television::new(
+                    tx,
+                    layered_config,
+                    cable.clone(),
+                    frecency,
+                );
                 tv.find("television");
                 for _ in 0..5 {
                     // tick the matcher

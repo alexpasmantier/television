@@ -28,15 +28,14 @@ where
     ///
     /// # Example
     /// ```
-    /// use television::matcher::{config::Config, Matcher};
+    /// use television::matcher::{config::{Config, SortStrategy}, Matcher};
     ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(&config);
+    /// let matcher = Matcher::new(&config, SortStrategy::Score);
     ///
     /// let injector = matcher.injector();
     /// injector.push(
     ///     ("some string", 3, "some other string"),
-    ///     // Say we want to match against the third element of the tuple
     ///     |s, cols| cols[0] = s.2.into()
     /// );
     /// ```
