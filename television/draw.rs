@@ -1,12 +1,14 @@
 use crate::{
     action::Action,
-    channels::{entry::Entry, remote_control::CableEntry},
+    channels::{
+        action_picker::ActionEntry, entry::Entry, remote_control::CableEntry,
+    },
     config::layers::MergedConfig,
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        colors::Colorscheme, help_panel::draw_help_panel,
-        input::draw_input_box, layout::Layout,
+        action_picker::draw_action_picker, colors::Colorscheme,
+        help_panel::draw_help_panel, input::draw_input_box, layout::Layout,
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
         remote_control::draw_remote_control, results::draw_results_list,
@@ -80,6 +82,7 @@ pub struct TvState {
     pub selected_entry: Option<Entry>,
     pub results_picker: Picker<Entry>,
     pub rc_picker: Picker<CableEntry>,
+    pub ap_picker: Picker<ActionEntry>,
     pub channel_state: ChannelState,
     pub preview_state: PreviewState,
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
@@ -92,6 +95,7 @@ impl TvState {
         selected_entry: Option<Entry>,
         results_picker: Picker<Entry>,
         rc_picker: Picker<CableEntry>,
+        ap_picker: Picker<ActionEntry>,
         channel_state: ChannelState,
         preview_state: PreviewState,
         missing_requirements_popup: Option<MissingRequirementsPopup>,
@@ -101,6 +105,7 @@ impl TvState {
             selected_entry,
             results_picker,
             rc_picker,
+            ap_picker,
             channel_state,
             preview_state,
             missing_requirements_popup,
@@ -260,6 +265,19 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &mut ctx.tv_state.rc_picker.input.clone(),
             &ctx.colorscheme,
             ctx.config.remote_show_channel_descriptions,
+        )?;
+    }
+
+    // action picker
+    let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
+    if show_action_picker {
+        draw_action_picker(
+            f,
+            layout.action_picker.unwrap(),
+            &ctx.tv_state.ap_picker.entries,
+            &mut ctx.tv_state.ap_picker.relative_state.clone(),
+            &mut ctx.tv_state.ap_picker.input.clone(),
+            &ctx.colorscheme,
         )?;
     }
 

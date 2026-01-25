@@ -111,6 +111,8 @@ pub struct Theme {
     pub channel_mode_bg: Color,
     pub remote_control_mode_fg: Color,
     pub remote_control_mode_bg: Color,
+    pub action_picker_mode_fg: Color,
+    pub action_picker_mode_bg: Color,
 }
 
 impl Theme {
@@ -206,6 +208,14 @@ impl Theme {
             remote_control_mode_bg,
             overrides.remote_control_mode_bg
         );
+        apply_override!(
+            action_picker_mode_fg,
+            overrides.action_picker_mode_fg
+        );
+        apply_override!(
+            action_picker_mode_bg,
+            overrides.action_picker_mode_bg
+        );
 
         Ok(merged_theme)
     }
@@ -248,6 +258,8 @@ struct Inner {
     channel_mode_bg: Option<String>,
     remote_control_mode_fg: String,
     remote_control_mode_bg: String,
+    action_picker_mode_fg: Option<String>,
+    action_picker_mode_bg: Option<String>,
 }
 
 impl<'de> Deserialize<'de> for Theme {
@@ -369,9 +381,9 @@ impl<'de> Deserialize<'de> for Theme {
                         &inner.channel_mode_fg
                     ))
                 })?,
-            channel_mode_bg: match inner.channel_mode_bg {
-                Some(s) => Color::from_str(&s).ok_or_else(|| {
-                    serde::de::Error::custom(format!("invalid color {}", &s))
+            channel_mode_bg: match &inner.channel_mode_bg {
+                Some(s) => Color::from_str(s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", s))
                 })?,
                 // Default to black. Not sure if black is the best choice
                 None => Color::Ansi(ANSIColor::Black),
@@ -394,6 +406,35 @@ impl<'de> Deserialize<'de> for Theme {
                     &inner.remote_control_mode_bg
                 ))
             })?,
+            action_picker_mode_fg: match inner.action_picker_mode_fg {
+                Some(s) => Color::from_str(&s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", &s))
+                })?,
+                // Default to channel mode foreground color for backwards compatibility
+                None => Color::from_str(&inner.channel_mode_fg).ok_or_else(
+                    || {
+                        serde::de::Error::custom(format!(
+                            "invalid color {}",
+                            &inner.channel_mode_fg
+                        ))
+                    },
+                )?,
+            },
+            action_picker_mode_bg: match &inner.action_picker_mode_bg {
+                Some(s) => Color::from_str(s).ok_or_else(|| {
+                    serde::de::Error::custom(format!("invalid color {}", s))
+                })?,
+                // Default to channel mode background color for backwards compatibility
+                None => match &inner.channel_mode_bg {
+                    Some(s) => Color::from_str(s).ok_or_else(|| {
+                        serde::de::Error::custom(format!(
+                            "invalid color {}",
+                            s
+                        ))
+                    })?,
+                    None => Color::Ansi(ANSIColor::Black),
+                },
+            },
         })
     }
 }
@@ -516,6 +557,8 @@ impl Into<ModeColorscheme> for &Theme {
             channel_fg: (&self.channel_mode_fg).into(),
             remote_control: (&self.remote_control_mode_bg).into(),
             remote_control_fg: (&self.remote_control_mode_fg).into(),
+            action_picker: (&self.action_picker_mode_bg).into(),
+            action_picker_fg: (&self.action_picker_mode_fg).into(),
         }
     }
 }
@@ -543,6 +586,8 @@ mod tests {
             channel_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
             remote_control_mode_fg: Color::Ansi(ANSIColor::BrightWhite),
             remote_control_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
+            action_picker_mode_fg: Color::Ansi(ANSIColor::BrightWhite),
+            action_picker_mode_bg: Color::Ansi(ANSIColor::BrightBlack),
         }
     }
 

@@ -41,14 +41,16 @@ impl InputMap {
     /// Gets all actions bound to a specific key for the current mode.
     ///
     /// - `Mode::Channel` checks both global and channel-specific keybindings.
-    /// - `Mode::RemoteControl` only checks global keybindings.
+    /// - `Mode::RemoteControl` and `Mode::ActionPicker` only check global keybindings.
     pub fn get_actions_for_key(
         &self,
         key: &Key,
         mode: &Mode,
     ) -> Option<&Actions> {
         match mode {
-            Mode::RemoteControl => self.global_keybindings.get(key),
+            Mode::RemoteControl | Mode::ActionPicker => {
+                self.global_keybindings.get(key)
+            }
             Mode::Channel => self
                 .channel_keybindings
                 .get(key)

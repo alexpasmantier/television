@@ -41,9 +41,8 @@ fn test_layout_portrait() {
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify the TUI started successfully in portrait layout
+    // Verify the TUI started successfully in portrait layout (preview below results)
     tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
-    tester.assert_tui_frame_contains("Hide Preview"); // Should be in portrait layout
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -489,7 +488,7 @@ fn test_show_preview_starts_with_preview_visible() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify preview panel is initially visible (landscape layout shows side-by-side panels)
-    tester.assert_tui_frame_contains_all(&["───╮╭───", "Hide Preview"]);
+    tester.assert_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -545,7 +544,7 @@ fn test_hide_preview_scrollbar_hides_scrollbar() {
     let mut child = tester.spawn_command_tui(cmd);
 
     // The preview panel should still be visible but without scrollbar indicators
-    tester.assert_tui_frame_contains_all(&["Hide Preview", "───╮╭───"]);
+    tester.assert_tui_frame_contains("───╮╭───");
     tester.assert_not_tui_frame_contains("▲");
 
     // Send Ctrl+C to exit

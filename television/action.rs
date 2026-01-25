@@ -83,6 +83,7 @@ pub enum Action {
     Quit,
     /// Toggle a UI feature.
     ToggleRemoteControl,
+    ToggleActionPicker,
     ToggleHelp,
     ToggleStatusBar,
     TogglePreview,
@@ -357,6 +358,7 @@ impl Action {
 
             // Toggle actions
             Action::ToggleRemoteControl => "Toggle remote control",
+            Action::ToggleActionPicker => "Toggle action picker",
             Action::ToggleHelp => "Toggle help",
             Action::ToggleStatusBar => "Toggle status bar",
             Action::TogglePreview => "Toggle preview",

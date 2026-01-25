@@ -18,7 +18,7 @@ layout = "portrait"
 
 [keybindings]
 ctrl-s = "actions:start"
-ctrl-x = "actions:stop"
+f2 = "actions:stop"
 ctrl-r = "actions:restart"
 ctrl-e = "actions:enable"
 ctrl-d = "actions:disable"

@@ -60,7 +60,7 @@ pub fn draw_help_panel(
 /// Checks if an action is relevant for the given mode
 fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
     match mode {
-        Mode::Channel => {
+        Mode::Channel | Mode::ActionPicker => {
             // Channel mode - all actions except those specifically for remote mode switching
             match action {
                 // Input actions - available in both modes
@@ -97,6 +97,7 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::SelectNextHistory
                 // UI toggles - global
                 | Action::ToggleRemoteControl
+                | Action::ToggleActionPicker
                 | Action::ToggleHelp
                 | Action::ToggleStatusBar
                 // Channel-mode layout
@@ -269,6 +270,7 @@ fn generate_help_content(
     let mode_name = match mode {
         Mode::Channel => "Channel Mode",
         Mode::RemoteControl => "Remote Control Mode",
+        Mode::ActionPicker => "Action Picker Mode",
     };
 
     lines.push(Line::from(vec![Span::styled(
@@ -337,7 +339,7 @@ fn create_compact_keybinding_line(
 ) -> Line<'static> {
     // Use the appropriate mode color
     let key_color = match mode {
-        Mode::Channel => colorscheme.mode.channel,
+        Mode::Channel | Mode::ActionPicker => colorscheme.mode.channel,
         Mode::RemoteControl => colorscheme.mode.remote_control,
     };
 
