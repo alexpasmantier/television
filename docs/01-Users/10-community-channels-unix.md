@@ -18,6 +18,12 @@ description = "A channel to select from shell aliases"
 command = "$SHELL -ic 'alias'"
 output = "{split:=:0}"
 
+[preview]
+command = "$SHELL -ic 'alias' | grep -E '^(alias )?{split:=:0}='"
+
+[ui.preview_panel]
+size = 30
+
 ```
 
 
@@ -246,6 +252,26 @@ output = "{split: :-1}"
 [preview]
 command = "docker image inspect '{split: :-1}' | jq -C"
 
+[keybindings]
+ctrl-r = "actions:run"
+ctrl-d = "actions:remove"
+ctrl-s = "actions:shell"
+
+[actions.run]
+description = "Run a container from the selected image"
+command = "docker run -it '{split: :-1}'"
+mode = "execute"
+
+[actions.shell]
+description = "Run a shell in the selected image"
+command = "docker run -it '{split: :-1}' /bin/sh"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected image"
+command = "docker rmi '{split: :-1}'"
+mode = "execute"
+
 ```
 
 
@@ -270,6 +296,14 @@ command = "fd -t f . $HOME/.config"
 
 [preview]
 command = "bat -n --color=always '{}'"
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Edit the selected dotfile"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
 
 ```
 
@@ -458,6 +492,32 @@ output = "{split: :0}"
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 
+[keybindings]
+enter = "actions:checkout"
+ctrl-d = "actions:delete"
+ctrl-m = "actions:merge"
+ctrl-r = "actions:rebase"
+
+[actions.checkout]
+description = "Checkout the selected branch"
+command = "git checkout '{0}'"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected branch"
+command = "git branch -d '{0}'"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected branch into current branch"
+command = "git merge '{0}'"
+mode = "execute"
+
+[actions.rebase]
+description = "Rebase current branch onto the selected branch"
+command = "git rebase '{0}'"
+mode = "execute"
+
 ```
 
 
@@ -482,6 +542,26 @@ command = "git diff --name-only HEAD"
 
 [preview]
 command = "git diff HEAD --color=always -- '{}'"
+
+[keybindings]
+ctrl-s = "actions:stage"
+ctrl-r = "actions:restore"
+ctrl-e = "actions:edit"
+
+[actions.stage]
+description = "Stage the selected file"
+command = "git add '{}'"
+mode = "fork"
+
+[actions.restore]
+description = "Discard changes in the selected file"
+command = "git restore '{}'"
+mode = "fork"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
 
 ```
 
@@ -512,6 +592,26 @@ frecency = false
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :1}' | head -n 1000"
 
+[keybindings]
+ctrl-y = "actions:cherry-pick"
+ctrl-r = "actions:revert"
+ctrl-o = "actions:checkout"
+
+[actions.cherry-pick]
+description = "Cherry-pick the selected commit"
+command = "git cherry-pick '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.revert]
+description = "Revert the selected commit"
+command = "git revert '{strip_ansi|split: :1}'"
+mode = "execute"
+
+[actions.checkout]
+description = "Checkout the selected commit"
+command = "git checkout '{strip_ansi|split: :1}'"
+mode = "execute"
+
 ```
 
 
@@ -541,6 +641,20 @@ frecency = false
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0|strip_ansi}'"
 
+[keybindings]
+ctrl-o = "actions:checkout"
+ctrl-r = "actions:reset"
+
+[actions.checkout]
+description = "Checkout the selected reflog entry"
+command = "git checkout '{0|strip_ansi}'"
+mode = "execute"
+
+[actions.reset]
+description = "Reset --hard to the selected reflog entry"
+command = "git reset --hard '{0|strip_ansi}'"
+mode = "execute"
+
 ```
 
 
@@ -569,6 +683,20 @@ display = "{split:/:-1}"
 
 [preview]
 command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-e = "actions:edit"
+
+[actions.cd]
+description = "Open a new shell in the selected repository"
+command = "cd '{}' && $SHELL"
+mode = "execute"
+
+[actions.edit]
+description = "Open the repository in editor"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
 
 ```
 
@@ -906,11 +1034,29 @@ command = "ps -p '{split: :0}' -o user,pid,ppid,state,%cpu,%mem,command | fold"
 
 [keybindings]
 ctrl-k = "actions:kill"
+ctrl-t = "actions:term"
+ctrl-s = "actions:stop"
+ctrl-c = "actions:cont"
 
 [actions.kill]
 description = "Kill the selected process (SIGKILL)"
 command = "kill -9 {split: :0}"
 mode = "execute"
+
+[actions.term]
+description = "Terminate the selected process (SIGTERM)"
+command = "kill -15 {split: :0}"
+mode = "execute"
+
+[actions.stop]
+description = "Stop/pause the selected process (SIGSTOP)"
+command = "kill -STOP {split: :0}"
+mode = "fork"
+
+[actions.cont]
+description = "Continue/resume the selected process (SIGCONT)"
+command = "kill -CONT {split: :0}"
+mode = "fork"
 
 ```
 
@@ -964,7 +1110,7 @@ mode = "fork"
 A channel to select hosts from your SSH config
 
 ![tv running the ssh-hosts channel](../../assets/channels/ssh-hosts.png)
-**Requirements:** `grep`, `tr`, `cut`
+**Requirements:** `grep`, `tr`, `cut`, `awk`
 
 **Code:** *ssh-hosts.toml*
 
@@ -972,10 +1118,21 @@ A channel to select hosts from your SSH config
 [metadata]
 name = "ssh-hosts"
 description = "A channel to select hosts from your SSH config"
-requirements = [ "grep", "tr", "cut",]
+requirements = [ "grep", "tr", "cut", "awk",]
 
 [source]
 command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
+
+[preview]
+command = "awk '/^Host / { found=0 } /^Host (.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
+
+[keybindings]
+enter = "actions:connect"
+
+[actions.connect]
+description = "SSH into the selected host"
+command = "ssh '{}'"
+mode = "execute"
 
 ```
 
@@ -997,7 +1154,7 @@ description = "A channel to find and select text from files"
 requirements = [ "rg", "bat",]
 
 [source]
-command = "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always"
+command = [ "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always", "rg . --no-heading --line-number --hidden --colors 'match:fg:white' --colors 'path:fg:blue' --color=always",]
 ansi = true
 output = "{strip_ansi|split:\\::..2}"
 
@@ -1005,11 +1162,19 @@ output = "{strip_ansi|split:\\::..2}"
 command = "bat -n --color=always '{strip_ansi|split:\\::0}'"
 offset = "{strip_ansi|split:\\::1}"
 
+[keybindings]
+enter = "actions:edit"
+
 [preview.env]
 BAT_THEME = "ansi"
 
 [ui.preview_panel]
 header = "{strip_ansi|split:\\::..2}"
+
+[actions.edit]
+description = "Open file in editor at line"
+command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+mode = "execute"
 
 ```
 
