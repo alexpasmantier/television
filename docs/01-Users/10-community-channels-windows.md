@@ -236,6 +236,8 @@ requirements = [ "git",]
 [source]
 command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\""
 output = "{split: :0}"
+no_sort = true
+frecency = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0}'"
@@ -262,6 +264,8 @@ requirements = [ "git",]
 [source]
 command = "git reflog"
 output = "{split: :0}"
+no_sort = true
+frecency = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0}'"
@@ -315,6 +319,8 @@ description = "A channel to select from your nu history"
 
 [source]
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
+no_sort = true
+frecency = false
 
 ```
 
@@ -336,6 +342,8 @@ description = "A channel to select from your powershell history"
 
 [source]
 command = "Get-Content (Get-PSReadLineOption).HistorySavePath | Select-Object -Last 500"
+no_sort = true
+frecency = false
 
 ```
 
