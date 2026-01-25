@@ -397,10 +397,14 @@ pub async fn try_preview(
     }
 
     debug!("Executing preview command: {}", &formatted_command);
-    let command =
-        shell_command(&formatted_command, command.interactive, &command.env);
+    let shell_cmd = shell_command(
+        &formatted_command,
+        command.interactive,
+        &command.env,
+        command.shell,
+    );
 
-    let child = TokioCommand::from(command).output().await?;
+    let child = TokioCommand::from(shell_cmd).output().await?;
 
     let mut text = if child.status.success() {
         child
