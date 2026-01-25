@@ -1,0 +1,18 @@
+[metadata]
+name = "gradle-tasks"
+description = "List and run Gradle tasks"
+requirements = ["gradle"]
+
+[source]
+command = "gradle tasks --all -q 2>/dev/null | grep -E '^[a-zA-Z]' | awk '{print $1}' | grep -v '^-' | sort -u"
+
+[preview]
+command = "gradle help --task '{}' -q 2>/dev/null || echo 'Task: {}'"
+
+[keybindings]
+enter = "actions:run"
+
+[actions.run]
+description = "Run the selected Gradle task"
+command = "gradle '{}'"
+mode = "execute"

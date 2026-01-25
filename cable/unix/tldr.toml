@@ -9,6 +9,9 @@ command = "tldr --list"
 [preview]
 command = "tldr '{0}' --color always"
 
+[ui]
+layout = "portrait"
+
 [keybindings]
 ctrl-e = "actions:open"
 

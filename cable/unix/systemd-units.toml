@@ -1,0 +1,49 @@
+[metadata]
+name = "systemd-units"
+description = "List and manage systemd services"
+requirements = ["systemctl"]
+
+[source]
+command = [
+  "systemctl list-units --type=service --no-pager --no-legend | awk '{print $1, $2, $3, $4}'",
+  "systemctl list-units --type=service --all --no-pager --no-legend | awk '{print $1, $2, $3, $4}'",
+]
+display = "{split: :0}"
+
+[preview]
+command = "systemctl status '{split: :0}' --no-pager"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-s = "actions:start"
+ctrl-x = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-e = "actions:enable"
+ctrl-d = "actions:disable"
+
+[actions.start]
+description = "Start the selected service"
+command = "sudo systemctl start '{split: :0}'"
+mode = "execute"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "sudo systemctl stop '{split: :0}'"
+mode = "execute"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "sudo systemctl restart '{split: :0}'"
+mode = "execute"
+
+[actions.enable]
+description = "Enable the selected service"
+command = "sudo systemctl enable '{split: :0}'"
+mode = "execute"
+
+[actions.disable]
+description = "Disable the selected service"
+command = "sudo systemctl disable '{split: :0}'"
+mode = "execute"

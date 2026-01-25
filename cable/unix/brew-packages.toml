@@ -1,0 +1,30 @@
+[metadata]
+name = "brew-packages"
+description = "List and manage Homebrew packages"
+requirements = ["brew"]
+
+[source]
+command = [
+  "brew list --formula",
+  "brew list --cask",
+]
+
+[preview]
+command = "brew info '{}'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-u = "actions:upgrade"
+ctrl-d = "actions:uninstall"
+
+[actions.upgrade]
+description = "Upgrade the selected package"
+command = "brew upgrade '{}'"
+mode = "execute"
+
+[actions.uninstall]
+description = "Uninstall the selected package"
+command = "brew uninstall '{}'"
+mode = "execute"

@@ -20,5 +20,6 @@ description = "Open the selected man page in the system pager"
 command = "man '{0}'"
 mode = "execute"
 
-[ui.preview_panel]
-header = "{0}"
+[ui]
+layout = "portrait"
+preview_panel = { header = "{0}" }

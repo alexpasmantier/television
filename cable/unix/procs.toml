@@ -13,7 +13,7 @@ command = "ps -p '{split: :0}' -o user,pid,ppid,state,%cpu,%mem,command | fold"
 
 [keybindings]
 ctrl-k = "actions:kill"
-ctrl-t = "actions:term"
+ctrl-x = "actions:term"
 ctrl-s = "actions:stop"
 ctrl-c = "actions:cont"
 

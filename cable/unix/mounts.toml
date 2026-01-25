@@ -1,0 +1,19 @@
+[metadata]
+name = "mounts"
+description = "List mounted filesystems"
+requirements = ["df", "awk"]
+
+[source]
+command = "df -h --output=target,fstype,size,used,avail,pcent 2>/dev/null | tail -n +2"
+display = "{split: :0}"
+
+[preview]
+command = "df -h '{}' && echo && ls -la '{}' 2>/dev/null | head -20"
+
+[keybindings]
+enter = "actions:cd"
+
+[actions.cd]
+description = "Open a shell in the selected mount point"
+command = "cd '{}' && $SHELL"
+mode = "execute"

@@ -1,0 +1,18 @@
+[metadata]
+name = "make-targets"
+description = "List and run Makefile targets"
+requirements = ["make", "awk"]
+
+[source]
+command = "make -pRrq 2>/dev/null | awk -F: '/^[a-zA-Z0-9][^$#\\/\\t=]*:([^=]|$)/ {split($1,a,\" \"); print a[1]}' | sort -u | grep -v '^Makefile$'"
+
+[preview]
+command = "awk '/^{}[[:space:]]*:/{found=1} found{print; if(/^[^\\t]/ && NR>1 && !/^{}[[:space:]]*:/) exit}' Makefile"
+
+[keybindings]
+enter = "actions:run"
+
+[actions.run]
+description = "Run the selected make target"
+command = "make {}"
+mode = "execute"

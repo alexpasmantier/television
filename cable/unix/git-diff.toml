@@ -9,6 +9,9 @@ command = "git diff --name-only HEAD"
 [preview]
 command = "git diff HEAD --color=always -- '{}'"
 
+[ui]
+layout = "portrait"
+
 [keybindings]
 ctrl-s = "actions:stage"
 ctrl-r = "actions:restore"

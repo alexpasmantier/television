@@ -9,8 +9,9 @@ command = '''gh issue list --state open --limit 100 --json number,title,createdA
 ansi = true
 output = "{strip_ansi|split:#:1|split: :0}"
 
-[ui.preview_panel]
-header = '{strip_ansi|split:#:1|split: :0}'
+[ui]
+layout = "portrait"
+preview_panel = { header = '{strip_ansi|split:#:1|split: :0}' }
 
 [preview]
 command = '''gh issue view '{strip_ansi|split:#:1|split:   :0}' --json number,title,body,state,author,createdAt,updatedAt,labels,assignees | jq -r '

@@ -10,6 +10,9 @@ output = "{split: :-1}"
 [preview]
 command = "docker image inspect '{split: :-1}' | jq -C"
 
+[ui]
+layout = "portrait"
+
 [keybindings]
 ctrl-r = "actions:run"
 ctrl-d = "actions:remove"

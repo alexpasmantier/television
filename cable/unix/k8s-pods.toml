@@ -26,8 +26,9 @@ output = "{1}"
 [preview]
 command = "kubectl describe -n {0} pods/{1}"
 
-[ui.preview_panel]
-size = 60
+[ui]
+layout = "portrait"
+preview_panel = { size = 60 }
 
 [keybindings]
 ctrl-d = "actions:delete"

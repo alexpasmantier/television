@@ -1,0 +1,26 @@
+[metadata]
+name = "git-tags"
+description = "Browse and checkout git tags"
+requirements = ["git"]
+
+[source]
+command = "git tag --sort=-creatordate"
+no_sort = true
+frecency = false
+
+[preview]
+command = "git show --color=always '{}'"
+
+[keybindings]
+enter = "actions:checkout"
+ctrl-d = "actions:delete"
+
+[actions.checkout]
+description = "Checkout the selected tag"
+command = "git checkout '{}'"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected tag"
+command = "git tag -d '{}'"
+mode = "execute"
