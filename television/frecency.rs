@@ -95,6 +95,13 @@ impl FrecencyScores {
     pub fn get(&self, key: &str) -> Option<u64> {
         self.scores.get(key).copied()
     }
+
+    /// Get the underlying Arc for efficient access in sort comparisons.
+    /// This avoids repeated cloning when accessing scores multiple times.
+    #[inline]
+    pub fn scores_arc(&self) -> &Arc<FxHashMap<String, u64>> {
+        &self.scores
+    }
 }
 
 /// Thread-safe cache for frecency scores, refreshed periodically.
