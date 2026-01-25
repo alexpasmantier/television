@@ -71,6 +71,8 @@ impl ConfigLayers {
         let default_channel =
             self.base_config.application.default_channel.clone();
         let history_size = self.base_config.application.history_size;
+        let frecency_max_entries =
+            self.base_config.application.frecency_max_entries;
         let theme = self.base_config.ui.theme.clone();
         let shell_integration_commands =
             self.base_config.shell_integration.commands.clone();
@@ -99,9 +101,8 @@ impl ConfigLayers {
             .channel_cli
             .watch_interval
             .unwrap_or(self.channel.watch);
-        // only sort results if --no-sort is not set and channel config has it enabled
-        let sort_results =
-            !self.channel_cli.no_sort && self.channel.source.sort_results;
+        // Determine if sorting is disabled: --no-sort CLI flag OR channel config
+        let no_sort = self.channel_cli.no_sort || self.channel.source.no_sort;
         let channel_name = self
             .channel_cli
             .channel
@@ -120,6 +121,8 @@ impl ConfigLayers {
             .or(self.channel.source.entry_delimiter);
         let channel_source_ansi =
             self.channel_cli.ansi || self.channel.source.ansi;
+        // Per-channel frecency setting (defaults to true, can be disabled per-channel)
+        let channel_frecency = self.channel.source.frecency;
         let channel_source_display = self
             .channel_cli
             .source_display
@@ -466,6 +469,7 @@ impl ConfigLayers {
             default_channel,
             history_size,
             global_history,
+            frecency_max_entries,
             working_directory,
             autocomplete_prompt,
             // matcher configuration
@@ -474,7 +478,7 @@ impl ConfigLayers {
             take_1,
             take_1_fast,
             input,
-            sort_results,
+            no_sort,
 
             // Bindings
             input_map,
@@ -544,6 +548,8 @@ impl ConfigLayers {
             channel_preview_cached,
             // actions
             channel_actions,
+            // frecency
+            channel_frecency,
         }
     }
 }
@@ -561,6 +567,7 @@ pub struct MergedConfig {
     pub default_channel: String,
     pub history_size: usize,
     pub global_history: bool,
+    pub frecency_max_entries: usize,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     // matcher configuration
@@ -569,7 +576,7 @@ pub struct MergedConfig {
     pub take_1: bool,
     pub take_1_fast: bool,
     pub input: Option<String>,
-    pub sort_results: bool,
+    pub no_sort: bool,
 
     // Bindings
     pub input_map: InputMap,
@@ -637,4 +644,6 @@ pub struct MergedConfig {
     pub channel_preview_offset: Option<Template>,
     pub channel_preview_cached: bool,
     pub channel_actions: FxHashMap<String, ActionSpec>,
+    /// Whether frecency is enabled for the current channel (per-channel override)
+    pub channel_frecency: bool,
 }

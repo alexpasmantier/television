@@ -263,7 +263,8 @@ impl ChannelPrototype {
                 ansi: false,
                 display: None,
                 output: None,
-                sort_results: true,
+                no_sort: false,
+                frecency: true,
             },
             preview: None,
             ui: None,
@@ -363,11 +364,20 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
-    #[serde(default = "default_sort_results")]
-    pub sort_results: bool,
+    /// Whether to disable sorting and preserve source order.
+    /// Defaults to false (sort by match score).
+    /// Set to true for pre-sorted data like shell history or git log.
+    /// Matches the `--no-sort` CLI flag.
+    #[serde(default)]
+    pub no_sort: bool,
+    /// Whether to use frecency-based ranking for this channel.
+    /// Defaults to true. Set to false for channels where frecency doesn't make sense
+    /// (e.g., channels with dynamic/random results, or where order is meaningful).
+    #[serde(default = "default_frecency")]
+    pub frecency: bool,
 }
 
-const fn default_sort_results() -> bool {
+const fn default_frecency() -> bool {
     true
 }
 

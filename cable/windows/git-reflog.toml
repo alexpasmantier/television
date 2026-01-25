@@ -6,6 +6,8 @@ requirements = ["git"]
 [source]
 command = "git reflog"
 output = "{split: :0}"
+no_sort = true
+frecency = false
 
 [preview]
 command = "git show -p --stat --pretty=fuller --color=always '{0}'"

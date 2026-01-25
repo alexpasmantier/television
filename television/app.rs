@@ -9,6 +9,7 @@ use crate::{
     },
     config::layers::ConfigLayers,
     event::{ControlEvent, Event, EventLoop, Key},
+    frecency::{Frecency, FrecencyHandle},
     history::History,
     mouse::get_action_for_mouse_event,
     render::{RenderingTask, UiState, render},
@@ -18,6 +19,7 @@ use crate::{
 };
 use anyhow::Result;
 use rustc_hash::FxHashSet;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 use tracing::{debug, error, trace};
 
@@ -55,6 +57,8 @@ pub struct App {
     watch_timer_task: Option<tokio::task::JoinHandle<()>>,
     /// Global history for selected entries
     history: History,
+    /// Frecency manager for ranking previously-selected entries
+    frecency: FrecencyHandle,
 }
 
 /// The outcome of an action.
@@ -120,8 +124,23 @@ impl App {
         let (event_abort_tx, _) = mpsc::unbounded_channel();
 
         let (ui_state_tx, ui_state_rx) = mpsc::unbounded_channel();
-        let television =
-            Television::new(action_tx.clone(), layered_config, cable_channels);
+
+        // Create frecency handle before Television so we can pass it
+        let merged_for_frecency = layered_config.merge();
+        let frecency = Arc::new(Frecency::new(
+            merged_for_frecency.frecency_max_entries,
+            &merged_for_frecency.data_dir,
+        ));
+        if let Err(e) = frecency.init() {
+            error!("Failed to initialize frecency: {}", e);
+        }
+
+        let television = Television::new(
+            action_tx.clone(),
+            layered_config,
+            cable_channels,
+            frecency.clone(),
+        );
 
         let mut history = History::new(
             television.merged_config.history_size,
@@ -147,6 +166,7 @@ impl App {
             render_task: None,
             watch_timer_task: None,
             history,
+            frecency,
         };
 
         // populate input_map by going through all cable channels and adding their shortcuts if remote
@@ -358,9 +378,12 @@ impl App {
                     self.event_control_tx.send(ControlEvent::Abort)?;
                 }
 
-                // persist search history
                 if let Err(e) = self.history.save_to_file() {
                     error!("Failed to persist history: {}", e);
+                }
+
+                if let Err(e) = self.frecency.save_to_file() {
+                    error!("Failed to persist frecency: {}", e);
                 }
 
                 // wait for the rendering task to finish
@@ -492,13 +515,7 @@ impl App {
                         if let Some(entries) =
                             self.television.get_selected_entries()
                         {
-                            // Add current query to history
-                            let query =
-                                self.television.current_pattern.clone();
-                            self.history.add_entry(
-                                query,
-                                self.television.current_channel(),
-                            )?;
+                            self.record_selection(&entries)?;
                             return Ok(ActionOutcome::Entries(entries));
                         }
 
@@ -514,13 +531,7 @@ impl App {
                         if let Some(entries) =
                             self.television.get_selected_entries()
                         {
-                            // Add current query to history
-                            let query =
-                                self.television.current_pattern.clone();
-                            self.history.add_entry(
-                                query,
-                                self.television.current_channel(),
-                            )?;
+                            self.record_selection(&entries)?;
                             return Ok(ActionOutcome::EntriesWithExpect(
                                 entries, k,
                             ));
@@ -723,6 +734,17 @@ impl App {
 
             ActionOutcome::None
         }
+    }
+
+    fn record_selection(&mut self, entries: &FxHashSet<Entry>) -> Result<()> {
+        let channel_name = self.television.current_channel();
+        for entry in entries {
+            self.frecency.record_access(&channel_name, &entry.raw);
+        }
+
+        let query = self.television.current_pattern.clone();
+        self.history.add_entry(query, channel_name)?;
+        Ok(())
     }
 
     /// Determine the TUI mode based on the provided options.

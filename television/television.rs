@@ -13,6 +13,7 @@ use crate::{
     },
     draw::{ChannelState, Ctx, TvState},
     errors::os_error_exit,
+    frecency::FrecencyHandle,
     input::convert_action_to_input_request,
     picker::{Movement, Picker},
     previewer::{
@@ -80,6 +81,8 @@ pub struct Television {
     pub colorscheme: Arc<Colorscheme>,
     pub ticks: u64,
     pub ui_state: UiState,
+    /// Frecency manager for ranking previously-selected entries
+    frecency: FrecencyHandle,
 }
 
 impl Television {
@@ -90,6 +93,7 @@ impl Television {
         action_tx: UnboundedSender<Action>,
         layered_config: ConfigLayers,
         cable_channels: Cable,
+        frecency: FrecencyHandle,
     ) -> Self {
         let merged_config = {
             // this is to keep the outer merged config immutable
@@ -125,15 +129,24 @@ impl Television {
                 )
             });
 
+        let frecency_config =
+            if merged_config.channel_frecency && !merged_config.no_sort {
+                Some((frecency.clone(), merged_config.channel_name.clone()))
+            } else {
+                None
+            };
+
         let mut channel = CableChannel::new(
             merged_config.channel_source_command.clone(),
             merged_config.channel_source_entry_delimiter,
             merged_config.channel_source_ansi,
-            merged_config.channel_source_display,
-            merged_config.channel_source_output,
+            merged_config.channel_source_display.clone(),
+            merged_config.channel_source_output.clone(),
             merged_config.channel_preview_command.is_some(),
-            merged_config.sort_results,
+            merged_config.no_sort,
+            frecency_config,
         );
+
         let app_metadata = AppMetadata::new(
             env!("CARGO_PKG_VERSION").to_string(),
             std::env::current_dir()
@@ -152,7 +165,10 @@ impl Television {
 
         let pattern = Television::preprocess_pattern(
             matching_mode,
-            &merged_config.input.unwrap_or(EMPTY_STRING.to_string()),
+            &merged_config
+                .input
+                .clone()
+                .unwrap_or(EMPTY_STRING.to_string()),
         );
 
         channel.find(&pattern);
@@ -190,6 +206,7 @@ impl Television {
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             ui_state: UiState::default(),
+            frecency,
         }
     }
 
@@ -298,6 +315,19 @@ impl Television {
         // Set preview state enabled based on both channel capability and UI configuration
         self.preview_state.enabled = channel_prototype.preview.is_some()
             && !self.merged_config.preview_panel_hidden;
+
+        // Build frecency config if enabled for this channel and sorting is enabled
+        let frecency_config = if self.merged_config.channel_frecency
+            && !self.merged_config.no_sort
+        {
+            Some((
+                self.frecency.clone(),
+                self.merged_config.channel_name.clone(),
+            ))
+        } else {
+            None
+        };
+
         self.channel = CableChannel::new(
             self.merged_config.channel_source_command.clone(),
             self.merged_config.channel_source_entry_delimiter,
@@ -305,7 +335,8 @@ impl Television {
             self.merged_config.channel_source_display.clone(),
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
-            self.merged_config.sort_results,
+            self.merged_config.no_sort,
+            frecency_config,
         );
         self.channel.load();
     }
@@ -901,8 +932,11 @@ mod test {
         cli::{ChannelCli, GlobalCli},
         config::layers::ConfigLayers,
         event::Key,
+        frecency::Frecency,
         television::{MatchingMode, Mode, Television},
     };
+    use std::sync::Arc;
+    use tempfile::tempdir;
 
     #[test]
     fn test_prompt_preprocessing() {
@@ -940,10 +974,13 @@ mod test {
         };
         let layered_config =
             ConfigLayers::new(config, prototype, cli_args.clone());
+        let dir = tempdir().unwrap();
+        let frecency = Arc::new(Frecency::new(100, dir.path()));
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
             layered_config,
             Cable::from_prototypes(vec![]),
+            frecency,
         );
 
         assert_eq!(tv.matching_mode, MatchingMode::Substring);
@@ -980,10 +1017,13 @@ mod test {
             prototype.clone(),
             cli_args.clone(),
         );
+        let dir = tempdir().unwrap();
+        let frecency = Arc::new(Frecency::new(100, dir.path()));
         let tv = Television::new(
             tokio::sync::mpsc::unbounded_channel().0,
             layered_config,
             Cable::from_prototypes(vec![]),
+            frecency,
         );
 
         assert_eq!(

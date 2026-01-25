@@ -59,15 +59,20 @@ impl<I> Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
-    /// Create a new fuzzy matcher with the given configuration.
-    pub fn new(config: &config::Config) -> Self {
+    /// Create a new fuzzy matcher with the given configuration and sort strategy.
+    pub fn new(
+        config: &config::Config,
+        sort_strategy: config::SortStrategy<I>,
+    ) -> Self {
+        let mut inner = nucleo::Nucleo::new(
+            config.into(),
+            Arc::new(|| {}),
+            config.n_threads,
+            1,
+        );
+        inner.set_sort_strategy(sort_strategy);
         Self {
-            inner: nucleo::Nucleo::new(
-                config.into(),
-                Arc::new(|| {}),
-                config.n_threads,
-                1,
-            ),
+            inner,
             total_item_count: 0,
             matched_item_count: 0,
             status: Status::default(),
@@ -89,10 +94,10 @@ where
     ///
     /// # Example
     /// ```ignore
-    /// use television::matcher::{config::Config, Matcher};
+    /// use television::matcher::{config::{Config, SortStrategy}, Matcher};
     ///
     /// let config = Config::default();
-    /// let matcher = Matcher::new(&config);
+    /// let matcher = Matcher::new(&config, SortStrategy::Score);
     /// let injector = matcher.injector();
     ///
     /// injector.push(
@@ -139,10 +144,10 @@ where
     ///
     /// # Example
     /// ```ignore
-    /// use television::matcher::{config::Config, Matcher};
+    /// use television::matcher::{config::{Config, SortStrategy}, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(&config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config, SortStrategy::Score);
     /// matcher.find("some pattern");
     ///
     /// let results = matcher.results(10, 0);
@@ -215,10 +220,10 @@ where
     ///
     /// # Example
     /// ```ignore
-    /// use television::matcher::{config::Config, Matcher};
+    /// use television::matcher::{config::{Config, SortStrategy}, Matcher};
     ///
     /// let config = Config::default();
-    /// let mut matcher: Matcher<String> = Matcher::new(&config);
+    /// let mut matcher: Matcher<String> = Matcher::new(&config, SortStrategy::Score);
     /// matcher.find("some pattern");
     ///
     /// if let Some(item) = matcher.get_result(0) {
@@ -265,36 +270,6 @@ where
         self.status = Status::default();
         self.last_pattern.clear();
         self.col_indices_buffer.clear();
-    }
-
-    /// Set the sorting strategy for match results.
-    ///
-    /// This allows you to customize how results are sorted:
-    /// - `SortStrategy::Score` (default): Sort by match score, then length, then index
-    /// - `SortStrategy::None`: No sorting by score; items ordered by index (insertion order)
-    /// - `SortStrategy::Custom(fn)`: Custom comparison function
-    ///
-    /// # Example: Custom frecency sorting
-    /// ```ignore
-    /// use std::cmp::Ordering;
-    /// use std::sync::Arc;
-    /// use rustc_hash::FxHashMap;
-    /// use television::matcher::config::{SortStrategy, Match, Item};
-    ///
-    /// // Frecency scores for items (shared across threads)
-    /// let frecency: Arc<FxHashMap<String, u64>> = Arc::new(/* ... */);
-    /// let frecency_clone = frecency.clone();
-    ///
-    /// matcher.set_sort_strategy(SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
-    ///     // Get frecency scores (higher is more recent/frequent)
-    ///     let f1 = frecency_clone.get(&i1.matcher_columns[0].to_string()).unwrap_or(&0);
-    ///     let f2 = frecency_clone.get(&i2.matcher_columns[0].to_string()).unwrap_or(&0);
-    ///     // Sort by frecency descending
-    ///     f2.cmp(f1)
-    /// })));
-    /// ```
-    pub fn set_sort_strategy(&mut self, strategy: config::SortStrategy<I>) {
-        self.inner.set_sort_strategy(strategy);
     }
 
     /// Set whether to reverse the input order.

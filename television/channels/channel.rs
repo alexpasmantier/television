@@ -6,10 +6,14 @@ use crate::{
         },
         prototypes::{CommandSpec, Template},
     },
-    matcher::{Matcher, config::Config, injector::Injector},
+    frecency::{FrecencyCacheHandle, FrecencyHandle},
+    matcher::{
+        Matcher, config::Config, config::SortStrategy, injector::Injector,
+    },
     utils::command::shell_command,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
+use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -18,6 +22,11 @@ use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
 use tracing::debug;
+
+pub struct FrecencyConfig {
+    pub handle: FrecencyHandle,
+    pub cache: FrecencyCacheHandle,
+}
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
@@ -34,6 +43,7 @@ pub struct Channel<P: EntryProcessor> {
     /// Indicates if the channel is currently reloading to prevent UI flickering
     /// by delaying the rendering of a new frame.
     pub reloading: Arc<AtomicBool>,
+    frecency_config: Option<FrecencyConfig>,
 }
 
 impl<P: EntryProcessor> Channel<P> {
@@ -42,13 +52,45 @@ impl<P: EntryProcessor> Channel<P> {
         source_entry_delimiter: Option<char>,
         source_output: Option<Template>,
         supports_preview: bool,
-        sort_results: bool,
+        no_sort: bool,
         processor: P,
+        frecency: Option<(FrecencyHandle, String)>,
     ) -> Self {
-        let config = Config::default()
-            .prefer_prefix(true)
-            .sort_results(sort_results);
-        let matcher = Matcher::new(&config);
+        let config = Config::default().prefer_prefix(true);
+
+        let (sort_strategy, frecency_config) = if no_sort {
+            (SortStrategy::Index, None)
+        } else if let Some((frecency_handle, channel_name)) = frecency {
+            let cache = frecency_handle.create_cache(channel_name);
+            let cache_for_closure = cache.clone();
+            let sort_strategy =
+                SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
+                    let scores = cache_for_closure.snapshot();
+                    let key1 = P::frecency_key(&i1);
+                    let key2 = P::frecency_key(&i2);
+                    let f1 = scores.get(&key1);
+                    let f2 = scores.get(&key2);
+
+                    match (f1, f2) {
+                        (Some(s1), Some(s2)) => {
+                            s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
+                        }
+                        (Some(_), None) => Ordering::Less,
+                        (None, Some(_)) => Ordering::Greater,
+                        (None, None) => m2.score.cmp(&m1.score),
+                    }
+                }));
+
+            let frecency_config = FrecencyConfig {
+                handle: frecency_handle,
+                cache,
+            };
+            (sort_strategy, Some(frecency_config))
+        } else {
+            (SortStrategy::Score, None)
+        };
+
+        let matcher = Matcher::new(&config, sort_strategy);
         let current_source_index = 0;
         Self {
             source_command,
@@ -61,6 +103,7 @@ impl<P: EntryProcessor> Channel<P> {
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
+            frecency_config,
         }
     }
 
@@ -110,6 +153,10 @@ impl<P: EntryProcessor> Channel<P> {
     }
 
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
+        if let Some(ref config) = self.frecency_config {
+            config.cache.refresh(&config.handle);
+        }
+
         self.matcher.tick();
 
         let results = self.matcher.results(num_entries, offset);
@@ -382,6 +429,7 @@ impl ChannelKind {
     ///
     /// This mainly enables us to make some memory savings for the common case of no ANSI processing
     /// and no display template by using `Matcher<()>` instead of `Matcher<String>`.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         source_command: CommandSpec,
         source_entry_delimiter: Option<char>,
@@ -389,7 +437,8 @@ impl ChannelKind {
         source_display: Option<Template>,
         source_output: Option<Template>,
         supports_preview: bool,
-        sort_results: bool,
+        no_sort: bool,
+        frecency: Option<(FrecencyHandle, String)>,
     ) -> Self {
         match (source_ansi, source_display) {
             (false, None) => ChannelKind::Plain(Channel::new(
@@ -397,24 +446,27 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                sort_results,
+                no_sort,
                 PlainProcessor,
+                frecency,
             )),
             (true, None) => ChannelKind::Ansi(Channel::new(
                 source_command,
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                sort_results,
+                no_sort,
                 AnsiProcessor,
+                frecency,
             )),
             (_, Some(template)) => ChannelKind::Display(Channel::new(
                 source_command,
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                sort_results,
+                no_sort,
                 DisplayProcessor { template },
+                frecency,
             )),
         }
     }
@@ -446,7 +498,10 @@ impl ChannelKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{channels::prototypes::SourceSpec, matcher::config::Config};
+    use crate::{
+        channels::prototypes::SourceSpec,
+        matcher::config::{Config, SortStrategy},
+    };
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_load_candidates_default_delimiter() {
@@ -458,7 +513,8 @@ mod tests {
         .unwrap();
 
         // Use PlainProcessor for no ansi, no display
-        let mut matcher = Matcher::<()>::new(&Config::default());
+        let mut matcher =
+            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
         let injector = matcher.injector();
 
         load_candidates(
@@ -488,7 +544,8 @@ mod tests {
         )
         .unwrap();
 
-        let mut matcher = Matcher::<()>::new(&Config::default());
+        let mut matcher =
+            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
         let injector = matcher.injector();
 
         load_candidates(
@@ -518,7 +575,8 @@ mod tests {
         )
         .unwrap();
 
-        let mut matcher = Matcher::<()>::new(&Config::default());
+        let mut matcher =
+            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
         let injector = matcher.injector();
 
         load_candidates(
@@ -549,7 +607,8 @@ mod tests {
         )
         .unwrap();
 
-        let mut matcher = Matcher::<()>::new(&Config::default());
+        let mut matcher =
+            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
         let injector = matcher.injector();
 
         load_candidates(
@@ -580,7 +639,8 @@ mod tests {
         )
         .unwrap();
 
-        let mut matcher = Matcher::<String>::new(&Config::default());
+        let mut matcher =
+            Matcher::<String>::new(&Config::default(), SortStrategy::Score);
         let injector = matcher.injector();
 
         load_candidates(
