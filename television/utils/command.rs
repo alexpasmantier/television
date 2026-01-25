@@ -30,6 +30,8 @@ use tracing::warn;
 /// * `command` - The command string to execute
 /// * `interactive` - Whether to run in interactive mode (Unix only)
 /// * `envs` - Environment variables to set for the command
+/// * `shell_override` - Optionally override the shell used to execute the command.
+///   If `None`, the shell is detected from the environment.
 ///
 /// # Returns
 /// * `Command` - A configured `Command` ready for execution
@@ -37,8 +39,10 @@ pub fn shell_command<S>(
     command: &str,
     interactive: bool,
     envs: &HashMap<String, String, S>,
+    shell_override: Option<Shell>,
 ) -> Command {
-    let shell = Shell::from_env().unwrap_or_default();
+    let shell = shell_override
+        .unwrap_or_else(|| Shell::from_env().unwrap_or_default());
     let mut cmd = Command::new(shell.executable());
 
     cmd.args(match shell {
@@ -169,6 +173,7 @@ pub fn execute_action(
         &formatted_command,
         action_spec.command.interactive,
         &action_spec.command.env,
+        action_spec.command.shell,
     );
 
     #[cfg(unix)]

@@ -336,6 +336,7 @@ mod tests {
                 vec![preview_command.clone()],
                 false,
                 FxHashMap::default(),
+                None,
             ),
             None,
         );
