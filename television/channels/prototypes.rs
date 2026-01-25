@@ -1,5 +1,6 @@
 use crate::cli::parse_source_entry_delimiter;
 use crate::config::ui::{InputBarConfig, ThemeOverrides};
+use crate::utils::shell::Shell;
 use crate::utils::strings::SPACE;
 use crate::{
     config::{Keybindings, ui},
@@ -109,6 +110,10 @@ pub struct CommandSpec {
     pub interactive: bool,
     #[serde(default)]
     pub env: FxHashMap<String, String>,
+    /// Optionally override the shell used to execute this command.
+    /// If not specified, the shell is detected from the environment.
+    #[serde(default)]
+    pub shell: Option<Shell>,
 }
 
 impl Display for CommandSpec {
@@ -127,7 +132,7 @@ impl Display for CommandSpec {
 
 impl From<Template> for CommandSpec {
     fn from(template: Template) -> Self {
-        Self::new(vec![template], false, FxHashMap::default())
+        Self::new(vec![template], false, FxHashMap::default(), None)
     }
 }
 
@@ -136,11 +141,13 @@ impl CommandSpec {
         inner: Vec<Template>,
         interactive: bool,
         env: FxHashMap<String, String>,
+        shell: Option<Shell>,
     ) -> Self {
         Self {
             inner,
             interactive,
             env,
+            shell,
         }
     }
 
@@ -161,7 +168,7 @@ impl CommandSpec {
     }
 
     pub fn from_template(template: Template) -> Self {
-        Self::new(vec![template], false, FxHashMap::default())
+        Self::new(vec![template], false, FxHashMap::default(), None)
     }
 }
 
@@ -258,6 +265,7 @@ impl ChannelPrototype {
                     ],
                     interactive: false,
                     env: FxHashMap::default(),
+                    shell: None,
                 },
                 entry_delimiter: None,
                 ansi: false,
@@ -435,6 +443,7 @@ impl PreviewSpec {
                 ],
                 interactive: false,
                 env: FxHashMap::default(),
+                shell: None,
             },
             offset: None,
             cached: false,
@@ -507,6 +516,7 @@ mod tests {
             ],
             interactive: false,
             env: FxHashMap::default(),
+            shell: None,
         };
 
         assert_eq!(command_spec.get_nth(0).raw(), "cmd1");
@@ -897,5 +907,77 @@ mod tests {
                 .into()
             )
         );
+    }
+
+    #[test]
+    fn test_command_spec_with_shell_override() {
+        let toml_data = r#"
+        [metadata]
+        name = "test_shell"
+        description = "Testing shell override"
+        requirements = []
+
+        [source]
+        command = "find . -type f"
+        shell = "bash"
+
+        [preview]
+        command = "cat '{}'"
+        shell = "zsh"
+
+        [actions.edit]
+        command = "vim '{}'"
+        shell = "fish"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        // Verify source shell override
+        assert_eq!(prototype.source.command.shell, Some(Shell::Bash));
+
+        // Verify preview shell override
+        let preview = prototype.preview.as_ref().unwrap();
+        assert_eq!(preview.command.shell, Some(Shell::Zsh));
+
+        // Verify action shell override
+        let edit_action = prototype.actions.get("edit").unwrap();
+        assert_eq!(edit_action.command.shell, Some(Shell::Fish));
+    }
+
+    #[test]
+    fn test_command_spec_without_shell_uses_default() {
+        let toml_data = r#"
+        [metadata]
+        name = "test_no_shell"
+        description = "Testing default shell behavior"
+        requirements = []
+
+        [source]
+        command = "ls -la"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        // Verify source shell is None (uses environment default)
+        assert_eq!(prototype.source.command.shell, None);
+    }
+
+    #[test]
+    fn test_command_spec_powershell_serde() {
+        let toml_data = r#"
+        [metadata]
+        name = "test_powershell"
+        description = "Testing PowerShell serde"
+        requirements = []
+
+        [source]
+        command = "Get-ChildItem"
+        shell = "powershell"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        // Verify powershell deserializes correctly
+        assert_eq!(prototype.source.command.shell, Some(Shell::Psh));
     }
 }

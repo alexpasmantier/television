@@ -12,7 +12,7 @@ use tokio::sync::mpsc;
 
 fn make_command(cmd: &str) -> CommandSpec {
     let template = Template::parse(cmd).unwrap();
-    CommandSpec::new(vec![template], false, FxHashMap::default())
+    CommandSpec::new(vec![template], false, FxHashMap::default(), None)
 }
 
 fn bench_preview(

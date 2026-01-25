@@ -44,3 +44,4 @@ result-*
 
 # Development shell completions, see television/utils/shell/README.md
 dev_shell_integration.*
+TODO.md
