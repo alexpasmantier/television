@@ -1831,10 +1831,10 @@ requirements = [ "sesh", "fd",]
 [source]
 command = [ "sesh list --icons", "sesh list -t --icons", "sesh list -c --icons", "sesh list -z --icons", "fd -H -d 2 -t d -E .Trash . ~",]
 ansi = true
-output = "{strip_ansi|split: :1}"
+output = "{strip_ansi|split: :1..|join: }"
 
 [preview]
-command = "sesh preview '{strip_ansi|split: :1}'"
+command = "sesh preview '{strip_ansi|split: :1..|join: }'"
 
 [keybindings]
 enter = "actions:connect"
@@ -1842,12 +1842,12 @@ ctrl-d = [ "actions:kill_session", "reload_source",]
 
 [actions.connect]
 description = "Connect to selected session"
-command = "sesh connect '{strip_ansi|split: :1}'"
+command = "sesh connect '{strip_ansi|split: :1..|join: }'"
 mode = "execute"
 
 [actions.kill_session]
 description = "Kill selected tmux session (press Ctrl+r to reload)"
-command = "tmux kill-session -t '{strip_ansi|split: :1}'"
+command = "tmux kill-session -t '{strip_ansi|split: :1..|join: }'"
 mode = "fork"
 
 ```
