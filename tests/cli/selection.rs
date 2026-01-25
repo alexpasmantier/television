@@ -43,6 +43,8 @@ fn test_take_1_auto_selects_first_entry() {
 /// Tests that --take-1-fast immediately selects the first entry as it appears.
 #[test]
 fn test_take_1_fast_auto_selects_first_entry_immediately() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     // This should auto-select "UNIQUE16CHARID" since it's the only result
@@ -53,8 +55,13 @@ fn test_take_1_fast_auto_selects_first_entry_immediately() {
     ]);
     tester.spawn_command(cmd);
 
-    // Should auto-select and output the result without showing TUI
-    tester.assert_raw_output_contains("UNIQUE16CHARID");
+    // Should auto-select and output the result without showing TUI.
+    // Use timeout-based assertion because --take-1-fast has a race condition:
+    // it may check for entries before the source command has produced output.
+    tester.assert_raw_output_contains_with_timeout(
+        "UNIQUE16CHARID",
+        Duration::from_secs(2),
+    );
 }
 
 /// Tests that --select-1 and --take-1 cannot be used together.

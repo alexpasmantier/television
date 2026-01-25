@@ -36,6 +36,16 @@ pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
     pixel_height: 0,
 };
 
+/// Base delay for PTY operations. Can be overridden via `TV_TEST_DELAY_MS` env var.
+/// Default: 100ms (reliable), can be reduced to 50ms for faster local runs.
+pub fn default_delay() -> Duration {
+    std::env::var("TV_TEST_DELAY_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .map(Duration::from_millis)
+        .unwrap_or(Duration::from_millis(100))
+}
+
 pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
 
 /// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
@@ -83,7 +93,7 @@ impl PtyTester {
         let reader = pair.master.try_clone_reader().unwrap();
         let writer = pair.master.take_writer().unwrap();
         let cwd = std::env::current_dir().unwrap();
-        let delay = DEFAULT_DELAY;
+        let delay = default_delay();
         let size = pair.master.get_size().unwrap();
         let parser = vt100::Parser::new(size.rows, size.cols, 0);
         PtyTester {
@@ -227,7 +237,14 @@ impl PtyTester {
     }
 
     /// How long to wait for the TUI to stabilize before asserting its output.
-    const FRAME_STABILITY_TIMEOUT: Duration = Duration::from_millis(3000);
+    /// Can be overridden via `TV_TEST_FRAME_TIMEOUT_MS` env var.
+    fn frame_stability_timeout() -> Duration {
+        std::env::var("TV_TEST_FRAME_TIMEOUT_MS")
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .map(Duration::from_millis)
+            .unwrap_or(Duration::from_millis(3000))
+    }
 
     /// Gets the current TUI frame, ensuring it has stabilized.
     ///
@@ -273,7 +290,7 @@ impl PtyTester {
                 counter = 0;
             }
             // simply break and return last frame
-            if start_time.elapsed() >= Self::FRAME_STABILITY_TIMEOUT {
+            if start_time.elapsed() >= Self::frame_stability_timeout() {
                 break;
             }
             // Sleep briefly to allow the UI to update
@@ -337,6 +354,39 @@ impl PtyTester {
             "Expected output to contain '{}', but got:\n{:?}",
             expected,
             output
+        );
+    }
+
+    /// Asserts that the raw output contains the expected string, with retries.
+    ///
+    /// This method polls the output with exponential backoff, accumulating all
+    /// output across reads. Useful for tests where timing is non-deterministic
+    /// (e.g., `--take-1-fast` which may exit before data arrives).
+    pub fn assert_raw_output_contains_with_timeout(
+        &mut self,
+        expected: &str,
+        timeout: Duration,
+    ) {
+        let start = std::time::Instant::now();
+        let mut accumulated_output = String::new();
+        let mut delay = Duration::from_millis(10);
+
+        while start.elapsed() < timeout {
+            let new_output = self.read_raw_output();
+            accumulated_output.push_str(&new_output);
+
+            if accumulated_output.contains(expected) {
+                return;
+            }
+
+            sleep(delay);
+            // Exponential backoff, capped at 100ms
+            delay = std::cmp::min(delay * 2, Duration::from_millis(100));
+        }
+
+        panic!(
+            "Expected output to contain '{}' within {:?}, but got:\n{:?}",
+            expected, timeout, accumulated_output
         );
     }
 }
