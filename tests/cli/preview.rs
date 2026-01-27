@@ -20,11 +20,10 @@ fn test_preview_command_in_adhoc_mode() {
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify the preview panel is displayed
+    // Verify the preview panel is displayed (two panels side by side)
     tester.assert_tui_frame_contains(
         "╭───────────────────── Custom Channel ─────────────────────╮╭─",
     );
-    tester.assert_tui_frame_contains("Hide Preview");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -44,11 +43,10 @@ fn test_preview_command_override_in_channel_mode() {
     ]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify the preview panel is active with the override
+    // Verify the preview panel is active with the override (two panels side by side)
     tester.assert_tui_frame_contains(
         "╭───────────────────────── files ──────────────────────────╮╭─",
     );
-    tester.assert_tui_frame_contains("Hide Preview");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -314,10 +312,10 @@ fn test_hide_preview_flag_starts_with_preview_hidden() {
         tv_local_config_and_cable_with_args(&["files", "--hide-preview"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify the preview panel is hidden (shows "Show Preview:" prompt)
+    // Verify the preview panel is hidden (single panel spanning full width, no side-by-side layout)
     tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
-    tester.assert_tui_frame_contains("Show Preview:");
-    tester.assert_not_tui_frame_contains("Hide Preview:");
+    // When preview is hidden, we don't see the two-panel layout marker
+    tester.assert_not_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -334,8 +332,8 @@ fn test_show_preview_flag_starts_with_preview_visible() {
         tv_local_config_and_cable_with_args(&["files", "--show-preview"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify the preview panel is visible (shows "Hide Preview:" prompt)
-    tester.assert_tui_frame_contains("Hide Preview:");
+    // Verify the preview panel is visible (two panels side by side)
+    tester.assert_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));

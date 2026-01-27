@@ -2,6 +2,7 @@ use crate::{
     action::Action,
     cable::Cable,
     channels::{
+        action_picker::{ActionEntry, ActionPicker},
         channel::ChannelKind as CableChannel,
         entry::Entry,
         prototypes::{ChannelPrototype, CommandSpec, Template},
@@ -45,6 +46,7 @@ use tracing::{debug, error};
 pub enum Mode {
     Channel,
     RemoteControl,
+    ActionPicker,
 }
 
 impl Display for Mode {
@@ -52,6 +54,7 @@ impl Display for Mode {
         match self {
             Mode::Channel => write!(f, "Channel"),
             Mode::RemoteControl => write!(f, "Remote Control"),
+            Mode::ActionPicker => write!(f, "Action Picker"),
         }
     }
 }
@@ -78,12 +81,14 @@ pub struct Television {
     pub merged_config: MergedConfig,
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
+    pub action_picker: Option<ActionPicker>,
     pub mode: Mode,
     pub currently_selected: Option<Entry>,
     pub current_pattern: String,
     pub matching_mode: MatchingMode,
     pub results_picker: Picker<Entry>,
     pub rc_picker: Picker<CableEntry>,
+    pub ap_picker: Picker<ActionEntry>,
     pub preview_state: PreviewState,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
@@ -200,18 +205,23 @@ impl Television {
             ))
         };
 
+        // Action picker is lazily initialized when toggled
+        let action_picker = None;
+
         Self {
             action_tx,
             merged_config: layered_config.merge(),
             layered_config,
             channel,
             remote_control,
+            action_picker,
             mode: Mode::Channel,
             currently_selected: None,
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
             matching_mode,
             rc_picker: Picker::default(),
+            ap_picker: Picker::default(),
             preview_state,
             preview_handles,
             app_metadata: Arc::new(app_metadata),
@@ -267,6 +277,7 @@ impl Television {
             self.currently_selected.clone(),
             self.results_picker.clone(),
             self.rc_picker.clone(),
+            self.ap_picker.clone(),
             channel_state,
             self.preview_state.for_render_context(
                 self.ui_state
@@ -369,6 +380,11 @@ impl Television {
                     rc.find(pattern);
                 }
             }
+            Mode::ActionPicker => {
+                if let Some(ap) = self.action_picker.as_mut() {
+                    ap.find(pattern);
+                }
+            }
         }
     }
 
@@ -428,6 +444,7 @@ impl Television {
         match self.mode {
             Mode::Channel => self.results_picker.selected().map(|i| i as u32),
             Mode::RemoteControl => self.rc_picker.selected().map(|i| i as u32),
+            Mode::ActionPicker => self.ap_picker.selected().map(|i| i as u32),
         }
     }
 
@@ -471,6 +488,22 @@ impl Television {
                         as usize,
                 );
             }
+            Mode::ActionPicker => {
+                let total_results =
+                    self.action_picker
+                        .as_ref()
+                        .expect("action picker should be Some when in AP mode")
+                        .result_count() as usize;
+                self.ap_picker.move_cursor(
+                    movement,
+                    step,
+                    total_results,
+                    self.ui_state.layout.action_picker.expect(
+                        "action picker UI panel should be contained in the layout when in AP mode"
+                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
+                        as usize,
+                );
+            }
         }
     }
 
@@ -480,6 +513,9 @@ impl Television {
             Mode::RemoteControl => {
                 self.rc_picker.reset_selection();
             }
+            Mode::ActionPicker => {
+                self.ap_picker.reset_selection();
+            }
         }
     }
 
@@ -488,6 +524,9 @@ impl Television {
             Mode::Channel => self.results_picker.reset_input(),
             Mode::RemoteControl => {
                 self.rc_picker.reset_input();
+            }
+            Mode::ActionPicker => {
+                self.ap_picker.reset_input();
             }
         }
     }
@@ -560,6 +599,7 @@ impl Television {
                     | Action::TogglePreview
                     | Action::ToggleStatusBar
                     | Action::ToggleRemoteControl
+                    | Action::ToggleActionPicker
                     | Action::ToggleOrientation
                     | Action::CopyEntryToClipboard
                     | Action::CycleSources
@@ -668,10 +708,72 @@ impl Television {
             self.remote_control.as_ref().unwrap().total_count();
     }
 
+    pub fn update_ap_picker_state(&mut self) {
+        let Some(ap) = self.action_picker.as_ref() else {
+            return;
+        };
+
+        if self.ap_picker.selected().is_none() && ap.result_count() > 0 {
+            self.ap_picker.select(Some(0));
+            self.ap_picker.relative_select(Some(0));
+        }
+
+        {
+            let offset = u32::try_from(self.ap_picker.offset()).unwrap();
+            let height = self
+                .ui_state
+                .layout
+                .action_picker
+                .unwrap_or_default()
+                .height
+                .saturating_sub(5)
+                .into();
+            let new_entries =
+                self.action_picker.as_mut().unwrap().results(height, offset);
+
+            self.ap_picker.entries = Arc::new(new_entries);
+        }
+        self.ap_picker.total_items =
+            self.action_picker.as_ref().unwrap().total_count();
+    }
+
+    /// Initialize the action picker with the current channel's actions.
+    fn init_action_picker(&mut self) {
+        // Build a map from action strings to keybindings
+        let mut action_keybindings = rustc_hash::FxHashMap::default();
+        for (key, actions) in
+            self.merged_config.input_map.channel_keybindings.iter()
+        {
+            for action in actions.as_slice() {
+                if let Action::ExternalAction(action_str) = action {
+                    action_keybindings.insert(action_str.clone(), *key);
+                }
+            }
+        }
+        // Also check global keybindings for external actions
+        for (key, actions) in
+            self.merged_config.input_map.global_keybindings.iter()
+        {
+            for action in actions.as_slice() {
+                if let Action::ExternalAction(action_str) = action {
+                    action_keybindings
+                        .entry(action_str.clone())
+                        .or_insert(*key);
+                }
+            }
+        }
+
+        self.action_picker = Some(ActionPicker::new(
+            &self.merged_config.channel_actions,
+            &action_keybindings,
+        ));
+    }
+
     pub fn handle_input_action(&mut self, action: &Action) {
         let input = match self.mode {
             Mode::Channel => &mut self.results_picker.input,
             Mode::RemoteControl => &mut self.rc_picker.input,
+            Mode::ActionPicker => &mut self.ap_picker.input,
         };
         input.handle(convert_action_to_input_request(action).unwrap());
         match action {
@@ -742,8 +844,34 @@ impl Television {
                     self.change_channel(&new_channel);
                 }
             }
+            Mode::ActionPicker => {
+                if let Some(entry) = self.get_selected_action_entry() {
+                    // Close the action picker and dispatch the action
+                    self.reset_picker_selection();
+                    self.reset_picker_input();
+                    if let Some(ap) = self.action_picker.as_mut() {
+                        ap.find(EMPTY_STRING);
+                    }
+                    self.mode = Mode::Channel;
+                    self.action_tx
+                        .send(Action::ExternalAction(entry.action_string))?;
+                }
+            }
         }
         Ok(())
+    }
+
+    pub fn get_selected_action_entry(&mut self) -> Option<ActionEntry> {
+        if self
+            .action_picker
+            .as_ref()
+            .is_none_or(|ap| ap.result_count() == 0)
+        {
+            return None;
+        }
+        self.selected_index().and_then(|idx| {
+            self.action_picker.as_mut().map(|ap| ap.get_result(idx))
+        })
     }
 
     pub fn handle_copy_entry_to_clipboard(&mut self) {
@@ -906,6 +1034,59 @@ impl Television {
                         self.reset_picker_selection();
                         self.mode = Mode::Channel;
                     }
+                    Mode::ActionPicker => {
+                        // Close action picker and open remote control
+                        self.reset_picker_input();
+                        if let Some(ap) = self.action_picker.as_mut() {
+                            ap.find(EMPTY_STRING);
+                        }
+                        self.reset_picker_selection();
+                        self.mode = Mode::RemoteControl;
+                        self.remote_control
+                            .as_mut()
+                            .unwrap()
+                            .find(EMPTY_STRING);
+                        self.ticks = 0;
+                    }
+                }
+            }
+            Action::ToggleActionPicker => {
+                // Only allow if channel has actions defined
+                if self.merged_config.channel_actions.is_empty() {
+                    return Ok(());
+                }
+                match self.mode {
+                    Mode::Channel => {
+                        self.init_action_picker();
+                        self.mode = Mode::ActionPicker;
+                        if let Some(ap) = self.action_picker.as_mut() {
+                            ap.find(EMPTY_STRING);
+                        }
+                        self.ticks = 0;
+                    }
+                    Mode::ActionPicker => {
+                        self.reset_picker_input();
+                        if let Some(ap) = self.action_picker.as_mut() {
+                            ap.find(EMPTY_STRING);
+                        }
+                        self.reset_picker_selection();
+                        self.mode = Mode::Channel;
+                    }
+                    Mode::RemoteControl => {
+                        // Close remote control and open action picker
+                        self.reset_picker_input();
+                        self.remote_control
+                            .as_mut()
+                            .unwrap()
+                            .find(EMPTY_STRING);
+                        self.reset_picker_selection();
+                        self.init_action_picker();
+                        self.mode = Mode::ActionPicker;
+                        if let Some(ap) = self.action_picker.as_mut() {
+                            ap.find(EMPTY_STRING);
+                        }
+                        self.ticks = 0;
+                    }
                 }
             }
             Action::ToggleHelp => {
@@ -955,6 +1136,10 @@ impl Television {
 
         if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
             self.update_rc_picker_state();
+        }
+
+        if self.action_picker.is_some() && self.mode == Mode::ActionPicker {
+            self.update_ap_picker_state();
         }
 
         if self.mode == Mode::Channel {

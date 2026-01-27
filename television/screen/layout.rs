@@ -101,11 +101,14 @@ pub struct Layout {
     pub input: Rect,
     pub preview_window: Option<Rect>,
     pub remote_control: Option<Rect>,
+    pub action_picker: Option<Rect>,
     pub help_panel: Option<Rect>,
     pub status_bar: Option<Rect>,
 }
 
 const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
+const ACTION_PICKER_WIDTH_PERCENTAGE: u16 = 50;
+const ACTION_PICKER_HEIGHT_PERCENTAGE: u16 = 50;
 
 impl Default for Layout {
     /// Having a default layout with a non-zero height for the results area
@@ -121,16 +124,19 @@ impl Default for Layout {
             None,
             None,
             None,
+            None,
         )
     }
 }
 
 impl Layout {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         results: Rect,
         input: Rect,
         preview_window: Option<Rect>,
         remote_control: Option<Rect>,
+        action_picker: Option<Rect>,
         help_panel: Option<Rect>,
         status_bar: Option<Rect>,
     ) -> Self {
@@ -139,6 +145,7 @@ impl Layout {
             input,
             preview_window,
             remote_control,
+            action_picker,
             help_panel,
             status_bar,
         }
@@ -399,6 +406,20 @@ impl Layout {
             None
         };
 
+        // the action picker is a centered popup (similar to remote control but simpler)
+        let action_picker = if mode == Mode::ActionPicker {
+            let action_picker_rect = centered_rect_with_dimensions(
+                &Dimensions::new(
+                    area.width * ACTION_PICKER_WIDTH_PERCENTAGE / 100,
+                    area.height * ACTION_PICKER_HEIGHT_PERCENTAGE / 100,
+                ),
+                area,
+            );
+            Some(action_picker_rect)
+        } else {
+            None
+        };
+
         // the help panel is positioned at bottom-right, accounting for status bar
         let help_panel = if merged_config.help_panel_disabled
             || merged_config.help_panel_hidden
@@ -439,6 +460,7 @@ impl Layout {
             input,
             preview_window,
             remote_control,
+            action_picker,
             help_panel,
             status_bar,
         )

@@ -1,3 +1,4 @@
+pub mod action_picker;
 pub mod colors;
 pub mod constants;
 pub mod help_panel;
