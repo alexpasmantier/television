@@ -381,7 +381,7 @@ layout = "portrait"
 
 [keybindings]
 ctrl-s = "actions:start"
-ctrl-x = "actions:stop"
+f2 = "actions:stop"
 ctrl-r = "actions:restart"
 ctrl-l = "actions:logs"
 ctrl-e = "actions:exec"
@@ -1210,7 +1210,7 @@ command = [ "just --summary | tr '[:blank:]' '\n'",]
 command = "just -s {}"
 
 [keybindings]
-ctrl-x = "actions:execute-recipe"
+f5 = "actions:execute-recipe"
 
 [actions.execute-recipe]
 description = "Execute a justfile recipe"
@@ -1748,7 +1748,7 @@ command = "ps -p '{split: :0}' -o user,pid,ppid,state,%cpu,%mem,command | fold"
 
 [keybindings]
 ctrl-k = "actions:kill"
-ctrl-x = "actions:term"
+f2 = "actions:term"
 ctrl-s = "actions:stop"
 ctrl-c = "actions:cont"
 
@@ -1915,7 +1915,7 @@ layout = "portrait"
 
 [keybindings]
 ctrl-s = "actions:start"
-ctrl-x = "actions:stop"
+f2 = "actions:stop"
 ctrl-r = "actions:restart"
 ctrl-e = "actions:enable"
 ctrl-d = "actions:disable"
