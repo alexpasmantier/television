@@ -1,3 +1,4 @@
+pub mod action_picker;
 pub mod channel;
 pub mod entry;
 pub mod entry_processor;

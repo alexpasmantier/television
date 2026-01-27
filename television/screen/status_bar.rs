@@ -38,6 +38,11 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             ctx.colorscheme.mode.remote_control_fg,
             ctx.colorscheme.mode.remote_control,
         ),
+        Mode::ActionPicker => (
+            "ACTIONS",
+            ctx.colorscheme.mode.action_picker_fg,
+            ctx.colorscheme.mode.action_picker,
+        ),
     };
 
     // Create mode bubble with separators
@@ -103,6 +108,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     // Use mode color for keybinding hints
     let key_color = match ctx.tv_state.mode {
         Mode::Channel => ctx.colorscheme.mode.channel,
+        Mode::ActionPicker => ctx.colorscheme.mode.action_picker,
         Mode::RemoteControl => ctx.colorscheme.mode.remote_control,
     };
 
@@ -133,27 +139,23 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             .get_key_for_action(&Action::ToggleRemoteControl);
         if let Some(k) = key {
             let hint_text = match ctx.tv_state.mode {
-                Mode::Channel => "Remote Control",
+                Mode::Channel | Mode::ActionPicker => "Remote Control",
                 Mode::RemoteControl => "Back to Channel",
             };
             add_hint(hint_text, &k.to_string());
         }
     }
 
-    // Add preview hint (Channel mode only, and only if preview feature is enabled)
-    if ctx.tv_state.mode == Mode::Channel && !ctx.config.preview_panel_disabled
+    // Add action picker hint (Channel mode only, and only if channel has actions)
+    if ctx.tv_state.mode == Mode::Channel
+        && !ctx.config.channel_actions.is_empty()
     {
         let key = &ctx
             .config
             .input_map
-            .get_key_for_action(&Action::TogglePreview);
+            .get_key_for_action(&Action::ToggleActionPicker);
         if let Some(k) = key {
-            let hint_text = if ctx.config.preview_panel_hidden {
-                "Show Preview"
-            } else {
-                "Hide Preview"
-            };
-            add_hint(hint_text, &k.to_string());
+            add_hint("Actions", &k.to_string());
         }
     }
 
@@ -165,15 +167,6 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
 
     // Build middle section if we have hints
     if !hint_spans.is_empty() {
-        middle_spans.extend([
-            Span::styled(
-                "[Hint]",
-                Style::default()
-                    .fg(ctx.colorscheme.general.border_fg)
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::raw(SPACE),
-        ]);
         middle_spans.extend(hint_spans);
     }
 

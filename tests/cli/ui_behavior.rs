@@ -17,14 +17,14 @@ fn test_toggle_preview_keybinding() {
     let cmd = tv_local_config_and_cable_with_args(&["files"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify preview is initially visible (shows "Hide Preview:" option)
-    tester.assert_tui_frame_contains("Hide Preview:");
+    // Verify preview is initially visible (two panels side by side)
+    tester.assert_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+O to toggle preview off
     tester.send(&ctrl('o'));
 
-    // Verify preview is now hidden (shows "Show Preview:" option)
-    tester.assert_tui_frame_contains("Show Preview:");
+    // Verify preview is now hidden (single panel, no side-by-side layout)
+    tester.assert_not_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
@@ -197,11 +197,11 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     let cmd = tv_local_config_and_cable_with_args(&["files"]);
     let mut child = tester.spawn_command_tui(cmd);
 
-    // Verify preview is initially visible
+    // Verify preview is initially visible (two panels side by side)
     tester.assert_tui_frame_contains(
         "╭───────────────────────── files ──────────────────────────╮╭─",
     );
-    tester.assert_tui_frame_contains("Hide Preview:");
+    tester.assert_tui_frame_contains("───╮╭───");
 
     // Enter remote control mode
     tester.send(&ctrl('t'));
@@ -209,10 +209,6 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     // Verify we're in remote control mode (shows channel indicators and "Back to Channel")
     tester.assert_tui_frame_contains("(1) (2) (3)");
     tester.assert_tui_frame_contains("Back to Channel:");
-
-    // Verify the preview hint is correctly hidden in remote control mode
-    tester.assert_not_tui_frame_contains("Hide Preview:");
-    tester.assert_not_tui_frame_contains("Show Preview:");
 
     // Try to toggle preview - this should NOT work in remote control mode
     tester.send(&ctrl('o'));
@@ -228,13 +224,13 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     // Exit remote control mode
     tester.send(&ctrl('t'));
 
-    // Verify we're back in channel mode and preview hint is shown again
-    tester.assert_tui_frame_contains("Hide Preview:");
+    // Verify we're back in channel mode
     tester.assert_not_tui_frame_contains("Back to Channel:");
+    tester.assert_tui_frame_contains("───╮╭───");
 
     // Verify preview toggle works again in channel mode
     tester.send(&ctrl('o'));
-    tester.assert_tui_frame_contains("Show Preview:");
+    tester.assert_not_tui_frame_contains("───╮╭───");
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));

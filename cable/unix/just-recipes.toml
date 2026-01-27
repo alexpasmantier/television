@@ -10,7 +10,7 @@ command = ["just --summary | tr '[:blank:]' '\n'"]
 command = "just -s {}"
 
 [keybindings]
-ctrl-x = "actions:execute-recipe"
+f5 = "actions:execute-recipe"
 
 [actions.execute-recipe]
 description = "Execute a justfile recipe"

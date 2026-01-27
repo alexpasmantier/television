@@ -518,6 +518,8 @@ impl App {
                         if self.television.mode == Mode::RemoteControl {
                             self.action_tx
                                 .send(Action::ToggleRemoteControl)?;
+                        } else if self.television.mode == Mode::ActionPicker {
+                            self.action_tx.send(Action::ToggleActionPicker)?;
                         } else {
                             self.stop_watch_timer();
                             self.should_quit = true;
