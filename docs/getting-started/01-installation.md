@@ -1,10 +1,8 @@
 # Installation
 
-[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)
-
 ## Quick Install (Recommended)
 
-For an automatic installation that detects your system and uses the best available method:
+For an automatic installation that detects your system:
 
 ```bash
 curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
@@ -115,3 +113,7 @@ You can then alias `tv` to the produced binary:
 ```bash
 alias tv=$TELEVISION_DIR/target/release/tv
 ```
+
+## Packaging Status
+
+[![Packaging status](https://repology.org/badge/vertical-allrepos/television.svg)](https://repology.org/project/television/versions)

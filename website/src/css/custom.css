@@ -86,3 +86,101 @@ nav.menu {
 .theme-doc-markdown a {
   color: var(--ifm-color-primary-darker)
 }
+
+/* Doc category cards container */
+.row.row--no-gutters {
+  gap: 1rem;
+  margin: 0 !important;
+}
+
+.row.row--no-gutters > .col {
+  padding: 0 !important;
+  flex: 1 1 300px !important;
+  max-width: 100% !important;
+}
+
+/* Doc category cards */
+.card {
+  background-color: rgba(174, 174, 209, 0.08);
+  border: 1px solid var(--ifm-color-primary-darkest);
+  border-radius: 8px;
+  transition: all 0.25s ease;
+  height: 100%;
+  padding: 0.4rem 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card .cardContainer_fWXF,
+.card [class*="cardContainer"] {
+  padding: 0 !important;
+}
+
+.card:hover {
+  background-color: rgba(174, 174, 209, 0.15);
+  border-color: var(--ifm-color-primary);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Card title */
+.card h2 {
+  color: var(--ifm-color-primary-light);
+  font-family: "Doto", sans-serif;
+  font-size: 1.1rem;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Hide ALL SVGs inside doc cards - multiple approaches */
+.card svg,
+.card article svg,
+.cardContainer_node_modules svg,
+[class*="cardContainer"] svg,
+[class*="card_"] svg,
+main article svg,
+.theme-doc-markdown svg,
+.generatedIndexPage svg,
+[class*="generatedIndexPage"] svg,
+article[class*="cardContainer"] svg,
+a[class*="card"] svg,
+.card h2 svg,
+.card [class*="cardTitle"] svg {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Hide card description */
+.card p {
+  display: none;
+}
+
+/* Card container (the link wrapper) */
+.card__body,
+.card article,
+.card [class*="cardContainer"] {
+  padding: 0 !important;
+}
+
+/* Pagination nav cards */
+.pagination-nav__link {
+  background-color: rgba(174, 174, 209, 0.08);
+  border: 1px solid var(--ifm-color-primary-darkest);
+  border-radius: 8px;
+  transition: all 0.25s ease;
+}
+
+.pagination-nav__link:hover {
+  background-color: rgba(174, 174, 209, 0.15);
+  border-color: var(--ifm-color-primary);
+}
+
+.pagination-nav__sublabel {
+  color: var(--ifm-color-primary-dark);
+}
+
+.pagination-nav__label {
+  color: var(--ifm-color-primary-light);
+}

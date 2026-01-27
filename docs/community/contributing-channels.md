@@ -1,6 +1,6 @@
 # Contributing new channels
 
-***NOTE**: for general setup information before contributing, see [Contributing](../02-Developers/00-contributing.md).*
+***NOTE**: for general setup information before contributing, see [Contributing](../developers/contributing.md).*
 
 Contributing a new channel is as you might expect, pretty straightforward.
 

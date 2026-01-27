@@ -84,7 +84,7 @@ New-Item -Path $PROFILE -Type File -Force
 
 Shell integration works by setting a dedicated shell keybinding that launches `tv` with the current prompt buffer so that `tv` may guess which channel (builtin or cable) is the most appropriate.
 
-Which channel gets effectively chosen for different commands can be tweaked in the `shell_integration` section of the [configuration file](./03-configuration.md):
+Which channel gets effectively chosen for different commands can be tweaked in the `shell_integration` section of the [configuration file](./02-configuration.md):
 
 ```toml
 [shell_integration.channel_triggers]

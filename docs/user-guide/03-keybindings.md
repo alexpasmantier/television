@@ -20,6 +20,7 @@ Default keybindings are as follows:
 |                                                <kbd>Ctrl</kbd> + <kbd>o</kbd>                                                 | Toggle the preview panel                           |
 |                                                       <kbd>F12</kbd>                                                         | Toggle the status bar                              |
 |                                                <kbd>Ctrl</kbd> + <kbd>l</kbd>                                                 | Switch between landscape and portrait layout       |
+|                                                <kbd>Ctrl</kbd> + <kbd>x</kbd>                                                 | Toggle the action picker                           |
 |                                                <kbd>Esc</kbd> / <kbd>Ctrl</kbd> + <kbd>c</kbd>                                 | Quit the application                               |
 
 ### Input Editing Defaults
@@ -34,7 +35,7 @@ Default keybindings are as follows:
 |                                 <kbd>Home</kbd> / <kbd>End</kbd>                  | Move to the start / end of input          |
 |                        <kbd>Ctrl</kbd> + <kbd>a</kbd> / <kbd>e</kbd>               | Move to the start / end of input          |
 
-These keybindings are all configurable via tv's configuration file (see [Configuration](./03-configuration.md)).
+These keybindings are all configurable via tv's configuration file (see [Configuration](./02-configuration.md)).
 
 # Keybindings Guide
 
