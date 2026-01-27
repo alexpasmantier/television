@@ -6,7 +6,7 @@ import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
   title: "Television",
-  tagline: "The cross-platform, fast and extensible fuzzy finder.",
+  tagline: "A very fast, portable and hackable fuzzy finder for the terminal.",
   favicon: "img/tv-icon-150.png",
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
@@ -53,7 +53,7 @@ const config: Config = {
       {
         docs: {
           path: "../docs",
-          routeBasePath: "docs",
+          routeBasePath: "/",
           sidebarPath: "./sidebars.ts",
           // editUrl:
           //   "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
