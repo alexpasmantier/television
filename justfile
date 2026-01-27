@@ -184,4 +184,4 @@ bump-version kind='patch':
 		printf "%s\n" '\''```text'\''; \
 		printf "%s\n" "$help_output"; \
 		printf "%s\n" '\''```'\''; \
-	} > docs/01-Users/09-cli.md'
+	} > docs/reference/01-cli.md'

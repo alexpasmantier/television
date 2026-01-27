@@ -27,7 +27,7 @@ shortcut = "f1"
 
 ## Default location on your system
 
-Channels live in the `cable` directory inside your [television configuration directory](./03-configuration.md).
+Channels live in the `cable` directory inside your [television configuration directory](./02-configuration.md).
 
 **Example**:
 
@@ -210,12 +210,12 @@ hidden = true
 shortcut = "f1"  # `f1` will automatically switch to this channel
 
 quit = ["esc", "ctrl-c"]
-select_next_entry = "ctrl-j"
-select_prev_entry = "ctrl-k"
-confirm_selection = "ctrl-y"
+select_next_entry = ["down", "ctrl-j"]
+select_prev_entry = ["up", "ctrl-k"]
+confirm_selection = "enter"
 ```
 
-See [actions.rs](https://github.com/alexpasmantier/television/blob/main/television/action.rs) for a list of available actions.
+See the [Actions Reference](../reference/02-actions.md) for a list of available actions.
 
 ### `[actions]`
 

@@ -12,241 +12,105 @@
 
 <img width="1694" height="1005" alt="2025-12-18-013816_hyprshot" src="https://github.com/user-attachments/assets/d512a358-5d36-48f7-b40e-695c644c75b7" />
 
-
 </div>
 
 ## About
 
-`Television` is a very fast, portable and hackable fuzzy finder for the terminal.
+Television is a fast, portable fuzzy finder for the terminal. It lets you search in real-time through any kind of data source such as files, text, git repositories, environment variables, docker containers, and more.
 
-It lets you search in real time through any kind of data source (called "channels") such as:
+**[Read the documentation](https://alexpasmantier.github.io/television/)**
 
-- files and directories
-- code
-- notes
-- processes
-- git repositories
-- environment variables
-- docker containers
-- ...and much more ([creating your own channels](https://alexpasmantier.github.io/television/docs/Users/channels/#creating-your-own-channels))
-
-with support for previewing results, customizable actions and keybindings, and integration with your favorite
-shell and editor.
-
-## Getting started with tv
-
-tv uses `channels` to define different sources of data to browse and preview. It comes with several built-in channels for common tasks like browsing files, searching text, and viewing git repositories.
+## Quick Start
 
 ```sh
-tv            # uses the default channel (usually "files")
-tv files      # browse files and directories
-tv text       # ripgrep-powered text search
-tv git-repos  # browse git repositories
+tv              # Search files (default channel)
+tv text         # Search file contents
+tv git-repos    # Find git repositories
+tv --help       # See all options
 ```
 
-To get a list of available channels, run:
-
-```sh
-tv list-channels
-```
-
-To pull in the latest community channels from the GitHub repo, run:
-
-```sh
-tv update-channels
-```
-
-You can also pipe output into tv to search through command results, logs, or any
-stream of text:
-
-```sh
-rg "ERROR" /var/log/syslog | tv
-git log --oneline | tv
-my_program_that_generates_logs | tv
-```
-
-And if you need a one-off channel for a specific task, tv's command line options let you create temporary channels on the fly:
-
-```sh
-tv --source-command "rg --line-number --no-heading TODO ."
-tv --source-command "fd -t f" --preview-command "bat -n --color=always '{}'" --preview-size 70
-```
-
-## Custom channels
-
-You can create custom channels for any specific task you want to do regularly. Channels are defined using TOML files that specify how to get the data, how to preview it, and any keybindings or actions you want to add.
-
-### Example: TLDR pages channel
-Create a channel: _~/.config/television/cable/tldr.toml_
-
-```toml
-[metadata]
-name = "tldr"
-description = "Browse and preview TLDR help pages for command-line tools"
-requirements = ["tldr"]
-
-[source]
-command = "tldr --list"
-
-[preview]
-command = "tldr '{0}'"
-
-[keybindings]
-ctrl-e = "actions:open"
-
-[actions.open]
-description = "Open the selected TLDR page"
-command = "tldr '{0}'"
-mode = "execute"
-```
-
-Start searching:
-
-```sh
-tv tldr
-```
-
-Switch channels using the remote control and pick from a large choice of [community-maintained channels](https://alexpasmantier.github.io/television/docs/Users/community-channels-unix):
-
-![tv remote](./assets/tv-files-remote.png)
-
-See the [channels docs](https://alexpasmantier.github.io/television/docs/Users/channels/) for more info on how to set these up.
+For a complete introduction, see the [Quickstart Guide](https://alexpasmantier.github.io/television/docs/getting-started/quickstart).
 
 ## Installation
 
-1. [Automatically select the best installation method](#automatically-select-the-best-installation-method)
-2. [Linux](#linux)
-3. [MacOS](#macos)
-4. [Windows](#windows)
-5. [NetBSD](#netbsd)
-6. [Cross-platform](#cross-platform)
-7. [Precompiled binaries](#precompiled-binaries)
-
-### Automatically select the best installation method
-Running the following command will detect your OS and install `television` using the best available method:
+### Quick Install (Recommended)
 
 ```sh
 curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 ```
 
-### Linux
+### Package Managers
 
-- [Arch Linux](https://archlinux.org/), [Manjaro](https://manjaro.org/), [EndeavourOS](https://endeavouros.com/), etc.:
+| Platform | Command |
+|----------|---------|
+| **Arch Linux** | `pacman -S television` |
+| **Homebrew** | `brew install television` |
+| **Cargo** | `cargo install television` |
+| **Scoop** | `scoop bucket add extras && scoop install television` |
+| **WinGet** | `winget install --exact --id alexpasmantier.television` |
+| **Nix** | `nix run nixpkgs#television` |
+
+For more installation options, see [Installation](https://alexpasmantier.github.io/television/docs/getting-started/installation).
+
+## Custom Channels
+
+Create custom channels for any workflow. Here's an example TLDR channel:
+
+```toml
+# ~/.config/television/cable/tldr.toml
+[metadata]
+name = "tldr"
+description = "Browse TLDR pages"
+
+[source]
+command = "tldr --list"
+
+[preview]
+command = "tldr '{}'"
+
+[keybindings]
+ctrl-e = "actions:open"
+
+[actions.open]
+command = "tldr '{}'"
+mode = "execute"
+```
+
+Learn more about [creating channels](https://alexpasmantier.github.io/television/docs/getting-started/first-channel).
+
+## Shell Integration
+
+Enable smart autocomplete (<kbd>Ctrl</kbd>+<kbd>T</kbd>) and history search (<kbd>Ctrl</kbd>+<kbd>R</kbd>):
 
 ```sh
-pacman -S television
+# Zsh
+echo 'eval "$(tv init zsh)"' >> ~/.zshrc
+
+# Bash
+echo 'eval "$(tv init bash)"' >> ~/.bashrc
 ```
 
-- [Debian](https://www.debian.org/), [Ubuntu](https://ubuntu.com/), [Linux Mint](https://linuxmint.com/),
-[Pop!_OS](https://pop.system76.com/), etc.:
+See [Shell Integration](https://alexpasmantier.github.io/television/docs/user-guide/shell-integration) for more shells.
 
-```sh
-VER=`curl -s "https://api.github.com/repos/alexpasmantier/television/releases/latest" | grep '"tag_name":' | sed -E 's/.*"tag_name": "([^"]+)".*/\1/'`
-curl -LO https://github.com/alexpasmantier/television/releases/download/$VER/tv-$VER-x86_64-unknown-linux-musl.deb
-echo $VER
-sudo dpkg -i tv-$VER-x86_64-unknown-linux-musl.deb
-```
+## Editor Integration
 
-- [ChimeraOS](https://chimeraos.org/), [Alpine Linux](https://alpinelinux.org/):
+- **Neovim**: [tv.nvim](https://github.com/alexpasmantier/tv.nvim)
+- **Vim**: [tv.vim](https://github.com/prabirshrestha/tv.vim)
+- **VSCode**: [Television extension](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
+- **Zed**: [Telescope-style setup](https://zed.dev/blog/hidden-gems-part-2#emulate-vims-telescope-via-television)
 
-```sh
-apk add chimera-repo-user
-apk add television
-```
+## Documentation
 
-- [NixOS](https://nixos.org/) and other systems with [Nix package manager](https://nixos.org/download.html):
-
-```sh
-# Stable version from nixpkgs
-nix run nixpkgs#television
-
-# Latest nightly version from GitHub
-nix run github:alexpasmantier/television
-```
-
-### MacOS
-- [Homebrew](https://brew.sh/):
-
-```sh
-brew install television
-```
-
-### Windows
-- [Scoop](https://scoop.sh/):
-
-```sh
-scoop bucket add extras
-scoop install television
-```
-
-- [Winget](https://github.com/microsoft/winget-cli):
-
-```sh
-winget install --exact --id alexpasmantier.television
-```
-
-### NetBSD
-
-- [pkgsrc](https://pkgsrc.se/textproc/television):
-
-```sh
-pkgin install television
-```
-
-
-### Cross-platform
-
-- [Cargo](https://doc.rust-lang.org/cargo/):
-
-```sh
-cargo install television
-```
-
-- [Conda-forge](https://anaconda.org/conda-forge/television):
-
-```sh
-pixi global install television
-```
-
-### Precompiled binaries
-
-Download the latest release from the [releases page](https://www.github.com/alexpasmantier/television/releases).
-
-## Usage
-
-```bash
-tv  # default channel
-
-tv [channel]  # e.g. `tv files`, `tv env`, `tv git-repos`, `tv my-awesome-channel` etc.
-
-# pipe the output of your program into tv
-my_program | tv
-
-fd -t f . | tv --preview-command 'bat -n --color=always {}'
-
-# or build your own channel on the fly
-tv --source-command 'fd -t f .' --preview-command 'bat -n --color=always {}' --preview-size 70
-```
-
-> [!TIP]
-> 🐚 _Television has **builtin shell integration**. More info [here](https://alexpasmantier.github.io/television/docs/Users/shell-integration)._
-
-For more information, check out the [docs](https://alexpasmantier.github.io/television/).
-
-## Using tv inside your favorite editor
-
-- **Neovim**: [tv.nvim](https://github.com/alexpasmantier/tv.nvim) (lua)
-- **Vim**: [tv.vim](https://github.com/prabirshrestha/tv.vim) (vimscript)
-- **Zed**: [Easy Telescope-style file finder in Zed using television](https://zed.dev/blog/hidden-gems-part-2#emulate-vims-telescope-via-television)
-- **VSCode**: [using television as a file picker inside vscode](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
+- [Getting Started](https://alexpasmantier.github.io/television/docs/getting-started/quickstart)
+- [User Guide](https://alexpasmantier.github.io/television/docs/user-guide/channels)
+- [Tips and Tricks](https://alexpasmantier.github.io/television/docs/advanced/tips-and-tricks)
+- [Reference](https://alexpasmantier.github.io/television/docs/reference/cli)
 
 ## Credits
 
-This project was inspired by the **awesome** work done by the [telescope](https://github.com/nvim-telescope/telescope.nvim) neovim plugin.
+Inspired by [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim). Built with [nucleo](https://github.com/helix-editor/helix) (fuzzy matching), [tokio](https://github.com/tokio-rs/tokio) (async runtime), and [ratatui](https://github.com/ratatui/ratatui) (TUI framework).
 
-It also leverages the great [helix](https://github.com/helix-editor/helix) editor's nucleo fuzzy matching library, the [tokio](https://github.com/tokio-rs/tokio) async runtime as well as the **formidable** [ratatui](https://github.com/ratatui/ratatui) library.
-
-A special thanks to tv's contributors for their help and support:
+Thanks to all contributors:
 
 <a href="https://github.com/alexpasmantier/television/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=alexpasmantier/television" />

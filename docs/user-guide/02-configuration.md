@@ -47,7 +47,7 @@ Top-level UI settings under the `[ui]` section:
 
 Built-in themes: `default`, `television`, `gruvbox-dark`, `gruvbox-light`, `catppuccin`, `nord-dark`, `solarized-dark`, `solarized-light`, `dracula`, `monokai`, `onedark`, `tokyonight`.
 
-You can also create custom themes by placing them in `$CONFIG_DIR/television/themes/` (see [themes](./08-themes.md) for
+You can also create custom themes by placing them in `$CONFIG_DIR/television/themes/` (see [themes](./05-themes.md) for
 details).
 
 ### UI Components
@@ -179,7 +179,7 @@ Map keyboard keys to actions. Keys can be specified as:
 ### Shell Integration (`[shell_integration]`)
 
 This section is a very quick overview of the shell integration options. For more details on what this is and how to set
-it up, see [this page](./05-shell-integration.md).
+it up, see [this page](./04-shell-integration.md).
 
 Configure shell integration for smart command completion:
 
