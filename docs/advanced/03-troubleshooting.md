@@ -178,46 +178,12 @@ Adjust channel triggers in config:
 
 ### Slow Startup
 
-1. **Source command slow**: Test `time fd -t f`
-2. **Large config**: Simplify configuration
-3. **Many channels**: Remove unused channel files
-
-### High CPU Usage
-
-1. **Disable preview**: `--no-preview`
-2. **Increase tick rate**: `--tick-rate 100`
-3. **Use exact matching**: `--exact`
-4. **Limit results**: Add limits to source command
+1. **Source command slow**: Test the source command independently
 
 ### Memory Usage
 
-1. **Reduce history**: Set `history_size = 50` or lower
-2. **Limit source output**: Use `--max-results` flags
+1. **Limit source output**: try piping into `head -n N` in source command. Start with N=100.
 3. **Disable caching**: `--no-cache-preview`
-
-## Common Error Messages
-
-### "No such file or directory"
-
-The source or preview command references a file that doesn't exist. Check:
-- Working directory
-- File permissions
-- File path escaping
-
-### "Permission denied"
-
-- Check file/directory permissions
-- Ensure executed commands are executable
-- On macOS, check sandbox restrictions
-
-### "Command not found"
-
-Install the missing tool:
-```sh
-# Example: bat not found
-brew install bat  # macOS
-apt install bat   # Debian/Ubuntu
-```
 
 ## Logs
 
@@ -242,8 +208,10 @@ tail -f ~/.local/share/television/television.log
 Run tv in debug mode for more information:
 
 ```sh
-RUST_LOG=debug tv files 2>debug.log
+RUST_LOG=debug tv files
 ```
+
+And check the logs.
 
 ## Getting Help
 
@@ -266,6 +234,6 @@ If all else fails, start fresh:
 # Backup and remove config
 mv ~/.config/television ~/.config/television.bak
 
-# Run tv - it will create default config
+# Run tv - which creates new default config
 tv files
 ```
