@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.14.5"
+version = "0.15.0"
 edition = "2024"
 description = "A very fast, portable and hackable fuzzy finder for the terminal"
 license = "MIT"
