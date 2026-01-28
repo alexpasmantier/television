@@ -17,6 +17,13 @@
 # ----------------------------------------------------------------------------
 tick_rate = 50
 default_channel = "files"
+# Shell settings
+# --------------
+# Default shell used for executing commands (source, preview, actions).
+# Options: bash, zsh, fish, powershell, cmd, nu
+# If not specified, the shell is detected from the environment ($SHELL on Unix).
+# Channel-specific shell settings override this global setting.
+# shell = "bash"
 # History settings
 # ---------------
 # Maximum number of entries to keep in the global history (default: 100)
