@@ -266,7 +266,7 @@ pub async fn load_candidates<P: EntryProcessor>(
     std_command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = TokioCommand::from(std_command)
         .spawn()
-        .expect("failed to execute process");
+        .expect("failed to execute process"); // FIXME: handle error
 
     if let Some(out) = child.stdout.take() {
         let mut produced_output = false;

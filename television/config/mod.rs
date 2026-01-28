@@ -1,6 +1,6 @@
 use crate::{
     cable::CABLE_DIR_NAME, channels::prototypes::DEFAULT_PROTOTYPE_NAME,
-    history::DEFAULT_HISTORY_SIZE,
+    history::DEFAULT_HISTORY_SIZE, utils::shell::Shell,
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
@@ -48,6 +48,11 @@ pub struct AppConfig {
     /// Maximum number of frecency entries to keep per channel
     #[serde(default = "default_frecency_max_entries")]
     pub frecency_max_entries: usize,
+    /// Global shell used for executing commands.
+    /// If not specified, the shell is detected from the environment.
+    /// Channel-specific shell settings override this.
+    #[serde(default)]
+    pub shell: Option<Shell>,
 }
 
 impl Default for AppConfig {
@@ -60,6 +65,7 @@ impl Default for AppConfig {
             history_size: default_history_size(),
             global_history: default_global_history(),
             frecency_max_entries: default_frecency_max_entries(),
+            shell: None,
         }
     }
 }
@@ -89,6 +95,7 @@ impl Hash for AppConfig {
         self.history_size.hash(state);
         self.global_history.hash(state);
         self.frecency_max_entries.hash(state);
+        self.shell.hash(state);
     }
 }
 
