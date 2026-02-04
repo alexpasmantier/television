@@ -9,3 +9,8 @@ display = "{split:;:1..}"
 output = "{split:;:1..}"
 no_sort = true
 frecency = false
+
+[actions.execute]
+description = "Execute the selected command"
+command = "zsh -c '{split:;:1..}'"
+mode = "execute"

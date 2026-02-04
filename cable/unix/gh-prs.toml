@@ -30,3 +30,23 @@ command = '''gh pr view '{strip_ansi|split:#:1|split:   :0}' --json number,title
 "",
 (.body // "")'
 '''
+
+[actions.open]
+description = "Open the PR in the browser"
+command = "gh pr view {strip_ansi|split:#:1|split:   :0} --web"
+mode = "execute"
+
+[actions.checkout]
+description = "Checkout the PR branch locally"
+command = "gh pr checkout {strip_ansi|split:#:1|split:   :0}"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected PR"
+command = "gh pr merge {strip_ansi|split:#:1|split:   :0}"
+mode = "execute"
+
+[actions.diff]
+description = "View the PR diff"
+command = "gh pr diff {strip_ansi|split:#:1|split:   :0} | less"
+mode = "execute"

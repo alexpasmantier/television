@@ -12,3 +12,8 @@ command = "ss -tlnp 2>/dev/null | grep ':{split: :0} ' | head -20"
 
 [ui.preview_panel]
 size = 40
+
+[actions.kill]
+description = "Kill the process listening on the selected port"
+command = "fuser -k {split: :0}/tcp"
+mode = "execute"

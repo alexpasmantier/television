@@ -12,3 +12,18 @@ command = "aws ec2 describe-instances --output json --instance-ids {split:\t:0} 
 [ui]
 layout = "portrait"
 preview_panel = { size = 60 }
+
+[actions.start]
+description = "Start the selected EC2 instance"
+command = "aws ec2 start-instances --instance-ids {split:\t:0}"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected EC2 instance"
+command = "aws ec2 stop-instances --instance-ids {split:\t:0}"
+mode = "fork"
+
+[actions.ssm]
+description = "Start an SSM session on the selected instance"
+command = "aws ssm start-session --target {split:\t:0}"
+mode = "execute"
