@@ -3,7 +3,7 @@ from toml import load as load_toml, dumps
 
 
 CABLE_DIR = Path("./cable")
-DOCS_DIR = Path("./docs/01-Users")
+DOCS_DIR = Path("./docs/community")
 
 
 def generate_cable_docs(os_name: str) -> str:
@@ -57,7 +57,7 @@ def generate_cable_docs(os_name: str) -> str:
 if __name__ == "__main__":
     for os_name in ("unix", "windows"):
         docs_content = generate_cable_docs(os_name)
-        docs_file = DOCS_DIR.joinpath(f"10-community-channels-{os_name}.md")
+        docs_file = DOCS_DIR.joinpath(f"channels-{os_name}.md")
         # write the new docs
         with open(docs_file, "w+", encoding="utf-8") as f:
             f.write(docs_content)
