@@ -1,0 +1,32 @@
+[metadata]
+name = "docker-compose"
+description = "Manage Docker Compose services"
+requirements = ["docker"]
+
+[source]
+command = "docker compose ps --format '{{.Name}}\t{{.Service}}\t{{.Status}}'"
+display = "{split:\t:1} ({split:\t:2})"
+output = "{split:\t:1}"
+
+[preview]
+command = "docker compose logs --tail=30 --no-log-prefix '{split:\t:1}'"
+
+[actions.up]
+description = "Start the selected service"
+command = "docker compose up -d '{split:\t:1}'"
+mode = "fork"
+
+[actions.down]
+description = "Stop and remove the selected service"
+command = "docker compose down '{split:\t:1}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "docker compose restart '{split:\t:1}'"
+mode = "fork"
+
+[actions.logs]
+description = "Follow logs of the selected service"
+command = "docker compose logs -f '{split:\t:1}'"
+mode = "execute"

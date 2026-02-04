@@ -1,0 +1,17 @@
+[metadata]
+name = "cargo-crates"
+description = "List installed cargo crates"
+requirements = ["cargo"]
+
+[source]
+command = "cargo install --list 2>/dev/null | grep -v '^    ' | sed 's/:$//'"
+display = "{split: :0} {split: :1}"
+output = "{split: :0}"
+
+[preview]
+command = "cargo install --list 2>/dev/null | sed -n '/^{split: :0} /,/^[^ ]/p' | head -20"
+
+[actions.uninstall]
+description = "Uninstall the selected crate"
+command = "cargo uninstall '{split: :0}'"
+mode = "execute"

@@ -1,0 +1,20 @@
+[metadata]
+name = "rustup"
+description = "Manage Rust toolchains"
+requirements = ["rustup"]
+
+[source]
+command = "rustup toolchain list"
+
+[preview]
+command = "rustup run '{split: :0}' rustc --version --verbose 2>/dev/null"
+
+[actions.default]
+description = "Set the selected toolchain as default"
+command = "rustup default '{split: :0}'"
+mode = "execute"
+
+[actions.uninstall]
+description = "Uninstall the selected toolchain"
+command = "rustup toolchain uninstall '{split: :0}'"
+mode = "execute"
