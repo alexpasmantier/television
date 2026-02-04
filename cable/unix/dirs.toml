@@ -11,3 +11,13 @@ command = "ls -la --color=always '{}'"
 
 [keybindings]
 shortcut = "f2"
+
+[actions.cd]
+description = "Open a shell in the selected directory"
+command = "cd '{}' && $SHELL"
+mode = "execute"
+
+[actions.goto_parent_dir]
+description = "Re-opens tv in the parent directory"
+command = "tv dirs .."
+mode = "execute"
