@@ -61,6 +61,8 @@ Defines what data the channel searches through.
 | `output` | string | No | Template for final output |
 | `watch` | float | No | Reload interval in seconds |
 | `entry_delimiter` | string | No | Custom entry delimiter (default: newline) |
+| `no_sort` | boolean | No | Preserve original source order, disabling match-quality sorting and frecency (default: false) |
+| `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
 
 ### Single Source Command
 
