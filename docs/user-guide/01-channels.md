@@ -154,6 +154,20 @@ When multiple commands are configured:
 
 **Note**: This feature is currently only available in channel mode (not available when using `--source-command` from the CLI).
 
+##### Sorting Options
+
+You can control how results are sorted using two fields in the `[source]` section:
+
+```toml
+[source]
+command = "cat ~/.bash_history"
+no_sort = true     # preserve the original order from the source command
+# frecency = false   # disable frecency-based ranking for this channel
+```
+
+- `no_sort` (default: `false`): When set to `true`, disables both match-quality sorting and frecency, preserving the exact order provided by the source command. This is also available as the `--no-sort` CLI flag.
+- `frecency` (default: `true`): When set to `false`, disables frecency ranking for this channel while keeping match-quality sorting. This is useful for channels where the source order is meaningful (e.g., shell history, git log). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) for details on how frecency works.
+
 ### `[preview]`
 
 ```toml
