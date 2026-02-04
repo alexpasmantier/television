@@ -4,3 +4,28 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    groups:
+      github-actions:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: 'cargo'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      cargo:
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: 'rust-toolchain'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      rust-toolchain:
+        update-types:
+          - minor
+          - patch
