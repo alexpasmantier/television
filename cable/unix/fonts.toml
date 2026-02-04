@@ -1,0 +1,13 @@
+[metadata]
+name = "fonts"
+description = "List installed system fonts"
+requirements = ["fc-list"]
+
+[source]
+command = "fc-list --format='%{family}\n' | sort -uf"
+
+[preview]
+command = "fc-list '{}' --format='%{file}\n%{style}\n%{family}\n' | head -20"
+
+[ui.preview_panel]
+size = 70

@@ -1,0 +1,20 @@
+[metadata]
+name = "docker-networks"
+description = "List and manage Docker networks"
+requirements = ["docker"]
+
+[source]
+command = "docker network ls --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}'"
+display = "{split:\t:0} ({split:\t:1}, {split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "docker network inspect '{split:\t:0}' | jq -C '.[0] | {Name, Driver, Scope, IPAM, Containers: (.Containers // {} | to_entries | map({name: .value.Name, ipv4: .value.IPv4Address}))}'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected network"
+command = "docker network rm '{split:\t:0}'"
+mode = "execute"

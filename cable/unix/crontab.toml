@@ -1,0 +1,20 @@
+[metadata]
+name = "crontab"
+description = "List and manage crontab entries"
+
+[source]
+command = "crontab -l 2>/dev/null | grep -v '^#' | grep -v '^$'"
+no_sort = true
+frecency = false
+
+[preview]
+command = '''echo 'Schedule: {split: :..5}' && echo '' && echo 'Command:' && echo '{split: :5..}' '''
+
+[ui]
+layout = "portrait"
+preview_panel = { size = 30 }
+
+[actions.edit]
+description = "Open crontab for editing"
+command = "crontab -e"
+mode = "execute"

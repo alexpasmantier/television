@@ -1,0 +1,21 @@
+[metadata]
+name = "apt-packages"
+description = "List and manage installed apt packages"
+requirements = ["dpkg", "apt"]
+
+[source]
+command = "dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' 2>/dev/null | grep 'install ok installed' | awk -F'\t' '{print $1, $2}'"
+output = "{split: :0}"
+
+[preview]
+command = "apt show '{split: :0}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo apt remove '{split: :0}'"
+mode = "execute"
+
+[actions.reinstall]
+description = "Reinstall the selected package"
+command = "sudo apt install --reinstall '{split: :0}'"
+mode = "execute"

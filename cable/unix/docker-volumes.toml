@@ -1,0 +1,25 @@
+[metadata]
+name = "docker-volumes"
+description = "List and manage Docker volumes"
+requirements = ["docker"]
+
+[source]
+command = "docker volume ls --format '{{.Name}}\t{{.Driver}}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "docker volume inspect '{split:\t:0}' | jq -C '.[0]'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected volume"
+command = "docker volume rm '{split:\t:0}'"
+mode = "execute"
+
+[actions.inspect]
+description = "Inspect the selected volume in a pager"
+command = "docker volume inspect '{split:\t:0}' | jq -C '.[0]' | less -R"
+mode = "execute"

@@ -1,0 +1,21 @@
+[metadata]
+name = "node-packages"
+description = "Browse local node_modules dependencies"
+requirements = ["node"]
+
+[source]
+command = "ls -d node_modules/*/ 2>/dev/null | sed 's|node_modules/||;s|/$||' | grep -v '^\\.'"
+output = "{}"
+
+[preview]
+command = "cat 'node_modules/{}/package.json' 2>/dev/null | jq -C '{name, version, description, license, homepage, main}'"
+
+[actions.readme]
+description = "View the package README"
+command = "cat node_modules/{}/README.md 2>/dev/null | less"
+mode = "execute"
+
+[actions.homepage]
+description = "Open the package homepage"
+command = "node -e \"const p=require('./node_modules/{}/package.json'); const u=p.homepage||'https://www.npmjs.com/package/'+p.name; require('child_process').exec('xdg-open '+u)\""
+mode = "fork"

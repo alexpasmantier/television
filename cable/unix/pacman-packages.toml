@@ -1,0 +1,21 @@
+[metadata]
+name = "pacman-packages"
+description = "List and manage installed pacman packages"
+requirements = ["pacman"]
+
+[source]
+command = "pacman -Q"
+output = "{split: :0}"
+
+[preview]
+command = "pacman -Qi '{split: :0}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo pacman -R '{split: :0}'"
+mode = "execute"
+
+[actions.files]
+description = "List files owned by the selected package"
+command = "pacman -Ql '{split: :0}' | less"
+mode = "execute"

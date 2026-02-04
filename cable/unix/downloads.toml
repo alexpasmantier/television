@@ -4,7 +4,7 @@ description = "Browse recent files in Downloads folder"
 requirements = ["fd", "bat"]
 
 [source]
-command = "fd -t f . ~/Downloads --changed-within 30d 2>/dev/null | head -200"
+command = "fd -t f . ~/Downloads 2>/dev/null | head -200"
 
 [preview]
 command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
