@@ -29,6 +29,42 @@ size = 30
 
 ---
 
+### *apt-packages*
+
+List and manage installed apt packages
+
+**Requirements:** `dpkg`, `apt`
+
+**Code:** *apt-packages.toml*
+
+```toml
+[metadata]
+name = "apt-packages"
+description = "List and manage installed apt packages"
+requirements = [ "dpkg", "apt",]
+
+[source]
+command = "dpkg-query -W -f='${Package}\t${Version}\t${Status}\n' 2>/dev/null | grep 'install ok installed' | awk -F'\t' '{print $1, $2}'"
+output = "{split: :0}"
+
+[preview]
+command = "apt show '{split: :0}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo apt remove '{split: :0}'"
+mode = "execute"
+
+[actions.reinstall]
+description = "Reinstall the selected package"
+command = "sudo apt install --reinstall '{split: :0}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *aws-buckets*
 
 List and preview AWS S3 Buckets
@@ -56,6 +92,11 @@ layout = "portrait"
 
 [ui.preview_panel]
 size = 60
+
+[actions.list]
+description = "List all objects in the selected bucket"
+command = "aws s3 ls s3://{split: :3|trim} --recursive --human-readable | less"
+mode = "execute"
 
 ```
 
@@ -87,6 +128,21 @@ layout = "portrait"
 
 [ui.preview_panel]
 size = 60
+
+[actions.start]
+description = "Start the selected EC2 instance"
+command = "aws ec2 start-instances --instance-ids {split:\t:0}"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected EC2 instance"
+command = "aws ec2 stop-instances --instance-ids {split:\t:0}"
+mode = "fork"
+
+[actions.ssm]
+description = "Start an SSM session on the selected instance"
+command = "aws ssm start-session --target {split:\t:0}"
+mode = "execute"
 
 ```
 
@@ -234,6 +290,38 @@ mode = "execute"
 
 ---
 
+### *cargo-crates*
+
+List installed cargo crates
+
+**Requirements:** `cargo`
+
+**Code:** *cargo-crates.toml*
+
+```toml
+[metadata]
+name = "cargo-crates"
+description = "List installed cargo crates"
+requirements = [ "cargo",]
+
+[source]
+command = "cargo install --list 2>/dev/null | grep -v '^    ' | sed 's/:$//'"
+display = "{split: :0} {split: :1}"
+output = "{split: :0}"
+
+[preview]
+command = "cargo install --list 2>/dev/null | sed -n '/^{split: :0} /,/^[^ ]/p' | head -20"
+
+[actions.uninstall]
+description = "Uninstall the selected crate"
+command = "cargo uninstall '{split: :0}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *channels*
 
 Select a television channel
@@ -268,6 +356,43 @@ mode = "execute"
 
 ---
 
+### *crontab*
+
+List and manage crontab entries
+
+**Requirements:** *None*
+
+**Code:** *crontab.toml*
+
+```toml
+[metadata]
+name = "crontab"
+description = "List and manage crontab entries"
+
+[source]
+command = "crontab -l 2>/dev/null | grep -v '^#' | grep -v '^$'"
+no_sort = true
+frecency = false
+
+[preview]
+command = "echo 'Schedule: {split: :..5}' && echo '' && echo 'Command:' && echo '{split: :5..}' "
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+size = 30
+
+[actions.edit]
+description = "Open crontab for editing"
+command = "crontab -e"
+mode = "execute"
+
+```
+
+
+---
+
 ### *dirs*
 
 A channel to select from directories
@@ -290,6 +415,16 @@ command = "ls -la --color=always '{}'"
 
 [keybindings]
 shortcut = "f2"
+
+[actions.cd]
+description = "Open a shell in the selected directory"
+command = "cd '{}' && $SHELL"
+mode = "execute"
+
+[actions.goto_parent_dir]
+description = "Re-opens tv in the parent directory"
+command = "tv dirs .."
+mode = "execute"
 
 ```
 
@@ -347,6 +482,53 @@ mode = "execute"
 [actions.distrobox-upgrade]
 description = "Upgrade a distrobox"
 command = "distrobox upgrade {}"
+mode = "execute"
+
+```
+
+
+---
+
+### *docker-compose*
+
+Manage Docker Compose services
+
+**Requirements:** `docker`
+
+**Code:** *docker-compose.toml*
+
+```toml
+[metadata]
+name = "docker-compose"
+description = "Manage Docker Compose services"
+requirements = [ "docker",]
+
+[source]
+command = "docker compose ps --format '{{.Name}}\t{{.Service}}\t{{.Status}}'"
+display = "{split:\t:1} ({split:\t:2})"
+output = "{split:\t:1}"
+
+[preview]
+command = "docker compose logs --tail=30 --no-log-prefix '{split:\t:1}'"
+
+[actions.up]
+description = "Start the selected service"
+command = "docker compose up -d '{split:\t:1}'"
+mode = "fork"
+
+[actions.down]
+description = "Stop and remove the selected service"
+command = "docker compose down '{split:\t:1}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "docker compose restart '{split:\t:1}'"
+mode = "fork"
+
+[actions.logs]
+description = "Follow logs of the selected service"
+command = "docker compose logs -f '{split:\t:1}'"
 mode = "execute"
 
 ```
@@ -471,6 +653,81 @@ mode = "execute"
 
 ---
 
+### *docker-networks*
+
+List and manage Docker networks
+
+**Requirements:** `docker`
+
+**Code:** *docker-networks.toml*
+
+```toml
+[metadata]
+name = "docker-networks"
+description = "List and manage Docker networks"
+requirements = [ "docker",]
+
+[source]
+command = "docker network ls --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}'"
+display = "{split:\t:0} ({split:\t:1}, {split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "docker network inspect '{split:\t:0}' | jq -C '.[0] | {Name, Driver, Scope, IPAM, Containers: (.Containers // {} | to_entries | map({name: .value.Name, ipv4: .value.IPv4Address}))}'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected network"
+command = "docker network rm '{split:\t:0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *docker-volumes*
+
+List and manage Docker volumes
+
+**Requirements:** `docker`
+
+**Code:** *docker-volumes.toml*
+
+```toml
+[metadata]
+name = "docker-volumes"
+description = "List and manage Docker volumes"
+requirements = [ "docker",]
+
+[source]
+command = "docker volume ls --format '{{.Name}}\t{{.Driver}}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "docker volume inspect '{split:\t:0}' | jq -C '.[0]'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected volume"
+command = "docker volume rm '{split:\t:0}'"
+mode = "execute"
+
+[actions.inspect]
+description = "Inspect the selected volume in a pager"
+command = "docker volume inspect '{split:\t:0}' | jq -C '.[0]' | less -R"
+mode = "execute"
+
+```
+
+
+---
+
 ### *dotfiles*
 
 A channel to select from your user's dotfiles
@@ -519,7 +776,7 @@ description = "Browse recent files in Downloads folder"
 requirements = [ "fd", "bat",]
 
 [source]
-command = "fd -t f . ~/Downloads --changed-within 30d 2>/dev/null | head -200"
+command = "fd -t f . ~/Downloads 2>/dev/null | head -200"
 
 [preview]
 command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
@@ -581,6 +838,11 @@ shortcut = "f3"
 [ui.preview_panel]
 size = 20
 header = "{split:=:0}"
+
+[actions.name]
+description = "Output the variable name instead of the value"
+command = "echo '{split:=:0}'"
+mode = "execute"
 
 ```
 
@@ -654,6 +916,76 @@ frecency = false
 
 ---
 
+### *flatpak*
+
+List and manage Flatpak applications
+
+**Requirements:** `flatpak`
+
+**Code:** *flatpak.toml*
+
+```toml
+[metadata]
+name = "flatpak"
+description = "List and manage Flatpak applications"
+requirements = [ "flatpak",]
+
+[source]
+command = "flatpak list --app --columns=application,name,version 2>/dev/null"
+display = "{split:\t:1} ({split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "flatpak info '{split:\t:0}' 2>/dev/null"
+
+[actions.run]
+description = "Launch the selected application"
+command = "flatpak run '{split:\t:0}'"
+mode = "execute"
+
+[actions.uninstall]
+description = "Uninstall the selected application"
+command = "flatpak uninstall '{split:\t:0}'"
+mode = "execute"
+
+[actions.update]
+description = "Update the selected application"
+command = "flatpak update '{split:\t:0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *fonts*
+
+List installed system fonts
+
+**Requirements:** `fc-list`
+
+**Code:** *fonts.toml*
+
+```toml
+[metadata]
+name = "fonts"
+description = "List installed system fonts"
+requirements = [ "fc-list",]
+
+[source]
+command = "fc-list --format='%{family}\n' | sort -uf"
+
+[preview]
+command = "fc-list '{}' --format='%{file}\n%{style}\n%{family}\n' | head -20"
+
+[ui.preview_panel]
+size = 70
+
+```
+
+
+---
+
 ### *gh-issues*
 
 List GitHub issues for the current repo
@@ -682,6 +1014,21 @@ command = "gh issue view '{strip_ansi|split:\n\"  \" + .title,\n\"  #\" + (.numb
 
 [ui.preview_panel]
 header = "{strip_ansi|split:#:1|split: :0}"
+
+[actions.open]
+description = "Open the issue in the browser"
+command = "gh issue view {strip_ansi|split:#:1|split: :0} --web"
+mode = "fork"
+
+[actions.close]
+description = "Close the selected issue"
+command = "gh issue close {strip_ansi|split:#:1|split: :0}"
+mode = "fork"
+
+[actions.comment]
+description = "Add a comment to the selected issue"
+command = "gh issue comment {strip_ansi|split:#:1|split: :0}"
+mode = "execute"
 
 ```
 
@@ -713,6 +1060,26 @@ layout = "portrait"
 
 [preview]
 command = "gh pr view '{strip_ansi|split:\n\"  \" + .title,\n\"  #\" + (.number | tostring),\n\"\",\n\"  \\u001b[36mStatus:\\u001b[39m \\u001b[32m\" + .state + \"\\u001b[39m  \" + .baseRefName + \" ← \" + .headRefName,\n\"  \\u001b[36mRepo:\\u001b[39m \\u001b[34m\" + (.headRepositoryOwner.login) + \"/\" + (.headRepository.name) + \"\\u001b[39m\",\n\"  \\u001b[36mAuthor:\\u001b[39m \\u001b[33m\" + .author.login + \"\\u001b[39m\",\n\"  \\u001b[36mCreated:\\u001b[39m \" + (.createdAt | fromdateiso8601 | (now - .) | if . < 3600 then (./60|floor|tostring) + \" minutes ago\" elif . < 86400 then (./3600|floor|tostring) + \" hours ago\" else (./86400|floor|tostring) + \" days ago\" end),\n\"  \\u001b[36mUpdated:\\u001b[39m \" + (.updatedAt | fromdateiso8601 | (now - .) | if . < 3600 then (./60|floor|tostring) + \" minutes ago\" elif . < 86400 then (./3600|floor|tostring) + \" hours ago\" else (./86400|floor|tostring) + \" days ago\" end),\n(if (.labels | length) > 0 then \"  \\u001b[36mLabels:\\u001b[39m \" + ([.labels[] | \"\\u001b[35m\" + .name + \"\\u001b[39m\"] | join(\" \")) else \"\" end),\n\"  \\u001b[36mMerge Status:\\u001b[39m \" + (if .mergeable == \"MERGEABLE\" then \"\\u001b[32m✓ Clean\\u001b[39m\" elif .mergeable == \"CONFLICTING\" then \"\\u001b[31m✗ Dirty\\u001b[39m\" else \"\\u001b[33m? Unknown\\u001b[39m\" end),\n\"  \\u001b[36mChanges:\\u001b[39m \" + (.changedFiles | tostring) + \" files  \\u001b[32m+\" + (.additions | tostring) + \"\\u001b[39m \\u001b[31m-\" + (.deletions | tostring) + \"\\u001b[39m\",\n\"\",\n\"  \\u001b[90m────────────────────────────────────────────────────────────\\u001b[39m\",\n\"\",\n(.body // \"\")'\n"
+
+[actions.open]
+description = "Open the PR in the browser"
+command = "gh pr view {strip_ansi|split:#:1|split:   :0} --web"
+mode = "execute"
+
+[actions.checkout]
+description = "Checkout the PR branch locally"
+command = "gh pr checkout {strip_ansi|split:#:1|split:   :0}"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected PR"
+command = "gh pr merge {strip_ansi|split:#:1|split:   :0}"
+mode = "execute"
+
+[actions.diff]
+description = "View the PR diff"
+command = "gh pr diff {strip_ansi|split:#:1|split:   :0} | less"
+mode = "execute"
 
 ```
 
@@ -911,6 +1278,41 @@ mode = "execute"
 
 ---
 
+### *git-remotes*
+
+List and manage git remotes
+
+**Requirements:** `git`
+
+**Code:** *git-remotes.toml*
+
+```toml
+[metadata]
+name = "git-remotes"
+description = "List and manage git remotes"
+requirements = [ "git",]
+
+[source]
+command = "git remote"
+
+[preview]
+command = "git remote show '{}'"
+
+[actions.fetch]
+description = "Fetch from the selected remote"
+command = "git fetch '{}'"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected remote"
+command = "git remote remove '{}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *git-repos*
 
 A channel to select from git repositories on your local machine.
@@ -999,6 +1401,41 @@ mode = "execute"
 [actions.drop]
 description = "Drop the selected stash"
 command = "git stash drop '{strip_ansi|split:\\::0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *git-submodules*
+
+List and manage git submodules
+
+**Requirements:** `git`
+
+**Code:** *git-submodules.toml*
+
+```toml
+[metadata]
+name = "git-submodules"
+description = "List and manage git submodules"
+requirements = [ "git",]
+
+[source]
+command = "git submodule status | awk '{print $2}'"
+
+[preview]
+command = "git -C '{}' log --oneline -10 --color=always"
+
+[actions.update]
+description = "Update the selected submodule"
+command = "git submodule update --init --recursive '{}'"
+mode = "execute"
+
+[actions.sync]
+description = "Sync the selected submodule URL"
+command = "git submodule sync '{}'"
 mode = "execute"
 
 ```
@@ -1181,6 +1618,47 @@ enter = "actions:open"
 [actions.open]
 description = "Open the selected image with default viewer"
 command = "xdg-open '{}' 2>/dev/null || open '{}'"
+mode = "fork"
+
+```
+
+
+---
+
+### *journal*
+
+Browse systemd journal log identifiers and their logs
+
+**Requirements:** `journalctl`
+
+**Code:** *journal.toml*
+
+```toml
+[metadata]
+name = "journal"
+description = "Browse systemd journal log identifiers and their logs"
+requirements = [ "journalctl",]
+
+[source]
+command = "journalctl --field SYSLOG_IDENTIFIER 2>/dev/null | sort -f"
+
+[preview]
+command = "journalctl -b --no-pager -o short-iso -n 50 SYSLOG_IDENTIFIER='{}' 2>/dev/null"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+size = 70
+
+[actions.logs]
+description = "Follow live logs for the selected identifier"
+command = "journalctl -f SYSLOG_IDENTIFIER='{}'"
+mode = "execute"
+
+[actions.full]
+description = "View all logs for the selected identifier in a pager"
+command = "journalctl -b --no-pager -o short-iso SYSLOG_IDENTIFIER='{}' | less"
 mode = "fork"
 
 ```
@@ -1532,6 +2010,77 @@ mode = "execute"
 
 ---
 
+### *node-packages*
+
+Browse local node_modules dependencies
+
+**Requirements:** `node`
+
+**Code:** *node-packages.toml*
+
+```toml
+[metadata]
+name = "node-packages"
+description = "Browse local node_modules dependencies"
+requirements = [ "node",]
+
+[source]
+command = "ls -d node_modules/*/ 2>/dev/null | sed 's|node_modules/||;s|/$||' | grep -v '^\\.'"
+output = "{}"
+
+[preview]
+command = "cat 'node_modules/{}/package.json' 2>/dev/null | jq -C '{name, version, description, license, homepage, main}'"
+
+[actions.readme]
+description = "View the package README"
+command = "cat node_modules/{}/README.md 2>/dev/null | less"
+mode = "execute"
+
+[actions.homepage]
+description = "Open the package homepage"
+command = "node -e \"const p=require('./node_modules/{}/package.json'); const u=p.homepage||'https://www.npmjs.com/package/'+p.name; require('child_process').exec('xdg-open '+u)\""
+mode = "fork"
+
+```
+
+
+---
+
+### *npm-packages*
+
+List globally installed npm packages
+
+**Requirements:** `npm`
+
+**Code:** *npm-packages.toml*
+
+```toml
+[metadata]
+name = "npm-packages"
+description = "List globally installed npm packages"
+requirements = [ "npm",]
+
+[source]
+command = "npm list -g --depth=0 --parseable 2>/dev/null | tail -n +2 | xargs -I{} basename {}"
+
+[preview]
+command = "npm info '{}' 2>/dev/null | head -30"
+
+[actions.uninstall]
+description = "Uninstall the selected global package"
+command = "npm uninstall -g '{}'"
+mode = "execute"
+
+[actions.update]
+description = "Update the selected global package"
+command = "npm update -g '{}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *npm-scripts*
 
 List and run npm scripts from package.json
@@ -1592,6 +2141,42 @@ frecency = false
 
 ---
 
+### *pacman-packages*
+
+List and manage installed pacman packages
+
+**Requirements:** `pacman`
+
+**Code:** *pacman-packages.toml*
+
+```toml
+[metadata]
+name = "pacman-packages"
+description = "List and manage installed pacman packages"
+requirements = [ "pacman",]
+
+[source]
+command = "pacman -Q"
+output = "{split: :0}"
+
+[preview]
+command = "pacman -Qi '{split: :0}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo pacman -R '{split: :0}'"
+mode = "execute"
+
+[actions.files]
+description = "List files owned by the selected package"
+command = "pacman -Ql '{split: :0}' | less"
+mode = "execute"
+
+```
+
+
+---
+
 ### *path*
 
 Investigate PATH contents
@@ -1611,6 +2196,11 @@ command = "printf '%s\n' \"$PATH\" | tr ':' '\n'"
 
 [preview]
 command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --color=always"
+
+[actions.cd]
+description = "Open a shell in the selected PATH directory"
+command = "cd '{}' && $SHELL"
+mode = "execute"
 
 ```
 
@@ -1719,6 +2309,11 @@ command = "ss -tlnp 2>/dev/null | grep ':{split: :0} ' | head -20"
 [ui.preview_panel]
 size = 40
 
+[actions.kill]
+description = "Kill the process listening on the selected port"
+command = "fuser -k {split: :0}/tcp"
+mode = "execute"
+
 ```
 
 
@@ -1777,6 +2372,41 @@ mode = "fork"
 
 ---
 
+### *python-venvs*
+
+Find Python virtual environments
+
+**Requirements:** `find`
+
+**Code:** *python-venvs.toml*
+
+```toml
+[metadata]
+name = "python-venvs"
+description = "Find Python virtual environments"
+requirements = [ "find",]
+
+[source]
+command = "find ~ -maxdepth 5 -type f -name 'pyvenv.cfg' 2>/dev/null | xargs -I{} dirname {}"
+
+[preview]
+command = "cat '{}/pyvenv.cfg' 2>/dev/null && echo '' && echo 'Packages:' && '{}/bin/pip' list --format=columns 2>/dev/null | head -20"
+
+[actions.activate]
+description = "Open a shell with the selected venv activated"
+command = "source '{}/bin/activate' && $SHELL"
+mode = "execute"
+
+[actions.packages]
+description = "List all packages in the selected venv"
+command = "'{}/bin/pip' list | less"
+mode = "execute"
+
+```
+
+
+---
+
 ### *recent-files*
 
 List recently modified files (via git or filesystem)
@@ -1806,6 +2436,41 @@ BAT_THEME = "ansi"
 [actions.edit]
 description = "Open the selected file in editor"
 command = "${EDITOR:-vim} '{}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *rustup*
+
+Manage Rust toolchains
+
+**Requirements:** `rustup`
+
+**Code:** *rustup.toml*
+
+```toml
+[metadata]
+name = "rustup"
+description = "Manage Rust toolchains"
+requirements = [ "rustup",]
+
+[source]
+command = "rustup toolchain list"
+
+[preview]
+command = "rustup run '{split: :0}' rustc --version --verbose 2>/dev/null"
+
+[actions.default]
+description = "Set the selected toolchain as default"
+command = "rustup default '{split: :0}'"
+mode = "execute"
+
+[actions.uninstall]
+description = "Uninstall the selected toolchain"
+command = "rustup toolchain uninstall '{split: :0}'"
 mode = "execute"
 
 ```
@@ -2029,6 +2694,80 @@ mode = "execute"
 
 ---
 
+### *tmux-sessions*
+
+List and manage tmux sessions
+
+**Requirements:** `tmux`
+
+**Code:** *tmux-sessions.toml*
+
+```toml
+[metadata]
+name = "tmux-sessions"
+description = "List and manage tmux sessions"
+requirements = [ "tmux",]
+
+[source]
+command = "tmux list-sessions -F '#{session_name}\t#{session_windows} windows\t#{session_created_string}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "tmux capture-pane -t '{split:\t:0}' -p 2>/dev/null || echo 'No preview available'"
+
+[actions.attach]
+description = "Attach to the selected session"
+command = "tmux attach-session -t '{split:\t:0}'"
+mode = "execute"
+
+[actions.kill]
+description = "Kill the selected session"
+command = "tmux kill-session -t '{split:\t:0}'"
+mode = "fork"
+
+```
+
+
+---
+
+### *tmux-windows*
+
+List and switch between tmux windows
+
+**Requirements:** `tmux`
+
+**Code:** *tmux-windows.toml*
+
+```toml
+[metadata]
+name = "tmux-windows"
+description = "List and switch between tmux windows"
+requirements = [ "tmux",]
+
+[source]
+command = "tmux list-windows -a -F '#{session_name}:#{window_index}\t#{window_name}\t#{pane_current_command}'"
+display = "{split:\t:0} - {split:\t:1} ({split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "tmux capture-pane -t '{split:\t:0}' -p 2>/dev/null || echo 'No preview available'"
+
+[actions.select]
+description = "Switch to the selected window"
+command = "tmux select-window -t '{split:\t:0}'"
+mode = "execute"
+
+[actions.kill]
+description = "Kill the selected window"
+command = "tmux kill-window -t '{split:\t:0}'"
+mode = "fork"
+
+```
+
+
+---
+
 ### *todo-comments*
 
 Find TODO, FIXME, HACK, and XXX comments in codebase
@@ -2064,6 +2803,49 @@ header = "{strip_ansi|split:\\::..2}"
 [actions.edit]
 description = "Open file in editor at the comment"
 command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *trash*
+
+Browse and restore trashed files
+
+**Requirements:** `trash-list`, `trash-restore`
+
+**Code:** *trash.toml*
+
+```toml
+[metadata]
+name = "trash"
+description = "Browse and restore trashed files"
+requirements = [ "trash-list", "trash-restore",]
+
+[source]
+command = "trash-list 2>/dev/null"
+no_sort = true
+frecency = false
+
+[preview]
+command = "echo '{}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+size = 30
+
+[actions.restore]
+description = "Restore the selected trashed file"
+command = "echo '{split: :1..}' | trash-restore"
+mode = "execute"
+
+[actions.empty]
+description = "Empty the entire trash"
+command = "trash-empty"
 mode = "execute"
 
 ```
@@ -2112,6 +2894,38 @@ requirements = [ "awk", "perl",]
 command = "UNICODE_FILE=\"/usr/share/unicode/ucd/UnicodeData.txt\"\nawk -F';' '\n  $2 !~ /^</ { print $1 \"|\" $2 }\n' \"$UNICODE_FILE\" | perl -CS -F'\\|' -lane '\n    $code = $F[0];\n    $desc = $F[1];\n    $char = chr(hex($code));\n    print \"U+$code|$char|$desc\" if $char =~ /\\p{Print}/;\n'\n"
 display = "{split:|:0}    {split:|:1}    {split:|:2}"
 output = "{split:|:1}"
+
+```
+
+
+---
+
+### *wifi*
+
+Scan and connect to WiFi networks
+
+**Requirements:** `nmcli`
+
+**Code:** *wifi.toml*
+
+```toml
+[metadata]
+name = "wifi"
+description = "Scan and connect to WiFi networks"
+requirements = [ "nmcli",]
+
+[source]
+command = "nmcli -t -f SSID,SIGNAL,SECURITY device wifi list 2>/dev/null | grep -v '^:' | sort -t: -k2 -rn"
+display = "{split:\\::0} ({split:\\::1}% {split:\\::2})"
+output = "{split:\\::0}"
+
+[preview]
+command = "nmcli -t -f SSID,BSSID,MODE,FREQ,SIGNAL,SECURITY,ACTIVE device wifi list 2>/dev/null | grep '^{split:\\::0}:'"
+
+[actions.connect]
+description = "Connect to the selected network"
+command = "nmcli device wifi connect '{split:\\::0}'"
+mode = "execute"
 
 ```
 
@@ -2179,6 +2993,11 @@ display = "{split:;:1..}"
 output = "{split:;:1..}"
 no_sort = true
 frecency = false
+
+[actions.execute]
+description = "Execute the selected command"
+command = "zsh -c '{split:;:1..}'"
+mode = "execute"
 
 ```
 
