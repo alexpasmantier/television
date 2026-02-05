@@ -41,7 +41,7 @@ fn setup_tv() -> Television {
     tv
 }
 
-/// Benchmark update() with a Tick action.
+/// Benchmark `update()` with a Tick action.
 ///
 /// Tick actions affect results (the matcher may still be processing items),
 /// so this exercises the full pipeline: matcher tick + snapshot + UTF32
@@ -56,10 +56,10 @@ pub fn update_tick(c: &mut Criterion) {
     });
 }
 
-/// Benchmark update() with an action that doesn't affect results.
+/// Benchmark `update()` with an action that doesn't affect results.
 ///
-/// Actions like ScrollPreviewDown only change UI state and skip the
-/// expensive results pipeline entirely (only a cheap channel.tick() runs).
+/// Actions like `ScrollPreviewDown` only change UI state and skip the
+/// expensive results pipeline entirely (only a cheap `channel.tick()` runs).
 pub fn update_no_results(c: &mut Criterion) {
     let mut tv = setup_tv();
 
@@ -71,9 +71,9 @@ pub fn update_no_results(c: &mut Criterion) {
     });
 }
 
-/// Benchmark update() with a navigation action.
+/// Benchmark `update()` with a navigation action.
 ///
-/// SelectNextEntry changes the viewport offset, triggering the full results
+/// `SelectNextEntry` changes the viewport offset, triggering the full results
 /// pipeline to fetch entries for the new visible window.
 pub fn update_select_next(c: &mut Criterion) {
     let mut tv = setup_tv();
@@ -85,9 +85,9 @@ pub fn update_select_next(c: &mut Criterion) {
     });
 }
 
-/// Benchmark update() with input that changes the search pattern.
+/// Benchmark `update()` with input that changes the search pattern.
 ///
-/// AddInputChar triggers pattern reparse + full results pipeline, the
+/// `AddInputChar` triggers pattern reparse + full results pipeline, the
 /// most expensive update path.
 pub fn update_add_char(c: &mut Criterion) {
     let mut tv = setup_tv();
