@@ -466,7 +466,9 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
-                DisplayProcessor { template: Arc::new(template) },
+                DisplayProcessor {
+                    template: Arc::new(template),
+                },
                 frecency,
             )),
         }

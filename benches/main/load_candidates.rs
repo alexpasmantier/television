@@ -193,7 +193,9 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
                 black_box(DisplayProcessor {
-                    template: std::sync::Arc::new(source_spec.display.unwrap()),
+                    template: std::sync::Arc::new(
+                        source_spec.display.unwrap(),
+                    ),
                 }),
                 injector,
             )
