@@ -1,4 +1,5 @@
 use injector::Injector;
+use nucleo::Utf32Str;
 use std::sync::Arc;
 
 pub mod config;
@@ -7,6 +8,21 @@ pub mod lazy;
 pub mod matched_item;
 
 const MATCHER_TICK_TIMEOUT: u64 = 2;
+
+/// Convert a `Utf32String` to a `String` efficiently.
+///
+/// For ASCII content (the common case), this performs a direct byte copy
+/// instead of going through the char-by-char `Display` implementation.
+#[inline]
+fn utf32_to_string(s: &nucleo::Utf32String) -> String {
+    match s.slice(..) {
+        Utf32Str::Ascii(bytes) => {
+            // SAFETY: Utf32Str::Ascii invariant guarantees valid ASCII, which is valid UTF-8
+            unsafe { std::str::from_utf8_unchecked(bytes) }.to_owned()
+        }
+        Utf32Str::Unicode(chars) => chars.iter().collect(),
+    }
+}
 
 /// The status of the fuzzy matcher.
 ///
@@ -203,8 +219,7 @@ where
 
             let indices: Vec<u32> =
                 self.col_indices_buffer.drain(..).collect();
-            // PERF: this ends up being quite expensive
-            let matched_string = item.matcher_columns[0].to_string();
+            let matched_string = utf32_to_string(&item.matcher_columns[0]);
 
             results.push(matched_item::MatchedItem {
                 inner: item.data.clone(),
@@ -251,7 +266,7 @@ where
             }
 
             let indices = self.col_indices_buffer.drain(..);
-            let matched_string = item.matcher_columns[0].to_string();
+            let matched_string = utf32_to_string(&item.matcher_columns[0]);
 
             matched_item::MatchedItem {
                 inner: item.data.clone(),
