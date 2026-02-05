@@ -289,6 +289,35 @@ impl From<Vec<Action>> for Actions {
 }
 
 impl Action {
+    /// Whether this action can affect the results picker state.
+    ///
+    /// Returns `false` for actions that only affect UI elements (preview
+    /// scrolling, panel toggles, layout changes) and don't change the
+    /// matcher results or the visible viewport. This allows skipping
+    /// the expensive results pipeline for these actions.
+    pub fn affects_results(&self) -> bool {
+        !matches!(
+            self,
+            Action::ScrollPreviewUp
+                | Action::ScrollPreviewDown
+                | Action::ScrollPreviewHalfPageUp
+                | Action::ScrollPreviewHalfPageDown
+                | Action::CyclePreviews
+                | Action::ToggleHelp
+                | Action::TogglePreview
+                | Action::ToggleStatusBar
+                | Action::ToggleOrientation
+                | Action::CopyEntryToClipboard
+                | Action::OpenEntry
+                | Action::Render
+                | Action::ClearScreen
+                | Action::Suspend
+                | Action::Resume
+                | Action::Error(_)
+                | Action::NoOp
+        )
+    }
+
     /// Returns a user-friendly description of the action for help panels and UI display.
     ///
     /// This method provides human-readable descriptions of actions that are suitable
