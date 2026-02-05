@@ -57,7 +57,7 @@ impl EntryProcessor for PlainProcessor {
         item: MatchedItem<()>,
         source_output: Option<&Template>,
     ) -> Entry {
-        let mut entry = Entry::new(item.matched_string.clone())
+        let mut entry = Entry::new(item.matched_string)
             .with_match_indices(&item.match_indices);
         if let Some(output) = source_output {
             entry = entry.with_output(output.clone());
