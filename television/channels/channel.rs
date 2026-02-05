@@ -6,7 +6,7 @@ use crate::{
         },
         prototypes::{CommandSpec, Template},
     },
-    frecency::{FrecencyCacheHandle, FrecencyHandle},
+    frecency::FrecencyHandle,
     matcher::{
         Matcher, config::Config, config::SortStrategy, injector::Injector,
     },
@@ -23,11 +23,6 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
 use tracing::debug;
 
-pub struct FrecencyConfig {
-    pub handle: FrecencyHandle,
-    pub cache: FrecencyCacheHandle,
-}
-
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
 pub struct Channel<P: EntryProcessor> {
@@ -43,7 +38,6 @@ pub struct Channel<P: EntryProcessor> {
     /// Indicates if the channel is currently reloading to prevent UI flickering
     /// by delaying the rendering of a new frame.
     pub reloading: Arc<AtomicBool>,
-    frecency_config: Option<FrecencyConfig>,
 }
 
 impl<P: EntryProcessor> Channel<P> {
@@ -58,36 +52,28 @@ impl<P: EntryProcessor> Channel<P> {
     ) -> Self {
         let config = Config::default().prefer_prefix(true);
 
-        let (sort_strategy, frecency_config) = if no_sort {
-            (SortStrategy::Index, None)
+        let sort_strategy = if no_sort {
+            SortStrategy::Index
         } else if let Some((frecency_handle, channel_name)) = frecency {
             let cache = frecency_handle.create_cache(channel_name);
-            let cache_for_closure = cache.clone();
-            let sort_strategy =
-                SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
-                    let scores = cache_for_closure.snapshot();
-                    let key1 = P::frecency_key(&i1);
-                    let key2 = P::frecency_key(&i2);
-                    let f1 = scores.get(&key1);
-                    let f2 = scores.get(&key2);
+            SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
+                let scores = cache.snapshot();
+                let key1 = P::frecency_key(&i1);
+                let key2 = P::frecency_key(&i2);
+                let f1 = scores.get(&key1);
+                let f2 = scores.get(&key2);
 
-                    match (f1, f2) {
-                        (Some(s1), Some(s2)) => {
-                            s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
-                        }
-                        (Some(_), None) => Ordering::Less,
-                        (None, Some(_)) => Ordering::Greater,
-                        (None, None) => m2.score.cmp(&m1.score),
+                match (f1, f2) {
+                    (Some(s1), Some(s2)) => {
+                        s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
                     }
-                }));
-
-            let frecency_config = FrecencyConfig {
-                handle: frecency_handle,
-                cache,
-            };
-            (sort_strategy, Some(frecency_config))
+                    (Some(_), None) => Ordering::Less,
+                    (None, Some(_)) => Ordering::Greater,
+                    (None, None) => m2.score.cmp(&m1.score),
+                }
+            }))
         } else {
-            (SortStrategy::Score, None)
+            SortStrategy::Score
         };
 
         let matcher = Matcher::new(&config, sort_strategy);
@@ -103,7 +89,6 @@ impl<P: EntryProcessor> Channel<P> {
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
-            frecency_config,
         }
     }
 
@@ -153,10 +138,6 @@ impl<P: EntryProcessor> Channel<P> {
     }
 
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
-        if let Some(ref config) = self.frecency_config {
-            config.cache.refresh(&config.handle);
-        }
-
         self.matcher.tick();
 
         let results = self.matcher.results(num_entries, offset);
