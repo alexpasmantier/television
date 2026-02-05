@@ -1132,7 +1132,14 @@ impl Television {
     pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         self.handle_action(action)?;
 
-        self.update_results_picker_state();
+        // Always let the background matcher make progress
+        self.channel.tick();
+
+        // Only run the full results pipeline when the action could
+        // have changed the results or the visible viewport
+        if action.affects_results() {
+            self.update_results_picker_state();
+        }
 
         if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
             self.update_rc_picker_state();

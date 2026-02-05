@@ -137,6 +137,14 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.find(pattern);
     }
 
+    /// Let the background matcher thread make progress.
+    ///
+    /// This is cheap and should be called frequently (e.g. every update cycle)
+    /// to keep the matcher responsive, even when results aren't being fetched.
+    pub fn tick(&mut self) {
+        self.matcher.tick();
+    }
+
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         self.matcher.tick();
 
@@ -466,6 +474,7 @@ impl ChannelKind {
         load() -> (),
         reload() -> (),
         find(pattern: &str) -> (),
+        tick() -> (),
         results(num_entries: u32, offset: u32) -> Vec<Entry>,
         get_result(index: u32) -> Option<Entry>,
         toggle_selection(entry: &Entry) -> (),
