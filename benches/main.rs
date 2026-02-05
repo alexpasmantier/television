@@ -6,6 +6,7 @@ pub mod main {
     pub mod render;
     pub mod strings;
     pub mod ui;
+    pub mod update;
 }
 
 pub use main::*;
@@ -16,4 +17,5 @@ criterion_main!(
     previewer::benches,
     render::benches,
     strings::benches,
+    update::benches,
 );
