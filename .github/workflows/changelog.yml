@@ -28,7 +28,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
       - name: Copy changelog to docs
         run: |
-          cp CHANGELOG.md 'docs/02-Developers/03-patch-notes.md'
+          cp CHANGELOG.md 'docs/developers/patch-notes.md'
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT
@@ -42,4 +42,6 @@ jobs:
           body: 'This PR was created by a GitHub Action to update the changelog.'
           branch: bot/auto-changelog-update
           base: main
-          add-paths: CHANGELOG.md
+          add-paths: |
+            CHANGELOG.md
+            docs/developers/patch-notes.md
