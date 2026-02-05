@@ -245,8 +245,10 @@ where
                 &mut matcher,
                 &mut self.col_indices_buffer,
             );
-            self.col_indices_buffer.sort_unstable();
-            self.col_indices_buffer.dedup();
+            if self.col_indices_buffer.len() > 1 {
+                self.col_indices_buffer.sort_unstable();
+                self.col_indices_buffer.dedup();
+            }
 
             let indices = self.col_indices_buffer.drain(..);
             let matched_string = item.matcher_columns[0].to_string();

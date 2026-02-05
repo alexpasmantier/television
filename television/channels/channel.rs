@@ -28,7 +28,7 @@ const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 pub struct Channel<P: EntryProcessor> {
     pub source_command: CommandSpec,
     pub source_entry_delimiter: Option<char>,
-    pub source_output: Option<Template>,
+    pub source_output: Option<Arc<Template>>,
     pub supports_preview: bool,
     processor: P,
     matcher: Matcher<P::Data>,
@@ -81,7 +81,7 @@ impl<P: EntryProcessor> Channel<P> {
         Self {
             source_command,
             source_entry_delimiter,
-            source_output,
+            source_output: source_output.map(Arc::new),
             supports_preview,
             processor,
             matcher,
@@ -274,7 +274,10 @@ pub async fn load_candidates<P: EntryProcessor>(
             let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
             n > 0
         } {
-            batch.push(buf.clone());
+            batch.push(std::mem::replace(
+                &mut buf,
+                Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE),
+            ));
 
             // Flush batch when it reaches the target size
             if batch.len() >= BATCH_SIZE {
@@ -463,7 +466,7 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
-                DisplayProcessor { template },
+                DisplayProcessor { template: Arc::new(template) },
                 frecency,
             )),
         }
