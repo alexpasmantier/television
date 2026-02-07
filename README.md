@@ -29,7 +29,7 @@ tv git-repos    # Find git repositories
 tv --help       # See all options
 ```
 
-For a complete introduction, see the [Quickstart Guide](https://alexpasmantier.github.io/television/docs/getting-started/quickstart).
+For a complete introduction, see the [Quickstart Guide](https://alexpasmantier.github.io/television/getting-started/quickstart).
 
 ## Installation
 
@@ -50,7 +50,7 @@ curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 | **WinGet** | `winget install --exact --id alexpasmantier.television` |
 | **Nix** | `nix run nixpkgs#television` |
 
-For more installation options, see [Installation](https://alexpasmantier.github.io/television/docs/getting-started/installation).
+For more installation options, see [Installation](https://alexpasmantier.github.io/television/getting-started/installation).
 
 ## Custom Channels
 
@@ -76,7 +76,7 @@ command = "tldr '{}'"
 mode = "execute"
 ```
 
-Learn more about [creating channels](https://alexpasmantier.github.io/television/docs/getting-started/first-channel).
+Learn more about [creating channels](https://alexpasmantier.github.io/television/getting-started/first-channel).
 
 ## Shell Integration
 
@@ -90,7 +90,7 @@ echo 'eval "$(tv init zsh)"' >> ~/.zshrc
 echo 'eval "$(tv init bash)"' >> ~/.bashrc
 ```
 
-See [Shell Integration](https://alexpasmantier.github.io/television/docs/user-guide/shell-integration) for more shells.
+See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/shell-integration) for more shells.
 
 ## Editor Integration
 
@@ -101,14 +101,14 @@ See [Shell Integration](https://alexpasmantier.github.io/television/docs/user-gu
 
 ## Documentation
 
-- [Getting Started](https://alexpasmantier.github.io/television/docs/getting-started/quickstart)
-- [User Guide](https://alexpasmantier.github.io/television/docs/user-guide/channels)
-- [Tips and Tricks](https://alexpasmantier.github.io/television/docs/advanced/tips-and-tricks)
-- [Reference](https://alexpasmantier.github.io/television/docs/reference/cli)
+- [Getting Started](https://alexpasmantier.github.io/television/getting-started/quickstart)
+- [User Guide](https://alexpasmantier.github.io/television/user-guide/channels)
+- [Tips and Tricks](https://alexpasmantier.github.io/television/advanced/tips-and-tricks)
+- [Reference](https://alexpasmantier.github.io/television/reference/cli)
 
 ## Credits
 
-Inspired by [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim). Built with [nucleo](https://github.com/helix-editor/helix) (fuzzy matching), [tokio](https://github.com/tokio-rs/tokio) (async runtime), and [ratatui](https://github.com/ratatui/ratatui) (TUI framework).
+Inspired by [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim). Built with [nucleo](https://github.com/helix-editor/nucleo) (fuzzy matching), [tokio](https://github.com/tokio-rs/tokio) (async runtime), and [ratatui](https://github.com/ratatui/ratatui) (TUI framework).
 
 Thanks to all contributors:
 
