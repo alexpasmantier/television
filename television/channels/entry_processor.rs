@@ -5,7 +5,6 @@ use crate::{
 use fast_strip_ansi::strip_ansi_string;
 use nucleo::Utf32Str;
 use std::borrow::Cow;
-use std::sync::Arc;
 
 /// Implementors of this trait define two things:
 /// - how to push lines into the matcher, including any preprocessing steps (e.g. stripping ANSI
@@ -22,7 +21,7 @@ pub trait EntryProcessor: Send + Sync + Clone + 'static {
     fn make_entry(
         &self,
         item: MatchedItem<Self::Data>,
-        source_output: Option<&Arc<Template>>,
+        source_output: Option<&Template>,
     ) -> Entry;
 
     fn has_ansi(&self) -> bool;
@@ -56,12 +55,12 @@ impl EntryProcessor for PlainProcessor {
     fn make_entry(
         &self,
         item: MatchedItem<()>,
-        source_output: Option<&Arc<Template>>,
+        source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.matched_string)
             .with_match_indices(&item.match_indices);
         if let Some(output) = source_output {
-            entry = entry.with_output(Arc::clone(output));
+            entry = entry.with_output(output.clone());
         }
         entry
     }
@@ -108,14 +107,14 @@ impl EntryProcessor for AnsiProcessor {
     fn make_entry(
         &self,
         item: MatchedItem<String>,
-        source_output: Option<&Arc<Template>>,
+        source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.inner)
             .with_display(item.matched_string)
             .with_match_indices(&item.match_indices)
             .ansi(true);
         if let Some(output) = source_output {
-            entry = entry.with_output(Arc::clone(output));
+            entry = entry.with_output(output.clone());
         }
         entry
     }
@@ -136,14 +135,14 @@ impl EntryProcessor for AnsiProcessor {
 /// Uses `Matcher<String>` to store original lines.
 #[derive(Clone, Debug)]
 pub struct DisplayProcessor {
-    pub template: Arc<Template>,
+    pub template: Template,
 }
 
 impl EntryProcessor for DisplayProcessor {
     type Data = String;
 
     fn push_to_injector(&self, line: String, injector: &Injector<String>) {
-        let template = Arc::clone(&self.template);
+        let template = self.template.clone();
         injector.push(line, move |original, cols| {
             cols[0] = template.format(original)
                 .unwrap_or_else(|_| {
@@ -160,14 +159,14 @@ impl EntryProcessor for DisplayProcessor {
     fn make_entry(
         &self,
         item: MatchedItem<String>,
-        source_output: Option<&Arc<Template>>,
+        source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.inner)
             .with_display(item.matched_string)
             .with_match_indices(&item.match_indices)
             .ansi(false);
         if let Some(output) = source_output {
-            entry = entry.with_output(Arc::clone(output));
+            entry = entry.with_output(output.clone());
         }
         entry
     }
