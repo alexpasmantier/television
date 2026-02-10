@@ -5,7 +5,6 @@ use crate::{
 use anyhow::Result;
 use smallvec::SmallVec;
 use std::hash::{Hash, Hasher};
-use std::sync::Arc;
 
 #[derive(Clone, Debug, Eq)]
 pub struct Entry {
@@ -13,9 +12,8 @@ pub struct Entry {
     pub raw: String,
     /// The actual entry string that will be displayed in the UI.
     pub display: Option<String>,
-    /// The output template that will be used when the entry is selected.
-    /// Arc-wrapped since all entries in a channel share the same template.
-    pub output: Option<Arc<Template>>,
+    /// The output string that will be used when the entry is selected.
+    pub output: Option<Template>,
     /// The optional ranges for matching characters (based on `self.display`).
     pub match_ranges: Option<SmallVec<[(u32, u32); 8]>>,
     /// Whether the entry contains ANSI escape sequences.
@@ -102,7 +100,7 @@ impl Entry {
         self
     }
 
-    pub fn with_output(mut self, output: Arc<Template>) -> Self {
+    pub fn with_output(mut self, output: Template) -> Self {
         self.output = Some(output);
         self
     }
