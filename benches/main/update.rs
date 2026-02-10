@@ -65,8 +65,7 @@ pub fn update_no_results(c: &mut Criterion) {
 
     c.bench_function("update_no_results", |b| {
         b.iter(|| {
-            let _ =
-                black_box(tv.update(black_box(&Action::ScrollPreviewDown)));
+            let _ = black_box(tv.update(black_box(&Action::ScrollPreviewDown)));
         });
     });
 }
@@ -96,8 +95,7 @@ pub fn update_add_char(c: &mut Criterion) {
         b.iter(|| {
             // Alternate between adding and removing a char to keep pattern
             // from growing unbounded
-            let _ =
-                black_box(tv.update(black_box(&Action::AddInputChar('x'))));
+            let _ = black_box(tv.update(black_box(&Action::AddInputChar('x'))));
             let _ = black_box(tv.update(black_box(&Action::DeletePrevChar)));
         });
     });
