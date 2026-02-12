@@ -99,6 +99,10 @@ See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/s
 - **VSCode**: [Television extension](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
 - **Zed**: [Telescope-style setup](https://zed.dev/blog/hidden-gems-part-2#emulate-vims-telescope-via-television)
 
+## File Manager Integration
+
+- **Yazi**: [tv.yazi](https://github.com/cap153/tv.yazi) 
+
 ## Documentation
 
 - [Getting Started](https://alexpasmantier.github.io/television/getting-started/quickstart)
