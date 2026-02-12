@@ -43,17 +43,33 @@ pub fn shell_command<S>(
 ) -> Command {
     let shell = shell_override
         .unwrap_or_else(|| Shell::from_env().unwrap_or_default());
-    let mut cmd = Command::new(shell.executable());
 
-    cmd.args(match shell {
-        Shell::Psh => vec!["-NoLogo", "-NoProfile", "-Command"],
-        Shell::Cmd => vec!["/C"],
-        _ => vec!["-c"],
-    });
+    // Detect if the command string contains POSIX-style parameter expansion
+    // like `${VAR:-default}` which is not supported by fish. In that case
+    // prefer executing the command through `/bin/sh -c` so expansion works
+    // regardless of the user's interactive shell.
+    let use_posix_sh = command.contains("${");
+
+    // Choose executable and base args depending on detected shell and
+    // whether we need POSIX-style expansion.
+    let (executable, mut args_vec) = if use_posix_sh {
+        ("sh", vec!["-c"])
+    } else {
+        match shell {
+            Shell::Psh => (
+                shell.executable(),
+                vec!["-NoLogo", "-NoProfile", "-Command"],
+            ),
+            Shell::Cmd => (shell.executable(), vec!["/C"]),
+            _ => (shell.executable(), vec!["-c"]),
+        }
+    };
+
+    let mut cmd = Command::new(executable);
 
     #[cfg(unix)]
     if interactive {
-        cmd.arg("-i");
+        args_vec.push("-i");
     }
 
     #[cfg(not(unix))]
@@ -61,7 +77,7 @@ pub fn shell_command<S>(
         warn!("Interactive mode is not supported on Windows.");
     }
 
-    cmd.envs(envs).arg(command);
+    cmd.args(args_vec).envs(envs).arg(command);
     cmd
 }
 
