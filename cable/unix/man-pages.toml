@@ -1,7 +1,7 @@
 [metadata]
 name = "man-pages"
 description = "Browse and preview system manual pages"
-requirements = ["apropos", "man", "col"]
+requirements = ["apropos", "man"]
 
 [source]
 # List all man pages using apropos
@@ -9,7 +9,7 @@ command = "apropos ."
 
 [preview]
 # Show the man page for the selected entry
-command = "man '{0}' | col -bx"
+command = "man '{0}'"
 env = { "MANWIDTH" = "80" }
 
 [keybindings]
