@@ -1,0 +1,19 @@
+[metadata]
+name = "git-files"
+description = "A channel to list the files currently tracked in the Git repository"
+requirements = ["git", "bat"]
+
+[source]
+command = "git ls-files $(git rev-parse --show-toplevel)"
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+f12 = "actions:edit"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+mode = "execute"
