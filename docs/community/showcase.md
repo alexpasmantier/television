@@ -142,3 +142,7 @@ or
 > These optimizations can also be applied to the file finder above.
 
 Huge thanks to [eddiebergman](https://github.com/eddiebergman) and [thomdabrowski](https://github.com/thomdabrowski) for these optimizations, [original thread](https://github.com/zed-industries/zed/discussions/22581#discussioncomment-11860946)
+
+### ⭐ Yazi plugin
+
+https://github.com/cap153/tv.yazi
