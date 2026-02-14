@@ -1,7 +1,7 @@
 [metadata]
 name = "docker-containers"
 description = "List and manage Docker containers"
-requirements = ["docker"]
+requirements = ["docker", "jq"]
 
 [source]
 command = [
