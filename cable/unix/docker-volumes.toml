@@ -1,7 +1,7 @@
 [metadata]
 name = "docker-volumes"
 description = "List and manage Docker volumes"
-requirements = ["docker"]
+requirements = ["docker", "jq"]
 
 [source]
 command = "docker volume ls --format '{{.Name}}\t{{.Driver}}'"
