@@ -1,7 +1,7 @@
 [metadata]
 name = "docker-networks"
 description = "List and manage Docker networks"
-requirements = ["docker"]
+requirements = ["docker", "jq"]
 
 [source]
 command = "docker network ls --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}'"
