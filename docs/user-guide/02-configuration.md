@@ -45,7 +45,7 @@ Top-level UI settings under the `[ui]` section:
 
 #### Available Themes
 
-Built-in themes: `default`, `television`, `gruvbox-dark`, `gruvbox-light`, `catppuccin`, `nord-dark`, `solarized-dark`, `solarized-light`, `dracula`, `monokai`, `onedark`, `tokyonight`.
+Built-in themes: `default`, `television`, `gruvbox-dark`, `gruvbox-light`, `catppuccin`, `nord-dark`, `solarized-dark`, `solarized-light`, `dracula`, `monokai`, `onedark`, `tokyonight`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn`.
 
 You can also create custom themes by placing them in `$CONFIG_DIR/television/themes/` (see [themes](./05-themes.md) for
 details).
