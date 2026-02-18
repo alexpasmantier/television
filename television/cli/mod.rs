@@ -18,6 +18,7 @@ use clap::error::ErrorKind;
 use colored::Colorize;
 use rustc_hash::FxHashMap;
 use std::{
+    io::{Write, stdout},
     path::{Path, PathBuf},
     str::FromStr,
 };
@@ -488,8 +489,11 @@ fn parse_padding_literal(
 pub fn list_channels(cable: &Cable) {
     let mut channels: Vec<_> = cable.keys().collect();
     channels.sort();
+    let mut out = stdout().lock();
     for c in channels {
-        println!("{c}");
+        if writeln!(out, "{c}").is_err() {
+            return;
+        }
     }
 }
 

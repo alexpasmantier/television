@@ -106,6 +106,58 @@ fn test_init_subcommand_invalid_shell_errors() {
     tester.assert_raw_output_contains("invalid value");
 }
 
+/// Tests that `tv list-channels` handles broken pipe (EPIPE) gracefully.
+///
+/// When piping to a command that exits without reading (e.g., `tv list-channels | (exit 0)`),
+/// tv should exit cleanly rather than panicking.
+#[test]
+fn test_list_channels_broken_pipe() -> io::Result<()> {
+    let mut child = Command::new(*TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["list-channels"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    // Close the read end of the stdout pipe immediately, causing a broken pipe
+    // when tv tries to write its output.
+    drop(child.stdout.take());
+
+    let status = child.wait()?;
+    assert!(
+        status.success(),
+        "tv list-channels should handle broken pipe gracefully, but exited with: {status:?}",
+    );
+
+    Ok(())
+}
+
+/// Tests that `tv init <shell>` handles broken pipe (EPIPE) gracefully.
+///
+/// When piping to a command that exits without reading (e.g., `tv init zsh | (exit 0)`),
+/// tv should exit cleanly rather than panicking.
+#[test]
+fn test_init_shell_broken_pipe() -> io::Result<()> {
+    let mut child = Command::new(*TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["init", "zsh"])
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()?;
+
+    // Close the read end of the stdout pipe immediately, causing a broken pipe
+    // when tv tries to write its output.
+    drop(child.stdout.take());
+
+    let status = child.wait()?;
+    assert!(
+        status.success(),
+        "tv init zsh should handle broken pipe gracefully, but exited with: {status:?}",
+    );
+
+    Ok(())
+}
+
 #[test]
 fn test_tv_pipes_correctly() -> io::Result<()> {
     if is_ci() {
