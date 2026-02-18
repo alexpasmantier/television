@@ -35,5 +35,14 @@ pub fn builtin_themes() -> FxHashMap<&'static str, &'static str> {
         "tokyonight",
         include_str!("../../../themes/tokyonight.toml"),
     );
+    m.insert("rose-pine", include_str!("../../../themes/rose-pine.toml"));
+    m.insert(
+        "rose-pine-moon",
+        include_str!("../../../themes/rose-pine-moon.toml"),
+    );
+    m.insert(
+        "rose-pine-dawn",
+        include_str!("../../../themes/rose-pine-dawn.toml"),
+    );
     m
 }
