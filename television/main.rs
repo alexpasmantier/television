@@ -143,7 +143,7 @@ pub fn handle_subcommand(
                 completion_script(target_shell)?,
                 shell_integration_config,
             )?;
-            println!("{script}");
+            let _ = writeln!(stdout().lock(), "{script}");
             exit(0);
         }
         Command::UpdateChannels { force } => {
