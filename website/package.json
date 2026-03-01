@@ -47,6 +47,12 @@
       "last 5 safari version"
     ]
   },
+  "pnpm": {
+    "overrides": {
+      "serialize-javascript": ">=7.0.3",
+      "minimatch": ">=3.1.4"
+    }
+  },
   "engines": {
     "node": ">=20.0"
   },
