@@ -614,6 +614,8 @@ impl App {
                                     ))
                                     .cloned()
                             {
+                                self.record_selection(&selected_entries)?;
+
                                 match action_spec.mode {
                                     // suspend the TUI and execute the action
                                     ExecutionMode::Fork => {
@@ -706,6 +708,14 @@ impl App {
             while !rendering_task.is_finished() {
                 sleep(Duration::from_millis(10));
             }
+        }
+
+        if let Err(e) = self.history.save_to_file() {
+            error!("Failed to persist history: {}", e);
+        }
+
+        if let Err(e) = self.frecency.save_to_file() {
+            error!("Failed to persist frecency: {}", e);
         }
 
         execute_action(action_spec, entries).map_err(|e| {
