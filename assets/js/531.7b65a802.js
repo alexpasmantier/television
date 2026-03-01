@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunktelevision_website=globalThis.webpackChunktelevision_website||[]).push([[531],{531(e,i,s){s.d(i,{createArchitectureServices:()=>t.S});var t=s(9543);s(5472)}}]);
