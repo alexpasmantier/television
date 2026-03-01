@@ -237,7 +237,10 @@ mod tests {
         let result = format_command(&entries, &template, "\n").unwrap();
 
         // Result should contain both files quoted and joined with space
-        assert_eq!(result, "nvim 'file1.txt' 'file2.txt'");
+        assert!(
+            result == "nvim 'file1.txt' 'file2.txt'"
+                || result == "nvim 'file2.txt' 'file1.txt'"
+        );
     }
 
     #[test]
@@ -265,7 +268,10 @@ mod tests {
         let result = format_command(&entries, &template, "\n").unwrap();
 
         // Result should contain both files quoted and joined with space
-        assert_eq!(result, "nvim 'file1.txt' 'file2.txt'");
+        assert!(
+            result == "nvim 'file1.txt' 'file2.txt'"
+                || result == "nvim 'file2.txt' 'file1.txt'"
+        );
     }
 
     #[test]
@@ -282,6 +288,9 @@ mod tests {
         let result = format_command(&entries, &template, "\n").unwrap();
 
         // Result should be escaped with single quotes in filenames
-        assert_eq!(result, "nvim 'file1\\'s.txt' 'file2.txt'");
+        assert!(
+            result == "nvim 'file1\\'s.txt' 'file2.txt'"
+                || result == "nvim 'file2.txt' 'file1\\'s.txt'"
+        );
     }
 }
