@@ -540,7 +540,7 @@ mode = "execute"
 
 List and manage Docker containers
 
-**Requirements:** `docker`
+**Requirements:** `docker`, `jq`
 
 **Code:** *docker-containers.toml*
 
@@ -548,7 +548,7 @@ List and manage Docker containers
 [metadata]
 name = "docker-containers"
 description = "List and manage Docker containers"
-requirements = [ "docker",]
+requirements = [ "docker", "jq",]
 
 [source]
 command = [ "docker ps --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'", "docker ps -a --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'",]
@@ -657,7 +657,7 @@ mode = "execute"
 
 List and manage Docker networks
 
-**Requirements:** `docker`
+**Requirements:** `docker`, `jq`
 
 **Code:** *docker-networks.toml*
 
@@ -665,7 +665,7 @@ List and manage Docker networks
 [metadata]
 name = "docker-networks"
 description = "List and manage Docker networks"
-requirements = [ "docker",]
+requirements = [ "docker", "jq",]
 
 [source]
 command = "docker network ls --format '{{.Name}}\t{{.Driver}}\t{{.Scope}}'"
@@ -692,7 +692,7 @@ mode = "execute"
 
 List and manage Docker volumes
 
-**Requirements:** `docker`
+**Requirements:** `docker`, `jq`
 
 **Code:** *docker-volumes.toml*
 
@@ -700,7 +700,7 @@ List and manage Docker volumes
 [metadata]
 name = "docker-volumes"
 description = "List and manage Docker volumes"
-requirements = [ "docker",]
+requirements = [ "docker", "jq",]
 
 [source]
 command = "docker volume ls --format '{{.Name}}\t{{.Driver}}'"
@@ -754,6 +754,7 @@ enter = "actions:edit"
 [actions.edit]
 description = "Edit the selected dotfile"
 command = "${EDITOR:-vim} '{}'"
+shell = "bash"
 mode = "execute"
 
 ```
@@ -880,6 +881,7 @@ BAT_THEME = "ansi"
 [actions.edit]
 description = "Opens the selected entries with the default editor (falls back to vim)"
 command = "${EDITOR:-vim} '{}'"
+shell = "bash"
 mode = "execute"
 
 [actions.goto_parent_dir]
@@ -1179,6 +1181,45 @@ mode = "fork"
 [actions.edit]
 description = "Open the selected file in editor"
 command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
+
+```
+
+
+---
+
+### *git-files*
+
+A channel to list the files currently tracked in the Git repository
+
+![tv running the git-files channel](../../assets/channels/git-files.png)
+**Requirements:** `git`, `bat`
+
+**Code:** *git-files.toml*
+
+```toml
+[metadata]
+name = "git-files"
+description = "A channel to list the files currently tracked in the Git repository"
+requirements = [ "git", "bat",]
+
+[source]
+command = "git ls-files $(git rev-parse --show-toplevel)"
+
+[preview]
+command = "bat -n --color=always '{}'"
+
+[keybindings]
+f12 = "actions:edit"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
 mode = "execute"
 
 ```
@@ -1349,6 +1390,7 @@ mode = "execute"
 [actions.edit]
 description = "Open the repository in editor"
 command = "${EDITOR:-vim} '{}'"
+shell = "bash"
 mode = "execute"
 
 ```
@@ -1938,7 +1980,7 @@ mode = "execute"
 Browse and preview system manual pages
 
 ![tv running the man-pages channel](../../assets/channels/man-pages.png)
-**Requirements:** `apropos`, `man`, `col`
+**Requirements:** `apropos`, `man`
 
 **Code:** *man-pages.toml*
 
@@ -1946,13 +1988,13 @@ Browse and preview system manual pages
 [metadata]
 name = "man-pages"
 description = "Browse and preview system manual pages"
-requirements = [ "apropos", "man", "col",]
+requirements = [ "apropos", "man",]
 
 [source]
 command = "apropos ."
 
 [preview]
-command = "man '{0}' | col -bx"
+command = "man '{0}'"
 
 [keybindings]
 enter = "actions:open"
@@ -2436,6 +2478,7 @@ BAT_THEME = "ansi"
 [actions.edit]
 description = "Open the selected file in editor"
 command = "${EDITOR:-vim} '{}'"
+shell = "bash"
 mode = "execute"
 
 ```
@@ -2650,6 +2693,7 @@ header = "{strip_ansi|split:\\::..2}"
 [actions.edit]
 description = "Open file in editor at line"
 command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+shell = "bash"
 mode = "execute"
 
 ```
@@ -2803,6 +2847,7 @@ header = "{strip_ansi|split:\\::..2}"
 [actions.edit]
 description = "Open file in editor at the comment"
 command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+shell = "bash"
 mode = "execute"
 
 ```
