@@ -293,8 +293,11 @@ impl ChannelPrototype {
                 requirements: vec![],
             },
             source: SourceSpec {
+                // The source command is unused for stdin channels — data is
+                // read directly from process stdin in Rust. We keep a no-op
+                // placeholder because the field is required.
                 command: CommandSpec {
-                    inner: vec![Template::parse("cat").unwrap()],
+                    inner: vec![Template::parse("true").unwrap()],
                     ..Default::default()
                 },
                 ..Default::default()

@@ -568,6 +568,8 @@ impl ConfigLayers {
             channel_actions,
             // frecency
             channel_frecency,
+            // stdin
+            is_stdin: self.channel.metadata.name == "stdin",
         }
     }
 }
@@ -667,4 +669,6 @@ pub struct MergedConfig {
     pub channel_actions: FxHashMap<String, ActionSpec>,
     /// Whether frecency is enabled for the current channel (per-channel override)
     pub channel_frecency: bool,
+    /// Whether the current channel reads from stdin directly
+    pub is_stdin: bool,
 }
