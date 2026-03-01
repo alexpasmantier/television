@@ -162,6 +162,7 @@ impl Television {
             merged_config.channel_preview_command.is_some(),
             merged_config.no_sort,
             frecency_config,
+            merged_config.is_stdin,
         );
 
         let app_metadata = AppMetadata::new(
@@ -364,6 +365,7 @@ impl Television {
             self.merged_config.channel_preview_command.is_some(),
             self.merged_config.no_sort,
             frecency_config,
+            false, // stdin only applies to the initial channel
         );
         self.channel.load();
     }
