@@ -81,6 +81,9 @@ postprocessors = [
   { pattern = '<!-- Please read CONTRIBUTING.md before submitting any pull request. -->', replace = "" },
   { pattern = '>---+\n', replace = '' },
   { pattern = ' +\n', replace = "\n" },
+  # escape curly braces so MDX/Docusaurus doesn't interpret them as JSX expressions
+  { pattern = '\{', replace = '\{' },
+  { pattern = '\}', replace = '\}' },
 ]
 
 [git]
