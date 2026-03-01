@@ -22,4 +22,5 @@ enter = "actions:edit"
 [actions.edit]
 description = "Open file in editor at the comment"
 command = "${EDITOR:-vim} '+{strip_ansi|split:\\::1}' '{strip_ansi|split:\\::0}'"
+shell = "bash"
 mode = "execute"
