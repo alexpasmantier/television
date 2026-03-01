@@ -200,7 +200,6 @@ where
 
 #[cfg(unix)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
-    ("alias.toml", include_str!("../cable/unix/alias.toml")),
     (
         "bash-history.toml",
         include_str!("../cable/unix/bash-history.toml"),
