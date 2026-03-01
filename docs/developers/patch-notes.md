@@ -16,7 +16,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 Bug Fixes
 
-- [6d2d7df](https://github.com/alexpasmantier/television/commit/6d2d7df91c7b16a980868c19d02eae0e55d365b2) *(cable)* Use bash for actions with ${EDITOR:-} syntax by @alexpasmantier in [#921](https://github.com/alexpasmantier/television/pull/921)
+- [6d2d7df](https://github.com/alexpasmantier/television/commit/6d2d7df91c7b16a980868c19d02eae0e55d365b2) *(cable)* Use bash for actions with $\{EDITOR:-\} syntax by @alexpasmantier in [#921](https://github.com/alexpasmantier/television/pull/921)
 
 - [074dc17](https://github.com/alexpasmantier/television/commit/074dc172a599d178d8a6a8fd2e97ce93eff1137b) *(cli)* Handle broken pipe in subcommand stdout writes by @simono in [#905](https://github.com/alexpasmantier/television/pull/905)
 
