@@ -2182,7 +2182,7 @@ All notable changes to this project will be documented in this file.
 
 - [e034615](https://github.com/alexpasmantier/television/commit/e0346155945250defd3298a61aa3f6fee1518283) *(cable)* Make preview optional for cable channels by @alexpasmantier in [#155](https://github.com/alexpasmantier/television/pull/155)
 
-- [309ff53](https://github.com/alexpasmantier/television/commit/309ff537a499a0d9350c907735b07bdb016d7538) *(cli)* Allow passing --input <STRING> to prefill input prompt by @alexpasmantier in [#153](https://github.com/alexpasmantier/television/pull/153)
+- [309ff53](https://github.com/alexpasmantier/television/commit/309ff537a499a0d9350c907735b07bdb016d7538) *(cli)* Allow passing --input \<STRING\> to prefill input prompt by @alexpasmantier in [#153](https://github.com/alexpasmantier/television/pull/153)
 
 - [557686e](https://github.com/alexpasmantier/television/commit/557686e1976ef474de314c790270985d6c7c73af) *(config)* Allow specifying multiple keymaps for the same action + better defaults by @alexpasmantier in [#149](https://github.com/alexpasmantier/television/pull/149)
 

@@ -51,7 +51,7 @@ function importDocSearchModalIfNeeded() {
     return Promise.resolve();
   }
   return Promise.all([
-    import("@docsearch/react/modal") as Promise<
+    import("@docsearch/react/modal") as unknown as Promise<
       typeof import("@docsearch/react")
     >,
     import("@docsearch/react/style"),
@@ -239,6 +239,8 @@ function DocSearch({ externalUrlRegex, ...props }: DocSearchProps) {
     onClose: closeModal,
     onInput: handleInput,
     searchButtonRef,
+    isAskAiActive: false,
+    onAskAiToggle: () => {},
   });
 
   return (
