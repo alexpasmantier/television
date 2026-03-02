@@ -104,7 +104,7 @@ cargo install --locked television
 If you want to benefit from the latest updates on main, clone the repo and build from source by running:
 
 ```bash
-git clone git@github.com:alexpasmantier/television.git && cd television
+git clone https://github.com/alexpasmantier/television.git && cd television
 just build release
 ```
 
