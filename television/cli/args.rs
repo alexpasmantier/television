@@ -673,6 +673,12 @@ pub enum Command {
         #[arg(value_enum)]
         shell: Shell,
     },
+    /// Generates standard shell tab-completion scripts for tv's various subcommands.
+    #[clap(name = "completions")]
+    Completions {
+        #[arg(value_enum)]
+        shell: Shell,
+    },
     /// Downloads the latest collection of channel prototypes from github
     /// and saves them to the local configuration directory.
     UpdateChannels {

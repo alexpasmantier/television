@@ -23,6 +23,7 @@ use television::{
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
+            render_clap_autocomplete,
         },
         stdin::is_readable_stdin,
     },
@@ -144,6 +145,18 @@ pub fn handle_subcommand(
                 shell_integration_config,
             )?;
             let _ = writeln!(stdout().lock(), "{script}");
+            exit(0);
+        }
+        Command::Completions { shell } => {
+            let target_shell = Shell::from(shell);
+            if let Some(script) = render_clap_autocomplete(target_shell) {
+                let _ = writeln!(stdout().lock(), "{script}");
+            } else {
+                eprintln!(
+                    "Shell completions are not supported for {target_shell}"
+                );
+                exit(1);
+            }
             exit(0);
         }
         Command::UpdateChannels { force } => {
