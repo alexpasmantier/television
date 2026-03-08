@@ -18,9 +18,6 @@ use tracing::debug;
 
 static COMPLEX_BRACES_REGEX: &Lazy<Regex> = regex!(r"\{[^}]+\}");
 
-#[cfg(not(unix))]
-use tracing::warn;
-
 /// Create a shell command configured for the current platform
 ///
 /// Creates a `Command` instance configured with the appropriate shell for the current platform
@@ -28,7 +25,8 @@ use tracing::warn;
 ///
 /// # Arguments
 /// * `command` - The command string to execute
-/// * `interactive` - Whether to run in interactive mode (Unix only)
+/// * `interactive` - Whether to run in interactive mode (adds `-i` on Unix,
+///   omits `-NoProfile` for `PowerShell`)
 /// * `envs` - Environment variables to set for the command
 /// * `shell_override` - Optionally override the shell used to execute the command.
 ///   If `None`, the shell is detected from the environment.
@@ -46,6 +44,7 @@ pub fn shell_command<S>(
     let mut cmd = Command::new(shell.executable());
 
     cmd.args(match shell {
+        Shell::Psh if interactive => vec!["-NoLogo", "-Command"],
         Shell::Psh => vec!["-NoLogo", "-NoProfile", "-Command"],
         Shell::Cmd => vec!["/C"],
         _ => vec!["-c"],
@@ -54,11 +53,6 @@ pub fn shell_command<S>(
     #[cfg(unix)]
     if interactive {
         cmd.arg("-i");
-    }
-
-    #[cfg(not(unix))]
-    if interactive {
-        warn!("Interactive mode is not supported on Windows.");
     }
 
     cmd.envs(envs).arg(command);
