@@ -238,7 +238,7 @@ pub fn render_autocomplete_script_template(
     Ok(clap_autocomplete + &script)
 }
 
-fn render_clap_autocomplete(shell: Shell) -> Option<String> {
+pub fn render_clap_autocomplete(shell: Shell) -> Option<String> {
     // Clap autocomplete
     let mut clap_autocomplete = vec![];
     let mut cmd = Cli::command();
