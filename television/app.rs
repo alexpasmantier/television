@@ -234,8 +234,7 @@ impl App {
         if let Some(rc) = &self.television.remote_control {
             let shortcut_keybindings =
                 rc.cable_channels.get_channels_shortcut_keybindings();
-            self.television
-                .merged_config
+            Arc::make_mut(&mut self.television.merged_config)
                 .input_map
                 .merge_globals_with(&shortcut_keybindings);
         }
