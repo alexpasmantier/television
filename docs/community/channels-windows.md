@@ -16,6 +16,7 @@ description = "A channel to select from shell aliases"
 
 [source]
 command = "Get-Alias | %{ \"{0,-10} = {1,-10}\" -f $_.Name,$_.Definition }"
+interactive = true
 output = "{split:=:0|trim}"
 
 ```
