@@ -26,7 +26,7 @@ static COMPLEX_BRACES_REGEX: &Lazy<Regex> = regex!(r"\{[^}]+\}");
 /// # Arguments
 /// * `command` - The command string to execute
 /// * `interactive` - Whether to run in interactive mode (adds `-i` on Unix,
-///   omits `-NoProfile` for PowerShell)
+///   omits `-NoProfile` for `PowerShell`)
 /// * `envs` - Environment variables to set for the command
 /// * `shell_override` - Optionally override the shell used to execute the command.
 ///   If `None`, the shell is detected from the environment.
