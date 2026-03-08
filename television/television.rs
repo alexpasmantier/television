@@ -78,7 +78,7 @@ pub enum MatchingMode {
 pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub layered_config: ConfigLayers,
-    pub merged_config: MergedConfig,
+    pub merged_config: Arc<MergedConfig>,
     pub channel: CableChannel,
     pub remote_control: Option<RemoteControl>,
     pub action_picker: Option<ActionPicker>,
@@ -211,7 +211,7 @@ impl Television {
 
         Self {
             action_tx,
-            merged_config: layered_config.merge(),
+            merged_config: Arc::new(layered_config.merge()),
             layered_config,
             channel,
             remote_control,
@@ -320,12 +320,14 @@ impl Television {
         debug!("Changing channel to {:?}", channel_prototype);
         self.layered_config
             .update_channel(channel_prototype.clone());
-        self.merged_config = self.layered_config.merge();
+        self.merged_config = Arc::new(self.layered_config.merge());
         // merge channel shortcuts if remote control is enabled
         if let Some(rc) = &mut self.remote_control {
-            self.merged_config.input_map.merge_globals_with(
-                &rc.cable_channels.get_channels_shortcut_keybindings(),
-            );
+            Arc::make_mut(&mut self.merged_config)
+                .input_map
+                .merge_globals_with(
+                    &rc.cable_channels.get_channels_shortcut_keybindings(),
+                );
         }
 
         self.preview_handles =
@@ -1094,8 +1096,8 @@ impl Television {
             Action::ToggleHelp => {
                 // Only allow toggling if the help panel is not disabled
                 if !self.merged_config.help_panel_disabled {
-                    self.merged_config.help_panel_hidden =
-                        !self.merged_config.help_panel_hidden;
+                    let config = Arc::make_mut(&mut self.merged_config);
+                    config.help_panel_hidden = !config.help_panel_hidden;
                 }
             }
             Action::TogglePreview => {
@@ -1103,25 +1105,28 @@ impl Television {
                 if self.mode == Mode::Channel
                     && !self.merged_config.preview_panel_disabled
                 {
-                    self.merged_config.preview_panel_hidden =
-                        !self.merged_config.preview_panel_hidden;
+                    let config = Arc::make_mut(&mut self.merged_config);
+                    config.preview_panel_hidden = !config.preview_panel_hidden;
                 }
             }
             Action::ToggleStatusBar => {
                 // Only allow toggling if the status bar is not disabled
                 if !self.merged_config.status_bar_disabled {
-                    self.merged_config.status_bar_hidden =
-                        !self.merged_config.status_bar_hidden;
+                    let config = Arc::make_mut(&mut self.merged_config);
+                    config.status_bar_hidden = !config.status_bar_hidden;
                 }
             }
-            Action::ToggleOrientation => match self.merged_config.layout {
-                Orientation::Portrait => {
-                    self.merged_config.layout = Orientation::Landscape;
+            Action::ToggleOrientation => {
+                let config = Arc::make_mut(&mut self.merged_config);
+                match config.layout {
+                    Orientation::Portrait => {
+                        config.layout = Orientation::Landscape;
+                    }
+                    Orientation::Landscape => {
+                        config.layout = Orientation::Portrait;
+                    }
                 }
-                Orientation::Landscape => {
-                    self.merged_config.layout = Orientation::Portrait;
-                }
-            },
+            }
             _ => {}
         }
         Ok(())
