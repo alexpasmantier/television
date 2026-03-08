@@ -5,6 +5,7 @@ Television uses a powerful template system based on [string-pipeline](https://do
 ## Where Templates Are Used
 
 Templates appear in several channel fields:
+
 - `source.display`: Format how entries appear in the results list
 - `source.output`: Format the final output when an entry is selected
 - `preview.command`: Build the preview command
@@ -36,7 +37,7 @@ command = "bat -H {1} '{0}'"  # Open file.txt, highlight line 42
 - `{1}`: Second field (`42`)
 - `{2}`: Third field (`error message`)
 
-The default delimiter is `:`, but you can use any delimiter with `split`.
+The default delimiter is `' '` (space), but you can use any delimiter with `split` (see below).
 
 ## The Split Operation
 
@@ -55,6 +56,7 @@ output = "{split:|:0}"  # Outputs: path/file.txt
 ```
 
 **Single index:**
+
 ```
 {split:,:0}   # First element
 {split:,:1}   # Second element
@@ -63,6 +65,7 @@ output = "{split:|:0}"  # Outputs: path/file.txt
 ```
 
 **Ranges:**
+
 ```
 {split:,:..}    # All elements (joined by delimiter)
 {split:,:1..}   # From index 1 to end
@@ -75,14 +78,14 @@ output = "{split:|:0}"  # Outputs: path/file.txt
 
 Given entry: `"a,b,c,d,e"`
 
-| Template | Result |
-|----------|--------|
-| `{split:,:0}` | `a` |
-| `{split:,:2}` | `c` |
-| `{split:,:-1}` | `e` |
-| `{split:,:1..3}` | `b,c` |
-| `{split:,:2..}` | `c,d,e` |
-| `{split:,:..2}` | `a,b` |
+| Template         | Result  |
+| ---------------- | ------- |
+| `{split:,:0}`    | `a`     |
+| `{split:,:2}`    | `c`     |
+| `{split:,:-1}`   | `e`     |
+| `{split:,:1..3}` | `b,c`   |
+| `{split:,:2..}`  | `c,d,e` |
+| `{split:,:..2}`  | `a,b`   |
 
 ## Stripping ANSI Codes
 
@@ -133,6 +136,7 @@ Operations execute left to right.
 ```
 
 **Example:**
+
 ```toml
 [source]
 display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
@@ -149,6 +153,7 @@ display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
 - `DIRECTION`: `left`, `right`, or `center`
 
 **Example:**
+
 ```toml
 {pad:10:0:left}   # "42" becomes "0000000042"
 {pad:10: :center} # "foo" becomes "   foo    "
@@ -164,6 +169,7 @@ display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
 ```
 
 **Examples:**
+
 ```toml
 # Extract numbers
 {regex_extract:\d+}         # "file123.txt" -> "123"
@@ -179,6 +185,7 @@ display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
 ```
 
 **Example:**
+
 ```toml
 {regex_replace:\s+:_}  # "hello world" -> "hello_world"
 ```
