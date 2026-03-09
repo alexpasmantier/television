@@ -98,6 +98,8 @@ pub struct Television {
     pub ui_state: UiState,
     /// Frecency manager for ranking previously-selected entries
     frecency: FrecencyHandle,
+    /// Tracks whether the channel was running on the previous tick to reset ticks
+    was_running: bool,
     /// Popup shown when attempting to switch to a channel with missing requirements
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
@@ -228,6 +230,7 @@ impl Television {
             app_metadata: Arc::new(app_metadata),
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
+            was_running: true,
             ui_state: UiState::default(),
             frecency,
             missing_requirements_popup: None,
@@ -1141,6 +1144,16 @@ impl Television {
 
         // Always let the background matcher make progress
         self.channel.tick();
+
+        // When the channel transitions from running to stopped, reset ticks
+        // to restart the fast-render window. This ensures newly loaded results
+        // are rendered immediately instead of waiting for the next
+        // RENDERING_INTERVAL.
+        let running = self.channel.running();
+        if self.was_running && !running {
+            self.ticks = 0;
+        }
+        self.was_running = running;
 
         // Only run the full results pipeline when the action could
         // have changed the results or the visible viewport
