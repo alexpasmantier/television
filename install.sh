@@ -179,12 +179,7 @@ install_binary() {
     info "Extracting binary..."
     tar -xzf "$TARBALL"
     
-    # Install to appropriate location
-    if [[ "$OS" == "macos" ]]; then
-        INSTALL_DIR="/usr/local/bin"
-    else
-        INSTALL_DIR="/usr/local/bin"
-    fi
+    INSTALL_DIR="/usr/local/bin"
     
     info "Installing to $INSTALL_DIR..."
     sudo mkdir -p "$INSTALL_DIR"
