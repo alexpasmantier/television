@@ -23,6 +23,23 @@ fn test_select_1_auto_selects_single_entry() {
     tester.assert_raw_output_contains("UNIQUE16CHARID");
 }
 
+/// Tests that --select-1 respects the initial --input filter.
+#[test]
+fn test_select_1_respects_initial_input() {
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "printf 'television\\ntelescope\\n'",
+        "--select-1",
+        "--input",
+        "telev",
+    ]);
+    tester.spawn_command(cmd);
+
+    tester.assert_raw_output_contains("television");
+}
+
 /// Tests that --take-1 automatically selects the first entry after loading completes.
 #[test]
 fn test_take_1_auto_selects_first_entry() {
