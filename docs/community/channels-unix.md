@@ -2327,6 +2327,198 @@ mode = "execute"
 
 ---
 
+### *podman-containers*
+
+List and manage Podman containers
+
+**Requirements:** `podman`, `jq`
+
+**Code:** *podman-containers.toml*
+
+```toml
+[metadata]
+name = "podman-containers"
+description = "List and manage Podman containers"
+requirements = [ "podman", "jq",]
+
+[source]
+command = [ "podman ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'", "podman ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'",]
+display = "{split:\t:0} ({split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "podman inspect '{split:\t:0}' | jq -C '.[0] | {Name, State, Config: {Image: .Config.Image, Cmd: .Config.Cmd}, NetworkSettings: {IPAddress: .NetworkSettings.IPAddress}}'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-s = "actions:start"
+f2 = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-l = "actions:logs"
+ctrl-e = "actions:exec"
+ctrl-d = "actions:remove"
+
+[actions.start]
+description = "Start the selected container"
+command = "podman start '{split:\t:0}'"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected container"
+command = "podman stop '{split:\t:0}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected container"
+command = "podman restart '{split:\t:0}'"
+mode = "fork"
+
+[actions.logs]
+description = "Follow logs of the selected container"
+command = "podman logs -f '{split:\t:0}'"
+mode = "execute"
+
+[actions.exec]
+description = "Execute shell in the selected container"
+command = "podman exec -it '{split:\t:0}' /bin/sh"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected container"
+command = "podman rm '{split:\t:0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *podman-images*
+
+A channel to select from Podman images
+
+**Requirements:** `podman`, `jq`
+
+**Code:** *podman-images.toml*
+
+```toml
+[metadata]
+name = "podman-images"
+description = "A channel to select from Podman images"
+requirements = [ "podman", "jq",]
+
+[source]
+command = "podman images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
+output = "{split: :-1}"
+
+[preview]
+command = "podman image inspect '{split: :-1}' | jq -C"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-r = "actions:run"
+ctrl-d = "actions:remove"
+ctrl-s = "actions:shell"
+
+[actions.run]
+description = "Run a container from the selected image"
+command = "podman run -it '{split: :-1}'"
+mode = "execute"
+
+[actions.shell]
+description = "Run a shell in the selected image"
+command = "podman run -it '{split: :-1}' /bin/sh"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected image"
+command = "podman rmi '{split: :-1}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *podman-networks*
+
+List and manage Podman networks
+
+**Requirements:** `podman`, `jq`
+
+**Code:** *podman-networks.toml*
+
+```toml
+[metadata]
+name = "podman-networks"
+description = "List and manage Podman networks"
+requirements = [ "podman", "jq",]
+
+[source]
+command = "podman network ls --format '{{.Name}}\t{{.Driver}}\t{{.Internal}}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "podman network inspect '{split:\t:0}' | jq -C '.[0] | {name, driver, subnets, dns_enabled, internal}'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected network"
+command = "podman network rm '{split:\t:0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *podman-volumes*
+
+List and manage Podman volumes
+
+**Requirements:** `podman`, `jq`
+
+**Code:** *podman-volumes.toml*
+
+```toml
+[metadata]
+name = "podman-volumes"
+description = "List and manage Podman volumes"
+requirements = [ "podman", "jq",]
+
+[source]
+command = "podman volume ls --format '{{.Name}}\t{{.Driver}}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "podman volume inspect '{split:\t:0}' | jq -C '.[0]'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected volume"
+command = "podman volume rm '{split:\t:0}'"
+mode = "execute"
+
+[actions.inspect]
+description = "Inspect the selected volume in a pager"
+command = "podman volume inspect '{split:\t:0}' | jq -C '.[0]' | less -R"
+mode = "execute"
+
+```
+
+
+---
+
 ### *ports*
 
 List listening ports and associated processes
