@@ -52,10 +52,9 @@ impl PreviewState {
     // What if we did it only when the preview content or scroll changes?
     pub fn for_render_context(&self, height: usize) -> Self {
         // PERF: this allocates every time
-        let scroll = self.scroll as usize;
-        let num_lines = self.preview.total_lines.saturating_sub(
-            u16::try_from(scroll).expect("scroll should fit in a u16"),
-        ) as usize;
+        let content_len = self.preview.content.lines.len();
+        let scroll = (self.scroll as usize).min(content_len);
+        let num_lines = content_len.saturating_sub(scroll);
         let cropped_content: Text<'_> = self.preview.content.lines
             [scroll..scroll + num_lines.min(height)]
             .to_vec()
