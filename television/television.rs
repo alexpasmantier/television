@@ -664,13 +664,6 @@ impl Television {
     }
 
     pub fn update_results_picker_state(&mut self) {
-        if self.results_picker.selected().is_none()
-            && self.channel.result_count() > 0
-        {
-            self.results_picker.select(Some(0));
-            self.results_picker.relative_select(Some(0));
-        }
-
         {
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
             let height =
@@ -680,6 +673,16 @@ impl Television {
                 Arc::new(self.channel.results(height, offset));
         }
         self.results_picker.total_items = self.channel.result_count();
+
+        // Check selection after fetching results so that result_count()
+        // reflects the freshly updated matcher snapshot and selection is
+        // set on the same cycle entries first appear.
+        if self.results_picker.selected().is_none()
+            && self.channel.result_count() > 0
+        {
+            self.results_picker.select(Some(0));
+            self.results_picker.relative_select(Some(0));
+        }
     }
 
     pub fn update_rc_picker_state(&mut self) {
