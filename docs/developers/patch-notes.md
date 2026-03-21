@@ -4,6 +4,71 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.15.4](https://github.com/alexpasmantier/television/releases/tag/0.15.4) - 2026-03-21
+
+### ⛰️  Features
+
+- [795cbe9](https://github.com/alexpasmantier/television/commit/795cbe9492c2e36ef42fd765877b88b0971d35d8) *(cable)* Add podman channels by @delafthi in [#954](https://github.com/alexpasmantier/television/pull/954)
+
+- [d6918d8](https://github.com/alexpasmantier/television/commit/d6918d842c26455b4083c43c97301363233b6221) *(cable)* Introduce tailscale-exit-node channel by @lucemans in [#950](https://github.com/alexpasmantier/television/pull/950)
+
+- [f2b68c4](https://github.com/alexpasmantier/television/commit/f2b68c4292448127601eb6982f454c318409ffa3) *(shell)* Add a proper standard shell autocomplete generation subcommand by @alexpasmantier in [#930](https://github.com/alexpasmantier/television/pull/930)
+
+### 🐛 Bug Fixes
+
+- [c25376d](https://github.com/alexpasmantier/television/commit/c25376de998f18ed081ec2406b0ef5986a3f9372) *(config)* Bat cannot print file paths that starts with '-' on windows by @LeeSF03 in [#946](https://github.com/alexpasmantier/television/pull/946)
+
+- [6ba67b1](https://github.com/alexpasmantier/television/commit/6ba67b1c5d76dc7adb4675c482d186514be59364) *(deps)* Resolve dependabot security vulnerabilities by @alexpasmantier
+
+- [4a56d12](https://github.com/alexpasmantier/television/commit/4a56d129b9a2788aace6764887edc526da964388) *(docs)* Escape curly braces in changelog for MDX compatibility by @alexpasmantier
+
+- [0ee2d39](https://github.com/alexpasmantier/television/commit/0ee2d39bd26e847e611bdccf8736947ad42fbf14) *(frecency)* Persist external-action selections before execute by @lalvarezt in [#923](https://github.com/alexpasmantier/television/pull/923)
+
+- [e525063](https://github.com/alexpasmantier/television/commit/e52506350b2b4265c2ff4a66d0cc61c70d809385) *(previewer)* Prevent panic when scroll exceeds content lines length by @CodeMarco05 in [#949](https://github.com/alexpasmantier/television/pull/949)
+
+- [8f7444a](https://github.com/alexpasmantier/television/commit/8f7444a1472ab3fa4a761121d96d5400e8a78494) *(results)* Fix visual jitter when results first appear by @alexpasmantier in [#952](https://github.com/alexpasmantier/television/pull/952)
+
+- [630e537](https://github.com/alexpasmantier/television/commit/630e5371cef56194a7c53494b360b52b6d41a02b) *(shell)* Support interactive mode for PowerShell on Windows by @alexpasmantier in [#932](https://github.com/alexpasmantier/television/pull/932)
+
+- [6fbfc23](https://github.com/alexpasmantier/television/commit/6fbfc23fc41a9da342679d2573b1c40792d23906) *(tests)* Use timeout-based assertions for flaky selection tests by @alexpasmantier in [#953](https://github.com/alexpasmantier/television/pull/953)
+
+- [ebac256](https://github.com/alexpasmantier/television/commit/ebac256bf8779a2c3a705488e5e5b692c535b135) *(uncategorized)* Select-1 with prefilled input by @lalvarezt in [#942](https://github.com/alexpasmantier/television/pull/942)
+
+### 🚜 Refactor
+
+- [015495f](https://github.com/alexpasmantier/television/commit/015495f623f944f0551f2e152e42895e98cdc546) *(uncategorized)* Remove redundant install dir branch by @f440 in [#941](https://github.com/alexpasmantier/television/pull/941)
+
+### 📚 Documentation
+
+- [c5bb97c](https://github.com/alexpasmantier/television/commit/c5bb97cabe6ea50864bc272390882db2c727c3f4) *(uncategorized)* Fix templating syntax default delimiter. by @alexpasmantier
+
+### ⚡ Performance
+
+- [d1e9963](https://github.com/alexpasmantier/television/commit/d1e996319aff1982ca83d6c85f9b0d09f598c113) *(uncategorized)* Wrap MergedConfig in Arc to avoid deep cloning on every render by @alexpasmantier in [#933](https://github.com/alexpasmantier/television/pull/933)
+
+### ⚙️ Miscellaneous Tasks
+
+- [33d84a5](https://github.com/alexpasmantier/television/commit/33d84a5b20a78b02ccca74eebe4ca49ef9b7647f) *(website)* Update dependencies and fix docsearch v4 compatibility by @alexpasmantier
+
+- [df02076](https://github.com/alexpasmantier/television/commit/df0207695b54477cb709d5d0968d0c2971445152) *(uncategorized)* Release version 0.15.4 by @alexpasmantier
+
+- [181112b](https://github.com/alexpasmantier/television/commit/181112b06456d2cfd0b27b72b7f17b143099a44e) *(uncategorized)* Update nucleo fork dependency to allow publishing on crates.io again by @alexpasmantier
+
+- [3681431](https://github.com/alexpasmantier/television/commit/3681431cd4677f5c93a9c4ad9c0a0164788bc488) *(uncategorized)* Modify nightly source to https format by @atlarator in [#926](https://github.com/alexpasmantier/television/pull/926)
+
+
+
+### New Contributors
+* @delafthi made their first contribution in [#954](https://github.com/alexpasmantier/television/pull/954)
+* @lucemans made their first contribution in [#950](https://github.com/alexpasmantier/television/pull/950)
+* @LeeSF03 made their first contribution in [#946](https://github.com/alexpasmantier/television/pull/946)
+* @f440 made their first contribution in [#941](https://github.com/alexpasmantier/television/pull/941)
+* @CodeMarco05 made their first contribution in [#949](https://github.com/alexpasmantier/television/pull/949)
+* @atlarator made their first contribution in [#926](https://github.com/alexpasmantier/television/pull/926)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.3...0.15.4
+
+
 ## [0.15.3](https://github.com/alexpasmantier/television/releases/tag/0.15.3) - 2026-03-01
 
 ### ⛰️  Features

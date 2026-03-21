@@ -84,6 +84,8 @@ postprocessors = [
   # escape curly braces so MDX/Docusaurus doesn't interpret them as JSX expressions
   { pattern = '\{', replace = '\{' },
   { pattern = '\}', replace = '\}' },
+  # escape angle brackets around uppercase placeholders (e.g. <STRING>) so MDX doesn't interpret them as HTML/JSX tags
+  { pattern = '<([A-Z][A-Z_-]*>)', replace = '\\<${1}' },
 ]
 
 [git]
