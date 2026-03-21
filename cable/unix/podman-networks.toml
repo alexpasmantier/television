@@ -1,0 +1,20 @@
+[metadata]
+name = "podman-networks"
+description = "List and manage Podman networks"
+requirements = ["podman", "jq"]
+
+[source]
+command = "podman network ls --format '{{.Name}}\t{{.Driver}}\t{{.Internal}}'"
+display = "{split:\t:0} ({split:\t:1})"
+output = "{split:\t:0}"
+
+[preview]
+command = "podman network inspect '{split:\t:0}' | jq -C '.[0] | {name, driver, subnets, dns_enabled, internal}'"
+
+[ui]
+layout = "portrait"
+
+[actions.remove]
+description = "Remove the selected network"
+command = "podman network rm '{split:\t:0}'"
+mode = "execute"
