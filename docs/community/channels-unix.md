@@ -2658,6 +2658,39 @@ mode = "execute"
 
 ---
 
+### *tailscale-exit-node*
+
+A channel to select a tailscale exit node
+
+**Requirements:** `tailscale`, `awk`
+
+**Code:** *tailscale-exit-node.toml*
+
+```toml
+[metadata]
+name = "tailscale-exit-node"
+description = "A channel to select a tailscale exit node"
+requirements = [ "tailscale", "awk",]
+
+[source]
+command = "tailscale exit-node list | awk '/^[[:space:]]*[0-9]+\\./ {gsub(/^[[:space:]]+/, \"\"); print $1}'"
+
+[preview]
+command = "tailscale whois {}"
+
+[keybindings]
+enter = "actions:connect"
+
+[actions.connect]
+description = "Set selected host as exit node"
+command = "tailscale set --exit-node='{}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *text*
 
 A channel to find and select text from files
