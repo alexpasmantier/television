@@ -96,7 +96,7 @@ requirements = [ "fd", "bat",]
 command = "fd -t f . \"$env:USERPROFILE\\AppData\\Roaming\\\""
 
 [preview]
-command = "bat -n --color=always '.\\{}'"
+command = "bat -n --color=always '{}'"
 
 ```
 
