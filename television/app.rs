@@ -374,10 +374,10 @@ impl App {
 
             if self.television.merged_config.select_1
                 && !self.television.channel.running()
-                && self.television.channel.total_count() == 1
+                && self.television.channel.result_count() == 1
             {
                 // If `self.select_1` is true, the channel is not running, and there is
-                // only one entry available, automatically select the first entry.
+                // only one matched entry available, automatically select it.
                 if let Some(outcome) = self.maybe_select_1() {
                     action_outcome = outcome;
                 }
