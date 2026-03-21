@@ -1,0 +1,66 @@
+[metadata]
+name = "jj-log"
+description = "A channel to select from jujutsu (jj) log entries"
+requirements = ["jj"]
+
+[source]
+command = "jj log --color=always --no-graph -r 'all()' -T 'change_id.shortest(8) ++ \"\\t\" ++ author.name() ++ \"\\t\" ++ format_timestamp(author.timestamp()) ++ \"\\t\" ++ description.first_line() ++ \"\\n\"'"
+display = "{strip_ansi|split:\t:0} {strip_ansi|split:\t:3}"
+output = "{strip_ansi|split:\t:0}"
+ansi = true
+no_sort = true
+frecency = false
+
+[preview]
+command = "jj show --color=always '{strip_ansi|split:\t:0}'"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-i = "actions:insert_before"
+ctrl-a = "actions:insert_after"
+ctrl-shift-d = "actions:diff"
+ctrl-s = "actions:squash"
+ctrl-d = "actions:abandon"
+ctrl-e = "actions:describe"
+ctrl-b = "actions:rebase"
+
+[actions.edit]
+description = "Edit the selected change (move working copy to it)"
+command = "jj edit '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.insert_before]
+description = "Insert a new change before the selected change"
+command = "jj new --insert-before '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.insert_after]
+description = "Insert a new change after the selected change"
+command = "jj new --insert-after '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.diff]
+description = "Show diff of the selected change"
+command = "jj diff --color=always -r '{strip_ansi|split:\t:0}' | less -R"
+shell = "bash"
+mode = "execute"
+
+[actions.squash]
+description = "Squash the selected change into its parent"
+command = "jj squash -r '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.abandon]
+description = "Abandon the selected change"
+command = "jj abandon '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.describe]
+description = "Edit the description of the selected change"
+command = "jj describe '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.rebase]
+description = "Rebase the selected change onto the working copy"
+command = "jj rebase -r '{strip_ansi|split:\t:0}' -d @"
+mode = "execute"
