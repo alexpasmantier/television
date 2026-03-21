@@ -1,0 +1,34 @@
+[metadata]
+name = "podman-images"
+description = "A channel to select from Podman images"
+requirements = ["podman", "jq"]
+
+[source]
+command = "podman images --format '{{.Repository}}:{{.Tag}} {{.ID}}'"
+output = "{split: :-1}"
+
+[preview]
+command = "podman image inspect '{split: :-1}' | jq -C"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-r = "actions:run"
+ctrl-d = "actions:remove"
+ctrl-s = "actions:shell"
+
+[actions.run]
+description = "Run a container from the selected image"
+command = "podman run -it '{split: :-1}'"
+mode = "execute"
+
+[actions.shell]
+description = "Run a shell in the selected image"
+command = "podman run -it '{split: :-1}' /bin/sh"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected image"
+command = "podman rmi '{split: :-1}'"
+mode = "execute"
