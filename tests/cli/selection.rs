@@ -9,6 +9,8 @@ use super::super::common::*;
 /// Tests that --select-1 automatically selects and returns when only one entry matches.
 #[test]
 fn test_select_1_auto_selects_single_entry() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     // This should auto-select "UNIQUE16CHARID" since it's the only result
@@ -19,13 +21,20 @@ fn test_select_1_auto_selects_single_entry() {
     ]);
     tester.spawn_command(cmd);
 
-    // Should auto-select and output the result without showing TUI
-    tester.assert_raw_output_contains("UNIQUE16CHARID");
+    // Should auto-select and output the result without showing TUI.
+    // Use timeout-based assertion because --select-1 waits for loading to
+    // complete, which may take longer than the initial spawn delay.
+    tester.assert_raw_output_contains_with_timeout(
+        "UNIQUE16CHARID",
+        Duration::from_secs(2),
+    );
 }
 
 /// Tests that --select-1 respects the initial --input filter.
 #[test]
 fn test_select_1_respects_initial_input() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     let cmd = tv_local_config_and_cable_with_args(&[
@@ -37,12 +46,17 @@ fn test_select_1_respects_initial_input() {
     ]);
     tester.spawn_command(cmd);
 
-    tester.assert_raw_output_contains("television");
+    tester.assert_raw_output_contains_with_timeout(
+        "television",
+        Duration::from_secs(2),
+    );
 }
 
 /// Tests that --take-1 automatically selects the first entry after loading completes.
 #[test]
 fn test_take_1_auto_selects_first_entry() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     // This should auto-select "UNIQUE16CHARID" since it's the only result
@@ -53,8 +67,13 @@ fn test_take_1_auto_selects_first_entry() {
     ]);
     tester.spawn_command(cmd);
 
-    // Should auto-select and output the result without showing TUI
-    tester.assert_raw_output_contains("UNIQUE16CHARID");
+    // Should auto-select and output the result without showing TUI.
+    // Use timeout-based assertion because --take-1 waits for loading to
+    // complete, which may take longer than the initial spawn delay.
+    tester.assert_raw_output_contains_with_timeout(
+        "UNIQUE16CHARID",
+        Duration::from_secs(2),
+    );
 }
 
 /// Tests that --take-1-fast immediately selects the first entry as it appears.
