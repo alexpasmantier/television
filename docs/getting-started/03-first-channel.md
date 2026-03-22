@@ -38,6 +38,7 @@ Let's build a channel to browse and preview TLDR pages (quick command references
 Create a new file:
 
 ```sh
+# NOTE for Microsoft Windows; md "%LOCALAPPDATA%\television\config\cable"
 mkdir -p ~/.config/television/cable
 touch ~/.config/television/cable/tldr.toml
 ```
