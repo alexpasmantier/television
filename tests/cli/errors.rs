@@ -132,31 +132,30 @@ fn test_watch_and_selection_flags_conflict_errors() {
 /// Tests that --inline conflicts with --height.
 #[test]
 fn test_inline_and_height_conflict_errors() {
-    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // This should fail because --inline and --height are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
+    let mut cmd = tv_local_config_and_cable_with_args(&[
         "files", "--inline", "--height", "20",
     ]);
+    cmd.env(TESTING_ENV_VAR, "1");
     tester.spawn_command(cmd);
 
     // Confirm the logical incompatibility is detected
     tester.assert_raw_output_contains("cannot be used with");
-    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
 /// Tests that --width cannot be used without --height or --inline.
 #[test]
 fn test_width_without_height_or_inline_errors() {
-    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // This should fail because --width requires --height or --inline
-    let cmd = tv_local_config_and_cable_with_args(&["files", "--width", "80"]);
+    let mut cmd =
+        tv_local_config_and_cable_with_args(&["files", "--width", "80"]);
+    cmd.env(TESTING_ENV_VAR, "1");
     tester.spawn_command(cmd);
 
     // Confirm the logical incompatibility is detected
     tester.assert_raw_output_contains("can only be used");
-    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
