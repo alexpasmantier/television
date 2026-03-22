@@ -41,5 +41,5 @@ mode = "execute"
 
 [actions.goto_parent_dir]
 description = "Re-opens tv in the parent directory"
-command = "tv files .."
+command = "tv file-tree .."
 mode = "execute"
