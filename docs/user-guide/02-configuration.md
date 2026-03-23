@@ -10,7 +10,7 @@ Locations where `television` expects the user configuration file to be located f
 | -------- | :------------------------------------: |
 | Linux    | `$HOME/.config/television/config.toml` |
 | macOS    | `$HOME/.config/television/config.toml` |
-| Windows  | `%LocalAppData%\television\config.toml` |
+| Windows  | `%LocalAppData%\television\config\config.toml` |
 
 Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
 `$XDG_CONFIG_HOME/television/config.toml` if the environment variable is set.
