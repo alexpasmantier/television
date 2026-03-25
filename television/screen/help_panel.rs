@@ -82,6 +82,12 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::SelectPrevPage
                 | Action::SelectNextHalfPage
                 | Action::SelectPrevHalfPage
+                | Action::SelectNextEntryNocycle
+                | Action::SelectPrevEntryNocycle
+                | Action::SelectNextPageNocycle
+                | Action::SelectPrevPageNocycle
+                | Action::SelectNextHalfPageNocycle
+                | Action::SelectPrevHalfPageNocycle
                 // Selection actions - channel specific (multi-select)
                 | Action::ToggleSelectionDown
                 | Action::ToggleSelectionUp

@@ -63,6 +63,18 @@ pub enum Action {
     SelectNextHalfPage,
     /// Select the previous half page of entries in the currently focused list.
     SelectPrevHalfPage,
+    /// Select the next entry without cycling (stops at last entry).
+    SelectNextEntryNocycle,
+    /// Select the previous entry without cycling (stops at first entry).
+    SelectPrevEntryNocycle,
+    /// Select the next page of entries without cycling (stops at last entry).
+    SelectNextPageNocycle,
+    /// Select the previous page of entries without cycling (stops at first entry).
+    SelectPrevPageNocycle,
+    /// Select the next half page of entries without cycling (stops at last entry).
+    SelectNextHalfPageNocycle,
+    /// Select the previous half page of entries without cycling (stops at first entry).
+    SelectPrevHalfPageNocycle,
     /// Copy the currently selected entry to the clipboard.
     CopyEntryToClipboard,
     // preview actions
@@ -380,6 +392,12 @@ impl Action {
             Action::SelectPrevPage => "Page up",
             Action::SelectNextHalfPage => "Half page down",
             Action::SelectPrevHalfPage => "Half page up",
+            Action::SelectNextEntryNocycle => "Navigate down (no cycle)",
+            Action::SelectPrevEntryNocycle => "Navigate up (no cycle)",
+            Action::SelectNextPageNocycle => "Page down (no cycle)",
+            Action::SelectPrevPageNocycle => "Page up (no cycle)",
+            Action::SelectNextHalfPageNocycle => "Half page down (no cycle)",
+            Action::SelectPrevHalfPageNocycle => "Half page up (no cycle)",
             Action::CopyEntryToClipboard => "Copy to clipboard",
 
             // Preview actions
