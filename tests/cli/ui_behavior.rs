@@ -237,3 +237,70 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
+
+/// Tests that Alt+B (go_to_prev_word) moves the cursor backward by a word.
+///
+/// Strategy: pre-fill a two-word query "foo bar", then send Alt+B to move the
+/// cursor back to the start of "bar", then type "X" and assert the resulting
+/// text is "foo Xbar" (the character was inserted before "bar").
+#[test]
+fn test_go_to_prev_word_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Pre-fill "foo bar"; cursor starts at end (position 7).
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--input", "foo bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the pre-filled text appears in the input box.
+    tester.assert_tui_frame_contains("│> foo bar");
+
+    // Send Alt+B to move cursor to the start of "bar" (one word backward).
+    tester.send("\x1bb");
+
+    // Insert a character at the new cursor position.
+    tester.send("X");
+
+    // The input should now read "foo Xbar".
+    tester.assert_tui_frame_contains("foo Xbar");
+
+    // Send Ctrl+C to exit.
+    tester.send(&ctrl('c'));
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+/// Tests that Alt+F (go_to_next_word) moves the cursor forward by a word.
+///
+/// Strategy: pre-fill "foo bar", move to the start with Ctrl+A, then send
+/// Alt+F twice to skip past both words to the end, type "X", and assert the
+/// result is "foo barX" (the character was appended after both words).
+#[test]
+fn test_go_to_next_word_keybinding() {
+    let mut tester = PtyTester::new();
+
+    // Pre-fill "foo bar"; cursor starts at end.
+    let cmd =
+        tv_local_config_and_cable_with_args(&["files", "--input", "foo bar"]);
+    let mut child = tester.spawn_command_tui(cmd);
+
+    // Verify the pre-filled text appears in the input box.
+    tester.assert_tui_frame_contains("│> foo bar");
+
+    // Move cursor to the start of the input.
+    tester.send(&ctrl('a'));
+
+    // Send Alt+F twice: first jumps to the start of "bar" (position 4),
+    // second jumps past "bar" to the end of the input (position 7).
+    tester.send("\x1bf");
+    tester.send("\x1bf");
+
+    // Insert a character at the new cursor position (end of input).
+    tester.send("X");
+
+    // The input should now read "foo barX".
+    tester.assert_tui_frame_contains("foo barX");
+
+    // Send Ctrl+C to exit.
+    tester.send(&ctrl('c'));
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
