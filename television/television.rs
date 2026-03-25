@@ -601,6 +601,8 @@ impl Television {
                     | Action::SelectPrevEntry
                     | Action::SelectNextPage
                     | Action::SelectPrevPage
+                    | Action::SelectNextHalfPage
+                    | Action::SelectPrevHalfPage
                     | Action::ScrollPreviewDown
                     | Action::ScrollPreviewUp
                     | Action::ScrollPreviewHalfPageDown
@@ -986,6 +988,36 @@ impl Television {
                             .height
                             .saturating_sub(2)
                             .into(),
+                    );
+                }
+            }
+            Action::SelectNextHalfPage => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Next,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
+                    );
+                }
+            }
+            Action::SelectPrevHalfPage => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Prev,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
                     );
                 }
             }

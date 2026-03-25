@@ -59,6 +59,10 @@ pub enum Action {
     SelectNextPage,
     /// Select the previous page of entries in the currently focused list.
     SelectPrevPage,
+    /// Select the next half page of entries in the currently focused list.
+    SelectNextHalfPage,
+    /// Select the previous half page of entries in the currently focused list.
+    SelectPrevHalfPage,
     /// Copy the currently selected entry to the clipboard.
     CopyEntryToClipboard,
     // preview actions
@@ -374,6 +378,8 @@ impl Action {
             Action::SelectPrevEntry => "Navigate up",
             Action::SelectNextPage => "Page down",
             Action::SelectPrevPage => "Page up",
+            Action::SelectNextHalfPage => "Half page down",
+            Action::SelectPrevHalfPage => "Half page up",
             Action::CopyEntryToClipboard => "Copy to clipboard",
 
             // Preview actions
