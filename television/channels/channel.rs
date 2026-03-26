@@ -19,8 +19,11 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
+use tokio::{
+    io::{AsyncBufReadExt, BufReader},
+    time::Instant,
+};
 use tracing::debug;
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
@@ -254,6 +257,8 @@ const DEFAULT_LINE_BUFFER_SIZE: usize = 256;
 // Batch size for pushing candidates to the injector
 // 10k * 500 bytes (pessimistic avg line size) = ~5 MB
 const BATCH_SIZE: usize = 10_000;
+// Automatically flush batch after this interval
+const UPDATE_INTERVAL: Duration = Duration::from_millis(200);
 // Maximum number of concurrent flush tasks to prevent unbounded memory growth
 // 4 * 10_000 * average line size = ~20 MB
 const MAX_CONCURRENT_FLUSHES: usize = 4;
@@ -292,6 +297,7 @@ pub async fn load_candidates<P: EntryProcessor>(
             .map(|d| *d as u8)
             .unwrap_or(DEFAULT_DELIMITER);
 
+        let mut last_flush = Instant::now();
         while {
             buf.clear();
             let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
@@ -300,7 +306,9 @@ pub async fn load_candidates<P: EntryProcessor>(
             batch.push(buf.clone());
 
             // Flush batch when it reaches the target size
-            if batch.len() >= BATCH_SIZE {
+            if batch.len() >= BATCH_SIZE
+                || last_flush.elapsed() >= UPDATE_INTERVAL
+            {
                 if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
                     // Wait for any task to complete
                     let _ = flush_handles.join_next().await;
@@ -316,6 +324,7 @@ pub async fn load_candidates<P: EntryProcessor>(
                     flush_batch(batch_to_flush, &inj, &proc, delimiter);
                 });
                 produced_output = true;
+                last_flush = Instant::now();
             }
         }
 
@@ -374,6 +383,7 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
         .map(|d| *d as u8)
         .unwrap_or(DEFAULT_DELIMITER);
 
+    let mut last_flush = Instant::now();
     while {
         buf.clear();
         let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
@@ -381,7 +391,8 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
     } {
         batch.push(buf.clone());
 
-        if batch.len() >= BATCH_SIZE {
+        if batch.len() >= BATCH_SIZE || last_flush.elapsed() >= UPDATE_INTERVAL
+        {
             if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
                 let _ = flush_handles.join_next().await;
             }
@@ -393,6 +404,7 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
             flush_handles.spawn_blocking(move || {
                 flush_batch(batch_to_flush, &inj, &proc, delimiter);
             });
+            last_flush = Instant::now();
         }
     }
 
