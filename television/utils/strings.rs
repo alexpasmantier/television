@@ -454,6 +454,16 @@ pub fn replace_non_printable_bulk<'a>(
                     c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
                         output.push(c);
                     }
+                    // CJK Symbols and Punctuation (includes book title marks 《》)
+                    // ex: 《 》 【 】
+                    c if ('\u{3000}'..='\u{303F}').contains(&c) => {
+                        output.push(c);
+                    }
+                    // Halfwidth and Fullwidth Forms (includes fullwidth parentheses)
+                    // ex: （ ） ＜＞ ＝
+                    c if ('\u{FF00}'..='\u{FFEF}').contains(&c) => {
+                        output.push(c);
+                    }
                     // Korean: Hangul syllables
                     c if ('\u{AC00}'..='\u{D7AF}').contains(&c) => {
                         output.push(c);
