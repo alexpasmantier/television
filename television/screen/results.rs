@@ -72,8 +72,6 @@ pub fn draw_results_list(
         InputPosition::Top => ratatui::widgets::ListDirection::TopToBottom,
     };
 
-    let has_multi_select = !selected_entries.is_empty();
-
     let results_list = result_item::build_results_list(
         results_block,
         entries,
@@ -81,13 +79,7 @@ pub fn draw_results_list(
         list_direction,
         &colorscheme.results,
         rect.width - 1, // right padding
-        |entry| {
-            if has_multi_select {
-                Some(selected_entries.contains(entry))
-            } else {
-                None
-            }
-        },
+        |entry| Some(selected_entries.contains(entry)),
     );
 
     f.render_stateful_widget(results_list, rect, relative_picker_state);

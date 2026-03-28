@@ -90,7 +90,7 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         .unwrap_or(0);
 
     let item_max_width = area_width
-        .saturating_sub(2) // pointer + space (kept for caller)
+        .saturating_sub(POINTER_SYMBOL.len() as u16)
         .saturating_sub(2) // borders
         .saturating_sub(selection_prefix_width)
         .saturating_sub(shortcut_extra);
