@@ -132,7 +132,7 @@ fn draw_search_panel(
 ) -> Result<()> {
     let layout = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Fill(1), Constraint::Length(3)].as_ref())
+        .constraints(&[Constraint::Fill(1), Constraint::Length(3)] as &[Constraint])
         .split(area);
 
     draw_action_list(f, layout[0], entries, picker_state, colorscheme);

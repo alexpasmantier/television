@@ -8,7 +8,7 @@ command = "fd -t f . ~/Downloads 2>/dev/null | head -200"
 
 [preview]
 command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
-env = { BAT_THEME = "ansi" }
+env = { BAT_THEME = "ansi", TERM = "dumb" }
 
 [keybindings]
 enter = "actions:open"

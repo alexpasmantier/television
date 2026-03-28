@@ -632,6 +632,12 @@ impl Television {
                     sender.send(PreviewRequest::Preview(Ticket::new(
                         selected_entry.clone(),
                     )))?;
+                    // Show loading indicator immediately while preview generates
+                    self.preview_state.set_loading(
+                        selected_entry.raw.clone(),
+                        selected_entry.display().to_string(),
+                    );
+                    self.action_tx.send(Action::Render)?;
                 }
                 // try to receive a preview update
                 if let Ok(preview) = receiver.try_recv() {
