@@ -1,6 +1,6 @@
 use ratatui::text::Text;
 
-use crate::previewer::Preview;
+use crate::previewer::{Preview, PreviewContent};
 
 #[derive(Debug, Clone, Default)]
 pub struct PreviewState {
@@ -38,6 +38,23 @@ impl PreviewState {
         self.scroll = 0;
     }
 
+    /// Set the preview to a loading state for the given entry.
+    pub fn set_loading(&mut self, entry_raw: String, title: String) {
+        use crate::utils::strings::EMPTY_STRING;
+        self.preview = Preview::new(
+            entry_raw,
+            EMPTY_STRING.to_string(),
+            &title,
+            PreviewContent::Text(Text::from("Loading...")),
+            None,
+            1,
+            None,
+            0,
+            1,
+        );
+        self.scroll = 0;
+    }
+
     pub fn update(&mut self, preview: Preview, scroll: u16) {
         if self.preview.entry_raw != preview.entry_raw
             || self.preview.content != preview.content
@@ -51,35 +68,43 @@ impl PreviewState {
     // FIXME: does this really need to happen for every render?
     // What if we did it only when the preview content or scroll changes?
     pub fn for_render_context(&self, height: usize) -> Self {
-        // PERF: this allocates every time
-        let content_len = self.preview.content.lines.len();
-        let scroll = (self.scroll as usize).min(content_len);
-        let num_lines = content_len.saturating_sub(scroll);
-        let cropped_content: Text<'_> = self.preview.content.lines
-            [scroll..scroll + num_lines.min(height)]
-            .to_vec()
-            .into();
+        match &self.preview.content {
+            PreviewContent::Image(_) => {
+                // Images don't need line-based cropping
+                self.clone()
+            }
+            PreviewContent::Text(text) => {
+                // PERF: this allocates every time
+                let content_len = text.lines.len();
+                let scroll = (self.scroll as usize).min(content_len);
+                let num_lines = content_len.saturating_sub(scroll);
+                let cropped_content: Text<'_> = text.lines
+                    [scroll..scroll + num_lines.min(height)]
+                    .to_vec()
+                    .into();
 
-        let adjusted_line_number = self
-            .preview
-            .target_line
-            .map(|line| line.saturating_sub(self.scroll));
+                let adjusted_line_number = self
+                    .preview
+                    .target_line
+                    .map(|line| line.saturating_sub(self.scroll));
 
-        PreviewState::new(
-            self.enabled,
-            // PERF: this allocates every time
-            Preview::new(
-                self.preview.entry_raw.clone(),
-                self.preview.formatted_command.clone(),
-                &self.preview.title,
-                cropped_content,
-                adjusted_line_number,
-                self.preview.total_lines,
-                self.preview.footer.clone(),
-                self.preview.preview_index,
-                self.preview.preview_count,
-            ),
-            self.scroll,
-        )
+                PreviewState::new(
+                    self.enabled,
+                    // PERF: this allocates every time
+                    Preview::new(
+                        self.preview.entry_raw.clone(),
+                        self.preview.formatted_command.clone(),
+                        &self.preview.title,
+                        PreviewContent::Text(cropped_content),
+                        adjusted_line_number,
+                        self.preview.total_lines,
+                        self.preview.footer.clone(),
+                        self.preview.preview_index,
+                        self.preview.preview_count,
+                    ),
+                    self.scroll,
+                )
+            }
+        }
     }
 }

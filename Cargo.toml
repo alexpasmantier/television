@@ -53,6 +53,9 @@ clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
 fast-strip-ansi = "0.13"
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "bmp", "webp", "tiff", "ico", "pnm", "tga", "qoi", "rayon"] }
+ratatui-image = { version = "10", default-features = false, features = ["crossterm"] }
+rustix = { version = "0.38", features = ["termios"] }
 
 
 # target specific dependencies

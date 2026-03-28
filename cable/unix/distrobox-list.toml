@@ -8,6 +8,7 @@ command = ["distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tai
 
 [preview]
 command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+env = { TERM = "dumb" }
 
 [keybindings]
 ctrl-e = "actions:distrobox-enter"

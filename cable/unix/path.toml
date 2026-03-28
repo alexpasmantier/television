@@ -8,6 +8,7 @@ command = "printf '%s\n' \"$PATH\" | tr ':' '\n'"
 
 [preview]
 command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --color=always"
+env = { TERM = "dumb" }
 
 [actions.cd]
 description = "Open a shell in the selected PATH directory"

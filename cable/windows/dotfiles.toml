@@ -9,3 +9,4 @@ command = "fd -t f . \"$env:USERPROFILE\\AppData\\Roaming\\\""
 
 [preview]
 command = "bat -n --color=always -- '{}'"
+env = { BAT_THEME = "ansi", TERM = "dumb" }

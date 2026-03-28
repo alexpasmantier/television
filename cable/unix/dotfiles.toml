@@ -8,6 +8,7 @@ command = "fd -t f . $HOME/.config"
 
 [preview]
 command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi", TERM = "dumb" }
 
 [keybindings]
 enter = "actions:edit"

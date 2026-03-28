@@ -161,7 +161,7 @@ async fn poll_event(timeout: Duration) -> bool {
 fn flush_existing_events() {
     let mut counter = 0;
     while let Ok(true) = crossterm::event::poll(Duration::from_millis(0)) {
-        if let Ok(crossterm::event::Event::Key(_)) = crossterm::event::read() {
+        if crossterm::event::read().is_ok() {
             counter += 1;
         }
     }

@@ -1,7 +1,7 @@
 use crate::{
     config::ui::{BorderType, Padding},
     event::Key,
-    previewer::state::PreviewState,
+    previewer::{PreviewContent, state::PreviewState},
     screen::colors::Colorscheme,
     utils::strings::{
         ReplaceNonPrintableConfig, SPACE, replace_non_printable_bulk,
@@ -18,6 +18,100 @@ use ratatui::{
         Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
     },
 };
+use ratatui_image::{Resize, StatefulImage, picker::{Picker, ProtocolType}, protocol::StatefulProtocol};
+use std::sync::OnceLock;
+use parking_lot::Mutex;
+
+/// Global picker instance, initialized once on first use.
+static IMAGE_PICKER: OnceLock<Mutex<Picker>> = OnceLock::new();
+
+/// Build the image picker from ioctl font-size and env-based protocol
+/// detection.  No escape-sequence queries, so nothing can leak.
+fn build_picker() -> Picker {
+    // 1. Get actual font size from ioctl (TIOCGWINSZ)
+    let font_size = font_size_from_ioctl().unwrap_or((16, 32));
+
+    // 2. Detect protocol from environment variables
+    let proto = detect_protocol_from_env();
+
+    tracing::info!(
+        "Image picker: font_size={:?}, detected_proto={:?}",
+        font_size,
+        proto
+    );
+
+    #[allow(deprecated)]
+    let mut picker = Picker::from_fontsize(font_size);
+
+    if let Some(proto) = proto {
+        picker.set_protocol_type(proto);
+    }
+
+    tracing::info!(
+        "Image picker: final protocol={:?}, font_size={:?}",
+        picker.protocol_type(),
+        picker.font_size()
+    );
+    picker
+}
+
+/// Get the terminal cell size in pixels via TIOCGWINSZ ioctl.
+/// Returns (width, height) per cell.
+#[cfg(unix)]
+fn font_size_from_ioctl() -> Option<(u16, u16)> {
+    let winsize = rustix::termios::tcgetwinsize(std::io::stdout()).ok()?;
+    let (x, y, cols, rows) = (
+        winsize.ws_xpixel,
+        winsize.ws_ypixel,
+        winsize.ws_col,
+        winsize.ws_row,
+    );
+    if x == 0 || y == 0 || cols == 0 || rows == 0 {
+        return None;
+    }
+    Some((x / cols, y / rows))
+}
+
+#[cfg(not(unix))]
+fn font_size_from_ioctl() -> Option<(u16, u16)> {
+    None
+}
+
+/// Detect the best image protocol from environment variables.
+fn detect_protocol_from_env() -> Option<ProtocolType> {
+    // Kitty: check KITTY_WINDOW_ID (works both in and outside tmux)
+    if std::env::var("KITTY_WINDOW_ID").is_ok_and(|s| !s.is_empty()) {
+        return Some(ProtocolType::Kitty);
+    }
+    // iTerm2 / WezTerm / mintty
+    if std::env::var("TERM_PROGRAM").is_ok_and(|tp| {
+        tp.contains("iTerm")
+            || tp.contains("WezTerm")
+            || tp.contains("mintty")
+    }) {
+        return Some(ProtocolType::Iterm2);
+    }
+    if std::env::var("LC_TERMINAL").is_ok_and(|lc| lc.contains("iTerm")) {
+        return Some(ProtocolType::Iterm2);
+    }
+    None
+}
+
+fn get_picker() -> &'static Mutex<Picker> {
+    IMAGE_PICKER.get_or_init(|| Mutex::new(build_picker()))
+}
+
+/// Per-preview image protocol state, cached so we don't re-encode every frame.
+struct ImageState {
+    protocol: StatefulProtocol,
+    entry_raw: String,
+}
+
+use std::cell::RefCell;
+
+thread_local! {
+    static CACHED_IMAGE_STATE: RefCell<Option<ImageState>> = const { RefCell::new(None) };
+}
 
 #[allow(clippy::too_many_arguments)]
 pub fn draw_preview_content_block(
@@ -43,37 +137,77 @@ pub fn draw_preview_content_block(
         preview_state.preview.preview_count,
         cycle_key,
     );
-    let total_lines =
-        preview_state.preview.total_lines.saturating_sub(1) as usize;
-    let scroll = preview_state.scroll;
 
-    // render the preview content
-    let rp = build_preview_paragraph(
-        preview_state.preview.content,
-        preview_state.preview.target_line,
-        colorscheme.preview.highlight_bg,
-        word_wrap,
-    );
-    f.render_widget(Clear, inner);
-    f.render_widget(rp, inner);
+    match preview_state.preview.content {
+        PreviewContent::Image(ref dyn_image) => {
+            f.render_widget(Clear, inner);
 
-    // render scrollbar if enabled
-    if scrollbar {
-        let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight)
-            .style(Style::default().fg(colorscheme.general.border_fg));
+            CACHED_IMAGE_STATE.with(|cell| {
+                let mut cached = cell.borrow_mut();
 
-        let mut scrollbar_state =
-            ScrollbarState::new(total_lines).position(scroll as usize);
+                // Re-create protocol state if the entry changed
+                let needs_update = cached
+                    .as_ref()
+                    .is_none_or(|s| s.entry_raw != preview_state.preview.entry_raw);
 
-        // Create a separate area for the scrollbar that accounts for text padding
-        let scrollbar_rect = Rect {
-            x: inner.x + inner.width,
-            y: inner.y,
-            width: 1, // Scrollbar width
-            height: inner.height,
-        };
+                if needs_update {
+                    let picker = get_picker();
+                    let protocol = picker.lock().new_resize_protocol((**dyn_image).clone());
+                    *cached = Some(ImageState {
+                        protocol,
+                        entry_raw: preview_state.preview.entry_raw.clone(),
+                    });
+                }
 
-        scrollbar.render(scrollbar_rect, f.buffer_mut(), &mut scrollbar_state);
+                if let Some(state) = cached.as_mut() {
+                    let image_widget = StatefulImage::default()
+                        .resize(Resize::Fit(Some(image::imageops::FilterType::CatmullRom)));
+                    f.render_stateful_widget(image_widget, inner, &mut state.protocol);
+                }
+            });
+        }
+        PreviewContent::Text(text) => {
+            let total_lines =
+                preview_state.preview.total_lines.saturating_sub(1) as usize;
+            let scroll = preview_state.scroll;
+
+            // render the preview content
+            let rp = build_preview_paragraph(
+                text,
+                preview_state.preview.target_line,
+                colorscheme.preview.highlight_bg,
+                word_wrap,
+            );
+            f.render_widget(Clear, inner);
+            f.render_widget(rp, inner);
+
+            // render scrollbar if enabled
+            if scrollbar {
+                let scrollbar_widget =
+                    Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                        .style(
+                            Style::default()
+                                .fg(colorscheme.general.border_fg),
+                        );
+
+                let mut scrollbar_state =
+                    ScrollbarState::new(total_lines).position(scroll as usize);
+
+                // Create a separate area for the scrollbar that accounts for text padding
+                let scrollbar_rect = Rect {
+                    x: inner.x + inner.width,
+                    y: inner.y,
+                    width: 1, // Scrollbar width
+                    height: inner.height,
+                };
+
+                scrollbar_widget.render(
+                    scrollbar_rect,
+                    f.buffer_mut(),
+                    &mut scrollbar_state,
+                );
+            }
+        }
     }
 
     Ok(())
