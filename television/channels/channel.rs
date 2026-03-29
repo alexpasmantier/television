@@ -28,10 +28,10 @@ use tracing::debug;
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
 
-fn total_matcher_length<T>(item: &nucleo::Item<'_, T>) -> u32 {
+fn total_matcher_length<T>(item: &nucleo::Item<'_, T>) -> usize {
     item.matcher_columns
         .iter()
-        .map(|haystack| haystack.len() as u32)
+        .map(nucleo::Utf32String::len)
         .sum()
 }
 
@@ -47,9 +47,9 @@ fn effective_prefer_prefix(
 
 fn compare_matches<T>(
     sort_mode: SourceSortMode,
-    m1: &nucleo::Match,
+    m1: nucleo::Match,
     i1: &nucleo::Item<'_, T>,
-    m2: &nucleo::Match,
+    m2: nucleo::Match,
     i2: &nucleo::Item<'_, T>,
 ) -> Ordering {
     match sort_mode {
@@ -114,18 +114,18 @@ impl<P: EntryProcessor> Channel<P> {
 
                 match (f1, f2) {
                     (Some(s1), Some(s2)) => s2.cmp(&s1).then_with(|| {
-                        compare_matches(sort_mode, m1, &i1, m2, &i2)
+                        compare_matches(sort_mode, *m1, &i1, *m2, &i2)
                     }),
                     (Some(_), None) => Ordering::Less,
                     (None, Some(_)) => Ordering::Greater,
                     (None, None) => {
-                        compare_matches(sort_mode, m1, &i1, m2, &i2)
+                        compare_matches(sort_mode, *m1, &i1, *m2, &i2)
                     }
                 }
             }))
         } else if sort_mode == SourceSortMode::History {
             SortStrategy::Custom(Box::new(|m1, i1, m2, i2| {
-                compare_matches(SourceSortMode::History, m1, &i1, m2, &i2)
+                compare_matches(SourceSortMode::History, *m1, &i1, *m2, &i2)
             }))
         } else {
             SortStrategy::Score
@@ -826,7 +826,7 @@ mod tests {
             let injector = matcher.injector();
 
             for entry in entries {
-                injector.push((), |_, cols| cols[0] = entry.into());
+                injector.push((), |(), cols| cols[0] = entry.into());
             }
 
             matcher.find("clear");
