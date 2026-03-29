@@ -272,6 +272,7 @@ impl ChannelPrototype {
                 display: None,
                 output: None,
                 sort: SourceSortMode::Default,
+                legacy_no_sort: None,
                 prefer_prefix: true,
                 frecency: true,
             },
@@ -412,6 +413,10 @@ pub struct SourceSpec {
     /// `prefer_prefix` nor frecency apply.
     #[serde(default)]
     pub sort: SourceSortMode,
+    /// Deprecated alias for `sort = "source"` kept for backwards
+    /// compatibility with existing channel TOML files.
+    #[serde(default, rename = "no_sort", skip_serializing)]
+    legacy_no_sort: Option<bool>,
     /// Whether matches closer to the start of an entry should receive an
     /// additional ranking bonus. This is not a hard prefix-only ordering rule.
     /// Defaults to true to preserve the current matcher behavior.
@@ -431,6 +436,18 @@ const fn default_prefer_prefix() -> bool {
 
 const fn default_frecency() -> bool {
     true
+}
+
+impl SourceSpec {
+    pub const fn effective_sort(&self) -> SourceSortMode {
+        if matches!(self.sort, SourceSortMode::Default)
+            && matches!(self.legacy_no_sort, Some(true))
+        {
+            SourceSortMode::Source
+        } else {
+            self.sort
+        }
+    }
 }
 
 /// Just a helper function to adapt cli parsing to serde deserialization.
@@ -846,6 +863,22 @@ mod tests {
         let prototype: ChannelPrototype = from_str(toml_data).unwrap();
 
         assert_eq!(prototype.source.sort, SourceSortMode::History);
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_legacy_no_sort_override() {
+        let toml_data = r#"
+        [metadata]
+        name = "history"
+
+        [source]
+        command = "cat ~/.bash_history"
+        no_sort = true
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.source.effective_sort(), SourceSortMode::Source);
     }
 
     #[test]

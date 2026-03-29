@@ -279,6 +279,88 @@ fn test_channel_history_sort_override() {
     PtyTester::assert_exit_ok(&mut child_history, DEFAULT_DELAY);
 }
 
+#[test]
+fn test_channel_legacy_no_sort_override() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "legacy-no-sort",
+            r#"
+                [metadata]
+                name = "legacy-no-sort"
+
+                [source]
+                command = "printf '%s\n' 'a-weak-b' 'ab-strong'"
+                no_sort = true
+            "#,
+        )
+        .unwrap();
+
+    let cmd = tv_with_args(&[
+        "legacy-no-sort",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "ab",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("a-weak-b"),
+        "Expected output to contain 'a-weak-b', but got:\n{:?}",
+        output
+    );
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_cli_sort_overrides_channel_sort() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "sort-history",
+            r#"
+                [metadata]
+                name = "sort-history"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+                sort = "history"
+            "#,
+        )
+        .unwrap();
+
+    let cmd = tv_with_args(&[
+        "sort-history",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--sort",
+        "default",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("clear") && !output.contains("zz clear"),
+        "Expected CLI --sort default to override channel sort, but got:\n{:?}",
+        output
+    );
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
 /// Tests channel source command variations and output parsing
 #[test]
 fn test_channel_source_command_variations() {

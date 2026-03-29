@@ -103,8 +103,10 @@ impl ConfigLayers {
             .channel_cli
             .watch_interval
             .unwrap_or(self.channel.watch);
-        let channel_sort =
-            self.channel_cli.sort.unwrap_or(self.channel.source.sort);
+        let channel_sort = self
+            .channel_cli
+            .sort
+            .unwrap_or(self.channel.source.effective_sort());
         let channel_prefer_prefix = self.channel.source.prefer_prefix;
         let channel_name = self
             .channel_cli

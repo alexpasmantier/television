@@ -144,7 +144,7 @@ fn test_no_sort_preserves_source_order() {
     // The second entry is a stronger fuzzy match for "ab".
     let cmd = tv_local_config_and_cable_with_args(&[
         "--source-command",
-        "echo 'a-weak-b'; echo 'ab-strong'",
+        "printf '%s\n' 'a-weak-b' 'ab-strong'",
         "--input",
         "ab",
         "--no-sort",
@@ -166,7 +166,7 @@ fn test_sort_source_preserves_source_order() {
 
     let cmd = tv_local_config_and_cable_with_args(&[
         "--source-command",
-        "echo 'a-weak-b'; echo 'ab-strong'",
+        "printf '%s\n' 'a-weak-b' 'ab-strong'",
         "--input",
         "ab",
         "--sort",
