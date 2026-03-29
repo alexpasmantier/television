@@ -67,13 +67,14 @@ pub struct Cli {
 
     /// Select how matches are ordered.
     ///
-    /// `default` uses generic fuzzy ranking. `prefer_prefix` applies and
-    /// frecency can still reorder equally configured channels.
+    /// `default` uses generic fuzzy ranking. `prefer_prefix` can add a
+    /// bounded bonus to matches that start closer to the beginning of an
+    /// entry, and frecency can still reorder equally configured channels.
     ///
     /// `history` keeps score-based sorting but preserves source order for
     /// score ties, which is useful for shell history and other chronologically
-    /// ordered input. `prefer_prefix` is disabled, while frecency can still
-    /// reorder results unless it is turned off separately.
+    /// ordered input. The `prefer_prefix` bonus is disabled, while frecency
+    /// can still reorder results unless it is turned off separately.
     ///
     /// `source` keeps the original source order exactly. In this mode
     /// `prefer_prefix` and frecency do not apply.

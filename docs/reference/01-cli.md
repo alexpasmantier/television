@@ -54,13 +54,14 @@ Source:
       --sort <SORT>
           Select how matches are ordered.
           
-          `default` uses generic fuzzy ranking. `prefer_prefix` applies and
-          frecency can still reorder results.
+          `default` uses generic fuzzy ranking. `prefer_prefix` can add a
+          bounded bonus to matches that start closer to the beginning of an
+          entry, and frecency can still reorder results.
 
-          `history` disables prefix preference and preserves source order for
-          score ties, which is useful for shell history and other
-          chronologically ordered input. Frecency can still reorder results
-          unless it is turned off separately.
+          `history` disables that bonus and preserves source order for score
+          ties, which is useful for shell history and other chronologically
+          ordered input. Frecency can still reorder results unless it is
+          turned off separately.
 
           `source` keeps the original source order exactly. In this mode
           `prefer_prefix` and frecency do not apply.

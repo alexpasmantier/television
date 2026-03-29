@@ -149,7 +149,7 @@ fn test_channel_prefer_prefix_override() {
                 name = "prefix-on"
 
                 [source]
-                command = "printf '%s\n' 'long road' 'foo lr'"
+                command = "printf '%s\n' 'Moby Dick' 'Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage'"
                 prefer_prefix = true
             "#,
         )
@@ -162,7 +162,7 @@ fn test_channel_prefer_prefix_override() {
                 name = "prefix-off"
 
                 [source]
-                command = "printf '%s\n' 'long road' 'foo lr'"
+                command = "printf '%s\n' 'Moby Dick' 'Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage'"
                 prefer_prefix = false
             "#,
         )
@@ -175,14 +175,14 @@ fn test_channel_prefer_prefix_override() {
         "--cable-dir",
         temp_config.cable_dir.to_str().unwrap(),
         "--input",
-        "lr",
+        "md",
         "--take-1",
     ]);
     let mut child_on = tester.spawn_command(cmd_on);
     let output_on = tester.read_raw_output();
     assert!(
-        output_on.contains("long road"),
-        "Expected output to contain 'long road', but got:\n{:?}",
+        output_on.contains("Moby Dick"),
+        "Expected output to contain 'Moby Dick', but got:\n{:?}",
         output_on
     );
     PtyTester::assert_exit_ok(&mut child_on, DEFAULT_DELAY);
@@ -194,14 +194,14 @@ fn test_channel_prefer_prefix_override() {
         "--cable-dir",
         temp_config.cable_dir.to_str().unwrap(),
         "--input",
-        "lr",
+        "md",
         "--take-1",
     ]);
     let mut child_off = tester.spawn_command(cmd_off);
     let output_off = tester.read_raw_output();
     assert!(
-        output_off.contains("foo lr"),
-        "Expected output to contain 'foo lr', but got:\n{:?}",
+        output_off.contains("Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage"),
+        "Expected output to contain the non-prefix match, but got:\n{:?}",
         output_off
     );
     PtyTester::assert_exit_ok(&mut child_off, DEFAULT_DELAY);

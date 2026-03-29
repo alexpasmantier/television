@@ -402,15 +402,18 @@ pub struct SourceSpec {
     #[serde(default)]
     pub output: Option<Template>,
     /// Primary sorting mode for this source.
-    /// `default` uses normal fuzzy ranking; `prefer_prefix` applies and
+    /// `default` uses normal fuzzy ranking; `prefer_prefix` can add a bounded
+    /// bonus to matches that start closer to the beginning of an entry, and
     /// frecency can still reorder results.
-    /// `history` preserves source order for score ties; `prefer_prefix` is
-    /// disabled, but frecency can still reorder results unless turned off.
+    /// `history` preserves source order for score ties; the `prefer_prefix`
+    /// bonus is disabled, but frecency can still reorder results unless
+    /// turned off.
     /// `source` keeps the original source order exactly; neither
     /// `prefer_prefix` nor frecency apply.
     #[serde(default)]
     pub sort: SourceSortMode,
-    /// Whether prefix matches should receive an additional ranking bonus.
+    /// Whether matches closer to the start of an entry should receive an
+    /// additional ranking bonus. This is not a hard prefix-only ordering rule.
     /// Defaults to true to preserve the current matcher behavior.
     /// This applies only when `sort = "default"`.
     #[serde(default = "default_prefer_prefix")]
