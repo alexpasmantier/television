@@ -271,7 +271,8 @@ impl ChannelPrototype {
                 ansi: false,
                 display: None,
                 output: None,
-                no_sort: false,
+                sort: SourceSortMode::Default,
+                prefer_prefix: true,
                 frecency: true,
             },
             preview: None,
@@ -320,6 +321,31 @@ impl ChannelPrototype {
 impl Display for ChannelPrototype {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{}", self.metadata.name)
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    serde::Deserialize,
+    serde::Serialize,
+    clap::ValueEnum,
+)]
+#[serde(rename_all = "lowercase")]
+pub enum SourceSortMode {
+    #[default]
+    Default,
+    History,
+    Source,
+}
+
+impl SourceSortMode {
+    pub const fn no_sort(self) -> bool {
+        matches!(self, Self::Source)
     }
 }
 
@@ -375,17 +401,29 @@ pub struct SourceSpec {
     pub display: Option<Template>,
     #[serde(default)]
     pub output: Option<Template>,
-    /// Whether to disable sorting and preserve source order.
-    /// Defaults to false (sort by match score).
-    /// Set to true for pre-sorted data like shell history or git log.
-    /// Matches the `--no-sort` CLI flag.
+    /// Primary sorting mode for this source.
+    /// `default` uses normal fuzzy ranking; `prefer_prefix` applies and
+    /// frecency can still reorder results.
+    /// `history` preserves source order for score ties; `prefer_prefix` is
+    /// disabled, but frecency can still reorder results unless turned off.
+    /// `source` keeps the original source order exactly; neither
+    /// `prefer_prefix` nor frecency apply.
     #[serde(default)]
-    pub no_sort: bool,
+    pub sort: SourceSortMode,
+    /// Whether prefix matches should receive an additional ranking bonus.
+    /// Defaults to true to preserve the current matcher behavior.
+    /// This applies only when `sort = "default"`.
+    #[serde(default = "default_prefer_prefix")]
+    pub prefer_prefix: bool,
     /// Whether to use frecency-based ranking for this channel.
-    /// Defaults to true. Set to false for channels where frecency doesn't make sense
-    /// (e.g., channels with dynamic/random results, or where order is meaningful).
+    /// Defaults to true. This is used with `sort = "default"` and
+    /// `sort = "history"`, but ignored when `sort = "source"`.
     #[serde(default = "default_frecency")]
     pub frecency: bool,
+}
+
+const fn default_prefer_prefix() -> bool {
+    true
 }
 
 const fn default_frecency() -> bool {
@@ -768,9 +806,43 @@ mod tests {
         assert!(prototype.source.command.env.is_empty());
         assert!(prototype.source.display.is_none());
         assert!(prototype.source.output.is_none());
+        assert_eq!(prototype.source.sort, SourceSortMode::Default);
+        assert!(prototype.source.prefer_prefix);
         assert!(prototype.preview.is_none());
         assert!(prototype.ui.is_none());
         assert!(prototype.keybindings.is_none());
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_prefer_prefix_override() {
+        let toml_data = r#"
+        [metadata]
+        name = "history"
+
+        [source]
+        command = "cat ~/.bash_history"
+        prefer_prefix = false
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert!(!prototype.source.prefer_prefix);
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_sort_override() {
+        let toml_data = r#"
+        [metadata]
+        name = "history"
+
+        [source]
+        command = "cat ~/.bash_history"
+        sort = "history"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(prototype.source.sort, SourceSortMode::History);
     }
 
     #[test]

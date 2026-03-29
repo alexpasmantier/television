@@ -61,8 +61,9 @@ Defines what data the channel searches through.
 | `output` | string | No | Template for final output |
 | `watch` | float | No | Reload interval in seconds |
 | `entry_delimiter` | string | No | Custom entry delimiter (default: newline) |
-| `no_sort` | boolean | No | Preserve original source order, disabling match-quality sorting and frecency (default: false) |
-| `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
+| `sort` | string | No | Ranking profile for results. `default` uses generic fuzzy ranking and allows both `prefer_prefix` and frecency. `history` preserves source order for score ties, disables `prefer_prefix`, and still allows frecency. `source` preserves source order exactly and ignores both `prefer_prefix` and frecency. Supported values: `default`, `history`, `source` (default: `default`) |
+| `prefer_prefix` | boolean | No | Give matches near the start of an entry an extra ranking bonus when `sort = "default"` (default: true). Ignored by `history` and `source`. |
+| `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). Applies with `sort = "default"` and `sort = "history"`, but not with `sort = "source"`. See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
 
 ### Single Source Command
 

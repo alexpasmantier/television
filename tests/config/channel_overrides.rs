@@ -135,6 +135,150 @@ fn test_channel_ui_merging() {
     tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
+#[test]
+fn test_channel_prefer_prefix_override() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "prefix-on",
+            r#"
+                [metadata]
+                name = "prefix-on"
+
+                [source]
+                command = "printf '%s\n' 'long road' 'foo lr'"
+                prefer_prefix = true
+            "#,
+        )
+        .unwrap();
+    temp_config
+        .write_channel(
+            "prefix-off",
+            r#"
+                [metadata]
+                name = "prefix-off"
+
+                [source]
+                command = "printf '%s\n' 'long road' 'foo lr'"
+                prefer_prefix = false
+            "#,
+        )
+        .unwrap();
+
+    let cmd_on = tv_with_args(&[
+        "prefix-on",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "lr",
+        "--take-1",
+    ]);
+    let mut child_on = tester.spawn_command(cmd_on);
+    let output_on = tester.read_raw_output();
+    assert!(
+        output_on.contains("long road"),
+        "Expected output to contain 'long road', but got:\n{:?}",
+        output_on
+    );
+    PtyTester::assert_exit_ok(&mut child_on, DEFAULT_DELAY);
+
+    let cmd_off = tv_with_args(&[
+        "prefix-off",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "lr",
+        "--take-1",
+    ]);
+    let mut child_off = tester.spawn_command(cmd_off);
+    let output_off = tester.read_raw_output();
+    assert!(
+        output_off.contains("foo lr"),
+        "Expected output to contain 'foo lr', but got:\n{:?}",
+        output_off
+    );
+    PtyTester::assert_exit_ok(&mut child_off, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_channel_history_sort_override() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "sort-default",
+            r#"
+                [metadata]
+                name = "sort-default"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+            "#,
+        )
+        .unwrap();
+    temp_config
+        .write_channel(
+            "sort-history",
+            r#"
+                [metadata]
+                name = "sort-history"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+                sort = "history"
+            "#,
+        )
+        .unwrap();
+
+    let cmd_default = tv_with_args(&[
+        "sort-default",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--take-1",
+    ]);
+    let mut child_default = tester.spawn_command(cmd_default);
+    let output_default = tester.read_raw_output();
+    assert!(
+        output_default.contains("clear")
+            && !output_default.contains("zz clear"),
+        "Expected output to contain 'clear', but got:\n{:?}",
+        output_default
+    );
+    PtyTester::assert_exit_ok(&mut child_default, DEFAULT_DELAY);
+
+    let cmd_history = tv_with_args(&[
+        "sort-history",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--take-1",
+    ]);
+    let mut child_history = tester.spawn_command(cmd_history);
+    let output_history = tester.read_raw_output();
+    assert!(
+        output_history.contains("zz clear"),
+        "Expected output to contain 'zz clear', but got:\n{:?}",
+        output_history
+    );
+    PtyTester::assert_exit_ok(&mut child_history, DEFAULT_DELAY);
+}
+
 /// Tests channel source command variations and output parsing
 #[test]
 fn test_channel_source_command_variations() {

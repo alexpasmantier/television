@@ -5,7 +5,7 @@ requirements = ["zoxide"]
 
 [source]
 command = "zoxide query -l"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

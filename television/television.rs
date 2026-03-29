@@ -148,12 +148,13 @@ impl Television {
                 )
             });
 
-        let frecency_config =
-            if merged_config.channel_frecency && !merged_config.no_sort {
-                Some((frecency.clone(), merged_config.channel_name.clone()))
-            } else {
-                None
-            };
+        let frecency_config = if merged_config.channel_frecency
+            && !merged_config.channel_sort.no_sort()
+        {
+            Some((frecency.clone(), merged_config.channel_name.clone()))
+        } else {
+            None
+        };
 
         let mut channel = CableChannel::new(
             merged_config.channel_source_command.clone(),
@@ -162,7 +163,8 @@ impl Television {
             merged_config.channel_source_display.clone(),
             merged_config.channel_source_output.clone(),
             merged_config.channel_preview_command.is_some(),
-            merged_config.no_sort,
+            merged_config.channel_sort,
+            merged_config.channel_prefer_prefix,
             frecency_config,
             merged_config.is_stdin,
         );
@@ -351,7 +353,7 @@ impl Television {
 
         // Build frecency config if enabled for this channel and sorting is enabled
         let frecency_config = if self.merged_config.channel_frecency
-            && !self.merged_config.no_sort
+            && !self.merged_config.channel_sort.no_sort()
         {
             Some((
                 self.frecency.clone(),
@@ -368,7 +370,8 @@ impl Television {
             self.merged_config.channel_source_display.clone(),
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
-            self.merged_config.no_sort,
+            self.merged_config.channel_sort,
+            self.merged_config.channel_prefer_prefix,
             frecency_config,
             false, // stdin only applies to the initial channel
         );

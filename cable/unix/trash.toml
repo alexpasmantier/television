@@ -5,7 +5,7 @@ requirements = ["trash-list", "trash-restore"]
 
 [source]
 command = "trash-list 2>/dev/null"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

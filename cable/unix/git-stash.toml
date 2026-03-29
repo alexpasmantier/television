@@ -7,7 +7,7 @@ requirements = ["git"]
 command = "git stash list --color=always"
 ansi = true
 output = "{strip_ansi|split:\\::0}"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

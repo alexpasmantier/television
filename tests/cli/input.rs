@@ -159,3 +159,51 @@ fn test_no_sort_preserves_source_order() {
         Duration::from_secs(2),
     );
 }
+
+#[test]
+fn test_sort_source_preserves_source_order() {
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "echo 'a-weak-b'; echo 'ab-strong'",
+        "--input",
+        "ab",
+        "--sort",
+        "source",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("a-weak-b"),
+        "Expected output to contain 'a-weak-b', but got:\n{:?}",
+        output
+    );
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_sort_history_preserves_source_order_for_score_ties() {
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'",
+        "--input",
+        "clear",
+        "--sort",
+        "history",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("zz clear"),
+        "Expected output to contain 'zz clear', but got:\n{:?}",
+        output
+    );
+    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+}

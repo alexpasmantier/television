@@ -7,7 +7,7 @@ requirements = ["zsh"]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.zsh_history}"
 display = "{split:;:1..}"
 output = "{split:;:1..}"
-no_sort = true
+sort = "history"
 frecency = false
 
 [actions.execute]

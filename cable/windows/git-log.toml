@@ -6,7 +6,7 @@ requirements = ["git"]
 [source]
 command = "git log --oneline --date=short --pretty=\"format:%h %s %an %cd\""
 output = "{split: :0}"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

@@ -4,7 +4,7 @@ use crate::{
         entry_processor::{
             AnsiProcessor, DisplayProcessor, EntryProcessor, PlainProcessor,
         },
-        prototypes::{CommandSpec, Template},
+        prototypes::{CommandSpec, SourceSortMode, Template},
     },
     frecency::FrecencyHandle,
     matcher::{
@@ -27,6 +27,44 @@ use tokio::{
 use tracing::debug;
 
 const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
+
+fn total_matcher_length<T>(item: &nucleo::Item<'_, T>) -> u32 {
+    item.matcher_columns
+        .iter()
+        .map(|haystack| haystack.len() as u32)
+        .sum()
+}
+
+fn effective_prefer_prefix(
+    sort_mode: SourceSortMode,
+    prefer_prefix: bool,
+) -> bool {
+    match sort_mode {
+        SourceSortMode::Default | SourceSortMode::Source => prefer_prefix,
+        SourceSortMode::History => false,
+    }
+}
+
+fn compare_matches<T>(
+    sort_mode: SourceSortMode,
+    m1: &nucleo::Match,
+    i1: &nucleo::Item<'_, T>,
+    m2: &nucleo::Match,
+    i2: &nucleo::Item<'_, T>,
+) -> Ordering {
+    match sort_mode {
+        SourceSortMode::Default | SourceSortMode::Source => m2
+            .score
+            .cmp(&m1.score)
+            .then_with(|| {
+                total_matcher_length(i1).cmp(&total_matcher_length(i2))
+            })
+            .then_with(|| m1.idx.cmp(&m2.idx)),
+        SourceSortMode::History => {
+            m2.score.cmp(&m1.score).then_with(|| m1.idx.cmp(&m2.idx))
+        }
+    }
+}
 
 pub struct Channel<P: EntryProcessor> {
     pub source_command: CommandSpec,
@@ -54,14 +92,16 @@ impl<P: EntryProcessor> Channel<P> {
         source_entry_delimiter: Option<char>,
         source_output: Option<Template>,
         supports_preview: bool,
-        no_sort: bool,
+        sort_mode: SourceSortMode,
+        prefer_prefix: bool,
         processor: P,
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
     ) -> Self {
-        let config = Config::default().prefer_prefix(true);
+        let config = Config::default()
+            .prefer_prefix(effective_prefer_prefix(sort_mode, prefer_prefix));
 
-        let sort_strategy = if no_sort {
+        let sort_strategy = if sort_mode.no_sort() {
             SortStrategy::Index
         } else if let Some((frecency_handle, channel_name)) = frecency {
             let cache = frecency_handle.create_cache(channel_name);
@@ -73,13 +113,19 @@ impl<P: EntryProcessor> Channel<P> {
                 let f2 = scores.get(&key2);
 
                 match (f1, f2) {
-                    (Some(s1), Some(s2)) => {
-                        s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
-                    }
+                    (Some(s1), Some(s2)) => s2.cmp(&s1).then_with(|| {
+                        compare_matches(sort_mode, m1, &i1, m2, &i2)
+                    }),
                     (Some(_), None) => Ordering::Less,
                     (None, Some(_)) => Ordering::Greater,
-                    (None, None) => m2.score.cmp(&m1.score),
+                    (None, None) => {
+                        compare_matches(sort_mode, m1, &i1, m2, &i2)
+                    }
                 }
+            }))
+        } else if sort_mode == SourceSortMode::History {
+            SortStrategy::Custom(Box::new(|m1, i1, m2, i2| {
+                compare_matches(SourceSortMode::History, m1, &i1, m2, &i2)
             }))
         } else {
             SortStrategy::Score
@@ -528,7 +574,8 @@ impl ChannelKind {
         source_display: Option<Template>,
         source_output: Option<Template>,
         supports_preview: bool,
-        no_sort: bool,
+        sort_mode: SourceSortMode,
+        prefer_prefix: bool,
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
     ) -> Self {
@@ -538,7 +585,8 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                no_sort,
+                sort_mode,
+                prefer_prefix,
                 PlainProcessor,
                 frecency,
                 is_stdin,
@@ -548,7 +596,8 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                no_sort,
+                sort_mode,
+                prefer_prefix,
                 AnsiProcessor,
                 frecency,
                 is_stdin,
@@ -558,7 +607,8 @@ impl ChannelKind {
                 source_entry_delimiter,
                 source_output,
                 supports_preview,
-                no_sort,
+                sort_mode,
+                prefer_prefix,
                 DisplayProcessor { template },
                 frecency,
                 is_stdin,
@@ -759,5 +809,44 @@ mod tests {
         assert_eq!(results[0].matched_string, "test1");
         assert_eq!(results[1].matched_string, "test2");
         assert_eq!(results[2].matched_string, "test3");
+    }
+
+    #[test]
+    fn test_history_sorting_uses_score_only_tiebreak() {
+        let entries = [
+            "command less expose add rank",
+            "zz clear",
+            "foo clear bar",
+            "clear",
+        ];
+
+        let top_match = |sort_strategy| {
+            let config = Config::default().prefer_prefix(false);
+            let mut matcher = Matcher::<()>::new(&config, sort_strategy);
+            let injector = matcher.injector();
+
+            for entry in entries {
+                injector.push((), |_, cols| cols[0] = entry.into());
+            }
+
+            matcher.find("clear");
+            matcher.tick();
+            matcher.results(4, 0)[0].matched_string.clone()
+        };
+
+        assert_eq!(top_match(SortStrategy::Score), "clear");
+        assert_eq!(
+            top_match(SortStrategy::Custom(Box::new(|m1, _i1, m2, _i2| {
+                m2.score.cmp(&m1.score).then_with(|| m1.idx.cmp(&m2.idx))
+            }))),
+            "zz clear"
+        );
+    }
+
+    #[test]
+    fn test_history_scheme_disables_prefix_preference() {
+        assert!(effective_prefer_prefix(SourceSortMode::Default, true));
+        assert!(!effective_prefer_prefix(SourceSortMode::History, true));
+        assert!(!effective_prefer_prefix(SourceSortMode::History, false));
     }
 }
