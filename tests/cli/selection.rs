@@ -100,6 +100,28 @@ fn test_take_1_fast_auto_selects_first_entry_immediately() {
     );
 }
 
+/// Tests that `--take-1` can return before source completion when entries are flushed
+/// periodically.
+#[test]
+fn test_take_1_fast_flushes_before_source_completion() {
+    use std::time::Duration;
+
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "sleep 0.2 ; echo UNIQUE16CHARID_FIRST ; sleep 4 ; echo UNIQUE16CHARID_SECOND",
+        "--take-1",
+    ]);
+    tester.spawn_command(cmd);
+
+    // Should appear before the source command finishes sleeping.
+    tester.assert_raw_output_contains_with_timeout(
+        "UNIQUE16CHARID_FIRST",
+        Duration::from_secs(3),
+    );
+}
+
 /// Tests that --select-1 and --take-1 cannot be used together.
 #[test]
 fn test_select_1_and_take_1_conflict_errors() {
