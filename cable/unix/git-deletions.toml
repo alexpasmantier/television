@@ -1,0 +1,24 @@
+[metadata]
+name = "git-deletions"
+description = "A channel to list files which were deleted from the Git repository"
+requirements = ["git", "rg", "bat"]
+
+[source]
+command = "git log --diff-filter=D --summary | rg 'delete mode \\d+' -r '' --trim"
+
+[preview]
+command = ["git show \"$(git rev-list -n1 HEAD -- '{}')^:{}\" | bat -n --color always --file-name '{}'", "git show --summary \"$(git rev-list -n1 HEAD -- '{}')\""]
+
+[keybindings]
+enter = "actions:print_commit"
+ctrl-r = "actions:restore_file"
+
+[actions.print_commit]
+description = "Print the latest commit where file was deleted"
+command = "echo \"$(git rev-list -n1 HEAD -- '{}')\""
+mode = "execute"
+
+[actions.restore_file]
+description = "Restore the selected file"
+command = "git checkout \"$(git rev-list -n1 HEAD -- '{}')^\" -- '{}'"
+
