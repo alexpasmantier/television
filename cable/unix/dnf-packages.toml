@@ -5,10 +5,10 @@ requirements = [ "rpm", "dnf",]
 
 [source]
 command = "rpm -qa --queryformat '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null"
-
+#this is the default queryformat but this should allow us to change it in the future if needed
 [preview]
 command = "rpm -q --info '{}' 2>/dev/null"
-
+# I use rpm here to avoid the delay that happens when dnf updates it's repository
 [actions.remove]
 description = "Remove the selected package"
 command = "sudo dnf remove '{}'"
