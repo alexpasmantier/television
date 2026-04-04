@@ -1,0 +1,18 @@
+[metadata]
+name = "dnf-packages"
+description = "List and manage installed dnf packages"
+requirements = [ "rpm", "dnf",]
+
+[source]
+command = "rpm -qa --queryformat '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null"
+
+[preview]
+command = "rpm -q --info '{}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo dnf remove '{}'"
+mode = "execute"
+
+
+
