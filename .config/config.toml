@@ -234,6 +234,7 @@ fallback_channel = "files"
 "git-diff" = ["git add", "git restore"]
 "git-branch" = [
   "git checkout",
+  "git switch",
   "git branch",
   "git merge",
   "git rebase",
