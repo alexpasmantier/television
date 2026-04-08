@@ -206,22 +206,32 @@ impl PtyTester {
 
     /// Waits for the child process to exit, asserting that it exits with a success status.
     ///
-    /// Between retries, the PTY output is drained to prevent the child's
-    /// rendering task from blocking on a full PTY buffer.
+    /// A background thread drains PTY output to prevent the child's
+    /// rendering task from blocking on a full PTY buffer during shutdown.
     pub fn assert_exit_ok(
         &mut self,
         child: &mut Box<dyn portable_pty::Child + Send + Sync>,
         timeout: Duration,
     ) {
+        // Spawn a thread that continuously drains PTY output.
+        // Without this, the child's rendering task can block on writes to
+        // a full PTY buffer, preventing it from processing the Quit signal.
+        let mut drain_reader = self.pair.master.try_clone_reader().unwrap();
+        let drain_handle = std::thread::spawn(move || {
+            let mut buf = vec![0u8; 65536];
+            while let Ok(n) = drain_reader.read(&mut buf) {
+                if n == 0 {
+                    break;
+                }
+            }
+        });
+
         let start = std::time::Instant::now();
         let total_timeout = timeout * 15;
         while start.elapsed() < total_timeout {
-            // Drain PTY output so the child's rendering task
-            // doesn't block on a full PTY buffer during shutdown.
-            let _ = self.reader.read(&mut self.void_buffer);
-
             match child.try_wait() {
                 Ok(Some(status)) => {
+                    let _ = drain_handle.join();
                     assert!(
                         status.success(),
                         "Process exited with non-zero status: {:?}",
