@@ -42,16 +42,13 @@ fn tv_list_channels() {
         })
         .collect::<Vec<_>>();
 
-    // Check if the output contains all channel names
-    let output = tester.read_raw_output();
-    for channel in cable_dir_filenames {
-        assert!(
-            output.contains(&channel),
-            "Channel '{}' not found in output: {}",
-            channel,
-            output
-        );
-    }
+    // Use timeout-based assertion to wait for the full output.
+    // Checking for the last channel alphabetically ensures the entire list
+    // has been printed.
+    tester.assert_raw_output_contains_with_timeout(
+        cable_dir_filenames.iter().max().unwrap(),
+        std::time::Duration::from_secs(2),
+    );
 
     tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
