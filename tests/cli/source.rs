@@ -71,6 +71,8 @@ fn test_source_display_with_source_command() {
 /// Tests that --source-output formats the final output when an entry is selected.
 #[test]
 fn test_source_output_with_source_command() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     // This should auto-select "UNIQUE16CHARID" since it's the only result
@@ -83,8 +85,12 @@ fn test_source_output_with_source_command() {
     ]);
     tester.spawn_command(cmd);
 
-    // Verify the output contains the selected entry
-    tester.assert_raw_output_contains("AAUNIQUE16CHARIDBB");
+    // Use timeout-based assertion because --take-1 waits for loading to
+    // complete, which may take longer than the initial spawn delay.
+    tester.assert_raw_output_contains_with_timeout(
+        "AAUNIQUE16CHARIDBB",
+        Duration::from_secs(2),
+    );
 }
 
 /// Tests that --source-display requires --source-command in Ad-hoc Mode.

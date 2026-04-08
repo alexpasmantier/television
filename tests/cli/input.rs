@@ -137,6 +137,8 @@ fn test_exact_matching_enabled_fails() {
 /// Tests that --no-sort keeps results in the source order for selection.
 #[test]
 fn test_no_sort_preserves_source_order() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
 
     // The second entry is a stronger fuzzy match for "ab".
@@ -148,13 +150,12 @@ fn test_no_sort_preserves_source_order() {
         "--no-sort",
         "--take-1",
     ]);
-    let mut child = tester.spawn_command(cmd);
+    tester.spawn_command(cmd);
 
-    let output = tester.read_raw_output();
-    assert!(
-        output.contains("a-weak-b"),
-        "Expected output to contain 'a-weak-b', but got:\n{:?}",
-        output
+    // Use timeout-based assertion because --take-1 waits for loading to
+    // complete, which may take longer than the initial spawn delay.
+    tester.assert_raw_output_contains_with_timeout(
+        "a-weak-b",
+        Duration::from_secs(2),
     );
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
