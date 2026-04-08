@@ -1,0 +1,63 @@
+[metadata]
+name = "launchd-services"
+description = "List and manage launchd services on macOS (equivalent to systemd)"
+requirements = ["launchctl"]
+
+[source]
+command = "launchctl list | tail -n +2 | awk '{print $3\"\\t\"$1\"\\t\"$2}'"
+display = "{split:\t:0} ({split:\t:1})"
+
+[preview]
+command = "launchctl print gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print system/'{split:\t:0}' 2>/dev/null || echo 'Service not found'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-s = "actions:start"
+ctrl-k = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-e = "actions:enable"
+ctrl-d = "actions:disable"
+ctrl-f = "actions:plist"
+ctrl-l = "actions:log"
+
+[actions.start]
+description = "Start the selected service"
+command = "launchctl start '{split:\t:0}'"
+mode = "execute"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "launchctl stop '{split:\t:0}'"
+mode = "execute"
+
+[actions.restart]
+description = "Kill and restart the selected service"
+command = "launchctl kickstart -k gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl kickstart -k user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl kickstart -k system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.enable]
+description = "Enable the selected service"
+command = "launchctl enable gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl enable user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl enable system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.disable]
+description = "Disable the selected service"
+command = "launchctl disable gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl disable user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl disable system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.plist]
+description = "View the plist file for the selected service"
+command = "plist=$( (launchctl print gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print system/'{split:\t:0}' 2>/dev/null) | sed -n 's/^\\tpath = //p'); if [ -n \"$plist\" ]; then $EDITOR \"$plist\"; else echo 'Plist not found'; fi"
+shell = "bash"
+mode = "execute"
+
+[actions.log]
+description = "Show recent logs for the selected service"
+command = "log show --predicate 'subsystem == \"{split:\\t:0}\" OR senderImagePath CONTAINS \"{split:\\t:0}\"' --last 1h --debug --info | less"
+shell = "bash"
+mode = "execute"
