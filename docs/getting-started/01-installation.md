@@ -20,8 +20,9 @@ chmod +x install.sh
 
 `tv` ships with a few channels by default, which require the following dependencies in order to work correctly:
 
-- [`fd`](https://github.com/sharkdp/fd) – `find` alternative  
+- [`fd`](https://github.com/sharkdp/fd) – `find` alternative
 - [`bat`](https://github.com/sharkdp/bat) – `cat` alternative with syntax highlighting  
+- [`rg`](https://github.com/burntsushi/ripgrep) - `grep` alternative
 
 You'll find installation instructions for each on their respective github pages.
 
