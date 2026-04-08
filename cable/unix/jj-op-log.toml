@@ -1,0 +1,29 @@
+[metadata]
+name = "jj-op-log"
+description = "A channel to select from jujutsu (jj) operation log entries (equivalent to git reflog)"
+requirements = ["jj"]
+
+[source]
+command = "jj op log --color=always --no-graph -T 'id.short(8) ++ \"\\t\" ++ format_timestamp(time.start()) ++ \"\\t\" ++ description ++ \"\\n\"'"
+display = "{strip_ansi|split:\t:0} {strip_ansi|split:\t:2}"
+output = "{strip_ansi|split:\t:0}"
+ansi = true
+no_sort = true
+frecency = false
+
+[preview]
+command = "jj op show --color=always '{strip_ansi|split:\t:0}'"
+
+[keybindings]
+ctrl-r = "actions:restore"
+ctrl-z = "actions:undo"
+
+[actions.restore]
+description = "Restore the repository to the state at the selected operation"
+command = "jj op restore '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.undo]
+description = "Undo the selected operation"
+command = "jj op undo '{strip_ansi|split:\t:0}'"
+mode = "execute"

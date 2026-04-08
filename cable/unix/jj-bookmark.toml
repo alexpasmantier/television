@@ -1,0 +1,45 @@
+[metadata]
+name = "jj-bookmark"
+description = "A channel to select from jujutsu (jj) bookmarks"
+requirements = ["jj"]
+
+[source]
+command = "jj bookmark list -T 'name ++ \"\\t\" ++ self.normal_target().change_id().shortest(8) ++ \"\\n\"'"
+display = "{split:\t:0}"
+output = "{split:\t:0}"
+
+[preview]
+command = "jj log --color=always --no-graph -r '{split:\t:0}'"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-d = "actions:delete"
+ctrl-s = "actions:set"
+ctrl-f = "actions:forget"
+ctrl-g = "actions:track"
+
+
+[actions.edit]
+description = "Edit the change at the selected bookmark"
+command = "jj edit '{split:\t:0}'"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected bookmark"
+command = "jj bookmark delete '{split:\t:0}'"
+mode = "execute"
+
+[actions.set]
+description = "Move the selected bookmark to the working copy"
+command = "jj bookmark set '{split:\t:0}' -r @"
+mode = "execute"
+
+[actions.forget]
+description = "Forget the selected bookmark (without deleting it on the remote)"
+command = "jj bookmark forget '{split:\t:0}'"
+mode = "execute"
+
+[actions.track]
+description = "Track the remote counterpart of the selected bookmark"
+command = "jj bookmark track '{split:\t:0}@origin'"
+mode = "execute"
