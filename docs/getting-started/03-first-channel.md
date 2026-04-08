@@ -29,7 +29,7 @@ A channel is a TOML configuration file that tells tv:
 - **How to preview** results (optional)
 - **Custom keybindings and actions** (optional)
 
-Channels live in `~/.config/television/cable/` (or `%LocalAppData%\television\cable\` on Windows).
+Channels live in `~/.config/television/cable/` (or `%LocalAppData%\television\config\cable\` on Windows).
 
 ## Step 1: Create the Channel File
 

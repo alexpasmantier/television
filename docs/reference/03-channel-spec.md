@@ -6,7 +6,7 @@ This document provides the complete reference for channel TOML configuration fil
 
 Channels are stored as `.toml` files in:
 - **Linux/macOS**: `~/.config/television/cable/`
-- **Windows**: `%LocalAppData%\television\cable\`
+- **Windows**: `%LocalAppData%\television\config\cable\`
 - **Custom**: Set via `$TELEVISION_CONFIG/cable/` or `--cable-dir`
 
 ## High-Level Structure
