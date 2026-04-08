@@ -106,7 +106,8 @@ fn test_smart_path_detection_switches_to_adhoc_mode() {
 
     // The "./cable/" should be detected as a path, triggering path detection logic
     // This uses the default channel (files) in the cable directory
-    let cmd = tv_local_config_and_cable_with_args(&["./cable/"]);
+    let mut cmd = tv_local_config_and_cable_with_args(&["./cable/"]);
+    cmd.args(["--input", "files.toml"]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify path detection worked and default channel was used

@@ -29,11 +29,12 @@ fn test_source_command_override_in_channel_mode() {
     let mut tester = PtyTester::new();
 
     // This overrides the files channel's default source command with a custom one
-    let cmd = tv_local_config_and_cable_with_args(&[
+    let mut cmd = tv_local_config_and_cable_with_args(&[
         "files",
         "--source-command",
         "fd -t f . ./cable/",
     ]);
+    cmd.args(["--input", "files.toml"]);
     let mut child = tester.spawn_command_tui(cmd);
 
     // Verify the override is active
