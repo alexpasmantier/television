@@ -112,6 +112,8 @@ fn test_cli_overrides_channel_source_and_preview() {
 /// Tests CLI working directory parameter
 #[test]
 fn test_cli_working_directory_override() {
+    use std::time::Duration;
+
     let mut tester = PtyTester::new();
     let temp_dir = TempDir::new().unwrap();
 
@@ -128,18 +130,18 @@ fn test_cli_working_directory_override() {
         DEFAULT_CABLE_DIR,
         "--input",
         "working-dir-test",
-        "--take-1-fast",
+        "--take-1",
         &temp_dir.path().to_string_lossy(), // PATH as positional argument
     ]);
 
     // Should exit with the found file
     let mut child = tester.spawn_command(cmd);
-    // wait for completion so that the TUI doesn't interfere with
-    // what we're capturing
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 
     // Should find our test file in the target directory
-    tester.assert_raw_output_contains("working-dir-test.txt");
+    tester.assert_raw_output_contains_with_timeout(
+        "working-dir-test.txt",
+        Duration::from_secs(2),
+    );
 
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
