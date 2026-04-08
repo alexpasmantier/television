@@ -16,6 +16,16 @@ chmod +x install.sh
 ./install.sh
 ```
 
+## Dependencies
+
+`tv` ships with a few channels by default, which require the following dependencies in order to work correctly:
+
+- [`fd`](https://github.com/sharkdp/fd) – `find` alternative
+- [`bat`](https://github.com/sharkdp/bat) – `cat` alternative with syntax highlighting  
+- [`rg`](https://github.com/burntsushi/ripgrep) - `grep` alternative
+
+You'll find installation instructions for each on their respective github pages.
+
 ## Nix
 
 Television is [available on `nixpkgs`](https://github.com/NixOS/nixpkgs/blob/master/pkgs/by-name/te/television/package.nix)
