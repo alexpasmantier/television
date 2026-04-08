@@ -1,0 +1,36 @@
+[metadata]
+name = "opencode-sessions"
+description = "Browse and resume OpenCode sessions"
+requirements = ["opencode", "jq"]
+
+[source]
+# Use literal strings (''') to avoid escape sequence errors
+command = '''opencode session list --format json | jq -r '.[] | "\(.id)\t\(.title)\t\(.directory)"' '''
+display = "{split:\t:1}  ({split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+# We use triple single quotes so we don't have to escape the backslashes for jq or the template engine
+command = '''opencode session list --format json | jq -r '.[] | select(.id == "{split:\t:0}") | "TITLE:     \(.title)\nID:        \(.id)\nPROJECT:   \(.projectId)\nDIRECTORY: \(.directory)\nUPDATED:   \((.updated / 1000) | strftime("%Y-%m-%d %H:%M:%S"))"''''
+
+[ui]
+layout = "landscape"
+[ui.preview_panel]
+size = 60
+header = "Session: {split:\t:1}"
+border_type = "rounded"
+
+[keybindings]
+shortcut = "f4"
+enter = "actions:resume"
+ctrl-d = "actions:delete"
+
+[actions.resume]
+description = "Resume session"
+command = "opencode -s {split:\t:0}"
+mode = "execute"
+
+[actions.delete]
+description = "Delete session"
+command = '''bash -c 'echo "Delete {split:\t:1}?" && read -p "[y/N]: " conf && [[ $conf == "y" ]] && opencode session delete {split:\t:0} ''''
+mode = "execute"
