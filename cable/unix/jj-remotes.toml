@@ -1,0 +1,26 @@
+[metadata]
+name = "jj-remotes"
+description = "List and manage jujutsu (jj) git remotes"
+requirements = ["jj"]
+
+[source]
+command = "jj git remote list"
+output = "{split: :0}"
+
+[preview]
+command = "jj bookmark list --all-remotes | grep '@{split: :0}'"
+shell = "bash"
+
+[keybindings]
+ctrl-f = "actions:fetch"
+ctrl-d = "actions:remove"
+
+[actions.fetch]
+description = "Fetch from the selected remote"
+command = "jj git fetch --remote '{split: :0}'"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected remote"
+command = "jj git remote remove '{split: :0}'"
+mode = "execute"

@@ -1,0 +1,26 @@
+[metadata]
+name = "jj-files"
+description = "A channel to list the files tracked in the jujutsu (jj) working copy"
+requirements = ["jj", "bat"]
+
+[source]
+command = "jj file list"
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+ctrl-e = "actions:edit"
+ctrl-r = "actions:restore"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
+
+[actions.restore]
+description = "Discard changes to the selected file"
+command = "jj restore '{}'"
+mode = "fork"
