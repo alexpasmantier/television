@@ -193,7 +193,7 @@ Tv writes logs to help diagnose issues:
 |----------|----------|
 | Linux | `~/.local/share/television/television.log` |
 | macOS | `~/Library/Application Support/television/television.log` |
-| Windows | `%LocalAppData%\television\television.log` |
+| Windows | `%LocalAppData%\television\data\television.log` |
 
 Or if `$TELEVISION_DATA` is set: `$TELEVISION_DATA/television.log`
 
