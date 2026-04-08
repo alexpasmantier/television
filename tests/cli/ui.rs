@@ -422,14 +422,14 @@ fn test_no_help_panel_conflicts_with_show_help_panel() {
 
 #[test]
 fn test_tui_with_height_and_width() {
-    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with height 20 and width 80
-    let mut child =
-        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
-            "files", "--height", "20", "--width", "80",
-        ]));
+    let mut cmd = tv_local_config_and_cable_with_args(&[
+        "files", "--height", "20", "--width", "80",
+    ]);
+    cmd.env(TESTING_ENV_VAR, "1");
+    let mut child = tester.spawn_command_tui(cmd);
 
     // Check that 'files' appears in the frame content
     tester.assert_tui_frame_contains("CHANNEL  files");
@@ -454,7 +454,6 @@ fn test_tui_with_height_and_width() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
 
 /// Tests that --no-preview disables the preview panel entirely.
@@ -591,14 +590,13 @@ fn test_no_status_bar_conflicts_with_status_bar_flags() {
 // FIXME: needs https://github.com/crossterm-rs/crossterm/pull/957
 #[ignore = "needs https://github.com/crossterm-rs/crossterm/pull/957"]
 fn test_tui_with_height_only() {
-    unsafe { std::env::set_var(TESTING_ENV_VAR, "1") };
     let mut tester = PtyTester::new();
 
     // Test TUI with only height specified
-    let mut child =
-        tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
-            "files", "--height", "15",
-        ]));
+    let mut cmd =
+        tv_local_config_and_cable_with_args(&["files", "--height", "15"]);
+    cmd.env(TESTING_ENV_VAR, "1");
+    let mut child = tester.spawn_command_tui(cmd);
 
     // Check that 'files' appears in the frame content
     tester.assert_tui_frame_contains("CHANNEL  files");
@@ -617,5 +615,4 @@ fn test_tui_with_height_only() {
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
-    unsafe { std::env::remove_var(TESTING_ENV_VAR) };
 }
