@@ -1,0 +1,45 @@
+[metadata]
+name = "diskutil"
+description = "List and manage mounted filesystems on macOS"
+requirements = ["df", "awk", "diskutil"]
+
+[source]
+command = "df -h | tail -n +2 | awk '{print $NF\"\\t\"$1\"\\t\"$2\"\\t\"$5}'"
+display = "{split:\t:0} ({split:\t:1}, {split:\t:3})"
+output = "{split:\t:0}"
+
+[preview]
+command = "df -h '{split:\t:0}' && echo && ls -la '{split:\t:0}' 2>/dev/null | head -20"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-o = "actions:open"
+ctrl-i = "actions:info"
+ctrl-d = "actions:eject"
+ctrl-v = "actions:verify"
+
+[actions.cd]
+description = "Open a shell in the selected mount point"
+command = "cd '{split:\t:0}' && $SHELL"
+shell = "bash"
+mode = "execute"
+
+[actions.open]
+description = "Open the selected mount point in Finder"
+command = "open '{split:\t:0}'"
+mode = "fork"
+
+[actions.info]
+description = "Show full disk info for the selected mount point in a pager"
+command = "diskutil info '{split:\t:0}' | less"
+mode = "execute"
+
+[actions.eject]
+description = "Eject the selected volume"
+command = "diskutil eject '{split:\t:0}'"
+mode = "execute"
+
+[actions.verify]
+description = "Verify the filesystem on the selected volume"
+command = "diskutil verifyVolume '{split:\t:0}'"
+mode = "execute"
