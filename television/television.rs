@@ -372,6 +372,7 @@ impl Television {
             frecency_config,
             false, // stdin only applies to the initial channel
         );
+        self.was_running = true;
         self.channel.load();
     }
 
