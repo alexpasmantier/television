@@ -72,7 +72,7 @@ pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
 ///     tester.send(&ctrl('c'));
 ///
 ///     // Assert that the child process exits successfully
-///     PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+///     tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 /// }
 /// ```
 pub struct PtyTester {
@@ -205,12 +205,21 @@ impl PtyTester {
     }
 
     /// Waits for the child process to exit, asserting that it exits with a success status.
-    /// This uses exponential backoff to wait for the process to exit to avoid flakiness.
+    ///
+    /// Between retries, the PTY output is drained to prevent the child's
+    /// rendering task from blocking on a full PTY buffer.
     pub fn assert_exit_ok(
+        &mut self,
         child: &mut Box<dyn portable_pty::Child + Send + Sync>,
         timeout: Duration,
     ) {
-        for i in 0..4 {
+        let start = std::time::Instant::now();
+        let total_timeout = timeout * 15;
+        while start.elapsed() < total_timeout {
+            // Drain PTY output so the child's rendering task
+            // doesn't block on a full PTY buffer during shutdown.
+            let _ = self.reader.read(&mut self.void_buffer);
+
             match child.try_wait() {
                 Ok(Some(status)) => {
                     assert!(
@@ -221,8 +230,7 @@ impl PtyTester {
                     return;
                 }
                 Ok(None) => {
-                    // Process is still running, continue waiting
-                    sleep(timeout * 2u32.pow(i));
+                    sleep(timeout);
                 }
                 Err(e) => {
                     panic!("Error waiting for process: {}", e);

@@ -27,7 +27,7 @@ fn test_preview_command_in_adhoc_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-command can override channel defaults in Channel Mode.
@@ -50,7 +50,7 @@ fn test_preview_command_override_in_channel_mode() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-header displays custom text above the preview panel.
@@ -71,7 +71,7 @@ fn test_preview_header_with_preview_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-footer displays custom text below the preview panel.
@@ -92,7 +92,7 @@ fn test_preview_footer_with_preview_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-offset controls the scroll position in preview content.
@@ -117,7 +117,7 @@ fn test_preview_offset_with_preview_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-size controls the width of the preview panel.
@@ -140,7 +140,7 @@ fn test_preview_size_with_preview_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --preview-word-wrap enables preview panel word wrapping.
@@ -164,7 +164,7 @@ fn test_preview_word_wrap_with_preview_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-preview completely disables the preview panel.
@@ -185,7 +185,7 @@ fn test_no_preview_disables_preview_panel() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-preview conflicts with --preview-command.
@@ -319,7 +319,7 @@ fn test_hide_preview_flag_starts_with_preview_hidden() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --show-preview starts the interface with the preview panel visible.
@@ -337,7 +337,7 @@ fn test_show_preview_flag_starts_with_preview_visible() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --hide-preview conflicts with --no-preview.

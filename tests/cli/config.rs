@@ -34,7 +34,7 @@ fn test_path_as_positional_argument_sets_working_directory() {
 
     // Send Ctrl+C to exit cleanly
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the --config-file flag loads a custom configuration file.
@@ -57,7 +57,7 @@ fn test_config_file_flag_loads_custom_config() {
 
     // Send Ctrl+C to exit cleanly
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the --config-file flag fails to load a custom configuration file.
@@ -101,7 +101,7 @@ fn test_cable_dir_flag_loads_custom_cable_dir() {
 
     // Send Ctrl+C to exit cleanly
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the --cable-dir flag fails to load channels from a custom directory.

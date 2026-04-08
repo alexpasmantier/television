@@ -85,7 +85,7 @@ mode = "execute"
     tester.assert_raw_output_contains("LICENSE");
 
     // Process should exit successfully after executing the external command
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that external actions execute properly with F8 keybinding.
@@ -149,5 +149,5 @@ mode = "execute"
     tester.assert_raw_output_contains("Copyright (c)");
 
     // Check that the process has finished
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

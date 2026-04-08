@@ -229,5 +229,5 @@ fn test_expect_with_selection() {
         Duration::from_secs(2),
     );
 
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }

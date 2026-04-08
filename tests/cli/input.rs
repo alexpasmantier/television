@@ -25,7 +25,7 @@ fn test_input_prefills_search_box() {
 
     // Send Ctrl+C to exit the application gracefully
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that custom keybindings override default keyboard shortcuts.
@@ -50,7 +50,7 @@ fn test_keybindings_override_default() {
 
     // Test that our custom "a" key now quits the application
     tester.send("'a'");
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that multiple keybinding overrides can be specified simultaneously.
@@ -76,7 +76,7 @@ fn test_multiple_keybindings_override() {
 
     // Use "a" to quit the application
     tester.send("'a'");
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that the --exact flag enables exact substring matching instead of fuzzy matching.
@@ -103,7 +103,7 @@ fn test_exact_matching_enabled() {
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]
@@ -131,7 +131,7 @@ fn test_exact_matching_enabled_fails() {
 
     // Send Ctrl+C to exit the application
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --no-sort keeps results in the source order for selection.
@@ -156,5 +156,5 @@ fn test_no_sort_preserves_source_order() {
         "Expected output to contain 'a-weak-b', but got:\n{:?}",
         output
     );
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
