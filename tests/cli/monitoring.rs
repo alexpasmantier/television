@@ -43,7 +43,7 @@ fn test_watch_reloads_source_command() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --tick-rate accepts a valid positive number.
@@ -61,7 +61,7 @@ fn test_tick_rate_valid_value_starts_application() {
 
     // Send Ctrl+C to exit
     tester.send(&ctrl('c'));
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests that --tick-rate rejects non-positive numbers.
