@@ -200,7 +200,7 @@ description = "A channel to select from your bash history"
 requirements = [ "bash",]
 
 [source]
-command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history}"
+command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.bash_history} | awk '!seen[$0]++'"
 no_sort = true
 frecency = false
 
@@ -341,7 +341,8 @@ requirements = [ "tv", "bat",]
 command = [ "tv list-channels",]
 
 [preview]
-command = "bat -pn --color always ${XDG_CONFIG_HOME:-$HOME/.config}/television/cable/**/{}.toml"
+command = "bat -pn --color always ${TELEVISION_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/television}/cable/{}.toml"
+shell = "bash"
 
 [keybindings]
 enter = "actions:channel-enter"
@@ -424,6 +425,67 @@ mode = "execute"
 [actions.goto_parent_dir]
 description = "Re-opens tv in the parent directory"
 command = "tv dirs .."
+mode = "execute"
+
+```
+
+
+---
+
+### *diskutil*
+
+List and manage mounted filesystems on macOS
+
+![tv running the diskutil channel](../../assets/channels/diskutil.png)
+**Requirements:** `df`, `awk`, `diskutil`
+
+**Code:** *diskutil.toml*
+
+```toml
+[metadata]
+name = "diskutil"
+description = "List and manage mounted filesystems on macOS"
+requirements = [ "df", "awk", "diskutil",]
+
+[source]
+command = "df -h | tail -n +2 | awk '{print $NF\"\\t\"$1\"\\t\"$2\"\\t\"$5}'"
+display = "{split:\t:0} ({split:\t:1}, {split:\t:3})"
+output = "{split:\t:0}"
+
+[preview]
+command = "df -h '{split:\t:0}' && echo && ls -la '{split:\t:0}' 2>/dev/null | head -20"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-o = "actions:open"
+ctrl-i = "actions:info"
+ctrl-d = "actions:eject"
+ctrl-v = "actions:verify"
+
+[actions.cd]
+description = "Open a shell in the selected mount point"
+command = "cd '{split:\t:0}' && $SHELL"
+shell = "bash"
+mode = "execute"
+
+[actions.open]
+description = "Open the selected mount point in Finder"
+command = "open '{split:\t:0}'"
+mode = "fork"
+
+[actions.info]
+description = "Show full disk info for the selected mount point in a pager"
+command = "diskutil info '{split:\t:0}' | less"
+mode = "execute"
+
+[actions.eject]
+description = "Eject the selected volume"
+command = "diskutil eject '{split:\t:0}'"
+mode = "execute"
+
+[actions.verify]
+description = "Verify the filesystem on the selected volume"
+command = "diskutil verifyVolume '{split:\t:0}'"
 mode = "execute"
 
 ```
@@ -1667,6 +1729,330 @@ mode = "fork"
 
 ---
 
+### *jj-bookmark*
+
+A channel to select from jujutsu (jj) bookmarks
+
+**Requirements:** `jj`
+
+**Code:** *jj-bookmark.toml*
+
+```toml
+[metadata]
+name = "jj-bookmark"
+description = "A channel to select from jujutsu (jj) bookmarks"
+requirements = [ "jj",]
+
+[source]
+command = "jj bookmark list -T 'name ++ \"\\t\" ++ self.normal_target().change_id().shortest(8) ++ \"\\n\"'"
+display = "{split:\t:0}"
+output = "{split:\t:0}"
+
+[preview]
+command = "jj log --color=always --no-graph -r '{split:\t:0}'"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-d = "actions:delete"
+ctrl-s = "actions:set"
+ctrl-f = "actions:forget"
+ctrl-g = "actions:track"
+
+[actions.edit]
+description = "Edit the change at the selected bookmark"
+command = "jj edit '{split:\t:0}'"
+mode = "execute"
+
+[actions.delete]
+description = "Delete the selected bookmark"
+command = "jj bookmark delete '{split:\t:0}'"
+mode = "execute"
+
+[actions.set]
+description = "Move the selected bookmark to the working copy"
+command = "jj bookmark set '{split:\t:0}' -r @"
+mode = "execute"
+
+[actions.forget]
+description = "Forget the selected bookmark (without deleting it on the remote)"
+command = "jj bookmark forget '{split:\t:0}'"
+mode = "execute"
+
+[actions.track]
+description = "Track the remote counterpart of the selected bookmark"
+command = "jj bookmark track '{split:\t:0}@origin'"
+mode = "execute"
+
+```
+
+
+---
+
+### *jj-diff*
+
+A channel to select files changed in the jujutsu (jj) working copy
+
+![tv running the jj-diff channel](../../assets/channels/jj-diff.png)
+**Requirements:** `jj`
+
+**Code:** *jj-diff.toml*
+
+```toml
+[metadata]
+name = "jj-diff"
+description = "A channel to select files changed in the jujutsu (jj) working copy"
+requirements = [ "jj",]
+
+[source]
+command = "jj diff --name-only"
+
+[preview]
+command = "jj diff --color always '{}'"
+
+[keybindings]
+ctrl-r = "actions:restore"
+ctrl-e = "actions:edit"
+ctrl-s = "actions:squash"
+ctrl-a = "actions:absorb"
+
+[actions.restore]
+description = "Discard changes in the selected file"
+command = "jj restore '{}'"
+mode = "fork"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
+
+[actions.squash]
+description = "Squash changes to the selected file into the parent change"
+command = "jj squash -- '{}'"
+mode = "fork"
+
+[actions.absorb]
+description = "Absorb changes to the selected file into the appropriate ancestor"
+command = "jj absorb -- '{}'"
+mode = "fork"
+
+```
+
+
+---
+
+### *jj-files*
+
+A channel to list the files tracked in the jujutsu (jj) working copy
+
+![tv running the jj-files channel](../../assets/channels/jj-files.png)
+**Requirements:** `jj`, `bat`
+
+**Code:** *jj-files.toml*
+
+```toml
+[metadata]
+name = "jj-files"
+description = "A channel to list the files tracked in the jujutsu (jj) working copy"
+requirements = [ "jj", "bat",]
+
+[source]
+command = "jj file list"
+
+[preview]
+command = "bat -n --color=always '{}'"
+
+[keybindings]
+ctrl-e = "actions:edit"
+ctrl-r = "actions:restore"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.edit]
+description = "Open the selected file in editor"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
+
+[actions.restore]
+description = "Discard changes to the selected file"
+command = "jj restore '{}'"
+mode = "fork"
+
+```
+
+
+---
+
+### *jj-log*
+
+A channel to select from jujutsu (jj) log entries
+
+![tv running the jj-log channel](../../assets/channels/jj-log.png)
+**Requirements:** `jj`
+
+**Code:** *jj-log.toml*
+
+```toml
+[metadata]
+name = "jj-log"
+description = "A channel to select from jujutsu (jj) log entries"
+requirements = [ "jj",]
+
+[source]
+command = "jj log --color=always --no-graph -r 'all()' -T 'change_id.shortest(8) ++ \"\\t\" ++ author.name() ++ \"\\t\" ++ format_timestamp(author.timestamp()) ++ \"\\t\" ++ description.first_line() ++ \"\\n\"'"
+display = "{strip_ansi|split:\t:0} {strip_ansi|split:\t:3}"
+output = "{strip_ansi|split:\t:0}"
+ansi = true
+no_sort = true
+frecency = false
+
+[preview]
+command = "jj show --color=always '{strip_ansi|split:\t:0}'"
+
+[keybindings]
+enter = "actions:edit"
+ctrl-i = "actions:insert_before"
+ctrl-a = "actions:insert_after"
+ctrl-shift-d = "actions:diff"
+ctrl-s = "actions:squash"
+ctrl-d = "actions:abandon"
+ctrl-e = "actions:describe"
+ctrl-b = "actions:rebase"
+
+[actions.edit]
+description = "Edit the selected change (move working copy to it)"
+command = "jj edit '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.insert_before]
+description = "Insert a new change before the selected change"
+command = "jj new --insert-before '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.insert_after]
+description = "Insert a new change after the selected change"
+command = "jj new --insert-after '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.diff]
+description = "Show diff of the selected change"
+command = "jj diff --color=always -r '{strip_ansi|split:\t:0}' | less -R"
+shell = "bash"
+mode = "execute"
+
+[actions.squash]
+description = "Squash the selected change into its parent"
+command = "jj squash -r '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.abandon]
+description = "Abandon the selected change"
+command = "jj abandon '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.describe]
+description = "Edit the description of the selected change"
+command = "jj describe '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.rebase]
+description = "Rebase the selected change onto the working copy"
+command = "jj rebase -r '{strip_ansi|split:\t:0}' -d @"
+mode = "execute"
+
+```
+
+
+---
+
+### *jj-op-log*
+
+A channel to select from jujutsu (jj) operation log entries (equivalent to git reflog)
+
+![tv running the jj-op-log channel](../../assets/channels/jj-op-log.png)
+**Requirements:** `jj`
+
+**Code:** *jj-op-log.toml*
+
+```toml
+[metadata]
+name = "jj-op-log"
+description = "A channel to select from jujutsu (jj) operation log entries (equivalent to git reflog)"
+requirements = [ "jj",]
+
+[source]
+command = "jj op log --color=always --no-graph -T 'id.short(8) ++ \"\\t\" ++ format_timestamp(time.start()) ++ \"\\t\" ++ description ++ \"\\n\"'"
+display = "{strip_ansi|split:\t:0} {strip_ansi|split:\t:2}"
+output = "{strip_ansi|split:\t:0}"
+ansi = true
+no_sort = true
+frecency = false
+
+[preview]
+command = "jj op show --color=always '{strip_ansi|split:\t:0}'"
+
+[keybindings]
+ctrl-r = "actions:restore"
+ctrl-z = "actions:undo"
+
+[actions.restore]
+description = "Restore the repository to the state at the selected operation"
+command = "jj op restore '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+[actions.undo]
+description = "Undo the selected operation"
+command = "jj op undo '{strip_ansi|split:\t:0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *jj-remotes*
+
+List and manage jujutsu (jj) git remotes
+
+**Requirements:** `jj`
+
+**Code:** *jj-remotes.toml*
+
+```toml
+[metadata]
+name = "jj-remotes"
+description = "List and manage jujutsu (jj) git remotes"
+requirements = [ "jj",]
+
+[source]
+command = "jj git remote list"
+output = "{split: :0}"
+
+[preview]
+command = "jj bookmark list --all-remotes | grep '@{split: :0}'"
+shell = "bash"
+
+[keybindings]
+ctrl-f = "actions:fetch"
+ctrl-d = "actions:remove"
+
+[actions.fetch]
+description = "Fetch from the selected remote"
+command = "jj git fetch --remote '{split: :0}'"
+mode = "execute"
+
+[actions.remove]
+description = "Remove the selected remote"
+command = "jj git remote remove '{split: :0}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *journal*
 
 Browse systemd journal log identifiers and their logs
@@ -1935,6 +2321,85 @@ size = 60
 [actions.delete]
 description = "Delete the selected Service"
 command = "kubectl delete -n {0} services/{1}"
+mode = "execute"
+
+```
+
+
+---
+
+### *launchd-services*
+
+List and manage launchd services on macOS (equivalent to systemd)
+
+![tv running the launchd-services channel](../../assets/channels/launchd-services.png)
+**Requirements:** `launchctl`
+
+**Code:** *launchd-services.toml*
+
+```toml
+[metadata]
+name = "launchd-services"
+description = "List and manage launchd services on macOS (equivalent to systemd)"
+requirements = [ "launchctl",]
+
+[source]
+command = "launchctl list | tail -n +2 | awk '{print $3\"\\t\"$1\"\\t\"$2}'"
+display = "{split:\t:0} ({split:\t:1})"
+
+[preview]
+command = "launchctl print gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print system/'{split:\t:0}' 2>/dev/null || echo 'Service not found'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-s = "actions:start"
+ctrl-k = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-e = "actions:enable"
+ctrl-d = "actions:disable"
+ctrl-f = "actions:plist"
+ctrl-l = "actions:log"
+
+[actions.start]
+description = "Start the selected service"
+command = "launchctl start '{split:\t:0}'"
+mode = "execute"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "launchctl stop '{split:\t:0}'"
+mode = "execute"
+
+[actions.restart]
+description = "Kill and restart the selected service"
+command = "launchctl kickstart -k gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl kickstart -k user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl kickstart -k system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.enable]
+description = "Enable the selected service"
+command = "launchctl enable gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl enable user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl enable system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.disable]
+description = "Disable the selected service"
+command = "launchctl disable gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl disable user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl disable system/'{split:\t:0}'"
+shell = "bash"
+mode = "execute"
+
+[actions.plist]
+description = "View the plist file for the selected service"
+command = "plist=$( (launchctl print gui/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print user/$(id -u)/'{split:\t:0}' 2>/dev/null || launchctl print system/'{split:\t:0}' 2>/dev/null) | sed -n 's/^\\tpath = //p'); if [ -n \"$plist\" ]; then $EDITOR \"$plist\"; else echo 'Plist not found'; fi"
+shell = "bash"
+mode = "execute"
+
+[actions.log]
+description = "Show recent logs for the selected service"
+command = "log show --predicate 'subsystem == \"{split:\\t:0}\" OR senderImagePath CONTAINS \"{split:\\t:0}\"' --last 1h --debug --info | less"
+shell = "bash"
 mode = "execute"
 
 ```
