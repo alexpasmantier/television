@@ -32,6 +32,7 @@ pub struct ChannelState {
     pub total_count: u32,
     pub running: bool,
     pub current_command: String,
+    pub current_source_name: Option<String>,
     pub source_index: usize,
     pub source_count: usize,
 }
@@ -44,6 +45,7 @@ impl ChannelState {
         total_count: u32,
         running: bool,
         current_command: String,
+        current_source_name: Option<String>,
         source_index: usize,
         source_count: usize,
     ) -> Self {
@@ -53,6 +55,7 @@ impl ChannelState {
             total_count,
             running,
             current_command,
+            current_source_name,
             source_index,
             source_count,
         }
@@ -68,6 +71,7 @@ impl Hash for ChannelState {
         self.total_count.hash(state);
         self.running.hash(state);
         self.current_command.hash(state);
+        self.current_source_name.hash(state);
         self.source_index.hash(state);
         self.source_count.hash(state);
     }
@@ -209,6 +213,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         &ctx.config.results_panel_border_type,
         ctx.tv_state.channel_state.source_index,
         ctx.tv_state.channel_state.source_count,
+        ctx.tv_state.channel_state.current_source_name.as_deref(),
         cycle_sources_key,
     )?;
 
