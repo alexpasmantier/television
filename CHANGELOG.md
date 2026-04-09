@@ -4,6 +4,78 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.15.5](https://github.com/alexpasmantier/television/releases/tag/0.15.5) - 2026-04-08
+
+### ⛰️  Features
+
+- [c59b35d](https://github.com/alexpasmantier/television/commit/c59b35d3cd4c6c53ed61cdaa0408aa30313bebba) *(cable)* Add dnf-packages channel by @LePetitPrince-4 in [#1017](https://github.com/alexpasmantier/television/pull/1017)
+
+- [14664ba](https://github.com/alexpasmantier/television/commit/14664bac0f60d9a945a1c841de0ec3997a91e435) *(cable)* Add git-deletions channel by @Senderman in [#1013](https://github.com/alexpasmantier/television/pull/1013)
+
+- [0f78107](https://github.com/alexpasmantier/television/commit/0f78107cb129cd5bf87d4ecc67320d59ea2805b6) *(cable)* Add opencode-sessions channel by @sachin-sankar in [#1010](https://github.com/alexpasmantier/television/pull/1010)
+
+- [1a6fa1e](https://github.com/alexpasmantier/television/commit/1a6fa1e7eba82389f1ff29163829de512abca28a) *(cable)* Add macOS diskutil and launchd-services channels by @delafthi in [#967](https://github.com/alexpasmantier/television/pull/967)
+
+- [65eb60d](https://github.com/alexpasmantier/television/commit/65eb60d4af6557cefb49625845bac2442f2e1b62) *(cable)* Add jujutsu (jj) channels by @delafthi in [#965](https://github.com/alexpasmantier/television/pull/965)
+
+- [0e8588d](https://github.com/alexpasmantier/television/commit/0e8588dc5ed13a93f7549a97e65a741deddf1864) *(config)* Add `git switch` to git-branch channel default shell integration triggers by @TakuSemba in [#1019](https://github.com/alexpasmantier/television/pull/1019)
+
+- [09d8a40](https://github.com/alexpasmantier/television/commit/09d8a4044332f6ded2acc36be369559535959c5a) *(themes)* Add cyberdream themes by @maximilienGilet in [#975](https://github.com/alexpasmantier/television/pull/975)
+
+### 🐛 Bug Fixes
+
+- [80c029d](https://github.com/alexpasmantier/television/commit/80c029dcc79a424660e3a9bf6cce4d7c7353da40) *(cable)* Fix channels channel by @rudenkornk in [#992](https://github.com/alexpasmantier/television/pull/992)
+
+- [dafbe9c](https://github.com/alexpasmantier/television/commit/dafbe9c05fba9eaafd726217d5cd5f39ce69e300) *(channels)* Deduplicate bash-history entries by @mslugyfw in [#1000](https://github.com/alexpasmantier/television/pull/1000)
+
+- [d5cd546](https://github.com/alexpasmantier/television/commit/d5cd546f53bb337500976d4ef77e5888ac662bbb) *(tests)* Don't join drain thread in assert_exit_ok by @alexpasmantier
+
+- [0833112](https://github.com/alexpasmantier/television/commit/0833112c235ff957d8cf90987c89b4ae4817fee3) *(tests)* Use background drain thread to avoid blocking read in assert_exit_ok by @alexpasmantier
+
+- [975b21b](https://github.com/alexpasmantier/television/commit/975b21b86e827e1efa2a76dcc834d078e5dcc8a5) *(tests)* Use timeout-based assertions for --take-1 and list-channels tests by @alexpasmantier
+
+- [79d91a7](https://github.com/alexpasmantier/television/commit/79d91a716efa35a90e48ceaa7cf98a1f183b9b8e) *(tests)* Drain PTY output in assert_exit_ok to prevent rendering deadlock by @alexpasmantier
+
+- [87c07ba](https://github.com/alexpasmantier/television/commit/87c07bab3abbebde5edcca63456080d13d09940b) *(tests)* Add --input filter to fix flaky fd-dependent tests by @qaqland in [#981](https://github.com/alexpasmantier/television/pull/981)
+
+- [37897bd](https://github.com/alexpasmantier/television/commit/37897bddc66d768c5baf7dd3bddea82d1e85c52f) *(tests)* Use --take-1 in test_cli_working_directory_override by @qaqland in [#964](https://github.com/alexpasmantier/television/pull/964)
+
+- [99e1c09](https://github.com/alexpasmantier/television/commit/99e1c095c63b029b1e01ce2b27755367ef9015d0) *(tests)* Replace unsafe env var manipulation with CommandBuilder::env by @qaqland in [#963](https://github.com/alexpasmantier/television/pull/963)
+
+- [d12a813](https://github.com/alexpasmantier/television/commit/d12a81359ac04907522b98781ef96ae7da1e2249) *(ui)* Add CJK punctuation unicode ranges to replace_non_printable by @mslugyfw in [#986](https://github.com/alexpasmantier/television/pull/986)
+
+- [f5ffcd3](https://github.com/alexpasmantier/television/commit/f5ffcd3a203d0bacfae3a18de498fc91b37bc4aa) *(ui)* Reset tick counter when channel stops to ensure immediate rendering by @rucnyz in [#925](https://github.com/alexpasmantier/television/pull/925)
+
+### 📚 Documentation
+
+- [c46f06d](https://github.com/alexpasmantier/television/commit/c46f06d4cef7624c78828add04e85beef21878f4) *(installation)* Document fd and bat dependencies by @spik3r in [#945](https://github.com/alexpasmantier/television/pull/945)
+
+- [64a8aa7](https://github.com/alexpasmantier/television/commit/64a8aa7735d1bbc93fb91d6af6773689f9054d13) *(uncategorized)* Fix incorrect Windows paths in documentation by @kellyelton in [#974](https://github.com/alexpasmantier/television/pull/974)
+
+- [1c48751](https://github.com/alexpasmantier/television/commit/1c487511ab2d346bfd21f3c25cc90e7a22dc2695) *(uncategorized)* Add windows doc note in sample mkdir by @clach04 in [#960](https://github.com/alexpasmantier/television/pull/960)
+
+### ⚙️ Miscellaneous Tasks
+
+- [a26117d](https://github.com/alexpasmantier/television/commit/a26117dc2f12f0e4d6cebef61f8ec62449f985e2) *(uncategorized)* Release version 0.15.5
+
+
+
+### New Contributors
+* @TakuSemba made their first contribution in [#1019](https://github.com/alexpasmantier/television/pull/1019)
+* @LePetitPrince-4 made their first contribution in [#1017](https://github.com/alexpasmantier/television/pull/1017)
+* @Senderman made their first contribution in [#1013](https://github.com/alexpasmantier/television/pull/1013)
+* @sachin-sankar made their first contribution in [#1010](https://github.com/alexpasmantier/television/pull/1010)
+* @mslugyfw made their first contribution in [#1000](https://github.com/alexpasmantier/television/pull/1000)
+* @rudenkornk made their first contribution in [#992](https://github.com/alexpasmantier/television/pull/992)
+* @maximilienGilet made their first contribution in [#975](https://github.com/alexpasmantier/television/pull/975)
+* @kellyelton made their first contribution in [#974](https://github.com/alexpasmantier/television/pull/974)
+* @spik3r made their first contribution in [#945](https://github.com/alexpasmantier/television/pull/945)
+* @rucnyz made their first contribution in [#925](https://github.com/alexpasmantier/television/pull/925)
+* @clach04 made their first contribution in [#960](https://github.com/alexpasmantier/television/pull/960)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.4...0.15.5
+
+
 ## [0.15.4](https://github.com/alexpasmantier/television/releases/tag/0.15.4) - 2026-03-21
 
 ### ⛰️  Features
@@ -54,7 +126,7 @@ All notable changes to this project will be documented in this file.
 
 - [181112b](https://github.com/alexpasmantier/television/commit/181112b06456d2cfd0b27b72b7f17b143099a44e) *(uncategorized)* Update nucleo fork dependency to allow publishing on crates.io again by @alexpasmantier
 
-- [3681431](https://github.com/alexpasmantier/television/commit/3681431cd4677f5c93a9c4ad9c0a0164788bc488) *(uncategorized)* Modify nightly source to https format by @atlarator in [#926](https://github.com/alexpasmantier/television/pull/926)
+- [3681431](https://github.com/alexpasmantier/television/commit/3681431cd4677f5c93a9c4ad9c0a0164788bc488) *(uncategorized)* Modify nightly source to https format in [#926](https://github.com/alexpasmantier/television/pull/926)
 
 
 
@@ -64,7 +136,6 @@ All notable changes to this project will be documented in this file.
 * @LeeSF03 made their first contribution in [#946](https://github.com/alexpasmantier/television/pull/946)
 * @f440 made their first contribution in [#941](https://github.com/alexpasmantier/television/pull/941)
 * @CodeMarco05 made their first contribution in [#949](https://github.com/alexpasmantier/television/pull/949)
-* @atlarator made their first contribution in [#926](https://github.com/alexpasmantier/television/pull/926)
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.3...0.15.4
 
@@ -2247,7 +2318,7 @@ All notable changes to this project will be documented in this file.
 
 - [e034615](https://github.com/alexpasmantier/television/commit/e0346155945250defd3298a61aa3f6fee1518283) *(cable)* Make preview optional for cable channels by @alexpasmantier in [#155](https://github.com/alexpasmantier/television/pull/155)
 
-- [309ff53](https://github.com/alexpasmantier/television/commit/309ff537a499a0d9350c907735b07bdb016d7538) *(cli)* Allow passing --input <STRING> to prefill input prompt by @alexpasmantier in [#153](https://github.com/alexpasmantier/television/pull/153)
+- [309ff53](https://github.com/alexpasmantier/television/commit/309ff537a499a0d9350c907735b07bdb016d7538) *(cli)* Allow passing --input \\<STRING> to prefill input prompt by @alexpasmantier in [#153](https://github.com/alexpasmantier/television/pull/153)
 
 - [557686e](https://github.com/alexpasmantier/television/commit/557686e1976ef474de314c790270985d6c7c73af) *(config)* Allow specifying multiple keymaps for the same action + better defaults by @alexpasmantier in [#149](https://github.com/alexpasmantier/television/pull/149)
 
