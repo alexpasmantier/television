@@ -27,10 +27,13 @@ pub fn draw_results_list(
     results_panel_border_type: &BorderType,
     source_index: usize,
     source_count: usize,
+    current_source_name: Option<&str>,
     cycle_key: Option<Key>,
 ) -> Result<()> {
     let title = if source_count > 1 {
-        let mut spans = vec![Span::from(" Results ")];
+        let header = current_source_name
+            .map_or_else(|| " Results ".to_string(), |name| format!(" {} ", name));
+        let mut spans = vec![Span::from(header)];
         let dots: String = (0..source_count)
             .map(|i| if i == source_index { "●" } else { "○" })
             .collect::<Vec<_>>()

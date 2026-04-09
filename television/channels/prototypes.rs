@@ -106,6 +106,12 @@ pub struct CommandSpec {
     #[serde(rename = "command")]
     #[serde_as(as = "OneOrMany<_>")]
     pub inner: Vec<Template>,
+    /// Optional display names for each source command.
+    /// When multiple source commands are defined, these names are shown
+    /// in the results panel header instead of generic dot indicators.
+    #[serde(default)]
+    #[serde_as(as = "Option<OneOrMany<_>>")]
+    pub command_name: Option<Vec<String>>,
     #[serde(default)]
     pub interactive: bool,
     #[serde(default)]
@@ -145,6 +151,7 @@ impl CommandSpec {
     ) -> Self {
         Self {
             inner,
+            command_name: None,
             interactive,
             env,
             shell,
@@ -165,6 +172,16 @@ impl CommandSpec {
     /// If the command spec does not contain any commands.
     pub fn get_nth(&self, index: usize) -> &Template {
         &self.inner[index % self.inner.len()]
+    }
+
+    /// Get the display name for the source command at the given index.
+    ///
+    /// Returns `None` if no custom names are defined or the index has no name.
+    pub fn get_name(&self, index: usize) -> Option<&str> {
+        self.command_name
+            .as_ref()
+            .and_then(|names| names.get(index % self.inner.len()))
+            .map(String::as_str)
     }
 
     pub fn from_template(template: Template) -> Self {
@@ -263,6 +280,7 @@ impl ChannelPrototype {
                         Template::parse(command)
                             .expect("Failed to parse command"),
                     ],
+                    command_name: None,
                     interactive: false,
                     env: FxHashMap::default(),
                     shell: None,
@@ -444,6 +462,7 @@ impl PreviewSpec {
                     Template::parse(command)
                         .expect("Failed to parse preview command"),
                 ],
+                command_name: None,
                 interactive: false,
                 env: FxHashMap::default(),
                 shell: None,
@@ -517,6 +536,7 @@ mod tests {
                 Template::parse("cmd2").unwrap(),
                 Template::parse("cmd3").unwrap(),
             ],
+            command_name: None,
             interactive: false,
             env: FxHashMap::default(),
             shell: None,
@@ -739,6 +759,67 @@ mod tests {
         assert!(!prototype.source.command.interactive);
         assert!(prototype.source.command.env.is_empty());
         assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+        assert!(prototype.source.command.command_name.is_none());
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_multiple_commands_with_names() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+
+        [source]
+        command = ["fd -t f", "fd -t f --hidden", "fd -t f --no-ignore"]
+        command_name = ["Default", "Hidden", "All"]
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        let names = prototype.source.command.command_name.as_ref().unwrap();
+        assert_eq!(names, &["Default", "Hidden", "All"]);
+        assert_eq!(prototype.source.command.get_name(0), Some("Default"));
+        assert_eq!(prototype.source.command.get_name(1), Some("Hidden"));
+        assert_eq!(prototype.source.command.get_name(2), Some("All"));
+        // wraps around
+        assert_eq!(prototype.source.command.get_name(3), Some("Default"));
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_single_command_name() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel"
+
+        [source]
+        command = "fd -t f"
+        command_name = "All Files"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        let names = prototype.source.command.command_name.as_ref().unwrap();
+        assert_eq!(names, &["All Files"]);
+        assert_eq!(prototype.source.command.get_name(0), Some("All Files"));
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_no_command_names() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel"
+
+        [source]
+        command = ["fd -t f", "fd -t f --hidden"]
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert!(prototype.source.command.command_name.is_none());
+        assert_eq!(prototype.source.command.get_name(0), None);
+        assert_eq!(prototype.source.command.get_name(1), None);
     }
 
     #[test]
