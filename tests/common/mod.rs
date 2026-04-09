@@ -46,7 +46,7 @@ pub fn default_delay() -> Duration {
         .unwrap_or(Duration::from_millis(100))
 }
 
-pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
+pub const DEFAULT_DELAY: Duration = Duration::from_millis(110);
 
 /// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
 ///
