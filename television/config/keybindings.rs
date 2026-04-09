@@ -135,7 +135,8 @@ pub fn merge_keybindings(
 /// ```
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
-    let (remaining, modifiers) = extract_modifiers(&raw_lower);
+    let (remaining_lower, modifiers) = extract_modifiers(&raw_lower);
+    let remaining = &raw[raw.len() - remaining_lower.len()..];
     parse_key_code_with_modifiers(remaining, modifiers)
 }
 
@@ -263,17 +264,19 @@ fn parse_key_code_with_modifiers(
             .collect()
         });
 
-    let c = if let Some(&key_code) = KEY_CODE_MAP.get(raw) {
+    let raw_lower = raw.to_ascii_lowercase();
+    let c = if let Some(&key_code) = KEY_CODE_MAP.get(raw_lower.as_str()) {
         key_code
-    } else if raw == "backtab" {
+    } else if raw_lower == "backtab" {
         modifiers.insert(KeyModifiers::SHIFT);
         KeyCode::BackTab
     } else if raw.len() == 1 {
-        let mut c = raw.chars().next().unwrap();
-        if modifiers.contains(KeyModifiers::SHIFT) {
-            c = c.to_ascii_uppercase();
+        let c = raw.chars().next().unwrap();
+        if c.is_ascii_uppercase() || modifiers.contains(KeyModifiers::SHIFT) {
+            KeyCode::Char(c.to_ascii_uppercase())
+        } else {
+            KeyCode::Char(c)
         }
-        KeyCode::Char(c)
     } else {
         return Err(format!("Unable to parse {raw}"));
     };
@@ -310,6 +313,8 @@ fn parse_key_code_with_modifiers(
 #[allow(dead_code)]
 pub fn key_event_to_string(key_event: &KeyEvent) -> String {
     let char;
+    let is_shifted_char = key_event.modifiers.intersects(KeyModifiers::SHIFT)
+        && matches!(key_event.code, KeyCode::Char(_));
     let key_code = match key_event.code {
         KeyCode::Backspace => "backspace",
         KeyCode::Enter => "enter",
@@ -331,7 +336,11 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         }
         KeyCode::Char(' ') => "space",
         KeyCode::Char(c) => {
-            char = c.to_string();
+            char = if is_shifted_char {
+                c.to_ascii_uppercase().to_string()
+            } else {
+                c.to_string()
+            };
             &char
         }
         KeyCode::Esc => "esc",
@@ -353,7 +362,8 @@ pub fn key_event_to_string(key_event: &KeyEvent) -> String {
         modifiers.push("ctrl");
     }
 
-    if key_event.modifiers.intersects(KeyModifiers::SHIFT) {
+    if key_event.modifiers.intersects(KeyModifiers::SHIFT) && !is_shifted_char
+    {
         modifiers.push("shift");
     }
 
@@ -487,6 +497,72 @@ mod tests {
                 KeyModifiers::CONTROL | KeyModifiers::ALT
             )),
             "ctrl-alt-a".to_string()
+        );
+    }
+
+    #[test]
+    fn test_uppercase_bindings() {
+        // Bare uppercase char → Char('A') with no modifiers
+        assert_eq!(
+            parse_key_event("A").unwrap(),
+            KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE)
+        );
+
+        // ctrl + uppercase char → Char('A') with CONTROL
+        assert_eq!(
+            parse_key_event("ctrl-A").unwrap(),
+            KeyEvent::new(KeyCode::Char('A'), KeyModifiers::CONTROL)
+        );
+
+        // alt + uppercase char → Char('A') with ALT
+        assert_eq!(
+            parse_key_event("alt-A").unwrap(),
+            KeyEvent::new(KeyCode::Char('A'), KeyModifiers::ALT)
+        );
+
+        // shift-a and bare A are equivalent
+        assert_eq!(
+            parse_key_event("shift-a").unwrap(),
+            parse_key_event("A").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_event_to_string_uppercase() {
+        // Shift+char → uppercase notation, no "shift-" prefix
+        assert_eq!(
+            key_event_to_string(&KeyEvent::new(
+                KeyCode::Char('a'),
+                KeyModifiers::SHIFT
+            )),
+            "A".to_string()
+        );
+
+        // ctrl + shift + char → "ctrl-A"
+        assert_eq!(
+            key_event_to_string(&KeyEvent::new(
+                KeyCode::Char('a'),
+                KeyModifiers::CONTROL | KeyModifiers::SHIFT
+            )),
+            "ctrl-A".to_string()
+        );
+
+        // Already uppercase char with no modifiers → "A"
+        assert_eq!(
+            key_event_to_string(&KeyEvent::new(
+                KeyCode::Char('A'),
+                KeyModifiers::NONE
+            )),
+            "A".to_string()
+        );
+
+        // Non-char shift (e.g. shift-enter) keeps the "shift-" prefix
+        assert_eq!(
+            key_event_to_string(&KeyEvent::new(
+                KeyCode::Enter,
+                KeyModifiers::SHIFT
+            )),
+            "shift-enter".to_string()
         );
     }
 
