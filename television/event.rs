@@ -380,12 +380,19 @@ pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
             KeyModifiers::ALT => Key::AltSpace,
             _ => Key::Null,
         },
-        Char(c) => match event.modifiers {
-            KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(c),
-            KeyModifiers::CONTROL => Key::Ctrl(c),
-            KeyModifiers::ALT => Key::Alt(c),
-            _ => Key::Null,
-        },
+        Char(c) => {
+            let c = if event.modifiers.contains(KeyModifiers::SHIFT) {
+                c.to_uppercase().next().unwrap_or(c)
+            } else {
+                c
+            };
+            match event.modifiers - KeyModifiers::SHIFT {
+                KeyModifiers::NONE => Key::Char(c),
+                KeyModifiers::CONTROL => Key::Ctrl(c),
+                KeyModifiers::ALT => Key::Alt(c),
+                _ => Key::Null,
+            }
+        }
         _ => Key::Null,
     }
 }
@@ -430,7 +437,7 @@ mod tests {
             kind: KeyEventKind::Press,
             state: KeyEventState::NONE,
         };
-        assert_eq!(convert_raw_event_to_key(event), Key::Char('a'));
+        assert_eq!(convert_raw_event_to_key(event), Key::Char('A'));
 
         let event = KeyEvent {
             code: KeyCode::Char(' '),
