@@ -137,7 +137,6 @@ fn test_channel_ui_merging() {
 
 #[test]
 fn test_channel_prefer_prefix_override() {
-    let mut tester = PtyTester::new();
     let temp_config = TempConfig::init();
 
     temp_config.write_config("").unwrap();
@@ -178,14 +177,15 @@ fn test_channel_prefer_prefix_override() {
         "md",
         "--take-1",
     ]);
-    let mut child_on = tester.spawn_command(cmd_on);
-    let output_on = tester.read_raw_output();
+    let mut tester_on = PtyTester::new();
+    let mut child_on = tester_on.spawn_command(cmd_on);
+    let output_on = tester_on.read_raw_output();
     assert!(
         output_on.contains("Moby Dick"),
         "Expected output to contain 'Moby Dick', but got:\n{:?}",
         output_on
     );
-    PtyTester::assert_exit_ok(&mut child_on, DEFAULT_DELAY);
+    tester_on.assert_exit_ok(&mut child_on, DEFAULT_DELAY);
 
     let cmd_off = tv_with_args(&[
         "prefix-off",
@@ -197,19 +197,19 @@ fn test_channel_prefer_prefix_override() {
         "md",
         "--take-1",
     ]);
-    let mut child_off = tester.spawn_command(cmd_off);
-    let output_off = tester.read_raw_output();
+    let mut tester_off = PtyTester::new();
+    let mut child_off = tester_off.spawn_command(cmd_off);
+    let output_off = tester_off.read_raw_output();
     assert!(
         output_off.contains("Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage"),
         "Expected output to contain the non-prefix match, but got:\n{:?}",
         output_off
     );
-    PtyTester::assert_exit_ok(&mut child_off, DEFAULT_DELAY);
+    tester_off.assert_exit_ok(&mut child_off, DEFAULT_DELAY);
 }
 
 #[test]
 fn test_channel_history_sort_override() {
-    let mut tester = PtyTester::new();
     let temp_config = TempConfig::init();
 
     temp_config.write_config("").unwrap();
@@ -249,15 +249,16 @@ fn test_channel_history_sort_override() {
         "clear",
         "--take-1",
     ]);
-    let mut child_default = tester.spawn_command(cmd_default);
-    let output_default = tester.read_raw_output();
+    let mut tester_default = PtyTester::new();
+    let mut child_default = tester_default.spawn_command(cmd_default);
+    let output_default = tester_default.read_raw_output();
     assert!(
         output_default.contains("clear")
             && !output_default.contains("zz clear"),
         "Expected output to contain 'clear', but got:\n{:?}",
         output_default
     );
-    PtyTester::assert_exit_ok(&mut child_default, DEFAULT_DELAY);
+    tester_default.assert_exit_ok(&mut child_default, DEFAULT_DELAY);
 
     let cmd_history = tv_with_args(&[
         "sort-history",
@@ -269,14 +270,15 @@ fn test_channel_history_sort_override() {
         "clear",
         "--take-1",
     ]);
-    let mut child_history = tester.spawn_command(cmd_history);
-    let output_history = tester.read_raw_output();
+    let mut tester_history = PtyTester::new();
+    let mut child_history = tester_history.spawn_command(cmd_history);
+    let output_history = tester_history.read_raw_output();
     assert!(
         output_history.contains("zz clear"),
         "Expected output to contain 'zz clear', but got:\n{:?}",
         output_history
     );
-    PtyTester::assert_exit_ok(&mut child_history, DEFAULT_DELAY);
+    tester_history.assert_exit_ok(&mut child_history, DEFAULT_DELAY);
 }
 
 #[test]
@@ -316,7 +318,7 @@ fn test_channel_legacy_no_sort_override() {
         "Expected output to contain 'a-weak-b', but got:\n{:?}",
         output
     );
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]
@@ -358,7 +360,7 @@ fn test_cli_sort_overrides_channel_sort() {
         "Expected CLI --sort default to override channel sort, but got:\n{:?}",
         output
     );
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 /// Tests channel source command variations and output parsing

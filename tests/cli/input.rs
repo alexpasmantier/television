@@ -181,7 +181,7 @@ fn test_sort_source_preserves_source_order() {
         "Expected output to contain 'a-weak-b', but got:\n{:?}",
         output
     );
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
 #[test]
@@ -205,5 +205,5 @@ fn test_sort_history_preserves_source_order_for_score_ties() {
         "Expected output to contain 'zz clear', but got:\n{:?}",
         output
     );
-    PtyTester::assert_exit_ok(&mut child, DEFAULT_DELAY);
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
