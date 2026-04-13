@@ -273,6 +273,7 @@ impl ChannelPrototype {
                 output: None,
                 no_sort: false,
                 frecency: true,
+                batch_size: default_batch_size(),
             },
             preview: None,
             ui: None,
@@ -386,10 +387,19 @@ pub struct SourceSpec {
     /// (e.g., channels with dynamic/random results, or where order is meaningful).
     #[serde(default = "default_frecency")]
     pub frecency: bool,
+    /// Batch size for pushing candidates to the injector.
+    /// Defaults to 10,000. Lower values improve responsiveness for slow sources
+    /// (e.g., API-backed channels that return small pages).
+    #[serde(default = "default_batch_size")]
+    pub batch_size: usize,
 }
 
 const fn default_frecency() -> bool {
     true
+}
+
+const fn default_batch_size() -> usize {
+    10_000
 }
 
 /// Just a helper function to adapt cli parsing to serde deserialization.

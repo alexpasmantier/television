@@ -63,6 +63,7 @@ Defines what data the channel searches through.
 | `entry_delimiter` | string | No | Custom entry delimiter (default: newline) |
 | `no_sort` | boolean | No | Preserve original source order, disabling match-quality sorting and frecency (default: false) |
 | `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
+| `batch_size` | integer | No | Number of entries buffered before flushing to the matcher (default: 10000). Lower values improve responsiveness for slow sources |
 
 ### Single Source Command
 

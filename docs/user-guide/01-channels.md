@@ -167,6 +167,7 @@ no_sort = true     # preserve the original order from the source command
 
 - `no_sort` (default: `false`): When set to `true`, disables both match-quality sorting and frecency, preserving the exact order provided by the source command. This is also available as the `--no-sort` CLI flag.
 - `frecency` (default: `true`): When set to `false`, disables frecency ranking for this channel while keeping match-quality sorting. This is useful for channels where the source order is meaningful (e.g., shell history, git log). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) for details on how frecency works.
+- `batch_size` (default: `10000`): Number of entries buffered before flushing to the matcher. Lower values improve responsiveness for slow or paginated sources (e.g., API-backed channels).
 
 ### `[preview]`
 

@@ -49,6 +49,7 @@ pub fn load_candidates_by_size(c: &mut Criterion) {
                         black_box(source_spec.command),
                         black_box(source_spec.entry_delimiter),
                         black_box(0),
+                        black_box(source_spec.batch_size),
                         black_box(PlainProcessor),
                         injector,
                     )
@@ -91,6 +92,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
+                black_box(source_spec.batch_size),
                 black_box(PlainProcessor),
                 injector,
             )
@@ -123,6 +125,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
+                black_box(source_spec.batch_size),
                 black_box(AnsiProcessor),
                 injector,
             )
@@ -161,6 +164,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
+                black_box(source_spec.batch_size),
                 black_box(PlainProcessor),
                 injector,
             )
@@ -192,6 +196,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
+                black_box(source_spec.batch_size),
                 black_box(DisplayProcessor {
                     template: source_spec.display.unwrap(),
                 }),

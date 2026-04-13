@@ -133,6 +133,7 @@ impl ConfigLayers {
             self.channel_cli.ansi || self.channel.source.ansi;
         // Per-channel frecency setting (defaults to true, can be disabled per-channel)
         let channel_frecency = self.channel.source.frecency;
+        let channel_source_batch_size = self.channel.source.batch_size;
         let channel_source_display = self
             .channel_cli
             .source_display
@@ -568,6 +569,8 @@ impl ConfigLayers {
             channel_actions,
             // frecency
             channel_frecency,
+            // batch size
+            channel_source_batch_size,
             // stdin
             is_stdin: self.channel.metadata.name == "stdin",
         }
@@ -669,6 +672,8 @@ pub struct MergedConfig {
     pub channel_actions: FxHashMap<String, ActionSpec>,
     /// Whether frecency is enabled for the current channel (per-channel override)
     pub channel_frecency: bool,
+    /// Batch size for pushing candidates to the injector
+    pub channel_source_batch_size: usize,
     /// Whether the current channel reads from stdin directly
     pub is_stdin: bool,
 }

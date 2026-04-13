@@ -29,6 +29,7 @@ pub struct Channel<P: EntryProcessor> {
     pub source_command: CommandSpec,
     pub source_entry_delimiter: Option<char>,
     pub source_output: Option<Template>,
+    pub batch_size: usize,
     pub supports_preview: bool,
     processor: P,
     matcher: Matcher<P::Data>,
@@ -50,6 +51,7 @@ impl<P: EntryProcessor> Channel<P> {
         source_command: CommandSpec,
         source_entry_delimiter: Option<char>,
         source_output: Option<Template>,
+        batch_size: usize,
         supports_preview: bool,
         no_sort: bool,
         processor: P,
@@ -95,6 +97,7 @@ impl<P: EntryProcessor> Channel<P> {
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
+            batch_size,
             is_stdin,
         }
     }
@@ -105,6 +108,7 @@ impl<P: EntryProcessor> Channel<P> {
         let crawl_handle = if self.is_stdin {
             tokio::spawn(load_stdin_candidates(
                 self.source_entry_delimiter,
+                self.batch_size,
                 processor,
                 injector,
             ))
@@ -113,6 +117,7 @@ impl<P: EntryProcessor> Channel<P> {
                 self.source_command.clone(),
                 self.source_entry_delimiter,
                 self.current_source_index,
+                self.batch_size,
                 processor,
                 injector,
             ))
@@ -253,7 +258,7 @@ impl<P: EntryProcessor> Channel<P> {
 const DEFAULT_LINE_BUFFER_SIZE: usize = 256;
 // Batch size for pushing candidates to the injector
 // 10k * 500 bytes (pessimistic avg line size) = ~5 MB
-const BATCH_SIZE: usize = 10_000;
+pub const DEFAULT_BATCH_SIZE: usize = 10_000;
 // Maximum number of concurrent flush tasks to prevent unbounded memory growth
 // 4 * 10_000 * average line size = ~20 MB
 const MAX_CONCURRENT_FLUSHES: usize = 4;
@@ -265,6 +270,7 @@ pub async fn load_candidates<P: EntryProcessor>(
     command: CommandSpec,
     entry_delimiter: Option<char>,
     command_index: usize,
+    batch_size: usize,
     processor: P,
     injector: Injector<P::Data>,
 ) {
@@ -284,7 +290,7 @@ pub async fn load_candidates<P: EntryProcessor>(
         let mut produced_output = false;
         let mut reader = BufReader::new(out);
         let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
-        let mut batch = Vec::with_capacity(BATCH_SIZE);
+        let mut batch = Vec::with_capacity(batch_size);
         let mut flush_handles = tokio::task::JoinSet::new();
 
         let delimiter = entry_delimiter
@@ -300,7 +306,7 @@ pub async fn load_candidates<P: EntryProcessor>(
             batch.push(buf.clone());
 
             // Flush batch when it reaches the target size
-            if batch.len() >= BATCH_SIZE {
+            if batch.len() >= batch_size {
                 if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
                     // Wait for any task to complete
                     let _ = flush_handles.join_next().await;
@@ -308,7 +314,7 @@ pub async fn load_candidates<P: EntryProcessor>(
 
                 let batch_to_flush = std::mem::replace(
                     &mut batch,
-                    Vec::with_capacity(BATCH_SIZE),
+                    Vec::with_capacity(batch_size),
                 );
                 let inj = injector.clone();
                 let proc = processor.clone();
@@ -359,6 +365,7 @@ pub async fn load_candidates<P: EntryProcessor>(
 /// `Get-Content` alias on Windows).
 pub async fn load_stdin_candidates<P: EntryProcessor>(
     entry_delimiter: Option<char>,
+    batch_size: usize,
     processor: P,
     injector: Injector<P::Data>,
 ) {
@@ -366,7 +373,7 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin);
     let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
-    let mut batch = Vec::with_capacity(BATCH_SIZE);
+    let mut batch = Vec::with_capacity(batch_size);
     let mut flush_handles = tokio::task::JoinSet::new();
 
     let delimiter = entry_delimiter
@@ -381,13 +388,13 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
     } {
         batch.push(buf.clone());
 
-        if batch.len() >= BATCH_SIZE {
+        if batch.len() >= batch_size {
             if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
                 let _ = flush_handles.join_next().await;
             }
 
             let batch_to_flush =
-                std::mem::replace(&mut batch, Vec::with_capacity(BATCH_SIZE));
+                std::mem::replace(&mut batch, Vec::with_capacity(batch_size));
             let inj = injector.clone();
             let proc = processor.clone();
             flush_handles.spawn_blocking(move || {
@@ -515,6 +522,7 @@ impl ChannelKind {
         source_ansi: bool,
         source_display: Option<Template>,
         source_output: Option<Template>,
+        batch_size: usize,
         supports_preview: bool,
         no_sort: bool,
         frecency: Option<(FrecencyHandle, String)>,
@@ -525,6 +533,7 @@ impl ChannelKind {
                 source_command,
                 source_entry_delimiter,
                 source_output,
+                batch_size,
                 supports_preview,
                 no_sort,
                 PlainProcessor,
@@ -535,6 +544,7 @@ impl ChannelKind {
                 source_command,
                 source_entry_delimiter,
                 source_output,
+                batch_size,
                 supports_preview,
                 no_sort,
                 AnsiProcessor,
@@ -545,6 +555,7 @@ impl ChannelKind {
                 source_command,
                 source_entry_delimiter,
                 source_output,
+                batch_size,
                 supports_preview,
                 no_sort,
                 DisplayProcessor { template },
@@ -608,6 +619,7 @@ mod tests {
             source_spec.command,
             source_spec.entry_delimiter,
             0,
+            DEFAULT_BATCH_SIZE,
             PlainProcessor,
             injector,
         )
@@ -639,6 +651,7 @@ mod tests {
             source_spec.command,
             source_spec.entry_delimiter,
             0,
+            DEFAULT_BATCH_SIZE,
             PlainProcessor,
             injector,
         )
@@ -670,6 +683,7 @@ mod tests {
             source_spec.command,
             source_spec.entry_delimiter,
             0,
+            DEFAULT_BATCH_SIZE,
             PlainProcessor,
             injector,
         )
@@ -702,6 +716,7 @@ mod tests {
             source_spec.command,
             source_spec.entry_delimiter,
             0,
+            DEFAULT_BATCH_SIZE,
             PlainProcessor,
             injector,
         )
@@ -714,6 +729,42 @@ mod tests {
         assert_eq!(results.len(), 1000);
         assert_eq!(results[0].matched_string, "1");
         assert_eq!(results[999].matched_string, "1000");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_load_candidates_custom_batch_size() {
+        // Verify that a custom batch_size smaller than the input count
+        // still produces all results (multiple flushes required)
+        let source_spec: SourceSpec = toml::from_str(
+            r#"
+            command = "seq 1 100"
+            batch_size = 7
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(source_spec.batch_size, 7);
+
+        let mut matcher =
+            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+        let injector = matcher.injector();
+
+        load_candidates(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            0,
+            source_spec.batch_size,
+            PlainProcessor,
+            injector,
+        )
+        .await;
+
+        matcher.find("");
+        matcher.tick();
+        let results = matcher.results(100, 0);
+        assert_eq!(results.len(), 100);
+        assert_eq!(results[0].matched_string, "1");
+        assert_eq!(results[99].matched_string, "100");
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
@@ -734,6 +785,7 @@ mod tests {
             source_spec.command,
             source_spec.entry_delimiter,
             0,
+            DEFAULT_BATCH_SIZE,
             AnsiProcessor,
             injector,
         )
