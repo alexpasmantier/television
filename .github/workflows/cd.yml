@@ -157,7 +157,7 @@ jobs:
           Compress-Archive -Path "$env:BIN" -Destination "$($env:RELEASE_NAME).zip"
           (Get-FileHash "$($env:RELEASE_NAME).zip" -Algorithm SHA256).Hash.ToLower() > "$($env:RELEASE_NAME).zip.sha256"
       - name: Releasing assets
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: |
             tv-*.tar.gz
