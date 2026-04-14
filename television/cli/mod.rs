@@ -1,8 +1,8 @@
 use crate::{
     action::{Action, Actions},
     cable::Cable,
-    channels::prototypes::{ChannelPrototype, Template},
-    cli::args::{Cli, Command},
+    channels::prototypes::{ChannelPrototype, SourceSortMode, Template},
+    cli::args::{Cli, Command, SourceSortModeArg},
     config::{
         Keybindings, get_config_dir, get_data_dir, merge_keybindings,
         ui::{BorderType, Padding},
@@ -71,7 +71,7 @@ pub struct ChannelCli {
     pub source_entry_delimiter: Option<char>,
     pub autocomplete_prompt: Option<String>,
     pub ansi: bool,
-    pub no_sort: bool,
+    pub sort: Option<SourceSortMode>,
 
     // Preview configuration
     pub preview_command: Option<Template>,
@@ -313,7 +313,14 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
             source_display,
             source_output,
             source_entry_delimiter,
-            no_sort: cli.no_sort,
+            sort: cli
+                .sort
+                .map(|sort| match sort {
+                    SourceSortModeArg::Default => SourceSortMode::Default,
+                    SourceSortModeArg::History => SourceSortMode::History,
+                    SourceSortModeArg::Source => SourceSortMode::Source,
+                })
+                .or(cli.no_sort.then_some(SourceSortMode::Source)),
 
             // Autocomplete and ANSI configuration
             autocomplete_prompt: cli.autocomplete_prompt,

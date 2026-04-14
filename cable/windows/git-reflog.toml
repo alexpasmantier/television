@@ -6,7 +6,7 @@ requirements = ["git"]
 [source]
 command = "git reflog"
 output = "{split: :0}"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

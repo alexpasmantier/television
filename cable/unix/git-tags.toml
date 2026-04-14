@@ -5,7 +5,7 @@ requirements = ["git"]
 
 [source]
 command = "git tag --sort=-creatordate"
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

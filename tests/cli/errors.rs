@@ -93,6 +93,23 @@ fn test_preview_and_no_preview_conflict_errors() {
     tester.assert_raw_output_contains("cannot be used with");
 }
 
+/// Tests that --no-sort conflicts with the new --sort flag.
+#[test]
+fn test_no_sort_and_sort_conflict_errors() {
+    let mut tester = PtyTester::new();
+
+    let cmd = tv_local_config_and_cable_with_args(&[
+        "--source-command",
+        "ls",
+        "--no-sort",
+        "--sort",
+        "source",
+    ]);
+    tester.spawn_command(cmd);
+
+    tester.assert_raw_output_contains("cannot be used with");
+}
+
 /// Tests that channel argument and --autocomplete-prompt cannot be used together.
 #[test]
 fn test_channel_and_autocomplete_prompt_conflict_errors() {

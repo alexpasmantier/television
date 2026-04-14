@@ -135,6 +135,234 @@ fn test_channel_ui_merging() {
     tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
 }
 
+#[test]
+fn test_channel_prefer_prefix_override() {
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "prefix-on",
+            r#"
+                [metadata]
+                name = "prefix-on"
+
+                [source]
+                command = "printf '%s\n' 'Moby Dick' 'Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage'"
+                prefer_prefix = true
+            "#,
+        )
+        .unwrap();
+    temp_config
+        .write_channel(
+            "prefix-off",
+            r#"
+                [metadata]
+                name = "prefix-off"
+
+                [source]
+                command = "printf '%s\n' 'Moby Dick' 'Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage'"
+                prefer_prefix = false
+            "#,
+        )
+        .unwrap();
+
+    let cmd_on = tv_with_args(&[
+        "prefix-on",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "md",
+        "--take-1",
+    ]);
+    let mut tester_on = PtyTester::new();
+    let mut child_on = tester_on.spawn_command(cmd_on);
+    let output_on = tester_on.read_raw_output();
+    assert!(
+        output_on.contains("Moby Dick"),
+        "Expected output to contain 'Moby Dick', but got:\n{:?}",
+        output_on
+    );
+    tester_on.assert_exit_ok(&mut child_on, DEFAULT_DELAY);
+
+    let cmd_off = tv_with_args(&[
+        "prefix-off",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "md",
+        "--take-1",
+    ]);
+    let mut tester_off = PtyTester::new();
+    let mut child_off = tester_off.spawn_command(cmd_off);
+    let output_off = tester_off.read_raw_output();
+    assert!(
+        output_off.contains("Though I cannot tell why it was exactly that those stage managers, the Fates, put me down for this shabby part of a whaling voyage"),
+        "Expected output to contain the non-prefix match, but got:\n{:?}",
+        output_off
+    );
+    tester_off.assert_exit_ok(&mut child_off, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_channel_history_sort_override() {
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "sort-default",
+            r#"
+                [metadata]
+                name = "sort-default"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+            "#,
+        )
+        .unwrap();
+    temp_config
+        .write_channel(
+            "sort-history",
+            r#"
+                [metadata]
+                name = "sort-history"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+                sort = "history"
+            "#,
+        )
+        .unwrap();
+
+    let cmd_default = tv_with_args(&[
+        "sort-default",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--take-1",
+    ]);
+    let mut tester_default = PtyTester::new();
+    let mut child_default = tester_default.spawn_command(cmd_default);
+    let output_default = tester_default.read_raw_output();
+    assert!(
+        output_default.contains("clear")
+            && !output_default.contains("zz clear"),
+        "Expected output to contain 'clear', but got:\n{:?}",
+        output_default
+    );
+    tester_default.assert_exit_ok(&mut child_default, DEFAULT_DELAY);
+
+    let cmd_history = tv_with_args(&[
+        "sort-history",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--take-1",
+    ]);
+    let mut tester_history = PtyTester::new();
+    let mut child_history = tester_history.spawn_command(cmd_history);
+    let output_history = tester_history.read_raw_output();
+    assert!(
+        output_history.contains("zz clear"),
+        "Expected output to contain 'zz clear', but got:\n{:?}",
+        output_history
+    );
+    tester_history.assert_exit_ok(&mut child_history, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_channel_legacy_no_sort_override() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "legacy-no-sort",
+            r#"
+                [metadata]
+                name = "legacy-no-sort"
+
+                [source]
+                command = "printf '%s\n' 'a-weak-b' 'ab-strong'"
+                no_sort = true
+            "#,
+        )
+        .unwrap();
+
+    let cmd = tv_with_args(&[
+        "legacy-no-sort",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "ab",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("a-weak-b"),
+        "Expected output to contain 'a-weak-b', but got:\n{:?}",
+        output
+    );
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
+#[test]
+fn test_cli_sort_overrides_channel_sort() {
+    let mut tester = PtyTester::new();
+    let temp_config = TempConfig::init();
+
+    temp_config.write_config("").unwrap();
+    temp_config
+        .write_channel(
+            "sort-history",
+            r#"
+                [metadata]
+                name = "sort-history"
+
+                [source]
+                command = "printf '%s\n' 'command less expose add rank' 'zz clear' 'foo clear bar' 'clear'"
+                sort = "history"
+            "#,
+        )
+        .unwrap();
+
+    let cmd = tv_with_args(&[
+        "sort-history",
+        "--config-file",
+        temp_config.config_file.to_str().unwrap(),
+        "--cable-dir",
+        temp_config.cable_dir.to_str().unwrap(),
+        "--input",
+        "clear",
+        "--sort",
+        "default",
+        "--take-1",
+    ]);
+    let mut child = tester.spawn_command(cmd);
+    let output = tester.read_raw_output();
+    assert!(
+        output.contains("clear") && !output.contains("zz clear"),
+        "Expected CLI --sort default to override channel sort, but got:\n{:?}",
+        output
+    );
+    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+}
+
 /// Tests channel source command variations and output parsing
 #[test]
 fn test_channel_source_command_variations() {

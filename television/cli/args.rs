@@ -1,5 +1,13 @@
 use clap::{Parser, Subcommand, ValueEnum};
 
+#[derive(Debug, Clone, Copy, Default, ValueEnum)]
+pub enum SourceSortModeArg {
+    #[default]
+    Default,
+    History,
+    Source,
+}
+
 /// Television CLI arguments structure.
 ///
 /// When a channel is specified, its defaults are used and flags act as overrides.
@@ -57,13 +65,34 @@ pub struct Cli {
     )]
     pub ansi: bool,
 
-    /// Disable automatic sorting of entries based on match quality.
+    /// Select how matches are ordered.
     ///
-    /// This is useful when you want to preserve the original order of entries
-    /// as provided by the source command.
+    /// `default` uses generic fuzzy ranking. `prefer_prefix` can add a
+    /// bounded bonus to matches that start closer to the beginning of an
+    /// entry, and frecency can still reorder equally configured channels.
+    ///
+    /// `history` keeps score-based sorting but preserves source order for
+    /// score ties, which is useful for shell history and other chronologically
+    /// ordered input. The `prefer_prefix` bonus is disabled, while frecency
+    /// can still reorder results unless it is turned off separately.
+    ///
+    /// `source` keeps the original source order exactly. In this mode
+    /// `prefer_prefix` and frecency do not apply.
+    #[arg(
+        long,
+        value_name = "SORT",
+        verbatim_doc_comment,
+        help_heading = "Source"
+    )]
+    pub sort: Option<SourceSortModeArg>,
+
+    /// Preserve the original source order exactly.
+    ///
+    /// Backwards-compatible alias for `--sort source`.
     #[arg(
         long,
         default_value = "false",
+        conflicts_with = "sort",
         verbatim_doc_comment,
         help_heading = "Source"
     )]

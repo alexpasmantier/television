@@ -7,7 +7,7 @@ requirements = ["git"]
 command = "git log --graph --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
 output = "{strip_ansi|split: :1}"
 ansi = true
-no_sort = true
+sort = "source"
 frecency = false
 
 [preview]

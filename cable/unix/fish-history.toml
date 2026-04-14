@@ -5,5 +5,5 @@ requirements = ["fish"]
 
 [source]
 command = "fish -c 'history'"
-no_sort = true
+sort = "history"
 frecency = false

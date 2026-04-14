@@ -1,7 +1,8 @@
 use crate::{
     action::{Action, CUSTOM_ACTION_PREFIX},
     channels::prototypes::{
-        ActionSpec, BinaryRequirement, ChannelPrototype, CommandSpec, Template,
+        ActionSpec, BinaryRequirement, ChannelPrototype, CommandSpec,
+        SourceSortMode, Template,
     },
     cli::{ChannelCli, GlobalCli, PostProcessedCli},
     config::{
@@ -102,8 +103,11 @@ impl ConfigLayers {
             .channel_cli
             .watch_interval
             .unwrap_or(self.channel.watch);
-        // Determine if sorting is disabled: --no-sort CLI flag OR channel config
-        let no_sort = self.channel_cli.no_sort || self.channel.source.no_sort;
+        let channel_sort = self
+            .channel_cli
+            .sort
+            .unwrap_or(self.channel.source.effective_sort());
+        let channel_prefer_prefix = self.channel.source.prefer_prefix;
         let channel_name = self
             .channel_cli
             .channel
@@ -496,7 +500,8 @@ impl ConfigLayers {
             take_1,
             take_1_fast,
             input,
-            no_sort,
+            channel_sort,
+            channel_prefer_prefix,
 
             // Bindings
             input_map,
@@ -599,7 +604,8 @@ pub struct MergedConfig {
     pub take_1: bool,
     pub take_1_fast: bool,
     pub input: Option<String>,
-    pub no_sort: bool,
+    pub channel_sort: SourceSortMode,
+    pub channel_prefer_prefix: bool,
 
     // Bindings
     pub input_map: InputMap,
