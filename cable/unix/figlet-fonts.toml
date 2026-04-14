@@ -1,0 +1,10 @@
+[metadata]
+name = "figlet-fonts"
+description = "Browse and preview figlet fonts"
+requirements = ["figlet"]
+
+[source]
+command = "for i in \"$(figlet -I2)\"/*.flf; do basename \"$i\" .flf; done | sort"
+
+[preview]
+command = "figlet -f '{}' 'The quick brown fox jumps over the lazy dog.'"
