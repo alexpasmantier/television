@@ -7,11 +7,15 @@ use std::{
 use anyhow::Result;
 use crossterm::{
     cursor,
-    event::{DisableMouseCapture, EnableMouseCapture},
+    event::{
+        DisableMouseCapture, EnableMouseCapture, KeyboardEnhancementFlags,
+        PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+    },
     execute,
     terminal::{
         ClearType, EnterAlternateScreen, LeaveAlternateScreen, ScrollUp,
         disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
+        supports_keyboard_enhancement,
     },
 };
 use ratatui::{
@@ -244,6 +248,15 @@ where
 
         execute!(backend, EnableMouseCapture)?;
 
+        if supports_keyboard_enhancement().unwrap_or(false) {
+            execute!(
+                backend,
+                PushKeyboardEnhancementFlags(
+                    KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES,
+                )
+            )?;
+        }
+
         if self.viewport == Viewport::Fullscreen {
             execute!(backend, EnterAlternateScreen)?;
             self.terminal.clear()?;
@@ -269,6 +282,11 @@ where
             )?;
 
             execute!(backend, cursor::Show)?;
+
+            if supports_keyboard_enhancement().unwrap_or(false) {
+                execute!(backend, PopKeyboardEnhancementFlags)?;
+            }
+
             execute!(backend, DisableMouseCapture)?;
 
             if self.viewport == Viewport::Fullscreen {
