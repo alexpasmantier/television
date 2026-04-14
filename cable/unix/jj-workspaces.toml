@@ -1,0 +1,26 @@
+[metadata]
+name = "jj-workspaces"
+description = "A channel to select from jujutsu (jj) workspaces"
+requirements = ["jj"]
+
+[source]
+command = "jj workspace list --ignore-working-copy -T 'name ++ \"\\t\" ++ root ++ \"\\n\"'"
+display = "{split:\t:0}"
+output = "{split:\t:0}"
+
+[preview]
+command = "cd '{split:\t:1}' && jj log --color=always --no-graph -r '::@' --ignore-working-copy -T 'change_id.shortest(8) ++ \"\\t\" ++ description.first_line() ++ \"\\n\"'"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-d = "actions:forget"
+
+[actions.cd]
+description = "Change to the selected workspace directory"
+command = "cd '{split:\t:1}' && $SHELL"
+mode = "execute"
+
+[actions.forget]
+description = "Forget the selected workspace and remove its directory"
+command = "jj workspace forget '{split:\t:0}' && rm -rf '{split:\t:1}'"
+mode = "execute"
