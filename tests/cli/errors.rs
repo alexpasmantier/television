@@ -11,151 +11,150 @@ use super::super::common::*;
 /// Tests that preview flags without --preview-command fail in Ad-hoc Mode.
 #[test]
 fn test_preview_flags_without_preview_command_in_adhoc_mode_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because Ad-hoc Mode requires --preview-command for preview flags
-    let cmd =
-        tv_local_config_and_cable_with_args(&["--preview-header", "HEADER"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--preview-header", "HEADER"],
+    )
+    .start()
+    .unwrap();
 
     // CLI should exit with error message, not show TUI
-    // This validates that the dependency checking works correctly
-    tester.assert_raw_output_contains(
-        "preview-header requires a preview command",
-    );
+    s.wait()
+        .text("preview-header requires a preview command")
+        .until()
+        .unwrap();
 }
 
 /// Tests that --source-display without --source-command fails in Ad-hoc Mode.
 #[test]
 fn test_source_display_without_source_command_in_adhoc_mode_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because there's no source command to provide data to format
-    let cmd =
-        tv_local_config_and_cable_with_args(&["--source-display", "{upper}"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-display", "{upper}"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the appropriate error message is shown
-    tester.assert_raw_output_contains(
-        "source-display requires a source command",
-    );
+    s.wait()
+        .text("source-display requires a source command")
+        .until()
+        .unwrap();
 }
 
 /// Tests that --source-output without --source-command fails in Ad-hoc Mode.
 #[test]
 fn test_source_output_without_source_command_in_adhoc_mode_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This fails because there's no source command to generate entries for output formatting
-    let cmd =
-        tv_local_config_and_cable_with_args(&["--source-output", "echo {}"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-output", "echo {}"],
+    )
+    .start()
+    .unwrap();
 
-    // Confirm the dependency error is properly reported
-    tester
-        .assert_raw_output_contains("source-output requires a source command");
+    s.wait()
+        .text("source-output requires a source command")
+        .until()
+        .unwrap();
 }
 
 /// Tests that multiple selection flags cannot be used together.
 #[test]
 fn test_multiple_selection_flags_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --select-1 and --take-1 have conflicting behaviors
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "ls",
-        "--select-1",
-        "--take-1",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "ls", "--select-1", "--take-1"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the conflict is detected and reported
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --no-preview conflicts with preview-related flags.
 #[test]
 fn test_preview_and_no_preview_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --no-preview disables the preview panel entirely
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "ls",
-        "--no-preview",
-        "--preview-header",
-        "HEADER",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "--source-command",
+            "ls",
+            "--no-preview",
+            "--preview-header",
+            "HEADER",
+        ],
+    )
+    .start()
+    .unwrap();
 
-    // Confirm the logical conflict is caught
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that channel argument and --autocomplete-prompt cannot be used together.
 #[test]
 fn test_channel_and_autocomplete_prompt_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because both specify a channel selection method
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--autocomplete-prompt",
-        "git log --oneline",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--autocomplete-prompt", "git log --oneline"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the ambiguous channel selection is rejected
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --watch conflicts with auto-selection flags.
 #[test]
 fn test_watch_and_selection_flags_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because watch mode continuously updates while --select-1 would exit immediately
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "ls",
-        "--watch",
-        "1.0",
-        "--select-1",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "ls", "--watch", "1.0", "--select-1"],
+    )
+    .start()
+    .unwrap();
 
-    // Confirm the logical incompatibility is detected
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --inline conflicts with --height.
 #[test]
 fn test_inline_and_height_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --inline and --height are mutually exclusive
-    let mut cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--inline", "--height", "20",
-    ]);
-    cmd.env(TESTING_ENV_VAR, "1");
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--inline", "--height", "20"],
+    )
+    .env(TESTING_ENV_VAR, "1")
+    .start()
+    .unwrap();
 
-    // Confirm the logical incompatibility is detected
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --width cannot be used without --height or --inline.
 #[test]
 fn test_width_without_height_or_inline_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --width requires --height or --inline
-    let mut cmd =
-        tv_local_config_and_cable_with_args(&["files", "--width", "80"]);
-    cmd.env(TESTING_ENV_VAR, "1");
-    tester.spawn_command(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--width", "80"])
+            .env(TESTING_ENV_VAR, "1")
+            .start()
+            .unwrap();
 
-    // Confirm the logical incompatibility is detected
-    tester.assert_raw_output_contains("can only be used");
+    s.wait().text("can only be used").until().unwrap();
 }
