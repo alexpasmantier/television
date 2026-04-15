@@ -4,39 +4,45 @@ use common::*;
 
 #[test]
 fn tv_remote_control_shows() {
-    let mut tester = PtyTester::new();
-    let mut child = tester
-        .spawn_command_tui(tv_local_config_and_cable_with_args(&["dirs"]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["dirs"])
+        .start()
+        .unwrap();
+    s.wait().text("── dirs ──").until().unwrap();
 
     // open remote control mode
-    tester.send(&ctrl('t'));
+    s.send().key("ctrl-t").unwrap();
 
     // FIXME: me being lazy
-    tester.assert_tui_frame_contains("(1) (2) (3)");
+    s.wait().text("(1) (2) (3)").until().unwrap();
 
-    // exit remote then app
-    tester.send(&ctrl('c'));
-    tester.send(&ctrl('c'));
+    // exit remote mode; wait for the remote panel to disappear before
+    // sending the app-level quit to avoid races.
+    s.send().key("ctrl-c").unwrap();
+    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.send().key("ctrl-c").unwrap();
 
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }
 
 #[test]
 fn tv_remote_control_zaps() {
-    let mut tester = PtyTester::new();
-    let mut child = tester
-        .spawn_command_tui(tv_local_config_and_cable_with_args(&["dirs"]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["dirs"])
+        .start()
+        .unwrap();
+    s.wait().text("── dirs ──").until().unwrap();
 
     // open remote control mode
-    tester.send(&ctrl('t'));
-    tester.send("files");
-    tester.send(ENTER);
+    s.send().key("ctrl-t").unwrap();
+    s.send().type_text("files").unwrap();
+    s.send().key("enter").unwrap();
 
-    tester.assert_tui_frame_contains("── files ──");
+    s.wait().text("── files ──").until().unwrap();
 
     // exit remote then app
-    tester.send(&ctrl('c'));
-    tester.send(&ctrl('c'));
+    s.send().key("ctrl-c").unwrap();
+    s.send().key("ctrl-c").unwrap();
 
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }

@@ -444,7 +444,7 @@ mod tests {
             config.shell_integration.commands,
             [(&String::from("git add"), &String::from("git-diff"))]
                 .iter()
-                .map(|(k, v)| ((*k).to_string(), (*v).to_string()))
+                .map(|(k, v)| ((*k).clone(), (*v).clone()))
                 .collect()
         );
         assert_eq!(

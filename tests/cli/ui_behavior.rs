@@ -11,228 +11,229 @@ use super::super::common::*;
 /// Tests that the toggle preview keybinding functionality works correctly.
 #[test]
 fn test_toggle_preview_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel which has preview enabled by default
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
 
     // Verify preview is initially visible (two panels side by side)
-    tester.assert_tui_frame_contains("───╮╭───");
+    s.wait().text("───╮╭───").until().unwrap();
 
     // Send Ctrl+O to toggle preview off
-    tester.send(&ctrl('o'));
+    s.send().key("ctrl-o").unwrap();
 
-    // Verify preview is now hidden (single panel, no side-by-side layout)
-    tester.assert_not_tui_frame_contains("───╮╭───");
+    // Verify preview is now hidden
+    s.wait().text_absent("───╮╭───").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the toggle remote control keybinding functionality works correctly.
 #[test]
 fn test_toggle_remote_control_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
+    s.wait().text("── files ──").until().unwrap();
 
     // Send Ctrl+T to open remote control panel
-    tester.send(&ctrl('t'));
+    s.send().key("ctrl-t").unwrap();
 
-    // Verify remote control panel is displayed with channel indicators
-    tester.assert_tui_frame_contains("(1) (2) (3)");
+    s.wait().text("(1) (2) (3)").until().unwrap();
 
-    // Send Ctrl+C to exit remote control mode
-    tester.send(&ctrl('c'));
+    // Send Ctrl+C to exit remote control mode; wait for the panel to
+    // disappear before sending the app-level quit to avoid races.
+    s.send().key("ctrl-c").unwrap();
+    s.wait().text_absent("(1) (2) (3)").until().unwrap();
 
     // Send Ctrl+C again to exit the application
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the toggle status bar keybinding functionality works correctly.
 #[test]
 fn test_toggle_status_bar_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel which shows status bar by default
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--keybindings",
-        "ctrl-k = \"toggle_status_bar\"",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--keybindings", "ctrl-k = \"toggle_status_bar\""],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("CHANNEL  files").until().unwrap();
 
     // Send Ctrl+K to toggle status bar off
-    tester.send(&ctrl('k'));
+    s.send().key("ctrl-k").unwrap();
 
-    // Verify status bar is hidden
-    tester.assert_not_tui_frame_contains("CHANNEL  files");
+    s.wait().text_absent("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the toggle help keybinding functionality works correctly.
 #[test]
 fn test_toggle_help_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
+    s.wait().text("── files ──").until().unwrap();
 
     // Send Ctrl+H to open help panel
-    tester.send(&ctrl('h'));
+    s.send().key("ctrl-h").unwrap();
 
-    // Verify help panel is displayed
-    tester.assert_tui_frame_contains("───── Help ─────");
+    s.wait().text("───── Help ─────").until().unwrap();
 
-    // Send Ctrl+C to exit (help panel should close and app should exit)
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the preview scrolling keybindings functionality works correctly.
 #[test]
 fn test_scroll_preview_keybindings() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel which has preview enabled
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--input",
-        "README.md",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "README.md"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("││   1").until().unwrap();
 
     // Send Page Down to scroll preview down
-    tester.send("\x1b[6~");
-    tester.send("\x1b[6~");
+    s.send().key("pagedown").unwrap();
+    s.send().key("pagedown").unwrap();
 
-    // Verify preview panel has moved
-    tester.assert_not_tui_frame_contains("││   1");
+    s.wait().text_absent("││   1").until().unwrap();
 
     // Send Page Up to scroll preview up
-    tester.send("\x1b[5~");
-    tester.send("\x1b[5~");
+    s.send().key("pageup").unwrap();
+    s.send().key("pageup").unwrap();
 
-    // Verify preview panel has moved
-    tester.assert_tui_frame_contains("││   1");
+    s.wait().text("││   1").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the reload source keybinding functionality works correctly.
 #[test]
 fn test_reload_source_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
     std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
-    // Start with the files channel
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--input",
-        "UNIQUE16CHARID",
-        tmp_dir.path().to_str().unwrap(),
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--input",
+            "UNIQUE16CHARID",
+            tmp_dir.path().to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the initial file appears in the TUI
-    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
+    s.wait().text("UNIQUE16CHARIDfile.txt").until().unwrap();
 
     // add another file to be detected
     std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDcontrol.txt"), "")
         .unwrap();
 
     // Send Ctrl+R to reload the source command
-    tester.send(&ctrl('r'));
+    s.send().key("ctrl-r").unwrap();
 
     // Verify the new file appears in the TUI as well as the existing one
-    tester.assert_tui_frame_contains("UNIQUE16CHARIDcontrol.txt");
-    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
+    s.wait()
+        .text("UNIQUE16CHARIDcontrol.txt")
+        .text("UNIQUE16CHARIDfile.txt")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the cycle sources keybinding functionality works correctly.
 #[test]
 fn test_cycle_sources_keybinding() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
+    s.wait().text("── files ──").until().unwrap();
 
     // Send Ctrl+S to cycle to next source
-    tester.send(&ctrl('s'));
-    tester.send(".config");
+    s.send().key("ctrl-s").unwrap();
+    s.send().type_text(".config").unwrap();
 
-    // Verify a different source is active (shows config file from different source)
-    tester.assert_tui_frame_contains(".config/config.toml");
+    s.wait().text(".config/config.toml").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that preview toggle is disabled when in remote control mode.
 #[test]
 fn test_toggle_preview_disabled_in_remote_control_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel which has preview enabled by default
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
 
     // Verify preview is initially visible (two panels side by side)
-    tester.assert_tui_frame_contains(
-        "╭───────────────────────── files ──────────────────────────╮╭─",
-    );
-    tester.assert_tui_frame_contains("───╮╭───");
+    s.wait()
+        .text("╭───────────────────────── files ──────────────────────────╮╭─")
+        .text("───╮╭───")
+        .until()
+        .unwrap();
 
     // Enter remote control mode
-    tester.send(&ctrl('t'));
+    s.send().key("ctrl-t").unwrap();
 
-    // Verify we're in remote control mode (shows channel indicators and "Back to Channel")
-    tester.assert_tui_frame_contains("(1) (2) (3)");
-    tester.assert_tui_frame_contains("Back to Channel:");
+    s.wait()
+        .text("(1) (2) (3)")
+        .text("Back to Channel:")
+        .until()
+        .unwrap();
 
     // Try to toggle preview - this should NOT work in remote control mode
-    tester.send(&ctrl('o'));
+    s.send().key("ctrl-o").unwrap();
 
     // Verify we're still in remote control mode and preview is still visible
     // (the toggle should have been ignored)
-    tester.assert_tui_frame_contains("(1) (2) (3)");
-    tester.assert_tui_frame_contains("Back to Channel:");
-    tester.assert_tui_frame_contains(
-        "╭───────────────────────── files ──────────────────────────╮╭─",
-    );
+    s.wait()
+        .text("(1) (2) (3)")
+        .text("Back to Channel:")
+        .text("╭───────────────────────── files ──────────────────────────╮╭─")
+        .until()
+        .unwrap();
 
     // Exit remote control mode
-    tester.send(&ctrl('t'));
+    s.send().key("ctrl-t").unwrap();
 
     // Verify we're back in channel mode
-    tester.assert_not_tui_frame_contains("Back to Channel:");
-    tester.assert_tui_frame_contains("───╮╭───");
+    s.wait().text_absent("Back to Channel:").until().unwrap();
+    s.wait().text("───╮╭───").until().unwrap();
 
     // Verify preview toggle works again in channel mode
-    tester.send(&ctrl('o'));
-    tester.assert_not_tui_frame_contains("───╮╭───");
+    s.send().key("ctrl-o").unwrap();
+    s.wait().text_absent("───╮╭───").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }

@@ -3,7 +3,6 @@
 //! These tests verify Television's intelligent channel detection and shell integration
 //! features, ensuring that the autocomplete prompt can automatically select appropriate
 //! channels based on command analysis.
-#![allow(clippy::borrow_interior_mutable_const)]
 
 use std::{
     io,
@@ -15,95 +14,98 @@ use super::super::common::*;
 /// Tests that --autocomplete-prompt automatically detects and activates the appropriate channel.
 #[test]
 fn test_autocomplete_prompt_activates_channel_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should analyze the git command and automatically select the git-log channel
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--autocomplete-prompt",
-        "git log --oneline",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--autocomplete-prompt", "git log --oneline"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the git-log channel was automatically detected and activated
-    tester.assert_tui_frame_contains("CHANNEL  git-log");
+    s.wait().text("CHANNEL  git-log").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --autocomplete-prompt conflicts with explicit channel argument.
 #[test]
 fn test_autocomplete_prompt_and_channel_argument_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because both specify how to choose a channel
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--autocomplete-prompt",
-        "git log --oneline",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--autocomplete-prompt", "git log --oneline"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --autocomplete-prompt works with a working directory path argument.
 #[test]
 fn test_autocomplete_prompt_with_working_directory() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should work: --autocomplete-prompt with a path argument
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--autocomplete-prompt",
-        "ls",
-        "/etc",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--autocomplete-prompt", "ls", "/etc"],
+    )
+    .start()
+    .unwrap();
+    // Main assertion: no CLI parsing error — wait for the status bar to
+    // appear, which confirms the TUI launched successfully.
+    s.wait().text("CHANNEL  ").until().unwrap();
 
-    // Send Ctrl+C to exit (the test is mainly to ensure no CLI parsing error)
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the `list-channels` subcommand lists available channels.
 #[test]
 fn test_list_channels_subcommand_lists_channels() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should show the channel list
-    let cmd = tv_local_config_and_cable_with_args(&["list-channels"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["list-channels"])
+        .start()
+        .unwrap();
 
-    // CLI should exit with channel list
-    tester.assert_raw_output_contains("files");
+    s.wait().text("files").until().unwrap();
 }
 
 /// Tests that the `init` subcommand generates a completion script for zsh.
 #[test]
 fn test_init_subcommand_generates_completion_script() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should generate a completion script for zsh
-    let cmd = tv_local_config_and_cable_with_args(&["init", "zsh"]);
-    tester.spawn_command(cmd);
+    // The zsh init script is a few hundred lines — make sure the terminal
+    // has enough scrollback to preserve the `#compdef tv` marker on line 1.
+    let s = tv_local_config_and_cable_with_args(&pt, &["init", "zsh"])
+        .scrollback(1000)
+        .start()
+        .unwrap();
 
-    // CLI should exit with completion script for zsh
-    tester.assert_raw_output_contains("compdef");
+    s.wait().exit_code(0).until().unwrap();
+
+    let scrollback = s.scrollback(None).unwrap();
+    assert!(
+        scrollback.contains("compdef"),
+        "expected scrollback to contain 'compdef', got:\n{scrollback}"
+    );
 }
 
 /// Tests that the `init` subcommand rejects unsupported shells.
 #[test]
 fn test_init_subcommand_invalid_shell_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the shell is not supported
-    let cmd = tv_local_config_and_cable_with_args(&["init", "bogus"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["init", "bogus"])
+        .start()
+        .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("invalid value");
+    s.wait().text("invalid value").until().unwrap();
 }
 
 /// Tests that `tv list-channels` handles broken pipe (EPIPE) gracefully.
@@ -112,7 +114,7 @@ fn test_init_subcommand_invalid_shell_errors() {
 /// tv should exit cleanly rather than panicking.
 #[test]
 fn test_list_channels_broken_pipe() -> io::Result<()> {
-    let mut child = Command::new(*TV_BIN_PATH)
+    let mut child = Command::new(TV_BIN_PATH)
         .args(LOCAL_CONFIG_AND_CABLE)
         .args(["list-channels"])
         .stdout(Stdio::piped())
@@ -138,15 +140,13 @@ fn test_list_channels_broken_pipe() -> io::Result<()> {
 /// tv should exit cleanly rather than panicking.
 #[test]
 fn test_init_shell_broken_pipe() -> io::Result<()> {
-    let mut child = Command::new(*TV_BIN_PATH)
+    let mut child = Command::new(TV_BIN_PATH)
         .args(LOCAL_CONFIG_AND_CABLE)
         .args(["init", "zsh"])
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .spawn()?;
 
-    // Close the read end of the stdout pipe immediately, causing a broken pipe
-    // when tv tries to write its output.
     drop(child.stdout.take());
 
     let status = child.wait()?;
@@ -161,12 +161,10 @@ fn test_init_shell_broken_pipe() -> io::Result<()> {
 #[test]
 fn test_tv_pipes_correctly() -> io::Result<()> {
     if is_ci() {
-        // Skip this test in CI environments (where we don't have a proper TTY
-        // and subprocess handling with portable-pty isn't available yet).
         dbg!("Skipping test_tv_pipes_correctly in CI environment");
         return Ok(());
     }
-    let mut tv_command = Command::new(*TV_BIN_PATH)
+    let mut tv_command = Command::new(TV_BIN_PATH)
         .args(LOCAL_CONFIG_AND_CABLE)
         .args(["--input", "Cargo.toml"])
         .arg("--take-1")
@@ -177,13 +175,11 @@ fn test_tv_pipes_correctly() -> io::Result<()> {
     let tv_stdout =
         tv_command.stdout.take().expect("Failed to capture stdout");
 
-    // Pipe tv stdout into cat stdin
     let mut cat = Command::new("cat")
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
 
-    // Write tv output to cat stdin in a separate thread to avoid deadlock
     let mut subprocess_stdin = cat
         .stdin
         .take()
@@ -195,7 +191,7 @@ fn test_tv_pipes_correctly() -> io::Result<()> {
         );
     });
 
-    let subprocess_output = cat.wait_with_output()?; // Waits for cat to finish
+    let subprocess_output = cat.wait_with_output()?;
 
     assert!(
         subprocess_output.status.success(),

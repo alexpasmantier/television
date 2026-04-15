@@ -9,95 +9,83 @@ use super::super::common::*;
 /// Tests that --select-1 automatically selects and returns when only one entry matches.
 #[test]
 fn test_select_1_auto_selects_single_entry() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "echo UNIQUE16CHARID", "--select-1"],
+    )
+    .start()
+    .unwrap();
 
-    // This should auto-select "UNIQUE16CHARID" since it's the only result
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "echo UNIQUE16CHARID",
-        "--select-1",
-    ]);
-    tester.spawn_command(cmd);
-
-    // Should auto-select and output the result without showing TUI.
-    // Use timeout-based assertion because --select-1 waits for loading to
-    // complete, which may take longer than the initial spawn delay.
-    tester.assert_raw_output_contains_with_timeout(
-        "UNIQUE16CHARID",
-        Duration::from_secs(2),
-    );
+    s.wait()
+        .text("UNIQUE16CHARID")
+        .timeout_ms(2000)
+        .until()
+        .unwrap();
 }
 
 /// Tests that --select-1 respects the initial --input filter.
 #[test]
 fn test_select_1_respects_initial_input() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "--source-command",
+            "printf 'television\\ntelescope\\n'",
+            "--select-1",
+            "--input",
+            "telev",
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "printf 'television\\ntelescope\\n'",
-        "--select-1",
-        "--input",
-        "telev",
-    ]);
-    tester.spawn_command(cmd);
-
-    tester.assert_raw_output_contains_with_timeout(
-        "television",
-        Duration::from_secs(2),
-    );
+    s.wait()
+        .text("television")
+        .timeout_ms(2000)
+        .until()
+        .unwrap();
 }
 
 /// Tests that --take-1 automatically selects the first entry after loading completes.
 #[test]
 fn test_take_1_auto_selects_first_entry() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "echo UNIQUE16CHARID", "--take-1"],
+    )
+    .start()
+    .unwrap();
 
-    // This should auto-select "UNIQUE16CHARID" since it's the only result
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "echo UNIQUE16CHARID",
-        "--take-1",
-    ]);
-    tester.spawn_command(cmd);
-
-    // Should auto-select and output the result without showing TUI.
-    // Use timeout-based assertion because --take-1 waits for loading to
-    // complete, which may take longer than the initial spawn delay.
-    tester.assert_raw_output_contains_with_timeout(
-        "UNIQUE16CHARID",
-        Duration::from_secs(2),
-    );
+    s.wait()
+        .text("UNIQUE16CHARID")
+        .timeout_ms(2000)
+        .until()
+        .unwrap();
 }
 
 /// Tests that --take-1-fast immediately selects the first entry as it appears.
 #[test]
 fn test_take_1_fast_auto_selects_first_entry_immediately() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "echo UNIQUE16CHARID", "--take-1-fast"],
+    )
+    .start()
+    .unwrap();
 
-    // This should auto-select "UNIQUE16CHARID" since it's the only result
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "echo UNIQUE16CHARID",
-        "--take-1-fast",
-    ]);
-    tester.spawn_command(cmd);
-
-    // Should auto-select and output the result without showing TUI.
-    // Use timeout-based assertion because --take-1-fast has a race condition:
-    // it may check for entries before the source command has produced output.
-    tester.assert_raw_output_contains_with_timeout(
-        "UNIQUE16CHARID",
-        Duration::from_secs(2),
-    );
+    s.wait()
+        .text("UNIQUE16CHARID")
+        .timeout_ms(2000)
+        .until()
+        .unwrap();
 }
 
 /// Tests that `--take-1` can return before source completion when entries are flushed
@@ -125,131 +113,115 @@ fn test_take_1_fast_flushes_before_source_completion() {
 /// Tests that --select-1 and --take-1 cannot be used together.
 #[test]
 fn test_select_1_and_take_1_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because both flags specify different selection behaviors
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--select-1",
-        "--take-1",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--select-1", "--take-1"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --select-1 and --take-1-fast cannot be used together.
 #[test]
 fn test_select_1_and_take_1_fast_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --select-1 is conditional while --take-1-fast is immediate
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--select-1",
-        "--take-1-fast",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--select-1", "--take-1-fast"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --take-1 and --take-1-fast cannot be used together.
 #[test]
 fn test_take_1_and_take_1_fast_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because both specify different timing for first entry selection
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--take-1",
-        "--take-1-fast",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--take-1", "--take-1-fast"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --watch and --select-1 cannot be used together.
 #[test]
 fn test_watch_and_select_1_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because watch mode updates continuously while --select-1 would exit
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--watch",
-        "1.0",
-        "--select-1",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--watch", "1.0", "--select-1"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --watch and --take-1 cannot be used together.
 #[test]
 fn test_watch_and_take_1_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because watch mode conflicts with immediate exit behavior
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--watch", "1.0", "--take-1",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--watch", "1.0", "--take-1"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --watch and --take-1-fast cannot be used together.
 #[test]
 fn test_watch_and_take_1_fast_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because watch mode can't work with immediate exit
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--watch",
-        "1.0",
-        "--take-1-fast",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--watch", "1.0", "--take-1-fast"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --expect works as intended.
 #[test]
 fn test_expect_with_selection() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--expect", "ctrl-c", "--input", "Cargo.toml"],
+    )
+    .start()
+    .unwrap();
 
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--expect",
-        "ctrl-c",
-        "--input",
-        "Cargo.toml",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    s.wait().text("Cargo.toml").until().unwrap();
 
-    // Wait for the TUI to show results before sending the expect key
-    tester.assert_tui_frame_contains("Cargo.toml");
+    s.send().key("ctrl-c").unwrap();
 
-    tester.send(&ctrl('c'));
+    s.wait()
+        .text("ctrl-c")
+        .text("Cargo.toml")
+        .timeout_ms(2000)
+        .until()
+        .unwrap();
 
-    // Use timeout-based assertion because the process needs time to write output
-    tester.assert_raw_output_contains_with_timeout(
-        "ctrl-c\r\nCargo.toml",
-        Duration::from_secs(2),
-    );
-
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }

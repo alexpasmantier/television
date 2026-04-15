@@ -1,15 +1,10 @@
-#![allow(
-    dead_code,
-    clippy::borrow_interior_mutable_const,
-    clippy::declare_interior_mutable_const
-)]
-use std::cell::LazyCell;
-use std::path::PathBuf;
-use std::time::Duration;
-use std::{fs, io};
-use std::{io::Write, thread::sleep};
+#![allow(dead_code)]
 
-use portable_pty::{CommandBuilder, PtySize, native_pty_system};
+use std::fs;
+use std::io;
+use std::path::PathBuf;
+
+use phantom_test::{Phantom, Session, SessionBuilder};
 use television::cable::CABLE_DIR_NAME;
 use television::config::CONFIG_FILE_NAME;
 use tempfile::{TempDir, tempdir};
@@ -17,8 +12,7 @@ use tempfile::{TempDir, tempdir};
 pub const CI_ENV_VAR: &str = "TV_CI";
 
 pub fn is_ci() -> bool {
-    // Check if the environment variable indicates a CI environment
-    std::env::var("TV_CI").is_ok()
+    std::env::var(CI_ENV_VAR).is_ok()
 }
 
 pub const DEFAULT_CONFIG_FILE: &str = "./.config/config.toml";
@@ -29,420 +23,23 @@ pub const DEFAULT_CABLE_DIR: &str = "./cable/windows";
 
 pub const TARGET_DIR: &str = "./tests/target_dir";
 
-pub const DEFAULT_PTY_SIZE: PtySize = PtySize {
-    rows: 30,
-    cols: 120,
-    pixel_width: 0,
-    pixel_height: 0,
-};
+pub const DEFAULT_COLS: u16 = 120;
+pub const DEFAULT_ROWS: u16 = 30;
 
-/// Base delay for PTY operations. Can be overridden via `TV_TEST_DELAY_MS` env var.
-/// Default: 100ms (reliable), can be reduced to 50ms for faster local runs.
-pub fn default_delay() -> Duration {
-    std::env::var("TV_TEST_DELAY_MS")
+/// How long to wait for the screen to stabilize before asserting negative
+/// conditions. Tunable via `TV_TEST_STABLE_MS`.
+pub fn stable_ms() -> u64 {
+    std::env::var("TV_TEST_STABLE_MS")
         .ok()
         .and_then(|v| v.parse().ok())
-        .map(Duration::from_millis)
-        .unwrap_or(Duration::from_millis(100))
+        .unwrap_or(300)
 }
 
-pub const DEFAULT_DELAY: Duration = Duration::from_millis(100);
+pub const TV_BIN_PATH: &str = match option_env!("TV_BIN_PATH") {
+    Some(v) => v,
+    None => "./target/debug/tv",
+};
 
-/// A helper to test terminal user interfaces (TUIs) using a pseudo-terminal (pty).
-///
-/// This struct provides methods to spawn commands in a pty, read their output, and send input to
-/// them.
-///
-/// # Example
-/// ```ignore
-/// fn test_custom_input_header_and_preview_size() {
-///     let mut tester = PtyTester::new();
-///
-///     // Create the tv command using a custom input header
-///     let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
-///     cmd.args(["--input-header", "toasted bagels"]);
-///
-///     // Spawn the command in the pty
-///     let mut child = tester.spawn_command_tui(cmd);
-///
-///     // Assert that the TUI contains the expected output
-///     tester.assert_tui_frame_contains("── toasted bagels ──");
-///
-///     // Send a Ctrl+C to exit the application
-///     tester.send(&ctrl('c'));
-///
-///     // Assert that the child process exits successfully
-///     tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
-/// }
-/// ```
-pub struct PtyTester {
-    pair: portable_pty::PtyPair,
-    cwd: std::path::PathBuf,
-    delay: Duration,
-    reader: Box<dyn std::io::Read + Send>,
-    writer: Box<dyn std::io::Write + Send + 'static>,
-    /// A large pre-allocated buffer to read from the pty.
-    void_buffer: Vec<u8>,
-    parser: vt100::Parser,
-}
-
-impl PtyTester {
-    pub fn new() -> Self {
-        let pty_system = native_pty_system();
-        let pair = pty_system.openpty(DEFAULT_PTY_SIZE).unwrap();
-        let reader = pair.master.try_clone_reader().unwrap();
-        let writer = pair.master.take_writer().unwrap();
-        let cwd = std::env::current_dir().unwrap();
-        let delay = default_delay();
-        let size = pair.master.get_size().unwrap();
-        let parser = vt100::Parser::new(size.rows, size.cols, 0);
-        PtyTester {
-            pair,
-            cwd,
-            delay,
-            reader: Box::new(reader),
-            writer: Box::new(writer),
-            void_buffer: vec![0; 2usize.pow(20)], // 1 MiB buffer
-            parser,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn with_delay(mut self, delay: Duration) -> Self {
-        self.delay = delay;
-        self
-    }
-
-    /// Spawns a command in the pty, returning a boxed child process.
-    ///
-    /// # Warning
-    /// **If the command is expected to produce a TUI use `spawn_command_tui` instead.**
-    ///
-    /// # Example
-    /// See [`PtyTester`]
-    pub fn spawn_command(
-        &mut self,
-        mut cmd: CommandBuilder,
-    ) -> Box<dyn portable_pty::Child + Send + Sync> {
-        cmd.cwd(&self.cwd);
-        let child = self.pair.slave.spawn_command(cmd).unwrap();
-        sleep(self.delay * 3);
-
-        child
-    }
-
-    /// Spawns a command for which we expect to get a TUI in the pty and returns a boxed child process.
-    ///
-    /// # Warning
-    /// **If the command is not expected to produce a TUI use `spawn_command` instead.**
-    ///
-    /// # Example
-    /// See [`PtyTester`]
-    pub fn spawn_command_tui(
-        &mut self,
-        mut cmd: CommandBuilder,
-    ) -> Box<dyn portable_pty::Child + Send + Sync> {
-        cmd.cwd(&self.cwd);
-        let mut child = self.pair.slave.spawn_command(cmd).unwrap();
-        sleep(self.delay * 3);
-
-        self.assert_tui_running(&mut child);
-        // wait for the TUI to stabilize
-        let _ = self.get_tui_frame();
-        child
-    }
-
-    pub fn read_raw_output(&mut self) -> String {
-        self.void_buffer.fill(0);
-        let bytes_read = self.reader.read(&mut self.void_buffer).unwrap();
-        String::from_utf8_lossy(&self.void_buffer[..bytes_read]).to_string()
-    }
-
-    /// Reads the output from the child process's pty.
-    ///
-    /// This method processes the output using a vt100 parser to handle terminal escape
-    /// sequences and returns the contents of the screen as a string.
-    fn read_tui_output(&mut self) -> String {
-        self.void_buffer.fill(0);
-        let bytes_read = self.reader.read(&mut self.void_buffer).unwrap();
-        self.parser.process(&self.void_buffer[..bytes_read]);
-        self.parser.screen().contents()
-    }
-
-    /// Writes input to the child process's stdin.
-    ///
-    /// This method sends the input string to the pty's writer and flushes it to ensure
-    /// the input is sent immediately.
-    ///
-    /// Convenience methods and constants are provided for common control sequences like `ctrl`,
-    /// `ENTER`, and `ESC`. (See [`ctrl`], [`ENTER`], and [`ESC`])
-    pub fn send(&mut self, input: &str) {
-        write!(self.writer, "{}", input).unwrap();
-        self.writer.flush().unwrap();
-        sleep(self.delay);
-    }
-
-    /// asserts that the TUI is running by checking if the child process is still active.
-    pub fn assert_tui_running(
-        &mut self,
-        child: &mut Box<dyn portable_pty::Child + Send + Sync>,
-    ) {
-        // Check if the child process is still running
-        match child.try_wait() {
-            Ok(Some(_)) => {
-                panic!(
-                    "Child process exited prematurely with output:\n{}",
-                    self.read_tui_output()
-                );
-            }
-            Ok(None) => {
-                // Process is still running, continue
-            }
-            Err(e) => {
-                panic!("Error checking child process status: {}", e);
-            }
-        }
-    }
-
-    /// Waits for the child process to exit, asserting that it exits with a success status.
-    ///
-    /// A background thread drains PTY output to prevent the child's
-    /// rendering task from blocking on a full PTY buffer during shutdown.
-    /// The thread is intentionally not joined: the PTY slave FD held by
-    /// `self.pair` keeps the master readable, so the thread only stops
-    /// when `PtyTester` is dropped.
-    pub fn assert_exit_ok(
-        &mut self,
-        child: &mut Box<dyn portable_pty::Child + Send + Sync>,
-        timeout: Duration,
-    ) {
-        // Spawn a thread that continuously drains PTY output.
-        // Without this, the child's rendering task can block on writes to
-        // a full PTY buffer, preventing it from processing the Quit signal.
-        let mut drain_reader = self.pair.master.try_clone_reader().unwrap();
-        std::thread::spawn(move || {
-            let mut buf = vec![0u8; 65536];
-            while let Ok(n) = drain_reader.read(&mut buf) {
-                if n == 0 {
-                    break;
-                }
-            }
-        });
-
-        let start = std::time::Instant::now();
-        let total_timeout = timeout * 15;
-        while start.elapsed() < total_timeout {
-            match child.try_wait() {
-                Ok(Some(status)) => {
-                    assert!(
-                        status.success(),
-                        "Process exited with non-zero status: {:?}",
-                        status
-                    );
-                    return;
-                }
-                Ok(None) => {
-                    sleep(timeout);
-                }
-                Err(e) => {
-                    panic!("Error waiting for process: {}", e);
-                }
-            }
-        }
-
-        panic!(
-            "Process did not exit before timeout: {:?}",
-            child.try_wait()
-        );
-    }
-
-    /// How long to wait for the TUI to stabilize before asserting its output.
-    /// Can be overridden via `TV_TEST_FRAME_TIMEOUT_MS` env var.
-    fn frame_stability_timeout() -> Duration {
-        std::env::var("TV_TEST_FRAME_TIMEOUT_MS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .map(Duration::from_millis)
-            .unwrap_or(Duration::from_millis(3000))
-    }
-
-    /// Gets the current TUI frame, ensuring it has stabilized.
-    ///
-    /// # Example
-    /// ```ignore
-    /// let mut tester = PtyTester::new();
-    ///
-    /// let child = tester.spawn_command_tui(tv());
-    ///
-    /// let output = tester.get_tui_frame();
-    ///
-    /// println!("TUI Output:\n{}", output);
-    ///
-    /// /*
-    ///     ╭───────────────────────── files ──────────────────────────╮
-    ///     │>                                                1 / 138  │
-    ///     ╰──────────────────────────────────────────────────────────╯
-    ///     ╭──────────────────────── Results ─────────────────────────╮
-    ///     │> CHANGELOG.md                                            │
-    ///     │  CODE_OF_CONDUCT.md                                      │
-    ///     │  CONTRIBUTING.md                                         │
-    ///     │  Cargo.toml                                              │
-    ///     │  cable/unix/dotfiles.toml                                │
-    ///     │  cable/unix/env.toml                                     │
-    ///     │  cable/unix/files.toml                                   │
-    ///     │  cable/unix/fish-history.toml                            │
-    ///     │  cable/unix/git-branch.toml                              │
-    ///     ╰─────────── help: <Ctrl-g>  preview: <Ctrl-o> ────────────╯
-    /// */
-    /// ```
-    pub fn get_tui_frame(&mut self) -> String {
-        // wait for the UI to stabilize with a timeout
-        let mut frame = String::new();
-        let start_time = std::time::Instant::now();
-        // wait till we get 2 consecutive frames that are the same
-        let mut counter = 0;
-        while counter < 2 {
-            let new_frame = self.read_tui_output();
-            if new_frame == frame {
-                counter += 1;
-            } else {
-                frame = new_frame;
-                counter = 0;
-            }
-            // simply break and return last frame
-            if start_time.elapsed() >= Self::frame_stability_timeout() {
-                break;
-            }
-            // Sleep briefly to allow the UI to update
-            sleep(Duration::from_millis(20));
-        }
-        frame
-    }
-
-    /// Asserts that the frame contains the expected string.
-    pub fn assert_tui_frame_contains(&mut self, expected: &str) {
-        let frame = self.get_tui_frame();
-        assert!(
-            frame.contains(expected),
-            "Expected output to contain\n'{}'\nbut got:\n{}",
-            expected,
-            frame
-        );
-    }
-
-    /// Asserts that the frame contains all expected strings.
-    pub fn assert_tui_frame_contains_all(&mut self, expected: &[&str]) {
-        let frame = self.get_tui_frame();
-        for &exp in expected {
-            assert!(
-                frame.contains(exp),
-                "Expected output to contain\n'{}'\nbut got:\n{}",
-                exp,
-                frame
-            );
-        }
-    }
-
-    /// Asserts that the frame does not contain any of the expected strings.
-    pub fn assert_tui_frame_contains_none(&mut self, expected: &[&str]) {
-        let frame = self.get_tui_frame();
-        for &exp in expected {
-            assert!(
-                !frame.contains(exp),
-                "Expected output to not contain\n'{}'\nbut got:\n{}",
-                exp,
-                frame
-            );
-        }
-    }
-
-    /// Asserts that the frame does not contain the expected string.
-    pub fn assert_not_tui_frame_contains(&mut self, expected: &str) {
-        let frame = self.get_tui_frame();
-        assert!(
-            !frame.contains(expected),
-            "Expected output to not contain\n'{}'\nbut got:\n'{}'",
-            expected,
-            frame
-        );
-    }
-
-    pub fn assert_raw_output_contains(&mut self, expected: &str) {
-        let output = self.read_raw_output();
-        assert!(
-            output.contains(expected),
-            "Expected output to contain '{}', but got:\n{:?}",
-            expected,
-            output
-        );
-    }
-
-    /// Asserts that the raw output contains the expected string, with retries.
-    ///
-    /// This method polls the output with exponential backoff, accumulating all
-    /// output across reads. Useful for tests where timing is non-deterministic
-    /// (e.g., `--take-1-fast` which may exit before data arrives).
-    pub fn assert_raw_output_contains_with_timeout(
-        &mut self,
-        expected: &str,
-        timeout: Duration,
-    ) {
-        let start = std::time::Instant::now();
-        let mut accumulated_output = String::new();
-        let mut delay = Duration::from_millis(10);
-
-        while start.elapsed() < timeout {
-            let new_output = self.read_raw_output();
-            accumulated_output.push_str(&new_output);
-
-            if accumulated_output.contains(expected) {
-                return;
-            }
-
-            sleep(delay);
-            // Exponential backoff, capped at 100ms
-            delay = std::cmp::min(delay * 2, Duration::from_millis(100));
-        }
-
-        panic!(
-            "Expected output to contain '{}' within {:?}, but got:\n{:?}",
-            expected, timeout, accumulated_output
-        );
-    }
-}
-
-pub fn ctrl(c: char) -> String {
-    ((c as u8 & 0x1F) as char).to_string()
-}
-
-pub fn f(c: u8) -> String {
-    let seq = match c {
-        1 => "\x1bOP",    // F1
-        2 => "\x1bOQ",    // F2
-        3 => "\x1bOR",    // F3
-        4 => "\x1bOS",    // F4
-        5 => "\x1b[15~",  // F5
-        6 => "\x1b[17~",  // F6
-        7 => "\x1b[18~",  // F7
-        8 => "\x1b[19~",  // F8
-        9 => "\x1b[20~",  // F9
-        10 => "\x1b[21~", // F10
-        11 => "\x1b[23~", // F11
-        12 => "\x1b[24~", // F12
-        _ => {
-            panic!("Invalid function key: {}", c);
-        }
-    };
-
-    seq.to_string()
-}
-
-pub const ENTER: &str = "\r";
-pub const ESC: &str = "\x1b";
-
-pub const TV_BIN_PATH: LazyCell<&str> = LazyCell::new(|| {
-    option_env!("TV_BIN_PATH").unwrap_or("./target/debug/tv")
-});
 pub const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
     "--cable-dir",
     DEFAULT_CABLE_DIR,
@@ -450,25 +47,67 @@ pub const LOCAL_CONFIG_AND_CABLE: &[&str] = &[
     DEFAULT_CONFIG_FILE,
 ];
 
-/// A command builder initialized with the tv binary path.
-pub fn tv() -> CommandBuilder {
-    CommandBuilder::new(*TV_BIN_PATH)
+/// Create a new phantom engine for a test.
+///
+/// Each test gets its own engine thread, matching phantom-test's recommended
+/// idiom (see phantom's own `bash_tests.rs`).
+pub fn phantom() -> Phantom {
+    Phantom::new().expect("failed to create phantom engine")
 }
 
-/// A command builder initialized with the tv binary path and the provided arguments.
-pub fn tv_with_args(args: &[&str]) -> CommandBuilder {
-    let mut cmd = tv();
-    cmd.args(args);
-    cmd
+/// Build a tv session preconfigured with the current working directory and
+/// default terminal size. Returns a [`SessionBuilder`] that still needs
+/// `.start()` to be called.
+pub fn tv(pt: &Phantom) -> SessionBuilder<'_> {
+    let cwd = std::env::current_dir().expect("failed to get cwd");
+    pt.run(TV_BIN_PATH)
+        .size(DEFAULT_COLS, DEFAULT_ROWS)
+        .cwd(cwd.to_str().expect("cwd is not valid utf-8"))
 }
 
-/// A command builder initialized with the tv binary path, using the repository's local config and
-/// cable directory, and the provided arguments.
-pub fn tv_local_config_and_cable_with_args(args: &[&str]) -> CommandBuilder {
-    let mut cmd = tv();
-    cmd.args(LOCAL_CONFIG_AND_CABLE);
-    cmd.args(args);
-    cmd
+/// Build a tv session preconfigured with the given arguments.
+pub fn tv_with_args<'p>(pt: &'p Phantom, args: &[&str]) -> SessionBuilder<'p> {
+    tv(pt).args(args)
+}
+
+/// Build a tv session using the repository's local config and cable
+/// directory, plus extra arguments.
+pub fn tv_local_config_and_cable_with_args<'p>(
+    pt: &'p Phantom,
+    extra_args: &[&str],
+) -> SessionBuilder<'p> {
+    let mut combined: Vec<&str> =
+        Vec::with_capacity(LOCAL_CONFIG_AND_CABLE.len() + extra_args.len());
+    combined.extend_from_slice(LOCAL_CONFIG_AND_CABLE);
+    combined.extend_from_slice(extra_args);
+    tv(pt).args(&combined)
+}
+
+/// Assert that, once the screen has stabilized, it does not contain any of
+/// the given texts. Useful when confirming the absence of UI elements after
+/// an action that should not cause them to appear.
+pub fn assert_frame_not_contains_any(s: &Session, texts: &[&str]) {
+    s.wait().stable(stable_ms()).until().unwrap();
+    let screen = s.screenshot().unwrap();
+    let text = screen.text();
+    for &needle in texts {
+        assert!(
+            !text.contains(needle),
+            "expected screen not to contain '{needle}', but got:\n{text}"
+        );
+    }
+}
+
+/// Assert that, once the screen has stabilized, it does not contain the
+/// given text.
+pub fn assert_frame_not_contains(s: &Session, text: &str) {
+    assert_frame_not_contains_any(s, &[text]);
+}
+
+/// Return a stabilized screenshot of the current screen as a string.
+pub fn stable_frame(s: &Session) -> String {
+    s.wait().stable(stable_ms()).until().unwrap();
+    s.screenshot().unwrap().text().to_string()
 }
 
 /// A temporary configuration directory for tv to use during tests.
@@ -496,7 +135,7 @@ pub fn tv_local_config_and_cable_with_args(args: &[&str]) -> CommandBuilder {
 pub struct TempConfig {
     pub config_file: PathBuf,
     pub cable_dir: PathBuf,
-    tempdir: TempDir,
+    _tempdir: TempDir,
 }
 
 impl TempConfig {
@@ -511,45 +150,16 @@ impl TempConfig {
         Self {
             config_file,
             cable_dir,
-            tempdir: dir,
+            _tempdir: dir,
         }
     }
 
     /// Write the config file in this temporary configuration directory.
-    ///
-    /// This will overwrite any existing content.
-    ///
-    /// # Example
-    /// ```rs
-    /// let temp_config = TempConfig::init();
-    /// let config_content: &str = r#"
-    /// [ui]
-    /// theme = "default"
-    /// "#;
-    ///
-    /// temp_config.write_config(config_content)?;
-    /// ```
     pub fn write_config(&self, contents: &str) -> io::Result<()> {
         fs::write(&self.config_file, contents)
     }
 
     /// Write a new channel inside this temporary configuration directory.
-    ///
-    /// This will create a new file with the given name and `.toml` extension.
-    ///
-    /// # Example
-    /// ```rs
-    /// let temp_config = TempConfig::init();
-    ///
-    /// let channel_content: &str = r#"
-    /// [metadata]
-    /// name = "my-channel"
-    /// description = "..."
-    /// ...
-    /// "#;
-    ///
-    /// temp_config.write_channel("my-channel", channel_content)?;
-    /// ```
     pub fn write_channel(&self, name: &str, contents: &str) -> io::Result<()> {
         fs::write(self.cable_dir.join(name).with_extension("toml"), contents)
     }

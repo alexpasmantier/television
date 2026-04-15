@@ -4,14 +4,14 @@ use common::*;
 
 #[test]
 fn tv_ctrl_c() {
-    let mut tester = PtyTester::new();
-    let mut child = tester
-        .spawn_command_tui(tv_local_config_and_cable_with_args(&["files"]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
 
-    tester.send(&ctrl('c'));
-
-    // Check if the child process exited with a timeout
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().text("── files ──").until().unwrap();
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Test that the various channels open correctly, spawn a UI that contains the
@@ -21,18 +21,18 @@ macro_rules! test_channel {
     $(
         #[test]
         fn $name() {
-            let mut tester = PtyTester::new();
-            let mut child = tester.spawn_command_tui(tv_local_config_and_cable_with_args(&[
-                $channel_name,
-            ]));
+            let pt = phantom();
+            let s = tv_local_config_and_cable_with_args(&pt, &[$channel_name])
+                .start()
+                .unwrap();
 
-            tester.assert_tui_frame_contains(&format!(
-                "── {} ──",
-                $channel_name
-            ));
+            s.wait()
+                .text(&format!("── {} ──", $channel_name))
+                .until()
+                .unwrap();
 
-            tester.send(&ctrl('c'));
-            tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+            s.send().key("ctrl-c").unwrap();
+            s.wait().exit_code(0).until().unwrap();
         }
     )*
     }
@@ -51,21 +51,21 @@ test_channel! {
 
 #[test]
 fn test_channel_shortcuts() {
-    let mut tester = PtyTester::new();
-    let mut child = tester
-        .spawn_command_tui(tv_local_config_and_cable_with_args(&["files"]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
 
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("CHANNEL  files").until().unwrap();
 
     // switch to the "dirs" channel
-    tester.send(&f(2));
-    tester.assert_tui_frame_contains("CHANNEL  dirs");
+    s.send().key("f2").unwrap();
+    s.wait().text("CHANNEL  dirs").until().unwrap();
 
     // switch back to the "files" channel
-    tester.send(&f(1));
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.send().key("f1").unwrap();
+    s.wait().text("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl-C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
