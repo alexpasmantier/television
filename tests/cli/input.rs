@@ -66,14 +66,26 @@ fn test_multiple_keybindings_override() {
     .unwrap();
     s.wait().text("── files ──").until().unwrap();
 
-    // Verify ESC doesn't quit (default overridden) — app still responds
-    s.send().key("escape").unwrap();
+    // Note: we intentionally don't re-test esc=no_op here — that's already
+    // covered by test_keybindings_override_default. Sending escape
+    // immediately followed by another byte is also racy with crossterm's
+    // escape-disambiguation window (a bare ESC followed quickly by another
+    // key can be interpreted as an alt-key combo). This test focuses on
+    // ctrl-x toggling remote control.
 
     // Test that Ctrl+X opens remote control panel (custom keybinding works)
     s.send().key("ctrl-x").unwrap();
-    s.wait().text("(1) (2) (3)").until().unwrap();
+    s.wait()
+        .text("(1) (2) (3)")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
     s.send().key("ctrl-t").unwrap();
-    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.wait()
+        .text_absent("(1) (2) (3)")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
     // Use "a" to quit the application
     s.send().type_text("'a'").unwrap();
