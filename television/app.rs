@@ -388,9 +388,19 @@ impl App {
                 // automatically take the first entry regardless of count.
                 // If there are no entries, exit with None.
                 action_outcome = self.maybe_take_1();
-            } else if self.television.merged_config.take_1_fast {
-                // If `take_1_fast` is true, immediately take the first entry without
-                // waiting for loading to finish. If there are no entries, exit with None.
+            } else if self.television.merged_config.take_1_fast
+                && (!self.television.results_picker.entries.is_empty()
+                    || !self.television.channel.running())
+            {
+                // `take_1_fast`: pick the first entry as soon as it lands
+                // in the picker, without waiting for the channel to finish
+                // loading. We only enter this branch once there's actually
+                // something to pick, OR the channel has finished loading
+                // and we know nothing more is coming (in which case
+                // `maybe_take_1` will exit with None). This avoids a race
+                // where a loop iteration firing before the first batch of
+                // entries has been flushed (batch flush interval is 200ms)
+                // would otherwise quit tv with an empty selection.
                 action_outcome = self.maybe_take_1();
             }
 
