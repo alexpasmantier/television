@@ -143,3 +143,204 @@ fn test_external_action_thebatman_with_f8() {
         "expected cat output to contain 'Copyright (c)', got:\n{output}"
     );
 }
+
+/// Verifies that execute-mode actions attach their stdout to the
+/// controlling tty, not to tv's stdout. We run tv inside a bash script
+/// that captures its stdout (`out=$(tv ...)`); with the fix, the action's
+/// `TTY_OK` output lands on the terminal (visible in the scrollback),
+/// and the captured `$out` stays empty.
+#[test]
+fn test_execute_action_uses_tty_when_stdout_is_captured() {
+    let pt = phantom();
+
+    let tempdir = TempDir::new().unwrap();
+    let cable_dir = tempdir.path().join("captured_stdout");
+    fs::create_dir_all(&cable_dir).unwrap();
+
+    let files_toml_content = r#"
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
+
+[source]
+command = ["fd -t f", "fd -t f -H"]
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+shortcut = "f1"
+f12 = "actions:ttycheck"
+
+[actions.ttycheck]
+description = "verify execute actions use the terminal tty"
+command = "if test -t 1; then printf 'TTY_OK\\n'; else printf 'TTY_BAD\\n'; fi"
+shell = "bash"
+mode = "execute"
+"#;
+
+    write_toml_config(&cable_dir, "files.toml", files_toml_content);
+
+    let script = format!(
+        "out=$('{}' --cable-dir '{}' --config-file '{}' files --input LICENSE); printf '\\nSHELL_CAPTURE=[%s]\\n' \"$out\"",
+        TV_BIN_PATH,
+        cable_dir.display(),
+        DEFAULT_CONFIG_FILE,
+    );
+
+    let cwd = std::env::current_dir().expect("failed to get cwd");
+    let s = pt
+        .run("bash")
+        .args(&["-lc", &script])
+        .size(DEFAULT_COLS, DEFAULT_ROWS)
+        .cwd(cwd.to_str().expect("cwd is not valid utf-8"))
+        .start()
+        .unwrap();
+
+    // Wait until tv's TUI has rendered with LICENSE as the single match.
+    // (Same rationale as the sibling external-action tests: matching
+    // "LICENSE" alone would spuriously hit the --input prompt before fd
+    // has produced any entries.)
+    s.wait()
+        .text("1 / 1")
+        .text("LICENSE")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    // Trigger the ttycheck action.
+    s.send().key("f12").unwrap();
+
+    // Wait for bash (and thus the whole script) to exit.
+    s.wait()
+        .exit_code(0)
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    // `TTY_OK` is written by the action via /dev/tty while tv is still
+    // running, so by the time the session ends it has scrolled out of
+    // the primary screen. Read the full scrollback to find it, and
+    // read the post-exit primary screen for the `SHELL_CAPTURE=[]` line
+    // bash prints after tv exits.
+    let scrollback = s.scrollback(None).unwrap();
+    let post_exit = s.output().unwrap();
+    let combined = format!("{scrollback}\n{post_exit}");
+
+    assert!(
+        combined.contains("TTY_OK"),
+        "expected action output to reach the terminal tty, got:\n{combined}"
+    );
+    assert!(
+        combined.contains("SHELL_CAPTURE=[]"),
+        "expected shell-captured stdout to stay empty, got:\n{combined}"
+    );
+    assert!(
+        !combined.contains("TTY_BAD"),
+        "expected action stdout to be reattached to the tty, got:\n{combined}"
+    );
+}
+
+/// Same invariant as the execute-mode test, but for fork-mode actions:
+/// tv stays alive after the action runs, so we verify the tty attachment
+/// out-of-band (via a status file written by the action) and then quit
+/// tv with ctrl-c to let the shell script finish.
+#[test]
+fn test_fork_action_uses_tty_when_stdout_is_captured() {
+    let pt = phantom();
+
+    let tempdir = TempDir::new().unwrap();
+    let cable_dir = tempdir.path().join("captured_stdout_fork");
+    let status_file = cable_dir.join("fork-status");
+    fs::create_dir_all(&cable_dir).unwrap();
+
+    let files_toml_content = r#"
+[metadata]
+name = "files"
+description = "A channel to select files and directories"
+requirements = ["fd", "bat"]
+
+[source]
+command = ["fd -t f", "fd -t f -H"]
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+shortcut = "f1"
+f12 = "actions:ttycheck"
+
+[actions.ttycheck]
+description = "verify fork actions use the terminal tty"
+command = "if test -t 1; then printf 'ok' > '{status_file}'; else printf 'bad' > '{status_file}'; fi; printf 'FORK_STDOUT\\n'"
+shell = "bash"
+mode = "fork"
+"#
+    .replace("{status_file}", &status_file.display().to_string());
+
+    write_toml_config(&cable_dir, "files.toml", &files_toml_content);
+
+    let script = format!(
+        "out=$('{}' --cable-dir '{}' --config-file '{}' files --input LICENSE); printf '\\nSHELL_CAPTURE=[%s]\\n' \"$out\"",
+        TV_BIN_PATH,
+        cable_dir.display(),
+        DEFAULT_CONFIG_FILE,
+    );
+
+    let cwd = std::env::current_dir().expect("failed to get cwd");
+    let s = pt
+        .run("bash")
+        .args(&["-lc", &script])
+        .size(DEFAULT_COLS, DEFAULT_ROWS)
+        .cwd(cwd.to_str().expect("cwd is not valid utf-8"))
+        .start()
+        .unwrap();
+
+    s.wait()
+        .text("1 / 1")
+        .text("LICENSE")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    // Fork mode: tv stays alive after the action fires. Trigger it,
+    // wait for the status file to be written, then quit tv with ctrl-c
+    // so the outer bash script can finish.
+    s.send().key("f12").unwrap();
+
+    // The action writes the status file synchronously before returning.
+    // Wait until we see it on disk (up to wait_timeout_ms).
+    let deadline = std::time::Instant::now()
+        + std::time::Duration::from_millis(wait_timeout_ms());
+    while !status_file.exists() && std::time::Instant::now() < deadline {
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait()
+        .exit_code(0)
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    let scrollback = s.scrollback(None).unwrap();
+    let post_exit = s.output().unwrap();
+    let combined = format!("{scrollback}\n{post_exit}");
+    let status = fs::read_to_string(&status_file).unwrap_or_default();
+
+    assert_eq!(
+        status, "ok",
+        "expected fork action stdout to be attached to a tty, got status {status:?}"
+    );
+    assert!(
+        combined.contains("SHELL_CAPTURE=[]"),
+        "expected shell-captured stdout to stay empty, got:\n{combined}"
+    );
+    assert!(
+        !combined.contains("FORK_STDOUT"),
+        "expected fork action stdout to bypass shell capture, got:\n{combined}"
+    );
+}
