@@ -90,7 +90,7 @@ fn test_source_output_with_source_command() {
 
     s.wait()
         .text("AAUNIQUE16CHARIDBB")
-        .timeout_ms(2000)
+        .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
 }

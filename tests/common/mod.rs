@@ -35,6 +35,22 @@ pub fn stable_ms() -> u64 {
         .unwrap_or(300)
 }
 
+/// Timeout used when waiting for a condition (text to appear, exit code,
+/// etc.). Sized to comfortably absorb first-frame latency of a tv process
+/// under the capped parallelism we run tests at (`--test-threads=4`), with
+/// some extra headroom on CI.
+///
+/// Tunable via `TV_TEST_WAIT_MS`.
+pub fn wait_timeout_ms() -> u64 {
+    if let Some(v) = std::env::var("TV_TEST_WAIT_MS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+    {
+        return v;
+    }
+    if is_ci() { 15_000 } else { 5_000 }
+}
+
 pub const TV_BIN_PATH: &str = match option_env!("TV_BIN_PATH") {
     Some(v) => v,
     None => "./target/debug/tv",
@@ -81,6 +97,25 @@ pub fn tv_local_config_and_cable_with_args<'p>(
     combined.extend_from_slice(LOCAL_CONFIG_AND_CABLE);
     combined.extend_from_slice(extra_args);
     tv(pt).args(&combined)
+}
+
+/// Wait for `s` to exit with code 0 and return the primary-screen output
+/// (what tv wrote to stdout after leaving alt-screen, e.g. the selection
+/// from `--select-1`, `--take-1-fast`, `--expect`, or an external action).
+///
+/// Prefer this over `wait().text(..)` when the condition you care about is
+/// *only visible after exit*. `wait().text()` polls the live screen on a
+/// 50ms interval, which for a tv process that prints its output and exits
+/// within a few ms is a race — under contention the poller can miss the
+/// alt-to-primary-screen transition entirely and then wait out its full
+/// timeout on a dead session.
+pub fn exit_and_output(s: &Session) -> String {
+    s.wait()
+        .exit_code(0)
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .expect("tv did not exit with code 0 within timeout");
+    s.output().expect("failed to read tv output")
 }
 
 /// Assert that, once the screen has stabilized, it does not contain any of
