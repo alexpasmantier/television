@@ -45,7 +45,7 @@ fn tv_list_channels() {
     // has been printed.
     s.wait()
         .text(cable_dir_filenames.iter().max().unwrap())
-        .timeout_ms(2000)
+        .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
 

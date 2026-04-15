@@ -158,5 +158,9 @@ fn test_no_sort_preserves_source_order() {
     .start()
     .unwrap();
 
-    s.wait().text("a-weak-b").timeout_ms(2000).until().unwrap();
+    s.wait()
+        .text("a-weak-b")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 }

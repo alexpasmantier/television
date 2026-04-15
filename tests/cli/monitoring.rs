@@ -41,7 +41,7 @@ fn test_watch_reloads_source_command() {
     // The watch should pick up the new file on its next tick
     s.wait()
         .text("UNIQUE16CHARIDcontrol.txt")
-        .timeout_ms(3000)
+        .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
 

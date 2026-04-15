@@ -18,11 +18,11 @@ fn test_select_1_auto_selects_single_entry() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("UNIQUE16CHARID")
-        .timeout_ms(2000)
-        .until()
-        .unwrap();
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("UNIQUE16CHARID"),
+        "expected output to contain 'UNIQUE16CHARID', got:\n{output}"
+    );
 }
 
 /// Tests that --select-1 respects the initial --input filter.
@@ -43,11 +43,11 @@ fn test_select_1_respects_initial_input() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("television")
-        .timeout_ms(2000)
-        .until()
-        .unwrap();
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("television"),
+        "expected output to contain 'television', got:\n{output}"
+    );
 }
 
 /// Tests that --take-1 automatically selects the first entry after loading completes.
@@ -62,11 +62,11 @@ fn test_take_1_auto_selects_first_entry() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("UNIQUE16CHARID")
-        .timeout_ms(2000)
-        .until()
-        .unwrap();
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("UNIQUE16CHARID"),
+        "expected output to contain 'UNIQUE16CHARID', got:\n{output}"
+    );
 }
 
 /// Tests that --take-1-fast immediately selects the first entry as it appears.
@@ -81,32 +81,36 @@ fn test_take_1_fast_auto_selects_first_entry_immediately() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("UNIQUE16CHARID")
-        .timeout_ms(2000)
-        .until()
-        .unwrap();
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("UNIQUE16CHARID"),
+        "expected output to contain 'UNIQUE16CHARID', got:\n{output}"
+    );
 }
 
 /// Tests that `--take-1` can return before source completion when entries are flushed
 /// periodically.
 #[test]
 fn test_take_1_fast_flushes_before_source_completion() {
-    use std::time::Duration;
+    let pt = phantom();
 
-    let mut tester = PtyTester::new();
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "--source-command",
+            "sleep 0.2 ; echo UNIQUE16CHARID_FIRST ; sleep 4 ; echo UNIQUE16CHARID_SECOND",
+            "--take-1",
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--source-command",
-        "sleep 0.2 ; echo UNIQUE16CHARID_FIRST ; sleep 4 ; echo UNIQUE16CHARID_SECOND",
-        "--take-1",
-    ]);
-    tester.spawn_command(cmd);
-
-    // Should appear before the source command finishes sleeping.
-    tester.assert_raw_output_contains_with_timeout(
-        "UNIQUE16CHARID_FIRST",
-        Duration::from_secs(3),
+    // Should exit (and so output the first entry) before the source command
+    // finishes its 4s sleep.
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("UNIQUE16CHARID_FIRST"),
+        "expected output to contain 'UNIQUE16CHARID_FIRST', got:\n{output}"
     );
 }
 
@@ -212,16 +216,25 @@ fn test_expect_with_selection() {
     .start()
     .unwrap();
 
-    s.wait().text("Cargo.toml").until().unwrap();
-
-    s.send().key("ctrl-c").unwrap();
-
+    // Wait until the results list has actually populated with Cargo.toml
+    // as the single match. Matching "Cargo.toml" alone would spuriously
+    // succeed on the `> Cargo.toml` input prompt before fd has produced
+    // any entries, then ctrl-c would fire against an empty selection and
+    // --expect would print nothing useful.
     s.wait()
-        .text("ctrl-c")
+        .text("1 / 1")
         .text("Cargo.toml")
-        .timeout_ms(2000)
+        .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
 
-    s.wait().exit_code(0).until().unwrap();
+    s.send().key("ctrl-c").unwrap();
+
+    // After ctrl-c, tv exits and prints the pressed key plus the selection
+    // on the primary screen.
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("ctrl-c") && output.contains("Cargo.toml"),
+        "expected output to contain 'ctrl-c' and 'Cargo.toml', got:\n{output}"
+    );
 }

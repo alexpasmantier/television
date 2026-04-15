@@ -146,7 +146,7 @@ fn test_cli_working_directory_override() {
 
     s.wait()
         .text("working-dir-test.txt")
-        .timeout_ms(2000)
+        .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
 

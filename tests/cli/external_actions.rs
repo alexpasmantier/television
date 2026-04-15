@@ -53,7 +53,11 @@ mode = "execute"
 fn test_external_action_lsman_with_f9() {
     let pt = phantom();
 
-    let cable_dir = TempDir::new().unwrap().path().join("custom_cable");
+    // Keep the TempDir alive for the lifetime of the test. Dropping it
+    // mid-expression removes the directory (then `create_dir_all` recreates
+    // the inner path, leaking it).
+    let tempdir = TempDir::new().unwrap();
+    let cable_dir = tempdir.path().join("custom_cable");
     fs::create_dir_all(&cable_dir).unwrap();
     write_toml_config(&cable_dir, "files.toml", FILES_TOML_WITH_ACTIONS);
 
@@ -72,15 +76,28 @@ fn test_external_action_lsman_with_f9() {
     .start()
     .unwrap();
 
-    s.wait().text("LICENSE").until().unwrap();
+    // Wait until `fd -t f` has populated the list and the --input filter
+    // has narrowed it to LICENSE. Matching `LICENSE` alone would spuriously
+    // succeed on the `> LICENSE` input prompt before fd has even produced
+    // any entries, which then makes the F9 below fire against an empty
+    // selection and tv just sits there.
+    s.wait()
+        .text("1 / 1")
+        .text("LICENSE")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
     // Send F9 to trigger the "lsman" action (mapped to ls command)
     s.send().key("f9").unwrap();
 
-    // The external action should have executed "ls 'LICENSE'" and exited
-    s.wait().text("LICENSE").timeout_ms(2000).until().unwrap();
-
-    s.wait().exit_code(0).until().unwrap();
+    // The external action runs `ls 'LICENSE'` and exits; its output is on
+    // the primary screen after tv leaves alt-screen mode.
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("LICENSE"),
+        "expected ls output to contain 'LICENSE', got:\n{output}"
+    );
 }
 
 /// Tests that external actions execute properly with F8 keybinding.
@@ -88,7 +105,8 @@ fn test_external_action_lsman_with_f9() {
 fn test_external_action_thebatman_with_f8() {
     let pt = phantom();
 
-    let cable_dir = TempDir::new().unwrap().path().join("custom_cable_f8");
+    let tempdir = TempDir::new().unwrap();
+    let cable_dir = tempdir.path().join("custom_cable_f8");
     fs::create_dir_all(&cable_dir).unwrap();
     write_toml_config(&cable_dir, "files.toml", FILES_TOML_WITH_ACTIONS);
 
@@ -107,17 +125,21 @@ fn test_external_action_thebatman_with_f8() {
     .start()
     .unwrap();
 
-    s.wait().text("LICENSE").until().unwrap();
+    s.wait()
+        .text("1 / 1")
+        .text("LICENSE")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
     // Send F8 to trigger the "thebatman" action (mapped to cat command)
     s.send().key("f8").unwrap();
 
-    // The command should execute and television should exit
-    s.wait()
-        .text("Copyright (c)")
-        .timeout_ms(2000)
-        .until()
-        .unwrap();
-
-    s.wait().exit_code(0).until().unwrap();
+    // The external action runs `cat LICENSE` and exits; its output is on
+    // the primary screen after tv leaves alt-screen mode.
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("Copyright (c)"),
+        "expected cat output to contain 'Copyright (c)', got:\n{output}"
+    );
 }
