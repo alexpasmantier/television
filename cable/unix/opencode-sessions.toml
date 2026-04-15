@@ -11,7 +11,7 @@ output = "{split:\t:0}"
 
 [preview]
 # We use triple single quotes so we don't have to escape the backslashes for jq or the template engine
-command = '''opencode session list --format json | jq -r '.[] | select(.id == "{split:\t:0}") | "TITLE:     \(.title)\nID:        \(.id)\nPROJECT:   \(.projectId)\nDIRECTORY: \(.directory)\nUPDATED:   \((.updated / 1000) | strftime("%Y-%m-%d %H:%M:%S"))"''''
+command = '''opencode session list --format json | jq -r '.[] | select(.id == "{split:\t:0}") | "TITLE:     \(.title)\nID:        \(.id)\nPROJECT:   \(.projectId)\nDIRECTORY: \(.directory)\nUPDATED:   \((.updated / 1000) | strftime("%Y-%m-%d %H:%M:%S"))"' '''
 
 [ui]
 layout = "landscape"
@@ -32,5 +32,5 @@ mode = "execute"
 
 [actions.delete]
 description = "Delete session"
-command = '''bash -c 'echo "Delete {split:\t:1}?" && read -p "[y/N]: " conf && [[ $conf == "y" ]] && opencode session delete {split:\t:0} ''''
+command = '''bash -c 'echo "Delete {split:\t:1}?" && read -p "[y/N]: " conf && [[ $conf == "y" ]] && opencode session delete {split:\t:0} ' '''
 mode = "execute"
