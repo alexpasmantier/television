@@ -408,12 +408,14 @@ where
     }
 }
 
+#[serde_as]
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct PreviewSpec {
     #[serde(flatten)]
     pub command: CommandSpec,
     #[serde(default)]
-    pub offset: Option<Template>,
+    #[serde_as(as = "Option<OneOrMany<_>>")]
+    pub offset: Option<Vec<Template>>,
     #[serde(default = "cached_default")]
     pub cached: bool,
 }
@@ -432,7 +434,7 @@ impl PreviewSpec {
     pub fn new(command: CommandSpec, offset: Option<Template>) -> Self {
         Self {
             command,
-            offset,
+            offset: offset.map(|t| vec![t]),
             cached: false,
         }
     }
@@ -982,5 +984,37 @@ mod tests {
 
         // Verify powershell deserializes correctly
         assert_eq!(prototype.source.command.shell, Some(Shell::Psh));
+    }
+
+    #[test]
+    fn test_preview_spec_single_offset() {
+        let toml_str = r#"
+            command = "preview"
+            offset = "3"
+        "#;
+        let preview: PreviewSpec = from_str(toml_str).unwrap();
+        assert_eq!(preview.offset.as_ref().unwrap().len(), 1);
+        assert_eq!(preview.offset.as_ref().unwrap()[0].raw(), "3");
+    }
+
+    #[test]
+    fn test_preview_spec_multi_offset() {
+        let toml_str = r#"
+            command = ["p1", "p2"]
+            offset = ["3", ""]
+        "#;
+        let preview: PreviewSpec = from_str(toml_str).unwrap();
+        assert_eq!(preview.offset.as_ref().unwrap().len(), 2);
+        assert_eq!(preview.offset.as_ref().unwrap()[0].raw(), "3");
+        assert_eq!(preview.offset.as_ref().unwrap()[1].raw(), "");
+    }
+
+    #[test]
+    fn test_preview_spec_no_offset() {
+        let toml_str = r#"
+            command = "preview"
+        "#;
+        let preview: PreviewSpec = from_str(toml_str).unwrap();
+        assert!(preview.offset.is_none());
     }
 }

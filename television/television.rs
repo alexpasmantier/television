@@ -240,7 +240,7 @@ impl Television {
     fn setup_previewer(
         command: &CommandSpec,
         cached: bool,
-        offset_expr: Option<Template>,
+        offset_expr: Option<Vec<Template>>,
         title_template: Option<Template>,
         footer_template: Option<Template>,
     ) -> (UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>) {
