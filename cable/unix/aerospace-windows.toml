@@ -1,42 +1,26 @@
 [metadata]
 name = "aerospace-windows"
-description = "Browse and manage AeroSpace tiling window manager windows on macOS"
+description = "List and manage AeroSpace windows"
 requirements = ["aerospace", "awk"]
 
 [source]
 command = '''aerospace list-windows --all \
   --format '%{window-id}%{tab}%{workspace}%{tab}%{app-name}%{tab}%{window-title}' \
-  | awk -F'\t' '$3 != "AeroSpace" {printf "%s\t\033[36m[%s]\033[0m \033[1m%s\033[0m \033[90m| %s\033[0m\n", $1, $2, $3, $4}'
+  | awk -F'\t' '$3 != "AeroSpace" {printf "%s\t[%s] %s | %s\n", $1, $2, $3, $4}'
 '''
-display = "{strip_ansi|split:\\t:1}"
-output = "{strip_ansi|split:\\t:0}"
-ansi = true
-
-[ui.preview_panel]
-hidden = true
+display = "{split:\\t:1}"
+output = "{split:\\t:0}"
 
 [keybindings]
 enter = "actions:focus"
 ctrl-x = [ "actions:close", "reload_source" ]
-ctrl-f = "actions:fullscreen"
-ctrl-g = "actions:float"
 
 [actions.focus]
 description = "Focus the selected window"
-command = "aerospace focus --window-id '{strip_ansi|split:\\t:0}'"
+command = "aerospace focus --window-id '{split:\\t:0}'"
 mode = "execute"
 
 [actions.close]
 description = "Close the selected window"
-command = "aerospace close --window-id '{strip_ansi|split:\\t:0}'"
-mode = "fork"
-
-[actions.fullscreen]
-description = "Toggle fullscreen for the selected window"
-command = "aerospace fullscreen --window-id '{strip_ansi|split:\\t:0}'"
-mode = "fork"
-
-[actions.float]
-description = "Toggle floating/tiling layout for the selected window"
-command = "aerospace layout --window-id '{strip_ansi|split:\\t:0}' floating tiling"
+command = "aerospace close --window-id '{split:\\t:0}'"
 mode = "fork"
