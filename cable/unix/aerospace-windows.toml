@@ -1,0 +1,26 @@
+[metadata]
+name = "aerospace-windows"
+description = "List and manage AeroSpace windows"
+requirements = ["aerospace", "awk"]
+
+[source]
+command = '''aerospace list-windows --all \
+  --format '%{window-id}%{tab}%{workspace}%{tab}%{app-name}%{tab}%{window-title}' \
+  | awk -F'\t' '$3 != "AeroSpace" {printf "%s\t[%s] %s | %s\n", $1, $2, $3, $4}'
+'''
+display = "{split:\\t:1}"
+output = "{split:\\t:0}"
+
+[keybindings]
+enter = "actions:focus"
+ctrl-x = [ "actions:close", "reload_source" ]
+
+[actions.focus]
+description = "Focus the selected window"
+command = "aerospace focus --window-id '{split:\\t:0}'"
+mode = "execute"
+
+[actions.close]
+description = "Close the selected window"
+command = "aerospace close --window-id '{split:\\t:0}'"
+mode = "fork"
