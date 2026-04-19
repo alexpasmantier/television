@@ -19,16 +19,16 @@ ctrl-e = "actions:edit"
 
 [actions.stage]
 description = "Stage the selected file"
-command = "git add '{}'"
+command = "git add {}"
 mode = "fork"
 
 [actions.restore]
 description = "Discard changes in the selected file"
-command = "git restore '{}'"
+command = "git restore {}"
 mode = "fork"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"

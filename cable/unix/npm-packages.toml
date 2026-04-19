@@ -11,10 +11,10 @@ command = "npm info '{}' 2>/dev/null | head -30"
 
 [actions.uninstall]
 description = "Uninstall the selected global package"
-command = "npm uninstall -g '{}'"
+command = "npm uninstall -g {}"
 mode = "execute"
 
 [actions.update]
 description = "Update the selected global package"
-command = "npm update -g '{}'"
+command = "npm update -g {}"
 mode = "execute"

@@ -15,10 +15,10 @@ ctrl-r = "actions:restore_file"
 
 [actions.print_commit]
 description = "Print the latest commit where file was deleted"
-command = "echo \"$(git rev-list -n1 HEAD -- '{}')\""
+command = "echo \"$(git rev-list -n1 HEAD -- {})\""
 mode = "execute"
 
 [actions.restore_file]
 description = "Restore the selected file"
-command = "git checkout \"$(git rev-list -n1 HEAD -- '{}')^\" -- '{}'"
+command = "git checkout \"$(git rev-list -n1 HEAD -- {})^\" -- {}"
 

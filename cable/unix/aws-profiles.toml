@@ -17,5 +17,5 @@ enter = "actions:export"
 
 [actions.export]
 description = "Export the selected profile (sets AWS_PROFILE)"
-command = "export AWS_PROFILE='{}' && echo \"AWS_PROFILE set to '{}'\" && $SHELL"
+command = "export AWS_PROFILE={} && echo \"AWS_PROFILE set to {}\" && $SHELL"
 mode = "execute"

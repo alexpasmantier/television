@@ -17,5 +17,5 @@ enter = "actions:open"
 
 [actions.open]
 description = "Open the selected image with default viewer"
-command = "xdg-open '{}' 2>/dev/null || open '{}'"
+command = "xdg-open {} 2>/dev/null || open {}"
 mode = "fork"
