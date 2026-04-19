@@ -21,10 +21,10 @@ ctrl-d = "actions:uninstall"
 
 [actions.upgrade]
 description = "Upgrade the selected package"
-command = "brew upgrade '{}'"
+command = "brew upgrade {}"
 mode = "execute"
 
 [actions.uninstall]
 description = "Uninstall the selected package"
-command = "brew uninstall '{}'"
+command = "brew uninstall {}"
 mode = "execute"

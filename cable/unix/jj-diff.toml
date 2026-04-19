@@ -17,21 +17,21 @@ ctrl-a = "actions:absorb"
 
 [actions.restore]
 description = "Discard changes in the selected file"
-command = "jj restore '{}'"
+command = "jj restore {}"
 mode = "fork"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
 [actions.squash]
 description = "Squash changes to the selected file into the parent change"
-command = "jj squash -- '{}'"
+command = "jj squash -- {}"
 mode = "fork"
 
 [actions.absorb]
 description = "Absorb changes to the selected file into the appropriate ancestor"
-command = "jj absorb -- '{}'"
+command = "jj absorb -- {}"
 mode = "fork"

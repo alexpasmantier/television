@@ -14,5 +14,5 @@ enter = "actions:connect"
 
 [actions.connect]
 description = "Set selected host as exit node"
-command = "tailscale set --exit-node='{}'"
+command = "tailscale set --exit-node={}"
 mode = "execute"
