@@ -17,10 +17,10 @@ ctrl-d = "actions:remove"
 
 [actions.cd]
 description = "Change to the selected directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.remove]
 description = "Remove the selected directory from zoxide"
-command = "zoxide remove '{}'"
+command = "zoxide remove {}"
 mode = "fork"

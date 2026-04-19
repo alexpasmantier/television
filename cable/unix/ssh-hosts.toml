@@ -14,5 +14,5 @@ enter = "actions:connect"
 
 [actions.connect]
 description = "SSH into the selected host"
-command = "ssh '{}'"
+command = "ssh {}"
 mode = "execute"

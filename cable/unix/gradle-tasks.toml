@@ -14,5 +14,5 @@ enter = "actions:run"
 
 [actions.run]
 description = "Run the selected Gradle task"
-command = "gradle '{}'"
+command = "gradle {}"
 mode = "execute"

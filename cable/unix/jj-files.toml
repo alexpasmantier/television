@@ -16,11 +16,11 @@ ctrl-r = "actions:restore"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
 [actions.restore]
 description = "Discard changes to the selected file"
-command = "jj restore '{}'"
+command = "jj restore {}"
 mode = "fork"
