@@ -575,7 +575,7 @@ impl Television {
     /// triggered the update.
     fn should_render(&self, action: &Action) -> bool {
         // always render the first N ticks
-        (self.ticks < FIRST_TICKS_TO_RENDER
+        self.ticks < FIRST_TICKS_TO_RENDER
             // then render at regular intervals
             || self.ticks.is_multiple_of(RENDERING_INTERVAL)
             // more frequently if the channel is running
@@ -613,12 +613,7 @@ impl Television {
                     | Action::CycleSources
                     | Action::CyclePreviews
                     | Action::ReloadSource
-            ))
-            // We want to avoid too much rendering while the channel is reloading
-            // to prevent UI flickering.
-            && !self
-                .channel
-                .reloading()
+            )
     }
 
     pub fn update_preview_state(

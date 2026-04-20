@@ -84,8 +84,14 @@ where
     /// Tick the fuzzy matcher.
     ///
     /// This should be called periodically to update the state of the matcher.
+    /// It also refreshes `total_item_count` and `matched_item_count` from the
+    /// latest snapshot so callers can observe progress without having to call
+    /// `results()` first.
     pub fn tick(&mut self) {
         self.status = self.inner.tick(MATCHER_TICK_TIMEOUT).into();
+        let snapshot = self.inner.snapshot();
+        self.total_item_count = snapshot.item_count();
+        self.matched_item_count = snapshot.matched_item_count();
     }
 
     /// Get an injector that can be used to push items into the fuzzy matcher.
