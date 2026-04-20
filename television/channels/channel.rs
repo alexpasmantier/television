@@ -824,4 +824,275 @@ mod tests {
         assert_eq!(results[1].matched_string, "test2");
         assert_eq!(results[2].matched_string, "test3");
     }
+
+    /// Builds a non-stdin `Channel<PlainProcessor>` from a shell command
+    /// string, for tests that exercise reload/tick state machines.
+    fn build_channel(command: &str) -> Channel<PlainProcessor> {
+        let source_spec: SourceSpec = toml::from_str(&format!(
+            r#"command = "{}""#,
+            command.replace('"', r#"\""#)
+        ))
+        .unwrap();
+        Channel::new(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            None,
+            false,
+            false,
+            PlainProcessor,
+            None,
+            false,
+        )
+    }
+
+    /// A source that produces items triggers the swap on the first batch.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_reload_swaps_when_items_arrive() {
+        let mut channel = build_channel("echo 'a\\nb\\nc'");
+        channel.load();
+        // Wait for initial load to finish.
+        let start = Instant::now();
+        while channel.running() && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+
+        channel.reload();
+        assert!(
+            channel.staging_matcher.is_some(),
+            "staging should be active immediately after reload",
+        );
+
+        let start = Instant::now();
+        while channel.staging_matcher.is_some()
+            && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+
+        assert!(
+            channel.staging_matcher.is_none(),
+            "staging should clear once items arrive (elapsed: {:?})",
+            start.elapsed()
+        );
+    }
+
+    /// A source that emits nothing still needs to swap — otherwise the UI
+    /// would be stuck on the old snapshot forever. The trigger is the crawl
+    /// task exiting.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_reload_swaps_when_empty_source_finishes() {
+        let mut channel = build_channel("true");
+        channel.load();
+        let start = Instant::now();
+        while channel.running() && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+
+        channel.reload();
+        assert!(channel.staging_matcher.is_some());
+
+        let start = Instant::now();
+        while channel.staging_matcher.is_some()
+            && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+
+        assert!(
+            channel.staging_matcher.is_none(),
+            "staging should clear once the empty source task finishes"
+        );
+    }
+
+    /// While a reload is in flight against a slow source, the channel must
+    /// keep serving the old results — never an empty list. This is the
+    /// core atomic-swap invariant that prevents `--watch` flicker.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_reload_keeps_old_results_visible_until_swap() {
+        let mut channel = build_channel("echo 'a\\nb\\nc'");
+        channel.load();
+
+        // Wait for the initial source to land.
+        let start = Instant::now();
+        while channel.result_count() < 3
+            && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            channel.find("");
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(
+            channel.result_count(),
+            3,
+            "initial source should have produced three entries"
+        );
+
+        // Slow second source so the swap can't happen on the first tick —
+        // we need a window in which to observe staging-in-flight behavior.
+        let slow_spec: SourceSpec =
+            toml::from_str(r#"command = "sleep 0.08 && echo 'z'""#).unwrap();
+        channel.source_command = slow_spec.command;
+        channel.reload();
+        assert!(
+            channel.staging_matcher.is_some(),
+            "staging should be active immediately after reload",
+        );
+
+        // Invariant under test: while staging is in flight, the live matcher
+        // still holds the old three entries. Check staging BEFORE the count
+        // so the two observations come from the same tick.
+        let mut swapped = false;
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_millis(400) {
+            channel.find("");
+            let staging_before = channel.staging_matcher.is_some();
+            let count = channel.result_count();
+            if staging_before {
+                assert!(
+                    count >= 3,
+                    "old results must stay visible during reload (saw {count})",
+                );
+            } else {
+                swapped = true;
+                let end = Instant::now();
+                while channel.running()
+                    && end.elapsed() < Duration::from_millis(300)
+                {
+                    channel.tick();
+                    tokio::time::sleep(Duration::from_millis(2)).await;
+                }
+                channel.find("");
+                channel.tick();
+                assert_eq!(
+                    channel.result_count(),
+                    1,
+                    "after swap, new source's entries should be live"
+                );
+                break;
+            }
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(2)).await;
+        }
+        assert!(swapped, "reload should have swapped within the time budget");
+    }
+
+    /// `running()` is true during the initial load (no live results yet)
+    /// but false during a staging-only reload (user sees stable old list).
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_running_ignores_staging_but_not_initial_load() {
+        let mut channel = build_channel("echo 'a\\nb\\nc'");
+        channel.load();
+        assert!(
+            channel.running(),
+            "running() must be true during the initial load (no live results yet)"
+        );
+
+        // Drain the initial load. `find("")` must run inside the loop so the
+        // matcher surfaces items into `result_count`.
+        let start = Instant::now();
+        while channel.result_count() < 3
+            && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            channel.find("");
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(
+            channel.result_count(),
+            3,
+            "initial load must have populated the live matcher"
+        );
+        // The crawl handle can lag the last item by a tick; wait it out.
+        let start = Instant::now();
+        while channel.running() && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert!(
+            !channel.running(),
+            "after initial load completes, running() must be false"
+        );
+
+        // Slow source so staging is guaranteed to still be in flight when
+        // we observe `running()`.
+        let slow_spec: SourceSpec =
+            toml::from_str(r#"command = "sleep 0.08 && echo 'z'""#).unwrap();
+        channel.source_command = slow_spec.command;
+        channel.reload();
+        assert!(
+            channel.staging_matcher.is_some(),
+            "staging is the implementation-level signal, still set"
+        );
+        assert!(
+            !channel.running(),
+            "running() must be false while staging is in flight — the user still sees stable old results"
+        );
+
+        // Confirm the invariant holds across ticks, not just on first obs.
+        for _ in 0..3 {
+            channel.tick();
+            if channel.staging_matcher.is_none() {
+                break;
+            }
+            assert!(
+                !channel.running(),
+                "running() must stay false across staging ticks"
+            );
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+    }
+
+    /// A source that hangs with no output must not swap to empty — the
+    /// previous matcher stays live until the new source emits or exits.
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_reload_does_not_swap_to_empty_while_source_hangs() {
+        let mut channel = build_channel("echo 'a\\nb\\nc'");
+        channel.load();
+        let start = Instant::now();
+        while channel.result_count() < 3
+            && start.elapsed() < Duration::from_millis(500)
+        {
+            channel.tick();
+            channel.find("");
+            tokio::time::sleep(Duration::from_millis(5)).await;
+        }
+        assert_eq!(channel.result_count(), 3);
+
+        let slow_spec: SourceSpec =
+            toml::from_str(r#"command = "sleep 5""#).unwrap();
+        channel.source_command = slow_spec.command;
+        channel.reload();
+        assert!(channel.staging_matcher.is_some());
+
+        // Tick for long enough that any timer-based fallback would fire.
+        // Staging must stay in flight and the live matcher keeps old entries.
+        let start = Instant::now();
+        while start.elapsed() < Duration::from_millis(400) {
+            channel.tick();
+            channel.find("");
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+
+        assert!(
+            channel.staging_matcher.is_some(),
+            "staging must stay in flight while the source hangs with no output",
+        );
+        assert_eq!(
+            channel.result_count(),
+            3,
+            "old results must remain visible while the source hangs (no flicker to empty)",
+        );
+
+        // Don't leak the child for 5 seconds after the test exits.
+        if let Some(h) = channel.staging_crawl_handle.take() {
+            h.abort();
+        }
+    }
 }
