@@ -181,7 +181,7 @@ pub struct Previewer {
     cycle_index: usize,
     title_template: Option<Template>,
     footer_template: Option<Template>,
-    offset_expr: Option<Template>,
+    offset_expr: Option<Vec<Template>>,
     results: UnboundedSender<Preview>,
     cache: Option<Arc<Mutex<Cache>>>,
 }
@@ -190,7 +190,7 @@ impl Previewer {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         command: &CommandSpec,
-        offset_expr: Option<Template>,
+        offset_expr: Option<Vec<Template>>,
         title_template: Option<Template>,
         footer_template: Option<Template>,
         config: Config,
@@ -323,16 +323,26 @@ fn build_preview_from_text(
     text: Text<'static>,
     title_template: Option<&Template>,
     footer_template: Option<&Template>,
-    offset_expr: Option<&Template>,
+    offset_expr: Option<&Vec<Template>>,
     preview_index: usize,
     preview_count: usize,
 ) -> Result<Preview> {
     let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
 
     // try to extract a line number from the offset expression if provided
-    let line_number = if let Some(offset_expr) = offset_expr.as_ref() {
-        let offset_str = offset_expr.format(&entry.raw)?;
-        offset_str.parse::<u16>().ok()
+    let line_number = if let Some(offset_exprs) = offset_expr.as_ref() {
+        let current_offset =
+            offset_exprs.get(preview_index).or_else(|| offset_exprs.first());
+        if let Some(offset_expr) = current_offset {
+            if offset_expr.raw().is_empty() {
+                None
+            } else {
+                let offset_str = offset_expr.format(&entry.raw)?;
+                offset_str.parse::<u16>().ok()
+            }
+        } else {
+            None
+        }
     } else {
         None
     };
@@ -367,7 +377,7 @@ pub async fn try_preview(
     cycle_index: usize,
     title_template: Option<Template>,
     footer_template: Option<Template>,
-    offset_expr: Option<Template>,
+    offset_expr: Option<Vec<Template>>,
     entry: Entry,
     results_handle: UnboundedSender<Preview>,
     cache: Option<Arc<Mutex<Cache>>>,

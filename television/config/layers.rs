@@ -158,14 +158,18 @@ impl ConfigLayers {
         {
             cmd.shell = global_shell;
         }
-        let channel_preview_offset =
-            self.channel_cli.preview_offset.clone().or(
+        let channel_preview_offset = self
+            .channel_cli
+            .preview_offset
+            .clone()
+            .map(|t| vec![t])
+            .or_else(|| {
                 if let Some(preview) = &self.channel.preview {
                     preview.offset.clone()
                 } else {
                     None
-                },
-            );
+                }
+            });
         let channel_preview_cached = self.channel_cli.cache_preview
             || self.channel.preview.as_ref().is_some_and(|p| p.cached);
 
@@ -664,7 +668,7 @@ pub struct MergedConfig {
     pub channel_source_output: Option<Template>,
     // preview
     pub channel_preview_command: Option<CommandSpec>,
-    pub channel_preview_offset: Option<Template>,
+    pub channel_preview_offset: Option<Vec<Template>>,
     pub channel_preview_cached: bool,
     pub channel_actions: FxHashMap<String, ActionSpec>,
     /// Whether frecency is enabled for the current channel (per-channel override)
