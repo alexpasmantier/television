@@ -16,8 +16,6 @@ use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::process::Stdio;
-use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tokio::process::Command as TokioCommand;
 use tokio::{
@@ -26,7 +24,13 @@ use tokio::{
 };
 use tracing::debug;
 
-const RELOAD_RENDERING_DELAY: Duration = Duration::from_millis(200);
+/// Factory that rebuilds a fresh `SortStrategy` for each new staging matcher.
+///
+/// `SortStrategy::Custom` holds a `Box<dyn SortFn>` which is not `Clone`, so we
+/// can't reuse the strategy across matchers. Instead we keep a closure that
+/// knows how to produce a new one (re-capturing any shared state such as the
+/// frecency cache) on every reload.
+type SortStrategyFactory<D> = Box<dyn FnMut() -> SortStrategy<D> + Send>;
 
 pub struct Channel<P: EntryProcessor> {
     pub source_command: CommandSpec,
@@ -34,13 +38,16 @@ pub struct Channel<P: EntryProcessor> {
     pub source_output: Option<Template>,
     pub supports_preview: bool,
     processor: P,
+    /// The matcher serving results to the UI. See `reload()` for the swap.
     matcher: Matcher<P::Data>,
     selected_entries: FxHashSet<Entry>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
     current_source_index: usize,
-    /// Indicates if the channel is currently reloading to prevent UI flickering
-    /// by delaying the rendering of a new frame.
-    pub reloading: Arc<AtomicBool>,
+    /// Accumulates the new source's output during a reload; swapped into
+    /// `matcher` by `try_swap_staging()`.
+    staging_matcher: Option<Matcher<P::Data>>,
+    staging_crawl_handle: Option<tokio::task::JoinHandle<()>>,
+    sort_strategy_factory: SortStrategyFactory<P::Data>,
     /// Whether this channel reads from stdin directly instead of spawning a
     /// source command. When true, `load()` reads `tokio::io::stdin()` and
     /// `reload()` is a no-op (stdin can only be consumed once).
@@ -61,31 +68,35 @@ impl<P: EntryProcessor> Channel<P> {
     ) -> Self {
         let config = Config::default().prefer_prefix(true);
 
-        let sort_strategy = if no_sort {
-            SortStrategy::Index
-        } else if let Some((frecency_handle, channel_name)) = frecency {
-            let cache = frecency_handle.create_cache(channel_name);
-            SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
-                let scores = cache.snapshot();
-                let key1 = P::frecency_key(&i1);
-                let key2 = P::frecency_key(&i2);
-                let f1 = scores.get(&key1);
-                let f2 = scores.get(&key2);
+        let mut sort_strategy_factory: SortStrategyFactory<P::Data> =
+            if no_sort {
+                Box::new(|| SortStrategy::Index)
+            } else if let Some((frecency_handle, channel_name)) = frecency {
+                let cache = frecency_handle.create_cache(channel_name);
+                Box::new(move || {
+                    let cache = cache.clone();
+                    SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
+                        let scores = cache.snapshot();
+                        let key1 = P::frecency_key(&i1);
+                        let key2 = P::frecency_key(&i2);
+                        let f1 = scores.get(&key1);
+                        let f2 = scores.get(&key2);
 
-                match (f1, f2) {
-                    (Some(s1), Some(s2)) => {
-                        s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
-                    }
-                    (Some(_), None) => Ordering::Less,
-                    (None, Some(_)) => Ordering::Greater,
-                    (None, None) => m2.score.cmp(&m1.score),
-                }
-            }))
-        } else {
-            SortStrategy::Score
-        };
+                        match (f1, f2) {
+                            (Some(s1), Some(s2)) => s2
+                                .cmp(&s1)
+                                .then_with(|| m2.score.cmp(&m1.score)),
+                            (Some(_), None) => Ordering::Less,
+                            (None, Some(_)) => Ordering::Greater,
+                            (None, None) => m2.score.cmp(&m1.score),
+                        }
+                    }))
+                })
+            } else {
+                Box::new(|| SortStrategy::Score)
+            };
 
-        let matcher = Matcher::new(&config, sort_strategy);
+        let matcher = Matcher::new(&config, sort_strategy_factory());
         let current_source_index = 0;
         Self {
             source_command,
@@ -97,7 +108,9 @@ impl<P: EntryProcessor> Channel<P> {
             selected_entries: HashSet::with_hasher(FxBuildHasher),
             crawl_handle: None,
             current_source_index,
-            reloading: Arc::new(AtomicBool::new(false)),
+            staging_matcher: None,
+            staging_crawl_handle: None,
+            sort_strategy_factory,
             is_stdin,
         }
     }
@@ -123,32 +136,44 @@ impl<P: EntryProcessor> Channel<P> {
         self.crawl_handle = Some(crawl_handle);
     }
 
+    /// Reload the channel's source with fzf-style atomic-swap semantics.
+    ///
+    /// Builds a fresh *staging* matcher and feeds the new source into it; the
+    /// live matcher keeps serving the previous snapshot until `tick()` swaps
+    /// staging in. The swap is event-driven (no time cap): it fires when
+    /// staging has items, or when the crawl task exits with no output. A
+    /// source that hangs indefinitely keeps the previous snapshot on screen.
     pub fn reload(&mut self) {
         if self.is_stdin {
             debug!("Stdin channel cannot be reloaded, skipping.");
             return;
         }
-        if self.reloading.load(std::sync::atomic::Ordering::Relaxed) {
+        if self.staging_matcher.is_some() {
             debug!("Reload already in progress, skipping.");
             return;
         }
-        self.reloading
-            .store(true, std::sync::atomic::Ordering::Relaxed);
 
-        if let Some(handle) = self.crawl_handle.take()
-            && !handle.is_finished()
-        {
-            handle.abort();
+        // Mirror the current pattern onto staging so the post-swap snapshot is
+        // already filtered to what the user typed during the reload window.
+        let config = Config::default().prefer_prefix(true);
+        let mut staging =
+            Matcher::new(&config, (self.sort_strategy_factory)());
+        if !self.matcher.last_pattern.is_empty() {
+            staging.find(&self.matcher.last_pattern);
         }
-        self.matcher.restart();
-        self.load();
-        // Spawn a thread that turns off reloading after a short delay
-        // to avoid UI flickering (this boolean is used by `Television::should_render`)
-        let reloading = self.reloading.clone();
-        tokio::spawn(async move {
-            tokio::time::sleep(RELOAD_RENDERING_DELAY).await;
-            reloading.store(false, std::sync::atomic::Ordering::Relaxed);
-        });
+
+        let injector = staging.injector();
+        let processor = self.processor.clone();
+        let crawl_handle = tokio::spawn(load_candidates(
+            self.source_command.clone(),
+            self.source_entry_delimiter,
+            self.current_source_index,
+            processor,
+            injector,
+        ));
+
+        self.staging_matcher = Some(staging);
+        self.staging_crawl_handle = Some(crawl_handle);
     }
 
     pub fn current_command(&self) -> &str {
@@ -157,18 +182,55 @@ impl<P: EntryProcessor> Channel<P> {
 
     pub fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
+        // Mirror onto staging so the post-swap snapshot is already filtered.
+        if let Some(staging) = self.staging_matcher.as_mut() {
+            staging.find(pattern);
+        }
     }
 
     /// Let the background matcher thread make progress.
     ///
-    /// This is cheap and should be called frequently (e.g. every update cycle)
-    /// to keep the matcher responsive, even when results aren't being fetched.
+    /// Cheap, call every update cycle. Also drives the staging swap when a
+    /// reload is in flight.
     pub fn tick(&mut self) {
         self.matcher.tick();
+        self.try_swap_staging();
+    }
+
+    /// Swap staging into the live slot once staging has items, or once its
+    /// crawl task exits with nothing emitted. A source that hangs with no
+    /// output never triggers a swap — the previous snapshot stays on screen.
+    fn try_swap_staging(&mut self) {
+        let Some(staging) = self.staging_matcher.as_mut() else {
+            return;
+        };
+        staging.tick();
+        let has_items = staging.total_item_count > 0;
+        let source_finished = self
+            .staging_crawl_handle
+            .as_ref()
+            .is_some_and(tokio::task::JoinHandle::is_finished);
+        if !has_items && !source_finished {
+            return;
+        }
+
+        self.matcher = self.staging_matcher.take().unwrap();
+
+        // The new source may still be streaming more items; move its handle
+        // into `crawl_handle` so `running()` keeps reporting accurately.
+        if let Some(old) = self.crawl_handle.take()
+            && !old.is_finished()
+        {
+            old.abort();
+        }
+        self.crawl_handle = self.staging_crawl_handle.take();
     }
 
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
-        self.matcher.tick();
+        // Channel-level tick so a pending staging swap is applied before we
+        // read results; a bare `self.matcher.tick()` would return one last
+        // snapshot from the old matcher.
+        self.tick();
 
         let results = self.matcher.results(num_entries, offset);
 
@@ -210,6 +272,13 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.total_item_count
     }
 
+    /// Whether the channel is actively producing results the user can see.
+    ///
+    /// Ignores the staging matcher on purpose: during an atomic-swap reload
+    /// the user is still looking at a stable list, so the UI's loading
+    /// indicator should stay off until the swap happens. The initial load is
+    /// still reported (no live results yet), and after a swap the former
+    /// staging handle moves into `crawl_handle` so this stays accurate.
     pub fn running(&self) -> bool {
         self.matcher.status.running
             || (self.crawl_handle.is_some()
@@ -234,10 +303,6 @@ impl<P: EntryProcessor> Channel<P> {
 
     pub fn supports_preview(&self) -> bool {
         self.supports_preview
-    }
-
-    pub fn reloading(&self) -> bool {
-        self.reloading.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn source_index(&self) -> usize {
@@ -587,7 +652,6 @@ impl ChannelKind {
         running() -> bool,
         shutdown() -> (),
         supports_preview() -> bool,
-        reloading() -> bool,
         source_index() -> usize,
         source_count() -> usize,
         is_stdin() -> bool,
