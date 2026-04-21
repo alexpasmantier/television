@@ -108,7 +108,7 @@ impl RemoteControl {
                 .as_ref()
                 .and_then(|kb| kb.channel_shortcut());
             let cable_entry =
-                CableEntry::new(channel_name.to_string(), channel_shortcut)
+                CableEntry::new(channel_name.clone(), channel_shortcut)
                     .with_description(prototype.metadata.description.clone())
                     .with_requirements(
                         // check if the prototype has binary requirements

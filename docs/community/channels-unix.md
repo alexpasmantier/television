@@ -551,6 +551,37 @@ mode = "execute"
 
 ---
 
+### *dnf-packages*
+
+List and manage installed dnf packages
+
+![tv running the dnf-packages channel](../../assets/channels/dnf-packages.png)
+**Requirements:** `rpm`, `dnf`
+
+**Code:** *dnf-packages.toml*
+
+```toml
+[metadata]
+name = "dnf-packages"
+description = "List and manage installed dnf packages"
+requirements = [ "rpm", "dnf",]
+
+[source]
+command = "rpm -qa --queryformat '%{NAME}-%{VERSION}-%{RELEASE}.%{ARCH}\n' 2>/dev/null"
+
+[preview]
+command = "rpm -q --info '{}' 2>/dev/null"
+
+[actions.remove]
+description = "Remove the selected package"
+command = "sudo dnf remove '{}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *docker-compose*
 
 Manage Docker Compose services
@@ -912,6 +943,32 @@ mode = "execute"
 
 ---
 
+### *figlet-fonts*
+
+Browse and preview figlet fonts
+
+![tv running the figlet-fonts channel](../../assets/channels/figlet-fonts.png)
+**Requirements:** `figlet`
+
+**Code:** *figlet-fonts.toml*
+
+```toml
+[metadata]
+name = "figlet-fonts"
+description = "Browse and preview figlet fonts"
+requirements = [ "figlet",]
+
+[source]
+command = "for i in \"$(figlet -I2)\"/*.flf; do basename \"$i\" .flf; done | sort"
+
+[preview]
+command = "figlet -f '{}' 'The quick brown fox jumps over the lazy dog.'"
+
+```
+
+
+---
+
 ### *files*
 
 A channel to select files and directories
@@ -1196,6 +1253,45 @@ mode = "execute"
 description = "Rebase current branch onto the selected branch"
 command = "git rebase '{0}'"
 mode = "execute"
+
+```
+
+
+---
+
+### *git-deletions*
+
+A channel to list files which were deleted from the Git repository
+
+![tv running the git-deletions channel](../../assets/channels/git-deletions.png)
+**Requirements:** `git`, `rg`, `bat`
+
+**Code:** *git-deletions.toml*
+
+```toml
+[metadata]
+name = "git-deletions"
+description = "A channel to list files which were deleted from the Git repository"
+requirements = [ "git", "rg", "bat",]
+
+[source]
+command = "git log --diff-filter=D --summary | rg 'delete mode \\d+' -r '' --trim"
+
+[preview]
+command = [ "git show \"$(git rev-list -n1 HEAD -- '{}')^:{}\" | bat -n --color always --file-name '{}'", "git show --summary \"$(git rev-list -n1 HEAD -- '{}')\"",]
+
+[keybindings]
+enter = "actions:print_commit"
+ctrl-r = "actions:restore_file"
+
+[actions.print_commit]
+description = "Print the latest commit where file was deleted"
+command = "echo \"$(git rev-list -n1 HEAD -- '{}')\""
+mode = "execute"
+
+[actions.restore_file]
+description = "Restore the selected file"
+command = "git checkout \"$(git rev-list -n1 HEAD -- '{}')^\" -- '{}'"
 
 ```
 
@@ -2053,6 +2149,47 @@ mode = "execute"
 
 ---
 
+### *jj-workspaces*
+
+A channel to select from jujutsu (jj) workspaces
+
+**Requirements:** `jj`
+
+**Code:** *jj-workspaces.toml*
+
+```toml
+[metadata]
+name = "jj-workspaces"
+description = "A channel to select from jujutsu (jj) workspaces"
+requirements = [ "jj",]
+
+[source]
+command = "jj workspace list --ignore-working-copy -T 'name ++ \"\\t\" ++ root ++ \"\\n\"'"
+display = "{split:\t:0}"
+output = "{split:\t:0}"
+
+[preview]
+command = "cd '{split:\t:1}' && jj log --color=always --no-graph -r '::@' --ignore-working-copy -T 'change_id.shortest(8) ++ \"\\t\" ++ description.first_line() ++ \"\\n\"'"
+
+[keybindings]
+enter = "actions:cd"
+ctrl-d = "actions:forget"
+
+[actions.cd]
+description = "Change to the selected workspace directory"
+command = "cd '{split:\t:1}' && $SHELL"
+mode = "execute"
+
+[actions.forget]
+description = "Forget the selected workspace and remove its directory"
+command = "jj workspace forget '{split:\t:0}' && rm -rf '{split:\t:1}'"
+mode = "execute"
+
+```
+
+
+---
+
 ### *journal*
 
 Browse systemd journal log identifiers and their logs
@@ -2642,6 +2779,57 @@ description = "A channel to select from your nu history"
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
 no_sort = true
 frecency = false
+
+```
+
+
+---
+
+### *opencode-sessions*
+
+Browse and resume OpenCode sessions
+
+![tv running the opencode-sessions channel](../../assets/channels/opencode-sessions.png)
+**Requirements:** `opencode`, `jq`
+
+**Code:** *opencode-sessions.toml*
+
+```toml
+[metadata]
+name = "opencode-sessions"
+description = "Browse and resume OpenCode sessions"
+requirements = [ "opencode", "jq",]
+
+[source]
+command = "opencode session list --format json | jq -r '.[] | \"\\(.id)\\t\\(.title)\\t\\(.directory)\"' "
+display = "{split:\t:1}  ({split:\t:2})"
+output = "{split:\t:0}"
+
+[preview]
+command = "opencode session list --format json | jq -r '.[] | select(.id == \"{split:\\t:0}\") | \"TITLE:     \\(.title)\\nID:        \\(.id)\\nPROJECT:   \\(.projectId)\\nDIRECTORY: \\(.directory)\\nUPDATED:   \\((.updated / 1000) | strftime(\"%Y-%m-%d %H:%M:%S\"))\"' "
+
+[ui]
+layout = "landscape"
+
+[keybindings]
+shortcut = "f4"
+enter = "actions:resume"
+ctrl-d = "actions:delete"
+
+[ui.preview_panel]
+size = 60
+header = "Session: {split:\t:1}"
+border_type = "rounded"
+
+[actions.resume]
+description = "Resume session"
+command = "opencode -s {split:\t:0}"
+mode = "execute"
+
+[actions.delete]
+description = "Delete session"
+command = "bash -c 'echo \"Delete {split:\\t:1}?\" && read -p \"[y/N]: \" conf && [[ $conf == \"y\" ]] && opencode session delete {split:\\t:0} ' "
+mode = "execute"
 
 ```
 

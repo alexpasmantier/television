@@ -10,434 +10,439 @@ use super::super::common::*;
 /// Tests that --layout landscape arranges panels side-by-side.
 #[test]
 fn test_layout_landscape() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This sets the interface to use side-by-side panel arrangement
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--layout",
-        "landscape",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--layout", "landscape"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the TUI started successfully in landscape layout
-    tester.assert_tui_frame_contains(
-        "╭───────────────────────── files ──────────────────────────╮╭─",
-    ); // Should be in landscape layout
+    s.wait()
+        .text("╭───────────────────────── files ──────────────────────────╮╭─")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --layout portrait arranges panels vertically stacked.
 #[test]
 fn test_layout_portrait() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This sets the interface to use vertically stacked panel arrangement
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--layout", "portrait",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--layout", "portrait"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the TUI started successfully in portrait layout (preview below results)
-    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+    s.wait()
+        .text("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --layout portrait arranges panels vertically stacked.
+/// Tests toggling layout at runtime via a custom keybinding.
 // FIXME: this should be in a separate module that tests TUI interactions
 #[test]
 fn test_toggle_layout() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This sets the interface to use vertically stacked panel arrangement
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--layout",
-        "portrait",
-        "--keybindings",
-        "ctrl-l='toggle_layout'",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--layout",
+            "portrait",
+            "--keybindings",
+            "ctrl-l='toggle_layout'",
+        ],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the TUI started successfully in portrait layout
-    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+    s.wait()
+        .text("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮")
+        .until()
+        .unwrap();
 
-    // Toggle to landscape layout
-    tester.send(&ctrl('l'));
+    s.send().key("ctrl-l").unwrap();
 
-    // Verify the TUI switched to landscape layout
-    tester.assert_tui_frame_contains(
-        "╭───────────────────────── files ──────────────────────────╮╭─",
-    );
+    s.wait()
+        .text("╭───────────────────────── files ──────────────────────────╮╭─")
+        .until()
+        .unwrap();
 
-    // Toggle back to portrait layout
-    tester.send(&ctrl('l'));
+    s.send().key("ctrl-l").unwrap();
 
-    // Verify the TUI switched back to portrait layout
-    tester.assert_tui_frame_contains("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮");
+    s.wait()
+        .text("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --input-header customizes the text above the search input in Channel Mode.
 #[test]
 fn test_input_header_in_channel_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This overrides the channel's default input header with custom text
-    let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
-    cmd.args(["--input-header", "UNIQUE16CHARID"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input-header", "UNIQUE16CHARID"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the custom input header is displayed
-    tester.assert_tui_frame_contains("UNIQUE16CHARID");
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait()
+        .text("UNIQUE16CHARID")
+        .text("CHANNEL  files")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --input-header works in Ad-hoc Mode.
 #[test]
 fn test_input_header_in_adhoc_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This provides a custom input header for an ad-hoc channel
-    let mut cmd =
-        tv_local_config_and_cable_with_args(&["--source-command", "ls"]);
-    cmd.args(["--input-header", "UNIQUE16CHARID"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "ls", "--input-header", "UNIQUE16CHARID"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the custom input header is displayed
-    tester.assert_tui_frame_contains("UNIQUE16CHARID");
-    tester.assert_tui_frame_contains("CHANNEL  Custom");
+    s.wait()
+        .text("UNIQUE16CHARID")
+        .text("CHANNEL  Custom")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --input-prompt customizes the prompt symbol in Channel Mode.
 #[test]
 fn test_input_prompt_in_channel_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This overrides the channel's default input prompt with custom symbol
-    let mut cmd = tv_local_config_and_cable_with_args(&["files"]);
-    cmd.args(["--input-prompt", "❯ "]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input-prompt", "❯ "],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the custom input prompt is displayed
-    tester.assert_tui_frame_contains("❯ ");
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("❯ ").text("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --input-prompt works in Ad-hoc Mode.
 #[test]
 fn test_input_prompt_in_adhoc_mode() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This provides a custom input prompt for an ad-hoc channel
-    let mut cmd =
-        tv_local_config_and_cable_with_args(&["--source-command", "ls"]);
-    cmd.args(["--input-prompt", "→ "]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--source-command", "ls", "--input-prompt", "→ "],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the custom input prompt is displayed
-    tester.assert_tui_frame_contains("→ ");
-    tester.assert_tui_frame_contains("CHANNEL  Custom");
+    s.wait().text("→ ").text("CHANNEL  Custom").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that the default input prompt "> " is used when no custom prompt is specified.
 #[test]
 fn test_default_input_prompt() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This uses the default input prompt
-    let cmd = tv_local_config_and_cable_with_args(&["files"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
 
-    // Verify the default input prompt is displayed
-    tester.assert_tui_frame_contains("> ");
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("> ").text("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --ui-scale adjusts the overall interface size.
 #[test]
 fn test_ui_scale() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This scales the entire interface to 80% of normal size
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--ui-scale", "80"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--ui-scale", "80"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the interface is scaled (smaller panels visible in output)
-    tester.assert_tui_frame_contains(
-        "╭─────────────────── files ────────────────────╮╭─",
-    );
+    s.wait()
+        .text("╭─────────────────── files ────────────────────╮╭─")
+        .until()
+        .unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --no-remote hides the remote control panel.
 #[test]
 fn test_no_remote_hides_remote_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This disables the remote control panel display
-    let cmd = tv_local_config_and_cable_with_args(&["files", "--no-remote"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--no-remote"])
+            .start()
+            .unwrap();
 
-    // Verify the remote control panel is hidden
-    tester.assert_not_tui_frame_contains("── Channels ──");
+    s.wait().text("CHANNEL  files").until().unwrap();
+    assert_frame_not_contains(&s, "── Channels ──");
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-status-bar starts the interface with the status bar hidden.
 #[test]
 fn test_hide_status_bar_flag_hides_status_bar() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and hide the status bar
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--hide-status-bar"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-status-bar"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the status bar is hidden
-    tester.assert_not_tui_frame_contains("CHANNEL  files");
+    s.wait().text("── files ──").until().unwrap();
+    assert_frame_not_contains(&s, "CHANNEL  files");
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --show-remote starts the interface with the remote control panel visible.
 #[test]
 fn test_show_remote_flag_shows_remote_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and show the remote control panel
-    let cmd = tv_local_config_and_cable_with_args(&["files", "--show-remote"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--show-remote"])
+            .start()
+            .unwrap();
 
-    // Verify the remote control panel is visible (channel indicators)
-    tester.assert_tui_frame_contains("(1) (2) (3)");
+    s.wait().text("(1) (2) (3)").until().unwrap();
 
-    // Send Ctrl+C to remote control
-    tester.send(&ctrl('c'));
-
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    // Send Ctrl+C to exit remote control; wait for it to close before
+    // sending the app-level quit to avoid races.
+    s.send().key("ctrl-c").unwrap();
+    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-remote prevents the remote control panel from showing at startup.
 #[test]
 fn test_hide_remote_flag_hides_remote_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and hide the remote control panel
-    let cmd = tv_local_config_and_cable_with_args(&["files", "--hide-remote"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--hide-remote"])
+            .start()
+            .unwrap();
 
-    tester.assert_not_tui_frame_contains("(1) (2) (3)");
-    tester.assert_not_tui_frame_contains("── Channels ──");
+    s.wait().text("── files ──").until().unwrap();
+    assert_frame_not_contains_any(&s, &["(1) (2) (3)", "── Channels ──"]);
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-remote conflicts with --no-remote.
 #[test]
 fn test_hide_remote_conflicts_with_no_remote() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-remote",
-        "--no-remote",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-remote", "--no-remote"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --hide-remote and --show-remote cannot be used together.
 #[test]
 fn test_hide_and_show_remote_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-remote",
-        "--show-remote",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-remote", "--show-remote"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --no-help-panel disables the help panel entirely.
 #[test]
 fn test_no_help_panel_disables_help_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This disables the help panel entirely
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--no-help-panel"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--no-help-panel"],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("── files ──").until().unwrap();
 
     // Send Ctrl+H to try to open help panel (should not work)
-    tester.send(&ctrl('h'));
+    s.send().key("ctrl-h").unwrap();
 
-    // Verify help panel is not displayed
-    tester.assert_not_tui_frame_contains("───── Help ─────");
+    assert_frame_not_contains(&s, "───── Help ─────");
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-help-panel starts the interface with the help panel hidden.
 #[test]
 fn test_hide_help_panel_starts_with_help_hidden() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and hide the help panel
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--hide-help-panel"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-help-panel"],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("── files ──").until().unwrap();
 
     // Send Ctrl+H to open help panel (should still work since it's just hidden)
-    tester.send(&ctrl('h'));
+    s.send().key("ctrl-h").unwrap();
 
-    // Verify help panel can be toggled visible
-    tester.assert_tui_frame_contains("───── Help ─────");
+    s.wait().text("───── Help ─────").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --show-help-panel ensures the help panel is visible.
 #[test]
 fn test_show_help_panel_starts_with_help_visible() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and force the help panel visible
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--show-help-panel"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--show-help-panel"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify help panel is initially visible
-    tester.assert_tui_frame_contains("───── Help ─────");
+    s.wait().text("───── Help ─────").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-help-panel conflicts with --no-help-panel.
 #[test]
 fn test_hide_help_panel_conflicts_with_no_help_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-help-panel",
-        "--no-help-panel",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-help-panel", "--no-help-panel"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --hide-help-panel and --show-help-panel cannot be used together.
 #[test]
 fn test_hide_and_show_help_panel_conflict_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-help-panel",
-        "--show-help-panel",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-help-panel", "--show-help-panel"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --no-help-panel conflicts with --show-help-panel.
 #[test]
 fn test_no_help_panel_conflicts_with_show_help_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because the flags are mutually exclusive
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--no-help-panel",
-        "--show-help-panel",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--no-help-panel", "--show-help-panel"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 #[test]
 fn test_tui_with_height_and_width() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Test TUI with height 20 and width 80
-    let mut cmd = tv_local_config_and_cable_with_args(&[
-        "files", "--height", "20", "--width", "80",
-    ]);
-    cmd.env(TESTING_ENV_VAR, "1");
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--height", "20", "--width", "80"],
+    )
+    .env(TESTING_ENV_VAR, "1")
+    .start()
+    .unwrap();
 
-    // Check that 'files' appears in the frame content
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("CHANNEL  files").until().unwrap();
 
-    // Validate frame dimensions (20 rows × 80 columns)
-    let frame = tester.get_tui_frame();
-    let non_empty_lines: Vec<&str> =
-        frame.lines().filter(|l| !l.trim().is_empty()).collect();
+    // Validate frame dimensions (20 rows × 80 columns). Phantom's screenshot
+    // pads every row to the full terminal width with spaces, so we trim
+    // trailing whitespace before measuring.
+    let frame = stable_frame(&s);
+    let trimmed_lines: Vec<&str> = frame.lines().map(str::trim_end).collect();
+    let non_empty_lines: Vec<&str> = trimmed_lines
+        .iter()
+        .copied()
+        .filter(|l| !l.is_empty())
+        .collect();
     assert_eq!(
         non_empty_lines.len(),
         20,
@@ -451,160 +456,152 @@ fn test_tui_with_height_and_width() {
         .unwrap_or(0);
     assert_eq!(max_width, 80, "Expected 80 columns, got {}", max_width);
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --no-preview disables the preview panel entirely.
 #[test]
 fn test_no_preview_disables_preview_panel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This disables the preview panel entirely
-    let cmd = tv_local_config_and_cable_with_args(&["files", "--no-preview"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--no-preview"])
+            .start()
+            .unwrap();
+    s.wait().text("── files ──").until().unwrap();
 
     // Try to toggle preview - it shouldn't work since it's disabled entirely
-    tester.send("o"); // Toggle preview key
+    s.send().type_text("o").unwrap();
 
-    // Verify no preview elements are shown (no scrollbar, no panel frame)
-    tester.assert_tui_frame_contains_none(&["───╮╭───", "Show Preview"]);
+    assert_frame_not_contains_any(&s, &["───╮╭───", "Show Preview"]);
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --show-preview starts the interface with the preview panel visible.
 #[test]
 fn test_show_preview_starts_with_preview_visible() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and force the preview panel visible
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--show-preview"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--show-preview"])
+            .start()
+            .unwrap();
 
-    // Verify preview panel is initially visible (landscape layout shows side-by-side panels)
-    tester.assert_tui_frame_contains("───╮╭───");
+    s.wait().text("───╮╭───").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --no-status-bar disables the status bar entirely.
 #[test]
 fn test_no_status_bar_disables_status_bar() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This disables the status bar entirely
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--no-status-bar"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--no-status-bar"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("── files ──").until().unwrap();
 
-    // Verify the status bar is not shown
-    tester.assert_not_tui_frame_contains("CHANNEL  files");
+    assert_frame_not_contains(&s, "CHANNEL  files");
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --show-status-bar starts the interface with the status bar visible.
 #[test]
 fn test_show_status_bar_starts_with_status_visible() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start with the files channel and force the status bar visible
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--show-status-bar"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--show-status-bar"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify status bar is initially visible
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --hide-preview-scrollbar hides the preview panel scrollbar.
 #[test]
 fn test_hide_preview_scrollbar_hides_scrollbar() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This hides the preview scrollbar while keeping the preview panel functional
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--hide-preview-scrollbar",
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--hide-preview-scrollbar"],
+    )
+    .start()
+    .unwrap();
 
-    // The preview panel should still be visible but without scrollbar indicators
-    tester.assert_tui_frame_contains("───╮╭───");
-    tester.assert_not_tui_frame_contains("▲");
+    s.wait().text("───╮╭───").until().unwrap();
+    assert_frame_not_contains(&s, "▲");
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --no-preview conflicts with preview-related flags.
 #[test]
 fn test_no_preview_conflicts_with_preview_flags() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --no-preview conflicts with --preview-command
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--no-preview",
-        "--preview-command",
-        "cat {}",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--no-preview", "--preview-command", "cat {}"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 /// Tests that --no-status-bar conflicts with status-bar-related flags.
 #[test]
 fn test_no_status_bar_conflicts_with_status_bar_flags() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // This should fail because --no-status-bar conflicts with --show-status-bar
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "files",
-        "--no-status-bar",
-        "--show-status-bar",
-    ]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--no-status-bar", "--show-status-bar"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("cannot be used with");
+    s.wait().text("cannot be used with").until().unwrap();
 }
 
 #[test]
 // FIXME: needs https://github.com/crossterm-rs/crossterm/pull/957
 #[ignore = "needs https://github.com/crossterm-rs/crossterm/pull/957"]
 fn test_tui_with_height_only() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Test TUI with only height specified
-    let mut cmd =
-        tv_local_config_and_cable_with_args(&["files", "--height", "15"]);
-    cmd.env(TESTING_ENV_VAR, "1");
-    let mut child = tester.spawn_command_tui(cmd);
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["files", "--height", "15"])
+            .env(TESTING_ENV_VAR, "1")
+            .start()
+            .unwrap();
 
-    // Check that 'files' appears in the frame content
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("CHANNEL  files").until().unwrap();
 
-    // Validate frame height (15 rows)
-    let frame = tester.get_tui_frame();
-    let non_empty_lines: Vec<&str> =
-        frame.lines().filter(|l| !l.trim().is_empty()).collect();
+    let frame = stable_frame(&s);
+    let non_empty_lines: Vec<&str> = frame
+        .lines()
+        .map(str::trim_end)
+        .filter(|l| !l.is_empty())
+        .collect();
     assert_eq!(
         non_empty_lines.len(),
         15,
@@ -612,7 +609,6 @@ fn test_tui_with_height_only() {
         non_empty_lines.len()
     );
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
