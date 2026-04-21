@@ -155,6 +155,10 @@ impl<P: EntryProcessor> Channel<P> {
         self.source_command.get_nth(self.current_source_index).raw()
     }
 
+    pub fn current_source_name(&self) -> Option<&str> {
+        self.source_command.get_name(self.current_source_index)
+    }
+
     pub fn find(&mut self, pattern: &str) {
         self.matcher.find(pattern);
     }
@@ -581,6 +585,7 @@ impl ChannelKind {
     // Generate all immutable delegation methods
     delegate_to_channel!(ref
         current_command() -> &str,
+        current_source_name() -> Option<&str>,
         selected_entries() -> &FxHashSet<Entry>,
         result_count() -> u32,
         total_count() -> u32,
