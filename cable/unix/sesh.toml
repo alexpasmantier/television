@@ -17,6 +17,8 @@ command = [
   "fd -H -d 2 -t d -E .Trash . ~", # find directories
 ]
 ansi = true
+frecency = false # handeled by sesh
+no_sort = true # handled by sesh
 output = "{strip_ansi|split: :1..|join: }"
 
 [preview]
