@@ -15,10 +15,31 @@ use tokio::{
     time::{sleep, timeout},
 };
 
-/// Default timeout for tests.
-///
-/// This is kept quite high to avoid flakiness in CI.
-const DEFAULT_TIMEOUT: Duration = Duration::from_millis(1000);
+/// Whether we are running under CI, where everything is slower and more
+/// contended.
+fn is_ci() -> bool {
+    std::env::var("TV_CI").is_ok()
+}
+
+/// Delay between user-input actions sent to the app. On CI this is bumped
+/// so the matcher has time to process each char before the next one lands.
+fn input_delay() -> Duration {
+    if is_ci() {
+        Duration::from_millis(300)
+    } else {
+        Duration::from_millis(100)
+    }
+}
+
+/// Overall timeout for a test to complete. Scaled up on CI to absorb
+/// parallel-load jitter.
+fn default_timeout() -> Duration {
+    if is_ci() {
+        Duration::from_millis(5000)
+    } else {
+        Duration::from_millis(1000)
+    }
+}
 
 /// Sets up an app with a file channel and default config.
 ///
@@ -74,7 +95,7 @@ fn setup_app(
     let f = tokio::spawn(async move { app.run_headless().await.unwrap() });
 
     // let the app spin up
-    std::thread::sleep(Duration::from_millis(100));
+    std::thread::sleep(input_delay());
 
     (f, tx)
 }
@@ -87,7 +108,7 @@ async fn test_app_does_quit() {
     tx.send(Action::Quit).unwrap();
 
     // assert that the app quits within a default timeout
-    sleep(DEFAULT_TIMEOUT).await;
+    sleep(default_timeout()).await;
     assert!(f.is_finished());
 }
 
@@ -96,7 +117,7 @@ async fn test_app_starts_normally() {
     let (f, _) = setup_app(None, false, false);
 
     // assert that the app is still running after the default timeout
-    sleep(DEFAULT_TIMEOUT).await;
+    sleep(default_timeout()).await;
     assert!(!f.is_finished());
 
     f.abort();
@@ -109,12 +130,12 @@ async fn test_app_basic_search() {
     // send actions to the app
     for c in "file1".chars() {
         tx.send(Action::AddInputChar(c)).unwrap();
-        sleep(Duration::from_millis(100)).await;
+        sleep(input_delay()).await;
     }
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout
-    let output = timeout(DEFAULT_TIMEOUT, f)
+    let output = timeout(default_timeout(), f)
         .await
         .expect("app did not finish within the default timeout")
         .unwrap();
@@ -133,17 +154,18 @@ async fn test_app_basic_search_multiselect() {
     // send actions to the app
     for c in "file".chars() {
         tx.send(Action::AddInputChar(c)).unwrap();
+        sleep(input_delay()).await;
     }
 
     // select both files
     tx.send(Action::ToggleSelectionDown).unwrap();
-    sleep(Duration::from_millis(50)).await;
+    sleep(input_delay()).await;
     tx.send(Action::ToggleSelectionDown).unwrap();
-    sleep(Duration::from_millis(50)).await;
+    sleep(input_delay()).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout
-    let output = timeout(DEFAULT_TIMEOUT, f)
+    let output = timeout(default_timeout(), f)
         .await
         .expect("app did not finish within the default timeout")
         .unwrap();
@@ -176,7 +198,7 @@ async fn test_app_exact_search_multiselect() {
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout
-    let output = timeout(DEFAULT_TIMEOUT, f)
+    let output = timeout(default_timeout(), f)
         .await
         .expect("app did not finish within the default timeout")
         .unwrap();
@@ -195,17 +217,18 @@ async fn test_app_exact_search_positive() {
     // send actions to the app
     for c in "file".chars() {
         tx.send(Action::AddInputChar(c)).unwrap();
+        sleep(input_delay()).await;
     }
 
     // select both files
     tx.send(Action::ToggleSelectionDown).unwrap();
-    sleep(Duration::from_millis(50)).await;
+    sleep(input_delay()).await;
     tx.send(Action::ToggleSelectionDown).unwrap();
-    sleep(Duration::from_millis(50)).await;
+    sleep(input_delay()).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
     // check the output with a timeout
-    let output = timeout(DEFAULT_TIMEOUT, f)
+    let output = timeout(default_timeout(), f)
         .await
         .expect("app did not finish within the default timeout")
         .unwrap();
@@ -234,7 +257,7 @@ async fn test_app_exits_when_select_1_and_only_one_result() {
     // Note: When select_1 is enabled in headless mode, the app automatically
     // generates tick events, loads the channel, and exits when there's exactly
     // one result. No manual tick sending is needed.
-    let output = timeout(DEFAULT_TIMEOUT, f)
+    let output = timeout(default_timeout(), f)
         .await
         .expect("app did not finish within the default timeout")
         .unwrap();
@@ -257,7 +280,7 @@ async fn test_app_does_not_exit_when_select_1_and_more_than_one_result() {
     // the app should NOT auto-exit and keep running.
 
     // check that the app is still running after the default timeout
-    let output = timeout(DEFAULT_TIMEOUT, f).await;
+    let output = timeout(default_timeout(), f).await;
 
     assert!(output.is_err());
 }

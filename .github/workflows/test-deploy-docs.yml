@@ -19,7 +19,7 @@ jobs:
         with:
           node-version-file: "website/.nvmrc"
       - name: Install pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@v6
         with:
           version: 10
           run_install: false

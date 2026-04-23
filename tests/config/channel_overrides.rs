@@ -3,7 +3,7 @@ use super::super::common::*;
 /// Tests that channel keybindings are properly merged with user config
 #[test]
 fn test_channel_keybindings_merge_with_user_config() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     temp_config
@@ -45,33 +45,39 @@ fn test_channel_keybindings_merge_with_user_config() {
         )
         .unwrap();
 
-    let cmd = tv_with_args(&[
-        "custom-files",
-        "--config-file",
-        temp_config.config_file.to_str().unwrap(),
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "custom-files",
+            "--config-file",
+            temp_config.config_file.to_str().unwrap(),
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify channel loads with merged keybindings
-    tester.assert_tui_frame_contains("custom-files");
+    s.wait()
+        .text("custom-files")
+        .text("Preview ON")
+        .until()
+        .unwrap();
 
     // Try to toggle the preview off and on (it's initially on)
-    tester.send(&ctrl('p'));
-    tester.assert_not_tui_frame_contains("Preview ON");
-    tester.send(&ctrl('c'));
-    tester.assert_tui_frame_contains("Preview ON");
+    s.send().key("ctrl-p").unwrap();
+    s.wait().text_absent("Preview ON").until().unwrap();
+    s.send().key("ctrl-c").unwrap();
+    s.wait().text("Preview ON").until().unwrap();
 
-    tester.send(&ctrl('r'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-r").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests channel UI configuration merging
 #[test]
 fn test_channel_ui_merging() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let config_content = r#"
@@ -111,34 +117,37 @@ fn test_channel_ui_merging() {
         .write_channel("git-commits", channel_content)
         .unwrap();
 
-    let cmd = tv_with_args(&[
-        "git-commits",
-        "--config-file",
-        temp_config.config_file.to_str().unwrap(),
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "git-commits",
+            "--config-file",
+            temp_config.config_file.to_str().unwrap(),
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
-
-    // Verify channel loads with merged UI config
-    tester.assert_tui_frame_contains_all(&[
-        "git-commits",
-        "git>",
-        "Search commits...",
-        "CHANNEL PREVIEW HEADER",
+    s.wait()
+        .text("git-commits")
+        .text("git>")
+        .text("Search commits...")
+        .text("CHANNEL PREVIEW HEADER")
         // rounded border angle
-        "╭",
-    ]);
+        .text("╭")
+        .until()
+        .unwrap();
 
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests channel source command variations and output parsing
 #[test]
 fn test_channel_source_command_variations() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let channel_content = r#"
@@ -167,31 +176,34 @@ fn test_channel_source_command_variations() {
         .write_channel("advanced source", channel_content)
         .unwrap();
 
-    let cmd = tv_with_args(&[
-        "advanced-source",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "advanced-source",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
+    s.wait()
+        .text("Search commits")
+        .text("commit>")
+        .text("commit-abc123")
+        .text("commit-def456")
+        .text("commit-ghi789")
+        .until()
+        .unwrap();
 
-    // Verify advanced source configuration works
-    tester.assert_tui_frame_contains_all(&[
-        "Search commits",
-        "commit>",
-        "commit-abc123",
-        "commit-def456",
-        "commit-ghi789",
-    ]);
-
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests channel configuration with environment variables
 #[test]
 fn test_channel_environment_variables() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let channel_content = r#"
@@ -214,30 +226,33 @@ fn test_channel_environment_variables() {
         .write_channel("env-aware", channel_content)
         .unwrap();
 
-    let cmd = tv_with_args(&[
-        "env-aware",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "env-aware",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
+    s.wait()
+        .text("env-aware")
+        .text("env-item-1")
+        .text("env-item-2")
+        .text("Preview with theme: ansi for")
+        .until()
+        .unwrap();
 
-    // Verify environment-aware channel loads
-    tester.assert_tui_frame_contains_all(&[
-        "env-aware",
-        "env-item-1",
-        "env-item-2",
-        "Preview with theme: ansi for",
-    ]);
-
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that CLI completely overrides channel prototype settings
 #[test]
 fn test_cli_completely_overrides_channel() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let channel_content = r#"
@@ -266,45 +281,47 @@ fn test_cli_completely_overrides_channel() {
     temp_config
         .write_channel("override-me", channel_content)
         .unwrap();
+
     // CLI should override everything
-    let cmd = tv_with_args(&[
-        "override-me",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-        "--source-command",
-        "echo 'cli-item-1'; echo 'cli-item-2'; echo 'cli-item-3'",
-        "--preview-command",
-        "echo 'CLI preview: {}'",
-        "--ui-scale",
-        "80",
-        "--input-prompt",
-        "cli> ",
-        "--input-header",
-        "CLI Header",
-        "--preview-size",
-        "75",
-        "--preview-header",
-        "CLI Preview",
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "override-me",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+            "--source-command",
+            "echo 'cli-item-1'; echo 'cli-item-2'; echo 'cli-item-3'",
+            "--preview-command",
+            "echo 'CLI preview: {}'",
+            "--ui-scale",
+            "80",
+            "--input-prompt",
+            "cli> ",
+            "--input-header",
+            "CLI Header",
+            "--preview-size",
+            "75",
+            "--preview-header",
+            "CLI Preview",
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
+    s.wait()
+        .text("override-me")
+        .text("cli>")
+        .text("CLI Header")
+        .text("cli-item-1")
+        .text("cli-item-3")
+        .until()
+        .unwrap();
 
-    // Should show CLI values, not channel values
-    tester.assert_tui_frame_contains_all(&[
-        "override-me",
-        "cli>",
-        "CLI Header",
-        "cli-item-1",
-        "cli-item-3",
-    ]);
+    assert_frame_not_contains_any(
+        &s,
+        &["channel>", "Channel Header", "channel-item-1"],
+    );
 
-    // Channel values should not appear
-    tester.assert_tui_frame_contains_none(&[
-        "channel>",
-        "Channel Header",
-        "channel-item-1",
-    ]);
-
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }

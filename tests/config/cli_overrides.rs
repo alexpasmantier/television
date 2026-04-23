@@ -5,7 +5,7 @@ use super::super::common::*;
 /// Tests CLI override of UI configuration from config file
 #[test]
 fn test_cli_ui_overrides_config_file() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let config_content = r#"
@@ -24,44 +24,48 @@ fn test_cli_ui_overrides_config_file() {
     temp_config.write_config(config_content).unwrap();
 
     // CLI should override all these UI settings
-    let cmd = tv_with_args(&[
-        "files",
-        "--config-file",
-        temp_config.config_file.to_str().unwrap(),
-        "--cable-dir",
-        DEFAULT_CABLE_DIR,
-        "--ui-scale",
-        "85",
-        "--input-prompt",
-        "cli-prompt>",
-        "--preview-size",
-        "70",
-        "--input-border",
-        "rounded",
-        "--preview-border",
-        "thick",
-    ]);
-
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "files",
+            "--config-file",
+            temp_config.config_file.to_str().unwrap(),
+            "--cable-dir",
+            DEFAULT_CABLE_DIR,
+            "--ui-scale",
+            "85",
+            "--input-prompt",
+            "cli-prompt>",
+            "--preview-size",
+            "70",
+            "--input-border",
+            "rounded",
+            "--preview-border",
+            "thick",
+        ],
+    )
+    .start()
+    .unwrap();
 
     // Verify the application starts with CLI overrides
-    tester.assert_tui_frame_contains_all(&[
-        "files",
-        "cli-prompt>",
+    s.wait()
+        .text("files")
+        .text("cli-prompt>")
         // rounded border (input)
-        "╭",
+        .text("╭")
         // thick border (preview)
-        "┏",
-    ]);
+        .text("┏")
+        .until()
+        .unwrap();
 
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests CLI overrides of channel-specific configuration
 #[test]
 fn test_cli_overrides_channel_source_and_preview() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let channel_content = r#"
@@ -80,76 +84,79 @@ fn test_cli_overrides_channel_source_and_preview() {
         .unwrap();
 
     // CLI overrides both source and preview
-    let cmd = tv_with_args(&[
-        "override-test",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-        "--source-command",
-        "echo 'cli-item-1'; echo 'cli-item-2'; echo 'cli-item-3'",
-        "--preview-command",
-        "echo 'CLI preview: {}'",
-        "--preview-size",
-        "60",
-    ]);
-
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "override-test",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+            "--source-command",
+            "echo 'cli-item-1'; echo 'cli-item-2'; echo 'cli-item-3'",
+            "--preview-command",
+            "echo 'CLI preview: {}'",
+            "--preview-size",
+            "60",
+        ],
+    )
+    .start()
+    .unwrap();
 
     // Should see CLI source command output instead of channel's
-    tester.assert_tui_frame_contains_all(&[
-        "override-test",
-        "cli-item-1",
-        "cli-item-2",
-        "cli-item-3",
-    ]);
+    s.wait()
+        .text("override-test")
+        .text("cli-item-1")
+        .text("cli-item-2")
+        .text("cli-item-3")
+        .until()
+        .unwrap();
 
     // Channel items should not appear
-    tester.assert_not_tui_frame_contains("channel-item-1");
+    assert_frame_not_contains(&s, "channel-item-1");
 
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests CLI working directory parameter
 #[test]
 fn test_cli_working_directory_override() {
-    use std::time::Duration;
-
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_dir = TempDir::new().unwrap();
 
-    // Create a test file in the target directory
     std::fs::write(
         temp_dir.path().join("working-dir-test.txt"),
         "test content",
     )
     .unwrap();
 
-    let cmd = tv_with_args(&[
-        "files",
-        "--cable-dir",
-        DEFAULT_CABLE_DIR,
-        "--input",
-        "working-dir-test",
-        "--take-1",
-        &temp_dir.path().to_string_lossy(), // PATH as positional argument
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "files",
+            "--cable-dir",
+            DEFAULT_CABLE_DIR,
+            "--input",
+            "working-dir-test",
+            "--take-1",
+            &temp_dir.path().to_string_lossy(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    // Should exit with the found file
-    let mut child = tester.spawn_command(cmd);
+    s.wait()
+        .text("working-dir-test.txt")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
-    // Should find our test file in the target directory
-    tester.assert_raw_output_contains_with_timeout(
-        "working-dir-test.txt",
-        Duration::from_secs(2),
-    );
-
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests CLI input headers and footers override channel config
 #[test]
 fn test_cli_header_footer_overrides() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let channel_content = r#"
@@ -174,45 +181,51 @@ fn test_cli_header_footer_overrides() {
         .write_channel("header-test", channel_content)
         .unwrap();
 
-    // CLI should override headers and footers
-    let cmd = tv_with_args(&[
-        "header-test",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-        "--input-header",
-        "CLI Input Header",
-        "--preview-header",
-        "CLI Preview Header",
-        "--preview-footer",
-        "CLI Preview Footer",
-    ]);
-
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "header-test",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+            "--input-header",
+            "CLI Input Header",
+            "--preview-header",
+            "CLI Preview Header",
+            "--preview-footer",
+            "CLI Preview Footer",
+        ],
+    )
+    .start()
+    .unwrap();
 
     // Should show CLI headers instead of channel headers
-    tester.assert_tui_frame_contains_all(&[
-        "header-test",
-        "header-item-1",
-        "header-item-2",
-        "CLI Preview Header",
-        "CLI Preview Footer",
-    ]);
+    s.wait()
+        .text("header-test")
+        .text("header-item-1")
+        .text("header-item-2")
+        .text("CLI Preview Header")
+        .text("CLI Preview Footer")
+        .until()
+        .unwrap();
 
     // Channel headers should not appear
-    tester.assert_tui_frame_contains_none(&[
-        "Channel Header",
-        "Channel Preview Header",
-        "Channel Preview Footer",
-    ]);
+    assert_frame_not_contains_any(
+        &s,
+        &[
+            "Channel Header",
+            "Channel Preview Header",
+            "Channel Preview Footer",
+        ],
+    );
 
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that empty CLI arguments don't override non-empty config values
 #[test]
 fn test_empty_cli_args_dont_override() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
     let config_content = r#"
@@ -221,42 +234,47 @@ fn test_empty_cli_args_dont_override() {
     "#;
     temp_config.write_config(config_content).unwrap();
 
-    // Run without CLI overrides - config values should be used
-    let cmd = tv_with_args(&[
-        "files",
-        "--config-file",
-        temp_config.config_file.to_str().unwrap(),
-        "--cable-dir",
-        DEFAULT_CABLE_DIR,
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "files",
+            "--config-file",
+            temp_config.config_file.to_str().unwrap(),
+            "--cable-dir",
+            DEFAULT_CABLE_DIR,
+        ],
+    )
+    .start()
+    .unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
+    s.wait().text("config-prompt>").until().unwrap();
 
-    // Should show config values
-    tester.assert_tui_frame_contains("config-prompt>");
-
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests CLI override of input bar position
 #[test]
 fn test_cli_input_position_override() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    let cmd = tv_with_args(&[
-        "files",
-        "--cable-dir",
-        DEFAULT_CABLE_DIR,
-        "--input-prompt",
-        "position-prompt>",
-        "--input-position",
-        "bottom",
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "files",
+            "--cable-dir",
+            DEFAULT_CABLE_DIR,
+            "--input-prompt",
+            "position-prompt>",
+            "--input-position",
+            "bottom",
+        ],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("position-prompt>").until().unwrap();
 
-    let mut child = tester.spawn_command_tui(cmd);
-
-    let frame = tester.get_tui_frame();
+    let frame = stable_frame(&s);
     let prompt_index = frame
         .find("position-prompt>")
         .expect("Expected input prompt in frame");
@@ -270,16 +288,15 @@ fn test_cli_input_position_override() {
         frame
     );
 
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 #[test]
 fn test_action_id_mismatch_validation_error() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let temp_config = TempConfig::init();
 
-    // Create a channel with mismatched action reference
     let channel_content = r#"
         [metadata]
         name = "validation-test"
@@ -300,16 +317,19 @@ fn test_action_id_mismatch_validation_error() {
         .write_channel("validation-test", channel_content)
         .unwrap();
 
-    let cmd = tv_with_args(&[
-        "validation-test",
-        "--cable-dir",
-        temp_config.cable_dir.to_str().unwrap(),
-    ]);
+    let s = tv_with_args(
+        &pt,
+        &[
+            "validation-test",
+            "--cable-dir",
+            temp_config.cable_dir.to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    tester.spawn_command(cmd);
-
-    // The validation should now panic with our message
-    tester.assert_raw_output_contains(
-        "Action 'actions:edit_text' referenced in keybinding not found in actions section",
-    );
+    s.wait()
+        .text("Action 'actions:edit_text' referenced in keybinding not found in actions section")
+        .until()
+        .unwrap();
 }

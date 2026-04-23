@@ -10,70 +10,74 @@ use super::super::common::*;
 /// Tests that --watch enables live monitoring with automatic source command re-execution.
 #[test]
 fn test_watch_reloads_source_command() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
     let tmp_dir = TempDir::new().unwrap();
 
     // Create initial file to be detected
     std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
 
     // This monitors the temp directory and updates every 0.5 seconds
-    let cmd = tv_local_config_and_cable_with_args(&[
-        "--watch",
-        "0.5",
-        "--source-command",
-        "ls",
-        "--input",
-        "UNIQUE16CHARID",
-        tmp_dir.path().to_str().unwrap(),
-    ]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "--watch",
+            "0.5",
+            "--source-command",
+            "ls",
+            "--input",
+            "UNIQUE16CHARID",
+            tmp_dir.path().to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the initial file is detected
-    tester.assert_tui_frame_contains("UNIQUE16CHARIDfile.txt");
+    s.wait().text("UNIQUE16CHARIDfile.txt").until().unwrap();
 
     // Create a second file
     std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDcontrol.txt"), "")
         .unwrap();
 
-    // Wait longer than watch interval
-    std::thread::sleep(std::time::Duration::from_millis(2000));
+    // The watch should pick up the new file on its next tick
+    s.wait()
+        .text("UNIQUE16CHARIDcontrol.txt")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
-    // Verify the new file appears after the watch interval
-    tester.assert_tui_frame_contains("UNIQUE16CHARIDcontrol.txt");
-
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --tick-rate accepts a valid positive number.
 #[test]
 fn test_tick_rate_valid_value_starts_application() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Start Television with a custom tick rate
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "50"]);
-    let mut child = tester.spawn_command_tui(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--tick-rate", "50"],
+    )
+    .start()
+    .unwrap();
 
-    // Verify the TUI launched successfully
-    tester.assert_tui_frame_contains("CHANNEL  files");
+    s.wait().text("CHANNEL  files").until().unwrap();
 
-    // Send Ctrl+C to exit
-    tester.send(&ctrl('c'));
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests that --tick-rate rejects non-positive numbers.
 #[test]
 fn test_tick_rate_invalid_value_errors() {
-    let mut tester = PtyTester::new();
+    let pt = phantom();
 
-    // Use an invalid tick rate value
-    let cmd =
-        tv_local_config_and_cable_with_args(&["files", "--tick-rate", "-5"]);
-    tester.spawn_command(cmd);
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--tick-rate", "-5"],
+    )
+    .start()
+    .unwrap();
 
-    // CLI should exit with error message, not show TUI
-    tester.assert_raw_output_contains("unexpected argument");
+    s.wait().text("unexpected argument").until().unwrap();
 }

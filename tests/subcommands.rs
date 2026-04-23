@@ -5,11 +5,11 @@ use common::*;
 /// Really just a sanity check
 #[test]
 fn tv_version() {
-    let mut tester = PtyTester::new();
-    let mut child = tester.spawn_command(tv_with_args(&["--version"]));
+    let pt = phantom();
+    let s = tv_with_args(&pt, &["--version"]).start().unwrap();
 
-    tester.assert_raw_output_contains("television");
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().text("television").until().unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
 
 /// Tests the `tv list-channels` command.
@@ -17,11 +17,10 @@ fn tv_version() {
 /// We expect this to list all available channels in the cable directory.
 #[test]
 fn tv_list_channels() {
-    let mut tester = PtyTester::new();
-    let mut child =
-        tester.spawn_command(tv_local_config_and_cable_with_args(&[
-            "list-channels",
-        ]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["list-channels"])
+        .start()
+        .unwrap();
 
     // Check what's in the cable directory
     let cable_dir_filenames = std::fs::read_dir(DEFAULT_CABLE_DIR)
@@ -42,23 +41,24 @@ fn tv_list_channels() {
         })
         .collect::<Vec<_>>();
 
-    // Use timeout-based assertion to wait for the full output.
     // Checking for the last channel alphabetically ensures the entire list
     // has been printed.
-    tester.assert_raw_output_contains_with_timeout(
-        cable_dir_filenames.iter().max().unwrap(),
-        std::time::Duration::from_secs(2),
-    );
+    s.wait()
+        .text(cable_dir_filenames.iter().max().unwrap())
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
 
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }
 
 #[test]
 /// This simply tests that the command exits successfully.
 fn tv_init_zsh() {
-    let mut tester = PtyTester::new();
-    let mut child = tester
-        .spawn_command(tv_local_config_and_cable_with_args(&["init", "zsh"]));
+    let pt = phantom();
+    let s = tv_local_config_and_cable_with_args(&pt, &["init", "zsh"])
+        .start()
+        .unwrap();
 
-    tester.assert_exit_ok(&mut child, DEFAULT_DELAY);
+    s.wait().exit_code(0).until().unwrap();
 }

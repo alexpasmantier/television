@@ -68,13 +68,13 @@ alias t := test
 # Run the tests for the project
 @test:
 	echo "Running {{ NAME }}'s test suite..."
-	cargo test --all --all-features -- --nocapture
+	cargo test --all --all-features -- --nocapture --test-threads=4
 	echo "Done"
 
 # Run tests with faster delays for local development
 @test-fast:
 	echo "Running {{ NAME }}'s test suite (fast mode)..."
-	TV_TEST_DELAY_MS=50 cargo test --all --all-features -- --nocapture
+	TV_TEST_DELAY_MS=50 cargo test --all --all-features -- --nocapture --test-threads=4
 	echo "Done"
 
 alias b := build

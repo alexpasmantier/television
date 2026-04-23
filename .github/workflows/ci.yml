@@ -23,8 +23,12 @@ jobs:
         run: sudo apt install -y fd-find && sudo ln -s $(which fdfind) /usr/bin/fd
       - name: Install bat
         run: sudo apt install -y bat && sudo ln -sf $(which batcat) /usr/bin/bat
+      - name: Install Zig
+        uses: mlugg/setup-zig@v2
+        with:
+          version: 0.15.2
       - name: Run tests
-        run: TV_CI=1 cargo test --locked --all-features --workspace -- --nocapture
+        run: TV_CI=1 cargo test --locked --all-features --workspace -- --nocapture --test-threads=4
 
   rustfmt:
     name: Rustfmt
