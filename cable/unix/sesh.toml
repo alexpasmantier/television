@@ -10,13 +10,15 @@ requirements = ["sesh", "fd"]
 # Multiple source commands for cycling through different modes
 # Press Ctrl+S to cycle between sources
 command = [
-  "sesh list --icons",                          # all sessions (default)
-  "sesh list -t --icons",                       # tmux sessions only
-  "sesh list -c --icons",                       # config directories
-  "sesh list -z --icons",                       # zoxide directories
-  "fd -H -d 2 -t d -E .Trash . ~"               # find directories
+  "sesh list --icons",             # all sessions (default)
+  "sesh list -t --icons",          # tmux sessions only
+  "sesh list -c --icons",          # config directories
+  "sesh list -z --icons",          # zoxide directories
+  "fd -H -d 2 -t d -E .Trash . ~", # find directories
 ]
 ansi = true
+frecency = false # handeled by sesh
+no_sort = true # handled by sesh
 output = "{strip_ansi|split: :1..|join: }"
 
 [preview]
@@ -24,7 +26,7 @@ command = "sesh preview '{strip_ansi|split: :1..|join: }'"
 
 [keybindings]
 enter = "actions:connect"
-ctrl-d = [ "actions:kill_session", "reload_source" ]
+ctrl-d = ["actions:kill_session", "reload_source"]
 
 [actions.connect]
 description = "Connect to selected session"
