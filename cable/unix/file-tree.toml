@@ -1,0 +1,45 @@
+[metadata]
+name = "file-tree"
+description = "A channel to select files and directories in tree mode"
+requirements = ["fd", "bat", "tree", "eza", "script"]
+
+[source]
+command = [
+  "\\fd -t f -H | \\tree -af -I '.git' --noreport --fromfile .",
+  "\\fd -t f -H -I | \\tree -af -I '.git' --noreport --fromfile .",
+]
+display = '{regex_extract:([\s│├└─]+─ )}{regex_extract:([^/\\\\]+)$}'
+output = '{trim|replace:s/[│├└─]/ /g|trim}'
+frecency = false
+no_sort = true
+
+[preview]
+command = """
+if [[ -d '{trim|replace:s/[│├└─]/ /g|trim}' ]]; then 
+  script -q /dev/null -c "eza -ao --icons --long --group --color --header --group-directories-first --show-symlinks '{trim|replace:s/[│├└─]/ /g|trim}'";
+elif [[ -s '{trim|replace:s/[│├└─]/ /g|trim}' ]]; then 
+  bat -n --color=always '{trim|replace:s/[│├└─]/ /g|trim}';
+else
+  echo "Empty File";
+fi"""
+env = { BAT_THEME = "ansi" }
+
+[ui]
+preview_panel = { header = '{regex_extract:([^/\\\\]+)$}' }
+
+[keybindings]
+shortcut = "f1"
+f12 = "actions:edit"
+ctrl-up = "actions:goto_parent_dir"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+# use `mode = "fork"` if you want to return to tv afterwards
+mode = "execute"
+
+[actions.goto_parent_dir]
+description = "Re-opens tv in the parent directory"
+command = "tv file-tree .."
+mode = "execute"
