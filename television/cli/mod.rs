@@ -1,13 +1,13 @@
 use crate::{
     action::{Action, Actions},
-    cable::Cable,
+    cable::{CABLE_DIR_NAME, Cable, load_cable},
     channels::prototypes::{ChannelPrototype, Template},
     cli::args::{Cli, Command},
     config::{
         Keybindings, get_config_dir, get_data_dir, merge_keybindings,
         ui::{BorderType, Padding},
     },
-    errors::cli_parsing_error_exit,
+    errors::{cli_parsing_error_exit, unknown_channel_exit},
     event::Key,
     screen::layout::{InputPosition, Orientation},
     utils::paths::expand_tilde,
@@ -238,11 +238,24 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         );
     }
 
+    // Load cable to resolve channel vs path ambiguity (issue #1043)
+    let cable_dir = cli
+        .cable_dir
+        .as_ref()
+        .map(PathBuf::from)
+        .unwrap_or_else(|| get_config_dir().join(CABLE_DIR_NAME));
+    let cable = load_cable(&cable_dir);
+
     // Determine channel and working_directory
+    // Priority: registered channel > path fallback (issue #1043)
     let (channel, working_directory) = match &cli.channel {
-        Some(c) if Path::new(c).exists() => {
-            // If the channel is a path, use it as the working directory
-            (None, Some(PathBuf::from(c)))
+        Some(c) if !cable.has_channel(c) => {
+            // Not a registered channel — if it exists as a path, use it as working directory
+            if cli.working_directory.is_none() && Path::new(c).exists() {
+                (None, Some(PathBuf::from(c)))
+            } else {
+                unknown_channel_exit(c);
+            }
         }
         _ => (
             cli.channel.clone(),
