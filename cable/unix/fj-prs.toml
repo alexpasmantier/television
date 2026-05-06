@@ -1,0 +1,42 @@
+[metadata]
+name = "fj-prs"
+description = "List Forgejo PRs for the current repo"
+requirements = ["fj", "bat"]
+
+[source]
+command = '''fj pr search --state open | awk -F ' [(]by ' '/^#[0-9]+:/ {
+  number=$1; sub(/^#/,"",number); sub(/: .*/,"",number)
+  title=$1; sub(/^#[0-9]+: /,"",title)
+  author=$2; sub(/\)$/,"",author)
+  printf "\033[32m#%s\033[39m\t%s \033[33m@%s\033[39m\n", number, title, author
+}' '''
+ansi = true
+output = "{strip_ansi|split:\t:0|replace:s/^#//}"
+
+[ui]
+layout = "portrait"
+preview_panel = { header = '{strip_ansi|split:\t:1}' }
+
+[preview]
+command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} | bat --language=md --style=plain --color=always"
+env = { BAT_THEME = "ansi" }
+
+[actions.open]
+description = "Open the PR in the browser"
+command = "fj pr browse {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.checkout]
+description = "Checkout the PR branch locally"
+command = "fj pr checkout {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected PR"
+command = "fj pr merge {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
+
+[actions.diff]
+description = "View the PR diff"
+command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} diff | less"
+mode = "execute"
