@@ -418,3 +418,20 @@ mod tests {
         assert!(script.contains("Set-PSReadLineKeyHandler"));
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_windows_shell_executables_have_exe_extension() {
+        assert_eq!(Shell::Cmd.executable(), "cmd.exe");
+        assert_eq!(Shell::Bash.executable(), "bash.exe");
+
+        let psh_exec = Shell::Psh.executable();
+        // It should resolve to either pwsh.exe or powershell.exe depending on the system,
+        // but it MUST have the .exe extension on Windows.
+        assert!(psh_exec == "pwsh.exe" || psh_exec == "powershell.exe");
+    }
+}
