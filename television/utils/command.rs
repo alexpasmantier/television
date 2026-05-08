@@ -8,6 +8,8 @@ use crate::{
 use anyhow::Result;
 use lazy_regex::{Lazy, Regex, regex};
 use rustc_hash::FxHashSet;
+#[cfg(unix)]
+use std::io::IsTerminal;
 use std::{
     collections::HashMap,
     process::{Command, ExitStatus, Stdio},
@@ -173,13 +175,13 @@ pub fn execute_action(
     #[cfg(unix)]
     match action_spec.mode {
         ExecutionMode::Execute => {
-            attach_to_tty(&mut cmd)?;
+            attach_to_tty_if_stdio_is_redirected(&mut cmd)?;
             let err = cmd.exec();
             eprintln!("Failed to execute command: {}", err);
             Err(err.into())
         }
         ExecutionMode::Fork => {
-            attach_to_tty(&mut cmd)?;
+            attach_to_tty_if_stdio_is_redirected(&mut cmd)?;
             let mut child = cmd.spawn()?;
             Ok(child.wait()?)
         }
@@ -203,7 +205,15 @@ pub fn execute_action(
 }
 
 #[cfg(unix)]
-fn attach_to_tty(cmd: &mut Command) -> Result<()> {
+fn attach_to_tty_if_stdio_is_redirected(cmd: &mut Command) -> Result<()> {
+    if !should_attach_action_to_tty(
+        std::io::stdin().is_terminal(),
+        std::io::stdout().is_terminal(),
+        std::io::stderr().is_terminal(),
+    ) {
+        return Ok(());
+    }
+
     let Ok(tty) = OpenOptions::new().read(true).write(true).open("/dev/tty")
     else {
         return Ok(());
@@ -214,6 +224,15 @@ fn attach_to_tty(cmd: &mut Command) -> Result<()> {
         .stderr(Stdio::from(tty));
 
     Ok(())
+}
+
+#[cfg(unix)]
+fn should_attach_action_to_tty(
+    stdin_is_terminal: bool,
+    stdout_is_terminal: bool,
+    stderr_is_terminal: bool,
+) -> bool {
+    !(stdin_is_terminal && stdout_is_terminal && stderr_is_terminal)
 }
 
 #[cfg(test)]
@@ -298,5 +317,29 @@ mod tests {
             result == "nvim 'file1\\'s.txt' 'file2.txt'"
                 || result == "nvim 'file2.txt' 'file1\\'s.txt'"
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_action_keeps_existing_terminal_stdio() {
+        assert!(!should_attach_action_to_tty(true, true, true));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_action_attaches_to_tty_when_stdout_is_captured() {
+        assert!(should_attach_action_to_tty(true, false, true));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_action_attaches_to_tty_when_stdin_is_not_terminal() {
+        assert!(should_attach_action_to_tty(false, true, true));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_action_attaches_to_tty_when_stderr_is_not_terminal() {
+        assert!(should_attach_action_to_tty(true, true, false));
     }
 }
