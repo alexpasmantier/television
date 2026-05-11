@@ -14,25 +14,26 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@docsearch/react": "^4.6.0",
-    "@docusaurus/core": "^3.9.2",
-    "@docusaurus/preset-classic": "^3.9.2",
-    "@docusaurus/theme-common": "^3.9.2",
-    "@docusaurus/theme-mermaid": "^3.9.2",
-    "@docusaurus/theme-search-algolia": "^3.9.2",
+    "@docsearch/react": "^4.6.3",
+    "@docusaurus/core": "^3.10.1",
+    "@docusaurus/faster": "^3.10.1",
+    "@docusaurus/preset-classic": "^3.10.1",
+    "@docusaurus/theme-common": "^3.10.1",
+    "@docusaurus/theme-mermaid": "^3.10.1",
+    "@docusaurus/theme-search-algolia": "^3.10.1",
     "@mdx-js/react": "^3.1.1",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "@algolia/autocomplete-core": "^1.19.6",
-    "@docusaurus/module-type-aliases": "^3.9.2",
-    "@docusaurus/tsconfig": "^3.9.2",
-    "@docusaurus/types": "^3.9.2",
+    "@algolia/autocomplete-core": "^1.19.8",
+    "@docusaurus/module-type-aliases": "^3.10.1",
+    "@docusaurus/tsconfig": "^3.10.1",
+    "@docusaurus/types": "^3.10.1",
     "@types/react": "^19.2.14",
-    "algoliasearch": "^5.49.1",
+    "algoliasearch": "^5.52.1",
     "typescript": "~5.9.3"
   },
   "browserslist": {
