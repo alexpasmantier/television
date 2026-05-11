@@ -152,11 +152,16 @@ impl<P: EntryProcessor> Channel<P> {
     }
 
     pub fn current_command(&self) -> &str {
-        self.source_command.get_nth(self.current_source_index).raw()
+        self.source_command
+            .get_nth(self.current_source_index)
+            .template()
+            .raw()
     }
 
     pub fn current_source_name(&self) -> Option<&str> {
-        self.source_command.get_name(self.current_source_index)
+        self.source_command
+            .get_nth(self.current_source_index)
+            .name()
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -279,7 +284,7 @@ pub async fn load_candidates<P: EntryProcessor>(
 ) {
     debug!("Loading candidates from command: {:?}", command);
     let mut std_command = shell_command(
-        command.get_nth(command_index).raw(),
+        command.get_nth(command_index).template().raw(),
         command.interactive,
         &command.env,
         command.shell,
