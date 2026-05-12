@@ -13,15 +13,19 @@ Press `ctrl-l` to print and follow the logs of the selected Pod.
 requirements = ["kubectl"]
 
 [source]
-command = [
-  '''
-  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{"\n"}}{{end}}'
-  ''',
-  '''
-  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{"\n"}}{{end}}' --all-namespaces
-  ''',
-]
 output = "{1}"
+
+[[source.command]]
+name = "Current ns"
+run = '''
+kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{"\n"}}{{end}}'
+'''
+
+[[source.command]]
+name = "All namespaces"
+run = '''
+kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{"\n"}}{{end}}' --all-namespaces
+'''
 
 [preview]
 command = "kubectl describe -n {0} pods/{1}"

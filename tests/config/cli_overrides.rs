@@ -279,7 +279,7 @@ fn test_cli_input_position_override() {
         .find("position-prompt>")
         .expect("Expected input prompt in frame");
     let results_index = frame
-        .find("Results")
+        .find("Default")
         .expect("Expected results header in frame");
 
     assert!(
