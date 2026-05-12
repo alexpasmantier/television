@@ -41,7 +41,7 @@ fn make_gh_request(url: &str) -> Result<RequestBuilder<WithoutBody>> {
 
     let headers = request.headers_mut().unwrap();
     if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        debug!("Use GITHUB_TOKEN from environment variables");
+        debug!("Using GITHUB_TOKEN environment variable");
         headers.insert("Authorization", HeaderValue::try_from(token)?);
     }
 
