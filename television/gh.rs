@@ -3,7 +3,7 @@ use colored::Colorize;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 use std::path::Path;
 use tracing::debug;
-use ureq::get;
+use ureq::{RequestBuilder, get, http::HeaderValue, typestate::WithoutBody};
 
 use crate::{
     cable::{CABLE_DIR_NAME, CHANNEL_FILE_FORMAT},
@@ -36,14 +36,25 @@ enum NodeType {
 const GITHUB_API_BASE_URL: &str =
     "https://api.github.com/repos/alexpasmantier/television/contents/";
 
+fn make_gh_request(url: &str) -> Result<RequestBuilder<WithoutBody>> {
+    let mut request = get(url).header("User-Agent", "television-client");
+
+    let headers = request.headers_mut().unwrap();
+    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+        debug!("Using GITHUB_TOKEN environment variable");
+        headers.insert("Authorization", HeaderValue::try_from(token)?);
+    }
+
+    Ok(request)
+}
+
 fn make_gh_content_request(
     gh_dir: &Path,
     git_ref: &str,
 ) -> Result<Vec<GhNode>> {
     let url = format!("{}{}", GITHUB_API_BASE_URL, gh_dir.to_str().unwrap());
     debug!("Making GitHub API request to: {}", url);
-    get(&url)
-        .header("User-Agent", "television-client")
+    make_gh_request(&url)?
         .header("Accept", "application/vnd.github+json")
         .query("ref", git_ref)
         .call()
@@ -63,8 +74,8 @@ fn make_gh_content_request(
 }
 
 fn fetch_raw_content_from_url(url: &str) -> Result<String> {
-    let response =
-        get(url).header("User-Agent", "television-client").call()?;
+    let request = make_gh_request(url)?;
+    let response = request.call()?;
 
     if response.status().is_success() {
         Ok(response.into_body().read_to_string()?)
