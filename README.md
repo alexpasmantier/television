@@ -98,6 +98,7 @@ See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/s
 - **Vim**: [tv.vim](https://github.com/prabirshrestha/tv.vim)
 - **VSCode**: [Television extension](https://marketplace.visualstudio.com/items?itemName=alexpasmantier.television)
 - **Zed**: [Telescope-style setup](https://zed.dev/blog/hidden-gems-part-2#emulate-vims-telescope-via-television)
+- **JetBrains IDEs**: [Television plugin](https://plugins.jetbrains.com/plugin/31448-television)
 
 ## Documentation
 
