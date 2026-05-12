@@ -39,7 +39,13 @@ description = "A channel to select from directories"
 requirements = [ "fd",]
 
 [source]
-command = [ "fd -t d", "fd -t d --hidden",]
+[[source.command]]
+name = "Default"
+run = "fd -t d"
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t d --hidden"
 
 [preview]
 command = "ls -l '{}'"
@@ -153,7 +159,13 @@ description = "A channel to select files and directories"
 requirements = [ "fd", "bat",]
 
 [source]
-command = [ "fd -t f", "fd -t f -H",]
+[[source.command]]
+name = "Default"
+run = "fd -t f"
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t f -H"
 
 [preview]
 command = "bat -n --color=always -- '{}'"
