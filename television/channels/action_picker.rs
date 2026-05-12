@@ -33,7 +33,7 @@ impl ActionEntry {
             .command
             .inner
             .iter()
-            .map(|t| t.raw().to_string())
+            .map(|c| c.template().raw().to_string())
             .collect();
         ActionEntry {
             action_string: format!("{}{}", CUSTOM_ACTION_PREFIX, action_name),

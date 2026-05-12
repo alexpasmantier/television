@@ -5,8 +5,8 @@ requirements = ["git", "bat"]
 
 [source]
 command = [
-  "git diff --name-only HEAD~10 HEAD 2>/dev/null || find . -type f -mtime -7 -not -path '*/.*' 2>/dev/null | head -100",
-  "find . -type f -mmin -60 -not -path '*/.*' 2>/dev/null | head -100",
+  { name = "Recent",    run = "git diff --name-only HEAD~10 HEAD 2>/dev/null || find . -type f -mtime -7 -not -path '*/.*' 2>/dev/null | head -100" },
+  { name = "Last hour", run = "find . -type f -mmin -60 -not -path '*/.*' 2>/dev/null | head -100" },
 ]
 
 [preview]

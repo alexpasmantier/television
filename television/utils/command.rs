@@ -159,7 +159,7 @@ pub fn execute_action(
 ) -> Result<ExitStatus> {
     debug!("Executing external action with {} entries", entries.len());
 
-    let template: &Template = action_spec.command.get_nth(0);
+    let template: &Template = action_spec.command.get_nth(0).template();
     let formatted_command =
         format_command(entries, template, &action_spec.separator)?;
 
