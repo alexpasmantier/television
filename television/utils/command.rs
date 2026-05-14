@@ -25,8 +25,8 @@ static COMPLEX_BRACES_REGEX: &Lazy<Regex> = regex!(r"\{[^}]+\}");
 ///
 /// # Arguments
 /// * `command` - The command string to execute
-/// * `interactive` - Whether to run in interactive mode (adds `-i` on Unix,
-///   omits `-NoProfile` for `PowerShell`)
+/// * `interactive` - Whether to run in interactive mode (uses `-Interactive`
+///   for `PowerShell` and `-i` before `-c` for Unix-like shells)
 /// * `envs` - Environment variables to set for the command
 /// * `shell_override` - Optionally override the shell used to execute the command.
 ///   If `None`, the shell is detected from the environment.
@@ -43,17 +43,27 @@ pub fn shell_command<S>(
         .unwrap_or_else(|| Shell::from_env().unwrap_or_default());
     let mut cmd = Command::new(shell.executable());
 
-    cmd.args(match shell {
-        Shell::Psh if interactive => vec!["-NoLogo", "-Command"],
-        Shell::Psh => vec!["-NoLogo", "-NoProfile", "-Command"],
+    let args = match shell {
+        Shell::Psh if interactive => {
+            vec!["-NoLogo", "-OutputFormat", "Text", "-Interactive", "-Command"]
+        }
+        Shell::Psh => {
+            vec![
+                "-NoLogo",
+                "-OutputFormat",
+                "Text",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+            ]
+        }
         Shell::Cmd => vec!["/C"],
+        #[cfg(unix)]
+        _ if interactive => vec!["-i", "-c"],
         _ => vec!["-c"],
-    });
+    };
 
-    #[cfg(unix)]
-    if interactive {
-        cmd.arg("-i");
-    }
+    cmd.args(args);
 
     cmd.envs(envs).arg(command);
     cmd
@@ -234,6 +244,7 @@ fn attach_to_tty(cmd: &mut Command) -> Result<()> {
 mod tests {
     use super::*;
     use crate::channels::entry::Entry;
+    use crate::utils::shell::Shell;
 
     #[test]
     fn test_simple_braces_syntactic_sugar() {
@@ -312,5 +323,52 @@ mod tests {
             result == "nvim 'file1\\'s.txt' 'file2.txt'"
                 || result == "nvim 'file2.txt' 'file1\\'s.txt'"
         );
+    }
+
+    #[test]
+    fn test_shell_command_powershell_interactive_args() {
+        let envs = HashMap::new();
+        let cmd = shell_command(
+            "Get-Date",
+            true,
+            &envs,
+            Some(Shell::Psh),
+        );
+
+        let args: Vec<String> = cmd
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        assert_eq!(
+            args,
+            vec![
+                "-NoLogo",
+                "-OutputFormat",
+                "Text",
+                "-Interactive",
+                "-Command",
+                "Get-Date",
+            ]
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_shell_command_unix_interactive_args_order() {
+        let envs = HashMap::new();
+        let cmd = shell_command(
+            "echo hi",
+            true,
+            &envs,
+            Some(Shell::Bash),
+        );
+
+        let args: Vec<String> = cmd
+            .get_args()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect();
+
+        assert_eq!(args, vec!["-i", "-c", "echo hi"]);
     }
 }
