@@ -696,6 +696,7 @@ pub enum Shell {
     PowerShell,
     Cmd,
     Nu,
+    Xonsh,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]

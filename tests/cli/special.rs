@@ -96,6 +96,44 @@ fn test_init_subcommand_generates_completion_script() {
     );
 }
 
+/// Tests that the `init` subcommand generates a shell integration script for xonsh.
+#[test]
+fn test_init_subcommand_generates_xonsh_script() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(&pt, &["init", "xonsh"])
+        .scrollback(1000)
+        .start()
+        .unwrap();
+
+    s.wait().exit_code(0).until().unwrap();
+
+    let scrollback = s.scrollback(None).unwrap();
+    assert!(
+        scrollback.contains("@events.on_ptk_create")
+            && scrollback.contains("tv_smart_autocomplete")
+            && scrollback.contains("tv_shell_history"),
+        "expected scrollback to contain xonsh integration functions, got:\n{scrollback}"
+    );
+}
+
+/// Tests that standalone clap completions report xonsh as unsupported.
+#[test]
+fn test_completions_subcommand_rejects_xonsh() {
+    let pt = phantom();
+
+    let s =
+        tv_local_config_and_cable_with_args(&pt, &["completions", "xonsh"])
+            .start()
+            .unwrap();
+
+    s.wait()
+        .text("Shell completions are not supported for xonsh")
+        .until()
+        .unwrap();
+    s.wait().exit_code(1).until().unwrap();
+}
+
 /// Tests that the `init` subcommand rejects unsupported shells.
 #[test]
 fn test_init_subcommand_invalid_shell_errors() {
