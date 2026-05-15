@@ -426,6 +426,7 @@ mod tests {
         assert!(script.contains("eager=True"));
         assert!(script.contains("responds_to_cpr = False"));
         assert!(script.contains("run_in_terminal"));
+        assert!(script.contains("_tv_unquote_token"));
         assert!(!script.contains("stderr=subprocess.DEVNULL"));
         assert!(!script.contains(r#""--inline""#));
         assert!(script.contains("__xonsh__.history"));

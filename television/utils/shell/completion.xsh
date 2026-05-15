@@ -1,6 +1,5 @@
 if $SHELL_TYPE in ("best", "prompt_toolkit", "prompt-toolkit", "ptk"):
     import os
-    import re
     import shlex
     import subprocess
 
@@ -14,16 +13,68 @@ if $SHELL_TYPE in ("best", "prompt_toolkit", "prompt-toolkit", "ptk"):
         buffer.document = Document(text, cursor_position=cursor_position)
 
     def _tv_current_token(text):
-        match = re.search(r"\S*$", text)
-        if match is None:
-            return len(text), ""
-        return match.start(), match.group(0)
+        token_start = 0
+        quote = None
+        escaped = False
+
+        for index, char in enumerate(text):
+            if escaped:
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if quote is not None:
+                if char == quote:
+                    quote = None
+                continue
+            if char in ("'", '"'):
+                quote = char
+                continue
+            if char.isspace():
+                token_start = index + 1
+
+        return token_start, text[token_start:]
+
+    def _tv_unquote_token(token):
+        chars = []
+        quote = None
+        escaped = False
+
+        for char in token:
+            if escaped:
+                chars.append(char)
+                escaped = False
+                continue
+            if char == "\\":
+                escaped = True
+                continue
+            if quote is not None:
+                if char == quote:
+                    quote = None
+                else:
+                    chars.append(char)
+                continue
+            if char in ("'", '"'):
+                quote = char
+                continue
+            chars.append(char)
+
+        if escaped:
+            chars.append("\\")
+
+        return "".join(chars)
 
     def _tv_path_parts(token):
-        if "/" not in token:
-            return ".", "", token
+        unquoted_token = _tv_unquote_token(token)
+        if "/" not in unquoted_token:
+            return ".", "", unquoted_token
 
-        display_dir = token if token.endswith("/") else token.rsplit("/", 1)[0] + "/"
+        display_dir = (
+            unquoted_token
+            if unquoted_token.endswith("/")
+            else unquoted_token.rsplit("/", 1)[0] + "/"
+        )
         command_dir = os.path.expandvars(os.path.expanduser(display_dir))
 
         while command_dir and not os.path.isdir(command_dir):
@@ -36,7 +87,7 @@ if $SHELL_TYPE in ("best", "prompt_toolkit", "prompt-toolkit", "ptk"):
             stripped = display_dir.rstrip("/")
             display_dir = stripped.rsplit("/", 1)[0] + "/" if "/" in stripped else ""
 
-        query = token[len(display_dir):]
+        query = unquoted_token[len(display_dir):]
         return command_dir or ".", display_dir, query
 
     def _tv_run(args, input_text=None):
@@ -80,7 +131,7 @@ if $SHELL_TYPE in ("best", "prompt_toolkit", "prompt-toolkit", "ptk"):
         matches = []
         for line in output.splitlines():
             if line:
-                matches.append(display_dir + shlex.quote(line))
+                matches.append(shlex.quote(display_dir + line))
 
         if not matches:
             return
