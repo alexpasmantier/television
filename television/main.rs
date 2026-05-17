@@ -344,15 +344,8 @@ mod tests {
     #[test]
     fn test_determine_channel_with_cli_preview() {
         let preview_command = Template::parse("echo hello").unwrap();
-        let preview_spec = PreviewSpec::new(
-            CommandSpec::new(
-                vec![preview_command.clone()],
-                false,
-                FxHashMap::default(),
-                None,
-            ),
-            None,
-        );
+        let preview_spec =
+            PreviewSpec::new(CommandSpec::from(preview_command.clone()), None);
 
         let args = PostProcessedCli {
             channel: ChannelCli {
@@ -392,6 +385,9 @@ mod tests {
             determine_channel(&cli.channel, &config, false, &Cable::default());
 
         assert_eq!(channel.metadata.name, "Custom Channel");
-        assert_eq!(channel.source.command.inner[0].raw(), "fd -t f -H");
+        assert_eq!(
+            channel.source.command.get_nth(0).template().raw(),
+            "fd -t f -H"
+        );
     }
 }

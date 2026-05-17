@@ -117,7 +117,7 @@ impl ConfigLayers {
         // Build source command and apply global shell if no channel-specific shell
         let mut channel_source_command =
             if let Some(template) = &self.channel_cli.source_command {
-                CommandSpec::from_template(template.clone())
+                CommandSpec::from(template.clone())
             } else {
                 self.channel.source.command.clone()
             };
@@ -151,7 +151,7 @@ impl ConfigLayers {
             .channel_cli
             .preview_command
             .as_ref()
-            .map(|t| CommandSpec::from_template(t.clone()))
+            .map(|t| CommandSpec::from(t.clone()))
             .or(self.channel.preview.as_ref().map(|p| p.command.clone()));
         if let Some(ref mut cmd) = channel_preview_command
             && cmd.shell.is_none()

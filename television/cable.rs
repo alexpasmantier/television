@@ -105,7 +105,13 @@ where
 {
     WalkDir::new(cable_dir)
         .into_iter()
-        .map(|e| e.unwrap().path().to_owned())
+        .filter_map(|e| match e {
+            Ok(entry) => Some(entry.path().to_owned()),
+            Err(err) => {
+                error!("Error walking cable directory: {}", err);
+                None
+            }
+        })
         .filter(|p| {
             p.is_file()
                 && p.extension().is_some()

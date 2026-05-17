@@ -98,6 +98,41 @@ impl<'de> Deserialize<'de> for Template {
     }
 }
 
+/// A single source command, optionally with a display name.
+///
+/// Accepts two TOML forms in arrays/single values:
+/// - Bare string: `"fd -t f"` — no display name.
+/// - Inline table: `{ name = "Default", run = "fd -t f" }` — named.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq)]
+#[serde(untagged)]
+pub enum SourceCommand {
+    Bare(Template),
+    Named { name: String, run: Template },
+}
+
+impl SourceCommand {
+    pub fn template(&self) -> &Template {
+        match self {
+            Self::Bare(t) | Self::Named { run: t, .. } => t,
+        }
+    }
+
+    pub fn name(&self) -> Option<&str> {
+        match self {
+            Self::Named { name, .. } if !name.is_empty() => {
+                Some(name.as_str())
+            }
+            _ => None,
+        }
+    }
+}
+
+impl From<Template> for SourceCommand {
+    fn from(template: Template) -> Self {
+        Self::Bare(template)
+    }
+}
+
 #[serde_as]
 #[derive(
     Debug, Clone, serde::Deserialize, serde::Serialize, PartialEq, Default,
@@ -105,7 +140,7 @@ impl<'de> Deserialize<'de> for Template {
 pub struct CommandSpec {
     #[serde(rename = "command")]
     #[serde_as(as = "OneOrMany<_>")]
-    pub inner: Vec<Template>,
+    pub inner: Vec<SourceCommand>,
     #[serde(default)]
     pub interactive: bool,
     #[serde(default)]
@@ -123,7 +158,7 @@ impl Display for CommandSpec {
             "[{}]",
             self.inner
                 .iter()
-                .map(Template::raw)
+                .map(|c| c.template().raw())
                 .collect::<Vec<_>>()
                 .join(";")
         )
@@ -132,43 +167,20 @@ impl Display for CommandSpec {
 
 impl From<Template> for CommandSpec {
     fn from(template: Template) -> Self {
-        Self::new(vec![template], false, FxHashMap::default(), None)
+        Self {
+            inner: vec![template.into()],
+            ..Default::default()
+        }
     }
 }
 
 impl CommandSpec {
-    pub fn new(
-        inner: Vec<Template>,
-        interactive: bool,
-        env: FxHashMap<String, String>,
-        shell: Option<Shell>,
-    ) -> Self {
-        Self {
-            inner,
-            interactive,
-            env,
-            shell,
-        }
-    }
-
-    pub fn command_count(&self) -> usize {
-        self.inner.len()
-    }
-
-    pub fn has_multiple_commands(&self) -> bool {
-        self.inner.len() > 1
-    }
-
     /// This wraps back to the first command in a circular manner.
     ///
     /// # Panics
     /// If the command spec does not contain any commands.
-    pub fn get_nth(&self, index: usize) -> &Template {
+    pub fn get_nth(&self, index: usize) -> &SourceCommand {
         &self.inner[index % self.inner.len()]
-    }
-
-    pub fn from_template(template: Template) -> Self {
-        Self::new(vec![template], false, FxHashMap::default(), None)
     }
 }
 
@@ -261,7 +273,8 @@ impl ChannelPrototype {
                 command: CommandSpec {
                     inner: vec![
                         Template::parse(command)
-                            .expect("Failed to parse command"),
+                            .expect("Failed to parse command")
+                            .into(),
                     ],
                     interactive: false,
                     env: FxHashMap::default(),
@@ -297,7 +310,7 @@ impl ChannelPrototype {
                 // read directly from process stdin in Rust. We keep a no-op
                 // placeholder because the field is required.
                 command: CommandSpec {
-                    inner: vec![Template::parse("true").unwrap()],
+                    inner: vec![Template::parse("true").unwrap().into()],
                     ..Default::default()
                 },
                 ..Default::default()
@@ -442,7 +455,8 @@ impl PreviewSpec {
             command: CommandSpec {
                 inner: vec![
                     Template::parse(command)
-                        .expect("Failed to parse preview command"),
+                        .expect("Failed to parse preview command")
+                        .into(),
                 ],
                 interactive: false,
                 env: FxHashMap::default(),
@@ -513,19 +527,19 @@ mod tests {
     fn test_command_spec_get_nth() {
         let command_spec = CommandSpec {
             inner: vec![
-                Template::parse("cmd1").unwrap(),
-                Template::parse("cmd2").unwrap(),
-                Template::parse("cmd3").unwrap(),
+                Template::parse("cmd1").unwrap().into(),
+                Template::parse("cmd2").unwrap().into(),
+                Template::parse("cmd3").unwrap().into(),
             ],
             interactive: false,
             env: FxHashMap::default(),
             shell: None,
         };
 
-        assert_eq!(command_spec.get_nth(0).raw(), "cmd1");
-        assert_eq!(command_spec.get_nth(1).raw(), "cmd2");
-        assert_eq!(command_spec.get_nth(2).raw(), "cmd3");
-        assert_eq!(command_spec.get_nth(3).raw(), "cmd1"); // wraps around
+        assert_eq!(command_spec.get_nth(0).template().raw(), "cmd1");
+        assert_eq!(command_spec.get_nth(1).template().raw(), "cmd2");
+        assert_eq!(command_spec.get_nth(2).template().raw(), "cmd3");
+        assert_eq!(command_spec.get_nth(3).template().raw(), "cmd1"); // wraps around
     }
 
     #[test]
@@ -626,7 +640,7 @@ mod tests {
             Some("A channel to select files and directories".to_string())
         );
         assert_eq!(
-            format!("{}", prototype.source.command.inner[0]),
+            format!("{}", prototype.source.command.inner[0].template()),
             "fd -t f"
         );
 
@@ -636,7 +650,7 @@ mod tests {
 
         let preview = prototype.preview.as_ref().unwrap();
         assert_eq!(
-            format!("{}", preview.command.inner[0]),
+            format!("{}", preview.command.inner[0].template()),
             "bat -n --color=always {}"
         );
         assert!(!preview.command.interactive);
@@ -732,13 +746,92 @@ mod tests {
                 .command
                 .inner
                 .iter()
-                .map(Template::raw)
+                .map(|c| c.template().raw())
                 .collect::<Vec<_>>(),
             vec!["fd -t f", "fd -t f --hidden"]
         );
         assert!(!prototype.source.command.interactive);
         assert!(prototype.source.command.env.is_empty());
         assert_eq!(prototype.source.output.unwrap().raw(), "{}");
+        assert_eq!(prototype.source.command.inner[0].name(), None);
+        assert_eq!(prototype.source.command.inner[1].name(), None);
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_named_commands() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel to select files and directories"
+
+        [source]
+        command = [
+            { name = "Default", run = "fd -t f" },
+            { name = "Hidden", run = "fd -t f --hidden" },
+            { name = "All", run = "fd -t f --no-ignore" },
+        ]
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(
+            prototype.source.command.get_nth(0).template().raw(),
+            "fd -t f"
+        );
+        assert_eq!(prototype.source.command.inner[0].name(), Some("Default"));
+        assert_eq!(prototype.source.command.inner[1].name(), Some("Hidden"));
+        assert_eq!(prototype.source.command.inner[2].name(), Some("All"));
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_single_named_command() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel"
+
+        [source]
+        command = { name = "All Files", run = "fd -t f" }
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(
+            prototype.source.command.get_nth(0).template().raw(),
+            "fd -t f"
+        );
+        assert_eq!(
+            prototype.source.command.inner[0].name(),
+            Some("All Files")
+        );
+    }
+
+    #[test]
+    fn test_channel_prototype_deserialization_mixed_named_and_bare() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+        description = "A channel"
+
+        [source]
+        command = [
+            "fd -t f",
+            { name = "Hidden", run = "fd -t f --hidden" },
+        ]
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        assert_eq!(
+            prototype.source.command.get_nth(0).template().raw(),
+            "fd -t f"
+        );
+        assert_eq!(prototype.source.command.inner[0].name(), None);
+        assert_eq!(
+            prototype.source.command.get_nth(1).template().raw(),
+            "fd -t f --hidden"
+        );
+        assert_eq!(prototype.source.command.inner[1].name(), Some("Hidden"));
     }
 
     #[test]
@@ -761,7 +854,7 @@ mod tests {
             Some("A channel to select files and directories".to_string())
         );
         assert_eq!(
-            format!("{}", prototype.source.command.inner[0]),
+            format!("{}", prototype.source.command.inner[0].template()),
             "fd -t f"
         );
         assert!(!prototype.source.command.interactive);
@@ -803,7 +896,7 @@ mod tests {
             Some("A channel to select files and directories".to_string())
         );
         assert_eq!(
-            format!("{}", prototype.source.command.inner[0]),
+            format!("{}", prototype.source.command.inner[0].template()),
             "fd -t f"
         );
         assert!(!prototype.source.command.interactive);
@@ -878,7 +971,7 @@ mod tests {
         // Verify edit action
         let thebatman = prototype.actions.get("thebatman").unwrap();
         assert_eq!(thebatman.description, Some("cats the file".to_string()));
-        assert_eq!(thebatman.command.inner[0].raw(), "bat '{}'");
+        assert_eq!(thebatman.command.inner[0].template().raw(), "bat '{}'");
         assert_eq!(
             thebatman.command.env.get("BAT_THEME"),
             Some(&"ansi".to_string())
@@ -887,7 +980,7 @@ mod tests {
         // Verify lsman action
         let lsman = prototype.actions.get("lsman").unwrap();
         assert_eq!(lsman.description, Some("show stats".to_string()));
-        assert_eq!(lsman.command.inner[0].raw(), "ls '{}'");
+        assert_eq!(lsman.command.inner[0].template().raw(), "ls '{}'");
         assert!(lsman.command.env.is_empty());
 
         // Verify keybindings reference the actions

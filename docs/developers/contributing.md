@@ -108,3 +108,53 @@ just test
 - shell integration (autocomplete, keybindings)
 - packaging for various linux package managers (dnf, ...)
 - sorting options
+
+## Troubleshooting
+
+### `just test` fails with a Zig version error
+
+If running the tests produces something like:
+
+```
+  src/build/Config.zig:69:17: error: root source file struct 'process' has no member named 'EnvMap'
+  env: std.process.EnvMap,
+       ~~~~~~~~~~~^~~~~~~
+  /usr/lib/zig/std/process.zig:1:1: note: struct declared here
+  const builtin = @import("builtin");
+  ^~~~~
+  referenced by:
+      init: src/build/Config.zig:71:53
+      build: build.zig:18:39
+      7 reference(s) hidden; use '-freference-trace=9' to see all references
+  src/build/zig.zig:13:9: error: Your Zig version v0.16.0 does not meet the required build version of v0.15.2
+          @compileError(std.fmt.comptimePrint(
+          ^~~~~~~~~~~~~
+  build.zig:10:24: note: called at comptime here
+      buildpkg.requireZig(minimumZigVersion);
+      ~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+
+  thread 'main' panicked at ~/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/libghostty-vt-sys-0.1.1/build.rs:132:5:
+  zig build failed with status exit status: 2
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+```
+
+the test suite pulls in [`phantom-test`](https://crates.io/crates/phantom-test) for PTY-based TUI testing, which transitively builds [`libghostty-vt-sys`](https://crates.io/crates/libghostty-vt-sys) from source against a pinned [ghostty](https://github.com/ghostty-org/ghostty) commit. That commit currently requires Zig **0.15.2**, so a newer system Zig will fail the build.
+
+The repo ships a `mise.toml` pinning Zig 0.15.2 for exactly this reason. If you already use [mise](https://mise.jdx.dev), run:
+
+```shell
+mise install
+```
+
+from the repo root and the right toolchain will be fetched and shimmed automatically — your system Zig stays untouched elsewhere.
+
+If you don't have mise yet:
+
+```shell
+# Arch: `sudo pacman -S mise`, or:
+curl https://mise.run | sh
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc && exec zsh
+mise install
+```
+
+Prefer a different tool? [zvm](https://github.com/tristanisham/zvm) and [zigup](https://github.com/marler8997/zigup) work just as well, or you can grab the [Zig 0.15.2 archive](https://ziglang.org/download/) and put it on `PATH` manually.

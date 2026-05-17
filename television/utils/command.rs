@@ -159,7 +159,7 @@ pub fn execute_action(
 ) -> Result<ExitStatus> {
     debug!("Executing external action with {} entries", entries.len());
 
-    let template: &Template = action_spec.command.get_nth(0);
+    let template: &Template = action_spec.command.get_nth(0).template();
     let formatted_command =
         format_command(entries, template, &action_spec.separator)?;
 
@@ -204,6 +204,20 @@ pub fn execute_action(
 
 #[cfg(unix)]
 fn attach_to_tty(cmd: &mut Command) -> Result<()> {
+    use std::io::{IsTerminal, stderr, stdin, stdout};
+
+    // If stdin/stdout/stderr are already real TTYs (interactive invocation),
+    // inherit them as-is. Reopening `/dev/tty` and dup'ing the resulting FD
+    // produces a file descriptor whose ttyname resolves to `/dev/tty` on
+    // macOS, which tmux rejects with "can't use /dev/tty" when attaching.
+    // Inheriting the original pty FDs preserves the real device path.
+    if stdin().is_terminal()
+        && stdout().is_terminal()
+        && stderr().is_terminal()
+    {
+        return Ok(());
+    }
+
     let Ok(tty) = OpenOptions::new().read(true).write(true).open("/dev/tty")
     else {
         return Ok(());

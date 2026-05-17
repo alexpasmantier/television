@@ -5,8 +5,8 @@ requirements = ["fd", "chafa"]
 
 [source]
 command = [
-  "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg .",
-  "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg -H .",
+  { name = "Default", run = "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg ." },
+  { name = "Hidden",  run = "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg -H ." },
 ]
 
 [preview]

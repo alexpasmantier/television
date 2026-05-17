@@ -1,6 +1,45 @@
 
 # Community Channels (unix)
 
+### *aerospace-windows*
+
+List and manage AeroSpace windows
+
+![tv running the aerospace-windows channel](../../assets/channels/aerospace-windows.png)
+**Requirements:** `aerospace`, `awk`
+
+**Code:** *aerospace-windows.toml*
+
+```toml
+[metadata]
+name = "aerospace-windows"
+description = "List and manage AeroSpace windows"
+requirements = [ "aerospace", "awk",]
+
+[source]
+command = "aerospace list-windows --all --format '%{window-id}%{tab}%{workspace}%{tab}%{app-name}%{tab}%{window-title}' | awk -F'\\t' '$3 != \"AeroSpace\" {printf \"%s\\t[%s] %s | %s\\n\", $1, $2, $3, $4}'\n"
+display = "{split:\\t:1}"
+output = "{split:\\t:0}"
+
+[keybindings]
+enter = "actions:focus"
+ctrl-x = [ "actions:close", "reload_source",]
+
+[actions.focus]
+description = "Focus the selected window"
+command = "aerospace focus --window-id '{split:\\t:0}'"
+mode = "execute"
+
+[actions.close]
+description = "Close the selected window"
+command = "aerospace close --window-id '{split:\\t:0}'"
+mode = "fork"
+
+```
+
+
+---
+
 ### *alias*
 
 A channel to select from shell aliases
@@ -224,7 +263,13 @@ description = "List and manage Homebrew packages"
 requirements = [ "brew",]
 
 [source]
-command = [ "brew list --formula", "brew list --cask",]
+[[source.command]]
+name = "Formulae"
+run = "brew list --formula"
+
+[[source.command]]
+name = "Casks"
+run = "brew list --cask"
 
 [preview]
 command = "brew info '{}'"
@@ -409,7 +454,13 @@ description = "A channel to select from directories"
 requirements = [ "fd",]
 
 [source]
-command = [ "fd -t d", "fd -t d --hidden",]
+[[source.command]]
+name = "Default"
+run = "fd -t d"
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t d --hidden"
 
 [preview]
 command = "ls -la --color=always '{}'"
@@ -644,9 +695,15 @@ description = "List and manage Docker containers"
 requirements = [ "docker", "jq",]
 
 [source]
-command = [ "docker ps --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'", "docker ps -a --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'",]
 display = "{split:\\t:0} ({split:\\t:2})"
 output = "{split:\\t:0}"
+[[source.command]]
+name = "Running"
+run = "docker ps --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'"
+
+[[source.command]]
+name = "All"
+run = "docker ps -a --format '{{.Names}}\\t{{.Image}}\\t{{.Status}}'"
 
 [preview]
 command = "docker inspect '{split:\\t:0}' | jq -C '.[0] | {Name, State, Config: {Image: .Config.Image, Cmd: .Config.Cmd}, NetworkSettings: {IPAddress: .NetworkSettings.IPAddress}}'"
@@ -984,7 +1041,13 @@ description = "A channel to select files and directories"
 requirements = [ "fd", "bat",]
 
 [source]
-command = [ "fd -t f", "fd -t f -H",]
+[[source.command]]
+name = "Default"
+run = "fd -t f"
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t f -H"
 
 [preview]
 command = "bat -n --color=always '{}'"
@@ -1031,6 +1094,113 @@ requirements = [ "fish",]
 command = "fish -c 'history'"
 no_sort = true
 frecency = false
+
+```
+
+
+---
+
+### *fj-issues*
+
+List Forgejo issues for the current repo
+
+**Requirements:** `fj`, `bat`
+
+**Code:** *fj-issues.toml*
+
+```toml
+[metadata]
+name = "fj-issues"
+description = "List Forgejo issues for the current repo"
+requirements = [ "fj", "bat",]
+
+[source]
+command = "fj issue search --state open | awk -F ' [(]by ' '/^\n  number=$1; sub(/^                                    \n  title=$1; sub(/^                    \n  author=$2; sub(/\\)$/,\"\",author)\n  printf \"\\033[32m#%s\\033[39m\\t%s \\033[33m@%s\\033[39m\\n\", number, title, author\n}' "
+ansi = true
+output = "{strip_ansi|split:\t:0|replace:s/^#//}"
+
+[ui]
+layout = "portrait"
+
+[preview]
+command = "fj issue view {strip_ansi|split:\t:0|replace:s/^#//} | bat --language=md --style=plain --color=always"
+
+[ui.preview_panel]
+header = "{strip_ansi|split:\\t:1}"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.open]
+description = "Open the issue in the browser"
+command = "fj issue browse {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.close]
+description = "Close the selected issue"
+command = "fj issue close {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.comment]
+description = "Add a comment to the selected issue"
+command = "fj issue comment {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
+
+```
+
+
+---
+
+### *fj-prs*
+
+List Forgejo PRs for the current repo
+
+**Requirements:** `fj`, `bat`
+
+**Code:** *fj-prs.toml*
+
+```toml
+[metadata]
+name = "fj-prs"
+description = "List Forgejo PRs for the current repo"
+requirements = [ "fj", "bat",]
+
+[source]
+command = "fj pr search --state open | awk -F ' [(]by ' '/^\n  number=$1; sub(/^                                    \n  title=$1; sub(/^                    \n  author=$2; sub(/\\)$/,\"\",author)\n  printf \"\\033[32m#%s\\033[39m\\t%s \\033[33m@%s\\033[39m\\n\", number, title, author\n}' "
+ansi = true
+output = "{strip_ansi|split:\t:0|replace:s/^#//}"
+
+[ui]
+layout = "portrait"
+
+[preview]
+command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} | bat --language=md --style=plain --color=always"
+
+[ui.preview_panel]
+header = "{strip_ansi|split:\\t:1}"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.open]
+description = "Open the PR in the browser"
+command = "fj pr browse {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.checkout]
+description = "Checkout the PR branch locally"
+command = "fj pr checkout {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected PR"
+command = "fj pr merge {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
+
+[actions.diff]
+description = "View the PR diff"
+command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} diff | less"
+mode = "execute"
 
 ```
 
@@ -1807,7 +1977,13 @@ description = "Browse image files with preview"
 requirements = [ "fd", "chafa",]
 
 [source]
-command = [ "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg .", "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg -H .",]
+[[source.command]]
+name = "Default"
+run = "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg ."
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg -H ."
 
 [preview]
 command = "chafa -s 80x40 '{}' 2>/dev/null || file '{}'"
@@ -2330,8 +2506,14 @@ description = "List and preview Deployments in a Kubernetes Cluster.\n\nThe firs
 requirements = [ "kubectl",]
 
 [source]
-command = [ "  kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
 output = "{1}"
+[[source.command]]
+name = "Current ns"
+run = "kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n"
+
+[[source.command]]
+name = "All namespaces"
+run = "kubectl get deployments -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n"
 
 [preview]
 command = "kubectl describe -n {0} deployments/{1}"
@@ -2380,8 +2562,14 @@ description = "List and preview Pods in a Kubernetes Cluster.\n\nThe first sourc
 requirements = [ "kubectl",]
 
 [source]
-command = [ "  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
 output = "{1}"
+[[source.command]]
+name = "Current ns"
+run = "kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n"
+
+[[source.command]]
+name = "All namespaces"
+run = "kubectl get pods -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n"
 
 [preview]
 command = "kubectl describe -n {0} pods/{1}"
@@ -2440,8 +2628,14 @@ description = "List and preview Services in a Kubernetes Cluster.\n\nThe first s
 requirements = [ "kubectl",]
 
 [source]
-command = [ "  kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n  ", "  kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n  ",]
 output = "{1}"
+[[source.command]]
+name = "Current ns"
+run = "kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}'\n"
+
+[[source.command]]
+name = "All namespaces"
+run = "kubectl get services -o go-template --template '{{range .items}}{{.metadata.namespace}} {{.metadata.name}}{{\"\\n\"}}{{end}}' --all-namespaces\n"
 
 [preview]
 command = "kubectl describe -n {0} services/{1}"
@@ -2917,7 +3111,13 @@ description = "Browse PDF files"
 requirements = [ "fd", "pdftotext",]
 
 [source]
-command = [ "fd -t f -e pdf .", "fd -t f -e pdf -H .",]
+[[source.command]]
+name = "Default"
+run = "fd -t f -e pdf ."
+
+[[source.command]]
+name = "Hidden"
+run = "fd -t f -e pdf -H ."
 
 [preview]
 command = "pdftotext -l 2 -layout '{}' - 2>/dev/null | head -100 || file '{}'"
@@ -2995,9 +3195,15 @@ description = "List and manage Podman containers"
 requirements = [ "podman", "jq",]
 
 [source]
-command = [ "podman ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'", "podman ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'",]
 display = "{split:\t:0} ({split:\t:2})"
 output = "{split:\t:0}"
+[[source.command]]
+name = "Running"
+run = "podman ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'"
+
+[[source.command]]
+name = "All"
+run = "podman ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'"
 
 [preview]
 command = "podman inspect '{split:\t:0}' | jq -C '.[0] | {Name, State, Config: {Image: .Config.Image, Cmd: .Config.Cmd}, NetworkSettings: {IPAddress: .NetworkSettings.IPAddress}}'"
@@ -3309,7 +3515,13 @@ description = "List recently modified files (via git or filesystem)"
 requirements = [ "git", "bat",]
 
 [source]
-command = [ "git diff --name-only HEAD~10 HEAD 2>/dev/null || find . -type f -mtime -7 -not -path '*/.*' 2>/dev/null | head -100", "find . -type f -mmin -60 -not -path '*/.*' 2>/dev/null | head -100",]
+[[source.command]]
+name = "Recent"
+run = "git diff --name-only HEAD~10 HEAD 2>/dev/null || find . -type f -mtime -7 -not -path '*/.*' 2>/dev/null | head -100"
+
+[[source.command]]
+name = "Last hour"
+run = "find . -type f -mmin -60 -not -path '*/.*' 2>/dev/null | head -100"
 
 [preview]
 command = "bat -n --color=always '{}'"
@@ -3382,9 +3594,29 @@ description = "Session manager integrating tmux sessions, zoxide directories, an
 requirements = [ "sesh", "fd",]
 
 [source]
-command = [ "sesh list --icons", "sesh list -t --icons", "sesh list -c --icons", "sesh list -z --icons", "fd -H -d 2 -t d -E .Trash . ~",]
 ansi = true
+frecency = false
+no_sort = true
 output = "{strip_ansi|split: :1..|join: }"
+[[source.command]]
+name = "All"
+run = "sesh list --icons"
+
+[[source.command]]
+name = "Tmux"
+run = "sesh list -t --icons"
+
+[[source.command]]
+name = "Configs"
+run = "sesh list -c --icons"
+
+[[source.command]]
+name = "Zoxide"
+run = "sesh list -z --icons"
+
+[[source.command]]
+name = "Directories"
+run = "fd -H -d 2 -t d -E .Trash . ~"
 
 [preview]
 command = "sesh preview '{strip_ansi|split: :1..|join: }'"
@@ -3457,8 +3689,14 @@ description = "List and manage systemd services"
 requirements = [ "systemctl",]
 
 [source]
-command = [ "systemctl list-units --type=service --no-pager --no-legend --plain", "systemctl list-units --type=service --all --no-pager --no-legend --plain",]
 display = "{split: :0}"
+[[source.command]]
+name = "Active"
+run = "systemctl list-units --type=service --no-pager --no-legend --plain"
+
+[[source.command]]
+name = "All"
+run = "systemctl list-units --type=service --all --no-pager --no-legend --plain"
 
 [preview]
 command = "systemctl status '{split: :0}' --no-pager"
@@ -3536,6 +3774,87 @@ mode = "execute"
 
 ---
 
+### *tea-issues*
+
+List Gitea issues for the current repo
+
+**Requirements:** `tea`, `jq`
+
+**Code:** *tea-issues.toml*
+
+```toml
+[metadata]
+name = "tea-issues"
+description = "List Gitea issues for the current repo"
+requirements = [ "tea", "jq",]
+
+[source]
+command = "tea issues list --output json --state open </dev/null | jq -r '.[] | \"\\u001b[32m#\\(.index)\\u001b[39m\" + \"\\t\\(.title) \\u001b[33m@\\(.author)\\u001b[39m\" + (if .labels != \"\" then \" \\u001b[35m\" + .labels + \"\\u001b[39m\" else \"\" end)'\n"
+ansi = true
+output = "{strip_ansi|split:#:1|split:\t:0}"
+
+[ui]
+layout = "portrait"
+
+[preview]
+command = "tea issues --output json {strip_ansi|split:#:1|split:\\t:0} </dev/null | jq -r '\n.title,\n\"#\" + (.index | tostring),\n\"\",\n\"\\u001b[36mStatus:\\u001b[39m    \\u001b[32m\" + .state + \"\\u001b[39m\",\n\"\\u001b[36mAuthor:\\u001b[39m    \\u001b[33m\" + .user + \"\\u001b[39m\",\n\"\\u001b[36mCreated:\\u001b[39m   \" + .created[:10],\n(if (.labels | length) > 0 then \"\\u001b[36mLabels:\\u001b[39m    \" + ([.labels[] | \"\\u001b[35m\" + .name + \"\\u001b[39m\"]\n| join(\" \")) else empty end),\n\"\",\n\"\\u001b[90m────────────────────────────────────────────────────────────\\u001b[39m\",\n\"\",\n(.body // \"\")\n'\n"
+
+[ui.preview_panel]
+header = "{strip_ansi|split:\\t:1}"
+
+[actions.close]
+description = "Close the selected issue"
+command = "tea issues close {strip_ansi|split:#:1|split:\t:0}"
+mode = "fork"
+
+```
+
+
+---
+
+### *tea-prs*
+
+List Gitea PRs for the current repo
+
+**Requirements:** `tea`, `jq`
+
+**Code:** *tea-prs.toml*
+
+```toml
+[metadata]
+name = "tea-prs"
+description = "List Gitea PRs for the current repo"
+requirements = [ "tea", "jq",]
+
+[source]
+command = "tea pulls list --output json --state open </dev/null | jq -r '.[] | \"\\u001b[32m#\\(.index)\\u001b[39m\" + \"\\t\\(.title) \\u001b[33m@\\(.author)\\u001b[39m\" + (if .labels != \"\" then \" \\u001b[35m\" + .labels + \"\\u001b[39m\" else \"\" end)'\n"
+ansi = true
+output = "{strip_ansi|split:#:1|split:\t:0}"
+
+[ui]
+layout = "portrait"
+
+[preview]
+command = "tea pulls --output json {strip_ansi|split:#:1|split:\\t:0} </dev/null | jq -r '\n.title,\n\"#\" + (.index | tostring),\n\"\",\n\"\\u001b[36mStatus:\\u001b[39m     \\u001b[32m\" + .state + \"\\u001b[39m  \" + .base + \" ← \" + .head,\n\"\\u001b[36mAuthor:\\u001b[39m     \\u001b[33m\" + .user + \"\\u001b[39m\",\n\"\\u001b[36mCreated:\\u001b[39m    \" + .created[:10],\n\"\\u001b[36mUpdated:\\u001b[39m    \" + .updated[:10],\n(if (.labels | length) > 0 then \"\\u001b[36mLabels:\\u001b[39m     \" + ([.labels[] | \"\\u001b[35m\" + .name + \"\\u001b[39m\"] | join(\" \")) else empty end),\n\"\\u001b[36mMergeable:\\u001b[39m  \" + (if .mergeable then \"\\u001b[32m✓ Clean\\u001b[39m\" else \"\\u001b[31m✗ Dirty\\u001b[39m\" end),\n\"\",\n\"\\u001b[90m────────────────────────────────────────────────────────────\\u001b[39m\",\n\"\",\n(.body // \"\")\n'\n"
+
+[ui.preview_panel]
+header = "{strip_ansi|split:\\t:1}"
+
+[actions.checkout]
+description = "Checkout the PR branch locally"
+command = "tea pulls checkout {strip_ansi|split:#:1|split:\t:0}"
+mode = "execute"
+
+[actions.merge]
+description = "Merge the selected PR"
+command = "tea pulls merge {strip_ansi|split:#:1|split:\t:0}"
+mode = "execute"
+
+```
+
+
+---
+
 ### *text*
 
 A channel to find and select text from files
@@ -3551,9 +3870,15 @@ description = "A channel to find and select text from files"
 requirements = [ "rg", "bat",]
 
 [source]
-command = [ "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always", "rg . --no-heading --line-number --hidden --colors 'match:fg:white' --colors 'path:fg:blue' --color=always",]
 ansi = true
 output = "{strip_ansi|split:\\::..2}"
+[[source.command]]
+name = "Default"
+run = "rg . --no-heading --line-number --colors 'match:fg:white' --colors 'path:fg:blue' --color=always"
+
+[[source.command]]
+name = "Hidden"
+run = "rg . --no-heading --line-number --hidden --colors 'match:fg:white' --colors 'path:fg:blue' --color=always"
 
 [preview]
 command = "bat -n --color=always '{strip_ansi|split:\\::0}'"

@@ -28,7 +28,10 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
       - name: Copy changelog to docs
         run: |
-          cp CHANGELOG.md 'docs/developers/patch-notes.md'
+          # MDX (used by docusaurus) does not allow HTML comments, so rewrite
+          # the cliff-template markers into MDX-style `{/* ... */}` comments.
+          sed -e 's|<!--|{/*|g' -e 's|-->|*/}|g' \
+              CHANGELOG.md > 'docs/developers/patch-notes.md'
       - name: Extract branch name
         shell: bash
         run: echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF#refs/heads/}}" >> $GITHUB_OUTPUT

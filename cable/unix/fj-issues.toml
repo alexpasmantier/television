@@ -1,0 +1,37 @@
+[metadata]
+name = "fj-issues"
+description = "List Forgejo issues for the current repo"
+requirements = ["fj", "bat"]
+
+[source]
+command = '''fj issue search --state open | awk -F ' [(]by ' '/^#[0-9]+:/ {
+  number=$1; sub(/^#/,"",number); sub(/: .*/,"",number)
+  title=$1; sub(/^#[0-9]+: /,"",title)
+  author=$2; sub(/\)$/,"",author)
+  printf "\033[32m#%s\033[39m\t%s \033[33m@%s\033[39m\n", number, title, author
+}' '''
+ansi = true
+output = "{strip_ansi|split:\t:0|replace:s/^#//}"
+
+[ui]
+layout = "portrait"
+preview_panel = { header = '{strip_ansi|split:\t:1}' }
+
+[preview]
+command = "fj issue view {strip_ansi|split:\t:0|replace:s/^#//} | bat --language=md --style=plain --color=always"
+env = { BAT_THEME = "ansi" }
+
+[actions.open]
+description = "Open the issue in the browser"
+command = "fj issue browse {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.close]
+description = "Close the selected issue"
+command = "fj issue close {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "fork"
+
+[actions.comment]
+description = "Add a comment to the selected issue"
+command = "fj issue comment {strip_ansi|split:\t:0|replace:s/^#//}"
+mode = "execute"
