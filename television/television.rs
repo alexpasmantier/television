@@ -100,6 +100,8 @@ pub struct Television {
     frecency: FrecencyHandle,
     /// Tracks whether the channel was running on the previous tick to reset ticks
     was_running: bool,
+    /// Set by actions that could change results; consumed on the next render.
+    results_dirty: bool,
     /// Popup shown when attempting to switch to a channel with missing requirements
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
@@ -231,6 +233,7 @@ impl Television {
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             was_running: true,
+            results_dirty: true,
             ui_state: UiState::default(),
             frecency,
             missing_requirements_popup: None,
@@ -1149,6 +1152,7 @@ impl Television {
 
         // Always let the background matcher make progress
         self.channel.tick();
+        self.channel.update_counts();
 
         // When the channel transitions from running to stopped, reset ticks
         // to restart the fast-render window. This ensures newly loaded results
@@ -1160,10 +1164,17 @@ impl Television {
         }
         self.was_running = running;
 
-        // Only run the full results pipeline when the action could
-        // have changed the results or the visible viewport
         if action.affects_results() {
+            self.results_dirty = true;
+        }
+
+        let will_render = self.should_render(action);
+
+        // Defer the expensive results pipeline (matcher lock, index
+        // computation, per-item to_string) to render-eligible ticks.
+        if will_render && self.results_dirty {
             self.update_results_picker_state();
+            self.results_dirty = false;
         }
 
         if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
@@ -1181,11 +1192,7 @@ impl Television {
         }
         self.ticks += 1;
 
-        Ok(if self.should_render(action) {
-            Some(Action::Render)
-        } else {
-            None
-        })
+        Ok(if will_render { Some(Action::Render) } else { None })
     }
 }
 
