@@ -45,7 +45,13 @@ pub fn shell_command<S>(
 
     let args = match shell {
         Shell::Psh if interactive => {
-            vec!["-NoLogo", "-OutputFormat", "Text", "-Interactive", "-Command"]
+            vec![
+                "-NoLogo",
+                "-OutputFormat",
+                "Text",
+                "-Interactive",
+                "-Command",
+            ]
         }
         Shell::Psh => {
             vec![
@@ -328,12 +334,7 @@ mod tests {
     #[test]
     fn test_shell_command_powershell_interactive_args() {
         let envs = HashMap::new();
-        let cmd = shell_command(
-            "Get-Date",
-            true,
-            &envs,
-            Some(Shell::Psh),
-        );
+        let cmd = shell_command("Get-Date", true, &envs, Some(Shell::Psh));
 
         let args: Vec<String> = cmd
             .get_args()
@@ -357,12 +358,7 @@ mod tests {
     #[test]
     fn test_shell_command_unix_interactive_args_order() {
         let envs = HashMap::new();
-        let cmd = shell_command(
-            "echo hi",
-            true,
-            &envs,
-            Some(Shell::Bash),
-        );
+        let cmd = shell_command("echo hi", true, &envs, Some(Shell::Bash));
 
         let args: Vec<String> = cmd
             .get_args()
