@@ -1184,7 +1184,11 @@ impl Television {
         }
         self.ticks += 1;
 
-        Ok(if will_render { Some(Action::Render) } else { None })
+        Ok(if will_render {
+            Some(Action::Render)
+        } else {
+            None
+        })
     }
 }
 
