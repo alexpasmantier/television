@@ -100,8 +100,6 @@ pub struct Television {
     frecency: FrecencyHandle,
     /// Tracks whether the channel was running on the previous tick to reset ticks
     was_running: bool,
-    /// Set by actions that could change results; consumed on the next render.
-    results_dirty: bool,
     /// Popup shown when attempting to switch to a channel with missing requirements
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
@@ -233,7 +231,6 @@ impl Television {
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             was_running: true,
-            results_dirty: true,
             ui_state: UiState::default(),
             frecency,
             missing_requirements_popup: None,
@@ -1164,17 +1161,12 @@ impl Television {
         }
         self.was_running = running;
 
-        if action.affects_results() {
-            self.results_dirty = true;
-        }
-
         let will_render = self.should_render(action);
 
         // Defer the expensive results pipeline (matcher lock, index
         // computation, per-item to_string) to render-eligible ticks.
-        if will_render && self.results_dirty {
+        if will_render {
             self.update_results_picker_state();
-            self.results_dirty = false;
         }
 
         if self.remote_control.is_some() && self.mode == Mode::RemoteControl {
