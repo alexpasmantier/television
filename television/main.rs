@@ -20,6 +20,7 @@ use television::{
     gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
+    utils::paths::expand_tilde,
     utils::{
         shell::{
             Shell, completion_script, render_autocomplete_script_template,
@@ -39,22 +40,26 @@ async fn main() -> Result<()> {
 
     let readable_stdin = is_readable_stdin();
 
-    let cli = post_process(Cli::parse(), readable_stdin);
-    debug!("PostProcessedCli: {:?}", cli);
+    let raw_cli = Cli::parse();
 
-    // load the configuration file
+    // Load configuration first so the cable directory it points to (which may differ
+    // from the default) is honored when resolving channel-vs-path ambiguity in post_process.
     debug!("Loading configuration...");
+    let config_file = raw_cli.config_file.as_deref().map(expand_tilde);
     let base_config =
-        Config::new(&ConfigEnv::init()?, cli.global.config_file.as_deref())?;
+        Config::new(&ConfigEnv::init()?, config_file.as_deref())?;
 
-    let cable_dir = cli
-        .global
+    let cable_dir = raw_cli
         .cable_dir
-        .clone()
+        .as_deref()
+        .map(expand_tilde)
         .unwrap_or_else(|| base_config.application.cable_dir.clone());
 
     debug!("Loading cable channels...");
     let cable = load_cable(&cable_dir);
+
+    let cli = post_process(raw_cli, readable_stdin, &cable);
+    debug!("PostProcessedCli: {:?}", cli);
 
     // handle subcommands
     debug!("Handling subcommands...");
