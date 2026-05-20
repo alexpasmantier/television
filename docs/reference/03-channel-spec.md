@@ -55,7 +55,7 @@ Defines what data the channel searches through.
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `command` | string or string[] | Yes | Command(s) that produce entries |
+| `command` | string, string[], `{name, run}`, or array thereof | Yes | Command(s) that produce entries. Entries may be bare strings or `{ name = "...", run = "..." }` tables; names appear in the results panel header when cycling |
 | `ansi` | boolean | No | Parse ANSI escape codes (default: false) |
 | `display` | string | No | Template for display (incompatible with `ansi = true`) |
 | `output` | string | No | Template for final output |
@@ -77,6 +77,23 @@ command = "fd -t f"
 [source]
 command = ["fd -t f", "fd -t f -H", "fd -t f -H -I"]
 # Press Ctrl+S to cycle between commands
+```
+
+### Named Source Commands
+
+When using multiple source commands, you can give each one a display name by
+writing entries as `{ name, run }` tables instead of bare strings. The name
+replaces the generic "Results" label in the results panel header, making it
+easy to see which source is active. Named and unnamed entries can be mixed
+within the same array.
+
+```toml
+[source]
+command = [
+    { name = "Default", run = "fd -t f" },
+    { name = "Hidden",  run = "fd -t f -H" },
+    { name = "All",     run = "fd -t f -H -I" },
+]
 ```
 
 ### With ANSI Colors
@@ -352,8 +369,10 @@ description = "Manage Docker containers"
 requirements = ["docker"]
 
 [source]
-command = ["docker ps --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}'",
-           "docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}'"]
+command = [
+    { name = "Running", run = "docker ps --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}'" },
+    { name = "All",     run = "docker ps -a --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}'" },
+]
 display = "{split:\\t:1} | {split:\\t:2}"
 output = "{split:\\t:0}"
 

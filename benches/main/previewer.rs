@@ -1,5 +1,4 @@
 use criterion::{Criterion, criterion_group};
-use rustc_hash::FxHashMap;
 use std::hint::black_box;
 use television::{
     channels::{
@@ -11,8 +10,7 @@ use television::{
 use tokio::sync::mpsc;
 
 fn make_command(cmd: &str) -> CommandSpec {
-    let template = Template::parse(cmd).unwrap();
-    CommandSpec::new(vec![template], false, FxHashMap::default(), None)
+    CommandSpec::from(Template::parse(cmd).unwrap())
 }
 
 fn bench_preview(

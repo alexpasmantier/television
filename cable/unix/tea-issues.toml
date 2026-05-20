@@ -1,0 +1,36 @@
+[metadata]
+name = "tea-issues"
+description = "List Gitea issues for the current repo"
+requirements = ["tea", "jq"]
+
+[source]
+command = '''tea issues list --output json --state open </dev/null | jq -r '.[] | "\u001b[32m#\(.index)\u001b[39m" + "\t\(.title) \u001b[33m@\(.author)\u001b[39m" + (if .labels != "" then " \u001b[35m" + .labels + "\u001b[39m" else "" end)'
+'''
+ansi = true
+output = "{strip_ansi|split:#:1|split:\t:0}"
+
+[ui]
+layout = "portrait"
+preview_panel = { header = '{strip_ansi|split:\t:1}' }
+
+[preview]
+command = '''tea issues --output json {strip_ansi|split:#:1|split:\t:0} </dev/null | jq -r '
+.title,
+"#" + (.index | tostring),
+"",
+"\u001b[36mStatus:\u001b[39m    \u001b[32m" + .state + "\u001b[39m",
+"\u001b[36mAuthor:\u001b[39m    \u001b[33m" + .user + "\u001b[39m",
+"\u001b[36mCreated:\u001b[39m   " + .created[:10],
+(if (.labels | length) > 0 then "\u001b[36mLabels:\u001b[39m    " + ([.labels[] | "\u001b[35m" + .name + "\u001b[39m"]
+| join(" ")) else empty end),
+"",
+"\u001b[90m────────────────────────────────────────────────────────────\u001b[39m",
+"",
+(.body // "")
+'
+'''
+
+[actions.close]
+description = "Close the selected issue"
+command = "tea issues close {strip_ansi|split:#:1|split:\t:0}"
+mode = "fork"

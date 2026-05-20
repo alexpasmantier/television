@@ -5,8 +5,8 @@ requirements = ["brew"]
 
 [source]
 command = [
-  "brew list --formula",
-  "brew list --cask",
+  { name = "Formulae", run = "brew list --formula" },
+  { name = "Casks",    run = "brew list --cask" },
 ]
 
 [preview]

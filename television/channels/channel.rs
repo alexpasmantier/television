@@ -152,7 +152,16 @@ impl<P: EntryProcessor> Channel<P> {
     }
 
     pub fn current_command(&self) -> &str {
-        self.source_command.get_nth(self.current_source_index).raw()
+        self.source_command
+            .get_nth(self.current_source_index)
+            .template()
+            .raw()
+    }
+
+    pub fn current_source_name(&self) -> Option<&str> {
+        self.source_command
+            .get_nth(self.current_source_index)
+            .name()
     }
 
     pub fn find(&mut self, pattern: &str) {
@@ -275,7 +284,7 @@ pub async fn load_candidates<P: EntryProcessor>(
 ) {
     debug!("Loading candidates from command: {:?}", command);
     let mut std_command = shell_command(
-        command.get_nth(command_index).raw(),
+        command.get_nth(command_index).template().raw(),
         command.interactive,
         &command.env,
         command.shell,
@@ -581,6 +590,7 @@ impl ChannelKind {
     // Generate all immutable delegation methods
     delegate_to_channel!(ref
         current_command() -> &str,
+        current_source_name() -> Option<&str>,
         selected_entries() -> &FxHashSet<Entry>,
         result_count() -> u32,
         total_count() -> u32,

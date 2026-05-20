@@ -5,8 +5,8 @@ requirements = ["fd", "pdftotext"]
 
 [source]
 command = [
-  "fd -t f -e pdf .",
-  "fd -t f -e pdf -H .",
+  { name = "Default", run = "fd -t f -e pdf ." },
+  { name = "Hidden",  run = "fd -t f -e pdf -H ." },
 ]
 
 [preview]

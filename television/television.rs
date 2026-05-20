@@ -273,6 +273,7 @@ impl Television {
             self.channel.total_count(),
             self.channel.running(),
             self.channel.current_command().to_string(),
+            self.channel.current_source_name().map(str::to_string),
             self.channel.source_index(),
             self.channel.source_count(),
         );

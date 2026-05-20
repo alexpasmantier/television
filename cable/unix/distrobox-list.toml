@@ -5,9 +5,11 @@ requirements = ["distrobox", "bat"]
 
 [source]
 command = ["distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tail --lines=+2"]
+shell = "bash"
 
 [preview]
 command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+shell = "bash"
 
 [keybindings]
 ctrl-e = "actions:distrobox-enter"

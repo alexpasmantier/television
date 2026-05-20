@@ -5,8 +5,8 @@ requirements = ["podman", "jq"]
 
 [source]
 command = [
-  "podman ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'",
-  "podman ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'",
+  { name = "Running", run = "podman ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}'" },
+  { name = "All",     run = "podman ps -a --format '{{.Names}}\t{{.Image}}\t{{.Status}}'" },
 ]
 display = "{split:\t:0} ({split:\t:2})"
 output = "{split:\t:0}"
