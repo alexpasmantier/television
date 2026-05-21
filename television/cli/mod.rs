@@ -7,7 +7,7 @@ use crate::{
         Keybindings, get_config_dir, get_data_dir, merge_keybindings,
         ui::{BorderType, Padding},
     },
-    errors::cli_parsing_error_exit,
+    errors::{cli_parsing_error_exit, unknown_channel_exit},
     event::Key,
     screen::layout::{InputPosition, Orientation},
     utils::paths::expand_tilde,
@@ -147,6 +147,9 @@ pub struct GlobalCli {
 
 /// Post-processes the raw CLI arguments into a structured format with validation.
 ///
+/// `cable` is consulted to resolve the first positional arg when it could be either
+/// a registered channel name or a path on disk: a registered channel always wins.
+///
 /// This function handles the two main CLI use cases:
 ///
 /// **Channel-based mode**: When `cli.channel` is provided, all flags are treated as
@@ -159,7 +162,11 @@ pub struct GlobalCli {
 /// - Source flags (`--source-display`, `--source-output`) require `--source-command`
 ///
 /// This prevents creating broken ad-hoc channels that reference non-existent commands.
-pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
+pub fn post_process(
+    cli: Cli,
+    readable_stdin: bool,
+    cable: &Cable,
+) -> PostProcessedCli {
     // Parse literal keybindings passed through the CLI
     let mut keybindings = cli.keybindings.as_ref().map(|kb| {
         parse_keybindings_literal(kb, CLI_KEYBINDINGS_DELIMITER)
@@ -215,9 +222,11 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         })
     });
 
+    // Forbid `--autocomplete-prompt` together with a real channel arg.
+    // It's allowed when the arg resolves to a working-directory path (not a registered channel).
     if cli.autocomplete_prompt.is_some()
         && let Some(ch) = &cli.channel
-        && !Path::new(ch).exists()
+        && (cable.has_channel(ch) || !Path::new(ch).exists())
     {
         let mut cmd = Cli::command();
         let arg1 = "'--autocomplete-prompt <STRING>'".yellow();
@@ -238,11 +247,16 @@ pub fn post_process(cli: Cli, readable_stdin: bool) -> PostProcessedCli {
         );
     }
 
-    // Determine channel and working_directory
+    // Resolve the first positional arg: registered channel takes precedence over
+    // a same-named path in the current directory. Falls back to treating the arg
+    // as a working directory only when it isn't a known channel and the path exists.
     let (channel, working_directory) = match &cli.channel {
-        Some(c) if Path::new(c).exists() => {
-            // If the channel is a path, use it as the working directory
-            (None, Some(PathBuf::from(c)))
+        Some(c) if !cable.has_channel(c) => {
+            if cli.working_directory.is_none() && Path::new(c).exists() {
+                (None, Some(PathBuf::from(c)))
+            } else {
+                unknown_channel_exit(c);
+            }
         }
         _ => (
             cli.channel.clone(),
@@ -657,6 +671,14 @@ mod tests {
 
     use super::*;
 
+    fn test_cable() -> Cable {
+        Cable::from_prototypes(vec![
+            ChannelPrototype::new("files", "fd -t f"),
+            ChannelPrototype::new("dirs", "ls"),
+            ChannelPrototype::new("git", "git status"),
+        ])
+    }
+
     #[test]
     #[allow(clippy::float_cmp)]
     fn test_from_cli() {
@@ -667,7 +689,7 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli, false);
+        let post_processed_cli = post_process(cli, false, &test_cable());
 
         assert_eq!(
             post_processed_cli.channel.preview_command.unwrap().raw(),
@@ -688,13 +710,43 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli, false);
+        let post_processed_cli = post_process(cli, false, &test_cable());
 
         assert_eq!(
             post_processed_cli.global.workdir,
             Some(PathBuf::from("."))
         );
         assert_eq!(post_processed_cli.global.command, None);
+    }
+
+    /// Regression test for issue #1043: a registered channel name must take
+    /// precedence over a same-named subdirectory in the current working dir.
+    #[test]
+    fn test_channel_priority_over_same_named_path() {
+        struct CwdGuard(PathBuf);
+        impl Drop for CwdGuard {
+            fn drop(&mut self) {
+                let _ = std::env::set_current_dir(&self.0);
+            }
+        }
+
+        let tmp = tempfile::tempdir().unwrap();
+        std::fs::create_dir(tmp.path().join("files")).unwrap();
+        let _guard = CwdGuard(std::env::current_dir().unwrap());
+        std::env::set_current_dir(tmp.path()).unwrap();
+
+        let cli = Cli {
+            channel: Some("files".to_string()),
+            ..Default::default()
+        };
+        let post_processed_cli = post_process(cli, false, &test_cable());
+
+        assert_eq!(
+            post_processed_cli.channel.channel.as_deref(),
+            Some("files"),
+            "registered channel should win over same-named path"
+        );
+        assert_eq!(post_processed_cli.global.workdir, None);
     }
 
     #[test]
@@ -710,7 +762,7 @@ mod tests {
             ..Default::default()
         };
 
-        let post_processed_cli = post_process(cli, false);
+        let post_processed_cli = post_process(cli, false, &test_cable());
 
         let mut expected = Keybindings::new();
         expected.insert(Key::Esc, Action::Quit.into());
