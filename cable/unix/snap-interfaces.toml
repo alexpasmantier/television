@@ -1,0 +1,20 @@
+[metadata]
+name = "snap-interfaces"
+description = "Show details of snap interfaces"
+requirements = ["snap"]
+
+[source]
+command = [
+  { name = "Running", run = "snap interface | tail -n +2" },
+  { name = "All",     run = "snap interface --all | tail -n +2" },
+]
+output = "{split: :0}"
+
+[preview]
+command = "snap interface '{split: :0}'"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+[ui]
+layout = "portrait"

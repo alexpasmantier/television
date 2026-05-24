@@ -1,0 +1,46 @@
+[metadata]
+name = "snap-services"
+description = "Show details of Snap services"
+requirements = ["snap"]
+
+[source]
+command = [
+  { name = "User",     run = "snap services --user | tail -n +2" },
+  { name = "Global",   run = "snap services --global | tail -n +2" },
+]
+output = "{split: :0}"
+
+[preview]
+command = "snap services '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+[keybindings]
+ctrl-u = "actions:start"
+ctrl-d = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-l = "actions:logs"
+
+[actions.start]
+description = "Start the selected service"
+command = "snap start '{split: :0}'"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "snap stop '{split: :0}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "snap restart '{split: :0}'"
+mode = "fork"
+
+[actions.logs]
+description = "View logs of the selected service"
+command = "snap logs '{split: :0}'"
+mode = "execute"
