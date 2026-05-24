@@ -30,6 +30,9 @@ static COMPLEX_BRACES_REGEX: &Lazy<Regex> = regex!(r"\{[^}]+\}");
 /// * `envs` - Environment variables to set for the command
 /// * `shell_override` - Optionally override the shell used to execute the command.
 ///   If `None`, the shell is detected from the environment.
+/// * `shell_binaries` - A map of shell variant to binary path overrides. When an entry
+///   exists for the active shell, that path is used instead of the default binary name.
+///   Useful when multiple binaries share the same name (e.g. WSL bash vs Git Bash on Windows).
 ///
 /// # Returns
 /// * `Command` - A configured `Command` ready for execution
@@ -38,10 +41,16 @@ pub fn shell_command<S>(
     interactive: bool,
     envs: &HashMap<String, String, S>,
     shell_override: Option<Shell>,
+    shell_binaries: &std::collections::HashMap<Shell, String>,
 ) -> Command {
     let shell = shell_override
         .unwrap_or_else(|| Shell::from_env().unwrap_or_default());
-    let mut cmd = Command::new(shell.executable());
+    let default_binary = shell.executable();
+    let binary = shell_binaries
+        .get(&shell)
+        .map(String::as_str)
+        .unwrap_or(default_binary);
+    let mut cmd = Command::new(binary);
 
     let args = match shell {
         Shell::Psh if interactive => {
@@ -184,6 +193,7 @@ pub fn execute_action(
         action_spec.command.interactive,
         &action_spec.command.env,
         action_spec.command.shell,
+        &action_spec.command.shell_binaries,
     );
 
     #[cfg(unix)]
@@ -332,9 +342,63 @@ mod tests {
     }
 
     #[test]
+    fn test_shell_command_uses_binary_override_for_matching_shell() {
+        let mut shell_binaries = std::collections::HashMap::new();
+        shell_binaries.insert(Shell::Bash, "/custom/bin/bash".to_string());
+
+        let cmd = shell_command(
+            "echo hello",
+            false,
+            &std::collections::HashMap::<String, String>::new(),
+            Some(Shell::Bash),
+            &shell_binaries,
+        );
+
+        assert_eq!(cmd.get_program(), "/custom/bin/bash");
+    }
+
+    #[test]
+    fn test_shell_command_falls_back_to_default_binary_when_no_override() {
+        let shell_binaries = std::collections::HashMap::new();
+
+        let cmd = shell_command(
+            "echo hello",
+            false,
+            &std::collections::HashMap::<String, String>::new(),
+            Some(Shell::Bash),
+            &shell_binaries,
+        );
+
+        assert_eq!(cmd.get_program(), "bash");
+    }
+
+    #[test]
+    fn test_shell_command_only_overrides_matching_shell() {
+        // zsh override should NOT affect a bash command
+        let mut shell_binaries = std::collections::HashMap::new();
+        shell_binaries.insert(Shell::Zsh, "/custom/bin/zsh".to_string());
+
+        let cmd = shell_command(
+            "echo hello",
+            false,
+            &std::collections::HashMap::<String, String>::new(),
+            Some(Shell::Bash),
+            &shell_binaries,
+        );
+
+        assert_eq!(cmd.get_program(), "bash");
+    }
+
+    #[test]
     fn test_shell_command_powershell_interactive_args() {
         let envs = HashMap::new();
-        let cmd = shell_command("Get-Date", true, &envs, Some(Shell::Psh));
+        let cmd = shell_command(
+            "Get-Date",
+            true,
+            &envs,
+            Some(Shell::Psh),
+            &std::collections::HashMap::new(),
+        );
 
         let args: Vec<String> = cmd
             .get_args()
@@ -358,7 +422,13 @@ mod tests {
     #[test]
     fn test_shell_command_unix_interactive_args_order() {
         let envs = HashMap::new();
-        let cmd = shell_command("echo hi", true, &envs, Some(Shell::Bash));
+        let cmd = shell_command(
+            "echo hi",
+            true,
+            &envs,
+            Some(Shell::Bash),
+            &std::collections::HashMap::new(),
+        );
 
         let args: Vec<String> = cmd
             .get_args()
