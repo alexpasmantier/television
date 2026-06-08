@@ -249,6 +249,7 @@ impl Previewer {
                             results_handle,
                             cache,
                         ));
+                        let abort_handle = job.abort_handle();
                         match timeout(self.config.job_timeout, job).await {
                             Ok(Ok(Ok(()))) => {
                                 trace!("Preview job completed successfully");
@@ -265,8 +266,16 @@ impl Previewer {
                                     join_err
                                 );
                             }
-                            Err(e) => {
-                                warn!("Preview job timeout: {}", e);
+                            Err(_) => {
+                                warn!(
+                                    "Preview job for '{}' timed out after {:?}, aborting",
+                                    self.last_job_entry.clone().unwrap().raw,
+                                    self.config.job_timeout
+                                );
+                                // Cancel the detached task. Combined with
+                                // `kill_on_drop(true)` on the preview command,
+                                // this also kills the spawned child process.
+                                abort_handle.abort();
                             }
                         }
                     }
@@ -405,7 +414,10 @@ pub async fn try_preview(
         command.shell,
     );
 
-    let child = TokioCommand::from(shell_cmd).output().await?;
+    let mut tokio_command = TokioCommand::from(shell_cmd);
+    // Ensure the child process is killed if this task is dropped/aborted
+    tokio_command.kill_on_drop(true);
+    let child = tokio_command.output().await?;
 
     let mut text = if child.status.success() {
         child
