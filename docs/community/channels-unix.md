@@ -561,9 +561,11 @@ requirements = [ "distrobox", "bat",]
 
 [source]
 command = [ "distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tail --lines=+2",]
+shell = "bash"
 
 [preview]
 command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+shell = "bash"
 
 [keybindings]
 ctrl-e = "actions:distrobox-enter"
@@ -3634,6 +3636,146 @@ mode = "execute"
 description = "Kill selected tmux session (press Ctrl+r to reload)"
 command = "tmux kill-session -t '{strip_ansi|split: :1..|join: }'"
 mode = "fork"
+
+```
+
+
+---
+
+### *snap-interfaces*
+
+Show details of snap interfaces
+
+**Requirements:** `snap`
+
+**Code:** *snap-interfaces.toml*
+
+```toml
+[metadata]
+name = "snap-interfaces"
+description = "Show details of snap interfaces"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "Running"
+run = "snap interface | tail -n +2"
+
+[[source.command]]
+name = "All"
+run = "snap interface --all | tail -n +2"
+
+[preview]
+command = "snap interface '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+```
+
+
+---
+
+### *snap-services*
+
+Show details of Snap services
+
+**Requirements:** `snap`
+
+**Code:** *snap-services.toml*
+
+```toml
+[metadata]
+name = "snap-services"
+description = "Show details of Snap services"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "User"
+run = "snap services --user | tail -n +2"
+
+[[source.command]]
+name = "Global"
+run = "snap services --global | tail -n +2"
+
+[preview]
+command = "snap services '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-u = "actions:start"
+ctrl-d = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-l = "actions:logs"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+[actions.start]
+description = "Start the selected service"
+command = "snap start '{split: :0}'"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "snap stop '{split: :0}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "snap restart '{split: :0}'"
+mode = "fork"
+
+[actions.logs]
+description = "View logs of the selected service"
+command = "snap logs '{split: :0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *snap*
+
+List and manage Snaps
+
+**Requirements:** `snap`
+
+**Code:** *snap.toml*
+
+```toml
+[metadata]
+name = "snap"
+description = "List and manage Snaps"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "Running"
+run = "snap list | tail -n +2"
+
+[[source.command]]
+name = "All"
+run = "snap list --all | tail -n +2"
+
+[preview]
+command = "snap info '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
 
 ```
 
