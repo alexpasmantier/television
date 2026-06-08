@@ -40,7 +40,7 @@ pub struct Config {
 }
 
 pub const DEFAULT_REQUEST_MAX_AGE: Duration = Duration::from_millis(1000);
-pub const DEFAULT_JOB_TIMEOUT: Duration = Duration::from_millis(500);
+pub const DEFAULT_JOB_TIMEOUT: Duration = Duration::from_millis(3000);
 
 impl Default for Config {
     fn default() -> Self {
