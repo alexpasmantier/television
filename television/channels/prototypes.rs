@@ -235,6 +235,12 @@ impl ChannelKeyBindings {
     }
 }
 
+pub fn remove_enter_keybinding(prototype: &mut ChannelPrototype) {
+    if let Some(keybindings) = &mut prototype.keybindings {
+        keybindings.bindings.remove(&Key::Enter);
+    }
+}
+
 #[derive(Default, Debug, Clone, serde::Deserialize, serde::Serialize)]
 pub struct HistoryConfig {
     /// Whether to use global history for this channel (overrides global setting)
@@ -717,6 +723,41 @@ mod tests {
         assert_eq!(
             keybindings.bindings.get(&Key::Enter),
             Some(&Action::ConfirmSelection.into())
+        );
+    }
+
+    #[test]
+    fn test_unbind_enter_keybinding_removes_enter() {
+        let toml_data = r#"
+        [metadata]
+        name = "files"
+
+        [source]
+        command = "fd -t f"
+
+        [keybindings]
+        esc = "quit"
+        enter = "action:checkout"
+        "#;
+
+        let mut prototype: ChannelPrototype = from_str(toml_data).unwrap();
+        assert!(
+            prototype
+                .keybindings
+                .as_ref()
+                .unwrap()
+                .bindings
+                .contains_key(&Key::Enter)
+        );
+
+        remove_enter_keybinding(&mut prototype);
+
+        let keybindings = prototype.keybindings.unwrap();
+        // The <Enter> binding is gone, but other bindings are untouched.
+        assert!(!keybindings.bindings.contains_key(&Key::Enter));
+        assert_eq!(
+            keybindings.bindings.get(&Key::Esc),
+            Some(&Action::Quit.into())
         );
     }
 
