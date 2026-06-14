@@ -22,6 +22,10 @@ pub enum Action {
     GoToPrevChar,
     /// Move the cursor to the character after the current cursor position.
     GoToNextChar,
+    /// Move the cursor to the word after the current cursor position.
+    GoToNextWord,
+    /// Move the cursor to the word before the current cursor position.
+    GoToPrevWord,
     /// Move the cursor to the start of the input buffer.
     GoToInputStart,
     /// Move the cursor to the end of the input buffer.
@@ -348,6 +352,8 @@ impl Action {
             Action::DeleteLine => "Delete line",
             Action::GoToPrevChar => "Move cursor left",
             Action::GoToNextChar => "Move cursor right",
+            Action::GoToNextWord => "Move cursor to next word",
+            Action::GoToPrevWord => "Move cursor to previous word",
             Action::GoToInputStart => "Move to start",
             Action::GoToInputEnd => "Move to end",
 

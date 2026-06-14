@@ -695,6 +695,26 @@ mod tests {
     }
 
     #[test]
+    fn test_deserialize_go_to_word_actions() {
+        let keybindings: Keybindings = toml::from_str(
+            r#"
+                "alt-b" = "go_to_prev_word"
+                "alt-f" = "go_to_next_word"
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            keybindings.0.get(&Key::Alt('b')),
+            Some(&Action::GoToPrevWord.into())
+        );
+        assert_eq!(
+            keybindings.0.get(&Key::Alt('f')),
+            Some(&Action::GoToNextWord.into())
+        );
+    }
+
+    #[test]
     fn test_complex_configuration_with_all_features() {
         let keybindings: Keybindings = toml::from_str(
             r#"

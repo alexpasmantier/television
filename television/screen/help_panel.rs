@@ -71,6 +71,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::DeleteLine
                 | Action::GoToPrevChar
                 | Action::GoToNextChar
+                | Action::GoToNextWord
+                | Action::GoToPrevWord
                 | Action::GoToInputStart
                 | Action::GoToInputEnd
                 // Navigation actions - available in both modes
@@ -136,6 +138,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::DeleteLine
                 | Action::GoToPrevChar
                 | Action::GoToNextChar
+                | Action::GoToNextWord
+                | Action::GoToPrevWord
                 | Action::GoToInputStart
                 | Action::GoToInputEnd
                 // Navigation actions - available in both modes
