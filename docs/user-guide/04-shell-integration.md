@@ -58,6 +58,16 @@ mkdir ($nu.data-dir | path join "vendor/autoload")
 tv init nu | save -f ($nu.data-dir | path join "vendor/autoload/tv.nu")
 ```
 
+### Xonsh
+
+To enable shell integration for xonsh, add this to your `~/.xonshrc` file:
+
+```xonsh
+execx($(tv init xonsh), "exec", __xonsh__.ctx, filename="television")
+```
+
+Then restart your shell.
+
 ### PowerShell
 
 To enable shell integration for PowerShell, run:
@@ -160,6 +170,18 @@ Then add to your PowerShell profile:
 
 ```powershell
 . $HOME/.config/television/shell/integration.ps1
+```
+
+#### Xonsh
+
+```shell
+tv init xonsh > ~/.config/television/shell/integration.xsh
+```
+
+Then add to your `~/.xonshrc` file:
+
+```xonsh
+source ~/.config/television/shell/integration.xsh
 ```
 
 For all shells you'll have to restart it (or similar) to integrate the changes.

@@ -8,9 +8,13 @@ In order to develop locally on the shell integration scripts, here are a couple 
    ```sh
    just generate-dev-shell-integration zsh
    ```
-   (or `fish`, `bash`, etc. depending on the shell you are using)
+   (or `fish`, `bash`, `xonsh`, etc. depending on the shell you are using)
 3. Source the generated script in your shell:
    ```sh
    source dev_shell_integration.zsh
+   ```
+   For xonsh, run:
+   ```xonsh
+   source dev_shell_integration.xonsh
    ```
 4. Test the changes by using the shell integration keybindings or commands in your terminal.

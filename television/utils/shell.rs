@@ -19,6 +19,7 @@ pub enum Shell {
     Psh,
     Cmd,
     Nu,
+    Xonsh,
 }
 
 impl Default for Shell {
@@ -54,6 +55,10 @@ impl TryFrom<Shell> for clap_complete::Shell {
             Shell::Nu => Err(ShellError::UnsupportedShell(
                 "Nu shell is not supported for completion scripts".to_string(),
             )),
+            Shell::Xonsh => Err(ShellError::UnsupportedShell(
+                "Xonsh shell is not supported for completion scripts"
+                    .to_string(),
+            )),
         }
     }
 }
@@ -67,6 +72,7 @@ impl Display for Shell {
             Shell::Psh => write!(f, "powershell"),
             Shell::Cmd => write!(f, "cmd"),
             Shell::Nu => write!(f, "nu"),
+            Shell::Xonsh => write!(f, "xonsh"),
         }
     }
 }
@@ -87,6 +93,8 @@ impl TryFrom<&str> for Shell {
             Ok(Shell::Psh)
         } else if value.contains("cmd") {
             Ok(Shell::Cmd)
+        } else if value.contains("xonsh") {
+            Ok(Shell::Xonsh)
         } else if value.contains("nu") {
             Ok(Shell::Nu)
         } else {
@@ -140,6 +148,7 @@ impl Shell {
             Shell::Psh => "powershell",
             Shell::Cmd => "cmd",
             Shell::Nu => "nu",
+            Shell::Xonsh => "xonsh",
         }
     }
 }
@@ -153,6 +162,7 @@ impl From<CliShell> for Shell {
             CliShell::PowerShell => Shell::Psh,
             CliShell::Cmd => Shell::Cmd,
             CliShell::Nu => Shell::Nu,
+            CliShell::Xonsh => Shell::Xonsh,
         }
     }
 }
@@ -166,6 +176,7 @@ impl From<&CliShell> for Shell {
             CliShell::PowerShell => Shell::Psh,
             CliShell::Cmd => Shell::Cmd,
             CliShell::Nu => Shell::Nu,
+            CliShell::Xonsh => Shell::Xonsh,
         }
     }
 }
@@ -175,6 +186,7 @@ const COMPLETION_BASH: &str = include_str!("shell/completion.bash");
 const COMPLETION_FISH: &str = include_str!("shell/completion.fish");
 const COMPLETION_NU: &str = include_str!("shell/completion.nu");
 const COMPLETION_POWERSHELL: &str = include_str!("shell/completion.ps1");
+const COMPLETION_XONSH: &str = include_str!("shell/completion.xsh");
 
 // create the appropriate key binding for each supported shell
 pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
@@ -190,6 +202,14 @@ pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
             }
         }
         Shell::Nu => Ok(format!(r"Ctrl-{character}")),
+        Shell::Xonsh => {
+            if character == ' ' {
+                Ok("c-space".to_string())
+            } else {
+                let lower_char = character.to_ascii_lowercase();
+                Ok(format!("c-{lower_char}"))
+            }
+        }
         Shell::Psh => Ok(format!(r"Ctrl+{}", character.to_ascii_lowercase())),
         Shell::Cmd => {
             anyhow::bail!("This shell is not yet supported: {:?}", shell)
@@ -204,6 +224,7 @@ pub fn completion_script(shell: Shell) -> Result<&'static str> {
         Shell::Fish => Ok(COMPLETION_FISH),
         Shell::Nu => Ok(COMPLETION_NU),
         Shell::Psh => Ok(COMPLETION_POWERSHELL),
+        Shell::Xonsh => Ok(COMPLETION_XONSH),
         Shell::Cmd => {
             anyhow::bail!("This shell is not yet supported: {:?}", shell)
         }
@@ -320,6 +341,20 @@ mod tests {
     }
 
     #[test]
+    fn test_xonsh_ctrl_keybinding() {
+        let shell = Shell::Xonsh;
+        assert_eq!(ctrl_keybinding(shell, 'T').unwrap(), "c-t");
+        assert_eq!(ctrl_keybinding(shell, ' ').unwrap(), "c-space");
+    }
+
+    #[test]
+    fn test_xonsh_shell_metadata() {
+        assert_eq!(Shell::try_from("/usr/bin/xonsh").unwrap(), Shell::Xonsh);
+        assert_eq!(Shell::Xonsh.executable(), "xonsh");
+        assert_eq!(Shell::Xonsh.to_string(), "xonsh");
+    }
+
+    #[test]
     fn test_zsh_clap_completion() {
         let shell = Shell::Zsh;
         let result = render_autocomplete_script_template(
@@ -346,6 +381,17 @@ mod tests {
     }
 
     #[test]
+    fn test_xonsh_clap_completion_unsupported() {
+        let result = render_autocomplete_script_template(
+            Shell::Xonsh,
+            "",
+            &ShellIntegrationConfig::default(),
+        );
+        assert!(result.is_ok());
+        assert!(result.unwrap().is_empty());
+    }
+
+    #[test]
     fn test_powershell_clap_completion() {
         let shell = Shell::Psh;
         let result = render_autocomplete_script_template(
@@ -368,5 +414,35 @@ mod tests {
         assert!(script.contains("Invoke-TvSmartAutocomplete"));
         assert!(script.contains("Invoke-TvShellHistory"));
         assert!(script.contains("Set-PSReadLineKeyHandler"));
+    }
+
+    #[test]
+    fn test_xonsh_completion_script() {
+        let script = completion_script(Shell::Xonsh).unwrap();
+        assert!(script.contains("prompt_toolkit"));
+        assert!(script.contains(r#""best""#));
+        assert!(script.contains("from xonsh.events import events"));
+        assert!(script.contains("@events.on_ptk_create"));
+        assert!(script.contains("eager=True"));
+        assert!(script.contains("responds_to_cpr = False"));
+        assert!(script.contains("run_in_terminal"));
+        assert!(script.contains("_tv_unquote_token"));
+        assert!(!script.contains("stderr=subprocess.DEVNULL"));
+        assert!(!script.contains(r#""--inline""#));
+        assert!(script.contains("__xonsh__.history"));
+        assert!(script.contains("all_items(newest_first=True)"));
+        assert!(script.contains("right = text[cursor:]"));
+        assert!(!script.contains("xonsh-history"));
+        assert!(script.contains("tv_smart_autocomplete"));
+        assert!(script.contains("tv_shell_history"));
+
+        let rendered = render_autocomplete_script_template(
+            Shell::Xonsh,
+            script,
+            &ShellIntegrationConfig::default(),
+        )
+        .unwrap();
+        assert!(!rendered.contains("{tv_smart_autocomplete_keybinding}"));
+        assert!(!rendered.contains("{tv_shell_history_keybinding}"));
     }
 }
