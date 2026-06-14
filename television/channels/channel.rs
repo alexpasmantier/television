@@ -173,6 +173,13 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.tick();
     }
 
+    /// Refresh cached counts without running the full results pipeline.
+    ///
+    /// Keeps `result_count()` accurate on ticks where `results()` is skipped.
+    pub fn update_counts(&mut self) {
+        self.matcher.update_counts();
+    }
+
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
         self.matcher.tick();
 
@@ -578,6 +585,7 @@ impl ChannelKind {
         reload() -> (),
         find(pattern: &str) -> (),
         tick() -> (),
+        update_counts() -> (),
         results(num_entries: u32, offset: u32) -> Vec<Entry>,
         get_result(index: u32) -> Option<Entry>,
         toggle_selection(entry: &Entry) -> (),

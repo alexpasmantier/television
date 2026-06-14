@@ -1149,6 +1149,7 @@ impl Television {
 
         // Always let the background matcher make progress
         self.channel.tick();
+        self.channel.update_counts();
 
         // When the channel transitions from running to stopped, reset ticks
         // to restart the fast-render window. This ensures newly loaded results
@@ -1160,9 +1161,11 @@ impl Television {
         }
         self.was_running = running;
 
-        // Only run the full results pipeline when the action could
-        // have changed the results or the visible viewport
-        if action.affects_results() {
+        let will_render = self.should_render(action);
+
+        // Defer the expensive results pipeline (matcher lock, index
+        // computation, per-item to_string) to render-eligible ticks.
+        if will_render {
             self.update_results_picker_state();
         }
 
@@ -1181,7 +1184,7 @@ impl Television {
         }
         self.ticks += 1;
 
-        Ok(if self.should_render(action) {
+        Ok(if will_render {
             Some(Action::Render)
         } else {
             None
