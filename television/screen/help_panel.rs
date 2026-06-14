@@ -71,6 +71,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::DeleteLine
                 | Action::GoToPrevChar
                 | Action::GoToNextChar
+                | Action::GoToNextWord
+                | Action::GoToPrevWord
                 | Action::GoToInputStart
                 | Action::GoToInputEnd
                 // Navigation actions - available in both modes
@@ -78,6 +80,14 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::SelectPrevEntry
                 | Action::SelectNextPage
                 | Action::SelectPrevPage
+                | Action::SelectNextHalfPage
+                | Action::SelectPrevHalfPage
+                | Action::SelectNextEntryNocycle
+                | Action::SelectPrevEntryNocycle
+                | Action::SelectNextPageNocycle
+                | Action::SelectPrevPageNocycle
+                | Action::SelectNextHalfPageNocycle
+                | Action::SelectPrevHalfPageNocycle
                 // Selection actions - channel specific (multi-select)
                 | Action::ToggleSelectionDown
                 | Action::ToggleSelectionUp
@@ -136,6 +146,8 @@ fn is_action_relevant_for_mode(action: &Action, mode: Mode) -> bool {
                 | Action::DeleteLine
                 | Action::GoToPrevChar
                 | Action::GoToNextChar
+                | Action::GoToNextWord
+                | Action::GoToPrevWord
                 | Action::GoToInputStart
                 | Action::GoToInputEnd
                 // Navigation actions - available in both modes

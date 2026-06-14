@@ -55,14 +55,15 @@ impl<T> Picker<T> {
         step: u32,
         total_items: usize,
         height: usize,
+        cyclic: bool,
     ) {
         if self.inverted {
             for _ in 0..step {
-                self.inner_prev(total_items, height);
+                self.inner_prev(total_items, height, cyclic);
             }
         } else {
             for _ in 0..step {
-                self.inner_next(total_items, height);
+                self.inner_next(total_items, height, cyclic);
             }
         }
     }
@@ -72,23 +73,28 @@ impl<T> Picker<T> {
         step: u32,
         total_items: usize,
         height: usize,
+        cyclic: bool,
     ) {
         if self.inverted {
             for _ in 0..step {
-                self.inner_next(total_items, height);
+                self.inner_next(total_items, height, cyclic);
             }
         } else {
             for _ in 0..step {
-                self.inner_prev(total_items, height);
+                self.inner_prev(total_items, height, cyclic);
             }
         }
     }
 
-    fn inner_next(&mut self, total_items: usize, height: usize) {
+    fn inner_next(&mut self, total_items: usize, height: usize, cyclic: bool) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
 
-        let new_selected = selected.wrapping_add(1) % total_items;
+        let new_selected = if cyclic {
+            selected.wrapping_add(1) % total_items
+        } else {
+            (selected + 1).min(total_items - 1)
+        };
         self.select(Some(new_selected));
 
         if new_selected == 0 {
@@ -100,12 +106,15 @@ impl<T> Picker<T> {
         }
     }
 
-    fn inner_prev(&mut self, total_items: usize, height: usize) {
+    fn inner_prev(&mut self, total_items: usize, height: usize, cyclic: bool) {
         let selected = self.selected().unwrap_or(0);
         let relative_selected = self.relative_selected().unwrap_or(0);
 
-        let new_selected =
-            selected.wrapping_add(total_items - 1) % total_items;
+        let new_selected = if cyclic {
+            selected.wrapping_add(total_items - 1) % total_items
+        } else {
+            selected.saturating_sub(1)
+        };
         self.select(Some(new_selected));
 
         if new_selected == total_items - 1 {
@@ -121,6 +130,7 @@ impl<T> Picker<T> {
         step: u32,
         total_items: usize,
         picker_ui_height: usize,
+        cyclic: bool,
     ) {
         // Early return for empty collections
         if total_items == 0 {
@@ -129,10 +139,10 @@ impl<T> Picker<T> {
 
         match movement {
             Movement::Next => {
-                self.select_next(step, total_items, picker_ui_height);
+                self.select_next(step, total_items, picker_ui_height, cyclic);
             }
             Movement::Prev => {
-                self.select_prev(step, total_items, picker_ui_height);
+                self.select_prev(step, total_items, picker_ui_height, cyclic);
             }
         }
     }
@@ -179,7 +189,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(0));
         picker.relative_select(Some(0));
-        picker.select_next(1, 4, 3);
+        picker.select_next(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(1), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }
@@ -193,7 +203,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(1));
         picker.relative_select(Some(1));
-        picker.select_next(1, 4, 3);
+        picker.select_next(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(2), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -207,7 +217,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_next(1, 4, 3);
+        picker.select_next(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(3), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -221,7 +231,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(3));
         picker.relative_select(Some(2));
-        picker.select_next(1, 4, 3);
+        picker.select_next(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -235,7 +245,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_next(1, 3, 4);
+        picker.select_next(1, 3, 4, true);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -249,7 +259,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(1));
         picker.relative_select(Some(1));
-        picker.select_prev(1, 4, 3);
+        picker.select_prev(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
@@ -263,7 +273,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(0));
         picker.relative_select(Some(0));
-        picker.select_prev(1, 4, 3);
+        picker.select_prev(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(3), "selected");
         assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
     }
@@ -277,7 +287,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(3));
         picker.relative_select(Some(2));
-        picker.select_prev(1, 4, 3);
+        picker.select_prev(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(2), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }
@@ -291,7 +301,7 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(2));
         picker.relative_select(Some(2));
-        picker.select_prev(1, 4, 3);
+        picker.select_prev(1, 4, 3, true);
         assert_eq!(picker.selected(), Some(1), "selected");
         assert_eq!(picker.relative_selected(), Some(1), "relative_selected");
     }
@@ -323,10 +333,74 @@ mod tests {
         let mut picker = Picker::<Entry>::default();
         picker.select(Some(0));
         picker.relative_select(Some(0));
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 2, true);
         picker = picker.inverted();
-        picker.select_next(1, 4, 2);
+        picker.select_next(1, 4, 2, true);
         assert!(picker.inverted, "inverted");
+        assert_eq!(picker.selected(), Some(0), "selected");
+        assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
+    }
+
+    /// Nocycle: next at last item stays at last item
+    ///
+    /// - item 0         *
+    /// - item 1         *
+    /// - item 2       R * height
+    /// - item 3 S/next
+    #[test]
+    fn test_picker_select_next_nocycle_at_last() {
+        let mut picker = Picker::<Entry>::default();
+        picker.select(Some(3));
+        picker.relative_select(Some(2));
+        picker.select_next(1, 4, 3, false);
+        assert_eq!(picker.selected(), Some(3), "selected");
+        assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
+    }
+
+    /// Nocycle: prev at first item stays at first item
+    ///
+    /// - item 0 S/prev  *
+    /// - item 1         *
+    /// - item 2       R * height
+    /// - item 3
+    #[test]
+    fn test_picker_select_prev_nocycle_at_first() {
+        let mut picker = Picker::<Entry>::default();
+        picker.select(Some(0));
+        picker.relative_select(Some(0));
+        picker.select_prev(1, 4, 3, false);
+        assert_eq!(picker.selected(), Some(0), "selected");
+        assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
+    }
+
+    /// Nocycle: next mid-list still advances normally
+    ///
+    /// - item 0         *
+    /// - item 1 S     R *
+    /// - item 2 next    * height
+    /// - item 3
+    #[test]
+    fn test_picker_select_next_nocycle_mid() {
+        let mut picker = Picker::<Entry>::default();
+        picker.select(Some(1));
+        picker.relative_select(Some(1));
+        picker.select_next(1, 4, 3, false);
+        assert_eq!(picker.selected(), Some(2), "selected");
+        assert_eq!(picker.relative_selected(), Some(2), "relative_selected");
+    }
+
+    /// Nocycle: prev mid-list still retreats normally
+    ///
+    /// - item 0 prev    *
+    /// - item 1 S     R *
+    /// - item 2         * height
+    /// - item 3
+    #[test]
+    fn test_picker_select_prev_nocycle_mid() {
+        let mut picker = Picker::<Entry>::default();
+        picker.select(Some(1));
+        picker.relative_select(Some(1));
+        picker.select_prev(1, 4, 3, false);
         assert_eq!(picker.selected(), Some(0), "selected");
         assert_eq!(picker.relative_selected(), Some(0), "relative_selected");
     }
