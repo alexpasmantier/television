@@ -1,14 +1,12 @@
 use criterion::criterion_group;
 use criterion::{BenchmarkId, Criterion, Throughput};
+use nucleo::SortStrategy;
 use std::hint::black_box;
 use television::channels::entry_processor::{
     AnsiProcessor, DisplayProcessor, PlainProcessor,
 };
 use television::channels::prototypes::SourceSpec;
-use television::matcher::{
-    Matcher,
-    config::{Config, SortStrategy},
-};
+use television::matcher::{Matcher, matcher_threads};
 use tokio::runtime::Runtime;
 
 pub fn load_candidates_by_size(c: &mut Criterion) {
@@ -40,8 +38,8 @@ pub fn load_candidates_by_size(c: &mut Criterion) {
 
                     // Plain mode uses Matcher<()> for memory efficiency
                     let mut matcher = Matcher::<()>::new(
-                        &Config::default(),
                         SortStrategy::Score,
+                        matcher_threads(),
                     );
                     let injector = matcher.injector();
 
@@ -84,7 +82,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
 
             // Plain mode uses Matcher<()>
             let mut matcher =
-                Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+                Matcher::<()>::new(SortStrategy::Score, matcher_threads());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
@@ -113,10 +111,8 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
             .unwrap();
 
             // ANSI mode uses Matcher<String> to store original
-            let mut matcher = Matcher::<String>::new(
-                &Config::default(),
-                SortStrategy::Score,
-            );
+            let mut matcher =
+                Matcher::<String>::new(SortStrategy::Score, matcher_threads());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
@@ -154,7 +150,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
 
             // Plain mode uses Matcher<()>
             let mut matcher =
-                Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+                Matcher::<()>::new(SortStrategy::Score, matcher_threads());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
@@ -182,10 +178,8 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
             .unwrap();
 
             // Display mode uses Matcher<String> to store original
-            let mut matcher = Matcher::<String>::new(
-                &Config::default(),
-                SortStrategy::Score,
-            );
+            let mut matcher =
+                Matcher::<String>::new(SortStrategy::Score, matcher_threads());
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(

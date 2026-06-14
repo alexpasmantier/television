@@ -7,11 +7,10 @@ use crate::{
         prototypes::{CommandSpec, Template},
     },
     frecency::FrecencyHandle,
-    matcher::{
-        Matcher, config::Config, config::SortStrategy, injector::Injector,
-    },
+    matcher::{Matcher, injector::Injector, matcher_threads},
     utils::command::shell_command,
 };
+use nucleo::SortStrategy;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::cmp::Ordering;
 use std::collections::HashSet;
@@ -59,8 +58,6 @@ impl<P: EntryProcessor> Channel<P> {
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
     ) -> Self {
-        let config = Config::default().prefer_prefix(true);
-
         let sort_strategy = if no_sort {
             SortStrategy::Index
         } else if let Some((frecency_handle, channel_name)) = frecency {
@@ -85,7 +82,7 @@ impl<P: EntryProcessor> Channel<P> {
             SortStrategy::Score
         };
 
-        let matcher = Matcher::new(&config, sort_strategy);
+        let matcher = Matcher::new(sort_strategy, matcher_threads());
         let current_source_index = 0;
         Self {
             source_command,
@@ -607,10 +604,10 @@ impl ChannelKind {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        channels::prototypes::SourceSpec,
-        matcher::config::{Config, SortStrategy},
-    };
+    use crate::channels::prototypes::SourceSpec;
+    use nucleo::SortStrategy;
+
+    const MATCHER_TEST_THREADS: usize = 1;
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
     async fn test_load_candidates_default_delimiter() {
@@ -623,7 +620,7 @@ mod tests {
 
         // Use PlainProcessor for no ansi, no display
         let mut matcher =
-            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
         let injector = matcher.injector();
 
         load_candidates(
@@ -654,7 +651,7 @@ mod tests {
         .unwrap();
 
         let mut matcher =
-            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
         let injector = matcher.injector();
 
         load_candidates(
@@ -685,7 +682,7 @@ mod tests {
         .unwrap();
 
         let mut matcher =
-            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
         let injector = matcher.injector();
 
         load_candidates(
@@ -717,7 +714,7 @@ mod tests {
         .unwrap();
 
         let mut matcher =
-            Matcher::<()>::new(&Config::default(), SortStrategy::Score);
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
         let injector = matcher.injector();
 
         load_candidates(
@@ -749,7 +746,7 @@ mod tests {
         .unwrap();
 
         let mut matcher =
-            Matcher::<String>::new(&Config::default(), SortStrategy::Score);
+            Matcher::<String>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
         let injector = matcher.injector();
 
         load_candidates(

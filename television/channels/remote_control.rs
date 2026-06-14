@@ -5,14 +5,12 @@ use crate::{
         prototypes::{BinaryRequirement, ChannelPrototype},
     },
     event::Key,
-    matcher::{
-        Matcher,
-        config::{Config, SortStrategy},
-    },
+    matcher::Matcher,
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
 use devicons::FileIcon;
+use nucleo::SortStrategy;
 use smallvec::SmallVec;
 
 #[derive(Debug, Clone)]
@@ -86,14 +84,11 @@ pub struct RemoteControl {
     pub cable_channels: Cable,
 }
 
-const NUM_THREADS: usize = 1;
+const REMOTE_NUM_THREADS: usize = 1;
 
 impl RemoteControl {
     pub fn new(cable_channels: Cable, sort_alphabetically: bool) -> Self {
-        let matcher = Matcher::new(
-            &Config::default().n_threads(Some(NUM_THREADS)),
-            SortStrategy::Score,
-        );
+        let matcher = Matcher::new(SortStrategy::Score, REMOTE_NUM_THREADS);
         let injector = matcher.injector();
 
         // Sort channels based on configuration
