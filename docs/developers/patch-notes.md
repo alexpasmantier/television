@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 {/* ignore lint rules that are often triggered by content generated from commits / git-cliff */}
 {/* markdownlint-disable line-length no-bare-urls ul-style emphasis-style */}
 
+## [0.15.9](https://github.com/alexpasmantier/television/releases/tag/0.15.9) - 2026-06-14
+
+### 🐛 Bug Fixes
+
+- [c233146](https://github.com/alexpasmantier/television/commit/c23314661745102759b48a03f8d529081d412995) *(autocomplete)* Ignore enter keybindings for shell integration by @alexpasmantier in [#1092](https://github.com/alexpasmantier/television/pull/1092)
+
+- [c44cbed](https://github.com/alexpasmantier/television/commit/c44cbeddf5fe0c297d23d3eaa1b6663d9d971dfc) *(cable)* Remove redundant quoting around \{\} in action commands by @Mic92 in [#1048](https://github.com/alexpasmantier/television/pull/1048)
+
+### ⚡ Performance
+
+- [bdb2c35](https://github.com/alexpasmantier/television/commit/bdb2c35028dd81f7a2edd593f132f9c8c72f1502) *(uncategorized)* Better thread allocation for the matcher by @alexpasmantier in [#1091](https://github.com/alexpasmantier/television/pull/1091)
+
+### ⚙️ Miscellaneous Tasks
+
+- [b17cdfa](https://github.com/alexpasmantier/television/commit/b17cdfaa43c7e1300d52d2660fc9793a1fda7e21) *(uncategorized)* Release version 0.15.9 by @alexpasmantier
+
+
+
+### New Contributors
+* @Mic92 made their first contribution in [#1048](https://github.com/alexpasmantier/television/pull/1048)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.8...0.15.9
+
+
 ## [0.15.8](https://github.com/alexpasmantier/television/releases/tag/0.15.8) - 2026-06-08
 
 ### ⛰️  Features
