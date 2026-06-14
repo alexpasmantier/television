@@ -28,10 +28,10 @@ where
     ///
     /// # Example
     /// ```
-    /// use television::matcher::{config::{Config, SortStrategy}, Matcher};
+    /// use television::matcher::{Matcher};
+    /// use nucleo::SortStrategy;
     ///
-    /// let config = Config::default();
-    /// let matcher = Matcher::new(&config, SortStrategy::Score);
+    /// let matcher = Matcher::new(SortStrategy::Score, 2);
     ///
     /// let injector = matcher.injector();
     /// injector.push(

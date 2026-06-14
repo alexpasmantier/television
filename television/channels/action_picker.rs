@@ -1,15 +1,10 @@
 use crate::{
-    action::CUSTOM_ACTION_PREFIX,
-    channels::entry::into_ranges,
-    channels::prototypes::ActionSpec,
-    event::Key,
-    matcher::{
-        Matcher,
-        config::{Config, SortStrategy},
-    },
+    action::CUSTOM_ACTION_PREFIX, channels::entry::into_ranges,
+    channels::prototypes::ActionSpec, event::Key, matcher::Matcher,
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
+use nucleo::SortStrategy;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
@@ -84,10 +79,7 @@ impl ActionPicker {
         channel_actions: &FxHashMap<String, ActionSpec>,
         action_keybindings: &FxHashMap<String, Key>,
     ) -> Self {
-        let matcher = Matcher::new(
-            &Config::default().n_threads(Some(NUM_THREADS)),
-            SortStrategy::Score,
-        );
+        let matcher = Matcher::new(SortStrategy::Score, NUM_THREADS);
         let injector = matcher.injector();
 
         // Sort actions alphabetically for consistent display

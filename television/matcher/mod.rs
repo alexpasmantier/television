@@ -1,7 +1,6 @@
 use injector::Injector;
-use std::sync::Arc;
+use std::{sync::Arc, thread::available_parallelism};
 
-pub mod config;
 pub mod injector;
 pub mod lazy;
 pub mod matched_item;
@@ -55,19 +54,33 @@ where
     col_indices_buffer: Vec<u32>,
 }
 
+/// Get the number of threads to use for the matcher.
+///
+/// This uses the number of available threads on the system, minus 3, to avoid
+/// saturating the system.
+///
+/// The number is capped to 32 threads to avoid impacting startup time and memory usage.
+///
+/// Defaults to 4 if the number of available threads cannot be determined.
+pub fn matcher_threads() -> usize {
+    available_parallelism()
+        .map(|n| n.get().saturating_sub(3).min(32))
+        .unwrap_or(4)
+}
+
 impl<I> Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
     /// Create a new fuzzy matcher with the given configuration and sort strategy.
     pub fn new(
-        config: &config::Config,
-        sort_strategy: config::SortStrategy<I>,
+        sort_strategy: nucleo::SortStrategy<I>,
+        n_threads: usize,
     ) -> Self {
         let mut inner = nucleo::Nucleo::new(
-            config.into(),
+            nucleo::Config::DEFAULT,
             Arc::new(|| {}),
-            config.n_threads,
+            Some(n_threads),
             1,
         );
         inner.set_sort_strategy(sort_strategy);
