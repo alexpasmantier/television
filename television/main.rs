@@ -4,6 +4,7 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stderr, stdout};
 use std::path::PathBuf;
 use std::process::exit;
+use television::channels::prototypes::remove_enter_keybinding;
 use television::cli::ChannelCli;
 use television::config::layers::ConfigLayers;
 use television::config::shell_integration::ShellIntegrationConfig;
@@ -203,13 +204,15 @@ pub fn determine_channel(
         ChannelPrototype::stdin()
     } else if let Some(prompt) = &cli.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
-        let prototype = guess_channel_from_prompt(
+        let mut prototype = guess_channel_from_prompt(
             prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
             cable,
         );
         debug!("Using guessed channel: {:?}", prototype);
+        // Unbind any <Enter> keybinding since that would interfere with autocompletion behavior.
+        remove_enter_keybinding(&mut prototype);
         prototype
     } else if cli.channel.is_none() && cli.source_command.is_some() {
         create_adhoc_channel(cli)
@@ -231,6 +234,7 @@ mod tests {
             ChannelPrototype, CommandSpec, PreviewSpec, Template,
         },
         cli::PostProcessedCli,
+        event::Key,
     };
 
     use super::*;
@@ -303,6 +307,67 @@ mod tests {
             false,
             &expected_channel,
             None,
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_autocomplete_unbinds_enter() {
+        // A channel that defines an <Enter> keybinding.
+        let toml_data = r#"
+        [metadata]
+        name = "git-branches"
+
+        [source]
+        command = "git branch --all"
+
+        [keybindings]
+        esc = "quit"
+        enter = "actions:checkout"
+        "#;
+        let branches: ChannelPrototype = toml::from_str(toml_data).unwrap();
+        assert!(
+            branches
+                .keybindings
+                .as_ref()
+                .unwrap()
+                .bindings
+                .contains_key(&Key::Enter)
+        );
+
+        let cable = Cable::from_prototypes(vec![branches]);
+        let config = Config {
+            shell_integration:
+                television::config::shell_integration::ShellIntegrationConfig {
+                    fallback_channel: "git-branches".to_string(),
+                    commands: {
+                        let mut m = FxHashMap::default();
+                        m.insert(
+                            "git checkout".to_string(),
+                            "git-branches".to_string(),
+                        );
+                        m
+                    },
+                    keybindings: FxHashMap::default(),
+                },
+            ..Default::default()
+        };
+        let cli = ChannelCli {
+            autocomplete_prompt: Some("git checkout ".to_string()),
+            ..Default::default()
+        };
+
+        let channel = determine_channel(&cli, &config, false, &cable);
+
+        // In autocomplete mode the <Enter> binding is stripped so it doesn't
+        // interfere with the autocompletion behavior.
+        assert_eq!(channel.metadata.name, "git-branches");
+        assert!(
+            !channel
+                .keybindings
+                .as_ref()
+                .unwrap()
+                .bindings
+                .contains_key(&Key::Enter)
         );
     }
 
