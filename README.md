@@ -10,7 +10,9 @@
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 [![Discord](https://img.shields.io/discord/1366133668535341116?logo=discord)](https://discord.gg/hQBrzsJgUg)
 
-<img width="1473" height="761" alt="image" src="https://github.com/user-attachments/assets/0ff21160-6060-4804-ae0b-2ce9500ed9c5" />
+<img width="1909" height="1042" alt="image" src="https://github.com/user-attachments/assets/6255d115-3490-45ee-82cb-b3a84b2e852d" />
+
+<!-- <img width="1473" height="761" alt="image" src="https://github.com/user-attachments/assets/0ff21160-6060-4804-ae0b-2ce9500ed9c5" /> -->
 
 </div>
 
@@ -41,14 +43,14 @@ curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 
 ### Package Managers
 
-| Platform | Command |
-|----------|---------|
-| **Arch Linux** | `pacman -S television` |
-| **Homebrew** | `brew install television` |
-| **Cargo** | `cargo install television` |
-| **Scoop** | `scoop bucket add extras && scoop install television` |
-| **WinGet** | `winget install --exact --id alexpasmantier.television` |
-| **Nix** | `nix run nixpkgs#television` |
+| Platform       | Command                                                 |
+| -------------- | ------------------------------------------------------- |
+| **Arch Linux** | `pacman -S television`                                  |
+| **Homebrew**   | `brew install television`                               |
+| **Cargo**      | `cargo install television`                              |
+| **Scoop**      | `scoop bucket add extras && scoop install television`   |
+| **WinGet**     | `winget install --exact --id alexpasmantier.television` |
+| **Nix**        | `nix run nixpkgs#television`                            |
 
 For more installation options, see [Installation](https://alexpasmantier.github.io/television/getting-started/installation).
 
@@ -109,9 +111,9 @@ See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/s
 
 ## Credits
 
-Inspired by [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim). Built with [nucleo](https://github.com/helix-editor/nucleo) (fuzzy matching), [tokio](https://github.com/tokio-rs/tokio) (async runtime), and [ratatui](https://github.com/ratatui/ratatui) (TUI framework).
-
-Thanks to all contributors:
+- [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
+- [nucleo](https://github.com/helix-editor/nucleo)
+- [ratatui](https://github.com/ratatui/ratatui)
 
 <a href="https://github.com/alexpasmantier/television/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=alexpasmantier/television" />
