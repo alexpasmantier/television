@@ -110,6 +110,10 @@ async fn test_app_does_quit() {
     // assert that the app quits within a default timeout
     sleep(default_timeout()).await;
     assert!(f.is_finished());
+
+    // Verify clean exit: no panic and no selected entries
+    let output = f.await.expect("app panicked instead of exiting cleanly");
+    assert!(output.selected_entries.is_none());
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
