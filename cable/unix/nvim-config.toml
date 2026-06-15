@@ -1,0 +1,21 @@
+[metadata]
+name = "nvim-config-files"
+description = "Search through Neovim configuration files"
+requirements = ["fd", "nvim"]
+
+[source]
+command = ["fd . ~/.config/nvim --type f"]
+display = "{regex_extract:.*\\.config/nvim/(.*):1}"
+
+[preview]
+command = "bat -n --color=always '{}'"
+env = { BAT_THEME = "ansi" }
+
+[keybindings]
+enter = "actions:edit"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
