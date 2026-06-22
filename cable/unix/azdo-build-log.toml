@@ -147,7 +147,7 @@ done | awk -v keep_date_prefix="$keep_date_prefix" -v filter_extensive="$filter_
     sub(/\r$/, "", line)
 
     if (filter_extensive == 1) {
-      # replace 'starting command output' line with an empty line
+      # replace starting command output line with an empty line
       if (index(line, "Starting Command Output") > 0) {
         seen_starting_command_output = 1
         print ""
