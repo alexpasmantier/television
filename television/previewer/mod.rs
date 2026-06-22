@@ -412,6 +412,7 @@ pub async fn try_preview(
         command.interactive,
         &command.env,
         command.shell,
+        &command.shell_binaries,
     );
 
     let mut tokio_command = TokioCommand::from(shell_cmd);

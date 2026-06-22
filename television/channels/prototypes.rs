@@ -149,6 +149,10 @@ pub struct CommandSpec {
     /// If not specified, the shell is detected from the environment.
     #[serde(default)]
     pub shell: Option<Shell>,
+    /// Optionally override the binary path used for specific shells when executing this command.
+    /// Useful when multiple binaries with the same name exist (e.g. WSL bash vs Git Bash).
+    #[serde(default)]
+    pub shell_binaries: std::collections::HashMap<Shell, String>,
 }
 
 impl Display for CommandSpec {
@@ -285,6 +289,7 @@ impl ChannelPrototype {
                     interactive: false,
                     env: FxHashMap::default(),
                     shell: None,
+                    shell_binaries: std::collections::HashMap::default(),
                 },
                 entry_delimiter: None,
                 ansi: false,
@@ -467,6 +472,7 @@ impl PreviewSpec {
                 interactive: false,
                 env: FxHashMap::default(),
                 shell: None,
+                shell_binaries: std::collections::HashMap::default(),
             },
             offset: None,
             cached: false,
@@ -540,6 +546,7 @@ mod tests {
             interactive: false,
             env: FxHashMap::default(),
             shell: None,
+            shell_binaries: std::collections::HashMap::default(),
         };
 
         assert_eq!(command_spec.get_nth(0).template().raw(), "cmd1");
@@ -1116,5 +1123,52 @@ mod tests {
 
         // Verify powershell deserializes correctly
         assert_eq!(prototype.source.command.shell, Some(Shell::Psh));
+    }
+
+    #[test]
+    fn test_command_spec_shell_binaries_deserialize() {
+        let toml_data = r#"
+        [metadata]
+        name = "test_shell_binaries"
+        description = "Testing shell binary overrides"
+        requirements = []
+
+        [source]
+        command = "find . -type f"
+        shell = "bash"
+
+        [source.shell_binaries]
+        bash = "/usr/local/bin/bash"
+        zsh = "/opt/homebrew/bin/zsh"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+
+        let binaries = &prototype.source.command.shell_binaries;
+        assert_eq!(
+            binaries.get(&Shell::Bash),
+            Some(&"/usr/local/bin/bash".to_string())
+        );
+        assert_eq!(
+            binaries.get(&Shell::Zsh),
+            Some(&"/opt/homebrew/bin/zsh".to_string())
+        );
+        assert_eq!(binaries.get(&Shell::Fish), None);
+    }
+
+    #[test]
+    fn test_command_spec_shell_binaries_empty_by_default() {
+        let toml_data = r#"
+        [metadata]
+        name = "test_no_shell_binaries"
+        description = "No shell_binaries set"
+        requirements = []
+
+        [source]
+        command = "ls -la"
+        "#;
+
+        let prototype: ChannelPrototype = from_str(toml_data).unwrap();
+        assert!(prototype.source.command.shell_binaries.is_empty());
     }
 }
