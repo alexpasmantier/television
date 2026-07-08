@@ -73,6 +73,9 @@ pub enum Action {
     /// Tick the application state.
     #[serde(skip)]
     Tick,
+    /// The matcher published fresh results; refresh the results and render.
+    #[serde(skip)]
+    MatcherUpdated,
     /// Suspend the application.
     #[serde(skip)]
     Suspend,
@@ -381,6 +384,7 @@ impl Action {
 
             // Application actions
             Action::Tick => "Tick",
+            Action::MatcherUpdated => "Matcher updated",
             Action::Suspend => "Suspend",
             Action::Resume => "Resume",
             Action::Quit => "Quit",

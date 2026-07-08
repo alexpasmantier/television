@@ -5,7 +5,7 @@ use crate::{
         prototypes::{BinaryRequirement, ChannelPrototype},
     },
     event::Key,
-    matcher::{Matcher, SortStrategy},
+    matcher::{Matcher, Notify, SortStrategy},
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
@@ -84,8 +84,16 @@ pub struct RemoteControl {
 const REMOTE_NUM_THREADS: usize = 1;
 
 impl RemoteControl {
-    pub fn new(cable_channels: Cable, sort_alphabetically: bool) -> Self {
-        let matcher = Matcher::new(SortStrategy::Score, REMOTE_NUM_THREADS);
+    pub fn new(
+        cable_channels: Cable,
+        sort_alphabetically: bool,
+        notify: Notify,
+    ) -> Self {
+        let matcher = Matcher::with_notify(
+            SortStrategy::Score,
+            REMOTE_NUM_THREADS,
+            notify,
+        );
         let injector = matcher.injector();
 
         // Sort channels based on configuration

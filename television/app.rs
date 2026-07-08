@@ -350,24 +350,22 @@ impl App {
 
         trace!("Entering main event loop");
         loop {
-            // handle event and convert to action
-            trace!("Waiting for new events...");
-            if self
-                .event_rx
-                .recv_many(&mut event_buf, EVENT_BUF_SIZE)
-                .await
-                > 0
-            {
-                for event in event_buf.drain(..) {
-                    let actions = self.convert_event_to_actions(event);
-                    for action in actions {
-                        if action != Action::Tick {
-                            debug!("Queuing new action: {action:?}");
-                        }
-                        action_tx.send(action)?;
+            trace!("Waiting for new events or actions...");
+            tokio::select! {
+                _ = self.event_rx.recv_many(&mut event_buf, EVENT_BUF_SIZE) => {}
+                _ = self.action_rx.recv_many(&mut action_buf, ACTION_BUF_SIZE) => {}
+            }
+
+            for event in event_buf.drain(..) {
+                let actions = self.convert_event_to_actions(event);
+                for action in actions {
+                    if action != Action::Tick {
+                        debug!("Queuing new action: {action:?}");
                     }
+                    action_tx.send(action)?;
                 }
             }
+
             trace!("Event buffer processed, handling actions...");
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
@@ -514,10 +512,13 @@ impl App {
         &mut self,
         buf: &mut Vec<Action>,
     ) -> Result<ActionOutcome> {
-        if self.action_rx.is_empty() {
+        if buf.is_empty() && self.action_rx.is_empty() {
             return Ok(ActionOutcome::None);
         }
-        if self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0 {
+
+        if !buf.is_empty()
+            || self.action_rx.recv_many(buf, ACTION_BUF_SIZE).await > 0
+        {
             for action in buf.drain(..) {
                 if action != Action::Tick {
                     trace!("{action:?}");
