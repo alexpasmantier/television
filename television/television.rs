@@ -1216,9 +1216,6 @@ impl Television {
     pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         self.handle_action(action)?;
 
-        // Always let the background matcher make progress
-        self.channel.tick();
-
         // When the channel transitions from running to stopped, reset ticks
         // to restart the fast-render window. This ensures newly loaded results
         // are rendered immediately instead of waiting for the next
