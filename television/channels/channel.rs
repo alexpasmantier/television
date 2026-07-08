@@ -7,7 +7,9 @@ use crate::{
         prototypes::{CommandSpec, Template},
     },
     frecency::FrecencyHandle,
-    matcher::{Matcher, SortStrategy, injector::Injector, matcher_threads},
+    matcher::{
+        Matcher, Notify, SortStrategy, injector::Injector, matcher_threads,
+    },
     utils::command::shell_command,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
@@ -55,6 +57,7 @@ impl<P: EntryProcessor> Channel<P> {
         processor: P,
         _frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
+        notify: Notify,
     ) -> Self {
         // TODO: reimplement frecency-based sorting (previously a custom sort
         // strategy built on `_frecency`) natively in frizbee
@@ -64,7 +67,8 @@ impl<P: EntryProcessor> Channel<P> {
             SortStrategy::Score
         };
 
-        let matcher = Matcher::new(sort_strategy, matcher_threads());
+        let matcher =
+            Matcher::with_notify(sort_strategy, matcher_threads(), notify);
         let current_source_index = 0;
         Self {
             source_command,
@@ -518,6 +522,7 @@ impl ChannelKind {
         no_sort: bool,
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
+        notify: Notify,
     ) -> Self {
         match (source_ansi, source_display) {
             (false, None) => ChannelKind::Plain(Channel::new(
@@ -529,6 +534,7 @@ impl ChannelKind {
                 PlainProcessor,
                 frecency,
                 is_stdin,
+                notify,
             )),
             (true, None) => ChannelKind::Ansi(Channel::new(
                 source_command,
@@ -539,6 +545,7 @@ impl ChannelKind {
                 AnsiProcessor,
                 frecency,
                 is_stdin,
+                notify,
             )),
             (_, Some(template)) => ChannelKind::Display(Channel::new(
                 source_command,
@@ -549,6 +556,7 @@ impl ChannelKind {
                 DisplayProcessor { template },
                 frecency,
                 is_stdin,
+                notify,
             )),
         }
     }

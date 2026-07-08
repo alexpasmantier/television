@@ -16,6 +16,7 @@ use crate::{
     errors::os_error_exit,
     frecency::FrecencyHandle,
     input::convert_action_to_input_request,
+    matcher::Notify,
     picker::{Movement, Picker},
     previewer::{
         Config as PreviewerConfig, Preview, Previewer,
@@ -103,6 +104,10 @@ pub struct Television {
     frecency: FrecencyHandle,
     /// Tracks whether the channel was running on the previous tick to reset ticks
     was_running: bool,
+    /// Callback handed to every matcher so that, when fresh results are
+    /// published, the app loop is woken to render them immediately instead
+    /// of waiting for the next periodic render tick.
+    notify: Notify,
     /// Popup shown when attempting to switch to a channel with missing requirements
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
@@ -117,6 +122,13 @@ impl Television {
         cable_channels: Cable,
         frecency: FrecencyHandle,
     ) -> Self {
+        // The matchers call this whenever they publish fresh results, waking
+        // the app loop so the UI renders them without waiting for a tick.
+        let notify_tx = action_tx.clone();
+        let notify: Notify = Arc::new(move || {
+            let _ = notify_tx.send(Action::MatcherUpdated);
+        });
+
         let merged_config = {
             // this is to keep the outer merged config immutable
             let mut m = layered_config.merge();
@@ -168,6 +180,7 @@ impl Television {
             merged_config.no_sort,
             frecency_config,
             merged_config.is_stdin,
+            notify.clone(),
         );
 
         let app_metadata = AppMetadata::new(
@@ -208,6 +221,7 @@ impl Television {
             Some(RemoteControl::new(
                 cable_channels,
                 merged_config.remote_sort_alphabetically,
+                notify.clone(),
             ))
         };
 
@@ -235,6 +249,7 @@ impl Television {
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             was_running: true,
+            notify,
             ui_state: UiState::default(),
             frecency,
             missing_requirements_popup: None,
@@ -377,6 +392,7 @@ impl Television {
             self.merged_config.no_sort,
             frecency_config,
             false, // stdin only applies to the initial channel
+            self.notify.clone(),
         );
         self.was_running = true;
         self.channel.load();
@@ -610,6 +626,9 @@ impl Television {
             // more frequently if the channel is running
             || (self.channel.running()
                 && self.ticks.is_multiple_of(RENDERING_INTERVAL_FAST))
+            // as soon as the matcher publishes fresh results, so results
+            // appear immediately instead of on the next periodic tick
+            || matches!(action, Action::MatcherUpdated)
             // always render on input actions that modify the ui state
             || matches!(
                 action,
@@ -820,6 +839,7 @@ impl Television {
         self.action_picker = Some(ActionPicker::new(
             &self.merged_config.channel_actions,
             &action_keybindings,
+            self.notify.clone(),
         ));
     }
 
@@ -866,6 +886,10 @@ impl Television {
                 self.action_tx.send(Action::SelectAndExit)?;
             }
             Mode::RemoteControl => {
+                if let Some(rc) = self.remote_control.as_ref() {
+                    rc.wait_for_idle();
+                }
+                self.update_rc_picker_state();
                 if let Some(entry) = self.get_selected_cable_entry() {
                     // Check for missing requirements
                     let missing: Vec<String> = entry
@@ -1227,7 +1251,9 @@ impl Television {
         self.was_running = running;
 
         // Only run the full results pipeline when the action could
-        // have changed the results or the visible viewport
+        // have changed the results or the visible viewport. `MatcherUpdated`
+        // (fired when a matcher publishes fresh results) counts, so the forced
+        // render below draws the new entries rather than the previous ones.
         if action.affects_results() {
             self.update_results_picker_state();
         }
