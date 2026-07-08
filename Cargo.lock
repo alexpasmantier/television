@@ -911,6 +911,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
+name = "frizbee"
+version = "0.10.0"
+source = "git+https://github.com/saghen/frizbee?rev=7c9b262#7c9b26267716610bde1803518074bda684c671a4"
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2577,6 +2582,7 @@ dependencies = [
  "crossterm 0.28.1",
  "directories",
  "fast-strip-ansi 0.13.1",
+ "frizbee",
  "human-panic",
  "lazy-regex",
  "parking_lot",
@@ -2590,7 +2596,6 @@ dependencies = [
  "signal-hook 0.4.1",
  "smallvec",
  "string_pipeline",
- "television-nucleo",
  "tempfile",
  "tokio",
  "toml",
@@ -2601,27 +2606,6 @@ dependencies = [
  "walkdir",
  "which",
  "winapi-util",
-]
-
-[[package]]
-name = "television-nucleo"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23826a23dd6cf3fa61e4f01b305f7f6150c60a9714cddd08a4d1950a739d7b25"
-dependencies = [
- "parking_lot",
- "rayon",
- "television-nucleo-matcher",
-]
-
-[[package]]
-name = "television-nucleo-matcher"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5f4b54a8866aa84bdc0ebe2a23a285b528b3af2876d9d256a91733f56b44a1b"
-dependencies = [
- "memchr",
- "unicode-segmentation",
 ]
 
 [[package]]

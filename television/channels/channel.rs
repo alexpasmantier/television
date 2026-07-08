@@ -7,12 +7,10 @@ use crate::{
         prototypes::{CommandSpec, Template},
     },
     frecency::FrecencyHandle,
-    matcher::{Matcher, injector::Injector, matcher_threads},
+    matcher::{Matcher, SortStrategy, injector::Injector, matcher_threads},
     utils::command::shell_command,
 };
-use nucleo::SortStrategy;
 use rustc_hash::{FxBuildHasher, FxHashSet};
-use std::cmp::Ordering;
 use std::collections::HashSet;
 use std::process::Stdio;
 use std::sync::Arc;
@@ -55,29 +53,13 @@ impl<P: EntryProcessor> Channel<P> {
         supports_preview: bool,
         no_sort: bool,
         processor: P,
-        frecency: Option<(FrecencyHandle, String)>,
+        _frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
     ) -> Self {
+        // TODO: reimplement frecency-based sorting (previously a custom sort
+        // strategy built on `_frecency`) natively in frizbee
         let sort_strategy = if no_sort {
             SortStrategy::Index
-        } else if let Some((frecency_handle, channel_name)) = frecency {
-            let cache = frecency_handle.create_cache(channel_name);
-            SortStrategy::Custom(Box::new(move |m1, i1, m2, i2| {
-                let scores = cache.snapshot();
-                let key1 = P::frecency_key(&i1);
-                let key2 = P::frecency_key(&i2);
-                let f1 = scores.get(&key1);
-                let f2 = scores.get(&key2);
-
-                match (f1, f2) {
-                    (Some(s1), Some(s2)) => {
-                        s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
-                    }
-                    (Some(_), None) => Ordering::Less,
-                    (None, Some(_)) => Ordering::Greater,
-                    (None, None) => m2.score.cmp(&m1.score),
-                }
-            }))
         } else {
             SortStrategy::Score
         };
@@ -165,17 +147,7 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.find(pattern);
     }
 
-    /// Let the background matcher thread make progress.
-    ///
-    /// This is cheap and should be called frequently (e.g. every update cycle)
-    /// to keep the matcher responsive, even when results aren't being fetched.
-    pub fn tick(&mut self) {
-        self.matcher.tick();
-    }
-
     pub fn results(&mut self, num_entries: u32, offset: u32) -> Vec<Entry> {
-        self.matcher.tick();
-
         let results = self.matcher.results(num_entries, offset);
 
         // PERF: this could be preallocated and reused by the caller
@@ -209,17 +181,21 @@ impl<P: EntryProcessor> Channel<P> {
     }
 
     pub fn result_count(&self) -> u32 {
-        self.matcher.matched_item_count
+        self.matcher.matched_item_count()
     }
 
     pub fn total_count(&self) -> u32 {
-        self.matcher.total_item_count
+        self.matcher.total_item_count()
     }
 
     pub fn running(&self) -> bool {
-        self.matcher.status.running
+        self.matcher.running()
             || (self.crawl_handle.is_some()
                 && !self.crawl_handle.as_ref().unwrap().is_finished())
+    }
+
+    pub fn wait_for_idle(&self) {
+        self.matcher.wait_for_idle();
     }
 
     pub fn shutdown(&self) {}
@@ -353,14 +329,16 @@ pub async fn load_candidates<P: EntryProcessor>(
         if !produced_output {
             let tv_message =
                 "Command produced no output on stdout, checking stderr...";
-            processor.push_to_injector(tv_message.to_string(), &injector);
+            let (data, haystack) = processor.process(tv_message.to_string());
+            injector.push(data, haystack);
             let stderr = child.stderr.take().unwrap();
             let mut reader = BufReader::new(stderr).lines();
             while let Ok(Some(line)) = reader.next_line().await {
                 if line.trim().is_empty() {
                     continue;
                 }
-                processor.push_to_injector(line, &injector);
+                let (data, haystack) = processor.process(line);
+                injector.push(data, haystack);
             }
         }
     }
@@ -435,7 +413,9 @@ fn flush_batch<P: EntryProcessor>(
     processor: &P,
     delimiter: u8,
 ) {
-    // decode utf8 and filter empty/whitespace-only lines
+    // decode utf8, filter empty/whitespace-only lines and run the processor
+    // up front so the whole batch is pushed under a single injector call
+    let mut entries = Vec::with_capacity(batch.len());
     for mut bytes in batch {
         if bytes.is_empty() || bytes.iter().all(u8::is_ascii_whitespace) {
             continue;
@@ -444,9 +424,10 @@ fn flush_batch<P: EntryProcessor>(
             bytes.pop();
         }
         if let Ok(line) = String::from_utf8(bytes) {
-            processor.push_to_injector(line, injector);
+            entries.push(processor.process(line));
         }
     }
+    injector.push_batch(entries);
 }
 
 /// Channels can be in one of several modes depending on the source configuration.
@@ -577,7 +558,6 @@ impl ChannelKind {
         load() -> (),
         reload() -> (),
         find(pattern: &str) -> (),
-        tick() -> (),
         results(num_entries: u32, offset: u32) -> Vec<Entry>,
         get_result(index: u32) -> Option<Entry>,
         toggle_selection(entry: &Entry) -> (),
@@ -592,6 +572,7 @@ impl ChannelKind {
         result_count() -> u32,
         total_count() -> u32,
         running() -> bool,
+        wait_for_idle() -> (),
         shutdown() -> (),
         supports_preview() -> bool,
         reloading() -> bool,
@@ -605,7 +586,6 @@ impl ChannelKind {
 mod tests {
     use super::*;
     use crate::channels::prototypes::SourceSpec;
-    use nucleo::SortStrategy;
 
     const MATCHER_TEST_THREADS: usize = 1;
 
@@ -634,7 +614,7 @@ mod tests {
 
         // Check if the matcher has the expected results
         matcher.find("test");
-        matcher.tick();
+        matcher.wait_for_idle();
         let results = matcher.results(10, 0);
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].matched_string, "test1");
@@ -665,7 +645,7 @@ mod tests {
 
         // Check if the matcher has the expected results
         matcher.find("test");
-        matcher.tick();
+        matcher.wait_for_idle();
         let results = matcher.results(10, 0);
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].matched_string, "test1");
@@ -696,7 +676,7 @@ mod tests {
 
         // Check if the matcher has the expected results
         matcher.find("test");
-        matcher.tick();
+        matcher.wait_for_idle();
         let results = matcher.results(10, 0);
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].matched_string, "test1");
@@ -728,7 +708,7 @@ mod tests {
 
         // Check if the matcher has the expected results
         matcher.find("");
-        matcher.tick();
+        matcher.wait_for_idle();
         let results = matcher.results(1000, 0);
         assert_eq!(results.len(), 1000);
         assert_eq!(results[0].matched_string, "1");
@@ -760,7 +740,7 @@ mod tests {
 
         // Check if the matcher has the expected results (ANSI codes should be stripped)
         matcher.find("test");
-        matcher.tick();
+        matcher.wait_for_idle();
         let results = matcher.results(10, 0);
         assert_eq!(results.len(), 3);
         assert_eq!(results[0].matched_string, "test1");

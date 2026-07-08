@@ -37,7 +37,6 @@ better-panic = "0.3"
 signal-hook = "0.4"
 human-panic = "2.0"
 parking_lot = "0.12"
-television-nucleo = "0.5.0"
 toml = "0.9"
 lazy-regex = { version = "3.4", features = ["lite"], default-features = false }
 ansi-to-tui = "8.0"
@@ -52,6 +51,7 @@ clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
 fast-strip-ansi = "0.13"
+frizbee = { git = "https://github.com/saghen/frizbee", rev = "7c9b262" }
 
 
 # target specific dependencies
