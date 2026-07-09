@@ -202,6 +202,10 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.wait_for_idle();
     }
 
+    pub fn wait_for_idle_timeout(&self, timeout: Duration) {
+        self.matcher.wait_for_idle_timeout(timeout);
+    }
+
     pub fn shutdown(&self) {}
 
     pub fn cycle_sources(&mut self) {
@@ -581,6 +585,7 @@ impl ChannelKind {
         total_count() -> u32,
         running() -> bool,
         wait_for_idle() -> (),
+        wait_for_idle_timeout(timeout: Duration) -> (),
         shutdown() -> (),
         supports_preview() -> bool,
         reloading() -> bool,

@@ -38,7 +38,7 @@ use anyhow::Result;
 use ratatui::layout::Rect;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -613,6 +613,9 @@ const RENDERING_INTERVAL: u64 = 25;
 /// This ensures that the UI stays in sync with the channel
 /// state (loading indicator, updating results, etc.).
 const RENDERING_INTERVAL_FAST: u64 = 3;
+/// How long to wait for the matcher to finish before refreshing results/rendering
+/// on input actions.
+const INPUT_MATCHER_WAIT: Duration = Duration::from_millis(2);
 
 impl Television {
     /// This contains the logic to determine whether a render should be performed
@@ -1239,6 +1242,22 @@ impl Television {
     /// This function may return an Action that'll be processed by the parent `App`.
     pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         self.handle_action(action)?;
+
+        // If the matcher is running and we just performed an input action, wait
+        // X ms for the matcher to finish to avoid unnecessary renders
+        if self.mode == Mode::Channel
+            && self.channel.running()
+            && matches!(
+                action,
+                Action::AddInputChar(_)
+                    | Action::DeletePrevChar
+                    | Action::DeletePrevWord
+                    | Action::DeleteLine
+                    | Action::DeleteNextChar
+            )
+        {
+            self.channel.wait_for_idle_timeout(INPUT_MATCHER_WAIT);
+        }
 
         // When the channel transitions from running to stopped, reset ticks
         // to restart the fast-render window. This ensures newly loaded results
