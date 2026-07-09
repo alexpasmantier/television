@@ -8,6 +8,7 @@ use std::{
         mpsc,
     },
     thread::available_parallelism,
+    time::Duration,
 };
 
 pub mod injector;
@@ -309,6 +310,13 @@ where
         let (ack_tx, ack_rx) = mpsc::channel();
         if self.worker_tx.send(WorkerMsg::WaitForIdle(ack_tx)).is_ok() {
             let _ = ack_rx.recv();
+        }
+    }
+
+    pub fn wait_for_idle_timeout(&self, timeout: Duration) {
+        let (ack_tx, ack_rx) = mpsc::channel();
+        if self.worker_tx.send(WorkerMsg::WaitForIdle(ack_tx)).is_ok() {
+            let _ = ack_rx.recv_timeout(timeout);
         }
     }
 
