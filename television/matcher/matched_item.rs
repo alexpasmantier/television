@@ -28,8 +28,6 @@ where
         matched_string: String,
         match_indices: Vec<u32>,
     ) -> Self {
-        let match_indices =
-            byte_indices_to_char_indices(&matched_string, match_indices);
         Self {
             inner,
             matched_string,
@@ -37,10 +35,9 @@ where
         }
     }
 }
-
 /// Convert sorted UTF-8 byte offsets returned by frizbee into sorted character
 /// indices consumed by the renderer.
-fn byte_indices_to_char_indices(
+pub fn byte_indices_to_char_indices(
     haystack: &str,
     byte_indices: Vec<u32>,
 ) -> Vec<u32> {

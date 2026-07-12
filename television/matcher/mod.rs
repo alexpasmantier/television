@@ -1,5 +1,5 @@
 use injector::Injector;
-use matched_item::MatchedItem;
+use matched_item::{MatchedItem, byte_indices_to_char_indices};
 use parking_lot::{Mutex, RwLock};
 use std::{
     sync::{
@@ -333,14 +333,14 @@ where
             .match_one_indices(haystack, index)
             .map(|m| m.indices)
             .unwrap_or_default();
-        // frizbee returns UTF-8 byte offsets in reverse order, while the UI
-        // renders against `.chars()` indices.
+        // Frizbee returns UTF-8 byte offsets in reverse order
         match_indices.reverse();
 
         MatchedItem::new(
             store.items[index as usize].clone(),
             haystack.clone(),
-            match_indices,
+            // Convert UTF-8 byte offsets to UTF-32 character indices
+            byte_indices_to_char_indices(haystack, match_indices),
         )
     }
 }
