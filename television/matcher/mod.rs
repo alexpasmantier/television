@@ -1,6 +1,8 @@
+use frizbee::Match;
 use injector::Injector;
 use matched_item::{MatchedItem, byte_indices_to_char_indices};
 use parking_lot::{Mutex, RwLock};
+use std::cmp::Ordering as CmpOrdering;
 use std::{
     sync::{
         Arc,
@@ -17,7 +19,34 @@ mod worker;
 
 use worker::{Snapshot, Store, Worker, WorkerMsg};
 
-pub use frizbee::SortStrategy;
+// pub use frizbee::SortStrategy;
+
+/// Comparison function for custom sorting of match results.
+pub type SortFn<I> = Box<
+    dyn Fn(&Match, &I, &str, &Match, &I, &str) -> CmpOrdering + Send + Sync,
+>;
+
+/// Strategy for sorting match results.
+#[derive(Default)]
+pub enum SortStrategy<I: Sync + Send + 'static> {
+    /// Sort by score (desc), then index (asc)
+    #[default]
+    Score,
+    /// Sort items by index (asc)
+    Index,
+    /// Custom comparison function
+    Custom(SortFn<I>),
+}
+
+impl<I: Sync + Send + 'static> std::fmt::Debug for SortStrategy<I> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SortStrategy::Score => write!(f, "SortStrategy::Score"),
+            SortStrategy::Index => write!(f, "SortStrategy::Index"),
+            SortStrategy::Custom(_) => write!(f, "SortStrategy::Custom(...)"),
+        }
+    }
+}
 
 /// A callback the matcher invokes (on the worker thread) after it publishes
 /// a fresh snapshot of results.
@@ -31,10 +60,6 @@ pub type Notify = Arc<dyn Fn() + Send + Sync>;
 /// [`Matcher::find`] updates the background thread's pattern
 /// [`Matcher::results`] reads the latest matched results
 /// [`Matcher::get_result`] reads a single result
-///
-/// TODO: support custom sort strategies (for frecency)
-/// TODO: support cancellation on new needle (try_* in frizbee)
-/// TODO: investigate "incorrect" indices for `matcher::new(Snapshot::)` on `tv text`
 #[allow(clippy::struct_field_names)]
 pub struct Matcher<I>
 where
@@ -49,8 +74,6 @@ where
     /// Whether the background worker is currently matching or has pending
     /// work.
     running: Arc<AtomicBool>,
-    /// The sort strategy items are ordered by.
-    sort_strategy: SortStrategy,
     /// Bumped on every restart so that snapshots computed against a previous
     /// store can be detected and discarded.
     generation: u64,
@@ -69,7 +92,7 @@ where
     /// The matcher won't notify anyone when results change; use
     /// [`Matcher::with_notify`] to be woken as soon as fresh results are
     /// available.
-    pub fn new(sort_strategy: SortStrategy, n_threads: usize) -> Self {
+    pub fn new(sort_strategy: SortStrategy<I>, n_threads: usize) -> Self {
         Self::with_notify(sort_strategy, n_threads, Arc::new(|| {}))
     }
 
@@ -80,7 +103,7 @@ where
     /// on a channel to wake the UI). It lets the front-end render as soon as
     /// results are available instead of polling on a timer.
     pub fn with_notify(
-        sort_strategy: SortStrategy,
+        sort_strategy: SortStrategy<I>,
         n_threads: usize,
         notify: Notify,
     ) -> Self {
@@ -108,7 +131,6 @@ where
             snapshot,
             worker_tx,
             running,
-            sort_strategy,
             generation: 0,
             last_pattern: String::new(),
         }
@@ -187,8 +209,10 @@ where
         offset: u32,
     ) -> Vec<matched_item::MatchedItem<I>> {
         let snapshot = self.snapshot.lock().clone();
-        let mut indices_matcher =
-            build_matcher(&snapshot.pattern, self.sort_strategy);
+        let mut indices_matcher = frizbee::Matcher::from_query(
+            &snapshot.pattern,
+            &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
+        );
 
         // Discard snapshots computed against a previous store (i.e. published
         // by the worker right before a restart)
@@ -252,8 +276,10 @@ where
             return None;
         }
         let m = snapshot.matches.get(index as usize)?;
-        let mut indices_matcher =
-            build_matcher(&snapshot.pattern, self.sort_strategy);
+        let mut indices_matcher = frizbee::Matcher::from_query(
+            &snapshot.pattern,
+            &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
+        );
 
         let store = Arc::clone(&self.store);
         let store = store.read_recursive();
@@ -357,14 +383,4 @@ pub fn matcher_threads() -> usize {
     available_parallelism()
         .map(|n| n.get().saturating_sub(3).clamp(1, 32))
         .unwrap_or(4)
-}
-
-fn build_matcher(
-    pattern: &str,
-    sort_strategy: SortStrategy,
-) -> frizbee::Matcher {
-    frizbee::Matcher::from_query(
-        pattern,
-        &frizbee::Config::default().sort(sort_strategy),
-    )
 }
