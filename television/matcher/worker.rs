@@ -1,4 +1,4 @@
-use super::{Notify, SortStrategy, build_matcher};
+use super::{Notify, SortStrategy};
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
     Arc,
@@ -73,7 +73,7 @@ pub(super) enum WorkerMsg<I> {
 /// matcher is restarted. Pending messages are drained before each pass so
 /// that a burst of keystrokes or item batches results in a single pass over
 /// the store with the latest state, which also acts as a natural debounce.
-pub(super) struct Worker<I> {
+pub(super) struct Worker<I: Sync + Send + 'static> {
     store: Arc<RwLock<Store<I>>>,
     snapshot: Arc<Mutex<Arc<Snapshot>>>,
     running: Arc<AtomicBool>,
@@ -82,7 +82,7 @@ pub(super) struct Worker<I> {
     rx: mpsc::Receiver<WorkerMsg<I>>,
     matcher: frizbee::Matcher,
     pattern: String,
-    sort_strategy: SortStrategy,
+    sort_strategy: SortStrategy<I>,
     /// The generation of the store currently being matched against.
     generation: u64,
     /// Last item that was matched
@@ -101,7 +101,7 @@ where
         running: Arc<AtomicBool>,
         notify: Notify,
         rx: mpsc::Receiver<WorkerMsg<I>>,
-        sort_strategy: SortStrategy,
+        sort_strategy: SortStrategy<I>,
         n_threads: usize,
     ) -> Self {
         Self {
@@ -110,7 +110,7 @@ where
             running,
             notify,
             rx,
-            matcher: build_matcher("", sort_strategy),
+            matcher: build_matcher("", &sort_strategy),
             pattern: String::new(),
             sort_strategy,
             generation: 0,
@@ -154,7 +154,7 @@ where
                 if pattern == self.pattern {
                     return false;
                 }
-                self.matcher = build_matcher(&pattern, self.sort_strategy);
+                self.matcher = build_matcher(&pattern, &self.sort_strategy);
                 self.pattern = pattern;
                 self.last_match_index = 0;
                 true
@@ -189,11 +189,29 @@ where
         // existing ones and sort them
         if is_incremental {
             let mut existing_matches = self.snapshot.lock().matches.clone();
-            existing_matches.extend(matches);
+            if self.matcher.config().sort.is_reversed() {
+                existing_matches.splice(0..0, matches);
+            } else {
+                existing_matches.extend(matches);
+            }
             matches = existing_matches;
-            if self.sort_strategy == SortStrategy::Score {
+            if self.matcher.config().sort.is_by_score() {
                 frizbee::radix_sort_matches(&mut matches);
             }
+        }
+
+        // Custom sort function
+        if let SortStrategy::Custom(ref sort_fn) = self.sort_strategy {
+            let store = self.store.read();
+            matches.sort_by(|match_a, match_b| {
+                let item_a = &store.items[match_a.index as usize];
+                let haystack_a = &store.haystacks[match_a.index as usize];
+                let item_b = &store.items[match_b.index as usize];
+                let haystack_b = &store.haystacks[match_b.index as usize];
+                sort_fn(
+                    match_a, item_a, haystack_a, match_b, item_b, haystack_b,
+                )
+            });
         }
 
         *self.snapshot.lock() = Arc::new(Snapshot {
@@ -205,4 +223,23 @@ where
         // instead of waiting for the next periodic render tick
         (self.notify)();
     }
+}
+
+fn build_matcher<I: Sync + Send + 'static>(
+    pattern: &str,
+    sort_strategy: &SortStrategy<I>,
+) -> frizbee::Matcher {
+    let sort_strategy = match sort_strategy {
+        SortStrategy::Score => frizbee::SortStrategy::ScoreThenIndexAsc,
+        SortStrategy::Index | SortStrategy::Custom(_) => {
+            frizbee::SortStrategy::IndexAsc
+        }
+    };
+
+    frizbee::Matcher::from_query(
+        pattern,
+        &frizbee::Config::default()
+            .sort(sort_strategy)
+            .casing(frizbee::CaseMatching::Smart),
+    )
 }

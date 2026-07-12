@@ -34,8 +34,6 @@ pub trait EntryProcessor: Send + Sync + Clone + 'static {
     ///
     /// Returns `Cow<str>` to avoid allocations when possible (e.g., when the data is
     /// already a String).
-    ///
-    /// TODO: currently unused, to be wired back up before merging
     fn frecency_key<'a>(
         data: &'a Self::Data,
         haystack: &'a str,

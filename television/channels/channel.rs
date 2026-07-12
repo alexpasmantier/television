@@ -13,11 +13,11 @@ use crate::{
     utils::command::shell_command,
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
-use std::collections::HashSet;
 use std::process::Stdio;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
+use std::{cmp::Ordering, collections::HashSet};
 use tokio::process::Command as TokioCommand;
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
@@ -55,14 +55,30 @@ impl<P: EntryProcessor> Channel<P> {
         supports_preview: bool,
         no_sort: bool,
         processor: P,
-        _frecency: Option<(FrecencyHandle, String)>,
+        frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
         notify: Notify,
     ) -> Self {
-        // TODO: reimplement frecency-based sorting (previously a custom sort
-        // strategy built on `_frecency`) natively in frizbee
         let sort_strategy = if no_sort {
             SortStrategy::Index
+        } else if let Some((frecency_handle, channel_name)) = frecency {
+            let cache = frecency_handle.create_cache(channel_name);
+            SortStrategy::Custom(Box::new(move |m1, i1, h1, m2, i2, h2| {
+                let scores = cache.snapshot();
+                let key1 = P::frecency_key(i1, h1);
+                let key2 = P::frecency_key(i2, h2);
+                let f1 = scores.get(&key1);
+                let f2 = scores.get(&key2);
+
+                match (f1, f2) {
+                    (Some(s1), Some(s2)) => {
+                        s2.cmp(&s1).then_with(|| m2.score.cmp(&m1.score))
+                    }
+                    (Some(_), None) => Ordering::Less,
+                    (None, Some(_)) => Ordering::Greater,
+                    (None, None) => m2.score.cmp(&m1.score),
+                }
+            }))
         } else {
             SortStrategy::Score
         };
