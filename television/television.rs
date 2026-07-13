@@ -613,8 +613,8 @@ const RENDERING_INTERVAL: u64 = 25;
 /// This ensures that the UI stays in sync with the channel
 /// state (loading indicator, updating results, etc.).
 const RENDERING_INTERVAL_FAST: u64 = 3;
-/// How long to wait for the matcher to finish before refreshing results/rendering
-/// on input actions.
+/// How long to wait for the matcher to finish before rendering after
+/// an input action.
 const INPUT_MATCHER_WAIT: Duration = Duration::from_millis(2);
 
 impl Television {
@@ -1270,9 +1270,7 @@ impl Television {
         self.was_running = running;
 
         // Only run the full results pipeline when the action could
-        // have changed the results or the visible viewport. `MatcherUpdated`
-        // (fired when a matcher publishes fresh results) counts, so the forced
-        // render below draws the new entries rather than the previous ones.
+        // have changed the results or the visible viewport
         if action.affects_results() {
             self.update_results_picker_state();
         }

@@ -73,7 +73,7 @@ pub enum Action {
     /// Tick the application state.
     #[serde(skip)]
     Tick,
-    /// The matcher published fresh results; refresh the results and render.
+    /// Matcher pushed a new snapshot, render the results.
     #[serde(skip)]
     MatcherUpdated,
     /// Suspend the application.

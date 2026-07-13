@@ -65,9 +65,9 @@ pub struct Matcher<I>
 where
     I: Sync + Send + Clone + 'static,
 {
-    /// The store shared with the injectors and the background worker.
+    /// Collection of (item, haystacks) pairs to be matched against.
     store: Arc<RwLock<Store<I>>>,
-    /// The latest snapshot published by the background worker.
+    /// Last snapshot of matches published by the background worker.
     snapshot: Arc<Mutex<Arc<Snapshot>>>,
     /// Channel used to notify the background worker of changes.
     worker_tx: mpsc::Sender<WorkerMsg<I>>,
@@ -87,10 +87,9 @@ where
     I: Sync + Send + Clone + 'static,
 {
     /// Create a new fuzzy matcher with the given sort strategy and number of
-    /// threads, spawning the background worker thread.
+    /// threads.
     ///
-    /// The matcher won't notify anyone when results change; use
-    /// [`Matcher::with_notify`] to be woken as soon as fresh results are
+    /// Use [`Matcher::with_notify`] to be woken as soon as fresh results are
     /// available.
     pub fn new(sort_strategy: SortStrategy<I>, n_threads: usize) -> Self {
         Self::with_notify(sort_strategy, n_threads, Arc::new(|| {}))
@@ -98,10 +97,6 @@ where
 
     /// Create a new fuzzy matcher that calls `notify` every time the background
     /// worker publishes fresh results.
-    ///
-    /// The callback runs on the worker thread and should be cheap (e.g. sending
-    /// on a channel to wake the UI). It lets the front-end render as soon as
-    /// results are available instead of polling on a timer.
     pub fn with_notify(
         sort_strategy: SortStrategy<I>,
         n_threads: usize,

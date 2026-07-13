@@ -48,19 +48,12 @@ where
 
     /// Push a single item into the fuzzy matcher.
     ///
-    /// The item will be matched against the given `haystack` string.
-    ///
     /// Prefer `push_batch` when pushing more than one item at a time.
     pub fn push(&self, item: I, haystack: String) {
         self.push_batch(vec![(item, haystack)]);
     }
 
     /// Push a batch of `(item, haystack)` pairs into the fuzzy matcher.
-    ///
-    /// The whole batch is appended under a single store lock and the
-    /// background worker is only notified once. Any per-item work (e.g.
-    /// stripping ANSI codes) should be done before calling this to keep the
-    /// store lock held as briefly as possible.
     ///
     /// # Example
     /// ```

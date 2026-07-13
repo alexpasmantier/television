@@ -13,8 +13,7 @@ use std::sync::{
 /// (which reads item data when assembling results).
 ///
 /// The store is append-only: [`super::Matcher::restart`] swaps it for a fresh
-/// one instead of clearing it, which conveniently invalidates any outstanding
-/// injectors (their pushes land in the old, orphaned store).
+/// one instead of clearing it, which invalidates any outstanding injectors
 pub(super) struct Store<I> {
     /// Items that have been added to the matcher.
     pub(super) items: Vec<I>,
@@ -32,9 +31,6 @@ impl<I> Default for Store<I> {
 }
 
 /// The result of a matcher pass, published by the background worker.
-///
-/// [`super::Matcher::results`] and friends read the latest snapshot instead of
-/// waiting on the worker, so the UI thread never blocks on matching.
 pub(super) struct Snapshot {
     /// The store generation this snapshot was computed against (see
     /// [`super::Matcher::restart`]).
@@ -66,7 +62,7 @@ pub(super) enum WorkerMsg<I> {
     WaitForIdle(mpsc::Sender<()>),
 }
 
-/// The background worker that owns the inner frizbee matcher.
+/// The background worker that owns the inner [`frizbee::Matcher`].
 ///
 /// The worker blocks on its message channel and re-matches the store against
 /// the current pattern whenever items are added, the pattern changes, or the
@@ -219,8 +215,7 @@ where
             pattern: self.pattern.clone(),
             matches,
         });
-        // Wake the front-end so it can render the fresh results immediately
-        // instead of waiting for the next periodic render tick
+        // Wake the front-end so it can render the results
         (self.notify)();
     }
 }

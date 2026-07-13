@@ -13,7 +13,7 @@ where
     pub inner: I,
     /// The dimension against which the item was matched (as a string).
     pub matched_string: String,
-    /// The character indices of the matched characters.
+    /// The UTF-32 char indices of the matched characters.
     pub match_indices: Vec<u32>,
 }
 
@@ -35,8 +35,7 @@ where
         }
     }
 }
-/// Convert sorted UTF-8 byte offsets returned by frizbee into sorted character
-/// indices consumed by the renderer.
+/// Convert sorted UTF-8 byte offsets to UTF-32 char indices
 pub fn byte_indices_to_char_indices(
     haystack: &str,
     byte_indices: Vec<u32>,
