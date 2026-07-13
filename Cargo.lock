@@ -912,8 +912,9 @@ checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
 name = "frizbee"
-version = "0.10.0"
-source = "git+https://github.com/saghen/frizbee?rev=6831669#6831669ab4081e01df3375aa0eee73ede19be713"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a151c9ed9ab8cefc76a76b7a15292fc83575f70cf2076d238e0a3251f69738ba"
 
 [[package]]
 name = "generic-array"
