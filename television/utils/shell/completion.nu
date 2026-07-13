@@ -37,7 +37,7 @@ $env.config = (
           {
               name: tv_completion,
               modifier: Control,
-              keycode: char_t,
+              keycode: char_{tv_smart_autocomplete_keybinding},
               mode: [vi_normal, vi_insert, emacs],
               event: {
                   send: executehostcommand,
@@ -47,7 +47,7 @@ $env.config = (
           {
               name: tv_history,
               modifier: Control,
-              keycode: char_r,
+              keycode: char_{tv_shell_history_keybinding},
               mode: [vi_normal, vi_insert, emacs],
               event: {
                   send: executehostcommand,
