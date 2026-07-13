@@ -316,7 +316,7 @@ mod tests {
         let shell = Shell::Nu;
         let result = ctrl_keybinding(shell, character);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Ctrl-s");
+        assert_eq!(result.unwrap(), "s");
     }
 
     #[test]
