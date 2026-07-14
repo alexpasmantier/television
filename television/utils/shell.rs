@@ -189,7 +189,7 @@ pub fn ctrl_keybinding(shell: Shell, character: char) -> Result<String> {
                 Ok(format!(r"ctrl-{lower_char}"))
             }
         }
-        Shell::Nu => Ok(format!(r"Ctrl-{character}")),
+        Shell::Nu => Ok(format!(r"{character}")),
         Shell::Psh => Ok(format!(r"Ctrl+{}", character.to_ascii_lowercase())),
         Shell::Cmd => {
             anyhow::bail!("This shell is not yet supported: {:?}", shell)
@@ -316,7 +316,7 @@ mod tests {
         let shell = Shell::Nu;
         let result = ctrl_keybinding(shell, character);
         assert!(result.is_ok());
-        assert_eq!(result.unwrap(), "Ctrl-s");
+        assert_eq!(result.unwrap(), "s");
     }
 
     #[test]
