@@ -546,6 +546,7 @@ impl Into<InputColorscheme> for &Theme {
         InputColorscheme {
             input_fg: (&self.input_text_fg).into(),
             results_count_fg: (&self.result_count_fg).into(),
+            source_indicator_fg: (&self.result_line_number_fg).into(),
         }
     }
 }

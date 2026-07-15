@@ -19,6 +19,14 @@ use ratatui::{
 
 const LOADING_CHAR: &str = "●";
 
+/// Multi-source indicator rendered next to the result count in minimal
+/// mode: the current source name and one dot per source.
+pub struct SourceIndicator<'a> {
+    pub name: Option<&'a str>,
+    pub index: usize,
+    pub count: usize,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn draw_input_box(
     f: &mut Frame,
@@ -40,6 +48,8 @@ pub fn draw_input_box(
     // optional `· <hint>` suffix after the count in the given color (the
     // current channel or picker mode), shown when the status bar is hidden
     hint: Option<(&str, Color)>,
+    // multi-source channels: current source name + dots after the count
+    sources: Option<SourceIndicator>,
 ) -> Result<()> {
     // an empty header means "no header at all"
     let header = header.as_ref().map_or(channel_name, |v| v);
@@ -91,20 +101,65 @@ pub fn draw_input_box(
             }
         })
         .unwrap_or(2);
-    let hint_len = hint.map_or(0, |(hint, _)| {
-        u16::try_from(hint.chars().count() + 3)
-            .expect("Hint length should fit in u16")
-    });
+    let selected_position = if results_count == 0 {
+        0
+    } else {
+        results_picker_state.selected().unwrap_or(0) + 1
+    };
+    // minimal UI: a compact, dimmed `matches/total` count, with an optional
+    // multi-source indicator and a mode hint (the channel name or the
+    // active picker) when it has to stand in for the status bar's mode info
+    let count_line = if minimal {
+        let dimmed = Style::default()
+            .fg(colorscheme.general.dimmed_text_fg)
+            .italic();
+        let mut spans = vec![Span::styled(
+            format!(" {}/{}", results_count, total_count),
+            dimmed,
+        )];
+        if let Some(sources) = sources
+            && sources.count > 1
+        {
+            // dots first, then the name: the name buffers the dots from the
+            // loading indicator at the end of the row
+            let source_style =
+                Style::default().fg(colorscheme.input.source_indicator_fg);
+            spans.push(Span::styled(" · ", dimmed));
+            for i in 0..sources.count {
+                spans.push(Span::styled(
+                    if i == sources.index { "● " } else { "○ " },
+                    source_style,
+                ));
+            }
+            if let Some(name) = sources.name {
+                spans.push(Span::styled(name.to_string(), source_style));
+            }
+        }
+        if let Some((hint, hint_color)) = hint {
+            spans.push(Span::styled(
+                format!(" · {}", hint),
+                Style::default().fg(hint_color).italic(),
+            ));
+        }
+        spans.push(Span::from(" "));
+        Line::from(spans)
+    } else {
+        Line::from(Span::styled(
+            format!(" {} / {} ", selected_position, results_count),
+            Style::default()
+                .fg(colorscheme.input.results_count_fg)
+                .italic(),
+        ))
+    };
     let constraints = [
         // prompt symbol + space
         Constraint::Length(prompt_len),
         // input field
         Constraint::Fill(1),
-        // result count (+ optional mode hint)
+        // result count (+ optional indicators)
         Constraint::Length(
-            3 * (u16::try_from(total_count.max(1).ilog10()).unwrap() + 1)
-                + 3
-                + hint_len,
+            u16::try_from(count_line.width())
+                .expect("Count line width should fit in u16"),
         ),
         // loading symbol
         Constraint::Length(indicator_len),
@@ -154,37 +209,6 @@ pub fn draw_input_box(
     }
 
     let result_count_block = Block::default();
-    let selected_position = if results_count == 0 {
-        0
-    } else {
-        results_picker_state.selected().unwrap_or(0) + 1
-    };
-    // minimal UI: a compact, dimmed `matches/total` count, with a mode hint
-    // next to it (the channel name or the active picker) when it has to
-    // stand in for the status bar's mode info
-    let count_line = if minimal {
-        let mut spans = vec![Span::styled(
-            format!(" {}/{}", results_count, total_count),
-            Style::default()
-                .fg(colorscheme.general.dimmed_text_fg)
-                .italic(),
-        )];
-        if let Some((hint, hint_color)) = hint {
-            spans.push(Span::styled(
-                format!(" · {}", hint),
-                Style::default().fg(hint_color).italic(),
-            ));
-        }
-        spans.push(Span::from(" "));
-        Line::from(spans)
-    } else {
-        Line::from(Span::styled(
-            format!(" {} / {} ", selected_position, results_count),
-            Style::default()
-                .fg(colorscheme.input.results_count_fg)
-                .italic(),
-        ))
-    };
     let result_count_paragraph = Paragraph::new(count_line)
         .block(result_count_block)
         .alignment(Alignment::Right);

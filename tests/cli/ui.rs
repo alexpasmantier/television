@@ -156,8 +156,7 @@ fn test_input_prompt_in_adhoc_mode() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that the input has no prompt by default (minimal UI), and that an
-/// explicit --input-prompt brings one back.
+/// Tests that the input has no prompt (nor any other glyph) by default.
 #[test]
 fn test_default_input_prompt() {
     let pt = phantom();
@@ -173,8 +172,8 @@ fn test_default_input_prompt() {
     let frame = stable_frame(&s);
     let query_row = frame.lines().next().unwrap();
     assert!(
-        !query_row.contains('>'),
-        "Expected no prompt on the query row:\n{}",
+        !query_row.contains('>') && !query_row.contains('▎'),
+        "Expected no prompt or marker on the query row:\n{}",
         frame
     );
 
@@ -849,6 +848,25 @@ fn test_height_minimal_picker_takeover() {
 
     s.send().key("esc").unwrap();
     s.wait().text_absent("· actions").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+/// Tests that multi-source channels show the current source name and dots
+/// next to the result count, plus a cycle hint in the status bar.
+#[test]
+fn test_multi_source_indicator_next_to_count() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .env(TESTING_ENV_VAR, "1")
+        .start()
+        .unwrap();
+
+    // the files channel has two sources; the active one is "Default"
+    s.wait().text("· ● ○ Default").until().unwrap();
+    s.wait().text("source ctrl-s").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

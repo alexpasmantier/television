@@ -472,6 +472,7 @@ impl ConfigLayers {
             && self.channel_cli.results_padding.is_none()
             && results_panel_padding == Padding::default()
         {
+            // 1-column left margin, aligning the entries with the query
             results_panel_padding = Padding::new(0, 0, 1, 0);
         }
         // a borderless preview still needs a hint of separation from the

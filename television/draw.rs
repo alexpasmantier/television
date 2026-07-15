@@ -10,7 +10,7 @@ use crate::{
         action_picker::draw_minimal_actions_pane,
         colors::Colorscheme,
         help_panel::draw_help_pane,
-        input::draw_input_box,
+        input::{SourceIndicator, draw_input_box},
         layout::{InputPosition, Layout, Orientation},
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
@@ -233,6 +233,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config
                 .status_bar_hidden
                 .then_some(("channels", ctx.colorscheme.mode.remote_control)),
+            None,
         )?;
     } else {
         // results list
@@ -272,12 +273,22 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.config.input_bar_border_type,
             ctx.config.input_bar_prompt.as_ref(),
             minimal,
-            // with no status bar, the channel name moves next to the count
+            // with no status bar, the channel name moves next to the count,
+            // in the same color the status bar would use
             (minimal && ctx.config.status_bar_hidden).then(|| {
                 (
                     ctx.tv_state.channel_state.current_channel_name.as_str(),
-                    ctx.colorscheme.general.dimmed_text_fg,
+                    ctx.colorscheme.results.result_fg,
                 )
+            }),
+            Some(SourceIndicator {
+                name: ctx
+                    .tv_state
+                    .channel_state
+                    .current_source_name
+                    .as_deref(),
+                index: ctx.tv_state.channel_state.source_index,
+                count: ctx.tv_state.channel_state.source_count,
             }),
         )?;
     }

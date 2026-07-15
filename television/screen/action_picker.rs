@@ -94,6 +94,7 @@ pub fn draw_minimal_actions_pane(
         config
             .status_bar_hidden
             .then_some(("actions", colorscheme.mode.action_picker)),
+        None,
     )?;
     draw_minimal_picker_list(
         f,
