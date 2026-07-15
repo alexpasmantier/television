@@ -500,6 +500,7 @@ impl Into<GeneralColorscheme> for &Theme {
         GeneralColorscheme {
             background: self.background.as_ref().map(Into::into),
             border_fg: (&self.border_fg).into(),
+            dimmed_text_fg: (&self.dimmed_text_fg).into(),
         }
     }
 }

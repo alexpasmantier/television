@@ -54,7 +54,7 @@ where
 }
 
 pub const TESTING_ENV_VAR: &str = "TV_TEST";
-pub const MIN_VIEWPORT_HEIGHT: u16 = 15;
+pub const MIN_VIEWPORT_HEIGHT: u16 = 10;
 
 #[allow(dead_code)]
 impl<W> Tui<W>
@@ -247,6 +247,10 @@ where
         if self.viewport == Viewport::Fullscreen {
             execute!(backend, EnterAlternateScreen)?;
             self.terminal.clear()?;
+        } else {
+            // the minimal non-fullscreen UI has no prompt decoration; a
+            // steady bar cursor marks the input position instead
+            execute!(backend, cursor::SetCursorStyle::SteadyBar)?;
         }
         Ok(())
     }
@@ -273,6 +277,8 @@ where
 
             if self.viewport == Viewport::Fullscreen {
                 execute!(backend, LeaveAlternateScreen)?;
+            } else {
+                execute!(backend, cursor::SetCursorStyle::DefaultUserShape)?;
             }
         }
 

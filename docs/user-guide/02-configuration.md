@@ -57,8 +57,8 @@ details).
 | Option        | Type   | Default                                  | Description                                                              |
 | ------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
 | `position`    | string | `"top"`                                  | Position of the input bar. Valid values: `"top"`, `"bottom"`.            |
-| `prompt`      | string | `">"`                                    | The input prompt string displayed before user input.                     |
-| `header`      | string | `null`                                   | Optional header text displayed above the input bar.                      |
+| `prompt`      | string | `">"`                                    | The input prompt string displayed before user input. An empty string removes the prompt entirely. |
+| `header`      | string | `null`                                   | Optional header text displayed above the input bar. An empty string removes the header line entirely. |
 | `border_type` | string | `"rounded"`                              | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
 | `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the input bar.                                            |
 

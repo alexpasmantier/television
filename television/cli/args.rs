@@ -456,14 +456,17 @@ pub struct Cli {
     ///
     /// This flag works identically in both channel mode and ad-hoc mode.
     ///
-    /// When specified, the picker will be displayed as a non-fullscreen interface.
+    /// When specified, the picker will be displayed as a non-fullscreen interface
+    /// with a minimal UI: no borders, no status bar, and a single-line input.
+    /// Explicit UI flags and non-default UI values from the channel or the
+    /// configuration file take precedence over these minimal defaults.
     #[arg(
         long,
         value_name = "INTEGER",
         verbatim_doc_comment,
         conflicts_with = "inline",
-        // minimum value with status-bar disabled is 6
-        // TODO: revisit if/when input can be toggled
+        // the minimal UI needs 1 line for the input and a couple of lines
+        // for the results
         value_parser = clap::value_parser!(u16).range(6..),
         help_heading = "UI"
     )]
@@ -489,6 +492,11 @@ pub struct Cli {
     /// When enabled, the picker will be displayed as an inline interface that uses
     /// all available empty space at the bottom of the terminal. If there is insufficient
     /// space to meet the minimum height the terminal will scroll.
+    ///
+    /// Inline mode uses a minimal UI: no borders, no status bar, and a
+    /// single-line input. Explicit UI flags and non-default UI values from
+    /// the channel or the configuration file take precedence over these
+    /// minimal defaults.
     #[arg(
         long,
         default_value = "false",

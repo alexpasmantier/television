@@ -60,11 +60,11 @@ theme = "default"
 [ui.input_bar]
 # Where to place the input bar in the UI (top or bottom)
 position = "top"
-# The input prompt string (defaults to ">" if not specified)
-prompt = ">"
+# The input prompt string (empty by default: no prompt at all)
+prompt = ""
 # header = "{}"
 # padding = {"left": 0, "right": 0, "top": 0, "bottom": 0}
-border_type = "rounded" # https://docs.rs/ratatui/latest/ratatui/widgets/block/enum.BorderType.html#variants
+border_type = "none" # https://docs.rs/ratatui/latest/ratatui/widgets/block/enum.BorderType.html#variants
 
 [ui.status_bar]
 # Status bar separators (bubble):
@@ -76,7 +76,7 @@ separator_close = ""
 hidden = false
 
 [ui.results_panel]
-border_type = "rounded"
+border_type = "none"
 # padding = {"left": 0, "right": 0, "top": 0, "bottom": 0}
 
 [ui.preview_panel]
@@ -84,8 +84,8 @@ border_type = "rounded"
 size = 50
 #header = ""
 #footer = ""
-scrollbar = true
-border_type = "rounded"
+scrollbar = false
+border_type = "none"
 # padding = {"left": 0, "right": 0, "top": 0, "bottom": 0}
 hidden = false
 

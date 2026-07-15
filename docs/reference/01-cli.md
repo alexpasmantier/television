@@ -6,6 +6,7 @@ Usage: tv [OPTIONS] [CHANNEL] [PATH] [COMMAND]
 Commands:
   list-channels    Lists the available channels
   init             Initializes shell completion ("tv init zsh")
+  completions      Generates standard shell tab-completion scripts for tv's various subcommands
   update-channels  Downloads the latest collection of channel prototypes from github and saves them to the local configuration directory
   help             Print this message or the help of the given subcommand(s)
 
@@ -322,7 +323,10 @@ UI:
           
           This flag works identically in both channel mode and ad-hoc mode.
           
-          When specified, the picker will be displayed as a non-fullscreen interface.
+          When specified, the picker will be displayed as a non-fullscreen interface
+          with a minimal UI: no borders, no status bar, and a single-line input.
+          Explicit UI flags and non-default UI values from the channel or the
+          configuration file take precedence over these minimal defaults.
 
       --width <INTEGER>
           Width in columns for non-fullscreen mode.
@@ -338,6 +342,11 @@ UI:
           When enabled, the picker will be displayed as an inline interface that uses
           all available empty space at the bottom of the terminal. If there is insufficient
           space to meet the minimum height the terminal will scroll.
+          
+          Inline mode uses a minimal UI: no borders, no status bar, and a
+          single-line input. Explicit UI flags and non-default UI values from
+          the channel or the configuration file take precedence over these
+          minimal defaults.
 
 Behavior:
   -t, --tick-rate <INT>

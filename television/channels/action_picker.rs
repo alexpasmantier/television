@@ -66,6 +66,10 @@ impl ResultItem for ActionEntry {
     fn shortcut(&self) -> Option<&Key> {
         self.keybinding.as_ref()
     }
+
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
 }
 
 pub struct ActionPicker {

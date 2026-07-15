@@ -72,9 +72,30 @@ watch = 2.0  # Reload every 2 seconds
 - Track container status
 - Live log monitoring
 
+## Minimal UI
+
+tv defaults to a minimal, color-only UI in every viewport: no borders, no
+prompt, a single-line input with a dimmed result count, and a thin hairline
+in front of the preview. Any explicit UI flag (e.g. `--input-prompt "> "`,
+`--results-border rounded`) or non-default UI value from the channel `[ui]`
+config or your `config.toml` takes precedence over these minimal defaults.
+
+### Restoring the Classic Chrome
+
+```sh
+tv --input-border rounded --results-border rounded --preview-border rounded --input-prompt "> "
+```
+
 ## Inline Mode
 
 Display tv as an inline element rather than fullscreen.
+
+Non-fullscreen modes additionally hide the status bar and show the channel
+name next to the result count instead.
+
+When the viewport is too small to fit a useful preview pane next to (or
+below) the results, the preview is hidden automatically (pass
+`--show-preview` or an explicit `--preview-size` to keep it).
 
 ### Basic Inline
 
@@ -94,6 +115,12 @@ tv --height 15  # 15 lines tall
 
 ```sh
 tv --height 15 --width 80  # 15 lines, 80 columns
+```
+
+### Restoring the Full UI
+
+```sh
+tv --height 15 --show-status-bar --input-border rounded --results-border rounded --preview-border rounded
 ```
 
 ### Use Cases

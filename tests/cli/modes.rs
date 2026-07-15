@@ -16,7 +16,7 @@ fn test_channel_mode_with_channel_name() {
         .unwrap();
 
     s.wait()
-        .text("── dirs ──")
+        .text("CHANNEL  dirs")
         .text("CHANNEL  dirs")
         .until()
         .unwrap();
@@ -35,7 +35,7 @@ fn test_channel_mode_with_channel_and_path() {
         .unwrap();
 
     s.wait()
-        .text("── dirs ──")
+        .text("CHANNEL  dirs")
         .text("CHANNEL  dirs")
         .text("unix/")
         .until()

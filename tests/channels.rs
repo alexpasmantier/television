@@ -9,7 +9,7 @@ fn tv_ctrl_c() {
         .start()
         .unwrap();
 
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("CHANNEL  files").until().unwrap();
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
@@ -27,7 +27,7 @@ macro_rules! test_channel {
                 .unwrap();
 
             s.wait()
-                .text(&format!("── {} ──", $channel_name))
+                .text(&format!("CHANNEL  {}", $channel_name))
                 .until()
                 .unwrap();
 

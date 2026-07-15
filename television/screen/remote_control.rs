@@ -2,6 +2,7 @@ use crate::{
     channels::{prototypes::BinaryRequirement, remote_control::CableEntry},
     screen::{
         colors::{Colorscheme, GeneralColorscheme},
+        constants::POINTER_SYMBOL,
         logo::{
             REMOTE_LOGO_HEIGHT_U16, REMOTE_LOGO_WIDTH_U16,
             build_remote_logo_paragraph,
@@ -241,6 +242,7 @@ fn draw_rc_channels(
         ListDirection::TopToBottom,
         &colorscheme.results,
         area.width,
+        POINTER_SYMBOL,
         |_| None,
     );
 

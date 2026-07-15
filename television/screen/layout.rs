@@ -185,6 +185,7 @@ impl Layout {
             Constraint::Length(input_bar_height(
                 merged_config.input_bar_padding,
                 merged_config.input_bar_border_type,
+                merged_config.input_bar_header_hidden(),
             )),
         ];
 
@@ -199,8 +200,27 @@ impl Layout {
             .unwrap_or(0);
 
         // split the main block into 1 or 2 chunks (results + preview)
-        let preview_hidden = merged_config.preview_panel_hidden
-            || merged_config.channel_preview_command.is_none();
+        // (popups don't fit in the small --inline / --height viewports, so
+        // the remote control takes over the full width there, while the
+        // actions picker borrows the preview pane so the entry it applies
+        // to stays visible in the results list)
+        let rc_takeover =
+            !merged_config.fullscreen && mode == Mode::RemoteControl;
+        let ap_takeover =
+            !merged_config.fullscreen && mode == Mode::ActionPicker;
+        let preview_hidden = if ap_takeover {
+            false
+        } else {
+            merged_config.preview_panel_hidden
+                || merged_config.channel_preview_command.is_none()
+                || rc_takeover
+                || (merged_config.preview_panel_auto_hide
+                    && !preview_fits(
+                        main_rect,
+                        input_bar_height,
+                        merged_config,
+                    ))
+        };
         let constraints = if preview_hidden {
             vec![Constraint::Fill(1)]
         } else {
@@ -388,9 +408,11 @@ impl Layout {
             }
         };
 
-        // the remote control is a centered popup
+        // the remote control is a centered popup (except in non-fullscreen
+        // viewports, where it takes over the main results area)
         let remote_control = if !merged_config.remote_disabled
             && mode == Mode::RemoteControl
+            && merged_config.fullscreen
         {
             let remote_control_rect = centered_rect_with_dimensions(
                 &Dimensions::new(
@@ -406,8 +428,18 @@ impl Layout {
             None
         };
 
+        // in minimal mode the actions picker takes the preview pane; the
+        // pane rect moves from `preview_window` to `action_picker`
+        let (preview_window, minimal_actions_pane) = if ap_takeover {
+            (None, preview_window)
+        } else {
+            (preview_window, None)
+        };
+
         // the action picker is a centered popup (similar to remote control but simpler)
-        let action_picker = if mode == Mode::ActionPicker {
+        let action_picker = if ap_takeover {
+            minimal_actions_pane
+        } else if mode == Mode::ActionPicker {
             let action_picker_rect = centered_rect_with_dimensions(
                 &Dimensions::new(
                     area.width * ACTION_PICKER_WIDTH_PERCENTAGE / 100,
@@ -510,12 +542,51 @@ fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
     }
 }
 
-fn input_bar_height(padding: Padding, border_type: BorderType) -> u16 {
-    // input line + header + vertical padding
-    let mut h = 1 + 1 + padding.top + padding.bottom;
+/// Minimum dimensions each pane must end up with for the preview to be worth
+/// showing; below these the preview is automatically hidden so the results
+/// list stays usable (e.g. `--inline` in a handful of rows).
+const MIN_PREVIEW_HEIGHT: u16 = 8;
+const MIN_RESULTS_HEIGHT: u16 = 4;
+const MIN_PREVIEW_WIDTH: u16 = 20;
+const MIN_RESULTS_WIDTH: u16 = 20;
 
-    // add the bottom border if applicable (top is already included with the header)
+fn preview_fits(
+    main_rect: Rect,
+    input_bar_height: u16,
+    merged_config: &MergedConfig,
+) -> bool {
+    let pct = u32::from(merged_config.preview_panel_size.clamp(1, 99));
+    match merged_config.layout {
+        Orientation::Portrait => {
+            let available = main_rect.height.saturating_sub(input_bar_height);
+            let preview = u16::try_from(u32::from(available) * pct / 100)
+                .unwrap_or(u16::MAX);
+            preview >= MIN_PREVIEW_HEIGHT
+                && available.saturating_sub(preview) >= MIN_RESULTS_HEIGHT
+        }
+        Orientation::Landscape => {
+            let preview =
+                u16::try_from(u32::from(main_rect.width) * pct / 100)
+                    .unwrap_or(u16::MAX);
+            preview >= MIN_PREVIEW_WIDTH
+                && main_rect.width.saturating_sub(preview) >= MIN_RESULTS_WIDTH
+        }
+    }
+}
+
+fn input_bar_height(
+    padding: Padding,
+    border_type: BorderType,
+    header_hidden: bool,
+) -> u16 {
+    // input line + vertical padding
+    let mut h = 1 + padding.top + padding.bottom;
+
     if border_type != BorderType::None {
+        // top border (which carries the header) + bottom border
+        h += 2;
+    } else if !header_hidden {
+        // without borders the header gets its own line
         h += 1;
     }
     h
@@ -533,7 +604,7 @@ mod tests {
     /// --------
     fn test_input_bar_height_with_borders() {
         assert_eq!(
-            input_bar_height(Padding::default(), BorderType::Rounded),
+            input_bar_height(Padding::default(), BorderType::Rounded, false),
             3
         );
     }
@@ -542,7 +613,10 @@ mod tests {
     ///      h
     ///    input
     fn test_input_bar_height_without_borders() {
-        assert_eq!(input_bar_height(Padding::default(), BorderType::None,), 2);
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::None, false),
+            2
+        );
     }
 
     #[test]
@@ -555,9 +629,30 @@ mod tests {
                     left: 0,
                     right: 0,
                 },
-                BorderType::None
+                BorderType::None,
+                false
             ),
             5
+        );
+    }
+
+    #[test]
+    ///    input
+    fn test_input_bar_height_borderless_no_header() {
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::None, true),
+            1
+        );
+    }
+
+    #[test]
+    /// --------
+    ///  input
+    /// --------
+    fn test_input_bar_height_bordered_no_header() {
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::Rounded, true),
+            3
         );
     }
 }

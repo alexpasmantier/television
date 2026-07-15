@@ -330,7 +330,10 @@ Height in lines for non\-fullscreen mode.
 
 This flag works identically in both channel mode and ad\-hoc mode.
 
-When specified, the picker will be displayed as a non\-fullscreen interface.
+When specified, the picker will be displayed as a non\-fullscreen interface
+with a minimal UI: no borders, no status bar, and a single\-line input.
+Explicit UI flags and non\-default UI values from the channel or the
+configuration file take precedence over these minimal defaults.
 .TP
 \fB\-\-width\fR \fI<INTEGER>\fR
 Width in columns for non\-fullscreen mode.
@@ -346,6 +349,11 @@ This flag works identically in both channel mode and ad\-hoc mode.
 When enabled, the picker will be displayed as an inline interface that uses
 all available empty space at the bottom of the terminal. If there is insufficient
 space to meet the minimum height the terminal will scroll.
+
+Inline mode uses a minimal UI: no borders, no status bar, and a
+single\-line input. Explicit UI flags and non\-default UI values from
+the channel or the configuration file take precedence over these
+minimal defaults.
 .SH BEHAVIOR
 .TP
 \fB\-t\fR, \fB\-\-tick\-rate\fR \fI<INT>\fR

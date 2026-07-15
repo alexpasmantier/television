@@ -427,6 +427,8 @@ mod tests {
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
+        // the fixture sets an explicit prompt (the built-in default is none)
+        default_config.ui.input_bar.prompt = Some(">".to_string());
         // With new architecture, we add directly to the bindings map
         default_config
             .keybindings

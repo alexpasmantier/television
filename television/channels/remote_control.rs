@@ -77,6 +77,10 @@ impl ResultItem for CableEntry {
     fn shortcut(&self) -> Option<&Key> {
         self.shortcut.as_ref()
     }
+
+    fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
 }
 
 pub struct RemoteControl {

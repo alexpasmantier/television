@@ -82,7 +82,7 @@ fn test_external_action_lsman_with_f9() {
     // any entries, which then makes the F9 below fire against an empty
     // selection and tv just sits there.
     s.wait()
-        .text("1 / 1")
+        .text(" 1/")
         .text("LICENSE")
         .timeout_ms(wait_timeout_ms())
         .until()
@@ -126,7 +126,7 @@ fn test_external_action_thebatman_with_f8() {
     .unwrap();
 
     s.wait()
-        .text("1 / 1")
+        .text(" 1/")
         .text("LICENSE")
         .timeout_ms(wait_timeout_ms())
         .until()
@@ -204,7 +204,7 @@ mode = "execute"
     // "LICENSE" alone would spuriously hit the --input prompt before fd
     // has produced any entries.)
     s.wait()
-        .text("1 / 1")
+        .text(" 1/")
         .text("LICENSE")
         .timeout_ms(wait_timeout_ms())
         .until()
@@ -300,7 +300,7 @@ mode = "fork"
         .unwrap();
 
     s.wait()
-        .text("1 / 1")
+        .text(" 1/")
         .text("LICENSE")
         .timeout_ms(wait_timeout_ms())
         .until()

@@ -273,7 +273,7 @@ impl ConfigLayers {
                 Some(self.channel.ui.as_ref()?.input_bar.as_ref()?.border_type)
             })
             .unwrap_or(self.base_config.ui.input_bar.border_type);
-        let input_bar_padding = self
+        let mut input_bar_padding = self
             .channel_cli
             .input_padding
             .or_else(|| {
@@ -281,7 +281,7 @@ impl ConfigLayers {
             })
             .unwrap_or(self.base_config.ui.input_bar.padding);
         let status_bar_disabled = self.global_cli.no_status_bar;
-        let status_bar_hidden = if status_bar_disabled {
+        let mut status_bar_hidden = if status_bar_disabled {
             true // --no-status-bar always wins
         } else if self.channel_cli.show_status_bar {
             false // --show-status-bar forces visible
@@ -309,7 +309,7 @@ impl ConfigLayers {
                 )
             })
             .unwrap_or(self.base_config.ui.results_panel.border_type);
-        let results_panel_padding = self
+        let mut results_panel_padding = self
             .channel_cli
             .results_padding
             .or_else(|| {
@@ -377,7 +377,7 @@ impl ConfigLayers {
                 )
             })
             .unwrap_or(self.base_config.ui.preview_panel.border_type);
-        let preview_panel_padding = self
+        let mut preview_panel_padding = self
             .channel_cli
             .preview_padding
             .or_else(|| {
@@ -441,6 +441,68 @@ impl ConfigLayers {
         let global_history = self.global_cli.global_history
             || self.channel.history.global_mode.unwrap_or_default()
             || self.base_config.application.global_history;
+
+        // ------------------------------------------------------------------
+        // Minimal UI preset. The static parts (no borders, no prompt, no
+        // header, no scrollbar) are the built-in defaults over in config::ui;
+        // what's left here are the dynamic bits: paddings that depend on the
+        // input position or on another field staying borderless, and the
+        // non-fullscreen (--inline / --height) extras. Guarded so explicit
+        // CLI flags and non-default channel/config values always win.
+        // ------------------------------------------------------------------
+        let fullscreen = !inline && height.is_none();
+        let mut preview_panel_auto_hide = false;
+        if !fullscreen {
+            // hide the preview automatically when the viewport is too small
+            // to fit a useful pane; an explicit --show-preview or
+            // --preview-size signals the user wants it regardless
+            if !self.channel_cli.show_preview
+                && self.channel_cli.preview_size.is_none()
+            {
+                preview_panel_auto_hide = true;
+            }
+            let channel_sets_status_bar = self
+                .channel
+                .ui
+                .as_ref()
+                .is_some_and(|ui| ui.status_bar.is_some());
+
+            // the status bar doesn't earn its row in a small viewport; the
+            // channel name moves next to the result count instead
+            if !self.channel_cli.show_status_bar && !channel_sets_status_bar {
+                status_bar_hidden = true;
+            }
+        }
+        // 1-column left margin so the query doesn't sit flush against
+        // the terminal edge, plus a blank line between the input and
+        // the results
+        if self.channel_cli.input_padding.is_none()
+            && input_bar_padding == Padding::default()
+        {
+            input_bar_padding = match input_bar_position {
+                InputPosition::Top => Padding::new(0, 1, 1, 0),
+                InputPosition::Bottom => Padding::new(1, 0, 1, 0),
+            };
+        }
+        if self.channel_cli.results_padding.is_none()
+            && results_panel_padding == Padding::default()
+        {
+            results_panel_padding = Padding::new(0, 0, 1, 0);
+        }
+        // a borderless preview still needs a hint of separation from the
+        // results list: a thin hairline on the side facing them
+        let preview_panel_separator =
+            preview_panel_border_type == BorderType::None;
+        // breathing room between the preview title and its content
+        if preview_panel_separator
+            && self.channel_cli.preview_padding.is_none()
+            && preview_panel_padding == Padding::default()
+        {
+            preview_panel_padding = Padding::new(1, 0, 0, 0);
+        }
+        // minimal input decoration (dimmed compact count, undecorated query)
+        // follows the input bar itself being borderless
+        let input_bar_minimal = input_bar_border_type == BorderType::None;
 
         // Do we have any channel-specific keybindings?
         let mut channel_keybindings = Keybindings::default();
@@ -514,6 +576,7 @@ impl ConfigLayers {
             input_bar_prompt,
             input_bar_border_type,
             input_bar_padding,
+            input_bar_minimal,
             // status bar
             status_bar_separator_open,
             status_bar_separator_close,
@@ -532,6 +595,9 @@ impl ConfigLayers {
             preview_panel_word_wrap,
             preview_panel_hidden,
             preview_panel_disabled,
+            preview_panel_separator,
+            preview_panel_auto_hide,
+            fullscreen,
             // help panel
             help_panel_show_categories,
             help_panel_hidden,
@@ -617,6 +683,8 @@ pub struct MergedConfig {
     pub input_bar_prompt: Option<String>,
     pub input_bar_border_type: BorderType,
     pub input_bar_padding: Padding,
+    /// Show the channel name next to the result count (minimal UI preset).
+    pub input_bar_minimal: bool,
     // status bar
     pub status_bar_separator_open: String,
     pub status_bar_separator_close: String,
@@ -635,6 +703,15 @@ pub struct MergedConfig {
     pub preview_panel_word_wrap: bool,
     pub preview_panel_hidden: bool,
     pub preview_panel_disabled: bool,
+    /// Draw a single separator line between results and preview
+    /// (minimal UI preset, only when no preview border is configured).
+    pub preview_panel_separator: bool,
+    /// Hide the preview automatically when the viewport is too small to fit
+    /// a useful pane next to (or below) the results.
+    pub preview_panel_auto_hide: bool,
+    /// Whether tv runs in the whole terminal screen (as opposed to the
+    /// --inline / --height viewports).
+    pub fullscreen: bool,
     // help panel
     pub help_panel_show_categories: bool,
     pub help_panel_hidden: bool,
@@ -671,4 +748,226 @@ pub struct MergedConfig {
     pub channel_frecency: bool,
     /// Whether the current channel reads from stdin directly
     pub is_stdin: bool,
+}
+
+impl MergedConfig {
+    /// An empty input bar header means "no header line at all".
+    pub fn input_bar_header_hidden(&self) -> bool {
+        self.input_bar_header.as_deref().is_some_and(str::is_empty)
+    }
+
+    /// Number of vertical cells the results block chrome (borders + padding)
+    /// takes away from the results area.
+    pub fn results_panel_chrome_height(&self) -> u16 {
+        let borders = if self.results_panel_border_type == BorderType::None {
+            0
+        } else {
+            2
+        };
+        borders
+            + self.results_panel_padding.top
+            + self.results_panel_padding.bottom
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::channels::prototypes::UiSpec;
+
+    fn merge_layers(
+        config: Config,
+        prototype: ChannelPrototype,
+        channel_cli: ChannelCli,
+        global_cli: GlobalCli,
+    ) -> MergedConfig {
+        ConfigLayers::new(
+            config,
+            prototype,
+            PostProcessedCli {
+                channel: channel_cli,
+                global: global_cli,
+            },
+        )
+        .merge()
+    }
+
+    #[test]
+    fn minimal_preset_applies_to_inline_and_height() {
+        for global_cli in [
+            GlobalCli {
+                inline: true,
+                ..Default::default()
+            },
+            GlobalCli {
+                height: Some(20),
+                ..Default::default()
+            },
+        ] {
+            let merged = merge_layers(
+                Config::default(),
+                ChannelPrototype::new("test", "echo 1"),
+                ChannelCli::default(),
+                global_cli,
+            );
+            assert!(merged.status_bar_hidden);
+            assert_eq!(merged.input_bar_border_type, BorderType::None);
+            assert_eq!(merged.results_panel_border_type, BorderType::None);
+            assert_eq!(merged.preview_panel_border_type, BorderType::None);
+            assert_eq!(merged.input_bar_header.as_deref(), Some(""));
+            assert!(merged.input_bar_header_hidden());
+            assert_eq!(merged.input_bar_prompt.as_deref(), Some(""));
+            assert_eq!(merged.input_bar_padding, Padding::new(0, 1, 1, 0));
+            assert_eq!(merged.results_panel_padding, Padding::new(0, 0, 1, 0));
+            assert_eq!(merged.preview_panel_padding, Padding::new(1, 0, 0, 0));
+            assert!(merged.preview_panel_separator);
+            assert!(merged.preview_panel_auto_hide);
+            assert!(!merged.preview_panel_scrollbar);
+            assert!(merged.input_bar_minimal);
+        }
+    }
+
+    #[test]
+    fn minimal_preset_applies_fullscreen_but_keeps_status_bar() {
+        let merged = merge_layers(
+            Config::default(),
+            ChannelPrototype::new("test", "echo 1"),
+            ChannelCli::default(),
+            GlobalCli::default(),
+        );
+        assert!(merged.fullscreen);
+        // same borderless chrome as the small viewports...
+        assert_eq!(merged.input_bar_border_type, BorderType::None);
+        assert_eq!(merged.results_panel_border_type, BorderType::None);
+        assert_eq!(merged.preview_panel_border_type, BorderType::None);
+        assert!(merged.input_bar_header_hidden());
+        assert_eq!(merged.input_bar_prompt.as_deref(), Some(""));
+        assert!(merged.preview_panel_separator);
+        assert!(merged.input_bar_minimal);
+        // ...but the status bar stays, and the preview never auto-hides
+        assert!(!merged.status_bar_hidden);
+        assert!(!merged.preview_panel_auto_hide);
+    }
+
+    #[test]
+    fn minimal_preset_respects_explicit_config_and_channel() {
+        let mut config = Config::default();
+        config.ui.input_bar.border_type = BorderType::Thick;
+        let mut prototype = ChannelPrototype::new("test", "echo 1");
+        prototype.ui = Some(UiSpec {
+            ui_scale: None,
+            orientation: None,
+            theme: None,
+            theme_overrides: ThemeOverrides::default(),
+            input_bar: None,
+            preview_panel: None,
+            results_panel: None,
+            status_bar: Some(crate::config::ui::StatusBarConfig::default()),
+            help_panel: None,
+            remote_control: None,
+        });
+        let merged = merge_layers(
+            config,
+            prototype,
+            ChannelCli::default(),
+            GlobalCli {
+                height: Some(20),
+                ..Default::default()
+            },
+        );
+        // non-default config file value survives
+        assert_eq!(merged.input_bar_border_type, BorderType::Thick);
+        // channel [ui.status_bar] presence keeps the status bar visible
+        assert!(!merged.status_bar_hidden);
+        // untouched fields still get the preset
+        assert_eq!(merged.results_panel_border_type, BorderType::None);
+        assert_eq!(merged.preview_panel_border_type, BorderType::None);
+    }
+
+    #[test]
+    fn minimal_preset_ignores_unrelated_channel_ui_fields() {
+        // A channel tweaking e.g. the preview size (like the stock files
+        // channel) should still get the minimal borderless preview.
+        let mut prototype = ChannelPrototype::new("test", "echo 1");
+        prototype.ui = Some(UiSpec {
+            ui_scale: None,
+            orientation: None,
+            theme: None,
+            theme_overrides: ThemeOverrides::default(),
+            input_bar: None,
+            preview_panel: Some(crate::config::ui::PreviewPanelConfig {
+                size: 60,
+                ..Default::default()
+            }),
+            results_panel: None,
+            status_bar: None,
+            help_panel: None,
+            remote_control: None,
+        });
+        let merged = merge_layers(
+            Config::default(),
+            prototype,
+            ChannelCli::default(),
+            GlobalCli {
+                inline: true,
+                ..Default::default()
+            },
+        );
+        assert_eq!(merged.preview_panel_size, 60);
+        assert_eq!(merged.preview_panel_border_type, BorderType::None);
+        assert!(merged.preview_panel_separator);
+        // but a channel explicitly picking a non-default border keeps it
+        let mut prototype = ChannelPrototype::new("test", "echo 1");
+        prototype.ui = Some(UiSpec {
+            ui_scale: None,
+            orientation: None,
+            theme: None,
+            theme_overrides: ThemeOverrides::default(),
+            input_bar: None,
+            preview_panel: Some(crate::config::ui::PreviewPanelConfig {
+                border_type: BorderType::Thick,
+                ..Default::default()
+            }),
+            results_panel: None,
+            status_bar: None,
+            help_panel: None,
+            remote_control: None,
+        });
+        let merged = merge_layers(
+            Config::default(),
+            prototype,
+            ChannelCli::default(),
+            GlobalCli {
+                inline: true,
+                ..Default::default()
+            },
+        );
+        assert_eq!(merged.preview_panel_border_type, BorderType::Thick);
+        assert!(!merged.preview_panel_separator);
+    }
+
+    #[test]
+    fn minimal_preset_cli_flags_win() {
+        let channel_cli = ChannelCli {
+            show_status_bar: true,
+            preview_border: Some(BorderType::Rounded),
+            input_header: Some(String::from("Custom")),
+            ..Default::default()
+        };
+        let merged = merge_layers(
+            Config::default(),
+            ChannelPrototype::new("test", "echo 1"),
+            channel_cli,
+            GlobalCli {
+                inline: true,
+                ..Default::default()
+            },
+        );
+        assert!(!merged.status_bar_hidden);
+        assert_eq!(merged.preview_panel_border_type, BorderType::Rounded);
+        assert!(!merged.preview_panel_separator);
+        assert_eq!(merged.input_bar_header.as_deref(), Some("Custom"));
+        // fields the CLI didn't touch still get the preset
+        assert_eq!(merged.results_panel_border_type, BorderType::None);
+    }
 }

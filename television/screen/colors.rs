@@ -14,6 +14,7 @@ pub struct Colorscheme {
 pub struct GeneralColorscheme {
     pub border_fg: Color,
     pub background: Option<Color>,
+    pub dimmed_text_fg: Color,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
