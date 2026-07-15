@@ -11,6 +11,8 @@ use ratatui::{
     widgets::Paragraph,
 };
 
+const HINT_SEP: &str = " · ";
+
 /// Draw the status bar at the bottom of the screen: a mode-colored dot and
 /// the channel name on the left, dimmed keybinding hints in the middle, and
 /// the version on the right.
@@ -64,15 +66,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
     }
 
     // === MIDDLE SECTION: dimmed hints ===
-    let mut hint_spans = Vec::new();
+    let mut hints: Vec<String> = Vec::new();
     let mut add_hint = |description: &str, keybinding: &str| {
-        if !hint_spans.is_empty() {
-            hint_spans.push(Span::styled(" · ", faint));
-        }
-        hint_spans.push(Span::styled(
-            format!("{} {}", description, keybinding),
-            dimmed,
-        ));
+        hints.push(format!("{} {}", description, keybinding));
     };
 
     if ctx.tv_state.mode == Mode::Channel
@@ -113,9 +109,33 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         }
     }
 
-    let key = &ctx.config.input_map.get_key_for_action(&Action::ToggleHelp);
-    if let Some(k) = key {
-        add_hint("help", &k.to_string());
+    let help_hint = ctx
+        .config
+        .input_map
+        .get_key_for_action(&Action::ToggleHelp)
+        .map(|k| format!("help {}", k));
+    hints.extend(help_hint.clone());
+
+    // on narrow terminals, rather than let the centered paragraph clip the
+    // line mid-word, fall back to the help hint alone: it leads to the full
+    // keybinding list anyway
+    let line_width = |hints: &[String]| {
+        hints.iter().map(|h| h.chars().count()).sum::<usize>()
+            + HINT_SEP.chars().count() * hints.len().saturating_sub(1)
+    };
+    if line_width(&hints) > chunks[1].width as usize {
+        hints = help_hint.into_iter().collect();
+        if line_width(&hints) > chunks[1].width as usize {
+            hints.clear();
+        }
+    }
+
+    let mut hint_spans = Vec::new();
+    for hint in &hints {
+        if !hint_spans.is_empty() {
+            hint_spans.push(Span::styled(HINT_SEP, faint));
+        }
+        hint_spans.push(Span::styled(hint.clone(), dimmed));
     }
 
     // === RIGHT SECTION: version ===
