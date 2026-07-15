@@ -7,6 +7,7 @@
 use std::{
     io,
     process::{Command, Stdio},
+    time::{Duration, Instant},
 };
 
 use super::super::common::*;
@@ -190,6 +191,21 @@ fn test_tv_pipes_correctly() -> io::Result<()> {
             &mut subprocess_stdin,
         );
     });
+
+    // tv occasionally never completes under heavy parallel test load, which
+    // would otherwise hang the whole suite: kill it after a generous
+    // deadline so the pipe closes and the test fails instead
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut timed_out = false;
+    while tv_command.try_wait()?.is_none() {
+        if Instant::now() > deadline {
+            tv_command.kill()?;
+            timed_out = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(!timed_out, "tv did not complete within 30s");
 
     let subprocess_output = cat.wait_with_output()?;
 
