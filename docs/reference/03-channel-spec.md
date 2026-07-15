@@ -213,8 +213,8 @@ input_prompt = ">> "
 | `size` | integer (0-100) | 50 | Preview panel size percentage |
 | `header` | string | - | Header template |
 | `footer` | string | - | Footer template |
-| `scrollbar` | boolean | true | Show scrollbar |
-| `border_type` | string | "rounded" | "none", "plain", "rounded", "thick" |
+| `scrollbar` | boolean | false | Show scrollbar |
+| `border_type` | string | "none" | "none", "plain", "rounded", "thick" |
 | `padding` | table | all 0 | Panel padding |
 | `hidden` | boolean | false | Hide by default |
 
@@ -232,7 +232,7 @@ hidden = false
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `border_type` | string | "rounded" | Border style |
+| `border_type` | string | "none" | Border style |
 | `padding` | table | all 0 | Panel padding |
 
 ```toml
@@ -245,7 +245,7 @@ padding = { top = 1, bottom = 1 }
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `border_type` | string | "rounded" | Border style |
+| `border_type` | string | "none" | Border style |
 | `padding` | table | all 0 | Bar padding |
 
 ```toml
@@ -258,14 +258,10 @@ padding = { left = 2, right = 2 }
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `separator_open` | string | "" | Opening separator |
-| `separator_close` | string | "" | Closing separator |
 | `hidden` | boolean | false | Hide by default |
 
 ```toml
 [ui.status_bar]
-separator_open = "["
-separator_close = "]"
 hidden = false
 ```
 

@@ -57,24 +57,22 @@ details).
 | Option        | Type   | Default                                  | Description                                                              |
 | ------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
 | `position`    | string | `"top"`                                  | Position of the input bar. Valid values: `"top"`, `"bottom"`.            |
-| `prompt`      | string | `">"`                                    | The input prompt string displayed before user input. An empty string removes the prompt entirely. |
-| `header`      | string | `null`                                   | Optional header text displayed above the input bar. An empty string removes the header line entirely. |
-| `border_type` | string | `"rounded"`                              | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
+| `prompt`      | string | `""`                                     | The input prompt string displayed before user input. Empty by default: the minimal UI shows a mode-colored marker instead. |
+| `header`      | string | `""`                                     | Optional header text displayed above the input bar. Empty by default (no header line). |
+| `border_type` | string | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
 | `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the input bar.                                            |
 
 #### Status Bar (`[ui.status_bar]`)
 
-| Option            | Type    | Default | Description                                  |
-| ----------------- | ------- | ------- | -------------------------------------------- |
-| `separator_open`  | string  | `""`    | Opening character for status bar separators. |
-| `separator_close` | string  | `""`    | Closing character for status bar separators. |
-| `hidden`          | boolean | `false` | Whether to hide the status bar by default.   |
+| Option   | Type    | Default | Description                                |
+| -------- | ------- | ------- | ------------------------------------------ |
+| `hidden` | boolean | `false` | Whether to hide the status bar by default. |
 
 #### Results Panel (`[ui.results_panel]`)
 
 | Option        | Type   | Default                                  | Description                                                              |
 | ------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
-| `border_type` | string | `"rounded"`                              | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
+| `border_type` | string | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
 | `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the results panel.                                        |
 
 #### Preview Panel (`[ui.preview_panel]`)
@@ -84,8 +82,8 @@ details).
 | `size`        | integer (0-100) | `50`                                     | Preview panel size as percentage of screen width (landscape) or height (portrait). |
 | `header`      | string          | `null`                                   | Optional header template for the preview panel.                                    |
 | `footer`      | string          | `null`                                   | Optional footer template for the preview panel.                                    |
-| `scrollbar`   | boolean         | `true`                                   | Whether to show a scrollbar in the preview panel.                                  |
-| `border_type` | string          | `"rounded"`                              | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`.           |
+| `scrollbar`   | boolean         | `false`                                  | Whether to show a scrollbar in the preview panel.                                  |
+| `border_type` | string          | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`.           |
 | `padding`     | object          | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the preview panel.                                                  |
 | `hidden`      | boolean         | `false`                                  | Whether to hide the preview panel by default.                                      |
 
