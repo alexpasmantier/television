@@ -12,12 +12,10 @@ pub fn get_action_for_mouse_event(
 ) -> Action {
     let position = Position::new(event.column, event.row);
 
-    // if the mouse is over the results or remote control, scroll the selection
-    if matches!(mode, Mode::Channel) && ui_layout.results.contains(position)
-        || matches!(mode, Mode::RemoteControl)
-            && ui_layout
-                .remote_control
-                .is_some_and(|rc| rc.contains(position))
+    // if the mouse is over the results list (which the remote control takes
+    // over in remote mode), scroll the selection
+    if matches!(mode, Mode::Channel | Mode::RemoteControl)
+        && ui_layout.results.contains(position)
     {
         match event.kind {
             MouseEventKind::ScrollUp => return Action::SelectPrevEntry,

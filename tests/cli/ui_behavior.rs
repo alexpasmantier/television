@@ -43,12 +43,12 @@ fn test_toggle_remote_control_keybinding() {
     // Send Ctrl+T to open remote control panel
     s.send().key("ctrl-t").unwrap();
 
-    s.wait().text("(1) (2) (3)").until().unwrap();
+    s.wait().text("● channels").until().unwrap();
 
     // Send Ctrl+C to exit remote control mode; wait for the panel to
     // disappear before sending the app-level quit to avoid races.
     s.send().key("ctrl-c").unwrap();
-    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.wait().text_absent("● channels").until().unwrap();
 
     // Send Ctrl+C again to exit the application
     s.send().key("ctrl-c").unwrap();
@@ -90,7 +90,7 @@ fn test_toggle_help_keybinding() {
     // Send Ctrl+H to open help panel
     s.send().key("ctrl-h").unwrap();
 
-    s.wait().text("───── Help ─────").until().unwrap();
+    s.wait().text("▏ help").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -202,7 +202,7 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     s.send().key("ctrl-t").unwrap();
 
     s.wait()
-        .text("(1) (2) (3)")
+        .text("● channels")
         .text("● channels")
         .until()
         .unwrap();
@@ -213,7 +213,7 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     // Verify we're still in remote control mode and preview is still visible
     // (the toggle should have been ignored)
     s.wait()
-        .text("(1) (2) (3)")
+        .text("● channels")
         .text("● channels")
         .until()
         .unwrap();

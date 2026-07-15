@@ -1,4 +1,8 @@
 use crate::event::Key;
+use crate::screen::{
+    constants::HAIRLINE_BORDER_SET,
+    layout::{InputPosition, Orientation},
+};
 use crate::utils::strings::SPACE;
 use crate::{
     action::{Action, Actions},
@@ -9,52 +13,73 @@ use crate::{
 };
 use ratatui::{
     Frame,
-    layout::{Alignment, Rect},
+    layout::Rect,
     style::Style,
     text::{Line, Span},
-    widgets::{Block, BorderType, Borders, Clear, Padding, Paragraph},
+    widgets::{Block, Borders, Padding, Paragraph},
 };
 use rustc_hash::FxHashMap;
 use tracing::{debug, trace};
 
-const MIN_PANEL_WIDTH: u16 = 25;
-const MIN_PANEL_HEIGHT: u16 = 5;
-
-/// Draws a Helix-style floating help panel in the bottom-right corner
-pub fn draw_help_panel(
+/// Draws the help panel inside the preview pane (behind the hairline
+/// separator), like the actions picker.
+pub fn draw_help_pane(
     f: &mut Frame<'_>,
-    area: Rect,
+    rect: Rect,
     config: &MergedConfig,
     tv_mode: Mode,
     colorscheme: &Colorscheme,
 ) {
-    if area.width < MIN_PANEL_WIDTH || area.height < MIN_PANEL_HEIGHT {
-        return; // Too small to display anything meaningful
+    // hairline on the side facing the results, mirroring the preview
+    let separator = match (config.layout, config.input_bar_position) {
+        (Orientation::Landscape, _) => Borders::LEFT,
+        (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
+        (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
+    };
+    let mode_color = match tv_mode {
+        Mode::Channel => colorscheme.mode.channel,
+        Mode::RemoteControl => colorscheme.mode.remote_control,
+        Mode::ActionPicker => colorscheme.mode.action_picker,
+    };
+    let mut title_spans = vec![Span::from(" ")];
+    // the title embeds into a horizontal hairline, so lead with a line
+    // segment (same treatment as the preview title)
+    if separator.intersects(Borders::TOP) {
+        title_spans.insert(
+            0,
+            Span::styled(
+                "─",
+                Style::default().fg(colorscheme.general.border_fg),
+            ),
+        );
     }
+    title_spans
+        .push(Span::styled("help", Style::default().fg(mode_color).bold()));
+    title_spans.push(Span::from(" "));
 
-    // Generate content
-    let content = generate_help_content(config, tv_mode, colorscheme);
-
-    // Clear the area first to create the floating effect
-    f.render_widget(Clear, area);
-
-    // Create the main block with consistent styling
     let block = Block::default()
-        .borders(Borders::ALL)
-        .border_type(BorderType::Rounded)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
-        .title_top(Line::from(" Help ").alignment(Alignment::Center))
+        .title_top(Line::from(title_spans))
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
-        .padding(Padding::horizontal(1));
+        .borders(separator)
+        .border_set(HAIRLINE_BORDER_SET)
+        .border_style(Style::default().fg(colorscheme.general.border_fg))
+        .padding(Padding {
+            top: 1,
+            right: 1,
+            bottom: 0,
+            left: 2,
+        });
+    let inner = block.inner(rect);
+    f.render_widget(block, rect);
+    if inner.area() == 0 {
+        return;
+    }
 
-    let paragraph = Paragraph::new(content)
-        .block(block)
-        .alignment(Alignment::Left);
-
-    f.render_widget(paragraph, area);
+    let content = generate_help_content(config, tv_mode, colorscheme);
+    f.render_widget(Paragraph::new(content), inner);
 }
 
 /// Checks if an action is relevant for the given mode
@@ -198,7 +223,6 @@ fn add_keybinding_lines_for_keys(
         lines.push(create_compact_keybinding_line(
             &key_string,
             &description,
-            mode,
             colorscheme,
         ));
     }
@@ -267,18 +291,17 @@ fn generate_help_content(
     debug!("Generating help content for mode: {:?}", mode);
 
     // Mode-specific keybindings section header
-    let mode_name = match mode {
-        Mode::Channel => "Channel Mode",
-        Mode::RemoteControl => "Remote Control Mode",
-        Mode::ActionPicker => "Action Picker Mode",
+    let (mode_name, mode_color) = match mode {
+        Mode::Channel => ("channel", colorscheme.mode.channel),
+        Mode::RemoteControl => {
+            ("remote control", colorscheme.mode.remote_control)
+        }
+        Mode::ActionPicker => ("actions", colorscheme.mode.action_picker),
     };
 
     lines.push(Line::from(vec![Span::styled(
         mode_name,
-        Style::default()
-            .fg(colorscheme.help.metadata_field_name_fg)
-            .bold()
-            .underlined(),
+        Style::default().fg(mode_color),
     )]));
 
     add_keybinding_lines_for_keys(
@@ -311,11 +334,8 @@ fn generate_help_content(
     if has_external_actions {
         lines.push(Line::from(""));
         lines.push(Line::from(vec![Span::styled(
-            "External Actions",
-            Style::default()
-                .fg(colorscheme.help.metadata_field_name_fg)
-                .bold()
-                .underlined(),
+            "external actions",
+            Style::default().fg(mode_color),
         )]));
 
         add_actions_keybindings_section(
@@ -330,26 +350,23 @@ fn generate_help_content(
     lines
 }
 
-/// Creates a compact keybinding line with one space of left padding
+/// Creates a compact keybinding line: the key in the foreground color,
+/// followed by a dimmed description
 fn create_compact_keybinding_line(
     key: &str,
     action: &str,
-    mode: Mode,
     colorscheme: &Colorscheme,
 ) -> Line<'static> {
-    // Use the appropriate mode color
-    let key_color = match mode {
-        Mode::Channel | Mode::ActionPicker => colorscheme.mode.channel,
-        Mode::RemoteControl => colorscheme.mode.remote_control,
-    };
-
     Line::from(vec![
         Span::styled(
-            format!("{}:", action),
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
+            format!("  {:<12}", key),
+            Style::default().fg(colorscheme.results.result_fg),
         ),
-        Span::raw(SPACE), // Space between action and key
-        Span::styled(key.to_string(), Style::default().fg(key_color).bold()),
+        Span::raw(SPACE),
+        Span::styled(
+            action.to_string(),
+            Style::default().fg(colorscheme.general.dimmed_text_fg),
+        ),
     ])
 }
 
@@ -358,49 +375,5 @@ fn create_external_action_line(
     actions: &str,
     colorscheme: &Colorscheme,
 ) -> Line<'static> {
-    Line::from(vec![
-        Span::styled(
-            format!("{}:", key),
-            Style::default().fg(colorscheme.mode.channel).bold(),
-        ),
-        Span::raw(SPACE), // Space between key and actions
-        Span::styled(
-            actions.to_string(),
-            Style::default().fg(colorscheme.help.metadata_field_name_fg),
-        ),
-    ])
-}
-
-/// Calculates the required dimensions for the help panel based on content
-#[allow(clippy::cast_possible_truncation)]
-pub fn calculate_help_panel_size(
-    config: &MergedConfig,
-    mode: Mode,
-    colorscheme: &Colorscheme,
-) -> (u16, u16) {
-    // Generate content to count items and calculate width
-    let content = generate_help_content(config, mode, colorscheme);
-
-    // Calculate required width based on actual content
-    let max_content_width = content
-        .iter()
-        .map(Line::width) // Use Line's width method for sizing calculation
-        .max()
-        .unwrap_or(25);
-
-    // Calculate dimensions with proper padding:
-    // - Width: content + 4 (2 borders + 2 padding)
-    // - Height: content lines + 2 (2 borders, no title or padding)
-    let required_width = (max_content_width + 4).max(25) as u16;
-    let required_height = (content.len() + 2).max(8) as u16;
-
-    trace!(
-        "Help panel size calculation: {} lines, max width {}, final dimensions {}x{}",
-        content.len(),
-        max_content_width,
-        required_width,
-        required_height
-    );
-
-    (required_width, required_height)
+    create_compact_keybinding_line(key, actions, colorscheme)
 }

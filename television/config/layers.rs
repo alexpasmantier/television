@@ -457,8 +457,10 @@ impl ConfigLayers {
         }
         // 1-column left margin so the query doesn't sit flush against
         // the terminal edge, plus a blank line between the input and
-        // the results
-        if self.channel_cli.input_padding.is_none()
+        // the results (only for a borderless input bar: a border already
+        // provides both)
+        if input_bar_border_type == BorderType::None
+            && self.channel_cli.input_padding.is_none()
             && input_bar_padding == Padding::default()
         {
             input_bar_padding = match input_bar_position {
@@ -466,7 +468,8 @@ impl ConfigLayers {
                 InputPosition::Bottom => Padding::new(1, 0, 1, 0),
             };
         }
-        if self.channel_cli.results_padding.is_none()
+        if results_panel_border_type == BorderType::None
+            && self.channel_cli.results_padding.is_none()
             && results_panel_padding == Padding::default()
         {
             results_panel_padding = Padding::new(0, 0, 1, 0);

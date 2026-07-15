@@ -511,49 +511,32 @@ impl Television {
         }
     }
 
-    /// Visible height for the remote control list: the popup area minus its
-    /// chrome, or the main results area in non-fullscreen mode (where the
-    /// remote takes over the results panel).
+    /// Visible height for the remote control list: the main results area
+    /// (the remote takes over the results panel).
     fn rc_picker_viewport_height(&self) -> u16 {
-        if self.merged_config.fullscreen {
-            // accounting for borders (2) and input box (3)
-            self.ui_state
-                .layout
-                .remote_control
-                .map_or(0, |r| r.height.saturating_sub(5))
-        } else {
-            self.ui_state.layout.results.height.saturating_sub(
-                self.merged_config.results_panel_chrome_height(),
-            )
-        }
+        self.ui_state
+            .layout
+            .results
+            .height
+            .saturating_sub(self.merged_config.results_panel_chrome_height())
     }
 
-    /// Visible height for the actions picker list: the popup area minus its
-    /// chrome, or the borrowed preview pane minus the actions input line
-    /// and separator in non-fullscreen mode.
+    /// Visible height for the actions picker list: the borrowed preview
+    /// pane minus the actions input line and separator.
     fn ap_picker_viewport_height(&self) -> u16 {
-        if self.merged_config.fullscreen {
-            // accounting for borders (2) and input box (3)
-            self.ui_state
-                .layout
-                .action_picker
-                .map_or(0, |r| r.height.saturating_sub(5))
-        } else {
-            self.ui_state.layout.action_picker.map_or(0, |pane| {
-                let input_rows = 1
-                    + self.merged_config.input_bar_padding.top
-                    + self.merged_config.input_bar_padding.bottom;
-                let separator_row = u16::from(
-                    self.merged_config.layout == Orientation::Portrait,
-                );
-                pane.height
-                    .saturating_sub(input_rows + separator_row)
-                    .saturating_sub(
-                        self.merged_config.results_panel_padding.top
-                            + self.merged_config.results_panel_padding.bottom,
-                    )
-            })
-        }
+        self.ui_state.layout.action_picker.map_or(0, |pane| {
+            let input_rows = 1
+                + self.merged_config.input_bar_padding.top
+                + self.merged_config.input_bar_padding.bottom;
+            let separator_row =
+                u16::from(self.merged_config.layout == Orientation::Portrait);
+            pane.height
+                .saturating_sub(input_rows + separator_row)
+                .saturating_sub(
+                    self.merged_config.results_panel_padding.top
+                        + self.merged_config.results_panel_padding.bottom,
+                )
+        })
     }
 
     fn reset_picker_selection(&mut self) {

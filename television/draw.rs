@@ -7,14 +7,13 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        action_picker::{draw_action_picker, draw_minimal_actions_pane},
+        action_picker::draw_minimal_actions_pane,
         colors::Colorscheme,
-        help_panel::draw_help_panel,
+        help_panel::draw_help_pane,
         input::draw_input_box,
         layout::{InputPosition, Layout, Orientation},
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
-        remote_control::draw_remote_control,
         results::{draw_minimal_picker_list, draw_results_list},
         status_bar,
     },
@@ -198,14 +197,11 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
     let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
     let minimal = ctx.config.input_bar_minimal;
-    // popups don't fit in the small --inline / --height viewports: the
-    // remote control and actions picker take over panes instead
-    let takeover = !ctx.config.fullscreen;
 
-    let layout =
-        Layout::build(area, &ctx.config, ctx.tv_state.mode, &ctx.colorscheme);
+    let layout = Layout::build(area, &ctx.config, ctx.tv_state.mode);
 
-    if takeover && show_remote {
+    // the remote control takes over the main results and input areas
+    if show_remote {
         let picker = &ctx.tv_state.rc_picker;
         draw_minimal_picker_list(
             f,
@@ -215,6 +211,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.input_bar_position,
             &ctx.colorscheme,
             &ctx.config.results_panel_padding,
+            ctx.config.remote_show_channel_descriptions,
         )?;
         draw_input_box(
             f,
@@ -232,7 +229,10 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             &ctx.config.input_bar_border_type,
             ctx.config.input_bar_prompt.as_ref(),
             minimal,
-            Some(("channels", ctx.colorscheme.mode.remote_control)),
+            // with no status bar, the picker hint stands in for the mode
+            ctx.config
+                .status_bar_hidden
+                .then_some(("channels", ctx.colorscheme.mode.remote_control)),
         )?;
     } else {
         // results list
@@ -323,58 +323,30 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         )?;
     }
 
-    // remote control (popup in fullscreen)
-    if show_remote && !takeover {
-        draw_remote_control(
+    // the actions picker borrows the preview pane, so the entry the action
+    // applies to stays visible in the results list
+    if show_action_picker && let Some(pane) = layout.action_picker {
+        draw_minimal_actions_pane(
             f,
-            layout.remote_control.unwrap(),
-            // FIXME: the way the code is mutualized right now requires only having the entries we
-            // want to display here (i.e. we need to filter here before passing them down)
-            &ctx.tv_state.rc_picker.entries,
-            &mut ctx.tv_state.rc_picker.relative_state.clone(),
-            &mut ctx.tv_state.rc_picker.input.clone(),
+            pane,
+            &ctx.tv_state.ap_picker.entries,
+            &mut ctx.tv_state.ap_picker.relative_state.clone(),
+            &ctx.tv_state.ap_picker.state,
+            &ctx.tv_state.ap_picker.input,
+            ctx.tv_state.ap_picker.total_items,
+            ctx.tv_state.ap_picker.total_count,
+            &ctx.config,
             &ctx.colorscheme,
-            ctx.config.remote_show_channel_descriptions,
         )?;
-    }
-
-    // action picker: popup in fullscreen, preview pane in non-fullscreen
-    // mode (so the entry the action applies to stays visible in the results)
-    if show_action_picker {
-        if takeover {
-            if let Some(pane) = layout.action_picker {
-                draw_minimal_actions_pane(
-                    f,
-                    pane,
-                    &ctx.tv_state.ap_picker.entries,
-                    &mut ctx.tv_state.ap_picker.relative_state.clone(),
-                    &ctx.tv_state.ap_picker.state,
-                    &ctx.tv_state.ap_picker.input,
-                    ctx.tv_state.ap_picker.total_items,
-                    ctx.tv_state.ap_picker.total_count,
-                    &ctx.config,
-                    &ctx.colorscheme,
-                )?;
-            }
-        } else {
-            draw_action_picker(
-                f,
-                layout.action_picker.unwrap(),
-                &ctx.tv_state.ap_picker.entries,
-                &mut ctx.tv_state.ap_picker.relative_state.clone(),
-                &mut ctx.tv_state.ap_picker.input.clone(),
-                &ctx.colorscheme,
-            )?;
-        }
     }
 
     if let Some(popup) = &ctx.tv_state.missing_requirements_popup {
         draw_missing_requirements_popup(f, area, popup, &ctx.colorscheme);
     }
 
-    // floating help panel (rendered last to appear on top)
+    // help panel in the borrowed preview pane
     if let Some(help_area) = layout.help_panel {
-        draw_help_panel(
+        draw_help_pane(
             f,
             help_area,
             &ctx.config,

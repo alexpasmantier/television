@@ -223,7 +223,10 @@ fn test_no_remote_hides_remote_panel() {
             .unwrap();
 
     s.wait().text("● files").until().unwrap();
-    assert_frame_not_contains(&s, "── Channels ──");
+
+    // with the remote disabled, ctrl-t is a no-op
+    s.send().key("ctrl-t").unwrap();
+    assert_frame_not_contains(&s, "● channels");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -259,12 +262,12 @@ fn test_show_remote_flag_shows_remote_panel() {
             .start()
             .unwrap();
 
-    s.wait().text("(1) (2) (3)").until().unwrap();
+    s.wait().text("● channels").until().unwrap();
 
     // Send Ctrl+C to exit remote control; wait for it to close before
     // sending the app-level quit to avoid races.
     s.send().key("ctrl-c").unwrap();
-    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.wait().text_absent("● channels").until().unwrap();
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
@@ -280,7 +283,7 @@ fn test_hide_remote_flag_hides_remote_panel() {
             .unwrap();
 
     s.wait().text("● files").until().unwrap();
-    assert_frame_not_contains_any(&s, &["(1) (2) (3)", "── Channels ──"]);
+    assert_frame_not_contains(&s, "● channels");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -333,7 +336,7 @@ fn test_no_help_panel_disables_help_panel() {
     // Send Ctrl+H to try to open help panel (should not work)
     s.send().key("ctrl-h").unwrap();
 
-    assert_frame_not_contains(&s, "───── Help ─────");
+    assert_frame_not_contains(&s, "▏ help");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -356,7 +359,7 @@ fn test_hide_help_panel_starts_with_help_hidden() {
     // Send Ctrl+H to open help panel (should still work since it's just hidden)
     s.send().key("ctrl-h").unwrap();
 
-    s.wait().text("───── Help ─────").until().unwrap();
+    s.wait().text("▏ help").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -374,7 +377,7 @@ fn test_show_help_panel_starts_with_help_visible() {
     .start()
     .unwrap();
 
-    s.wait().text("───── Help ─────").until().unwrap();
+    s.wait().text("▏ help").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -832,7 +835,7 @@ fn test_height_minimal_picker_takeover() {
     // remote control takes over in place (no popup, no logo)
     s.send().key("ctrl-t").unwrap();
     s.wait().text("· channels").until().unwrap();
-    assert_frame_not_contains_any(&s, &["╭", " Channels ", "(1) (2) (3)"]);
+    assert_frame_not_contains_any(&s, &["╭", " Channels "]);
 
     // esc returns to the channel picker
     s.send().key("esc").unwrap();
