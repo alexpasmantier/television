@@ -1,7 +1,6 @@
 use crate::event::Key;
 use crate::screen::{
-    constants::HAIRLINE_BORDER_SET,
-    layout::{InputPosition, Orientation},
+    constants::HAIRLINE_BORDER_SET, layout::pane_separator_side,
 };
 use crate::utils::strings::SPACE;
 use crate::{
@@ -31,11 +30,8 @@ pub fn draw_help_pane(
     colorscheme: &Colorscheme,
 ) {
     // hairline on the side facing the results, mirroring the preview
-    let separator = match (config.layout, config.input_bar_position) {
-        (Orientation::Landscape, _) => Borders::LEFT,
-        (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
-        (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
-    };
+    let separator =
+        pane_separator_side(config.layout, config.input_bar_position);
     let mode_color = match tv_mode {
         Mode::Channel => colorscheme.mode.channel,
         Mode::RemoteControl => colorscheme.mode.remote_control,
@@ -272,7 +268,7 @@ fn add_actions_keybindings_section(
 
     // Create lines from sorted entries
     for (key_string, action_desc) in entries {
-        lines.push(create_external_action_line(
+        lines.push(create_compact_keybinding_line(
             &key_string,
             &action_desc,
             colorscheme,
@@ -368,12 +364,4 @@ fn create_compact_keybinding_line(
             Style::default().fg(colorscheme.general.dimmed_text_fg),
         ),
     ])
-}
-
-fn create_external_action_line(
-    key: &str,
-    actions: &str,
-    colorscheme: &Colorscheme,
-) -> Line<'static> {
-    create_compact_keybinding_line(key, actions, colorscheme)
 }

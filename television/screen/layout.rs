@@ -91,6 +91,23 @@ impl From<crate::cli::args::LayoutOrientation> for Orientation {
     }
 }
 
+/// Which side of the preview pane (or whatever borrows it) faces the
+/// results list — that's where the minimal UI draws its hairline separator.
+pub fn pane_separator_side(
+    layout: Orientation,
+    input_bar_position: InputPosition,
+) -> ratatui::widgets::Borders {
+    use ratatui::widgets::Borders;
+    match (layout, input_bar_position) {
+        // pane on the right
+        (Orientation::Landscape, _) => Borders::LEFT,
+        // pane at the bottom
+        (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
+        // pane at the top
+        (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,
@@ -413,7 +430,7 @@ impl Layout {
         } else {
             Some(Rect {
                 x: area.x,
-                y: area.y + area.height - 1, // Position at the very last line
+                y: (area.y + area.height).saturating_sub(1), // Position at the very last line
                 width: area.width,
                 height: 1, // Single line status bar
             })

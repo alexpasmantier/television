@@ -67,12 +67,6 @@ prompt = ""
 border_type = "none" # https://docs.rs/ratatui/latest/ratatui/widgets/block/enum.BorderType.html#variants
 
 [ui.status_bar]
-# Status bar separators (bubble):
-#separator_open = ""
-#separator_close = ""
-# Status bar separators (box):
-separator_open = ""
-separator_close = ""
 hidden = false
 
 [ui.results_panel]

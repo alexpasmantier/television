@@ -1,5 +1,5 @@
 use crate::{
-    config::ui::{BorderType, DEFAULT_PROMPT, Padding},
+    config::{layers::MergedConfig, ui::DEFAULT_PROMPT},
     screen::{colors::Colorscheme, layout::InputPosition},
     utils::input::Input,
 };
@@ -19,6 +19,9 @@ use ratatui::{
 
 const LOADING_CHAR: &str = "●";
 
+/// Columns always reserved for the query, however long the count line gets.
+const MIN_QUERY_WIDTH: u16 = 12;
+
 /// Multi-source indicator rendered next to the result count in minimal
 /// mode: the current source name and one dot per source.
 pub struct SourceIndicator<'a> {
@@ -31,28 +34,32 @@ pub struct SourceIndicator<'a> {
 pub fn draw_input_box(
     f: &mut Frame,
     rect: Rect,
-    results_count: u32,
-    total_count: u32,
+    config: &MergedConfig,
+    colorscheme: &Colorscheme,
     input_state: &Input,
     results_picker_state: &ListState,
+    results_count: u32,
+    total_count: u32,
     matcher_running: bool,
-    channel_name: &str,
-    colorscheme: &Colorscheme,
-    position: InputPosition,
-    header: &Option<String>,
-    padding: &Padding,
-    border_type: &BorderType,
-    prompt: Option<&String>,
-    // minimal UI: dimmed compact count and undecorated query
-    minimal: bool,
+    // shown as the header when the config doesn't set one
+    header_fallback: &str,
     // optional `· <hint>` suffix after the count in the given color (the
     // current channel or picker mode), shown when the status bar is hidden
     hint: Option<(&str, Color)>,
     // multi-source channels: current source name + dots after the count
-    sources: Option<SourceIndicator>,
+    sources: Option<&SourceIndicator>,
 ) -> Result<()> {
+    let position = config.input_bar_position;
+    let padding = &config.input_bar_padding;
+    let border_type = &config.input_bar_border_type;
+    let prompt = config.input_bar_prompt.as_ref();
+    // minimal UI: dimmed compact count and undecorated query
+    let minimal = config.input_bar_minimal;
     // an empty header means "no header at all"
-    let header = header.as_ref().map_or(channel_name, |v| v);
+    let header = config
+        .input_bar_header
+        .as_deref()
+        .unwrap_or(header_fallback);
     let mut input_block = Block::default()
         .style(
             Style::default()
@@ -101,11 +108,11 @@ pub fn draw_input_box(
             }
         })
         .unwrap_or(2);
-    let selected_position = if results_count == 0 {
-        0
-    } else {
-        results_picker_state.selected().unwrap_or(0) + 1
-    };
+    // columns left for the count once the query field got its minimum
+    let count_width_budget = input_block_inner
+        .width
+        .saturating_sub(prompt_len + indicator_len + MIN_QUERY_WIDTH)
+        as usize;
     // minimal UI: a compact, dimmed `matches/total` count, with an optional
     // multi-source indicator and a mode hint (the channel name or the
     // active picker) when it has to stand in for the status bar's mode info
@@ -113,50 +120,72 @@ pub fn draw_input_box(
         let dimmed = Style::default()
             .fg(colorscheme.general.dimmed_text_fg)
             .italic();
-        let mut spans = vec![Span::styled(
-            format!(" {}/{}", results_count, total_count),
-            dimmed,
-        )];
-        if let Some(sources) = sources
-            && sources.count > 1
-        {
-            // dots first, then the name: the name buffers the dots from the
-            // loading indicator at the end of the row
-            let source_style =
-                Style::default().fg(colorscheme.input.source_indicator_fg);
-            spans.push(Span::styled(" · ", dimmed));
-            for i in 0..sources.count {
+        let build = |with_sources: bool, with_hint: bool| {
+            let mut spans = vec![Span::styled(
+                format!(" {}/{}", results_count, total_count),
+                dimmed,
+            )];
+            if with_sources
+                && let Some(sources) = sources
+                && sources.count > 1
+            {
+                // dots first, then the name: the name buffers the dots from
+                // the loading indicator at the end of the row
+                let source_style =
+                    Style::default().fg(colorscheme.input.source_indicator_fg);
+                spans.push(Span::styled(" · ", dimmed));
+                for i in 0..sources.count {
+                    spans.push(Span::styled(
+                        if i == sources.index { "● " } else { "○ " },
+                        source_style,
+                    ));
+                }
+                if let Some(name) = sources.name {
+                    spans.push(Span::styled(name.to_string(), source_style));
+                }
+            }
+            if with_hint && let Some((hint, hint_color)) = hint {
                 spans.push(Span::styled(
-                    if i == sources.index { "● " } else { "○ " },
-                    source_style,
+                    format!(" · {}", hint),
+                    Style::default().fg(hint_color).italic(),
                 ));
             }
-            if let Some(name) = sources.name {
-                spans.push(Span::styled(name.to_string(), source_style));
-            }
-        }
-        if let Some((hint, hint_color)) = hint {
-            spans.push(Span::styled(
-                format!(" · {}", hint),
-                Style::default().fg(hint_color).italic(),
-            ));
-        }
-        spans.push(Span::from(" "));
-        Line::from(spans)
+            spans.push(Span::from(" "));
+            Line::from(spans)
+        };
+        // when the row gets narrow, drop whole segments instead of clipping
+        // mid-word: the hint first, then the source indicator, then the
+        // count itself
+        [(true, true), (true, false), (false, false)]
+            .iter()
+            .map(|&(with_sources, with_hint)| build(with_sources, with_hint))
+            .find(|line| line.width() <= count_width_budget)
+            .unwrap_or_default()
     } else {
-        Line::from(Span::styled(
+        let selected_position = if results_count == 0 {
+            0
+        } else {
+            results_picker_state.selected().unwrap_or(0) + 1
+        };
+        let line = Line::from(Span::styled(
             format!(" {} / {} ", selected_position, results_count),
             Style::default()
                 .fg(colorscheme.input.results_count_fg)
                 .italic(),
-        ))
+        ));
+        if line.width() <= count_width_budget {
+            line
+        } else {
+            Line::default()
+        }
     };
     let constraints = [
         // prompt symbol + space
         Constraint::Length(prompt_len),
         // input field
         Constraint::Fill(1),
-        // result count (+ optional indicators)
+        // result count (+ optional indicators), already sized to fit the
+        // budget so it never starves the query field
         Constraint::Length(
             u16::try_from(count_line.width())
                 .expect("Count line width should fit in u16"),

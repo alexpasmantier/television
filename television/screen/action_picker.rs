@@ -5,7 +5,7 @@ use crate::{
         colors::Colorscheme,
         constants::HAIRLINE_BORDER_SET,
         input::draw_input_box,
-        layout::{InputPosition, Orientation},
+        layout::{InputPosition, pane_separator_side},
         results::draw_minimal_picker_list,
     },
     utils::input::Input,
@@ -15,7 +15,7 @@ use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
     prelude::Style,
-    widgets::{Block, Borders, ListState},
+    widgets::{Block, ListState},
 };
 
 /// Draw the minimal-mode actions picker inside the preview pane, so the
@@ -34,11 +34,8 @@ pub fn draw_minimal_actions_pane(
     colorscheme: &Colorscheme,
 ) -> Result<()> {
     // hairline on the side facing the results, mirroring the preview
-    let separator = match (config.layout, config.input_bar_position) {
-        (Orientation::Landscape, _) => Borders::LEFT,
-        (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
-        (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
-    };
+    let separator =
+        pane_separator_side(config.layout, config.input_bar_position);
     let pane_block = Block::default()
         .style(
             Style::default()
@@ -77,19 +74,14 @@ pub fn draw_minimal_actions_pane(
     draw_input_box(
         f,
         input_rect,
-        results_count,
-        total_count,
+        config,
+        colorscheme,
         input_state,
         picker_state,
+        results_count,
+        total_count,
         false,
         "actions",
-        colorscheme,
-        config.input_bar_position,
-        &config.input_bar_header,
-        &config.input_bar_padding,
-        &config.input_bar_border_type,
-        config.input_bar_prompt.as_ref(),
-        true,
         // with no status bar, the picker hint stands in for the mode
         config
             .status_bar_hidden

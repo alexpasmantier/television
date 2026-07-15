@@ -96,7 +96,7 @@ pub fn draw_results_list(
         relative_picker_state,
         list_direction,
         &colorscheme.results,
-        rect.width - 1, // right padding
+        rect.width.saturating_sub(1), // right padding
         if borderless { "" } else { POINTER_SYMBOL },
         |entry| {
             if has_multi_select {
