@@ -18,7 +18,7 @@ fn test_preview_command_in_adhoc_mode() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  Custom").text("▏").until().unwrap();
+    s.wait().text("● Custom").text("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -36,7 +36,7 @@ fn test_preview_command_override_in_channel_mode() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").text("▏").until().unwrap();
+    s.wait().text("● files").text("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -172,7 +172,7 @@ fn test_no_preview_disables_preview_panel() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  Custom").until().unwrap();
+    s.wait().text("● Custom").until().unwrap();
     assert_frame_not_contains(&s, "─ Preview ─");
 
     s.send().key("ctrl-c").unwrap();
@@ -306,7 +306,7 @@ fn test_hide_preview_flag_starts_with_preview_hidden() {
             .start()
             .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
     assert_frame_not_contains(&s, "▏");
 
     s.send().key("ctrl-c").unwrap();

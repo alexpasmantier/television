@@ -9,7 +9,7 @@ fn tv_ctrl_c() {
         .start()
         .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
@@ -27,7 +27,7 @@ macro_rules! test_channel {
                 .unwrap();
 
             s.wait()
-                .text(&format!("CHANNEL  {}", $channel_name))
+                .text(&format!("● {}", $channel_name))
                 .until()
                 .unwrap();
 
@@ -56,15 +56,15 @@ fn test_channel_shortcuts() {
         .start()
         .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // switch to the "dirs" channel
     s.send().key("f2").unwrap();
-    s.wait().text("CHANNEL  dirs").until().unwrap();
+    s.wait().text("● dirs").until().unwrap();
 
     // switch back to the "files" channel
     s.send().key("f1").unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

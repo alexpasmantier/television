@@ -61,7 +61,7 @@ fn test_tick_rate_valid_value_starts_application() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
