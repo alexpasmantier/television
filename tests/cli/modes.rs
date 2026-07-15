@@ -15,11 +15,7 @@ fn test_channel_mode_with_channel_name() {
         .start()
         .unwrap();
 
-    s.wait()
-        .text("CHANNEL  dirs")
-        .text("CHANNEL  dirs")
-        .until()
-        .unwrap();
+    s.wait().text("● dirs").text("● dirs").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -35,8 +31,8 @@ fn test_channel_mode_with_channel_and_path() {
         .unwrap();
 
     s.wait()
-        .text("CHANNEL  dirs")
-        .text("CHANNEL  dirs")
+        .text("● dirs")
+        .text("● dirs")
         .text("unix/")
         .until()
         .unwrap();
@@ -73,7 +69,7 @@ fn test_adhoc_mode_with_source_command() {
             .start()
             .unwrap();
 
-    s.wait().text("CHANNEL  Custom").until().unwrap();
+    s.wait().text("● Custom").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -108,7 +104,7 @@ fn test_smart_path_detection_switches_to_adhoc_mode() {
     .unwrap();
 
     s.wait()
-        .text("CHANNEL  files")
+        .text("● files")
         .text("unix/files.toml")
         .until()
         .unwrap();
@@ -126,7 +122,7 @@ fn test_no_arguments_uses_default_channel() {
         .start()
         .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

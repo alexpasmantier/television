@@ -37,7 +37,7 @@ fn test_keybindings_override_default() {
     )
     .start()
     .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Test that ESC no longer quits (default behavior is overridden)
     s.send().key("escape").unwrap();
@@ -64,7 +64,7 @@ fn test_multiple_keybindings_override() {
     )
     .start()
     .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Note: we intentionally don't re-test esc=no_op here — that's already
     // covered by test_keybindings_override_default. Sending escape

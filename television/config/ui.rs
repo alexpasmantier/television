@@ -41,8 +41,6 @@ fn default_prompt() -> Option<String> {
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
 #[serde(default)]
 pub struct StatusBarConfig {
-    pub separator_open: String,
-    pub separator_close: String,
     pub hidden: bool,
 }
 

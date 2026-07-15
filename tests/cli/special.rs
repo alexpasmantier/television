@@ -23,7 +23,7 @@ fn test_autocomplete_prompt_activates_channel_mode() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  git-log").until().unwrap();
+    s.wait().text("● git-log").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -57,7 +57,7 @@ fn test_autocomplete_prompt_with_working_directory() {
     .unwrap();
     // Main assertion: no CLI parsing error — wait for the status bar to
     // appear, which confirms the TUI launched successfully.
-    s.wait().text("CHANNEL  ").until().unwrap();
+    s.wait().text("help ctrl-h").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

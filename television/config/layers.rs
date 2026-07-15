@@ -207,24 +207,6 @@ impl ConfigLayers {
             .and_then(|ui| ui.help_panel.as_ref())
             .is_none_or(|hp| hp.show_categories)
             && self.base_config.ui.help_panel.show_categories;
-        let status_bar_separator_open = self
-            .channel
-            .ui
-            .as_ref()
-            .and_then(|ui| ui.status_bar.as_ref())
-            .map_or_else(
-                || self.base_config.ui.status_bar.separator_open.clone(),
-                |sb| sb.separator_open.clone(),
-            );
-        let status_bar_separator_close = self
-            .channel
-            .ui
-            .as_ref()
-            .and_then(|ui| ui.status_bar.as_ref())
-            .map_or_else(
-                || self.base_config.ui.status_bar.separator_close.clone(),
-                |sb| sb.separator_close.clone(),
-            );
         let input_bar_position = self.channel_cli.input_position.unwrap_or(
             self.channel
                 .ui
@@ -578,8 +560,6 @@ impl ConfigLayers {
             input_bar_padding,
             input_bar_minimal,
             // status bar
-            status_bar_separator_open,
-            status_bar_separator_close,
             status_bar_hidden,
             status_bar_disabled,
             // results panel
@@ -686,8 +666,6 @@ pub struct MergedConfig {
     /// Show the channel name next to the result count (minimal UI preset).
     pub input_bar_minimal: bool,
     // status bar
-    pub status_bar_separator_open: String,
-    pub status_bar_separator_close: String,
     pub status_bar_hidden: bool,
     pub status_bar_disabled: bool,
     // results panel

@@ -29,7 +29,7 @@ fn test_path_as_positional_argument_sets_working_directory() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
     s.wait().text("UNIQUE16CHARIDfile.txt").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
@@ -101,7 +101,7 @@ fn test_cable_dir_flag_loads_custom_cable_dir() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

@@ -16,7 +16,7 @@ fn test_source_command_in_adhoc_mode() {
             .start()
             .unwrap();
 
-    s.wait().text("CHANNEL  Custom").until().unwrap();
+    s.wait().text("● Custom").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

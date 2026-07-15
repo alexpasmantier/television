@@ -38,7 +38,7 @@ fn test_toggle_remote_control_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+T to open remote control panel
     s.send().key("ctrl-t").unwrap();
@@ -66,12 +66,12 @@ fn test_toggle_status_bar_keybinding() {
     )
     .start()
     .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+K to toggle status bar off
     s.send().key("ctrl-k").unwrap();
 
-    s.wait().text_absent("CHANNEL  files").until().unwrap();
+    s.wait().text_absent("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -85,7 +85,7 @@ fn test_toggle_help_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+H to open help panel
     s.send().key("ctrl-h").unwrap();
@@ -174,7 +174,7 @@ fn test_cycle_sources_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+S to cycle to next source
     s.send().key("ctrl-s").unwrap();
@@ -203,7 +203,7 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
 
     s.wait()
         .text("(1) (2) (3)")
-        .text("Back to Channel:")
+        .text("● channels")
         .until()
         .unwrap();
 
@@ -214,7 +214,7 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     // (the toggle should have been ignored)
     s.wait()
         .text("(1) (2) (3)")
-        .text("Back to Channel:")
+        .text("● channels")
         .until()
         .unwrap();
 
@@ -222,7 +222,7 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     s.send().key("ctrl-t").unwrap();
 
     // Verify we're back in channel mode
-    s.wait().text_absent("Back to Channel:").until().unwrap();
+    s.wait().text_absent("● channels").until().unwrap();
     s.wait().text("▏").until().unwrap();
 
     // Verify preview toggle works again in channel mode

@@ -90,7 +90,7 @@ fn test_input_header_in_channel_mode() {
 
     s.wait()
         .text("UNIQUE16CHARID")
-        .text("CHANNEL  files")
+        .text("● files")
         .until()
         .unwrap();
 
@@ -112,7 +112,7 @@ fn test_input_header_in_adhoc_mode() {
 
     s.wait()
         .text("UNIQUE16CHARID")
-        .text("CHANNEL  Custom")
+        .text("● Custom")
         .until()
         .unwrap();
 
@@ -132,7 +132,7 @@ fn test_input_prompt_in_channel_mode() {
     .start()
     .unwrap();
 
-    s.wait().text("❯ ").text("CHANNEL  files").until().unwrap();
+    s.wait().text("❯ ").text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -150,7 +150,7 @@ fn test_input_prompt_in_adhoc_mode() {
     .start()
     .unwrap();
 
-    s.wait().text("→ ").text("CHANNEL  Custom").until().unwrap();
+    s.wait().text("→ ").text("● Custom").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -167,7 +167,7 @@ fn test_default_input_prompt() {
         .start()
         .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // the query line is the first row: no prompt, 1-column margin
     let frame = stable_frame(&s);
@@ -222,7 +222,7 @@ fn test_no_remote_hides_remote_panel() {
             .start()
             .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
     assert_frame_not_contains(&s, "── Channels ──");
 
     s.send().key("ctrl-c").unwrap();
@@ -243,7 +243,7 @@ fn test_hide_status_bar_flag_hides_status_bar() {
 
     // with the status bar hidden, the channel name moves next to the count
     s.wait().text("· files").until().unwrap();
-    assert_frame_not_contains(&s, "CHANNEL  files");
+    assert_frame_not_contains(&s, "● files");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -279,7 +279,7 @@ fn test_hide_remote_flag_hides_remote_panel() {
             .start()
             .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
     assert_frame_not_contains_any(&s, &["(1) (2) (3)", "── Channels ──"]);
 
     s.send().key("ctrl-c").unwrap();
@@ -328,7 +328,7 @@ fn test_no_help_panel_disables_help_panel() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+H to try to open help panel (should not work)
     s.send().key("ctrl-h").unwrap();
@@ -351,7 +351,7 @@ fn test_hide_help_panel_starts_with_help_hidden() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+H to open help panel (should still work since it's just hidden)
     s.send().key("ctrl-h").unwrap();
@@ -451,7 +451,7 @@ fn test_tui_with_height_and_width() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Validate frame dimensions (20 rows × 80 columns). Phantom's screenshot
     // pads every row to the full terminal width with spaces, so we trim
@@ -657,7 +657,7 @@ fn test_no_preview_disables_preview_panel() {
         tv_local_config_and_cable_with_args(&pt, &["files", "--no-preview"])
             .start()
             .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Try to toggle preview - it shouldn't work since it's disabled entirely
     s.send().type_text("o").unwrap();
@@ -697,7 +697,7 @@ fn test_no_status_bar_disables_status_bar() {
     .unwrap();
     s.wait().text("· files").until().unwrap();
 
-    assert_frame_not_contains(&s, "CHANNEL  files");
+    assert_frame_not_contains(&s, "● files");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -715,7 +715,7 @@ fn test_show_status_bar_starts_with_status_visible() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -796,7 +796,7 @@ fn test_tui_with_height_only() {
     .start()
     .unwrap();
 
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     let frame = stable_frame(&s);
     let non_empty_lines: Vec<&str> = frame
