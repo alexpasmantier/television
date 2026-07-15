@@ -101,6 +101,16 @@ where
         self.status = self.inner.tick(MATCHER_TICK_TIMEOUT).into();
     }
 
+    /// Refresh cached counts from the current snapshot.
+    ///
+    /// Cheap alternative to `results()`: no lock, no per-item work.
+    /// Requires a prior `tick()` to reflect the latest worker progress.
+    pub fn update_counts(&mut self) {
+        let snapshot = self.inner.snapshot();
+        self.total_item_count = snapshot.item_count();
+        self.matched_item_count = snapshot.matched_item_count();
+    }
+
     /// Get an injector that can be used to push items into the fuzzy matcher.
     ///
     /// This can be used at any time to push items into the fuzzy matcher.
