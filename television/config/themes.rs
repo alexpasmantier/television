@@ -225,7 +225,7 @@ pub const DEFAULT_THEME: &str = "default";
 
 impl Default for Theme {
     fn default() -> Self {
-        let theme_content = include_str!("../../themes/default.toml");
+        let theme_content = include_str!("../../themes/television.toml");
         toml::from_str(theme_content).unwrap()
     }
 }
