@@ -374,6 +374,7 @@ pub fn build_minimal_picker_list<'a, 'b, T>(
     dimmed_fg: Color,
     area_width: u16,
     list_direction: ListDirection,
+    show_descriptions: bool,
 ) -> List<'a>
 where
     'b: 'a,
@@ -384,11 +385,15 @@ where
         .map(|e| UnicodeWidthStr::width(e.display()))
         .max()
         .unwrap_or(0);
-    let desc_col = entries
-        .iter()
-        .map(|e| e.description().map_or(0, UnicodeWidthStr::width))
-        .max()
-        .unwrap_or(0);
+    let desc_col = if show_descriptions {
+        entries
+            .iter()
+            .map(|e| e.description().map_or(0, UnicodeWidthStr::width))
+            .max()
+            .unwrap_or(0)
+    } else {
+        0
+    };
 
     List::new(entries.iter().map(|e| {
         let mut spans = build_entry_spans(

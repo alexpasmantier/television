@@ -114,6 +114,7 @@ pub fn draw_results_list(
 /// Draw a minimal-mode picker list (remote control / actions picker
 /// takeover): borderless, color-only selection, dimmed description and
 /// shortcut columns.
+#[allow(clippy::too_many_arguments)]
 pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
     f: &mut Frame,
     rect: Rect,
@@ -122,6 +123,7 @@ pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
     input_bar_position: InputPosition,
     colorscheme: &Colorscheme,
     padding: &Padding,
+    show_descriptions: bool,
 ) -> Result<()> {
     let block = Block::default()
         .style(
@@ -142,6 +144,7 @@ pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
         colorscheme.general.dimmed_text_fg,
         rect.width.saturating_sub(1),
         list_direction,
+        show_descriptions,
     );
 
     f.render_stateful_widget(list, rect, relative_picker_state);

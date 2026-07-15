@@ -76,13 +76,13 @@ fn test_multiple_keybindings_override() {
     // Test that Ctrl+X opens remote control panel (custom keybinding works)
     s.send().key("ctrl-x").unwrap();
     s.wait()
-        .text("(1) (2) (3)")
+        .text("● channels")
         .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
     s.send().key("ctrl-t").unwrap();
     s.wait()
-        .text_absent("(1) (2) (3)")
+        .text_absent("● channels")
         .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();

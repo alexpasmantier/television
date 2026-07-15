@@ -3,10 +3,6 @@ use crate::{
         layers::MergedConfig,
         ui::{BorderType, Padding},
     },
-    screen::{
-        colors::Colorscheme, help_panel::calculate_help_panel_size,
-        logo::REMOTE_LOGO_HEIGHT_U16,
-    },
     television::Mode,
 };
 use clap::ValueEnum;
@@ -100,15 +96,10 @@ pub struct Layout {
     pub results: Rect,
     pub input: Rect,
     pub preview_window: Option<Rect>,
-    pub remote_control: Option<Rect>,
     pub action_picker: Option<Rect>,
     pub help_panel: Option<Rect>,
     pub status_bar: Option<Rect>,
 }
-
-const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
-const ACTION_PICKER_WIDTH_PERCENTAGE: u16 = 50;
-const ACTION_PICKER_HEIGHT_PERCENTAGE: u16 = 50;
 
 impl Default for Layout {
     /// Having a default layout with a non-zero height for the results area
@@ -124,7 +115,6 @@ impl Default for Layout {
             None,
             None,
             None,
-            None,
         )
     }
 }
@@ -135,7 +125,6 @@ impl Layout {
         results: Rect,
         input: Rect,
         preview_window: Option<Rect>,
-        remote_control: Option<Rect>,
         action_picker: Option<Rect>,
         help_panel: Option<Rect>,
         status_bar: Option<Rect>,
@@ -144,7 +133,6 @@ impl Layout {
             results,
             input,
             preview_window,
-            remote_control,
             action_picker,
             help_panel,
             status_bar,
@@ -155,7 +143,6 @@ impl Layout {
         area: Rect,
         merged_config: &MergedConfig,
         mode: Mode,
-        colorscheme: &Colorscheme,
     ) -> Self {
         let dimensions = Dimensions::from(merged_config.ui_scale);
 
@@ -199,16 +186,18 @@ impl Layout {
             })
             .unwrap_or(0);
 
-        // split the main block into 1 or 2 chunks (results + preview)
-        // (popups don't fit in the small --inline / --height viewports, so
-        // the remote control takes over the full width there, while the
-        // actions picker borrows the preview pane so the entry it applies
-        // to stays visible in the results list)
-        let rc_takeover =
-            !merged_config.fullscreen && mode == Mode::RemoteControl;
-        let ap_takeover =
-            !merged_config.fullscreen && mode == Mode::ActionPicker;
-        let preview_hidden = if ap_takeover {
+        // split the main block into 1 or 2 chunks (results + preview):
+        // the remote control takes over the full width, while the actions
+        // picker borrows the preview pane so the entry it applies to stays
+        // visible in the results list
+        let rc_takeover = mode == Mode::RemoteControl;
+        let ap_takeover = mode == Mode::ActionPicker;
+        // the help panel borrows the preview pane as well (except in
+        // actions mode, where the actions picker already occupies it)
+        let help_takeover = !merged_config.help_panel_disabled
+            && !merged_config.help_panel_hidden
+            && !ap_takeover;
+        let preview_hidden = if ap_takeover || help_takeover {
             false
         } else {
             merged_config.preview_panel_hidden
@@ -408,72 +397,15 @@ impl Layout {
             }
         };
 
-        // the remote control is a centered popup (except in non-fullscreen
-        // viewports, where it takes over the main results area)
-        let remote_control = if !merged_config.remote_disabled
-            && mode == Mode::RemoteControl
-            && merged_config.fullscreen
-        {
-            let remote_control_rect = centered_rect_with_dimensions(
-                &Dimensions::new(
-                    area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
-                    // on smaller screens (< logo + 3 vert padding top & btm), we won't display the
-                    // logo
-                    REMOTE_LOGO_HEIGHT_U16.min(area.height.saturating_sub(6)),
-                ),
-                area,
-            );
-            Some(remote_control_rect)
-        } else {
-            None
-        };
-
-        // in minimal mode the actions picker takes the preview pane; the
-        // pane rect moves from `preview_window` to `action_picker`
-        let (preview_window, minimal_actions_pane) = if ap_takeover {
+        // the actions picker and the help panel take the preview pane; the
+        // pane rect moves from `preview_window` to the borrower
+        let (preview_window, borrowed_pane) = if ap_takeover || help_takeover {
             (None, preview_window)
         } else {
             (preview_window, None)
         };
-
-        // the action picker is a centered popup (similar to remote control but simpler)
-        let action_picker = if ap_takeover {
-            minimal_actions_pane
-        } else if mode == Mode::ActionPicker {
-            let action_picker_rect = centered_rect_with_dimensions(
-                &Dimensions::new(
-                    area.width * ACTION_PICKER_WIDTH_PERCENTAGE / 100,
-                    area.height * ACTION_PICKER_HEIGHT_PERCENTAGE / 100,
-                ),
-                area,
-            );
-            Some(action_picker_rect)
-        } else {
-            None
-        };
-
-        // the help panel is positioned at bottom-right, accounting for status bar
-        let help_panel = if merged_config.help_panel_disabled
-            || merged_config.help_panel_hidden
-        {
-            None
-        } else {
-            // Calculate available area for help panel (excluding status bar if enabled)
-            let hp_area = if merged_config.status_bar_hidden {
-                area
-            } else {
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.height.saturating_sub(1), // Account for single line status bar
-                }
-            };
-
-            let (width, height) =
-                calculate_help_panel_size(merged_config, mode, colorscheme);
-            Some(bottom_right_rect(width, height, hp_area))
-        };
+        let action_picker = if ap_takeover { borrowed_pane } else { None };
+        let help_panel = if help_takeover { borrowed_pane } else { None };
 
         // Create status bar at the bottom if enabled
         let status_bar = if merged_config.status_bar_hidden {
@@ -491,7 +423,6 @@ impl Layout {
             results,
             input,
             preview_window,
-            remote_control,
             action_picker,
             help_panel,
             status_bar,
@@ -527,19 +458,6 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
             Constraint::Fill(1),
         ])
         .split(popup_layout[1])[1] // Return the middle chunk
-}
-
-/// helper function to create a floating rect positioned at the bottom-right corner
-fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
-    let x = r.width.saturating_sub(width + 2); // 2 for padding from edge
-    let y = r.height.saturating_sub(height + 1); // 1 for padding from edge
-
-    Rect {
-        x: r.x + x,
-        y: r.y + y,
-        width: width.min(r.width.saturating_sub(2)),
-        height: height.min(r.height.saturating_sub(2)),
-    }
 }
 
 /// Minimum dimensions each pane must end up with for the preview to be worth
