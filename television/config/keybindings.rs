@@ -523,6 +523,8 @@ mod tests {
                 "ctrl-k" = "select_prev_entry"
                 "pagedown" = "select_next_page"
                 "pageup" = "select_prev_page"
+                "ctrl-f" = "select_next_half_page"
+                "ctrl-b" = "select_prev_half_page"
                 "ctrl-d" = "scroll_preview_half_page_down"
                 "ctrl-u" = "scroll_preview_half_page_up"
                 "tab" = "toggle_selection_down"
@@ -547,6 +549,9 @@ mod tests {
                 (Key::Ctrl('p'), Action::SelectPrevEntry),
                 (Key::Ctrl('k'), Action::SelectPrevEntry),
                 (Key::PageDown, Action::SelectNextPage),
+                (Key::Ctrl('f'), Action::SelectNextHalfPage),
+                (Key::Ctrl('b'), Action::SelectPrevHalfPage),
+                (Key::PageUp, Action::SelectPrevPage),
                 (Key::PageUp, Action::SelectPrevPage),
                 (Key::Ctrl('d'), Action::ScrollPreviewHalfPageDown),
                 (Key::Ctrl('u'), Action::ScrollPreviewHalfPageUp),
