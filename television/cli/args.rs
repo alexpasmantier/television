@@ -694,6 +694,14 @@ pub enum Command {
         #[arg(long, default_value = "false")]
         force: bool,
     },
+    /// Trims machine-written defaults from your configuration file.
+    ///
+    /// Older tv versions wrote the full default configuration to your config
+    /// directory on first run, which pins you to that version's defaults.
+    /// This backs up the file to config.toml.bak and rewrites it with only
+    /// the settings you actually changed (or removes it entirely if you
+    /// never changed anything).
+    MigrateConfig,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]

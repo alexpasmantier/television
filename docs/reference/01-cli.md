@@ -8,6 +8,7 @@ Commands:
   init             Initializes shell completion ("tv init zsh")
   completions      Generates standard shell tab-completion scripts for tv's various subcommands
   update-channels  Downloads the latest collection of channel prototypes from github and saves them to the local configuration directory
+  migrate-config   Trims machine-written defaults from your configuration file
   help             Print this message or the help of the given subcommand(s)
 
 Arguments:

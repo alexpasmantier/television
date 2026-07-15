@@ -16,7 +16,10 @@ use television::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
     },
-    config::{Config, ConfigEnv},
+    config::{
+        Config, ConfigEnv, get_config_dir, get_data_dir,
+        migration::{maybe_print_migration_notice, migrate_config},
+    },
     errors::os_error_exit,
     gh::update_local_channels,
     television::Mode,
@@ -122,6 +125,12 @@ async fn main() -> Result<()> {
         }
     }
     bufwriter.flush()?;
+
+    // one-time invitation to trim configs auto-written by older versions
+    if config_file.is_none() && stderr().is_terminal() {
+        maybe_print_migration_notice(&get_config_dir(), &get_data_dir());
+    }
+
     exit(0);
 }
 
@@ -167,6 +176,13 @@ pub fn handle_subcommand(
         }
         Command::UpdateChannels { force } => {
             update_local_channels(force)?;
+            exit(0);
+        }
+        Command::MigrateConfig => {
+            let report = migrate_config(&get_config_dir())?;
+            let mut out = stdout().lock();
+            writeln!(out, "Backed up config to {}", report.backup.display())?;
+            writeln!(out, "Done.")?;
             exit(0);
         }
     }
