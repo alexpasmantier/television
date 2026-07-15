@@ -24,6 +24,7 @@ use crate::{
     render::UiState,
     screen::{
         colors::Colorscheme,
+        help_panel::max_help_scroll,
         layout::{InputPosition, Orientation},
     },
     utils::{
@@ -90,6 +91,8 @@ pub struct Television {
     pub rc_picker: Picker<CableEntry>,
     pub ap_picker: Picker<ActionEntry>,
     pub preview_state: PreviewState,
+    /// Scroll offset of the help panel when its content overflows the pane
+    pub help_panel_scroll: u16,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
     pub app_metadata: Arc<AppMetadata>,
@@ -226,6 +229,7 @@ impl Television {
             rc_picker: Picker::default(),
             ap_picker: Picker::default(),
             preview_state,
+            help_panel_scroll: 0,
             preview_handles,
             app_metadata: Arc::new(app_metadata),
             colorscheme: Arc::new(colorscheme),
@@ -291,6 +295,7 @@ impl Television {
                     .as_ref()
                     .map_or(0, |r| r.height as usize),
             ),
+            self.help_panel_scroll,
             self.missing_requirements_popup.clone(),
         );
 
@@ -643,6 +648,23 @@ impl Television {
             && !self
                 .channel
                 .reloading()
+    }
+
+    /// Whether the help panel is currently shown (it borrows the preview
+    /// pane, so preview scroll actions are routed to it while it's open)
+    fn help_panel_open(&self) -> bool {
+        self.ui_state.layout.help_panel.is_some()
+    }
+
+    fn scroll_help_panel_down(&mut self, offset: u16) {
+        self.help_panel_scroll = self
+            .help_panel_scroll
+            .saturating_add(offset)
+            .min(max_help_scroll(&self.merged_config, self.mode));
+    }
+
+    fn scroll_help_panel_up(&mut self, offset: u16) {
+        self.help_panel_scroll = self.help_panel_scroll.saturating_sub(offset);
     }
 
     pub fn update_preview_state(
@@ -1006,13 +1028,35 @@ impl Television {
                     );
                 }
             }
-            Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
-            Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
+            // while the help panel borrows the preview pane, the preview
+            // scroll actions scroll it instead
+            Action::ScrollPreviewDown => {
+                if self.help_panel_open() {
+                    self.scroll_help_panel_down(1);
+                } else {
+                    self.preview_state.scroll_down(1);
+                }
+            }
+            Action::ScrollPreviewUp => {
+                if self.help_panel_open() {
+                    self.scroll_help_panel_up(1);
+                } else {
+                    self.preview_state.scroll_up(1);
+                }
+            }
             Action::ScrollPreviewHalfPageDown => {
-                self.preview_state.scroll_down(20);
+                if self.help_panel_open() {
+                    self.scroll_help_panel_down(20);
+                } else {
+                    self.preview_state.scroll_down(20);
+                }
             }
             Action::ScrollPreviewHalfPageUp => {
-                self.preview_state.scroll_up(20);
+                if self.help_panel_open() {
+                    self.scroll_help_panel_up(20);
+                } else {
+                    self.preview_state.scroll_up(20);
+                }
             }
 
             Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
@@ -1045,6 +1089,8 @@ impl Television {
                 {
                     return Ok(());
                 }
+                // the help content is mode-specific
+                self.help_panel_scroll = 0;
                 match self.mode {
                     Mode::Channel => {
                         self.mode = Mode::RemoteControl;
@@ -1087,6 +1133,8 @@ impl Television {
                 if self.merged_config.channel_actions.is_empty() {
                     return Ok(());
                 }
+                // the help content is mode-specific
+                self.help_panel_scroll = 0;
                 match self.mode {
                     Mode::Channel => {
                         self.init_action_picker();
@@ -1126,6 +1174,7 @@ impl Television {
                 if !self.merged_config.help_panel_disabled {
                     let config = Arc::make_mut(&mut self.merged_config);
                     config.help_panel_hidden = !config.help_panel_hidden;
+                    self.help_panel_scroll = 0;
                 }
             }
             Action::TogglePreview => {

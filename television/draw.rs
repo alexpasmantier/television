@@ -92,6 +92,7 @@ pub struct TvState {
     pub ap_picker: Picker<ActionEntry>,
     pub channel_state: ChannelState,
     pub preview_state: PreviewState,
+    pub help_panel_scroll: u16,
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
 
@@ -105,6 +106,7 @@ impl TvState {
         ap_picker: Picker<ActionEntry>,
         channel_state: ChannelState,
         preview_state: PreviewState,
+        help_panel_scroll: u16,
         missing_requirements_popup: Option<MissingRequirementsPopup>,
     ) -> Self {
         Self {
@@ -115,6 +117,7 @@ impl TvState {
             ap_picker,
             channel_state,
             preview_state,
+            help_panel_scroll,
             missing_requirements_popup,
         }
     }
@@ -344,6 +347,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             help_area,
             &ctx.config,
             ctx.tv_state.mode,
+            ctx.tv_state.help_panel_scroll,
             &ctx.colorscheme,
         );
     }
