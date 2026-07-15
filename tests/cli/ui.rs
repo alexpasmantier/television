@@ -883,7 +883,7 @@ fn test_narrow_input_keeps_query_visible() {
 
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .env(TESTING_ENV_VAR, "1")
-        .size(45, 20)
+        .size(30, 20)
         .start()
         .unwrap();
 

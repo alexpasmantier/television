@@ -433,16 +433,12 @@ impl ConfigLayers {
         // CLI flags and non-default channel/config values always win.
         // ------------------------------------------------------------------
         let fullscreen = !inline && height.is_none();
-        let mut preview_panel_auto_hide = false;
+        // hide the preview automatically when the viewport is too small
+        // to fit a useful pane; an explicit --show-preview or
+        // --preview-size signals the user wants it regardless
+        let preview_panel_auto_hide = !self.channel_cli.show_preview
+            && self.channel_cli.preview_size.is_none();
         if !fullscreen {
-            // hide the preview automatically when the viewport is too small
-            // to fit a useful pane; an explicit --show-preview or
-            // --preview-size signals the user wants it regardless
-            if !self.channel_cli.show_preview
-                && self.channel_cli.preview_size.is_none()
-            {
-                preview_panel_auto_hide = true;
-            }
             let channel_sets_status_bar = self
                 .channel
                 .ui
@@ -826,9 +822,9 @@ mod tests {
         assert_eq!(merged.input_bar_prompt.as_deref(), Some(""));
         assert!(merged.preview_panel_separator);
         assert!(merged.input_bar_minimal);
-        // ...but the status bar stays, and the preview never auto-hides
+        // ...but the status bar stays
         assert!(!merged.status_bar_hidden);
-        assert!(!merged.preview_panel_auto_hide);
+        assert!(merged.preview_panel_auto_hide);
     }
 
     #[test]
