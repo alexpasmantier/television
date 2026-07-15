@@ -1217,9 +1217,9 @@ checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
 
 [[package]]
 name = "libghostty-vt"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8afe5cc9ae303133220e530b28b7addbbf591160bb1564b88f7ee61387fee74"
+checksum = "04c77176dd05b2b5718046d807e786473f463ea6d478d56f8c0105e2fe6f71f5"
 dependencies = [
  "bitflags 2.11.0",
  "int-enum",
@@ -1228,9 +1228,9 @@ dependencies = [
 
 [[package]]
 name = "libghostty-vt-sys"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aee97068da1692162c4523d54843bdcb43fecf086a9ee412a3375817e433faca"
+checksum = "404671567c0ac43389a69ae424eefc89390a25d3a5386a54249cdaf13e01b411"
 
 [[package]]
 name = "libredox"
@@ -1756,10 +1756,11 @@ dependencies = [
 
 [[package]]
 name = "phantom-core"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73ff3eeea1b5e9b0b02302fcb853e1e1097cba58af4ed0047d0c473ffc75c859"
+checksum = "24a832fc8ef9b8aef15d7c8587f129445c02a791375a6a5750c0c4dc6b45adff"
 dependencies = [
+ "anyhow",
  "regex",
  "serde",
  "serde_json",
@@ -1767,9 +1768,9 @@ dependencies = [
 
 [[package]]
 name = "phantom-daemon"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b94a891d15938ac9ed1d63c012edc51d9dcfb418cdfa6d580f3d87b59cba2c4d"
+checksum = "f7f6e4631417254eadafb9cb0a4629ba9a9aa4dd38c4e5e6419bd8e8e4844bca"
 dependencies = [
  "anyhow",
  "clap",
@@ -1788,9 +1789,9 @@ dependencies = [
 
 [[package]]
 name = "phantom-test"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e1abb16997166b09a166e7d7d62159037c0a73720b3524309c70256c573af30"
+checksum = "b8f24ffa9831d8e018f7c94eace4fb4fc5cfad1358e878e501d926e2b183b6f0"
 dependencies = [
  "anyhow",
  "crossbeam-channel",
