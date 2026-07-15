@@ -469,7 +469,12 @@ impl Television {
     }
 
     /// Unified cursor movement for both Channel and Remote-control pickers.
-    pub fn move_cursor(&mut self, movement: Movement, step: u32) {
+    pub fn move_cursor(
+        &mut self,
+        movement: Movement,
+        step: u32,
+        cyclic: bool,
+    ) {
         match self.mode {
             Mode::Channel => {
                 self.results_picker.move_cursor(
@@ -478,6 +483,7 @@ impl Television {
                     self.channel.result_count() as usize,
                     self.ui_state.layout.results.height.saturating_sub(2)
                         as usize,
+                    cyclic,
                 );
             }
             Mode::RemoteControl => {
@@ -495,6 +501,7 @@ impl Television {
                         "remote UI panel should be contained in the layout when in RC mode"
                     ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
                         as usize,
+                    cyclic,
                 );
             }
             Mode::ActionPicker => {
@@ -511,6 +518,7 @@ impl Television {
                         "action picker UI panel should be contained in the layout when in AP mode"
                     ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
                         as usize,
+                    cyclic,
                 );
             }
         }
@@ -591,6 +599,8 @@ impl Television {
                     | Action::DeleteNextChar
                     | Action::GoToPrevChar
                     | Action::GoToNextChar
+                    | Action::GoToPrevWord
+                    | Action::GoToNextWord
                     | Action::GoToInputStart
                     | Action::GoToInputEnd
                     | Action::ToggleSelectionDown
@@ -598,8 +608,16 @@ impl Television {
                     | Action::ConfirmSelection
                     | Action::SelectNextEntry
                     | Action::SelectPrevEntry
+                    | Action::SelectNextEntryNocycle
+                    | Action::SelectPrevEntryNocycle
                     | Action::SelectNextPage
                     | Action::SelectPrevPage
+                    | Action::SelectNextPageNocycle
+                    | Action::SelectPrevPageNocycle
+                    | Action::SelectNextHalfPage
+                    | Action::SelectPrevHalfPage
+                    | Action::SelectNextHalfPageNocycle
+                    | Action::SelectPrevHalfPageNocycle
                     | Action::ScrollPreviewDown
                     | Action::ScrollPreviewUp
                     | Action::ScrollPreviewHalfPageDown
@@ -811,9 +829,9 @@ impl Television {
         {
             self.channel.toggle_selection(entry);
             if matches!(action, Action::ToggleSelectionDown) {
-                self.move_cursor(Movement::Next, 1);
+                self.move_cursor(Movement::Next, 1, true);
             } else {
-                self.move_cursor(Movement::Prev, 1);
+                self.move_cursor(Movement::Prev, 1, true);
             }
         }
     }
@@ -951,14 +969,16 @@ impl Television {
             | Action::GoToInputEnd
             | Action::GoToInputStart
             | Action::GoToNextChar
-            | Action::GoToPrevChar => {
+            | Action::GoToPrevChar
+            | Action::GoToNextWord
+            | Action::GoToPrevWord => {
                 self.handle_input_action(action);
             }
             Action::SelectNextEntry => {
-                self.move_cursor(Movement::Next, 1);
+                self.move_cursor(Movement::Next, 1, true);
             }
             Action::SelectPrevEntry => {
-                self.move_cursor(Movement::Prev, 1);
+                self.move_cursor(Movement::Prev, 1, true);
             }
             Action::SelectNextPage => {
                 if matches!(self.mode, Mode::Channel) {
@@ -970,6 +990,7 @@ impl Television {
                             .height
                             .saturating_sub(2)
                             .into(),
+                        true,
                     );
                 }
             }
@@ -983,6 +1004,105 @@ impl Television {
                             .height
                             .saturating_sub(2)
                             .into(),
+                        true,
+                    );
+                }
+            }
+            Action::SelectNextHalfPage => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Next,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
+                        true,
+                    );
+                }
+            }
+            Action::SelectPrevHalfPage => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Prev,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
+                        true,
+                    );
+                }
+            }
+            Action::SelectNextEntryNocycle => {
+                self.move_cursor(Movement::Next, 1, false);
+            }
+            Action::SelectPrevEntryNocycle => {
+                self.move_cursor(Movement::Prev, 1, false);
+            }
+            Action::SelectNextPageNocycle => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Next,
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                        false,
+                    );
+                }
+            }
+            Action::SelectPrevPageNocycle => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Prev,
+                        self.ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            .into(),
+                        false,
+                    );
+                }
+            }
+            Action::SelectNextHalfPageNocycle => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Next,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
+                        false,
+                    );
+                }
+            }
+            Action::SelectPrevHalfPageNocycle => {
+                if matches!(self.mode, Mode::Channel) {
+                    self.move_cursor(
+                        Movement::Prev,
+                        (self
+                            .ui_state
+                            .layout
+                            .results
+                            .height
+                            .saturating_sub(2)
+                            / 2)
+                        .into(),
+                        false,
                     );
                 }
             }

@@ -11,6 +11,8 @@ pub fn convert_action_to_input_request(
         Action::DeleteLine => Some(InputRequest::DeleteLine),
         Action::GoToPrevChar => Some(InputRequest::GoToPrevChar),
         Action::GoToNextChar => Some(InputRequest::GoToNextChar),
+        Action::GoToNextWord => Some(InputRequest::GoToNextWord),
+        Action::GoToPrevWord => Some(InputRequest::GoToPrevWord),
         Action::GoToInputStart => Some(InputRequest::GoToStart),
         Action::GoToInputEnd => Some(InputRequest::GoToEnd),
         _ => None,
