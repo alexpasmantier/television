@@ -24,8 +24,9 @@ impl Default for InputBarConfig {
     fn default() -> Self {
         Self {
             position: InputPosition::default(),
-            header: None,
-            prompt: Some(String::from(DEFAULT_PROMPT)),
+            // an empty header/prompt means "don't render it at all"
+            header: Some(String::new()),
+            prompt: Some(String::new()),
             border_type: BorderType::default(),
             padding: Padding::uniform(0),
         }
@@ -34,7 +35,7 @@ impl Default for InputBarConfig {
 
 #[allow(clippy::unnecessary_wraps)]
 fn default_prompt() -> Option<String> {
-    Some(String::from(DEFAULT_PROMPT))
+    Some(String::new())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
@@ -71,7 +72,7 @@ impl Default for PreviewPanelConfig {
             size: DEFAULT_PREVIEW_SIZE,
             header: None,
             footer: None,
-            scrollbar: true,
+            scrollbar: false,
             border_type: BorderType::default(),
             padding: Padding::uniform(0),
             hidden: false,
@@ -236,9 +237,9 @@ impl Default for UiConfig {
 )]
 #[serde(rename_all = "snake_case")]
 pub enum BorderType {
+    #[default]
     None,
     Plain,
-    #[default]
     Rounded,
     Thick,
 }

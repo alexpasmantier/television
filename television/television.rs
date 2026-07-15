@@ -476,8 +476,9 @@ impl Television {
                     movement,
                     step,
                     self.channel.result_count() as usize,
-                    self.ui_state.layout.results.height.saturating_sub(2)
-                        as usize,
+                    self.ui_state.layout.results.height.saturating_sub(
+                        self.merged_config.results_panel_chrome_height(),
+                    ) as usize,
                 );
             }
             Mode::RemoteControl => {
@@ -491,10 +492,7 @@ impl Television {
                     movement,
                     step,
                     total_results,
-                    self.ui_state.layout.remote_control.expect(
-                        "remote UI panel should be contained in the layout when in RC mode"
-                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
-                        as usize,
+                    self.rc_picker_viewport_height() as usize,
                 );
             }
             Mode::ActionPicker => {
@@ -507,12 +505,54 @@ impl Television {
                     movement,
                     step,
                     total_results,
-                    self.ui_state.layout.action_picker.expect(
-                        "action picker UI panel should be contained in the layout when in AP mode"
-                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
-                        as usize,
+                    self.ap_picker_viewport_height() as usize,
                 );
             }
+        }
+    }
+
+    /// Visible height for the remote control list: the popup area minus its
+    /// chrome, or the main results area in non-fullscreen mode (where the
+    /// remote takes over the results panel).
+    fn rc_picker_viewport_height(&self) -> u16 {
+        if self.merged_config.fullscreen {
+            // accounting for borders (2) and input box (3)
+            self.ui_state
+                .layout
+                .remote_control
+                .map_or(0, |r| r.height.saturating_sub(5))
+        } else {
+            self.ui_state.layout.results.height.saturating_sub(
+                self.merged_config.results_panel_chrome_height(),
+            )
+        }
+    }
+
+    /// Visible height for the actions picker list: the popup area minus its
+    /// chrome, or the borrowed preview pane minus the actions input line
+    /// and separator in non-fullscreen mode.
+    fn ap_picker_viewport_height(&self) -> u16 {
+        if self.merged_config.fullscreen {
+            // accounting for borders (2) and input box (3)
+            self.ui_state
+                .layout
+                .action_picker
+                .map_or(0, |r| r.height.saturating_sub(5))
+        } else {
+            self.ui_state.layout.action_picker.map_or(0, |pane| {
+                let input_rows = 1
+                    + self.merged_config.input_bar_padding.top
+                    + self.merged_config.input_bar_padding.bottom;
+                let separator_row = u16::from(
+                    self.merged_config.layout == Orientation::Portrait,
+                );
+                pane.height
+                    .saturating_sub(input_rows + separator_row)
+                    .saturating_sub(
+                        self.merged_config.results_panel_padding.top
+                            + self.merged_config.results_panel_padding.bottom,
+                    )
+            })
         }
     }
 
@@ -671,8 +711,15 @@ impl Television {
     pub fn update_results_picker_state(&mut self) {
         {
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
-            let height =
-                self.ui_state.layout.results.height.saturating_sub(2).into(); // -2 for borders
+            let height = self
+                .ui_state
+                .layout
+                .results
+                .height
+                .saturating_sub(
+                    self.merged_config.results_panel_chrome_height(),
+                )
+                .into();
 
             self.results_picker.entries =
                 Arc::new(self.channel.results(height, offset));
@@ -700,14 +747,7 @@ impl Television {
 
         {
             let offset = u32::try_from(self.rc_picker.offset()).unwrap();
-            let height = self
-                .ui_state
-                .layout
-                .remote_control
-                .unwrap_or_default()
-                .height
-                .saturating_sub(5)
-                .into();
+            let height = u32::from(self.rc_picker_viewport_height());
             let new_entries = self
                 .remote_control
                 .as_mut()
@@ -717,6 +757,8 @@ impl Television {
             self.rc_picker.entries = Arc::new(new_entries);
         }
         self.rc_picker.total_items =
+            self.remote_control.as_ref().unwrap().result_count();
+        self.rc_picker.total_count =
             self.remote_control.as_ref().unwrap().total_count();
     }
 
@@ -732,20 +774,15 @@ impl Television {
 
         {
             let offset = u32::try_from(self.ap_picker.offset()).unwrap();
-            let height = self
-                .ui_state
-                .layout
-                .action_picker
-                .unwrap_or_default()
-                .height
-                .saturating_sub(5)
-                .into();
+            let height = u32::from(self.ap_picker_viewport_height());
             let new_entries =
                 self.action_picker.as_mut().unwrap().results(height, offset);
 
             self.ap_picker.entries = Arc::new(new_entries);
         }
         self.ap_picker.total_items =
+            self.action_picker.as_ref().unwrap().result_count();
+        self.ap_picker.total_count =
             self.action_picker.as_ref().unwrap().total_count();
     }
 

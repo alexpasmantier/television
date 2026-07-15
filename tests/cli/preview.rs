@@ -18,10 +18,7 @@ fn test_preview_command_in_adhoc_mode() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("╭───────────────────── Custom Channel ─────────────────────╮╭─")
-        .until()
-        .unwrap();
+    s.wait().text("CHANNEL  Custom").text("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -39,10 +36,7 @@ fn test_preview_command_override_in_channel_mode() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("╭───────────────────────── files ──────────────────────────╮╭─")
-        .until()
-        .unwrap();
+    s.wait().text("CHANNEL  files").text("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -104,7 +98,7 @@ fn test_preview_offset_with_preview_command() {
     .start()
     .unwrap();
 
-    s.wait().text("││     50").until().unwrap();
+    s.wait().text("    50").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -122,10 +116,19 @@ fn test_preview_size_with_preview_command() {
     .start()
     .unwrap();
 
-    s.wait()
-        .text("╭─────────────────── files ────────────────────╮")
-        .until()
-        .unwrap();
+    s.wait().text("▏").until().unwrap();
+
+    // with a 60% preview, the separator sits well left of the default 50%
+    let frame = stable_frame(&s);
+    let separator_col = frame
+        .lines()
+        .find_map(|l| l.chars().position(|c| c == '▏'))
+        .expect("Expected a preview separator in the frame");
+    assert!(
+        separator_col < 55,
+        "Expected the separator left of column 55, got {}",
+        separator_col
+    );
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -150,7 +153,8 @@ fn test_preview_word_wrap_with_preview_command() {
     .start()
     .unwrap();
 
-    s.wait().text("│ Hello    │").until().unwrap();
+    s.wait().text("Hello").until().unwrap();
+    assert_frame_not_contains(&s, "Hello world");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -302,11 +306,8 @@ fn test_hide_preview_flag_starts_with_preview_hidden() {
             .start()
             .unwrap();
 
-    s.wait()
-        .text("╭─────────────────────────────────────────────────────── files ────────────────────────────────────────────────────────╮")
-        .until()
-        .unwrap();
-    assert_frame_not_contains(&s, "───╮╭───");
+    s.wait().text("CHANNEL  files").until().unwrap();
+    assert_frame_not_contains(&s, "▏");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -322,7 +323,7 @@ fn test_show_preview_flag_starts_with_preview_visible() {
             .start()
             .unwrap();
 
-    s.wait().text("───╮╭───").until().unwrap();
+    s.wait().text("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

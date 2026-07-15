@@ -2,7 +2,10 @@ use crate::{
     channels::entry::Entry,
     config::ui::{BorderType, Padding},
     event::Key,
-    screen::{colors::Colorscheme, layout::InputPosition, result_item},
+    screen::{
+        colors::Colorscheme, constants::POINTER_SYMBOL, layout::InputPosition,
+        result_item,
+    },
 };
 use anyhow::Result;
 use ratatui::{
@@ -30,7 +33,12 @@ pub fn draw_results_list(
     current_source_name: Option<&str>,
     cycle_key: Option<Key>,
 ) -> Result<()> {
-    let title = if source_count > 1 {
+    let borderless = *results_panel_border_type == BorderType::None;
+    // Borderless results are rendered without any title line to keep the
+    // display minimal (color-only).
+    let title = if borderless {
+        None
+    } else if source_count > 1 {
         let mut spans = match current_source_name {
             Some(name) => {
                 vec![Span::from(" "), Span::from(name), Span::from(" ")]
@@ -52,18 +60,20 @@ pub fn draw_results_list(
             ));
         }
         spans.push(Span::from(" "));
-        Line::from(spans).alignment(Alignment::Center)
+        Some(Line::from(spans).alignment(Alignment::Center))
     } else {
-        Line::from(" Results ").alignment(Alignment::Center)
+        Some(Line::from(" Results ").alignment(Alignment::Center))
     };
 
     let mut results_block = Block::default()
-        .title_top(title)
         .style(
             Style::default()
                 .bg(colorscheme.general.background.unwrap_or_default()),
         )
         .padding(RatatuiPadding::from(*results_panel_padding));
+    if let Some(title) = title {
+        results_block = results_block.title_top(title);
+    }
     if let Some(border_type) =
         results_panel_border_type.to_ratatui_border_type()
     {
@@ -87,6 +97,7 @@ pub fn draw_results_list(
         list_direction,
         &colorscheme.results,
         rect.width - 1, // right padding
+        if borderless { "" } else { POINTER_SYMBOL },
         |entry| {
             if has_multi_select {
                 Some(selected_entries.contains(entry))
@@ -97,5 +108,42 @@ pub fn draw_results_list(
     );
 
     f.render_stateful_widget(results_list, rect, relative_picker_state);
+    Ok(())
+}
+
+/// Draw a minimal-mode picker list (remote control / actions picker
+/// takeover): borderless, color-only selection, dimmed description and
+/// shortcut columns.
+pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
+    f: &mut Frame,
+    rect: Rect,
+    entries: &[T],
+    relative_picker_state: &mut ListState,
+    input_bar_position: InputPosition,
+    colorscheme: &Colorscheme,
+    padding: &Padding,
+) -> Result<()> {
+    let block = Block::default()
+        .style(
+            Style::default()
+                .bg(colorscheme.general.background.unwrap_or_default()),
+        )
+        .padding(RatatuiPadding::from(*padding));
+
+    let list_direction = match input_bar_position {
+        InputPosition::Bottom => ratatui::widgets::ListDirection::BottomToTop,
+        InputPosition::Top => ratatui::widgets::ListDirection::TopToBottom,
+    };
+
+    let list = result_item::build_minimal_picker_list(
+        block,
+        entries,
+        &colorscheme.results,
+        colorscheme.general.dimmed_text_fg,
+        rect.width.saturating_sub(1),
+        list_direction,
+    );
+
+    f.render_stateful_widget(list, rect, relative_picker_state);
     Ok(())
 }

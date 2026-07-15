@@ -2,7 +2,7 @@ use crate::{
     event::Key,
     screen::{
         colors::ResultsColorscheme,
-        constants::{DESELECTED_SYMBOL, POINTER_SYMBOL, SELECTED_SYMBOL},
+        constants::{DESELECTED_SYMBOL, SELECTED_SYMBOL},
     },
     utils::{
         indices::truncate_highlighted_string,
@@ -46,6 +46,11 @@ pub trait ResultItem {
 
     /// Optional shortcut binding shown after the name (remote-control entries).
     fn shortcut(&self) -> Option<&Key> {
+        None
+    }
+
+    /// Optional description shown next to the name (minimal-mode pickers).
+    fn description(&self) -> Option<&str> {
         None
     }
 
@@ -312,6 +317,10 @@ fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
 }
 
 /// Build a `List` widget from a slice of [`ResultItem`]s.
+///
+/// An empty `highlight_symbol` means "color-only" selection: rows stay flush
+/// and the selected row keeps its normal text colors, carried by the
+/// background wash alone.
 #[allow(clippy::too_many_arguments)]
 pub fn build_results_list<'a, 'b, T, F>(
     block: Block<'b>,
@@ -320,6 +329,7 @@ pub fn build_results_list<'a, 'b, T, F>(
     list_direction: ListDirection,
     colorscheme: &ResultsColorscheme,
     area_width: u16,
+    highlight_symbol: &'a str,
     mut prefix_fn: F,
 ) -> List<'a>
 where
@@ -327,13 +337,15 @@ where
     T: ResultItem,
     F: FnMut(&T) -> Option<bool>,
 {
+    let color_only = highlight_symbol.is_empty();
     List::new(entries.iter().enumerate().map(|(i, e)| {
         let prefix = prefix_fn(e);
-        let result_fg = if relative_picker_state.selected() == Some(i) {
-            colorscheme.result_selected_fg
-        } else {
-            colorscheme.result_fg
-        };
+        let result_fg =
+            if !color_only && relative_picker_state.selected() == Some(i) {
+                colorscheme.result_selected_fg
+            } else {
+                colorscheme.result_fg
+            };
         build_result_line(
             e,
             colorscheme.result_selected_fg,
@@ -347,7 +359,70 @@ where
     .highlight_style(
         Style::default().bg(colorscheme.result_selected_bg).bold(),
     )
-    .highlight_symbol(POINTER_SYMBOL)
+    .highlight_symbol(highlight_symbol)
+    .block(block)
+}
+
+/// Build a `List` for the minimal-mode pickers (remote control, actions):
+/// entry name with match highlights, followed by a dimmed description
+/// column and a dimmed shortcut key. Selection is color-only (background
+/// wash, no symbol).
+pub fn build_minimal_picker_list<'a, 'b, T>(
+    block: Block<'b>,
+    entries: &'a [T],
+    colorscheme: &ResultsColorscheme,
+    dimmed_fg: Color,
+    area_width: u16,
+    list_direction: ListDirection,
+) -> List<'a>
+where
+    'b: 'a,
+    T: ResultItem,
+{
+    let name_col = entries
+        .iter()
+        .map(|e| UnicodeWidthStr::width(e.display()))
+        .max()
+        .unwrap_or(0);
+    let desc_col = entries
+        .iter()
+        .map(|e| e.description().map_or(0, UnicodeWidthStr::width))
+        .max()
+        .unwrap_or(0);
+
+    List::new(entries.iter().map(|e| {
+        let mut spans = build_entry_spans(
+            e,
+            area_width,
+            colorscheme.result_fg,
+            colorscheme.match_foreground_color,
+        );
+        if desc_col > 0 {
+            let padding = name_col
+                .saturating_sub(UnicodeWidthStr::width(e.display()))
+                + 2;
+            spans.push(Span::styled(
+                format!(
+                    "{}{:<desc_col$}",
+                    " ".repeat(padding),
+                    e.description().unwrap_or_default(),
+                ),
+                Style::default().fg(dimmed_fg),
+            ));
+        }
+        if let Some(key) = e.shortcut() {
+            spans.push(Span::styled(
+                format!("  {}", key),
+                Style::default().fg(dimmed_fg),
+            ));
+        }
+        Line::from(spans)
+    }))
+    .direction(list_direction)
+    .highlight_style(
+        Style::default().bg(colorscheme.result_selected_bg).bold(),
+    )
+    .highlight_symbol("")
     .block(block)
 }
 

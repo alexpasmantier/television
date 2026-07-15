@@ -222,7 +222,7 @@ fn test_expect_with_selection() {
     // any entries, then ctrl-c would fire against an empty selection and
     // --expect would print nothing useful.
     s.wait()
-        .text("1 / 1")
+        .text(" 1/")
         .text("Cargo.toml")
         .timeout_ms(wait_timeout_ms())
         .until()

@@ -7,18 +7,22 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        action_picker::draw_action_picker, colors::Colorscheme,
-        help_panel::draw_help_panel, input::draw_input_box, layout::Layout,
+        action_picker::{draw_action_picker, draw_minimal_actions_pane},
+        colors::Colorscheme,
+        help_panel::draw_help_panel,
+        input::draw_input_box,
+        layout::{InputPosition, Layout, Orientation},
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
-        remote_control::draw_remote_control, results::draw_results_list,
+        remote_control::draw_remote_control,
+        results::{draw_minimal_picker_list, draw_results_list},
         status_bar,
     },
     television::{MissingRequirementsPopup, Mode},
     utils::metadata::AppMetadata,
 };
 use anyhow::Result;
-use ratatui::{Frame, layout::Rect};
+use ratatui::{Frame, layout::Rect, widgets::Borders};
 use rustc_hash::FxHashSet;
 use std::{hash::Hash, sync::Arc, time::Instant};
 
@@ -192,47 +196,91 @@ impl UiComponent for StatusBarComponent<'_> {
 /// information can be useful or lead to optimizations.
 pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
+    let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
+    let minimal = ctx.config.input_bar_minimal;
+    // popups don't fit in the small --inline / --height viewports: the
+    // remote control and actions picker take over panes instead
+    let takeover = !ctx.config.fullscreen;
 
     let layout =
         Layout::build(area, &ctx.config, ctx.tv_state.mode, &ctx.colorscheme);
 
-    // results list
-    let cycle_sources_key = ctx
-        .config
-        .input_map
-        .get_key_for_action(&Action::CycleSources);
-    draw_results_list(
-        f,
-        layout.results,
-        &ctx.tv_state.results_picker.entries,
-        &ctx.tv_state.channel_state.selected_entries,
-        &mut ctx.tv_state.results_picker.relative_state.clone(),
-        ctx.config.input_bar_position,
-        &ctx.colorscheme,
-        &ctx.config.results_panel_padding,
-        &ctx.config.results_panel_border_type,
-        ctx.tv_state.channel_state.source_index,
-        ctx.tv_state.channel_state.source_count,
-        ctx.tv_state.channel_state.current_source_name.as_deref(),
-        cycle_sources_key,
-    )?;
+    if takeover && show_remote {
+        let picker = &ctx.tv_state.rc_picker;
+        draw_minimal_picker_list(
+            f,
+            layout.results,
+            &picker.entries,
+            &mut picker.relative_state.clone(),
+            ctx.config.input_bar_position,
+            &ctx.colorscheme,
+            &ctx.config.results_panel_padding,
+        )?;
+        draw_input_box(
+            f,
+            layout.input,
+            picker.total_items,
+            picker.total_count,
+            &picker.input,
+            &picker.state,
+            false,
+            "channels",
+            &ctx.colorscheme,
+            ctx.config.input_bar_position,
+            &ctx.config.input_bar_header,
+            &ctx.config.input_bar_padding,
+            &ctx.config.input_bar_border_type,
+            ctx.config.input_bar_prompt.as_ref(),
+            minimal,
+            Some(("channels", ctx.colorscheme.mode.remote_control)),
+        )?;
+    } else {
+        // results list
+        let cycle_sources_key = ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::CycleSources);
+        draw_results_list(
+            f,
+            layout.results,
+            &ctx.tv_state.results_picker.entries,
+            &ctx.tv_state.channel_state.selected_entries,
+            &mut ctx.tv_state.results_picker.relative_state.clone(),
+            ctx.config.input_bar_position,
+            &ctx.colorscheme,
+            &ctx.config.results_panel_padding,
+            &ctx.config.results_panel_border_type,
+            ctx.tv_state.channel_state.source_index,
+            ctx.tv_state.channel_state.source_count,
+            ctx.tv_state.channel_state.current_source_name.as_deref(),
+            cycle_sources_key,
+        )?;
 
-    draw_input_box(
-        f,
-        layout.input,
-        ctx.tv_state.results_picker.total_items,
-        ctx.tv_state.channel_state.total_count,
-        &ctx.tv_state.results_picker.input,
-        &ctx.tv_state.results_picker.state,
-        ctx.tv_state.channel_state.running,
-        &ctx.tv_state.channel_state.current_channel_name,
-        &ctx.colorscheme,
-        ctx.config.input_bar_position,
-        &ctx.config.input_bar_header,
-        &ctx.config.input_bar_padding,
-        &ctx.config.input_bar_border_type,
-        ctx.config.input_bar_prompt.as_ref(),
-    )?;
+        draw_input_box(
+            f,
+            layout.input,
+            ctx.tv_state.results_picker.total_items,
+            ctx.tv_state.channel_state.total_count,
+            &ctx.tv_state.results_picker.input,
+            &ctx.tv_state.results_picker.state,
+            ctx.tv_state.channel_state.running,
+            &ctx.tv_state.channel_state.current_channel_name,
+            &ctx.colorscheme,
+            ctx.config.input_bar_position,
+            &ctx.config.input_bar_header,
+            &ctx.config.input_bar_padding,
+            &ctx.config.input_bar_border_type,
+            ctx.config.input_bar_prompt.as_ref(),
+            minimal,
+            // with no status bar, the channel name moves next to the count
+            (minimal && ctx.config.status_bar_hidden).then(|| {
+                (
+                    ctx.tv_state.channel_state.current_channel_name.as_str(),
+                    ctx.colorscheme.general.dimmed_text_fg,
+                )
+            }),
+        )?;
+    }
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
@@ -245,6 +293,22 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             .config
             .input_map
             .get_key_for_action(&Action::CyclePreviews);
+        // when the minimal UI preset is active, draw a hairline on the side
+        // of the preview that faces the results list
+        let separator = if ctx.config.preview_panel_separator {
+            Some(match (ctx.config.layout, ctx.config.input_bar_position) {
+                // preview sits on the right
+                (Orientation::Landscape, _) => Borders::LEFT,
+                // preview sits at the bottom
+                (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
+                // preview sits at the top
+                (Orientation::Portrait, InputPosition::Bottom) => {
+                    Borders::BOTTOM
+                }
+            })
+        } else {
+            None
+        };
         draw_preview_content_block(
             f,
             preview_rect,
@@ -255,11 +319,12 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.preview_panel_scrollbar,
             ctx.config.preview_panel_word_wrap,
             cycle_previews_key,
+            separator,
         )?;
     }
 
-    // remote control
-    if show_remote {
+    // remote control (popup in fullscreen)
+    if show_remote && !takeover {
         draw_remote_control(
             f,
             layout.remote_control.unwrap(),
@@ -273,17 +338,34 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         )?;
     }
 
-    // action picker
-    let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
+    // action picker: popup in fullscreen, preview pane in non-fullscreen
+    // mode (so the entry the action applies to stays visible in the results)
     if show_action_picker {
-        draw_action_picker(
-            f,
-            layout.action_picker.unwrap(),
-            &ctx.tv_state.ap_picker.entries,
-            &mut ctx.tv_state.ap_picker.relative_state.clone(),
-            &mut ctx.tv_state.ap_picker.input.clone(),
-            &ctx.colorscheme,
-        )?;
+        if takeover {
+            if let Some(pane) = layout.action_picker {
+                draw_minimal_actions_pane(
+                    f,
+                    pane,
+                    &ctx.tv_state.ap_picker.entries,
+                    &mut ctx.tv_state.ap_picker.relative_state.clone(),
+                    &ctx.tv_state.ap_picker.state,
+                    &ctx.tv_state.ap_picker.input,
+                    ctx.tv_state.ap_picker.total_items,
+                    ctx.tv_state.ap_picker.total_count,
+                    &ctx.config,
+                    &ctx.colorscheme,
+                )?;
+            }
+        } else {
+            draw_action_picker(
+                f,
+                layout.action_picker.unwrap(),
+                &ctx.tv_state.ap_picker.entries,
+                &mut ctx.tv_state.ap_picker.relative_state.clone(),
+                &mut ctx.tv_state.ap_picker.input.clone(),
+                &ctx.colorscheme,
+            )?;
+        }
     }
 
     if let Some(popup) = &ctx.tv_state.missing_requirements_popup {
