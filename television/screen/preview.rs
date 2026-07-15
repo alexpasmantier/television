@@ -32,6 +32,22 @@ pub fn draw_preview_content_block(
     cycle_key: Option<Key>,
     separator: Option<Borders>,
 ) -> Result<()> {
+    let total_lines =
+        preview_state.preview.total_lines.saturating_sub(1) as usize;
+    let scroll = preview_state.scroll;
+
+    // minimal UI: a dimmed percentage in the title row stands in for the
+    // scrollbar, only once the preview is actually scrolled
+    let scroll_percent = if scrollbar || scroll == 0 {
+        None
+    } else {
+        let total = u32::try_from(total_lines.max(1)).unwrap_or(u32::MAX);
+        Some(
+            u8::try_from((u32::from(scroll) * 100 / total).min(100))
+                .expect("percentage always fits in u8"),
+        )
+    };
+
     let inner = draw_content_outer_block(
         f,
         rect,
@@ -44,10 +60,8 @@ pub fn draw_preview_content_block(
         preview_state.preview.preview_count,
         cycle_key,
         separator,
+        scroll_percent,
     );
-    let total_lines =
-        preview_state.preview.total_lines.saturating_sub(1) as usize;
-    let scroll = preview_state.scroll;
 
     // render the preview content
     let rp = build_preview_paragraph(
@@ -129,6 +143,7 @@ fn draw_content_outer_block(
     preview_count: usize,
     cycle_key: Option<Key>,
     separator: Option<Borders>,
+    scroll_percent: Option<u8>,
 ) -> Rect {
     let (indicator, key_hint) = if preview_count > 1 {
         let dots: String = (0..preview_count)
@@ -197,6 +212,22 @@ fn draw_content_outer_block(
             .alignment(title_alignment)
             .style(Style::default().fg(colorscheme.preview.title_fg)),
     );
+
+    // borderless preview: dimmed scroll percentage on the right of the
+    // title row, standing in for the scrollbar
+    if borderless && let Some(percent) = scroll_percent {
+        let mut percent_spans = vec![Span::styled(
+            format!(" {}% ", percent),
+            Style::default()
+                .fg(colorscheme.general.dimmed_text_fg)
+                .italic(),
+        )];
+        if embeds_into(Borders::TOP) {
+            percent_spans.push(Span::styled("─", hairline_style));
+        }
+        block = block
+            .title_top(Line::from(percent_spans).alignment(Alignment::Right));
+    }
 
     // preview footer
     if let Some(preview_footer) = preview_footer {

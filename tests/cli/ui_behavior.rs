@@ -232,3 +232,28 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
+
+/// Tests that scrolling the preview shows a dimmed percentage in the title
+/// row (standing in for the scrollbar), which disappears when scrolled back.
+#[test]
+fn test_preview_scroll_percent_hint() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "LICENSE"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
+    assert_frame_not_contains(&s, "%");
+
+    s.send().key("pagedown").unwrap();
+    s.wait().text("% ").until().unwrap();
+
+    s.send().key("pageup").unwrap();
+    s.wait().text_absent("% ").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
