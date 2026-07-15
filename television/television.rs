@@ -591,6 +591,8 @@ impl Television {
                     | Action::DeleteNextChar
                     | Action::GoToPrevChar
                     | Action::GoToNextChar
+                    | Action::GoToPrevWord
+                    | Action::GoToNextWord
                     | Action::GoToInputStart
                     | Action::GoToInputEnd
                     | Action::ToggleSelectionDown
@@ -951,7 +953,9 @@ impl Television {
             | Action::GoToInputEnd
             | Action::GoToInputStart
             | Action::GoToNextChar
-            | Action::GoToPrevChar => {
+            | Action::GoToPrevChar
+            | Action::GoToNextWord
+            | Action::GoToPrevWord => {
                 self.handle_input_action(action);
             }
             Action::SelectNextEntry => {
