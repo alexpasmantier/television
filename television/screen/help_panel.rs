@@ -18,6 +18,7 @@ use ratatui::{
     widgets::{Block, Borders, Padding, Paragraph},
 };
 use rustc_hash::FxHashMap;
+use std::collections::BTreeMap;
 use tracing::{debug, trace};
 
 /// Draws the help panel inside the preview pane (behind the hairline
@@ -188,8 +189,9 @@ fn add_keybinding_lines_for_keys(
     colorscheme: &Colorscheme,
     category_name: &str,
 ) {
-    // Collect all valid keybinding entries
-    let mut entries: Vec<(String, String)> = Vec::new();
+    // Group keys by action description so duplicate bindings share a line
+    // (the map also keeps descriptions alphabetically sorted)
+    let mut entries: BTreeMap<String, Vec<String>> = BTreeMap::new();
 
     for (key, actions) in keybindings.iter() {
         for action in actions.as_slice() {
@@ -203,22 +205,37 @@ fn add_keybinding_lines_for_keys(
 
             let description = action.description();
             let key_string = key.to_string();
-            entries.push((description.to_string(), key_string.clone()));
             trace!(
                 "Added keybinding: {} -> {} ({})",
                 key_string, description, category_name
             );
+            entries
+                .entry(description.to_string())
+                .or_default()
+                .push(key_string);
         }
     }
 
-    // Sort entries alphabetically by description
-    entries.sort_by(|a, b| a.0.cmp(&b.0));
+    let rows: Vec<(String, String)> = entries
+        .into_iter()
+        .map(|(description, mut keys)| {
+            // keybindings iterate in hash order: sort for a stable display
+            keys.sort();
+            keys.dedup();
+            (keys.join(" / "), description)
+        })
+        .collect();
 
-    // Create lines from sorted entries
-    for (description, key_string) in entries {
+    let key_col_width = rows
+        .iter()
+        .map(|(keys, _)| keys.chars().count())
+        .max()
+        .unwrap_or(0);
+    for (keys, description) in rows {
         lines.push(create_compact_keybinding_line(
-            &key_string,
+            &keys,
             &description,
+            key_col_width,
             colorscheme,
         ));
     }
@@ -266,11 +283,17 @@ fn add_actions_keybindings_section(
 
     entries.sort_by(|a, b| a.0.cmp(&b.0));
 
+    let key_col_width = entries
+        .iter()
+        .map(|(key, _)| key.chars().count())
+        .max()
+        .unwrap_or(0);
     // Create lines from sorted entries
     for (key_string, action_desc) in entries {
         lines.push(create_compact_keybinding_line(
             &key_string,
             &action_desc,
+            key_col_width,
             colorscheme,
         ));
     }
@@ -346,16 +369,22 @@ fn generate_help_content(
     lines
 }
 
-/// Creates a compact keybinding line: the key in the foreground color,
+/// Minimum width of the key column, so short key lists don't cram the
+/// descriptions against them
+const KEY_COLUMN_MIN_WIDTH: usize = 12;
+
+/// Creates a compact keybinding line: the key(s) in the foreground color,
 /// followed by a dimmed description
 fn create_compact_keybinding_line(
     key: &str,
     action: &str,
+    key_col_width: usize,
     colorscheme: &Colorscheme,
 ) -> Line<'static> {
+    let width = key_col_width.max(KEY_COLUMN_MIN_WIDTH);
     Line::from(vec![
         Span::styled(
-            format!("  {:<12}", key),
+            format!("  {:<width$}", key),
             Style::default().fg(colorscheme.results.result_fg),
         ),
         Span::raw(SPACE),
