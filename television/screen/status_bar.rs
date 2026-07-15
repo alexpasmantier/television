@@ -75,6 +75,18 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         ));
     };
 
+    if ctx.tv_state.mode == Mode::Channel
+        && ctx.tv_state.channel_state.source_count > 1
+    {
+        let key = &ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::CycleSources);
+        if let Some(k) = key {
+            add_hint("source", &k.to_string());
+        }
+    }
+
     if !ctx.config.remote_disabled {
         let key = &ctx
             .config
