@@ -482,8 +482,8 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
 /// list stays usable (e.g. `--inline` in a handful of rows).
 const MIN_PREVIEW_HEIGHT: u16 = 8;
 const MIN_RESULTS_HEIGHT: u16 = 4;
-const MIN_PREVIEW_WIDTH: u16 = 20;
-const MIN_RESULTS_WIDTH: u16 = 20;
+const MIN_PREVIEW_WIDTH: u16 = 25;
+const MIN_RESULTS_WIDTH: u16 = 30;
 
 fn preview_fits(
     main_rect: Rect,
