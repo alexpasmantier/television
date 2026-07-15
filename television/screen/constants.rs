@@ -1,7 +1,6 @@
 pub const POINTER_SYMBOL: &str = "> ";
 pub const SELECTED_SYMBOL: &str = "● ";
 pub const DESELECTED_SYMBOL: &str = "  ";
-pub const LOGO_WIDTH: u16 = 24;
 
 /// Thin hairline border set used by the minimal UI separators.
 ///

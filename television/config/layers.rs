@@ -837,16 +837,8 @@ mod tests {
         config.ui.input_bar.border_type = BorderType::Thick;
         let mut prototype = ChannelPrototype::new("test", "echo 1");
         prototype.ui = Some(UiSpec {
-            ui_scale: None,
-            orientation: None,
-            theme: None,
-            theme_overrides: ThemeOverrides::default(),
-            input_bar: None,
-            preview_panel: None,
-            results_panel: None,
             status_bar: Some(crate::config::ui::StatusBarConfig::default()),
-            help_panel: None,
-            remote_control: None,
+            ..Default::default()
         });
         let merged = merge_layers(
             config,
@@ -872,19 +864,11 @@ mod tests {
         // channel) should still get the minimal borderless preview.
         let mut prototype = ChannelPrototype::new("test", "echo 1");
         prototype.ui = Some(UiSpec {
-            ui_scale: None,
-            orientation: None,
-            theme: None,
-            theme_overrides: ThemeOverrides::default(),
-            input_bar: None,
             preview_panel: Some(crate::config::ui::PreviewPanelConfig {
                 size: 60,
                 ..Default::default()
             }),
-            results_panel: None,
-            status_bar: None,
-            help_panel: None,
-            remote_control: None,
+            ..Default::default()
         });
         let merged = merge_layers(
             Config::default(),
@@ -901,19 +885,11 @@ mod tests {
         // but a channel explicitly picking a non-default border keeps it
         let mut prototype = ChannelPrototype::new("test", "echo 1");
         prototype.ui = Some(UiSpec {
-            ui_scale: None,
-            orientation: None,
-            theme: None,
-            theme_overrides: ThemeOverrides::default(),
-            input_bar: None,
             preview_panel: Some(crate::config::ui::PreviewPanelConfig {
                 border_type: BorderType::Thick,
                 ..Default::default()
             }),
-            results_panel: None,
-            status_bar: None,
-            help_panel: None,
-            remote_control: None,
+            ..Default::default()
         });
         let merged = merge_layers(
             Config::default(),

@@ -474,7 +474,7 @@ impl PreviewSpec {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize, serde::Serialize)]
 pub struct UiSpec {
     #[serde(default)]
     pub ui_scale: Option<u16>,

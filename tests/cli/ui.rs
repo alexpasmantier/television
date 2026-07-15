@@ -642,7 +642,9 @@ fn test_minimal_ui_auto_hides_preview_when_narrow() {
     .start()
     .unwrap();
 
-    s.wait().text("· files").until().unwrap();
+    // at this width the count line drops the source indicator and channel
+    // hint entirely, so neither can serve as the ready signal
+    s.wait().text("Cargo.toml").until().unwrap();
 
     assert_frame_not_contains_any(&s, &["▏"]);
 
@@ -867,6 +869,32 @@ fn test_multi_source_indicator_next_to_count() {
     // the files channel has two sources; the active one is "Default"
     s.wait().text("· ● ○ Default").until().unwrap();
     s.wait().text("source ctrl-s").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+/// Tests that on a narrow viewport the count line drops the source
+/// indicator as a whole instead of starving the query field or clipping
+/// itself mid-segment.
+#[test]
+fn test_narrow_input_keeps_query_visible() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .env(TESTING_ENV_VAR, "1")
+        .size(45, 20)
+        .start()
+        .unwrap();
+
+    s.wait().text("390/390").until().unwrap();
+
+    s.send().type_text("changelog").unwrap();
+    s.wait().text("changelog").until().unwrap();
+    s.wait().text("2/390").until().unwrap();
+    // no room for the source indicator next to the count: it's dropped
+    // as a unit, never clipped mid-way
+    assert_frame_not_contains(&s, "· ●");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

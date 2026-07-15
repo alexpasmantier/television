@@ -11,7 +11,7 @@ use crate::{
         colors::Colorscheme,
         help_panel::draw_help_pane,
         input::{SourceIndicator, draw_input_box},
-        layout::{InputPosition, Layout, Orientation},
+        layout::{Layout, pane_separator_side},
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
         results::{draw_minimal_picker_list, draw_results_list},
@@ -21,7 +21,7 @@ use crate::{
     utils::metadata::AppMetadata,
 };
 use anyhow::Result;
-use ratatui::{Frame, layout::Rect, widgets::Borders};
+use ratatui::{Frame, layout::Rect};
 use rustc_hash::FxHashSet;
 use std::{hash::Hash, sync::Arc, time::Instant};
 
@@ -216,19 +216,14 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_input_box(
             f,
             layout.input,
-            picker.total_items,
-            picker.total_count,
+            &ctx.config,
+            &ctx.colorscheme,
             &picker.input,
             &picker.state,
+            picker.total_items,
+            picker.total_count,
             false,
             "channels",
-            &ctx.colorscheme,
-            ctx.config.input_bar_position,
-            &ctx.config.input_bar_header,
-            &ctx.config.input_bar_padding,
-            &ctx.config.input_bar_border_type,
-            ctx.config.input_bar_prompt.as_ref(),
-            minimal,
             // with no status bar, the picker hint stands in for the mode
             ctx.config
                 .status_bar_hidden
@@ -260,19 +255,14 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_input_box(
             f,
             layout.input,
-            ctx.tv_state.results_picker.total_items,
-            ctx.tv_state.channel_state.total_count,
+            &ctx.config,
+            &ctx.colorscheme,
             &ctx.tv_state.results_picker.input,
             &ctx.tv_state.results_picker.state,
+            ctx.tv_state.results_picker.total_items,
+            ctx.tv_state.channel_state.total_count,
             ctx.tv_state.channel_state.running,
             &ctx.tv_state.channel_state.current_channel_name,
-            &ctx.colorscheme,
-            ctx.config.input_bar_position,
-            &ctx.config.input_bar_header,
-            &ctx.config.input_bar_padding,
-            &ctx.config.input_bar_border_type,
-            ctx.config.input_bar_prompt.as_ref(),
-            minimal,
             // with no status bar, the channel name moves next to the count,
             // in the same color the status bar would use
             (minimal && ctx.config.status_bar_hidden).then(|| {
@@ -281,7 +271,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
                     ctx.colorscheme.results.result_fg,
                 )
             }),
-            Some(SourceIndicator {
+            Some(&SourceIndicator {
                 name: ctx
                     .tv_state
                     .channel_state
@@ -306,20 +296,12 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             .get_key_for_action(&Action::CyclePreviews);
         // when the minimal UI preset is active, draw a hairline on the side
         // of the preview that faces the results list
-        let separator = if ctx.config.preview_panel_separator {
-            Some(match (ctx.config.layout, ctx.config.input_bar_position) {
-                // preview sits on the right
-                (Orientation::Landscape, _) => Borders::LEFT,
-                // preview sits at the bottom
-                (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
-                // preview sits at the top
-                (Orientation::Portrait, InputPosition::Bottom) => {
-                    Borders::BOTTOM
-                }
-            })
-        } else {
-            None
-        };
+        let separator = ctx.config.preview_panel_separator.then(|| {
+            pane_separator_side(
+                ctx.config.layout,
+                ctx.config.input_bar_position,
+            )
+        });
         draw_preview_content_block(
             f,
             preview_rect,
