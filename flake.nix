@@ -105,18 +105,11 @@
               # here *without* rebuilding all dependency crates
               # MY_CUSTOM_VAR = "some value";
 
-              # Wrap the binary to include runtime dependencies in PATH and install shell completions
+              # Wrap the binary to include runtime dependencies in PATH
               postInstall = ''
                 wrapProgram $out/bin/tv \
                   --prefix PATH : ${lib.makeBinPath runtimeDeps} \
-
-                installShellCompletion --cmd tv \
-                  television/utils/shell/completion.bash \
-                  television/utils/shell/completion.zsh \
-                  television/utils/shell/completion.fish \
-                  television/utils/shell/completion.nu
               '';
-
             }
           );
         in
