@@ -45,6 +45,8 @@
               (lib.fileset.maybeMissing ./working-dir-test.txt)
               # Pass tests/app.rs tests
               (lib.fileset.maybeMissing ./tests/target_dir)
+              # Pass legacy config file templates
+              (lib.fileset.maybeMissing ./television/config/legacy_config_templates.json)
             ];
           };
 
