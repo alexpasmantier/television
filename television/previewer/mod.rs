@@ -74,7 +74,7 @@ impl Ord for Request {
             // Shutdown/Cycle signals always have priority
             (Self::Shutdown | Self::CycleCommand, _) => Ordering::Greater,
             (_, Self::Shutdown | Self::CycleCommand) => Ordering::Less,
-            // Otherwise fall back to ticket age comparison
+            // Otherwise fall back to ticket recency comparison
             (Self::Preview(t1), Self::Preview(t2)) => t1.cmp(t2),
         }
     }
@@ -94,7 +94,8 @@ impl PartialOrd for Ticket {
 
 impl Ord for Ticket {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.age().cmp(&other.age())
+        // more recent tickets rank higher so that `max()` picks the newest request
+        self.timestamp.cmp(&other.timestamp)
     }
 }
 
@@ -462,4 +463,42 @@ pub async fn try_preview(
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn preview_request(name: &str, age_ms: u64) -> Request {
+        Request::Preview(Ticket {
+            entry: Entry::new(name.to_string()),
+            timestamp: Instant::now()
+                .checked_sub(Duration::from_millis(age_ms))
+                .unwrap(),
+        })
+    }
+
+    #[test]
+    fn newest_preview_request_wins() {
+        let newest = [
+            preview_request("old", 300),
+            preview_request("new", 0),
+            preview_request("mid", 100),
+        ]
+        .into_iter()
+        .max()
+        .unwrap();
+
+        assert!(matches!(newest, Request::Preview(t) if t.entry.raw == "new"));
+    }
+
+    #[test]
+    fn control_requests_outrank_previews() {
+        let max = [preview_request("entry", 0), Request::Shutdown]
+            .into_iter()
+            .max()
+            .unwrap();
+
+        assert!(matches!(max, Request::Shutdown));
+    }
 }
