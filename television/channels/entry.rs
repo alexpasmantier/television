@@ -72,7 +72,6 @@ impl Entry {
     /// Additional fields can be set using the builder pattern.
     /// ```
     /// use television::channels::entry::Entry;
-    /// use devicons::FileIcon;
     ///
     /// let entry = Entry::new("name".to_string())
     ///                 .with_display("Display Name".to_string())
