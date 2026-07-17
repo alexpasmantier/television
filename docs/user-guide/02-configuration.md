@@ -41,7 +41,7 @@ Top-level UI settings under the `[ui]` section:
 | ------------- | --------------- | ------------- | ------------------------------------------------------------------------------ |
 | `ui_scale`    | integer (0-100) | `100`         | Percentage of terminal space to allocate for the Television UI.                |
 | `orientation` | string          | `"landscape"` | UI orientation. Valid values: `"landscape"`, `"portrait"`.                     |
-| `theme`       | string          | `"default"`   | Theme name to use for the UI. See [Available Themes](#available-themes) below. |
+| `theme`       | string          | `"television"` | Theme name to use for the UI. See [Available Themes](#available-themes) below. |
 
 #### Available Themes
 
