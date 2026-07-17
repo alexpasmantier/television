@@ -221,7 +221,7 @@ impl Theme {
     }
 }
 
-pub const DEFAULT_THEME: &str = "default";
+pub const DEFAULT_THEME: &str = "television";
 
 impl Default for Theme {
     fn default() -> Self {
