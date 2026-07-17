@@ -14,7 +14,6 @@ use crate::{
 };
 use ansi_to_tui::IntoText;
 use anyhow::Result;
-use devicons::FileIcon;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
     widgets::{Block, List, ListDirection, ListState},
@@ -25,11 +24,6 @@ use unicode_width::UnicodeWidthStr;
 pub trait ResultItem {
     /// Returns the raw string representation of the item.
     fn raw(&self) -> &str;
-
-    /// Returns an optional icon to display in front of the item.
-    fn icon(&self) -> Option<&FileIcon> {
-        None
-    }
 
     /// The main text representing the item.
     fn display(&self) -> &str;
