@@ -59,27 +59,21 @@ pub async fn render<W: Write>(
     mut tui: Tui<W>,
 ) -> Result<()> {
     let mut buffer = Vec::with_capacity(256);
-    let mut num_instructions;
 
     // Rendering loop
     'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
-        num_instructions = buffer.len();
-        // we only keep the last render instruction in the buffer
-        if let Some(last_render) = buffer
+        // Only the last render instruction in the batch matters: pull it
+        // out (its context is large, so no cloning) and process it after
+        // the other tasks.
+        let last_render = buffer
             .iter()
-            .rfind(|e| matches!(e, RenderingTask::Render(_)))
-        {
-            buffer.push(last_render.clone());
-        }
+            .rposition(|e| matches!(e, RenderingTask::Render(_)))
+            .map(|idx| buffer.remove(idx));
 
         for event in buffer
             .drain(..)
-            .enumerate()
-            .filter(|(i, e)| {
-                !matches!(e, RenderingTask::Render(_))
-                    || *i == num_instructions
-            })
-            .map(|(_, val)| val)
+            .filter(|e| !matches!(e, RenderingTask::Render(_)))
+            .chain(last_render)
         {
             match event {
                 RenderingTask::ClearScreen => {
