@@ -12,7 +12,6 @@ use crate::{
         },
     },
 };
-use ansi_to_tui::IntoText;
 use anyhow::Result;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
@@ -48,9 +47,10 @@ pub trait ResultItem {
         None
     }
 
-    /// Whether the item uses ANSI escape codes for styling.
-    fn ansi(&self) -> bool {
-        false
+    /// The styling of the item, as the style it takes from a character
+    /// offset within `display()` until the next run.
+    fn styles(&self) -> Option<&[(u32, Style)]> {
+        None
     }
 }
 
@@ -94,20 +94,18 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
         .saturating_sub(selection_prefix_width)
         .saturating_sub(shortcut_extra);
 
-    if item.ansi() {
-        spans.extend(build_entry_spans_ansi(
-            item,
-            item_max_width,
-            result_fg,
-            match_fg,
-        ));
-    } else {
-        spans.extend(build_entry_spans(
-            item,
-            item_max_width,
-            result_fg,
-            match_fg,
-        ));
+    match item.styles() {
+        Some(styles) if !styles.is_empty() => {
+            spans.extend(build_entry_spans_styled(item, styles, match_fg));
+        }
+        _ => {
+            spans.extend(build_entry_spans(
+                item,
+                item_max_width,
+                result_fg,
+                match_fg,
+            ));
+        }
     }
 
     // Show shortcut if present.
@@ -179,135 +177,84 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
 ///
 /// # Algorithm
 ///
-/// - 1/ The function parses the raw string of the item into styled spans using `ansi_to_tui`.
-///
-/// - 2/ If the parsed result contains only a single span with the default style (i.e., no ANSI codes),
-///   it falls back to the simpler `build_entry_spans` function.
-///
-/// - 3/ Otherwise, it iterates over the parsed spans and overlays the match highlight ranges onto them.
-///    - It tracks the current character position across all spans.
-///    - For each span, it walks through its characters, checking if the current position falls within
-///      any of the match highlight ranges.
-///    - If a highlight range is encountered, it splits the span into sub-spans:
-///        - Unhighlighted text before the match uses the original style.
-///        - Highlighted text within the match uses the original style but overrides the foreground color with `match_fg`.
-///        - Remaining text after the match continues with the original style.
-///    - The algorithm advances through both the spans and the highlight ranges, ensuring that highlights
-///      are applied correctly even if they cross span boundaries.
-/// - 4/ The result is a vector of spans that preserves the original ANSI styling, but overlays match highlights
-///   as specified by the input ranges.
+/// The item's style runs and its match ranges are two independent partitions
+/// of the same text, so this walks the characters once, tracking the current
+/// run and the current match range, and starts a new span wherever either
+/// changes. Matched characters keep the style of the run they fall in, with
+/// the foreground overridden to `match_fg`, so highlights never disrupt the
+/// item's own styling beyond that.
 ///
 /// # Parameters
 /// - `item`: The result item to render.
-/// - `max_width`: The maximum width for the rendered line (currently not used for truncation in this function).
-/// - `result_fg`: The default foreground color for non-highlighted text.
+/// - `styles`: The item's style runs (see [`ResultItem::styles`]).
 /// - `match_fg`: The foreground color to use for highlighted (matched) text.
 ///
 /// # Returns
 /// A vector of [`Span`]s, each with appropriate styling and highlighting.
-///
-/// # Notes
-/// - This function is designed to work with items that use ANSI escape codes for styling.
-/// - It ensures that match highlights do not disrupt the underlying ANSI styles, except for the foreground color.
-/// - If no ANSI codes are present, it delegates to the simpler span builder for efficiency.
-fn build_entry_spans_ansi<T: ResultItem + ?Sized>(
-    item: &'_ T,
-    max_width: u16,
-    result_fg: Color,
+fn build_entry_spans_styled<'a, T: ResultItem + ?Sized>(
+    item: &'a T,
+    styles: &[(u32, Style)],
     match_fg: Color,
-) -> Vec<Span<'_>> {
-    let text = item.raw();
+) -> Vec<Span<'a>> {
+    let display = item.display();
     let match_ranges = item.match_ranges().unwrap_or(&[]);
-    let parsed = text.to_text().unwrap();
-    let spans = &parsed.lines[0].spans;
-
-    // If there are no ANSI codes, fall back to the simple span builder
-    if spans.len() == 1 && spans[0].style == Style::default() {
-        return build_entry_spans(item, max_width, result_fg, match_fg);
-    }
 
     // hypothesis: ~ 2 to 3 highlighted clusters + in the worst case scenario
-    // each cluster splits its containing span into 3 parts -> + 6 spans so we
-    // should be fine pre-allocating `spans.len() + 8`
-    let mut highlighted_spans: Vec<Span> = Vec::with_capacity(spans.len() + 8);
-    let mut hl_ranges = match_ranges
-        .iter()
-        .map(|(start, end)| (*start as usize, *end as usize))
-        .peekable();
-    let mut char_pos = 0;
+    // each cluster splits its containing run into 3 parts -> + 6 spans so we
+    // should be fine pre-allocating `styles.len() + 8`
+    let mut spans: Vec<Span> = Vec::with_capacity(styles.len() + 8);
+    let mut segment = String::new();
+    let mut segment_style: Option<Style> = None;
+    let mut run = 0;
+    let mut range = 0;
 
-    for span in spans {
-        let span_len = span.content.chars().count();
-        let mut cursor = 0;
-        while cursor < span_len {
-            if let Some(&(hl_start, hl_end)) = hl_ranges.peek() {
-                if char_pos + cursor >= hl_end {
-                    hl_ranges.next();
-                    continue;
-                }
-                let highlight_start = hl_start.saturating_sub(char_pos);
-                let highlight_end = hl_end.saturating_sub(char_pos);
-
-                // note that the following will also just push the entire span if
-                // the highlight range comes anywhere after the current span
-                if cursor < highlight_start {
-                    let s: String = span
-                        .content
-                        .chars()
-                        .skip(cursor)
-                        .take(highlight_start - cursor)
-                        .collect();
-                    if !s.is_empty() {
-                        highlighted_spans.push(Span::styled(
-                            replace_non_printable_bulk(
-                                &s,
-                                &ReplaceNonPrintableConfig::default(),
-                            )
-                            .0
-                            .into_owned(),
-                            span.style,
-                        ));
-                    }
-                    cursor = highlight_start;
-                } else {
-                    let s: String = span
-                        .content
-                        .chars()
-                        .skip(cursor)
-                        .take(highlight_end - cursor)
-                        .collect();
-                    if !s.is_empty() {
-                        highlighted_spans.push(Span::styled(
-                            replace_non_printable_bulk(
-                                &s,
-                                &ReplaceNonPrintableConfig::default(),
-                            )
-                            .0
-                            .into_owned(),
-                            span.style.fg(match_fg),
-                        ));
-                    }
-                    cursor = highlight_end;
-                }
-            } else {
-                let s: String = span.content.chars().skip(cursor).collect();
-                if !s.is_empty() {
-                    highlighted_spans.push(Span::styled(
-                        replace_non_printable_bulk(
-                            &s,
-                            &ReplaceNonPrintableConfig::default(),
-                        )
-                        .0
-                        .into_owned(),
-                        span.style,
-                    ));
-                }
-                break;
-            }
+    for (pos, c) in display.chars().enumerate() {
+        let pos = u32::try_from(pos).unwrap_or(u32::MAX);
+        while run + 1 < styles.len() && styles[run + 1].0 <= pos {
+            run += 1;
         }
-        char_pos += span_len;
+        // the first run may start after the first character
+        let base = if styles[run].0 > pos {
+            Style::default()
+        } else {
+            styles[run].1
+        };
+
+        while range < match_ranges.len() && match_ranges[range].1 <= pos {
+            range += 1;
+        }
+        let highlighted =
+            range < match_ranges.len() && match_ranges[range].0 <= pos;
+        let style = if highlighted { base.fg(match_fg) } else { base };
+
+        if segment_style != Some(style) {
+            push_segment(&mut spans, &mut segment, segment_style);
+            segment_style = Some(style);
+        }
+        segment.push(c);
     }
-    highlighted_spans
+    push_segment(&mut spans, &mut segment, segment_style);
+
+    spans
+}
+
+/// Flush the characters accumulated so far as a span, leaving `segment` empty.
+fn push_segment(
+    spans: &mut Vec<Span<'_>>,
+    segment: &mut String,
+    style: Option<Style>,
+) {
+    if segment.is_empty() {
+        return;
+    }
+    let printable = replace_non_printable_bulk(
+        segment,
+        &ReplaceNonPrintableConfig::default(),
+    )
+    .0
+    .into_owned();
+    spans.push(Span::styled(printable, style.unwrap_or_default()));
+    segment.clear();
 }
 
 /// Build a `List` widget from a slice of [`ResultItem`]s.
@@ -477,60 +424,23 @@ mod tests {
         assert!(rendered.contains('…'));
     }
 
-    #[test]
-    fn test_build_entry_spans_ansi_no_ansi() {
-        let entry = Entry::new("A simple string".to_string())
-            .with_match_indices(&[3, 4, 5]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Blue, Color::Red);
-        let blue_fg = Style::default().fg(Color::Blue);
-
-        assert_eq!(spans.len(), 3);
-        assert_eq!(spans[0], Span::styled("A s", blue_fg));
-        assert_eq!(
-            spans[1],
-            Span::styled("imp", Style::default().fg(Color::Red))
-        );
-        assert_eq!(spans[2], Span::styled("le string", blue_fg));
+    /// The style runs `utils::ansi` produces for
+    /// `"\x1b[31mRed\x1b[0m and \x1b[32mGreen\x1b[0m"`.
+    fn red_and_green() -> Vec<(u32, Style)> {
+        vec![
+            (0, Style::default().fg(Color::Red)),
+            (3, Style::default()),
+            (8, Style::default().fg(Color::Green)),
+        ]
     }
 
     #[test]
-    fn test_build_entry_spans_ansi_no_ansi_corner_cases() {
-        let entry = Entry::new("A".to_string()).with_match_indices(&[0]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Reset, Color::Red);
-
-        assert_eq!(spans.len(), 1);
-        assert_eq!(
-            spans[0],
-            Span::styled("A", Style::default().fg(Color::Red))
-        );
-
-        let entry = Entry::new(String::new()).with_match_indices(&[]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Reset, Color::Red);
-
-        assert!(spans.is_empty());
-
-        let entry = Entry::new("A".to_string()).with_match_indices(&[]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Reset, Color::Red);
-
-        assert_eq!(spans.len(), 1);
-        assert_eq!(
-            spans[0],
-            Span::styled("A", Style::default().fg(Color::Reset))
-        );
-    }
-
-    #[test]
-    fn test_build_entry_spans_ansi_with_ansi() {
-        let entry = Entry::new(
-            "\x1b[31mRed\x1b[0m and \x1b[32mGreen\x1b[0m".to_string(),
-        )
-        .with_match_indices(&[1, 4, 5]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Blue, Color::Yellow);
+    fn test_build_entry_spans_styled_overlays_matches() {
+        let styles = red_and_green();
+        let entry = Entry::new("Red and Green".to_string())
+            .with_match_indices(&[1, 4, 5])
+            .with_styles(styles.clone());
+        let spans = build_entry_spans_styled(&entry, &styles, Color::Yellow);
 
         assert_eq!(
             spans.len(),
@@ -544,20 +454,23 @@ mod tests {
         assert_eq!(spans[0], Span::raw("R").fg(Color::Red));
         assert_eq!(spans[1], Span::raw("e").fg(Color::Yellow));
         assert_eq!(spans[2], Span::raw("d").fg(Color::Red));
-        assert_eq!(spans[3].content, Span::raw(" ").content);
-        assert_eq!(spans[3].style, Style::reset());
-        assert_eq!(spans[4], Span::raw("an").reset().fg(Color::Yellow));
-        assert_eq!(spans[5], Span::raw("d ").reset());
-        assert_eq!(spans[6], Span::raw("Green").reset().fg(Color::Green));
+        assert_eq!(spans[3], Span::raw(" "));
+        assert_eq!(spans[4], Span::raw("an").fg(Color::Yellow));
+        assert_eq!(spans[5], Span::raw("d "));
+        assert_eq!(spans[6], Span::raw("Green").fg(Color::Green));
     }
 
     #[test]
-    fn test_build_entry_spans_ansi_with_ansi_and_tabs() {
-        let entry =
-            Entry::new("\x1b[31mRed\x1b[0m\t\x1b[32mGreen\x1b[0m".to_string())
-                .with_match_indices(&[1, 4, 5]);
-        let spans =
-            build_entry_spans_ansi(&entry, 200, Color::Blue, Color::Yellow);
+    fn test_build_entry_spans_styled_replaces_non_printable() {
+        let styles = vec![
+            (0, Style::default().fg(Color::Red)),
+            (3, Style::default()),
+            (4, Style::default().fg(Color::Green)),
+        ];
+        let entry = Entry::new("Red\tGreen".to_string())
+            .with_match_indices(&[1, 4, 5])
+            .with_styles(styles.clone());
+        let spans = build_entry_spans_styled(&entry, &styles, Color::Yellow);
 
         assert_eq!(
             spans.len(),
@@ -571,10 +484,36 @@ mod tests {
         assert_eq!(spans[0], Span::raw("R").fg(Color::Red));
         assert_eq!(spans[1], Span::raw("e").fg(Color::Yellow));
         assert_eq!(spans[2], Span::raw("d").fg(Color::Red));
-        assert_eq!(spans[3].content, Span::raw("    ").content);
-        assert_eq!(spans[3].style, Style::reset());
-        assert_eq!(spans[4], Span::raw("Gr").reset().fg(Color::Yellow));
-        assert_eq!(spans[5], Span::raw("een").reset().fg(Color::Green));
+        // tabs are expanded like everywhere else in the results list
+        assert_eq!(spans[3], Span::raw("    "));
+        assert_eq!(spans[4], Span::raw("Gr").fg(Color::Yellow));
+        assert_eq!(spans[5], Span::raw("een").fg(Color::Green));
+    }
+
+    #[test]
+    fn test_build_entry_spans_styled_corner_cases() {
+        // a run covering everything, fully highlighted
+        let styles = vec![(0, Style::default().fg(Color::Green))];
+        let entry = Entry::new("A".to_string())
+            .with_match_indices(&[0])
+            .with_styles(styles.clone());
+        let spans = build_entry_spans_styled(&entry, &styles, Color::Red);
+        assert_eq!(spans.len(), 1);
+        assert_eq!(spans[0], Span::raw("A").fg(Color::Red));
+
+        // no text at all
+        let entry = Entry::new(String::new()).with_match_indices(&[]);
+        assert!(
+            build_entry_spans_styled(&entry, &styles, Color::Red).is_empty()
+        );
+
+        // a run starting after the first character leaves it unstyled
+        let styles = vec![(1, Style::default().fg(Color::Green))];
+        let entry = Entry::new("ab".to_string()).with_match_indices(&[]);
+        let spans = build_entry_spans_styled(&entry, &styles, Color::Red);
+        assert_eq!(spans.len(), 2);
+        assert_eq!(spans[0], Span::raw("a"));
+        assert_eq!(spans[1], Span::raw("b").fg(Color::Green));
     }
 
     #[test]

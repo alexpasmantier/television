@@ -6,6 +6,7 @@ use television::channels::entry_processor::{
 };
 use television::channels::prototypes::SourceSpec;
 use television::matcher::{Matcher, SortStrategy, matcher_threads};
+use television::utils::ansi::StyleRuns;
 use tokio::runtime::Runtime;
 
 pub fn load_candidates_by_size(c: &mut Criterion) {
@@ -109,16 +110,18 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
             ))
             .unwrap();
 
-            // ANSI mode uses Matcher<String> to store original
-            let matcher =
-                Matcher::<String>::new(SortStrategy::Score, matcher_threads());
+            // ANSI mode stores the styling of each line, not the raw line
+            let matcher = Matcher::<StyleRuns>::new(
+                SortStrategy::Score,
+                matcher_threads(),
+            );
             let injector = matcher.injector();
 
             television::channels::channel::load_candidates(
                 black_box(source_spec.command),
                 black_box(source_spec.entry_delimiter),
                 black_box(0),
-                black_box(AnsiProcessor),
+                black_box(AnsiProcessor::new()),
                 injector,
             )
             .await;

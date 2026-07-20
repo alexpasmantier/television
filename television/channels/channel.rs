@@ -272,7 +272,7 @@ pub async fn load_candidates<P: EntryProcessor>(
     command: CommandSpec,
     entry_delimiter: Option<char>,
     command_index: usize,
-    processor: P,
+    mut processor: P,
     injector: Injector<P::Data>,
 ) {
     debug!("Loading candidates from command: {:?}", command);
@@ -324,9 +324,9 @@ pub async fn load_candidates<P: EntryProcessor>(
                     Vec::with_capacity(BATCH_SIZE),
                 );
                 let inj = injector.clone();
-                let proc = processor.clone();
+                let mut proc = processor.clone();
                 flush_handles.spawn_blocking(move || {
-                    flush_batch(batch_to_flush, &inj, &proc, delimiter);
+                    flush_batch(batch_to_flush, &inj, &mut proc, delimiter);
                 });
                 produced_output = true;
                 last_flush = Instant::now();
@@ -338,9 +338,9 @@ pub async fn load_candidates<P: EntryProcessor>(
         // Flush any remaining entries in the batch
         if !batch.is_empty() {
             let inj = injector.clone();
-            let proc = processor.clone();
+            let mut proc = processor.clone();
             flush_handles.spawn_blocking(move || {
-                flush_batch(batch, &inj, &proc, delimiter);
+                flush_batch(batch, &inj, &mut proc, delimiter);
             });
             produced_output = true;
         }
@@ -407,9 +407,9 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
             let batch_to_flush =
                 std::mem::replace(&mut batch, Vec::with_capacity(BATCH_SIZE));
             let inj = injector.clone();
-            let proc = processor.clone();
+            let mut proc = processor.clone();
             flush_handles.spawn_blocking(move || {
-                flush_batch(batch_to_flush, &inj, &proc, delimiter);
+                flush_batch(batch_to_flush, &inj, &mut proc, delimiter);
             });
             last_flush = Instant::now();
         }
@@ -419,9 +419,9 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
 
     if !batch.is_empty() {
         let inj = injector.clone();
-        let proc = processor.clone();
+        let mut proc = processor.clone();
         flush_handles.spawn_blocking(move || {
-            flush_batch(batch, &inj, &proc, delimiter);
+            flush_batch(batch, &inj, &mut proc, delimiter);
         });
     }
 
@@ -433,7 +433,7 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
 fn flush_batch<P: EntryProcessor>(
     batch: Vec<Vec<u8>>,
     injector: &Injector<P::Data>,
-    processor: &P,
+    processor: &mut P,
     delimiter: u8,
 ) {
     // decode utf8, filter empty/whitespace-only lines and run the processor
@@ -561,7 +561,7 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
-                AnsiProcessor,
+                AnsiProcessor::new(),
                 frecency,
                 is_stdin,
                 notify,
@@ -614,6 +614,7 @@ impl ChannelKind {
 mod tests {
     use super::*;
     use crate::channels::prototypes::SourceSpec;
+    use crate::utils::ansi::StyleRuns;
 
     const MATCHER_TEST_THREADS: usize = 1;
 
@@ -753,15 +754,17 @@ mod tests {
         )
         .unwrap();
 
-        let mut matcher =
-            Matcher::<String>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
+        let mut matcher = Matcher::<StyleRuns>::new(
+            SortStrategy::Score,
+            MATCHER_TEST_THREADS,
+        );
         let injector = matcher.injector();
 
         load_candidates(
             source_spec.command,
             source_spec.entry_delimiter,
             0,
-            AnsiProcessor,
+            AnsiProcessor::new(),
             injector,
         )
         .await;

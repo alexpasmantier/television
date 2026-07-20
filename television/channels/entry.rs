@@ -3,6 +3,7 @@ use crate::{
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
+use ratatui::style::Style;
 use smallvec::SmallVec;
 use std::hash::{Hash, Hasher};
 
@@ -16,8 +17,9 @@ pub struct Entry {
     pub output: Option<Template>,
     /// The optional ranges for matching characters (based on `self.display`).
     pub match_ranges: Option<SmallVec<[(u32, u32); 8]>>,
-    /// Whether the entry contains ANSI escape sequences.
-    pub ansi: bool,
+    /// The styling of the entry, as the style it takes from a character
+    /// offset until the next run. Set for sources that emit ANSI codes.
+    pub styles: Option<Vec<(u32, Style)>>,
 }
 
 impl Hash for Entry {
@@ -90,7 +92,7 @@ impl Entry {
             display: None,
             output: None,
             match_ranges: None,
-            ansi: false,
+            styles: None,
         }
     }
 
@@ -121,9 +123,9 @@ impl Entry {
         }
     }
 
-    /// Sets whether the entry contains ANSI escape sequences.
-    pub fn ansi(mut self, ansi: bool) -> Self {
-        self.ansi = ansi;
+    /// Sets the styling of the entry (see [`Entry::styles`]).
+    pub fn with_styles(mut self, styles: Vec<(u32, Style)>) -> Self {
+        self.styles = Some(styles);
         self
     }
 }
@@ -149,8 +151,8 @@ impl ResultItem for Entry {
         None
     }
 
-    fn ansi(&self) -> bool {
-        self.ansi
+    fn styles(&self) -> Option<&[(u32, Style)]> {
+        self.styles.as_deref()
     }
 }
 
@@ -189,7 +191,7 @@ mod tests {
             display: None,
             output: None,
             match_ranges: None,
-            ansi: false,
+            styles: None,
         };
         assert_eq!(entry.output().unwrap(), "test name with spaces");
     }

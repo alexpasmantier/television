@@ -51,6 +51,9 @@ clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
 fast-strip-ansi = "0.13"
+# the parser `fast-strip-ansi` is built on, driven directly to collect the
+# styling of a line alongside its stripped text (see utils/ansi.rs)
+vt-push-parser = "0.13"
 frizbee = "0.11"
 
 
