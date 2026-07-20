@@ -1,33 +1,37 @@
-use super::worker::{Store, WorkerMsg};
-use parking_lot::RwLock;
+use super::worker::WorkerMsg;
 use std::sync::{
     Arc,
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
     mpsc,
 };
 
 /// An injector that can be used to push items of type `I` into the fuzzy matcher.
 ///
 /// Items are pushed along with the haystack string they should be matched
-/// against. Injectors write directly into the matcher's shared store and
-/// notify the background worker once per batch, so pushing many items at once
-/// is much cheaper than pushing them one by one.
+/// against. Batches are sent over a channel to the background worker, which
+/// owns the store: pushing never blocks, even while a matching pass is
+/// running. Prefer pushing many items per batch since every push incurs a
+/// channel send and wakes the worker.
 ///
-/// Injectors remain valid after the matcher is restarted, but their pushes
-/// land in the store the matcher was using when the injector was created and
-/// are silently discarded along with it.
+/// Injectors remain valid after the matcher is restarted, but their batches
+/// are tagged with the store generation the injector was created for and are
+/// silently discarded by the worker after a restart.
 #[derive(Clone)]
 pub struct Injector<I>
 where
     I: Sync + Send + Clone + 'static,
 {
-    /// The store shared with the matcher and its background worker.
-    store: Arc<RwLock<Store<I>>>,
-    /// Channel used to notify the background worker of newly pushed items.
+    /// Channel used to send batches to the background worker.
     worker_tx: mpsc::Sender<WorkerMsg<I>>,
     /// The matcher's running flag, set when new items are pushed so the
     /// front-end can display a loading indicator right away.
     running: Arc<AtomicBool>,
+    /// The store generation this injector was created for (see
+    /// [`super::Matcher::restart`]).
+    generation: u64,
+    /// Live count of pushed items, read by
+    /// [`super::Matcher::total_item_count`].
+    count: Arc<AtomicUsize>,
 }
 
 impl<I> Injector<I>
@@ -35,14 +39,16 @@ where
     I: Sync + Send + Clone + 'static,
 {
     pub(super) fn new(
-        store: Arc<RwLock<Store<I>>>,
         worker_tx: mpsc::Sender<WorkerMsg<I>>,
         running: Arc<AtomicBool>,
+        generation: u64,
+        count: Arc<AtomicUsize>,
     ) -> Self {
         Self {
-            store,
             worker_tx,
             running,
+            generation,
+            count,
         }
     }
 
@@ -72,17 +78,11 @@ where
             return;
         }
 
-        {
-            let mut store = self.store.write();
-            store.items.reserve(batch.len());
-            store.haystacks.reserve(batch.len());
-            for (item, haystack) in batch {
-                store.items.push(item);
-                store.haystacks.push(haystack);
-            }
-        }
-
+        self.count.fetch_add(batch.len(), Ordering::Relaxed);
         self.running.store(true, Ordering::Relaxed);
-        let _ = self.worker_tx.send(WorkerMsg::ItemsAdded);
+        let _ = self.worker_tx.send(WorkerMsg::Items {
+            generation: self.generation,
+            batch,
+        });
     }
 }

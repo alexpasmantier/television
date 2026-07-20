@@ -1,4 +1,5 @@
 use super::{Notify, SortStrategy};
+use frizbee::Match;
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
     Arc,
@@ -8,12 +9,16 @@ use std::sync::{
 
 /// The items and haystacks that have been pushed into the matcher so far.
 ///
-/// This is shared between the injectors (writers), the background worker
-/// (which matches against the haystacks), and the [`super::Matcher`] handle
-/// (which reads item data when assembling results).
+/// This is shared between the background worker (the sole writer, which
+/// appends batches received from injectors and matches against the
+/// haystacks) and the [`super::Matcher`] handle (which reads item data when
+/// assembling results). Injectors never touch the store directly: they send
+/// batches over the worker channel so that pushing items never blocks on a
+/// matching pass.
 ///
 /// The store is append-only: [`super::Matcher::restart`] swaps it for a fresh
-/// one instead of clearing it, which invalidates any outstanding injectors
+/// one instead of clearing it, and batches sent by injectors created before
+/// the restart are discarded by the worker (see [`WorkerMsg::Items`])
 pub(super) struct Store<I> {
     /// Items that have been added to the matcher.
     pub(super) items: Vec<I>,
@@ -51,10 +56,16 @@ impl Snapshot {
     }
 }
 
-/// Messages sent from the Matcher to the Worker.
+/// Messages sent from the Matcher and its injectors to the Worker.
 pub(super) enum WorkerMsg<I> {
     Pattern(String),
-    ItemsAdded,
+    /// A batch of items pushed through an injector, tagged with the store
+    /// generation the injector was created for so that batches in flight
+    /// across a restart can be discarded.
+    Items {
+        generation: u64,
+        batch: Vec<(I, String)>,
+    },
     Restart {
         store: Arc<RwLock<Store<I>>>,
         generation: u64,
@@ -155,7 +166,22 @@ where
                 self.last_match_index = 0;
                 true
             }
-            WorkerMsg::ItemsAdded => true,
+            WorkerMsg::Items { generation, batch } => {
+                // Batches from injectors created before a restart land here
+                // with a stale generation and are dropped along with the
+                // store they were destined for
+                if generation != self.generation {
+                    return false;
+                }
+                let mut store = self.store.write();
+                store.items.reserve(batch.len());
+                store.haystacks.reserve(batch.len());
+                for (item, haystack) in batch {
+                    store.items.push(item);
+                    store.haystacks.push(haystack);
+                }
+                true
+            }
             WorkerMsg::Restart { store, generation } => {
                 self.store = store;
                 self.generation = generation;
@@ -171,44 +197,77 @@ where
 
     /// Match the store against the current pattern and publish the resulting
     /// snapshot.
+    ///
+    /// Incremental passes (new items, same pattern) only match the store's
+    /// tail and merge the new matches with the previously published ones:
+    /// both runs are already in display order, so a linear merge replaces a
+    /// full re-sort.
+    #[allow(clippy::cast_possible_truncation)]
     fn rematch(&mut self) {
         let store = self.store.read();
-        let is_incremental = self.last_match_index != 0;
-        let mut matches = self.matcher.match_list_parallel(
-            &store.haystacks[self.last_match_index..],
-            self.n_threads,
-        );
+        let offset = self.last_match_index;
+        let is_incremental = offset != 0;
+        let mut new_matches = self
+            .matcher
+            .match_list_parallel(&store.haystacks[offset..], self.n_threads);
         self.last_match_index = store.haystacks.len();
         drop(store);
 
-        // If we're incrementally matching, append the new matches to the
-        // existing ones and sort them
+        // Matches on the tail slice are indexed relative to it
         if is_incremental {
-            let mut existing_matches = self.snapshot.lock().matches.clone();
-            if self.matcher.config().sort.is_reversed() {
-                existing_matches.splice(0..0, matches);
-            } else {
-                existing_matches.extend(matches);
-            }
-            matches = existing_matches;
-            if self.matcher.config().sort.is_by_score() {
-                frizbee::radix_sort_matches(&mut matches);
+            for m in &mut new_matches {
+                m.index += offset as u32;
             }
         }
 
-        // Custom sort function
-        if let SortStrategy::Custom(ref sort_fn) = self.sort_strategy {
-            let store = self.store.read();
-            matches.sort_by(|match_a, match_b| {
-                let item_a = &store.items[match_a.index as usize];
-                let haystack_a = &store.haystacks[match_a.index as usize];
-                let item_b = &store.items[match_b.index as usize];
-                let haystack_b = &store.haystacks[match_b.index as usize];
-                sort_fn(
-                    match_a, item_a, haystack_a, match_b, item_b, haystack_b,
-                )
-            });
-        }
+        // The previous snapshot's matches are merged with (not mutated by)
+        // incremental passes since the snapshot is shared with the front-end
+        let prev = is_incremental
+            .then(|| Arc::clone(&self.snapshot.lock()))
+            .filter(|prev| prev.generation == self.generation);
+
+        let matches = match &self.sort_strategy {
+            SortStrategy::Score => match prev {
+                Some(prev) => {
+                    merge_matches(&prev.matches, &new_matches, |a, b| {
+                        b.score.cmp(&a.score).then(a.index.cmp(&b.index))
+                    })
+                }
+                None => new_matches,
+            },
+            SortStrategy::Index => match prev {
+                // Tail indices are all greater than previous ones
+                Some(prev) => {
+                    let mut matches = Vec::with_capacity(
+                        prev.matches.len() + new_matches.len(),
+                    );
+                    matches.extend_from_slice(&prev.matches);
+                    matches.extend_from_slice(&new_matches);
+                    matches
+                }
+                None => new_matches,
+            },
+            SortStrategy::Custom(sort_fn) => {
+                let store = self.store.read();
+                let cmp = |a: &Match, b: &Match| {
+                    sort_fn(
+                        a,
+                        &store.items[a.index as usize],
+                        &store.haystacks[a.index as usize],
+                        b,
+                        &store.items[b.index as usize],
+                        &store.haystacks[b.index as usize],
+                    )
+                };
+                new_matches.sort_by(cmp);
+                match prev {
+                    Some(prev) => {
+                        merge_matches(&prev.matches, &new_matches, cmp)
+                    }
+                    None => new_matches,
+                }
+            }
+        };
 
         *self.snapshot.lock() = Arc::new(Snapshot {
             generation: self.generation,
@@ -218,6 +277,29 @@ where
         // Wake the front-end so it can render the results
         (self.notify)();
     }
+}
+
+/// Merge two runs sorted by `cmp` into a freshly allocated `Vec`, keeping
+/// `prev` elements first on ties.
+fn merge_matches(
+    prev: &[Match],
+    new: &[Match],
+    cmp: impl Fn(&Match, &Match) -> std::cmp::Ordering,
+) -> Vec<Match> {
+    let mut merged = Vec::with_capacity(prev.len() + new.len());
+    let (mut i, mut j) = (0, 0);
+    while i < prev.len() && j < new.len() {
+        if cmp(&prev[i], &new[j]).is_le() {
+            merged.push(prev[i]);
+            i += 1;
+        } else {
+            merged.push(new[j]);
+            j += 1;
+        }
+    }
+    merged.extend_from_slice(&prev[i..]);
+    merged.extend_from_slice(&new[j..]);
+    merged
 }
 
 fn build_matcher<I: Sync + Send + 'static>(
