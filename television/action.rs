@@ -297,11 +297,14 @@ impl Action {
     /// Returns `false` for actions that only affect UI elements (preview
     /// scrolling, panel toggles, layout changes) and don't change the
     /// matcher results or the visible viewport. This allows skipping
-    /// the expensive results pipeline for these actions.
+    /// the expensive results pipeline for these actions. `Tick` in
+    /// particular fires at the tick rate even when the app is idle; result
+    /// changes are covered by `MatcherUpdated`.
     pub fn affects_results(&self) -> bool {
         !matches!(
             self,
-            Action::ScrollPreviewUp
+            Action::Tick
+                | Action::ScrollPreviewUp
                 | Action::ScrollPreviewDown
                 | Action::ScrollPreviewHalfPageUp
                 | Action::ScrollPreviewHalfPageDown
