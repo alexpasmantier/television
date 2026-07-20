@@ -92,7 +92,10 @@ impl EntryProcessor for AnsiProcessor {
     type Data = String;
 
     fn process(&self, line: String) -> (String, String) {
-        let stripped = strip_ansi_string(&line).into_owned();
+        let mut stripped = strip_ansi_string(&line).into_owned();
+        // The strip allocates at the raw line's length; the slack (the ANSI
+        // codes' bytes) adds up to gigabytes at millions of stored entries
+        stripped.shrink_to_fit();
         (line, stripped)
     }
 
