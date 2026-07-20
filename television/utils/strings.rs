@@ -170,87 +170,6 @@ const NULL_CHARACTER: char = '\x00';
 const UNIT_SEPARATOR_CHARACTER: char = '\u{001F}';
 const APPLICATION_PROGRAM_COMMAND_CHARACTER: char = '\u{009F}';
 
-const NF_RANGE_IEC_POWER_1: std::ops::RangeInclusive<char> =
-    '\u{23fb}'..='\u{23fe}';
-const NF_RANGE_BOX_DRAWING: std::ops::RangeInclusive<char> =
-    '\u{2500}'..='\u{259f}';
-const NF_RANGE_POWERLINE_EXTRA_1: std::ops::RangeInclusive<char> =
-    '\u{2630}'..='\u{2630}';
-const NF_RANGE_OCTICONS_1: std::ops::RangeInclusive<char> =
-    '\u{2665}'..='\u{2665}';
-const NF_RANGE_OCTICONS_2: std::ops::RangeInclusive<char> =
-    '\u{26a1}'..='\u{26a1}';
-const NF_RANGE_HEAVY_ANGLE_BRACKETS: std::ops::RangeInclusive<char> =
-    '\u{276c}'..='\u{2771}';
-const NF_RANGE_IEC_POWER_2: std::ops::RangeInclusive<char> =
-    '\u{2b58}'..='\u{2b58}';
-const NF_RANGE_POMICONS: std::ops::RangeInclusive<char> =
-    '\u{e000}'..='\u{e00a}';
-const NF_RANGE_POWERLINE_1: std::ops::RangeInclusive<char> =
-    '\u{e0a0}'..='\u{e0a2}';
-const NF_RANGE_POWERLINE_EXTRA_2: std::ops::RangeInclusive<char> =
-    '\u{e0a3}'..='\u{e0a3}';
-const NF_RANGE_POWERLINE_2: std::ops::RangeInclusive<char> =
-    '\u{e0b0}'..='\u{e0b3}';
-const NF_RANGE_POWERLINE_EXTRA_3: std::ops::RangeInclusive<char> =
-    '\u{e0b4}'..='\u{e0c8}';
-const NF_RANGE_POWERLINE_EXTRA_4: std::ops::RangeInclusive<char> =
-    '\u{e0ca}'..='\u{e0ca}';
-const NF_RANGE_POWERLINE_EXTRA_5: std::ops::RangeInclusive<char> =
-    '\u{e0cc}'..='\u{e0d7}';
-const NF_RANGE_FONT_AWESOME_EXT: std::ops::RangeInclusive<char> =
-    '\u{e200}'..='\u{e2a9}';
-const NF_RANGE_WEATHER: std::ops::RangeInclusive<char> =
-    '\u{e300}'..='\u{e3e3}';
-const NF_RANGE_SETI: std::ops::RangeInclusive<char> = '\u{e5fa}'..='\u{e6b7}';
-const NF_RANGE_DEVICONS: std::ops::RangeInclusive<char> =
-    '\u{e700}'..='\u{e8ef}';
-const NF_RANGE_CODICONS: std::ops::RangeInclusive<char> =
-    '\u{ea60}'..='\u{ec1e}';
-const NF_RANGE_FONT_AWESOME_1: std::ops::RangeInclusive<char> =
-    '\u{ed00}'..='\u{efce}';
-const NF_RANGE_PROGRESS: std::ops::RangeInclusive<char> =
-    '\u{ee00}'..='\u{ee0b}';
-const NF_RANGE_FONT_AWESOME_2: std::ops::RangeInclusive<char> =
-    '\u{f000}'..='\u{f2ff}';
-const NF_RANGE_FONT_LOGOS: std::ops::RangeInclusive<char> =
-    '\u{f300}'..='\u{f381}';
-const NF_RANGE_OCTICONS_3: std::ops::RangeInclusive<char> =
-    '\u{f400}'..='\u{f533}';
-const NF_RANGE_MATERIAL: std::ops::RangeInclusive<char> =
-    '\u{f0001}'..='\u{f1af0}';
-
-const ALL_NF_RANGES: [&std::ops::RangeInclusive<char>; 25] = [
-    &NF_RANGE_IEC_POWER_1,
-    &NF_RANGE_BOX_DRAWING,
-    &NF_RANGE_POWERLINE_EXTRA_1,
-    &NF_RANGE_OCTICONS_1,
-    &NF_RANGE_OCTICONS_2,
-    &NF_RANGE_HEAVY_ANGLE_BRACKETS,
-    &NF_RANGE_IEC_POWER_2,
-    &NF_RANGE_POMICONS,
-    &NF_RANGE_POWERLINE_1,
-    &NF_RANGE_POWERLINE_EXTRA_2,
-    &NF_RANGE_POWERLINE_2,
-    &NF_RANGE_POWERLINE_EXTRA_3,
-    &NF_RANGE_POWERLINE_EXTRA_4,
-    &NF_RANGE_POWERLINE_EXTRA_5,
-    &NF_RANGE_FONT_AWESOME_EXT,
-    &NF_RANGE_WEATHER,
-    &NF_RANGE_SETI,
-    &NF_RANGE_DEVICONS,
-    &NF_RANGE_CODICONS,
-    &NF_RANGE_FONT_AWESOME_1,
-    &NF_RANGE_PROGRESS,
-    &NF_RANGE_FONT_AWESOME_2,
-    &NF_RANGE_FONT_LOGOS,
-    &NF_RANGE_OCTICONS_3,
-    &NF_RANGE_MATERIAL,
-];
-
-const VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE: std::ops::RangeInclusive<char> =
-    '\u{2000}'..='\u{25FF}';
-
 pub struct ReplaceNonPrintableConfig {
     pub replace_tab: bool,
     pub tab_width: usize,
@@ -326,23 +245,6 @@ fn scan_printable_ascii(input: &[u8]) -> usize {
     }
 
     idx
-}
-
-fn is_emoji(ch: char) -> bool {
-    [
-        // emoticons
-        '\u{1F600}'..='\u{1F64F}',
-        // misc. symbols and pictograms
-        '\u{1F300}'..='\u{1F5FF}',
-        // transports / map
-        '\u{1F680}'..='\u{1F6FF}',
-        // additional symbols and pictograms
-        '\u{1F900}'..='\u{1F9FF}',
-        // flags
-        '\u{1F1E6}'..='\u{1F1FF}',
-    ]
-    .iter()
-    .any(|range| range.contains(&ch))
 }
 
 /// Replace non-printable characters in the input byte slice according to the provided
@@ -450,57 +352,7 @@ pub fn replace_non_printable_bulk<'a>(
                     {
                         output.push(NULL_SYMBOL);
                     }
-                    // CJK Unified Ideographs
-                    c if ('\u{4E00}'..='\u{9FFF}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // CJK Symbols and Punctuation (includes book title marks 《》)
-                    // ex: 《 》 【 】
-                    c if ('\u{3000}'..='\u{303F}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Halfwidth and Fullwidth Forms (includes fullwidth parentheses)
-                    // ex: （ ） ＜＞ ＝
-                    c if ('\u{FF00}'..='\u{FFEF}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Korean: Hangul syllables
-                    c if ('\u{AC00}'..='\u{D7AF}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // some emojis
-                    c if is_emoji(c) => {
-                        output.push(c);
-                    }
-                    // Japanese (contiguous ranges for katakana and hiragana)
-                    c if ('\u{3040}'..='\u{30FF}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Thai
-                    c if ('\u{0E00}'..='\u{0E7F}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Devanagari (most common Indic script)
-                    c if ('\u{0900}'..='\u{097F}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Nerd Font glyphs, including non-PUA ranges listed in the wiki table.
-                    c if ALL_NF_RANGES.iter().any(|r| r.contains(&c)) => {
-                        output.push(c);
-                    }
-                    // Other unit width symbols
-                    c if VARIOUS_UNIT_WIDTH_SYMBOLS_RANGE.contains(&c) => {
-                        output.push(c);
-                    }
-                    // Braille Unicode characters
-                    c if ('\u{2800}'..='\u{28FF}').contains(&c) => {
-                        output.push(c);
-                    }
-                    // Unicode characters above 0x0700 seem unstable with ratatui
-                    c if c > '\u{0700}' => {
-                        output.push(NULL_SYMBOL);
-                    }
-                    // everything else
+                    // everything else is printable
                     c => output.push(c),
                 }
             } else {
@@ -921,12 +773,21 @@ mod tests {
 
     #[test]
     fn test_emoji_characters() {
-        let input = "Hello 🌍!";
         let config = ReplaceNonPrintableConfig::default();
-        let (output, offsets) = replace_non_printable_bulk(input, &config);
+        let (output, offsets) =
+            replace_non_printable_bulk("Hello 🌍!", &config);
         assert_eq!(output, "Hello 🌍!");
         assert_eq!(offsets, vec![0, 0, 0, 0, 0, 0, 0, 0]);
+
+        // Symbols and Pictographs Extended-A, and sequences relying on
+        // variation selectors and ZWJ
+        for input in ["🫠", "🫥", "🩷", "🪐", "🏳️‍🌈", "👨‍👩‍👧‍👦"]
+        {
+            let (output, _) = replace_non_printable_bulk(input, &config);
+            assert_eq!(output, input);
+        }
     }
+
     #[test]
     fn test_devanagari_characters() {
         let input = "नमस्ते"; // नमस्ते is 6 characters
