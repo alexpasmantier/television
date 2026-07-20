@@ -210,7 +210,15 @@ impl<P: EntryProcessor> Channel<P> {
         self.matcher.wait_for_idle_timeout(timeout);
     }
 
-    pub fn shutdown(&self) {}
+    /// Stop the source: abort the reader task (which kills the source
+    /// process via `kill_on_drop`) and drop the store. Batches still in
+    /// flight are discarded by the matcher's generation check.
+    pub fn shutdown(&mut self) {
+        if let Some(handle) = self.crawl_handle.take() {
+            handle.abort();
+        }
+        self.matcher.restart();
+    }
 
     pub fn cycle_sources(&mut self) {
         if self.source_command.inner.len() > 1 {
@@ -276,6 +284,9 @@ pub async fn load_candidates<P: EntryProcessor>(
     );
     std_command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = TokioCommand::from(std_command)
+        // Kill the source process when the reader task is dropped (reload,
+        // channel switch, quit) instead of letting it run to completion
+        .kill_on_drop(true)
         .spawn()
         .expect("failed to execute process"); // FIXME: handle error
 
@@ -578,6 +589,7 @@ impl ChannelKind {
         get_result(index: u32) -> Option<Entry>,
         toggle_selection(entry: &Entry) -> (),
         cycle_sources() -> (),
+        shutdown() -> (),
     );
 
     // Generate all immutable delegation methods
@@ -590,7 +602,6 @@ impl ChannelKind {
         running() -> bool,
         wait_for_idle() -> (),
         wait_for_idle_timeout(timeout: Duration) -> (),
-        shutdown() -> (),
         supports_preview() -> bool,
         reloading() -> bool,
         source_index() -> usize,
