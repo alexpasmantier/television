@@ -1,9 +1,9 @@
-use frizbee::Match;
 use injector::Injector;
 use matched_item::{MatchedItem, byte_indices_to_char_indices};
 use parking_lot::{Mutex, RwLock};
-use std::cmp::Ordering as CmpOrdering;
+use rustc_hash::FxHashMap;
 use std::{
+    borrow::Cow,
     sync::{
         Arc,
         atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -19,12 +19,16 @@ mod worker;
 
 use worker::{Snapshot, Store, Worker, WorkerMsg};
 
-// pub use frizbee::SortStrategy;
+/// Hoist scores: keys of entries to hoist mapped to their score.
+pub type HoistTable = Arc<FxHashMap<String, u64>>;
 
-/// Comparison function for custom sorting of match results.
-pub type SortFn<I> = Box<
-    dyn Fn(&Match, &I, &str, &Match, &I, &str) -> CmpOrdering + Send + Sync,
->;
+/// Returns the current hoist table. Called once per matcher pass; returning
+/// a new `Arc` signals that the scores changed and re-hoists everything.
+pub type HoistTableFn = Box<dyn Fn() -> HoistTable + Send + Sync>;
+
+/// Extracts the hoist key of an item.
+pub type HoistKeyFn<I> =
+    Box<dyn for<'a> Fn(&'a I, &'a str) -> Cow<'a, str> + Send + Sync>;
 
 /// Strategy for sorting match results.
 #[derive(Default)]
@@ -34,8 +38,14 @@ pub enum SortStrategy<I: Sync + Send + 'static> {
     Score,
     /// Sort items by index (asc)
     Index,
-    /// Custom comparison function
-    Custom(SortFn<I>),
+    /// Like [`SortStrategy::Score`], but entries whose key is found in the
+    /// hoist table (e.g. frecency records) are hoisted to the top, ordered
+    /// by their table score. Lookups happen once per matched item, not per
+    /// comparison, and an empty pattern keeps its implicit match list.
+    Hoisted {
+        table: HoistTableFn,
+        key: HoistKeyFn<I>,
+    },
 }
 
 impl<I: Sync + Send + 'static> std::fmt::Debug for SortStrategy<I> {
@@ -43,7 +53,9 @@ impl<I: Sync + Send + 'static> std::fmt::Debug for SortStrategy<I> {
         match self {
             SortStrategy::Score => write!(f, "SortStrategy::Score"),
             SortStrategy::Index => write!(f, "SortStrategy::Index"),
-            SortStrategy::Custom(_) => write!(f, "SortStrategy::Custom(...)"),
+            SortStrategy::Hoisted { .. } => {
+                write!(f, "SortStrategy::Hoisted {{ .. }}")
+            }
         }
     }
 }
@@ -500,5 +512,133 @@ mod tests {
         }
 
         assert_eq!(collect_ids(&mut matcher), (0..15).collect::<Vec<_>>());
+    }
+
+    /// A hoisted strategy backed by a fixed score table, keyed on the
+    /// haystack.
+    fn hoisted_strategy(entries: &[(&str, u64)]) -> SortStrategy<usize> {
+        let table: HoistTable = Arc::new(
+            entries
+                .iter()
+                .map(|(k, s)| ((*k).to_string(), *s))
+                .collect(),
+        );
+        SortStrategy::Hoisted {
+            table: Box::new(move || Arc::clone(&table)),
+            key: Box::new(|_, haystack| Cow::Borrowed(haystack)),
+        }
+    }
+
+    /// Entries found in the hoist table come first (by table score), the
+    /// rest keeps the score ordering — including across chunked passes.
+    #[test]
+    fn hoisted_entries_rank_first() {
+        let items: Vec<(usize, String)> =
+            (0..100).map(|i| (i, format!("abc_{i}"))).collect();
+
+        let mut hoisted: Matcher<usize> = Matcher::with_chunk_size(
+            hoisted_strategy(&[("abc_7", 9), ("abc_42", 1)]),
+            2,
+            16,
+        );
+        hoisted.injector().push_batch(items.clone());
+        hoisted.find("abc");
+        hoisted.wait_for_idle();
+
+        let mut score: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        score.injector().push_batch(items);
+        score.find("abc");
+        score.wait_for_idle();
+
+        let mut expected = vec![7, 42];
+        expected.extend(
+            collect_ids(&mut score)
+                .into_iter()
+                .filter(|id| *id != 7 && *id != 42),
+        );
+        assert_eq!(collect_ids(&mut hoisted), expected);
+    }
+
+    /// With an empty pattern, hoisted entries come first and the remainder
+    /// keeps insertion order (exercises the implicit `AllHoisted` list).
+    #[test]
+    fn hoisted_entries_rank_first_on_empty_pattern() {
+        let mut matcher: Matcher<usize> = Matcher::with_chunk_size(
+            hoisted_strategy(&[("item_2", 9), ("item_7", 1)]),
+            2,
+            4,
+        );
+        matcher
+            .injector()
+            .push_batch((0..15).map(|i| (i, format!("item_{i}"))).collect());
+        matcher.wait_for_idle();
+
+        let mut expected = vec![2, 7];
+        expected.extend((0..15).filter(|i| *i != 2 && *i != 7));
+        assert_eq!(collect_ids(&mut matcher), expected);
+    }
+
+    /// An empty hoist table must behave exactly like the score strategy.
+    #[test]
+    fn empty_hoist_table_matches_score_ordering() {
+        let items: Vec<(usize, String)> = (0..300)
+            .map(|i| {
+                let haystack = match i % 3 {
+                    0 => format!("abc_{i}"),
+                    1 => format!("xx_abc_{i}"),
+                    _ => format!("a{i}b{i}c{i}"),
+                };
+                (i, haystack)
+            })
+            .collect();
+
+        let mut hoisted: Matcher<usize> =
+            Matcher::new(hoisted_strategy(&[]), 2);
+        hoisted.injector().push_batch(items.clone());
+        let mut score: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        score.injector().push_batch(items);
+
+        for pattern in ["", "abc"] {
+            hoisted.find(pattern);
+            hoisted.wait_for_idle();
+            score.find(pattern);
+            score.wait_for_idle();
+            assert_eq!(
+                collect_ids(&mut hoisted),
+                collect_ids(&mut score),
+                "hoisted with an empty table diverged from score \
+                 for pattern {pattern:?}",
+            );
+        }
+    }
+
+    /// Replacing the hoist table (a new `Arc`) must re-hoist previously
+    /// matched items on the next pass.
+    #[test]
+    fn hoist_table_swap_rehoists() {
+        let shared: Arc<Mutex<HoistTable>> =
+            Arc::new(Mutex::new(Arc::new(FxHashMap::default())));
+        let table = Arc::clone(&shared);
+        let strategy = SortStrategy::Hoisted {
+            table: Box::new(move || Arc::clone(&table.lock())),
+            key: Box::new(|_, haystack| Cow::Borrowed(haystack)),
+        };
+
+        let mut matcher: Matcher<usize> = Matcher::new(strategy, 2);
+        let injector = matcher.injector();
+        injector
+            .push_batch((0..10).map(|i| (i, format!("item_{i}"))).collect());
+        matcher.wait_for_idle();
+        assert_eq!(collect_ids(&mut matcher), (0..10).collect::<Vec<_>>());
+
+        *shared.lock() =
+            Arc::new([("item_5".to_string(), 1)].into_iter().collect());
+        // A new batch triggers the next pass, which picks up the new table
+        injector.push_batch(vec![(10, "item_10".to_string())]);
+        matcher.wait_for_idle();
+
+        let mut expected = vec![5];
+        expected.extend((0..11).filter(|i| *i != 5));
+        assert_eq!(collect_ids(&mut matcher), expected);
     }
 }

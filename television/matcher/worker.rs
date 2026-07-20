@@ -1,4 +1,4 @@
-use super::{Notify, SortStrategy};
+use super::{HoistTable, Notify, SortStrategy};
 use frizbee::Match;
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
@@ -50,31 +50,74 @@ pub(super) enum Matches {
     /// implicit: with millions of items, materializing (and re-merging) the
     /// full match list on every pushed batch gets expensive.
     All(u32),
-    /// The matched items, ordered according to the sort strategy.
-    Sorted(Vec<Match>),
+    /// Every store item matches (empty pattern), but the hoisted entries
+    /// come first; the remainder stays implicit, in store order.
+    AllHoisted {
+        /// Total number of matched items, hoisted entries included.
+        total: u32,
+        /// The hoisted matches, in display order.
+        hoisted: Vec<Match>,
+        /// The hoisted store indices in ascending order, used to skip over
+        /// hoisted entries when indexing into the implicit remainder.
+        by_index: Vec<u32>,
+    },
+    /// The matched items, ordered according to the sort strategy. The first
+    /// `hoisted` entries are the hoisted prefix (see
+    /// [`SortStrategy::Hoisted`]).
+    Sorted { matches: Vec<Match>, hoisted: u32 },
 }
 
 impl Matches {
     pub(super) fn len(&self) -> usize {
         match self {
             Matches::All(count) => *count as usize,
-            Matches::Sorted(matches) => matches.len(),
+            Matches::AllHoisted { total, .. } => *total as usize,
+            Matches::Sorted { matches, .. } => matches.len(),
         }
     }
 
+    #[allow(clippy::cast_possible_truncation)]
     pub(super) fn get(&self, index: u32) -> Option<Match> {
         match self {
             Matches::All(count) => {
                 (index < *count).then(|| Match::from_index(index as usize))
             }
-            Matches::Sorted(matches) => matches.get(index as usize).copied(),
+            Matches::AllHoisted {
+                total,
+                hoisted,
+                by_index,
+            } => {
+                if let Some(m) = hoisted.get(index as usize) {
+                    return Some(*m);
+                }
+                if index >= *total {
+                    return None;
+                }
+                // The remainder is every store index in order minus the
+                // hoisted ones: walk the hoisted indices to translate the
+                // rank into a store index.
+                let mut store_index = index - hoisted.len() as u32;
+                for &hoisted_index in by_index {
+                    if hoisted_index <= store_index {
+                        store_index += 1;
+                    } else {
+                        break;
+                    }
+                }
+                Some(Match::from_index(store_index as usize))
+            }
+            Matches::Sorted { matches, .. } => {
+                matches.get(index as usize).copied()
+            }
         }
     }
 
-    fn as_sorted(&self) -> Option<&[Match]> {
+    /// The materialized matches and the length of their hoisted prefix, if
+    /// this snapshot holds any.
+    fn as_sorted(&self) -> Option<(&[Match], u32)> {
         match self {
-            Matches::All(_) => None,
-            Matches::Sorted(matches) => Some(matches),
+            Matches::All(_) | Matches::AllHoisted { .. } => None,
+            Matches::Sorted { matches, hoisted } => Some((matches, *hoisted)),
         }
     }
 }
@@ -98,7 +141,10 @@ impl Snapshot {
         Self {
             generation,
             pattern: String::new(),
-            matches: Matches::Sorted(Vec::new()),
+            matches: Matches::Sorted {
+                matches: Vec::new(),
+                hoisted: 0,
+            },
         }
     }
 }
@@ -150,6 +196,12 @@ pub(super) struct Worker<I: Sync + Send + 'static> {
     n_threads: usize,
     /// Size of the first chunk of a matching pass.
     initial_chunk_size: usize,
+    /// Hoist table sampled at the start of the current pass; `None` for
+    /// strategies other than [`SortStrategy::Hoisted`].
+    hoist_table: Option<HoistTable>,
+    /// Hoisted matches accumulated by the current pass, tagged with their
+    /// hoist score and kept in display order.
+    pass_hoisted: Vec<(u64, Match)>,
 }
 
 impl<I> Worker<I>
@@ -180,6 +232,8 @@ where
             last_match_index: 0,
             n_threads,
             initial_chunk_size,
+            hoist_table: None,
+            pass_hoisted: Vec::new(),
         }
     }
 
@@ -294,12 +348,27 @@ where
         let store = store.read();
         let total = store.haystacks.len();
 
-        // With an empty pattern everything matches in store order: keep the
-        // match list implicit instead of materializing (and re-merging)
-        // millions of `Match`es on every pushed batch. Custom sorting still
-        // needs the materialized path below.
-        if !matches!(self.sort_strategy, SortStrategy::Custom(_))
-            && self.matcher.patterns().iter().all(|p| p.needle.is_empty())
+        // Sample the hoist table once per pass; hoisting depends on it, so
+        // a new table invalidates any matched progress.
+        if let SortStrategy::Hoisted { table, .. } = &self.sort_strategy {
+            let table = table();
+            if self
+                .hoist_table
+                .as_ref()
+                .is_none_or(|current| !Arc::ptr_eq(current, &table))
+            {
+                self.last_match_index = 0;
+                self.hoist_table = Some(table);
+            }
+        }
+
+        let empty_pattern =
+            self.matcher.patterns().iter().all(|p| p.needle.is_empty());
+        // With an empty pattern and nothing to hoist, everything matches in
+        // store order: keep the match list implicit instead of materializing
+        // (and re-merging) millions of `Match`es on every pushed batch.
+        if empty_pattern
+            && self.hoist_table.as_ref().is_none_or(|t| t.is_empty())
         {
             self.last_match_index = total;
             self.publish(Matches::All(total as u32));
@@ -309,64 +378,19 @@ where
         let mut chunk_size = self.initial_chunk_size;
         loop {
             let offset = self.last_match_index;
-            let end = (offset + chunk_size).min(total);
-            let mut new_matches = self.matcher.match_list_parallel(
-                &store.haystacks[offset..end],
-                self.n_threads,
-            );
-            self.last_match_index = end;
-
-            // Matches on a chunk are indexed relative to it
-            if offset != 0 {
-                for m in &mut new_matches {
-                    m.index += offset as u32;
-                }
+            if offset == 0 {
+                // A fresh pass starts with a clean hoisted accumulator
+                self.pass_hoisted.clear();
             }
+            let end = (offset + chunk_size).min(total);
 
-            // The previously published matches are merged with (not mutated
-            // by) this chunk's since the snapshot is shared with the
-            // front-end. A pattern change resets `last_match_index`, so a
-            // snapshot from a previous pattern is never merged with (offset
-            // is 0), and neither is one from a previous store generation.
-            let prev = (offset != 0)
-                .then(|| Arc::clone(&self.snapshot.lock()))
-                .filter(|prev| prev.generation == self.generation);
-            let prev_matches = prev
-                .as_ref()
-                .and_then(|prev| prev.matches.as_sorted())
-                .unwrap_or(&[]);
-
-            let matches = match &self.sort_strategy {
-                SortStrategy::Score => {
-                    merge_matches(prev_matches, &new_matches, |a, b| {
-                        b.score.cmp(&a.score).then(a.index.cmp(&b.index))
-                    })
-                }
-                // Chunk indices are all greater than previous ones
-                SortStrategy::Index => {
-                    let mut matches = Vec::with_capacity(
-                        prev_matches.len() + new_matches.len(),
-                    );
-                    matches.extend_from_slice(prev_matches);
-                    matches.append(&mut new_matches);
-                    matches
-                }
-                SortStrategy::Custom(sort_fn) => {
-                    let cmp = |a: &Match, b: &Match| {
-                        sort_fn(
-                            a,
-                            &store.items[a.index as usize],
-                            &store.haystacks[a.index as usize],
-                            b,
-                            &store.items[b.index as usize],
-                            &store.haystacks[b.index as usize],
-                        )
-                    };
-                    new_matches.sort_by(cmp);
-                    merge_matches(prev_matches, &new_matches, cmp)
-                }
+            let matches = if empty_pattern {
+                self.hoist_chunk(&store, offset, end)
+            } else {
+                self.match_chunk(&store, offset, end)
             };
-            self.publish(Matches::Sorted(matches));
+            self.last_match_index = end;
+            self.publish(matches);
 
             if self.last_match_index >= total {
                 return None;
@@ -379,6 +403,146 @@ where
         }
     }
 
+    /// Scan a chunk of the store for entries to hoist. Everything matches an
+    /// empty pattern, so the pass only has to locate the hoisted entries and
+    /// the remainder stays implicit.
+    #[allow(clippy::cast_possible_truncation)]
+    fn hoist_chunk(
+        &mut self,
+        store: &Store<I>,
+        offset: usize,
+        end: usize,
+    ) -> Matches {
+        let SortStrategy::Hoisted { key, .. } = &self.sort_strategy else {
+            unreachable!("hoist_chunk requires a hoist table");
+        };
+        let table = self
+            .hoist_table
+            .as_ref()
+            .expect("hoist_chunk requires a hoist table");
+
+        let mut new_hoisted = Vec::new();
+        for index in offset..end {
+            let hoist_key = key(&store.items[index], &store.haystacks[index]);
+            if let Some(&score) = table.get(hoist_key.as_ref()) {
+                new_hoisted.push((score, Match::from_index(index)));
+            }
+        }
+
+        self.pass_hoisted.append(&mut new_hoisted);
+        self.pass_hoisted
+            .sort_by(|a, b| b.0.cmp(&a.0).then(a.1.index.cmp(&b.1.index)));
+
+        let hoisted: Vec<Match> =
+            self.pass_hoisted.iter().map(|(_, m)| *m).collect();
+        let mut by_index: Vec<u32> = hoisted.iter().map(|m| m.index).collect();
+        by_index.sort_unstable();
+        Matches::AllHoisted {
+            total: end as u32,
+            hoisted,
+            by_index,
+        }
+    }
+
+    /// Match a chunk of the store against the current pattern and merge the
+    /// result with the previously published matches.
+    #[allow(clippy::cast_possible_truncation)]
+    fn match_chunk(
+        &mut self,
+        store: &Store<I>,
+        offset: usize,
+        end: usize,
+    ) -> Matches {
+        let mut new_matches = self.matcher.match_list_parallel(
+            &store.haystacks[offset..end],
+            self.n_threads,
+        );
+
+        // Matches on a chunk are indexed relative to it
+        if offset != 0 {
+            for m in &mut new_matches {
+                m.index += offset as u32;
+            }
+        }
+
+        // The previously published matches are merged with (not mutated
+        // by) this chunk's since the snapshot is shared with the
+        // front-end. A pattern change resets `last_match_index`, so a
+        // snapshot from a previous pattern is never merged with (offset
+        // is 0), and neither is one from a previous store generation.
+        let prev = (offset != 0)
+            .then(|| Arc::clone(&self.snapshot.lock()))
+            .filter(|prev| prev.generation == self.generation);
+        let (prev_matches, prev_hoisted) = prev
+            .as_ref()
+            .and_then(|prev| prev.matches.as_sorted())
+            .unwrap_or((&[], 0));
+
+        match &self.sort_strategy {
+            SortStrategy::Score => Matches::Sorted {
+                matches: merge_matches(
+                    prev_matches,
+                    &new_matches,
+                    score_then_index,
+                ),
+                hoisted: 0,
+            },
+            // Chunk indices are all greater than previous ones
+            SortStrategy::Index => {
+                let mut matches =
+                    Vec::with_capacity(prev_matches.len() + new_matches.len());
+                matches.extend_from_slice(prev_matches);
+                matches.append(&mut new_matches);
+                Matches::Sorted {
+                    matches,
+                    hoisted: 0,
+                }
+            }
+            SortStrategy::Hoisted { key, .. } => {
+                let table = self
+                    .hoist_table
+                    .as_ref()
+                    .expect("sampled at the start of the pass");
+                // Split this chunk's matches into hoisted entries and the
+                // rest, preserving their score order.
+                let mut rest = Vec::with_capacity(new_matches.len());
+                let mut new_hoisted = Vec::new();
+                if table.is_empty() {
+                    rest = new_matches;
+                } else {
+                    for m in new_matches {
+                        let index = m.index as usize;
+                        let hoist_key =
+                            key(&store.items[index], &store.haystacks[index]);
+                        match table.get(hoist_key.as_ref()) {
+                            Some(&score) => new_hoisted.push((score, m)),
+                            None => rest.push(m),
+                        }
+                    }
+                }
+                // The hoisted prefix is tiny (bounded by the table size),
+                // so a full re-sort per chunk is cheaper than bookkeeping
+                self.pass_hoisted.append(&mut new_hoisted);
+                self.pass_hoisted.sort_by(|a, b| {
+                    b.0.cmp(&a.0)
+                        .then(b.1.score.cmp(&a.1.score))
+                        .then(a.1.index.cmp(&b.1.index))
+                });
+
+                let prev_rest = &prev_matches[prev_hoisted as usize..];
+                let rest = merge_matches(prev_rest, &rest, score_then_index);
+                let mut matches =
+                    Vec::with_capacity(self.pass_hoisted.len() + rest.len());
+                matches.extend(self.pass_hoisted.iter().map(|(_, m)| *m));
+                matches.extend(rest);
+                Matches::Sorted {
+                    matches,
+                    hoisted: self.pass_hoisted.len() as u32,
+                }
+            }
+        }
+    }
+
     fn publish(&mut self, matches: Matches) {
         *self.snapshot.lock() = Arc::new(Snapshot {
             generation: self.generation,
@@ -388,6 +552,12 @@ where
         // Wake the front-end so it can render the results
         (self.notify)();
     }
+}
+
+/// Score (desc) then index (asc): the display order of non-hoisted matches.
+#[allow(clippy::trivially_copy_pass_by_ref)]
+fn score_then_index(a: &Match, b: &Match) -> std::cmp::Ordering {
+    b.score.cmp(&a.score).then(a.index.cmp(&b.index))
 }
 
 /// Merge two runs sorted by `cmp` into a freshly allocated `Vec`, keeping
@@ -418,10 +588,10 @@ fn build_matcher<I: Sync + Send + 'static>(
     sort_strategy: &SortStrategy<I>,
 ) -> frizbee::Matcher {
     let sort_strategy = match sort_strategy {
-        SortStrategy::Score => frizbee::SortStrategy::ScoreThenIndexAsc,
-        SortStrategy::Index | SortStrategy::Custom(_) => {
-            frizbee::SortStrategy::IndexAsc
+        SortStrategy::Score | SortStrategy::Hoisted { .. } => {
+            frizbee::SortStrategy::ScoreThenIndexAsc
         }
+        SortStrategy::Index => frizbee::SortStrategy::IndexAsc,
     };
 
     frizbee::Matcher::from_query(
