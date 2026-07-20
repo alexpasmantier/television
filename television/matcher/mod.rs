@@ -107,6 +107,31 @@ where
         n_threads: usize,
         notify: Notify,
     ) -> Self {
+        Self::build(
+            sort_strategy,
+            n_threads,
+            notify,
+            worker::INITIAL_CHUNK_SIZE,
+        )
+    }
+
+    /// Create a matcher with a custom initial chunk size, small enough to
+    /// force multi-chunk passes on small stores.
+    #[cfg(test)]
+    fn with_chunk_size(
+        sort_strategy: SortStrategy<I>,
+        n_threads: usize,
+        chunk_size: usize,
+    ) -> Self {
+        Self::build(sort_strategy, n_threads, Arc::new(|| {}), chunk_size)
+    }
+
+    fn build(
+        sort_strategy: SortStrategy<I>,
+        n_threads: usize,
+        notify: Notify,
+        initial_chunk_size: usize,
+    ) -> Self {
         let store = Arc::new(RwLock::new(Store::default()));
         let snapshot = Arc::new(Mutex::new(Arc::new(Snapshot::empty(0))));
         let running = Arc::new(AtomicBool::new(false));
@@ -120,6 +145,7 @@ where
             worker_rx,
             sort_strategy,
             n_threads,
+            initial_chunk_size,
         );
         std::thread::Builder::new()
             .name("matcher-worker".to_string())
@@ -239,17 +265,14 @@ where
 
         // PERF: Pre-allocate the results Vec so we avoid repeated reallocations
         let mut results = Vec::with_capacity(num_entries as usize);
-        for m in snapshot
-            .matches
-            .iter()
-            .skip(offset as usize)
-            .take(num_entries as usize)
-        {
-            results.push(Self::matched_item(
-                &store,
-                &mut indices_matcher,
-                m.index,
-            ));
+        for i in offset..offset + num_entries {
+            if let Some(m) = snapshot.matches.get(i) {
+                results.push(Self::matched_item(
+                    &store,
+                    &mut indices_matcher,
+                    m.index,
+                ));
+            }
         }
 
         results
@@ -277,7 +300,7 @@ where
         if snapshot.generation != self.generation {
             return None;
         }
-        let m = snapshot.matches.get(index as usize)?;
+        let m = snapshot.matches.get(index)?;
         let mut indices_matcher = frizbee::Matcher::from_query(
             &snapshot.pattern,
             &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
@@ -430,6 +453,37 @@ mod tests {
         let full_ids = collect_ids(&mut full);
         assert!(!full_ids.is_empty());
         assert_eq!(collect_ids(&mut incremental), full_ids);
+    }
+
+    /// A chunked pass (small chunks over a larger store) must produce the
+    /// same results, in the same order, as matching everything in one chunk.
+    #[test]
+    fn chunked_matching_equals_single_chunk() {
+        let items: Vec<(usize, String)> = (0..500)
+            .map(|i| {
+                let haystack = match i % 3 {
+                    0 => format!("abc_{i}"),
+                    1 => format!("xx_abc_{i}"),
+                    _ => format!("a{i}b{i}c{i}"),
+                };
+                (i, haystack)
+            })
+            .collect();
+
+        let mut chunked: Matcher<usize> =
+            Matcher::with_chunk_size(SortStrategy::Score, 2, 16);
+        chunked.injector().push_batch(items.clone());
+        chunked.find("abc");
+        chunked.wait_for_idle();
+
+        let mut single: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        single.injector().push_batch(items);
+        single.find("abc");
+        single.wait_for_idle();
+
+        let single_ids = collect_ids(&mut single);
+        assert!(!single_ids.is_empty());
+        assert_eq!(collect_ids(&mut chunked), single_ids);
     }
 
     /// With no pattern, items pushed across several batches must come out in
