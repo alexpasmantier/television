@@ -2604,6 +2604,7 @@ dependencies = [
  "tracing-subscriber",
  "unicode-width",
  "ureq",
+ "vt-push-parser 0.13.1",
  "walkdir",
  "which",
  "winapi-util",
