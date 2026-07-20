@@ -90,21 +90,7 @@ pub struct FrecencyScores {
     scores: Arc<FxHashMap<String, u64>>,
 }
 
-impl FrecencyScores {
-    #[inline]
-    pub fn get(&self, key: &str) -> Option<u64> {
-        self.scores.get(key).copied()
-    }
-
-    /// Get the underlying Arc for efficient access in sort comparisons.
-    /// This avoids repeated cloning when accessing scores multiple times.
-    #[inline]
-    pub fn scores_arc(&self) -> &Arc<FxHashMap<String, u64>> {
-        &self.scores
-    }
-}
-
-/// Thread-safe cache for frecency scores, refreshed periodically.
+/// Thread-safe cache for frecency scores, refreshed on demand.
 pub struct FrecencyCache {
     scores: RwLock<FrecencyScores>,
     channel_name: String,
@@ -122,9 +108,12 @@ impl FrecencyCache {
         *self.scores.write() = frecency.get_channel_scores(&self.channel_name);
     }
 
+    /// The current score table. The returned `Arc` is stable until
+    /// [`FrecencyCache::refresh`] replaces it, so callers can use pointer
+    /// identity to detect score changes.
     #[inline]
-    pub fn snapshot(&self) -> FrecencyScores {
-        self.scores.read().clone()
+    pub fn table(&self) -> Arc<FxHashMap<String, u64>> {
+        Arc::clone(&self.scores.read().scores)
     }
 }
 pub type FrecencyCacheHandle = Arc<FrecencyCache>;
