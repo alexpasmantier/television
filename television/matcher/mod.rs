@@ -6,7 +6,7 @@ use std::cmp::Ordering as CmpOrdering;
 use std::{
     sync::{
         Arc,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicUsize, Ordering},
         mpsc,
     },
     thread::available_parallelism,
@@ -77,6 +77,11 @@ where
     /// Bumped on every restart so that snapshots computed against a previous
     /// store can be detected and discarded.
     generation: u64,
+    /// Live count of items pushed through injectors for the current store,
+    /// swapped together with the store on restart. Kept separate from the
+    /// store so the count stays current while batches are still in flight
+    /// to the worker.
+    count: Arc<AtomicUsize>,
     /// The last pattern passed to `find`, used to avoid notifying the worker
     /// when the pattern hasn't changed.
     last_pattern: String,
@@ -127,6 +132,7 @@ where
             worker_tx,
             running,
             generation: 0,
+            count: Arc::new(AtomicUsize::new(0)),
             last_pattern: String::new(),
         }
     }
@@ -149,9 +155,10 @@ where
     /// ```
     pub fn injector(&self) -> Injector<I> {
         Injector::new(
-            Arc::clone(&self.store),
             self.worker_tx.clone(),
             Arc::clone(&self.running),
+            self.generation,
+            Arc::clone(&self.count),
         )
     }
 
@@ -292,10 +299,11 @@ where
         }
     }
 
-    /// The total number of items that have been pushed into the matcher.
+    /// The total number of items that have been pushed into the matcher,
+    /// including batches still in flight to the worker.
     #[allow(clippy::cast_possible_truncation)]
     pub fn total_item_count(&self) -> u32 {
-        self.store.read_recursive().items.len() as u32
+        self.count.load(Ordering::Relaxed) as u32
     }
 
     /// Whether the background worker is currently matching or has pending
@@ -309,12 +317,13 @@ where
     /// This will reset the matcher to its initial state, clearing all items
     /// and matches (the current pattern is preserved).
     ///
-    /// In-flight injectors keep writing to the old store, which is silently
-    /// dropped once they're done with it; call `injector` again to get an
-    /// injector for the fresh store.
+    /// In-flight injectors keep sending batches tagged with the previous
+    /// generation, which the worker silently discards; call `injector` again
+    /// to get an injector for the fresh store.
     pub fn restart(&mut self) {
         self.generation += 1;
         self.store = Arc::new(RwLock::new(Store::default()));
+        self.count = Arc::new(AtomicUsize::new(0));
         // Clear the published snapshot right away so stale results don't
         // linger while the worker processes the restart
         *self.snapshot.lock() = Arc::new(Snapshot::empty(self.generation));
@@ -378,4 +387,64 @@ pub fn matcher_threads() -> usize {
     available_parallelism()
         .map(|n| n.get().saturating_sub(3).clamp(1, 32))
         .unwrap_or(4)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn collect_ids(matcher: &mut Matcher<usize>) -> Vec<usize> {
+        let count = matcher.matched_item_count();
+        matcher.results(count, 0).iter().map(|m| m.inner).collect()
+    }
+
+    /// Incremental passes (items pushed across several batches) must produce
+    /// the same results, in the same order, as matching everything in one go.
+    #[test]
+    fn incremental_matching_equals_full_rematch() {
+        let items: Vec<(usize, String)> = (0..300)
+            .map(|i| {
+                let haystack = match i % 3 {
+                    0 => format!("abc_{i}"),
+                    1 => format!("xx_abc_{i}"),
+                    _ => format!("a{i}b{i}c{i}"),
+                };
+                (i, haystack)
+            })
+            .collect();
+
+        let mut incremental: Matcher<usize> =
+            Matcher::new(SortStrategy::Score, 2);
+        let injector = incremental.injector();
+        incremental.find("abc");
+        for chunk in items.chunks(30) {
+            injector.push_batch(chunk.to_vec());
+            incremental.wait_for_idle();
+        }
+
+        let mut full: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        full.injector().push_batch(items);
+        full.find("abc");
+        full.wait_for_idle();
+
+        let full_ids = collect_ids(&mut full);
+        assert!(!full_ids.is_empty());
+        assert_eq!(collect_ids(&mut incremental), full_ids);
+    }
+
+    /// With no pattern, items pushed across several batches must come out in
+    /// insertion order.
+    #[test]
+    fn incremental_matching_preserves_index_order_on_empty_pattern() {
+        let mut matcher: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        let injector = matcher.injector();
+        for chunk in (0..15).collect::<Vec<_>>().chunks(5) {
+            injector.push_batch(
+                chunk.iter().map(|&i| (i, format!("item_{i}"))).collect(),
+            );
+            matcher.wait_for_idle();
+        }
+
+        assert_eq!(collect_ids(&mut matcher), (0..15).collect::<Vec<_>>());
+    }
 }
