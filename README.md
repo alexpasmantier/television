@@ -112,7 +112,7 @@ See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/s
 ## Credits
 
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
-- [nucleo](https://github.com/helix-editor/nucleo)
+- [frizbee](https://github.com/saghen/frizbee)
 - [ratatui](https://github.com/ratatui/ratatui)
 
 <a href="https://github.com/alexpasmantier/television/graphs/contributors">

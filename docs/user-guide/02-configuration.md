@@ -32,6 +32,7 @@ If `TELEVISION_CONFIG` is set, tv uses that directory instead (for example,
 | `default_channel` | string  | `"files"` | The default channel to use when no channel is specified on the command line.                                             |
 | `history_size`    | integer | `200`     | Maximum number of entries to keep in the search history. Set to `0` to disable history functionality.                    |
 | `global_history`  | boolean | `false`   | When `true`, history navigation shows entries from all channels. When `false`, history is scoped to the current channel. |
+| `frecency_max_entries` | integer | `1000` | Maximum number of frecency entries tracked per channel. See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting). |
 
 ### UI Configuration
 
@@ -45,7 +46,7 @@ Top-level UI settings under the `[ui]` section:
 
 #### Available Themes
 
-Built-in themes: `default`, `television`, `gruvbox-dark`, `gruvbox-light`, `catppuccin`, `nord-dark`, `solarized-dark`, `solarized-light`, `dracula`, `monokai`, `onedark`, `tokyonight`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn`.
+Built-in themes: `default`, `television`, `catppuccin`, `cyberdream`, `cyberdream-light`, `dracula`, `gruvbox-dark`, `gruvbox-light`, `monokai`, `nord-dark`, `onedark`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn`, `solarized-dark`, `solarized-light`, `tokyonight`.
 
 You can also create custom themes by placing them in `$CONFIG_DIR/television/themes/` (see [themes](./05-themes.md) for
 details).

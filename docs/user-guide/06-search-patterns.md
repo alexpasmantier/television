@@ -35,4 +35,4 @@ And will produce the following results:
 | _the motorbike flew past the tourists_ | ❌ | doesn't contain 'car' |
 
 For more information on the matcher behavior, see the
-[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
+[frizbee](https://docs.rs/frizbee/latest/frizbee/) documentation.

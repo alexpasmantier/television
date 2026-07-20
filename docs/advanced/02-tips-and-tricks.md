@@ -152,7 +152,11 @@ The UI is centered within the scaled area.
 
 Entries are ranked by a combination of **frequency** and **recency** of use. Items you select often and recently appear higher in results.
 
-Frecency is enabled by default and works automatically. The more you use tv, the smarter it gets at predicting what you want.
+Frecency is enabled by default and works automatically: every confirmed selection is recorded, and entries are scored using a time-decay algorithm (recent selections weigh more) combined with access count. The more you use tv, the smarter it gets at predicting what you want.
+
+Selections are stored in `frecency.json` in tv's data directory (`~/.local/share/television/` on Linux). The number of entries tracked per channel is capped by `frecency_max_entries` in the configuration file (default: 1000).
+
+Channels where the source order is meaningful (shell history, git log, etc.) can opt out with `frecency = false` in their channel prototype — see [Channels](../user-guide/01-channels.md) for details.
 
 ## Action Picker
 
