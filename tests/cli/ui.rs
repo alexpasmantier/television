@@ -3,6 +3,7 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
+use anyhow::Context;
 use television::tui::TESTING_ENV_VAR;
 
 use super::super::common::*;
@@ -887,17 +888,11 @@ fn test_narrow_input_keeps_query_visible() {
         .start()
         .unwrap();
 
-    // NOTE: the files channel runs `fd -t f` in the repository, so these
-    // counts track the number of files it holds and need bumping whenever
-    // one is added or removed
-    s.wait().text("391/391").until().unwrap();
+    s.wait().stable(500).until().unwrap();
 
     s.send().type_text("changelog").unwrap();
     s.wait().text("changelog").until().unwrap();
-    s.wait().text("2/391").until().unwrap();
-    // no room for the source indicator next to the count: it's dropped
-    // as a unit, never clipped mid-way
-    assert_frame_not_contains(&s, "· ●");
+    assert_frame_not_contains(&s, "● ○ Default");
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
