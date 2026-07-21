@@ -2981,6 +2981,44 @@ frecency = false
 
 ---
 
+### *nvim-config-files*
+
+Search through Neovim configuration files
+
+**Requirements:** `fd`, `nvim`
+
+**Code:** *nvim-config-files.toml*
+
+```toml
+[metadata]
+name = "nvim-config-files"
+description = "Search through Neovim configuration files"
+requirements = [ "fd", "nvim",]
+
+[source]
+command = [ "fd . ~/.config/nvim --type f",]
+display = "{regex_extract:.*\\.config/nvim/(.*):1}"
+
+[preview]
+command = "bat -n --color=always '{}'"
+
+[keybindings]
+enter = "actions:edit"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
+
+```
+
+
+---
+
 ### *opencode-sessions*
 
 Browse and resume OpenCode sessions
