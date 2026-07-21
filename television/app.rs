@@ -356,6 +356,12 @@ impl App {
                 _ = self.action_rx.recv_many(&mut action_buf, ACTION_BUF_SIZE) => {}
             }
 
+            // catch up with the latest UI layout before converting events
+            // (mouse hit-testing) and handling actions
+            while let Ok(ui_state) = self.ui_state_rx.try_recv() {
+                self.television.update_ui_state(ui_state);
+            }
+
             for event in event_buf.drain(..) {
                 let actions = self.convert_event_to_actions(event);
                 for action in actions {
@@ -587,10 +593,6 @@ impl App {
                         self.render_tx.send(RenderingTask::Render(
                             Box::new(self.television.dump_context()),
                         ))?;
-                        // update the television UI state with the previous frame
-                        if let Ok(ui_state) = self.ui_state_rx.try_recv() {
-                            self.television.update_ui_state(ui_state);
-                        }
                     }
                     Action::SelectPrevHistory => {
                         if let Some(history_entry) =

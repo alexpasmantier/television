@@ -3,7 +3,6 @@
 //! These tests verify Television's user interface customization capabilities,
 //! ensuring users can adapt the layout and appearance to their preferences and needs.
 
-use anyhow::Context;
 use television::tui::TESTING_ENV_VAR;
 
 use super::super::common::*;

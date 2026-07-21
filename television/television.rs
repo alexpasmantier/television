@@ -801,9 +801,9 @@ impl Television {
 
         {
             let offset = u32::try_from(self.ap_picker.offset()).unwrap();
-            let height = u32::from(self.ap_picker_viewport_height());
-            let new_entries =
-                self.action_picker.as_mut().unwrap().results(height, offset);
+            // the action list is small: fetch everything
+            let ap = self.action_picker.as_mut().unwrap();
+            let new_entries = ap.results(ap.result_count(), offset);
 
             self.ap_picker.entries = Arc::new(new_entries);
         }
