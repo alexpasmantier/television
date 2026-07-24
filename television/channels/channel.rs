@@ -20,7 +20,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tokio::process::Command as TokioCommand;
 use tokio::{
-    io::{AsyncBufReadExt, BufReader},
+    io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader},
     time::Instant,
 };
 use tracing::debug;
@@ -255,19 +255,86 @@ impl<P: EntryProcessor> Channel<P> {
     }
 }
 
-const DEFAULT_LINE_BUFFER_SIZE: usize = 256;
-// Batch size for pushing candidates to the injector
-// 10k * 500 bytes (pessimistic avg line size) = ~5 MB
-const BATCH_SIZE: usize = 10_000;
-// Automatically flush batch after this interval
+// Read the source's output in chunks of at least this size: reading in bulk
+// instead of line by line keeps the per-line overhead (syscalls, timestamps,
+// allocations) off the reader loop
+const READ_CHUNK_SIZE: usize = 64 * 1024;
+// Flush accumulated bytes to a processing task after this size
+// (~100k entries at 40 bytes per line)
+const FLUSH_SIZE: usize = 4 * 1024 * 1024;
+// Automatically flush after this interval so first results reach the
+// screen quickly on slow sources
 const UPDATE_INTERVAL: Duration = Duration::from_millis(200);
 // Maximum number of concurrent flush tasks to prevent unbounded memory growth
-// 4 * 10_000 * average line size = ~20 MB
+// 4 * ~2x FLUSH_SIZE (raw bytes + processed entries) = ~32 MB
 const MAX_CONCURRENT_FLUSHES: usize = 4;
 const DEFAULT_DELIMITER: u8 = b'\n';
 
+/// Reads `reader` in large chunks and ships complete entries to blocking
+/// tasks that split, process and push them to the injector in batches.
+///
+/// Returns whether the reader produced any output.
+async fn stream_entries<R, P>(
+    mut reader: R,
+    delimiter: u8,
+    processor: &P,
+    injector: &Injector<P::Data>,
+) -> bool
+where
+    R: AsyncRead + Unpin,
+    P: EntryProcessor,
+{
+    let mut acc: Vec<u8> = Vec::new();
+    let mut flush_handles = tokio::task::JoinSet::new();
+    let mut produced_output = false;
+    let mut last_flush = Instant::now();
+
+    loop {
+        acc.reserve(READ_CHUNK_SIZE);
+        let n = reader.read_buf(&mut acc).await.unwrap_or(0);
+        if n == 0 {
+            break;
+        }
+
+        if acc.len() >= FLUSH_SIZE || last_flush.elapsed() >= UPDATE_INTERVAL {
+            // Only complete entries are flushed: bytes after the last
+            // delimiter stay in the accumulator
+            if let Some(pos) = memchr::memrchr(delimiter, &acc) {
+                let rest = acc.split_off(pos + 1);
+                let chunk = std::mem::replace(&mut acc, rest);
+
+                if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
+                    // Wait for any task to complete
+                    let _ = flush_handles.join_next().await;
+                }
+                let inj = injector.clone();
+                let mut proc = processor.clone();
+                flush_handles.spawn_blocking(move || {
+                    flush_chunk(&chunk, &inj, &mut proc, delimiter);
+                });
+                produced_output = true;
+                last_flush = Instant::now();
+            }
+        }
+    }
+
+    // Flush whatever is left (the last entry may not be delimited)
+    if !acc.is_empty() {
+        let inj = injector.clone();
+        let mut proc = processor.clone();
+        flush_handles.spawn_blocking(move || {
+            flush_chunk(&acc, &inj, &mut proc, delimiter);
+        });
+        produced_output = true;
+    }
+
+    // Wait for all remaining flush tasks to complete
+    while flush_handles.join_next().await.is_some() {}
+
+    produced_output
+}
+
 /// Collects entries before pushing them to the injector.
-#[allow(clippy::unused_async)]
 pub async fn load_candidates<P: EntryProcessor>(
     command: CommandSpec,
     entry_delimiter: Option<char>,
@@ -291,62 +358,15 @@ pub async fn load_candidates<P: EntryProcessor>(
         .expect("failed to execute process"); // FIXME: handle error
 
     if let Some(out) = child.stdout.take() {
-        let mut produced_output = false;
-        let mut reader = BufReader::new(out);
-        let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
-        let mut batch = Vec::with_capacity(BATCH_SIZE);
-        let mut flush_handles = tokio::task::JoinSet::new();
-
         let delimiter = entry_delimiter
             .as_ref()
             .map(|d| *d as u8)
             .unwrap_or(DEFAULT_DELIMITER);
 
-        let mut last_flush = Instant::now();
-        while {
-            buf.clear();
-            let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
-            n > 0
-        } {
-            batch.push(buf.clone());
-
-            // Flush batch when it reaches the target size
-            if batch.len() >= BATCH_SIZE
-                || last_flush.elapsed() >= UPDATE_INTERVAL
-            {
-                if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
-                    // Wait for any task to complete
-                    let _ = flush_handles.join_next().await;
-                }
-
-                let batch_to_flush = std::mem::replace(
-                    &mut batch,
-                    Vec::with_capacity(BATCH_SIZE),
-                );
-                let inj = injector.clone();
-                let mut proc = processor.clone();
-                flush_handles.spawn_blocking(move || {
-                    flush_batch(batch_to_flush, &inj, &mut proc, delimiter);
-                });
-                produced_output = true;
-                last_flush = Instant::now();
-            }
-        }
+        let produced_output =
+            stream_entries(out, delimiter, &processor, &injector).await;
 
         debug!("Finished reading command output.");
-
-        // Flush any remaining entries in the batch
-        if !batch.is_empty() {
-            let inj = injector.clone();
-            let mut proc = processor.clone();
-            flush_handles.spawn_blocking(move || {
-                flush_batch(batch, &inj, &mut proc, delimiter);
-            });
-            produced_output = true;
-        }
-
-        // Wait for all remaining flush tasks to complete
-        while flush_handles.join_next().await.is_some() {}
 
         // if the command didn't produce any output, check stderr and display that instead
         if !produced_output {
@@ -380,74 +400,39 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
 ) {
     debug!("Loading candidates from stdin");
     let stdin = tokio::io::stdin();
-    let mut reader = BufReader::new(stdin);
-    let mut buf = Vec::with_capacity(DEFAULT_LINE_BUFFER_SIZE);
-    let mut batch = Vec::with_capacity(BATCH_SIZE);
-    let mut flush_handles = tokio::task::JoinSet::new();
 
     let delimiter = entry_delimiter
         .as_ref()
         .map(|d| *d as u8)
         .unwrap_or(DEFAULT_DELIMITER);
 
-    let mut last_flush = Instant::now();
-    while {
-        buf.clear();
-        let n = reader.read_until(delimiter, &mut buf).await.unwrap_or(0);
-        n > 0
-    } {
-        batch.push(buf.clone());
-
-        if batch.len() >= BATCH_SIZE || last_flush.elapsed() >= UPDATE_INTERVAL
-        {
-            if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
-                let _ = flush_handles.join_next().await;
-            }
-
-            let batch_to_flush =
-                std::mem::replace(&mut batch, Vec::with_capacity(BATCH_SIZE));
-            let inj = injector.clone();
-            let mut proc = processor.clone();
-            flush_handles.spawn_blocking(move || {
-                flush_batch(batch_to_flush, &inj, &mut proc, delimiter);
-            });
-            last_flush = Instant::now();
-        }
-    }
+    stream_entries(stdin, delimiter, &processor, &injector).await;
 
     debug!("Finished reading stdin.");
-
-    if !batch.is_empty() {
-        let inj = injector.clone();
-        let mut proc = processor.clone();
-        flush_handles.spawn_blocking(move || {
-            flush_batch(batch, &inj, &mut proc, delimiter);
-        });
-    }
-
-    while flush_handles.join_next().await.is_some() {}
 }
 
-/// Flushes a batch of entries to the injector.
+/// Splits a chunk of complete entries on `delimiter`, filters
+/// empty/whitespace-only lines and runs the processor up front so the whole
+/// chunk is pushed under a single injector call.
 /// This is called from a blocking task spawned in the threadpool.
-fn flush_batch<P: EntryProcessor>(
-    batch: Vec<Vec<u8>>,
+fn flush_chunk<P: EntryProcessor>(
+    chunk: &[u8],
     injector: &Injector<P::Data>,
     processor: &mut P,
     delimiter: u8,
 ) {
-    // decode utf8, filter empty/whitespace-only lines and run the processor
-    // up front so the whole batch is pushed under a single injector call
-    let mut entries = Vec::with_capacity(batch.len());
-    for mut bytes in batch {
-        if bytes.is_empty() || bytes.iter().all(u8::is_ascii_whitespace) {
+    let mut entries = Vec::new();
+    let mut start = 0;
+    for end in memchr::memchr_iter(delimiter, chunk)
+        .chain(std::iter::once(chunk.len()))
+    {
+        let line = &chunk[start..end];
+        start = end + 1;
+        if line.is_empty() || line.iter().all(u8::is_ascii_whitespace) {
             continue;
         }
-        if bytes.last() == Some(&delimiter) {
-            bytes.pop();
-        }
-        if let Ok(line) = String::from_utf8(bytes) {
-            entries.push(processor.process(line));
+        if let Ok(line) = std::str::from_utf8(line) {
+            entries.push(processor.process(line.to_string()));
         }
     }
     injector.push_batch(entries);
