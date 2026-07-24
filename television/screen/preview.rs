@@ -64,8 +64,11 @@ pub fn draw_preview_content_block(
     );
 
     // render the preview content
+    // the render context's `Arc` is not shared, so this is a move, not a copy
+    let content = std::sync::Arc::try_unwrap(preview_state.preview.content)
+        .unwrap_or_else(|arc| (*arc).clone());
     let rp = build_preview_paragraph(
-        preview_state.preview.content,
+        content,
         preview_state.preview.target_line,
         colorscheme.preview.highlight_bg,
         word_wrap,

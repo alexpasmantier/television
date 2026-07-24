@@ -1,4 +1,5 @@
 use rustc_hash::FxHashMap;
+use std::sync::Arc;
 
 use crate::utils::cache::RingSet;
 use ratatui::text::Text;
@@ -15,7 +16,7 @@ const DEFAULT_CACHE_SIZE: usize = 50;
 /// The cache is implemented as an LRU cache with a fixed size.
 #[derive(Debug)]
 pub struct Cache {
-    entries: FxHashMap<String, Text<'static>>,
+    entries: FxHashMap<String, Arc<Text<'static>>>,
     ring_set: RingSet<String>,
 }
 
@@ -28,17 +29,17 @@ impl Cache {
         }
     }
 
-    pub fn get(&self, key: &str) -> Option<Text<'static>> {
+    pub fn get(&self, key: &str) -> Option<Arc<Text<'static>>> {
         self.entries.get(key).cloned()
     }
 
     /// Insert a new preview into the cache.
     /// If the cache is full, the oldest entry will be removed.
     /// If the key is already in the cache, the preview will be updated.
-    pub fn insert(&mut self, key: &str, text: &Text<'static>) {
+    pub fn insert(&mut self, key: &str, text: &Arc<Text<'static>>) {
         debug!("Inserting preview into cache for key: {:?}", key);
         let key = key.to_string();
-        self.entries.insert(key.clone(), text.clone());
+        self.entries.insert(key.clone(), Arc::clone(text));
         if let Some(oldest_key) = self.ring_set.push(key) {
             debug!("Cache full, removing oldest entry: {:?}", oldest_key);
             self.entries.remove(&oldest_key);
@@ -74,21 +75,21 @@ mod tests {
     fn test_preview_cache_ops() {
         let mut cache = Cache::new(2);
         let entry = "test";
-        let preview = Text::raw("preview");
+        let preview = Arc::new(Text::raw("preview"));
 
         cache.insert(entry, &preview);
         assert_eq!(cache.get(entry).unwrap(), preview);
         assert_eq!(cache.size(), 1);
 
         // override cache content for the same key
-        let other_preview = Text::raw("some content");
+        let other_preview = Arc::new(Text::raw("some content"));
         cache.insert(entry, &other_preview);
         assert_eq!(cache.get(entry).unwrap(), other_preview);
         assert_eq!(cache.size(), 1);
 
         // insert new entries to trigger eviction
         let new_entry = "new_test";
-        let new_preview = Text::raw("new preview");
+        let new_preview = Arc::new(Text::raw("new preview"));
         cache.insert(new_entry, &new_preview);
         // the two previews should still be available
         assert_eq!(cache.size(), 2);
@@ -96,15 +97,15 @@ mod tests {
         assert_eq!(cache.get(entry).unwrap(), other_preview);
         // this one should trigger eviction
         let another_entry = "another_test";
-        cache.insert(another_entry, &Text::raw("another preview"));
+        cache.insert(another_entry, &Arc::new(Text::raw("another preview")));
 
         assert_eq!(cache.size(), 2);
         assert!(cache.get(entry).is_none());
         assert!(cache.get(new_entry).is_some());
         assert!(cache.get(another_entry).is_some());
-        assert_eq!(cache.get(new_entry).unwrap(), Text::raw("new preview"));
+        assert_eq!(*cache.get(new_entry).unwrap(), Text::raw("new preview"));
         assert_eq!(
-            cache.get(another_entry).unwrap(),
+            *cache.get(another_entry).unwrap(),
             Text::raw("another preview")
         );
     }

@@ -1,11 +1,11 @@
 use ratatui::text::Text;
+use std::sync::Arc;
 
 use crate::previewer::Preview;
 
 #[derive(Debug, Clone, Default)]
 pub struct PreviewState {
     pub enabled: bool,
-    // FIXME: this should probably be an Arc<Preview>
     pub preview: Preview,
     pub scroll: u16,
 }
@@ -39,8 +39,13 @@ impl PreviewState {
     }
 
     pub fn update(&mut self, preview: Preview, scroll: u16) {
+        // cached previews for the same entry come back as the same `Arc`:
+        // the pointer check skips the deep content comparison
+        let content_changed =
+            !Arc::ptr_eq(&self.preview.content, &preview.content)
+                && self.preview.content != preview.content;
         if self.preview.entry_raw != preview.entry_raw
-            || self.preview.content != preview.content
+            || content_changed
             || self.preview.target_line != preview.target_line
         {
             self.preview = preview;
@@ -51,7 +56,7 @@ impl PreviewState {
     // FIXME: does this really need to happen for every render?
     // What if we did it only when the preview content or scroll changes?
     pub fn for_render_context(&self, height: usize) -> Self {
-        // PERF: this allocates every time
+        // only the visible lines are copied for the render context
         let content_len = self.preview.content.lines.len();
         let scroll = (self.scroll as usize).min(content_len);
         let num_lines = content_len.saturating_sub(scroll);
@@ -67,12 +72,11 @@ impl PreviewState {
 
         PreviewState::new(
             self.enabled,
-            // PERF: this allocates every time
             Preview::new(
                 self.preview.entry_raw.clone(),
                 self.preview.formatted_command.clone(),
                 &self.preview.title,
-                cropped_content,
+                Arc::new(cropped_content),
                 adjusted_line_number,
                 self.preview.total_lines,
                 self.preview.footer.clone(),

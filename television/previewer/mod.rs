@@ -119,7 +119,9 @@ pub struct Preview {
     pub title: String,
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
-    pub content: Text<'static>,
+    // Shared behind an `Arc` so that the cache, the previewer and the
+    // render context never deep-copy the parsed text.
+    pub content: Arc<Text<'static>>,
     pub target_line: Option<u16>,
     pub total_lines: u16,
     pub footer: Option<String>,
@@ -135,7 +137,7 @@ impl Default for Preview {
             entry_raw: EMPTY_STRING.to_string(),
             formatted_command: EMPTY_STRING.to_string(),
             title: DEFAULT_PREVIEW_TITLE.to_string(),
-            content: Text::from(EMPTY_STRING),
+            content: Arc::new(Text::from(EMPTY_STRING)),
             target_line: None,
             total_lines: 1,
             footer: None,
@@ -151,7 +153,7 @@ impl Preview {
         entry_raw: String,
         formatted_command: String,
         title: &str,
-        displayable_content: Text<'static>,
+        displayable_content: Arc<Text<'static>>,
         line_number: Option<u16>,
         total_lines: u16,
         footer: Option<String>,
@@ -330,7 +332,7 @@ fn sanitize_text(text: &mut Text<'static>) {
 fn build_preview_from_text(
     formatted_command: &str,
     entry: &Entry,
-    text: Text<'static>,
+    text: Arc<Text<'static>>,
     title_template: Option<&Template>,
     footer_template: Option<&Template>,
     offset_expr: Option<&Template>,
@@ -434,32 +436,20 @@ pub async fn try_preview(
 
     sanitize_text(&mut text);
 
-    let preview = if let Some(cache) = &cache {
-        let preview = build_preview_from_text(
-            &formatted_command,
-            &entry,
-            text.clone(),
-            title_template.as_ref(),
-            footer_template.as_ref(),
-            offset_expr.as_ref(),
-            cycle_index,
-            preview_count,
-        )?;
+    let text = Arc::new(text);
+    if let Some(cache) = &cache {
         cache.lock().insert(&formatted_command, &text);
-        preview
-    } else {
-        build_preview_from_text(
-            &formatted_command,
-            &entry,
-            text,
-            title_template.as_ref(),
-            footer_template.as_ref(),
-            offset_expr.as_ref(),
-            cycle_index,
-            preview_count,
-        )?
-    };
-    // FIXME: ... and just send an Arc here as well
+    }
+    let preview = build_preview_from_text(
+        &formatted_command,
+        &entry,
+        text,
+        title_template.as_ref(),
+        footer_template.as_ref(),
+        offset_expr.as_ref(),
+        cycle_index,
+        preview_count,
+    )?;
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")
