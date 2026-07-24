@@ -106,7 +106,7 @@ jobs:
           command: build
           use-cross: ${{ matrix.use-cross }}
           toolchain: stable
-          args: --release --target ${{ matrix.target }}
+          args: --profile dist --target ${{ matrix.target }}
       - name: install strip command
         shell: bash
         run: |
@@ -120,7 +120,7 @@ jobs:
         run: |
           ####### reduce binary size by removing debug symbols #######
 
-          BIN=target/${{ matrix.target }}/release/tv${{ matrix.binary-postfix }}
+          BIN=target/${{ matrix.target }}/dist/tv${{ matrix.binary-postfix }}
           echo "BIN=$BIN" >> "$GITHUB_ENV"
           if [[ ${{ matrix.target }} == aarch64-unknown-linux-gnu ]]; then
 

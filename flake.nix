@@ -83,6 +83,10 @@
             strictDeps = true;
             doCheck = false; # NOTE: tests/common/mod.rs:139 fails
 
+            # Distribution builds use the maximally-optimized `dist` profile
+            # (fat LTO, single codegen unit). See [profile.dist] in Cargo.toml.
+            CARGO_PROFILE = "dist";
+
             nativeBuildInputs = with pkgs; [
               makeWrapper
               installShellFiles

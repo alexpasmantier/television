@@ -94,18 +94,34 @@ harness = false
 inherits = "release"
 opt-level = 3
 lto = false
+codegen-units = 16
+incremental = true
 
 [profile.profiling]
 inherits = "release"
 debug = true
 
-
+# Fast-ish optimized builds for local development and testing.
+#
+# NOTE: incremental compilation matters a lot here: frizbee's generic SIMD
+# backends all monomorphize into a single, unsplittable ~2M-line codegen unit
+# inside the `television` crate (~200s of serial LLVM time). The incremental
+# cache reuses that CGU across rebuilds.
 [profile.release]
+codegen-units = 16
+lto = "thin"
+incremental = true
+
+# Maximally optimized builds for distribution (used by CI to build release
+# artifacts).
+[profile.dist]
+inherits = "release"
 codegen-units = 1
 lto = "fat"
+incremental = false
 
 [profile.deb]
-inherits = "release"
+inherits = "dist"
 debug = false
 
 [lints]
