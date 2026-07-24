@@ -2595,6 +2595,7 @@ dependencies = [
  "frizbee",
  "human-panic",
  "lazy-regex",
+ "memchr",
  "parking_lot",
  "phantom-test",
  "ratatui",
