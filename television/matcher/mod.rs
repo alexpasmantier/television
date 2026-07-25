@@ -414,7 +414,7 @@ fn matched_item<I: Sync + Send + Clone + 'static>(
 
     MatchedItem::new(
         store.items[index as usize].clone(),
-        haystack.clone(),
+        haystack.to_string(),
         // Convert UTF-8 byte offsets to UTF-32 character indices
         byte_indices_to_char_indices(haystack, match_indices),
     )
