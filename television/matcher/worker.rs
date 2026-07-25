@@ -32,7 +32,7 @@ pub(super) struct Store<I> {
     /// Items that have been added to the matcher.
     pub(super) items: Vec<I>,
     /// The strings the items are matched against.
-    pub(super) haystacks: Vec<String>,
+    pub(super) haystacks: Vec<Box<str>>,
 }
 
 impl<I> Default for Store<I> {
@@ -308,7 +308,7 @@ where
                 store.haystacks.reserve(batch.len());
                 for (item, haystack) in batch {
                     store.items.push(item);
-                    store.haystacks.push(haystack);
+                    store.haystacks.push(haystack.into_boxed_str());
                 }
                 true
             }
