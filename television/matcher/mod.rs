@@ -97,6 +97,8 @@ where
     /// The last pattern passed to `find`, used to avoid notifying the worker
     /// when the pattern hasn't changed.
     last_pattern: String,
+    /// Cached indices matcher, rebuilt only when the pattern changes.
+    indices_matcher: (String, frizbee::Matcher),
 }
 
 impl<I> Matcher<I>
@@ -172,7 +174,17 @@ where
             generation: 0,
             count: Arc::new(AtomicUsize::new(0)),
             last_pattern: String::new(),
+            indices_matcher: (String::new(), build_indices_matcher("")),
         }
+    }
+
+    /// The cached indices matcher, rebuilt only when `pattern` changes.
+    fn indices_matcher(&mut self, pattern: &str) -> &mut frizbee::Matcher {
+        if self.indices_matcher.0 != pattern {
+            self.indices_matcher =
+                (pattern.to_string(), build_indices_matcher(pattern));
+        }
+        &mut self.indices_matcher.1
     }
 
     /// Get an injector that can be used to push items into the fuzzy matcher.
@@ -249,10 +261,6 @@ where
         offset: u32,
     ) -> Vec<matched_item::MatchedItem<I>> {
         let snapshot = self.snapshot.lock().clone();
-        let mut indices_matcher = frizbee::Matcher::from_query(
-            &snapshot.pattern,
-            &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
-        );
 
         // Discard snapshots computed against a previous store (i.e. published
         // by the worker right before a restart)
@@ -274,16 +282,13 @@ where
         // NOTE: `read_recursive` so reads never queue behind a writer that's
         // waiting on the worker's long-held read lock during a matcher pass
         let store = store.read_recursive();
+        let indices_matcher = self.indices_matcher(&snapshot.pattern);
 
         // PERF: Pre-allocate the results Vec so we avoid repeated reallocations
         let mut results = Vec::with_capacity(num_entries as usize);
         for i in offset..offset + num_entries {
             if let Some(m) = snapshot.matches.get(i) {
-                results.push(Self::matched_item(
-                    &store,
-                    &mut indices_matcher,
-                    m.index,
-                ));
+                results.push(matched_item(&store, indices_matcher, m.index));
             }
         }
 
@@ -313,14 +318,11 @@ where
             return None;
         }
         let m = snapshot.matches.get(index)?;
-        let mut indices_matcher = frizbee::Matcher::from_query(
-            &snapshot.pattern,
-            &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
-        );
 
         let store = Arc::clone(&self.store);
         let store = store.read_recursive();
-        Some(Self::matched_item(&store, &mut indices_matcher, m.index))
+        let indices_matcher = self.indices_matcher(&snapshot.pattern);
+        Some(matched_item(&store, indices_matcher, m.index))
     }
 
     /// The number of items matching the current pattern.
@@ -384,30 +386,38 @@ where
             let _ = ack_rx.recv_timeout(timeout);
         }
     }
+}
 
-    /// Assemble a `MatchedItem` for the store entry at `index`, computing the
-    /// matched character indices on the fly
-    fn matched_item(
-        store: &Store<I>,
-        indices_matcher: &mut frizbee::Matcher,
-        index: u32,
-    ) -> MatchedItem<I> {
-        let haystack = &store.haystacks[index as usize];
+/// Build a matcher for computing match indices with the given pattern.
+fn build_indices_matcher(pattern: &str) -> frizbee::Matcher {
+    frizbee::Matcher::from_query(
+        pattern,
+        &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
+    )
+}
 
-        let mut match_indices = indices_matcher
-            .match_one_indices(haystack, index)
-            .map(|m| m.indices)
-            .unwrap_or_default();
-        // Frizbee returns UTF-8 byte offsets in reverse order
-        match_indices.reverse();
+/// Assemble a `MatchedItem` for the store entry at `index`, computing the
+/// matched character indices on the fly
+fn matched_item<I: Sync + Send + Clone + 'static>(
+    store: &Store<I>,
+    indices_matcher: &mut frizbee::Matcher,
+    index: u32,
+) -> MatchedItem<I> {
+    let haystack = &store.haystacks[index as usize];
 
-        MatchedItem::new(
-            store.items[index as usize].clone(),
-            haystack.clone(),
-            // Convert UTF-8 byte offsets to UTF-32 character indices
-            byte_indices_to_char_indices(haystack, match_indices),
-        )
-    }
+    let mut match_indices = indices_matcher
+        .match_one_indices(haystack, index)
+        .map(|m| m.indices)
+        .unwrap_or_default();
+    // Frizbee returns UTF-8 byte offsets in reverse order
+    match_indices.reverse();
+
+    MatchedItem::new(
+        store.items[index as usize].clone(),
+        haystack.clone(),
+        // Convert UTF-8 byte offsets to UTF-32 character indices
+        byte_indices_to_char_indices(haystack, match_indices),
+    )
 }
 
 /// Get the number of threads to use for the matcher.
