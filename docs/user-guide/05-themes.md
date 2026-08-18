@@ -71,4 +71,5 @@ match_fg = "#ff0000"
 ### Colors
 
 ANSI: `"red"`, `"bright-blue"`, `"white"`  
-Hex: `"#ff0000"`, `"#1e1e2e"`
+Hex: `"#ff0000"`, `"#1e1e2e"`  
+Terminal default: `"none"` leaves the element uncolored, e.g. `background = "none"` keeps a transparent background.

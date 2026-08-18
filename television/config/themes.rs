@@ -16,6 +16,11 @@ pub mod builtin;
 pub enum Color {
     Ansi(ANSIColor),
     Rgb(RGBColor),
+    /// The terminal's default color, leaving the underlying cell untouched.
+    ///
+    /// This is useful to keep a transparent background or to fall back to the
+    /// terminal's default foreground for a given element.
+    Reset,
 }
 
 impl Color {
@@ -24,6 +29,7 @@ impl Color {
             RGBColor::from_str(s).map(Self::Rgb)
         } else {
             match s.to_lowercase().as_str() {
+                "none" => Some(Self::Reset),
                 "black" => Some(Self::Ansi(ANSIColor::Black)),
                 "red" => Some(Self::Ansi(ANSIColor::Red)),
                 "green" => Some(Self::Ansi(ANSIColor::Green)),
@@ -476,6 +482,7 @@ impl Into<RatatuiColor> for &Color {
         match self {
             Color::Ansi(ansi) => ansi.into(),
             Color::Rgb(rgb) => rgb.into(),
+            Color::Reset => RatatuiColor::Reset,
         }
     }
 }
@@ -808,6 +815,58 @@ mod tests {
         if let Err(e) = result {
             assert!(e.to_string().contains("invalid color invalid-color"));
         }
+    }
+
+    #[test]
+    fn test_color_from_str_none_is_reset() {
+        for value in ["none", "None", "NONE"] {
+            assert_eq!(Color::from_str(value), Some(Color::Reset));
+        }
+    }
+
+    #[test]
+    fn test_reset_color_maps_to_ratatui_reset() {
+        let color = Color::Reset;
+        let ratatui_color: RatatuiColor = (&color).into();
+        assert_eq!(ratatui_color, RatatuiColor::Reset);
+    }
+
+    #[test]
+    fn test_theme_deserialization_none_background() {
+        let theme_content = r##"
+            background = "none"
+            border_fg = "black"
+            text_fg = "white"
+            dimmed_text_fg = "bright-black"
+            input_text_fg = "bright-white"
+            result_count_fg = "bright-white"
+            result_name_fg = "bright-white"
+            result_line_number_fg = "bright-white"
+            result_value_fg = "bright-white"
+            selection_bg = "bright-white"
+            selection_fg = "bright-white"
+            match_fg = "bright-white"
+            preview_title_fg = "bright-white"
+            channel_mode_fg = "bright-white"
+            channel_mode_bg = "bright-black"
+            remote_control_mode_fg = "bright-white"
+            remote_control_mode_bg = "bright-black"
+        "##;
+        let theme: Theme = toml::from_str(theme_content).unwrap();
+        assert_eq!(theme.background, Some(Color::Reset));
+    }
+
+    #[test]
+    fn test_theme_override_with_none() {
+        let base_theme = create_test_theme();
+        let overrides = crate::config::ui::ThemeOverrides {
+            background: Some("none".to_string()),
+            ..Default::default()
+        };
+
+        let merged_theme =
+            base_theme.merge_with_overrides(&overrides).unwrap();
+        assert_eq!(merged_theme.background, Some(Color::Reset));
     }
 
     #[test]
