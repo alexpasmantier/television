@@ -54,6 +54,16 @@ pub struct AppConfig {
     /// Channel-specific shell settings override this.
     #[serde(default)]
     pub shell: Option<Shell>,
+    /// Override the binary path used for specific shells.
+    /// Useful when multiple binaries with the same name exist (e.g. WSL bash vs Git Bash).
+    /// Example:
+    /// ```toml
+    /// [shell_binaries]
+    /// bash = "C:/Program Files/Git/usr/bin/bash.exe"
+    /// powershell = "C:/Program Files/PowerShell/7/pwsh.exe"
+    /// ```
+    #[serde(default)]
+    pub shell_binaries: std::collections::HashMap<Shell, String>,
 }
 
 impl Default for AppConfig {
@@ -67,6 +77,7 @@ impl Default for AppConfig {
             global_history: default_global_history(),
             frecency_max_entries: default_frecency_max_entries(),
             shell: None,
+            shell_binaries: std::collections::HashMap::new(),
         }
     }
 }
@@ -97,6 +108,10 @@ impl Hash for AppConfig {
         self.global_history.hash(state);
         self.frecency_max_entries.hash(state);
         self.shell.hash(state);
+        for (k, v) in &self.shell_binaries {
+            k.hash(state);
+            v.hash(state);
+        }
     }
 }
 
@@ -543,5 +558,32 @@ mod tests {
         .collect();
 
         assert_eq!(config.shell_integration.keybindings, expected);
+    }
+
+    #[test]
+    fn test_app_config_shell_binaries_deserialize() {
+        let config_toml = r#"
+            [shell_binaries]
+            bash = "/usr/local/bin/bash"
+            powershell = "C:/Program Files/PowerShell/7/pwsh.exe"
+        "#;
+
+        let config: Config = toml::from_str(config_toml).unwrap();
+        let binaries = &config.application.shell_binaries;
+        assert_eq!(
+            binaries.get(&Shell::Bash),
+            Some(&"/usr/local/bin/bash".to_string())
+        );
+        assert_eq!(
+            binaries.get(&Shell::Psh),
+            Some(&"C:/Program Files/PowerShell/7/pwsh.exe".to_string())
+        );
+        assert_eq!(binaries.get(&Shell::Zsh), None);
+    }
+
+    #[test]
+    fn test_app_config_shell_binaries_empty_by_default() {
+        let config: Config = toml::from_str("").unwrap();
+        assert!(config.application.shell_binaries.is_empty());
     }
 }

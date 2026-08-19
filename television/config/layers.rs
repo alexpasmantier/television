@@ -113,6 +113,8 @@ impl ConfigLayers {
 
         // Global shell from base config (channel-specific shell overrides this)
         let global_shell = self.base_config.application.shell;
+        let global_shell_binaries =
+            &self.base_config.application.shell_binaries;
 
         // Build source command and apply global shell if no channel-specific shell
         let mut channel_source_command =
@@ -123,6 +125,13 @@ impl ConfigLayers {
             };
         if channel_source_command.shell.is_none() {
             channel_source_command.shell = global_shell;
+        }
+        // Merge global shell_binaries as fallback for entries not set at channel level
+        for (shell, binary) in global_shell_binaries {
+            channel_source_command
+                .shell_binaries
+                .entry(*shell)
+                .or_insert_with(|| binary.clone());
         }
 
         let channel_source_entry_delimiter = self
@@ -153,10 +162,15 @@ impl ConfigLayers {
             .as_ref()
             .map(|t| CommandSpec::from(t.clone()))
             .or(self.channel.preview.as_ref().map(|p| p.command.clone()));
-        if let Some(ref mut cmd) = channel_preview_command
-            && cmd.shell.is_none()
-        {
-            cmd.shell = global_shell;
+        if let Some(ref mut cmd) = channel_preview_command {
+            if cmd.shell.is_none() {
+                cmd.shell = global_shell;
+            }
+            for (shell, binary) in global_shell_binaries {
+                cmd.shell_binaries
+                    .entry(*shell)
+                    .or_insert_with(|| binary.clone());
+            }
         }
         let channel_preview_offset =
             self.channel_cli.preview_offset.clone().or(
