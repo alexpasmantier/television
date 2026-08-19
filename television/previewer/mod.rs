@@ -40,7 +40,7 @@ pub struct Config {
 }
 
 pub const DEFAULT_REQUEST_MAX_AGE: Duration = Duration::from_millis(1000);
-pub const DEFAULT_JOB_TIMEOUT: Duration = Duration::from_millis(500);
+pub const DEFAULT_JOB_TIMEOUT: Duration = Duration::from_millis(3000);
 
 impl Default for Config {
     fn default() -> Self {
@@ -74,7 +74,7 @@ impl Ord for Request {
             // Shutdown/Cycle signals always have priority
             (Self::Shutdown | Self::CycleCommand, _) => Ordering::Greater,
             (_, Self::Shutdown | Self::CycleCommand) => Ordering::Less,
-            // Otherwise fall back to ticket age comparison
+            // Otherwise fall back to ticket recency comparison
             (Self::Preview(t1), Self::Preview(t2)) => t1.cmp(t2),
         }
     }
@@ -94,7 +94,8 @@ impl PartialOrd for Ticket {
 
 impl Ord for Ticket {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.age().cmp(&other.age())
+        // more recent tickets rank higher so that `max()` picks the newest request
+        self.timestamp.cmp(&other.timestamp)
     }
 }
 
@@ -118,7 +119,9 @@ pub struct Preview {
     pub title: String,
     // NOTE: this does couple the previewer with ratatui but allows
     // to only parse ansi text once and reuse it in the UI.
-    pub content: Text<'static>,
+    // Shared behind an `Arc` so that the cache, the previewer and the
+    // render context never deep-copy the parsed text.
+    pub content: Arc<Text<'static>>,
     pub target_line: Option<u16>,
     pub total_lines: u16,
     pub footer: Option<String>,
@@ -134,7 +137,7 @@ impl Default for Preview {
             entry_raw: EMPTY_STRING.to_string(),
             formatted_command: EMPTY_STRING.to_string(),
             title: DEFAULT_PREVIEW_TITLE.to_string(),
-            content: Text::from(EMPTY_STRING),
+            content: Arc::new(Text::from(EMPTY_STRING)),
             target_line: None,
             total_lines: 1,
             footer: None,
@@ -150,7 +153,7 @@ impl Preview {
         entry_raw: String,
         formatted_command: String,
         title: &str,
-        displayable_content: Text<'static>,
+        displayable_content: Arc<Text<'static>>,
         line_number: Option<u16>,
         total_lines: u16,
         footer: Option<String>,
@@ -249,6 +252,7 @@ impl Previewer {
                             results_handle,
                             cache,
                         ));
+                        let abort_handle = job.abort_handle();
                         match timeout(self.config.job_timeout, job).await {
                             Ok(Ok(Ok(()))) => {
                                 trace!("Preview job completed successfully");
@@ -265,8 +269,16 @@ impl Previewer {
                                     join_err
                                 );
                             }
-                            Err(e) => {
-                                warn!("Preview job timeout: {}", e);
+                            Err(_) => {
+                                warn!(
+                                    "Preview job for '{}' timed out after {:?}, aborting",
+                                    self.last_job_entry.clone().unwrap().raw,
+                                    self.config.job_timeout
+                                );
+                                // Cancel the detached task. Combined with
+                                // `kill_on_drop(true)` on the preview command,
+                                // this also kills the spawned child process.
+                                abort_handle.abort();
                             }
                         }
                     }
@@ -320,7 +332,7 @@ fn sanitize_text(text: &mut Text<'static>) {
 fn build_preview_from_text(
     formatted_command: &str,
     entry: &Entry,
-    text: Text<'static>,
+    text: Arc<Text<'static>>,
     title_template: Option<&Template>,
     footer_template: Option<&Template>,
     offset_expr: Option<&Template>,
@@ -405,7 +417,10 @@ pub async fn try_preview(
         command.shell,
     );
 
-    let child = TokioCommand::from(shell_cmd).output().await?;
+    let mut tokio_command = TokioCommand::from(shell_cmd);
+    // Ensure the child process is killed if this task is dropped/aborted
+    tokio_command.kill_on_drop(true);
+    let child = tokio_command.output().await?;
 
     let mut text = if child.status.success() {
         child
@@ -421,33 +436,59 @@ pub async fn try_preview(
 
     sanitize_text(&mut text);
 
-    let preview = if let Some(cache) = &cache {
-        let preview = build_preview_from_text(
-            &formatted_command,
-            &entry,
-            text.clone(),
-            title_template.as_ref(),
-            footer_template.as_ref(),
-            offset_expr.as_ref(),
-            cycle_index,
-            preview_count,
-        )?;
+    let text = Arc::new(text);
+    if let Some(cache) = &cache {
         cache.lock().insert(&formatted_command, &text);
-        preview
-    } else {
-        build_preview_from_text(
-            &formatted_command,
-            &entry,
-            text,
-            title_template.as_ref(),
-            footer_template.as_ref(),
-            offset_expr.as_ref(),
-            cycle_index,
-            preview_count,
-        )?
-    };
-    // FIXME: ... and just send an Arc here as well
+    }
+    let preview = build_preview_from_text(
+        &formatted_command,
+        &entry,
+        text,
+        title_template.as_ref(),
+        footer_template.as_ref(),
+        offset_expr.as_ref(),
+        cycle_index,
+        preview_count,
+    )?;
     results_handle
         .send(preview)
         .with_context(|| "Failed to send preview result to main thread.")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn preview_request(name: &str, age_ms: u64) -> Request {
+        Request::Preview(Ticket {
+            entry: Entry::new(name.to_string()),
+            timestamp: Instant::now()
+                .checked_sub(Duration::from_millis(age_ms))
+                .unwrap(),
+        })
+    }
+
+    #[test]
+    fn newest_preview_request_wins() {
+        let newest = [
+            preview_request("old", 300),
+            preview_request("new", 0),
+            preview_request("mid", 100),
+        ]
+        .into_iter()
+        .max()
+        .unwrap();
+
+        assert!(matches!(newest, Request::Preview(t) if t.entry.raw == "new"));
+    }
+
+    #[test]
+    fn control_requests_outrank_previews() {
+        let max = [preview_request("entry", 0), Request::Shutdown]
+            .into_iter()
+            .max()
+            .unwrap();
+
+        assert!(matches!(max, Request::Shutdown));
+    }
 }

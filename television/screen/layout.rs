@@ -3,10 +3,6 @@ use crate::{
         layers::MergedConfig,
         ui::{BorderType, Padding},
     },
-    screen::{
-        colors::Colorscheme, help_panel::calculate_help_panel_size,
-        logo::REMOTE_LOGO_HEIGHT_U16,
-    },
     television::Mode,
 };
 use clap::ValueEnum;
@@ -95,20 +91,32 @@ impl From<crate::cli::args::LayoutOrientation> for Orientation {
     }
 }
 
+/// Which side of the preview pane (or whatever borrows it) faces the
+/// results list — that's where the minimal UI draws its hairline separator.
+pub fn pane_separator_side(
+    layout: Orientation,
+    input_bar_position: InputPosition,
+) -> ratatui::widgets::Borders {
+    use ratatui::widgets::Borders;
+    match (layout, input_bar_position) {
+        // pane on the right
+        (Orientation::Landscape, _) => Borders::LEFT,
+        // pane at the bottom
+        (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
+        // pane at the top
+        (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Layout {
     pub results: Rect,
     pub input: Rect,
     pub preview_window: Option<Rect>,
-    pub remote_control: Option<Rect>,
     pub action_picker: Option<Rect>,
     pub help_panel: Option<Rect>,
     pub status_bar: Option<Rect>,
 }
-
-const REMOTE_PANEL_WIDTH_PERCENTAGE: u16 = 62;
-const ACTION_PICKER_WIDTH_PERCENTAGE: u16 = 50;
-const ACTION_PICKER_HEIGHT_PERCENTAGE: u16 = 50;
 
 impl Default for Layout {
     /// Having a default layout with a non-zero height for the results area
@@ -124,7 +132,6 @@ impl Default for Layout {
             None,
             None,
             None,
-            None,
         )
     }
 }
@@ -135,7 +142,6 @@ impl Layout {
         results: Rect,
         input: Rect,
         preview_window: Option<Rect>,
-        remote_control: Option<Rect>,
         action_picker: Option<Rect>,
         help_panel: Option<Rect>,
         status_bar: Option<Rect>,
@@ -144,7 +150,6 @@ impl Layout {
             results,
             input,
             preview_window,
-            remote_control,
             action_picker,
             help_panel,
             status_bar,
@@ -155,7 +160,6 @@ impl Layout {
         area: Rect,
         merged_config: &MergedConfig,
         mode: Mode,
-        colorscheme: &Colorscheme,
     ) -> Self {
         let dimensions = Dimensions::from(merged_config.ui_scale);
 
@@ -185,6 +189,7 @@ impl Layout {
             Constraint::Length(input_bar_height(
                 merged_config.input_bar_padding,
                 merged_config.input_bar_border_type,
+                merged_config.input_bar_header_hidden(),
             )),
         ];
 
@@ -198,9 +203,30 @@ impl Layout {
             })
             .unwrap_or(0);
 
-        // split the main block into 1 or 2 chunks (results + preview)
-        let preview_hidden = merged_config.preview_panel_hidden
-            || merged_config.channel_preview_command.is_none();
+        // split the main block into 1 or 2 chunks (results + preview):
+        // the remote control takes over the full width, while the actions
+        // picker borrows the preview pane so the entry it applies to stays
+        // visible in the results list
+        let rc_takeover = mode == Mode::RemoteControl;
+        let ap_takeover = mode == Mode::ActionPicker;
+        // the help panel borrows the preview pane as well (except in
+        // actions mode, where the actions picker already occupies it)
+        let help_takeover = !merged_config.help_panel_disabled
+            && !merged_config.help_panel_hidden
+            && !ap_takeover;
+        let preview_hidden = if ap_takeover || help_takeover {
+            false
+        } else {
+            merged_config.preview_panel_hidden
+                || merged_config.channel_preview_command.is_none()
+                || rc_takeover
+                || (merged_config.preview_panel_auto_hide
+                    && !preview_fits(
+                        main_rect,
+                        input_bar_height,
+                        merged_config,
+                    ))
+        };
         let constraints = if preview_hidden {
             vec![Constraint::Fill(1)]
         } else {
@@ -388,60 +414,15 @@ impl Layout {
             }
         };
 
-        // the remote control is a centered popup
-        let remote_control = if !merged_config.remote_disabled
-            && mode == Mode::RemoteControl
-        {
-            let remote_control_rect = centered_rect_with_dimensions(
-                &Dimensions::new(
-                    area.width * REMOTE_PANEL_WIDTH_PERCENTAGE / 100,
-                    // on smaller screens (< logo + 3 vert padding top & btm), we won't display the
-                    // logo
-                    REMOTE_LOGO_HEIGHT_U16.min(area.height.saturating_sub(6)),
-                ),
-                area,
-            );
-            Some(remote_control_rect)
+        // the actions picker and the help panel take the preview pane; the
+        // pane rect moves from `preview_window` to the borrower
+        let (preview_window, borrowed_pane) = if ap_takeover || help_takeover {
+            (None, preview_window)
         } else {
-            None
+            (preview_window, None)
         };
-
-        // the action picker is a centered popup (similar to remote control but simpler)
-        let action_picker = if mode == Mode::ActionPicker {
-            let action_picker_rect = centered_rect_with_dimensions(
-                &Dimensions::new(
-                    area.width * ACTION_PICKER_WIDTH_PERCENTAGE / 100,
-                    area.height * ACTION_PICKER_HEIGHT_PERCENTAGE / 100,
-                ),
-                area,
-            );
-            Some(action_picker_rect)
-        } else {
-            None
-        };
-
-        // the help panel is positioned at bottom-right, accounting for status bar
-        let help_panel = if merged_config.help_panel_disabled
-            || merged_config.help_panel_hidden
-        {
-            None
-        } else {
-            // Calculate available area for help panel (excluding status bar if enabled)
-            let hp_area = if merged_config.status_bar_hidden {
-                area
-            } else {
-                Rect {
-                    x: area.x,
-                    y: area.y,
-                    width: area.width,
-                    height: area.height.saturating_sub(1), // Account for single line status bar
-                }
-            };
-
-            let (width, height) =
-                calculate_help_panel_size(merged_config, mode, colorscheme);
-            Some(bottom_right_rect(width, height, hp_area))
-        };
+        let action_picker = if ap_takeover { borrowed_pane } else { None };
+        let help_panel = if help_takeover { borrowed_pane } else { None };
 
         // Create status bar at the bottom if enabled
         let status_bar = if merged_config.status_bar_hidden {
@@ -449,7 +430,7 @@ impl Layout {
         } else {
             Some(Rect {
                 x: area.x,
-                y: area.y + area.height - 1, // Position at the very last line
+                y: (area.y + area.height).saturating_sub(1), // Position at the very last line
                 width: area.width,
                 height: 1, // Single line status bar
             })
@@ -459,7 +440,6 @@ impl Layout {
             results,
             input,
             preview_window,
-            remote_control,
             action_picker,
             help_panel,
             status_bar,
@@ -497,25 +477,51 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
         .split(popup_layout[1])[1] // Return the middle chunk
 }
 
-/// helper function to create a floating rect positioned at the bottom-right corner
-fn bottom_right_rect(width: u16, height: u16, r: Rect) -> Rect {
-    let x = r.width.saturating_sub(width + 2); // 2 for padding from edge
-    let y = r.height.saturating_sub(height + 1); // 1 for padding from edge
+/// Minimum dimensions each pane must end up with for the preview to be worth
+/// showing; below these the preview is automatically hidden so the results
+/// list stays usable (e.g. `--inline` in a handful of rows).
+const MIN_PREVIEW_HEIGHT: u16 = 8;
+const MIN_RESULTS_HEIGHT: u16 = 4;
+const MIN_PREVIEW_WIDTH: u16 = 25;
+const MIN_RESULTS_WIDTH: u16 = 30;
 
-    Rect {
-        x: r.x + x,
-        y: r.y + y,
-        width: width.min(r.width.saturating_sub(2)),
-        height: height.min(r.height.saturating_sub(2)),
+fn preview_fits(
+    main_rect: Rect,
+    input_bar_height: u16,
+    merged_config: &MergedConfig,
+) -> bool {
+    let pct = u32::from(merged_config.preview_panel_size.clamp(1, 99));
+    match merged_config.layout {
+        Orientation::Portrait => {
+            let available = main_rect.height.saturating_sub(input_bar_height);
+            let preview = u16::try_from(u32::from(available) * pct / 100)
+                .unwrap_or(u16::MAX);
+            preview >= MIN_PREVIEW_HEIGHT
+                && available.saturating_sub(preview) >= MIN_RESULTS_HEIGHT
+        }
+        Orientation::Landscape => {
+            let preview =
+                u16::try_from(u32::from(main_rect.width) * pct / 100)
+                    .unwrap_or(u16::MAX);
+            preview >= MIN_PREVIEW_WIDTH
+                && main_rect.width.saturating_sub(preview) >= MIN_RESULTS_WIDTH
+        }
     }
 }
 
-fn input_bar_height(padding: Padding, border_type: BorderType) -> u16 {
-    // input line + header + vertical padding
-    let mut h = 1 + 1 + padding.top + padding.bottom;
+fn input_bar_height(
+    padding: Padding,
+    border_type: BorderType,
+    header_hidden: bool,
+) -> u16 {
+    // input line + vertical padding
+    let mut h = 1 + padding.top + padding.bottom;
 
-    // add the bottom border if applicable (top is already included with the header)
     if border_type != BorderType::None {
+        // top border (which carries the header) + bottom border
+        h += 2;
+    } else if !header_hidden {
+        // without borders the header gets its own line
         h += 1;
     }
     h
@@ -533,7 +539,7 @@ mod tests {
     /// --------
     fn test_input_bar_height_with_borders() {
         assert_eq!(
-            input_bar_height(Padding::default(), BorderType::Rounded),
+            input_bar_height(Padding::default(), BorderType::Rounded, false),
             3
         );
     }
@@ -542,7 +548,10 @@ mod tests {
     ///      h
     ///    input
     fn test_input_bar_height_without_borders() {
-        assert_eq!(input_bar_height(Padding::default(), BorderType::None,), 2);
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::None, false),
+            2
+        );
     }
 
     #[test]
@@ -555,9 +564,30 @@ mod tests {
                     left: 0,
                     right: 0,
                 },
-                BorderType::None
+                BorderType::None,
+                false
             ),
             5
+        );
+    }
+
+    #[test]
+    ///    input
+    fn test_input_bar_height_borderless_no_header() {
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::None, true),
+            1
+        );
+    }
+
+    #[test]
+    /// --------
+    ///  input
+    /// --------
+    fn test_input_bar_height_bordered_no_header() {
+        assert_eq!(
+            input_bar_height(Padding::default(), BorderType::Rounded, true),
+            3
         );
     }
 }

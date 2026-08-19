@@ -4,6 +4,7 @@ use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stderr, stdout};
 use std::path::PathBuf;
 use std::process::exit;
+use television::channels::prototypes::remove_enter_keybinding;
 use television::cli::ChannelCli;
 use television::config::layers::ConfigLayers;
 use television::config::shell_integration::ShellIntegrationConfig;
@@ -15,7 +16,10 @@ use television::{
         args::{Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
     },
-    config::{Config, ConfigEnv},
+    config::{
+        Config, ConfigEnv, get_config_dir, get_data_dir,
+        migration::{maybe_print_migration_notice, migrate_config},
+    },
     errors::os_error_exit,
     gh::update_local_channels,
     television::Mode,
@@ -121,6 +125,12 @@ async fn main() -> Result<()> {
         }
     }
     bufwriter.flush()?;
+
+    // one-time invitation to trim configs auto-written by older versions
+    if config_file.is_none() && stderr().is_terminal() {
+        maybe_print_migration_notice(&get_config_dir(), &get_data_dir());
+    }
+
     exit(0);
 }
 
@@ -168,6 +178,13 @@ pub fn handle_subcommand(
             update_local_channels(force)?;
             exit(0);
         }
+        Command::MigrateConfig => {
+            let report = migrate_config(&get_config_dir())?;
+            let mut out = stdout().lock();
+            writeln!(out, "Backed up config to {}", report.backup.display())?;
+            writeln!(out, "Done.")?;
+            exit(0);
+        }
     }
 }
 
@@ -203,13 +220,15 @@ pub fn determine_channel(
         ChannelPrototype::stdin()
     } else if let Some(prompt) = &cli.autocomplete_prompt {
         debug!("Using autocomplete prompt: {:?}", prompt);
-        let prototype = guess_channel_from_prompt(
+        let mut prototype = guess_channel_from_prompt(
             prompt,
             &config.shell_integration.commands,
             &config.shell_integration.fallback_channel,
             cable,
         );
         debug!("Using guessed channel: {:?}", prototype);
+        // Unbind any <Enter> keybinding since that would interfere with autocompletion behavior.
+        remove_enter_keybinding(&mut prototype);
         prototype
     } else if cli.channel.is_none() && cli.source_command.is_some() {
         create_adhoc_channel(cli)
@@ -231,6 +250,7 @@ mod tests {
             ChannelPrototype, CommandSpec, PreviewSpec, Template,
         },
         cli::PostProcessedCli,
+        event::Key,
     };
 
     use super::*;
@@ -303,6 +323,67 @@ mod tests {
             false,
             &expected_channel,
             None,
+        );
+    }
+
+    #[test]
+    fn test_determine_channel_autocomplete_unbinds_enter() {
+        // A channel that defines an <Enter> keybinding.
+        let toml_data = r#"
+        [metadata]
+        name = "git-branches"
+
+        [source]
+        command = "git branch --all"
+
+        [keybindings]
+        esc = "quit"
+        enter = "actions:checkout"
+        "#;
+        let branches: ChannelPrototype = toml::from_str(toml_data).unwrap();
+        assert!(
+            branches
+                .keybindings
+                .as_ref()
+                .unwrap()
+                .bindings
+                .contains_key(&Key::Enter)
+        );
+
+        let cable = Cable::from_prototypes(vec![branches]);
+        let config = Config {
+            shell_integration:
+                television::config::shell_integration::ShellIntegrationConfig {
+                    fallback_channel: "git-branches".to_string(),
+                    commands: {
+                        let mut m = FxHashMap::default();
+                        m.insert(
+                            "git checkout".to_string(),
+                            "git-branches".to_string(),
+                        );
+                        m
+                    },
+                    keybindings: FxHashMap::default(),
+                },
+            ..Default::default()
+        };
+        let cli = ChannelCli {
+            autocomplete_prompt: Some("git checkout ".to_string()),
+            ..Default::default()
+        };
+
+        let channel = determine_channel(&cli, &config, false, &cable);
+
+        // In autocomplete mode the <Enter> binding is stripped so it doesn't
+        // interfere with the autocompletion behavior.
+        assert_eq!(channel.metadata.name, "git-branches");
+        assert!(
+            !channel
+                .keybindings
+                .as_ref()
+                .unwrap()
+                .bindings
+                .contains_key(&Key::Enter)
         );
     }
 

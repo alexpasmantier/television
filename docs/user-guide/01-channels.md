@@ -193,8 +193,7 @@ footer = "my awesome footer"
 scrollbar = false
 
 [ui.status_bar]
-separator_open = "<"
-separator_close = ">"
+hidden = false
 
 [ui.help_panel]
 show_categories = true

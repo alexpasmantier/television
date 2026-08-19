@@ -40,12 +40,6 @@ impl UiState {
     }
 }
 
-/// The maximum frame rate for the UI rendering loop (in milliseconds).
-///
-/// This is used to limit the frame rate of the UI rendering loop to avoid consuming
-/// unnecessary CPU resources.
-const MAX_FRAME_RATE: u128 = 1000 / 60; // 60 FPS
-
 /// The main UI rendering task loop.
 ///
 /// This function is responsible for rendering the UI based on the rendering tasks it receives from
@@ -65,29 +59,21 @@ pub async fn render<W: Write>(
     mut tui: Tui<W>,
 ) -> Result<()> {
     let mut buffer = Vec::with_capacity(256);
-    let mut num_instructions;
-    let mut frame_start;
 
     // Rendering loop
     'rendering: while render_rx.recv_many(&mut buffer, 256).await > 0 {
-        frame_start = std::time::Instant::now();
-        num_instructions = buffer.len();
-        // we only keep the last render instruction in the buffer
-        if let Some(last_render) = buffer
+        // Only the last render instruction in the batch matters: pull it
+        // out (its context is large, so no cloning) and process it after
+        // the other tasks.
+        let last_render = buffer
             .iter()
-            .rfind(|e| matches!(e, RenderingTask::Render(_)))
-        {
-            buffer.push(last_render.clone());
-        }
+            .rposition(|e| matches!(e, RenderingTask::Render(_)))
+            .map(|idx| buffer.remove(idx));
 
         for event in buffer
             .drain(..)
-            .enumerate()
-            .filter(|(i, e)| {
-                !matches!(e, RenderingTask::Render(_))
-                    || *i == num_instructions
-            })
-            .map(|(_, val)| val)
+            .filter(|e| !matches!(e, RenderingTask::Render(_)))
+            .chain(last_render)
         {
             match event {
                 RenderingTask::ClearScreen => {
@@ -145,15 +131,6 @@ pub async fn render<W: Write>(
                     break 'rendering;
                 }
             }
-        }
-        // yield back to the scheduler until the next frame
-        let elapsed = frame_start.elapsed();
-        if elapsed.as_millis() < MAX_FRAME_RATE {
-            let sleep_duration = std::time::Duration::from_millis(
-                u64::try_from(MAX_FRAME_RATE - elapsed.as_millis())
-                    .unwrap_or(0),
-            );
-            tokio::time::sleep(sleep_duration).await;
         }
     }
 

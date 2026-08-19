@@ -10,6 +10,9 @@ pub struct Picker<T> {
     pub(crate) input: Input,
     pub entries: Arc<Vec<T>>,
     pub total_items: u32,
+    /// Total number of items before filtering (only maintained for the
+    /// remote control and actions pickers, used by the minimal UI).
+    pub total_count: u32,
 }
 
 impl<T> Default for Picker<T> {
@@ -27,6 +30,7 @@ impl<T> Picker<T> {
             input: Input::new(input.unwrap_or(EMPTY_STRING.to_string())),
             entries: Arc::new(Vec::new()),
             total_items: 0,
+            total_count: 0,
         }
     }
 

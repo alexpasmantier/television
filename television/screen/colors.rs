@@ -14,6 +14,7 @@ pub struct Colorscheme {
 pub struct GeneralColorscheme {
     pub border_fg: Color,
     pub background: Option<Color>,
+    pub dimmed_text_fg: Color,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -43,6 +44,8 @@ pub struct PreviewColorscheme {
 pub struct InputColorscheme {
     pub input_fg: Color,
     pub results_count_fg: Color,
+    /// Multi-source indicator (source name + dots) next to the count.
+    pub source_indicator_fg: Color,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

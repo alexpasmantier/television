@@ -15,10 +15,10 @@ preview_panel = { size = 70 }
 
 [actions.logs]
 description = "Follow live logs for the selected identifier"
-command = "journalctl -f SYSLOG_IDENTIFIER='{}'"
+command = "journalctl -f SYSLOG_IDENTIFIER={}"
 mode = "execute"
 
 [actions.full]
 description = "View all logs for the selected identifier in a pager"
-command = "journalctl -b --no-pager -o short-iso SYSLOG_IDENTIFIER='{}' | less"
+command = "journalctl -b --no-pager -o short-iso SYSLOG_IDENTIFIER={} | less"
 mode = "fork"

@@ -16,6 +16,7 @@ use crate::{
     errors::os_error_exit,
     frecency::FrecencyHandle,
     input::convert_action_to_input_request,
+    matcher::Notify,
     picker::{Movement, Picker},
     previewer::{
         Config as PreviewerConfig, Preview, Previewer,
@@ -24,6 +25,7 @@ use crate::{
     render::UiState,
     screen::{
         colors::Colorscheme,
+        help_panel::max_help_scroll,
         layout::{InputPosition, Orientation},
     },
     utils::{
@@ -36,7 +38,7 @@ use anyhow::Result;
 use ratatui::layout::Rect;
 use rustc_hash::FxHashSet;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, sync::Arc};
+use std::{fmt::Display, sync::Arc, time::Duration};
 use tokio::sync::mpsc::{
     UnboundedReceiver, UnboundedSender, unbounded_channel,
 };
@@ -90,6 +92,8 @@ pub struct Television {
     pub rc_picker: Picker<CableEntry>,
     pub ap_picker: Picker<ActionEntry>,
     pub preview_state: PreviewState,
+    /// Scroll offset of the help panel when its content overflows the pane
+    pub help_panel_scroll: u16,
     pub preview_handles:
         Option<(UnboundedSender<PreviewRequest>, UnboundedReceiver<Preview>)>,
     pub app_metadata: Arc<AppMetadata>,
@@ -100,6 +104,10 @@ pub struct Television {
     frecency: FrecencyHandle,
     /// Tracks whether the channel was running on the previous tick to reset ticks
     was_running: bool,
+    /// Callback handed to every matcher so that, when fresh results are
+    /// published, the app loop is woken to render them immediately instead
+    /// of waiting for the next periodic render tick.
+    notify: Notify,
     /// Popup shown when attempting to switch to a channel with missing requirements
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
@@ -114,6 +122,13 @@ impl Television {
         cable_channels: Cable,
         frecency: FrecencyHandle,
     ) -> Self {
+        // The matchers call this whenever they publish fresh results, waking
+        // the app loop so the UI renders them without waiting for a tick.
+        let notify_tx = action_tx.clone();
+        let notify: Notify = Arc::new(move || {
+            let _ = notify_tx.send(Action::MatcherUpdated);
+        });
+
         let merged_config = {
             // this is to keep the outer merged config immutable
             let mut m = layered_config.merge();
@@ -165,6 +180,7 @@ impl Television {
             merged_config.no_sort,
             frecency_config,
             merged_config.is_stdin,
+            notify.clone(),
         );
 
         let app_metadata = AppMetadata::new(
@@ -205,6 +221,7 @@ impl Television {
             Some(RemoteControl::new(
                 cable_channels,
                 merged_config.remote_sort_alphabetically,
+                notify.clone(),
             ))
         };
 
@@ -226,11 +243,13 @@ impl Television {
             rc_picker: Picker::default(),
             ap_picker: Picker::default(),
             preview_state,
+            help_panel_scroll: 0,
             preview_handles,
             app_metadata: Arc::new(app_metadata),
             colorscheme: Arc::new(colorscheme),
             ticks: 0,
             was_running: true,
+            notify,
             ui_state: UiState::default(),
             frecency,
             missing_requirements_popup: None,
@@ -291,6 +310,7 @@ impl Television {
                     .as_ref()
                     .map_or(0, |r| r.height as usize),
             ),
+            self.help_panel_scroll,
             self.missing_requirements_popup.clone(),
         );
 
@@ -372,6 +392,7 @@ impl Television {
             self.merged_config.no_sort,
             frecency_config,
             false, // stdin only applies to the initial channel
+            self.notify.clone(),
         );
         self.was_running = true;
         self.channel.load();
@@ -476,8 +497,9 @@ impl Television {
                     movement,
                     step,
                     self.channel.result_count() as usize,
-                    self.ui_state.layout.results.height.saturating_sub(2)
-                        as usize,
+                    self.ui_state.layout.results.height.saturating_sub(
+                        self.merged_config.results_panel_chrome_height(),
+                    ) as usize,
                 );
             }
             Mode::RemoteControl => {
@@ -491,10 +513,7 @@ impl Television {
                     movement,
                     step,
                     total_results,
-                    self.ui_state.layout.remote_control.expect(
-                        "remote UI panel should be contained in the layout when in RC mode"
-                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
-                        as usize,
+                    self.rc_picker_viewport_height() as usize,
                 );
             }
             Mode::ActionPicker => {
@@ -507,13 +526,38 @@ impl Television {
                     movement,
                     step,
                     total_results,
-                    self.ui_state.layout.action_picker.expect(
-                        "action picker UI panel should be contained in the layout when in AP mode"
-                    ).height.saturating_sub(5) // accounting for borders (2) and input box (3)
-                        as usize,
+                    self.ap_picker_viewport_height() as usize,
                 );
             }
         }
+    }
+
+    /// Visible height for the remote control list: the main results area
+    /// (the remote takes over the results panel).
+    fn rc_picker_viewport_height(&self) -> u16 {
+        self.ui_state
+            .layout
+            .results
+            .height
+            .saturating_sub(self.merged_config.results_panel_chrome_height())
+    }
+
+    /// Visible height for the actions picker list: the borrowed preview
+    /// pane minus the actions input line and separator.
+    fn ap_picker_viewport_height(&self) -> u16 {
+        self.ui_state.layout.action_picker.map_or(0, |pane| {
+            let input_rows = 1
+                + self.merged_config.input_bar_padding.top
+                + self.merged_config.input_bar_padding.bottom;
+            let separator_row =
+                u16::from(self.merged_config.layout == Orientation::Portrait);
+            pane.height
+                .saturating_sub(input_rows + separator_row)
+                .saturating_sub(
+                    self.merged_config.results_panel_padding.top
+                        + self.merged_config.results_panel_padding.bottom,
+                )
+        })
     }
 
     fn reset_picker_selection(&mut self) {
@@ -569,6 +613,9 @@ const RENDERING_INTERVAL: u64 = 25;
 /// This ensures that the UI stays in sync with the channel
 /// state (loading indicator, updating results, etc.).
 const RENDERING_INTERVAL_FAST: u64 = 3;
+/// How long to wait for the matcher to finish before rendering after
+/// an input action.
+const INPUT_MATCHER_WAIT: Duration = Duration::from_millis(2);
 
 impl Television {
     /// This contains the logic to determine whether a render should be performed
@@ -582,6 +629,9 @@ impl Television {
             // more frequently if the channel is running
             || (self.channel.running()
                 && self.ticks.is_multiple_of(RENDERING_INTERVAL_FAST))
+            // as soon as the matcher publishes fresh results, so results
+            // appear immediately instead of on the next periodic tick
+            || matches!(action, Action::MatcherUpdated)
             // always render on input actions that modify the ui state
             || matches!(
                 action,
@@ -620,6 +670,23 @@ impl Television {
             && !self
                 .channel
                 .reloading()
+    }
+
+    /// Whether the help panel is currently shown (it borrows the preview
+    /// pane, so preview scroll actions are routed to it while it's open)
+    fn help_panel_open(&self) -> bool {
+        self.ui_state.layout.help_panel.is_some()
+    }
+
+    fn scroll_help_panel_down(&mut self, offset: u16) {
+        self.help_panel_scroll = self
+            .help_panel_scroll
+            .saturating_add(offset)
+            .min(max_help_scroll(&self.merged_config, self.mode));
+    }
+
+    fn scroll_help_panel_up(&mut self, offset: u16) {
+        self.help_panel_scroll = self.help_panel_scroll.saturating_sub(offset);
     }
 
     pub fn update_preview_state(
@@ -671,8 +738,15 @@ impl Television {
     pub fn update_results_picker_state(&mut self) {
         {
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
-            let height =
-                self.ui_state.layout.results.height.saturating_sub(2).into(); // -2 for borders
+            let height = self
+                .ui_state
+                .layout
+                .results
+                .height
+                .saturating_sub(
+                    self.merged_config.results_panel_chrome_height(),
+                )
+                .into();
 
             self.results_picker.entries =
                 Arc::new(self.channel.results(height, offset));
@@ -700,14 +774,7 @@ impl Television {
 
         {
             let offset = u32::try_from(self.rc_picker.offset()).unwrap();
-            let height = self
-                .ui_state
-                .layout
-                .remote_control
-                .unwrap_or_default()
-                .height
-                .saturating_sub(5)
-                .into();
+            let height = u32::from(self.rc_picker_viewport_height());
             let new_entries = self
                 .remote_control
                 .as_mut()
@@ -717,6 +784,8 @@ impl Television {
             self.rc_picker.entries = Arc::new(new_entries);
         }
         self.rc_picker.total_items =
+            self.remote_control.as_ref().unwrap().result_count();
+        self.rc_picker.total_count =
             self.remote_control.as_ref().unwrap().total_count();
     }
 
@@ -732,20 +801,15 @@ impl Television {
 
         {
             let offset = u32::try_from(self.ap_picker.offset()).unwrap();
-            let height = self
-                .ui_state
-                .layout
-                .action_picker
-                .unwrap_or_default()
-                .height
-                .saturating_sub(5)
-                .into();
-            let new_entries =
-                self.action_picker.as_mut().unwrap().results(height, offset);
+            // the action list is small: fetch everything
+            let ap = self.action_picker.as_mut().unwrap();
+            let new_entries = ap.results(ap.result_count(), offset);
 
             self.ap_picker.entries = Arc::new(new_entries);
         }
         self.ap_picker.total_items =
+            self.action_picker.as_ref().unwrap().result_count();
+        self.ap_picker.total_count =
             self.action_picker.as_ref().unwrap().total_count();
     }
 
@@ -778,6 +842,7 @@ impl Television {
         self.action_picker = Some(ActionPicker::new(
             &self.merged_config.channel_actions,
             &action_keybindings,
+            self.notify.clone(),
         ));
     }
 
@@ -824,6 +889,10 @@ impl Television {
                 self.action_tx.send(Action::SelectAndExit)?;
             }
             Mode::RemoteControl => {
+                if let Some(rc) = self.remote_control.as_ref() {
+                    rc.wait_for_idle();
+                }
+                self.update_rc_picker_state();
                 if let Some(entry) = self.get_selected_cable_entry() {
                     // Check for missing requirements
                     let missing: Vec<String> = entry
@@ -986,13 +1055,35 @@ impl Television {
                     );
                 }
             }
-            Action::ScrollPreviewDown => self.preview_state.scroll_down(1),
-            Action::ScrollPreviewUp => self.preview_state.scroll_up(1),
+            // while the help panel borrows the preview pane, the preview
+            // scroll actions scroll it instead
+            Action::ScrollPreviewDown => {
+                if self.help_panel_open() {
+                    self.scroll_help_panel_down(1);
+                } else {
+                    self.preview_state.scroll_down(1);
+                }
+            }
+            Action::ScrollPreviewUp => {
+                if self.help_panel_open() {
+                    self.scroll_help_panel_up(1);
+                } else {
+                    self.preview_state.scroll_up(1);
+                }
+            }
             Action::ScrollPreviewHalfPageDown => {
-                self.preview_state.scroll_down(20);
+                if self.help_panel_open() {
+                    self.scroll_help_panel_down(20);
+                } else {
+                    self.preview_state.scroll_down(20);
+                }
             }
             Action::ScrollPreviewHalfPageUp => {
-                self.preview_state.scroll_up(20);
+                if self.help_panel_open() {
+                    self.scroll_help_panel_up(20);
+                } else {
+                    self.preview_state.scroll_up(20);
+                }
             }
 
             Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
@@ -1025,6 +1116,8 @@ impl Television {
                 {
                     return Ok(());
                 }
+                // the help content is mode-specific
+                self.help_panel_scroll = 0;
                 match self.mode {
                     Mode::Channel => {
                         self.mode = Mode::RemoteControl;
@@ -1067,6 +1160,8 @@ impl Television {
                 if self.merged_config.channel_actions.is_empty() {
                     return Ok(());
                 }
+                // the help content is mode-specific
+                self.help_panel_scroll = 0;
                 match self.mode {
                     Mode::Channel => {
                         self.init_action_picker();
@@ -1106,6 +1201,7 @@ impl Television {
                 if !self.merged_config.help_panel_disabled {
                     let config = Arc::make_mut(&mut self.merged_config);
                     config.help_panel_hidden = !config.help_panel_hidden;
+                    self.help_panel_scroll = 0;
                 }
             }
             Action::TogglePreview => {
@@ -1147,8 +1243,21 @@ impl Television {
     pub fn update(&mut self, action: &Action) -> Result<Option<Action>> {
         self.handle_action(action)?;
 
-        // Always let the background matcher make progress
-        self.channel.tick();
+        // If the matcher is running and we just performed an input action, wait
+        // X ms for the matcher to finish to avoid unnecessary renders
+        if self.mode == Mode::Channel
+            && self.channel.running()
+            && matches!(
+                action,
+                Action::AddInputChar(_)
+                    | Action::DeletePrevChar
+                    | Action::DeletePrevWord
+                    | Action::DeleteLine
+                    | Action::DeleteNextChar
+            )
+        {
+            self.channel.wait_for_idle_timeout(INPUT_MATCHER_WAIT);
+        }
 
         // When the channel transitions from running to stopped, reset ticks
         // to restart the fast-render window. This ensures newly loaded results

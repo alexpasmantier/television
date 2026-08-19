@@ -45,6 +45,8 @@
               (lib.fileset.maybeMissing ./working-dir-test.txt)
               # Pass tests/app.rs tests
               (lib.fileset.maybeMissing ./tests/target_dir)
+              # Pass legacy config file templates
+              (lib.fileset.maybeMissing ./television/config/legacy_config_templates.json)
             ];
           };
 
@@ -103,18 +105,11 @@
               # here *without* rebuilding all dependency crates
               # MY_CUSTOM_VAR = "some value";
 
-              # Wrap the binary to include runtime dependencies in PATH and install shell completions
+              # Wrap the binary to include runtime dependencies in PATH
               postInstall = ''
                 wrapProgram $out/bin/tv \
                   --prefix PATH : ${lib.makeBinPath runtimeDeps} \
-
-                installShellCompletion --cmd tv \
-                  television/utils/shell/completion.bash \
-                  television/utils/shell/completion.zsh \
-                  television/utils/shell/completion.fish \
-                  television/utils/shell/completion.nu
               '';
-
             }
           );
         in

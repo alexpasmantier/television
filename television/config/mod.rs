@@ -11,7 +11,7 @@ use std::{
     hash::Hash,
     path::{Path, PathBuf},
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 pub use keybindings::{Keybindings, merge_keybindings};
 pub use themes::Theme;
@@ -21,6 +21,7 @@ mod themes;
 
 pub mod keybindings;
 pub mod layers;
+pub mod migration;
 pub mod shell_integration;
 pub mod ui;
 
@@ -196,16 +197,14 @@ impl Config {
 
             Ok(final_cfg)
         } else {
-            // otherwise, create the default configuration file
-            warn!(
-                "No config file found at {:?}, creating default configuration file at that location.",
+            // no user config: just run with the built-in defaults. We
+            // deliberately don't write a config file here: a generated file
+            // spells out every default explicitly, which pins users to the
+            // defaults of the version that created it.
+            debug!(
+                "No config file found at {:?}, using default configuration.",
                 config_env.config_dir
             );
-            // create the default configuration file in the user's config directory
-            std::fs::write(
-                config_env.config_dir.join(CONFIG_FILE_NAME),
-                DEFAULT_CONFIG,
-            )?;
             Ok(default_config)
         }
     }
@@ -372,6 +371,9 @@ mod tests {
         let config = Config::new(&config_env, None).unwrap();
         let default_config: Config = toml::from_str(DEFAULT_CONFIG).unwrap();
 
+        // no config file should be written to the user's config directory
+        assert!(!config_dir.join(CONFIG_FILE_NAME).exists());
+
         assert_eq!(config.application, default_config.application);
         assert_eq!(config.keybindings, default_config.keybindings);
         assert_eq!(config.ui, default_config.ui);
@@ -427,6 +429,8 @@ mod tests {
             toml::from_str(DEFAULT_CONFIG).unwrap();
         default_config.ui.ui_scale = 40;
         default_config.ui.theme = "television".to_string();
+        // the fixture sets an explicit prompt (the built-in default is none)
+        default_config.ui.input_bar.prompt = Some(">".to_string());
         // With new architecture, we add directly to the bindings map
         default_config
             .keybindings

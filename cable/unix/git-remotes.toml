@@ -11,10 +11,10 @@ command = "git remote show '{}'"
 
 [actions.fetch]
 description = "Fetch from the selected remote"
-command = "git fetch '{}'"
+command = "git fetch {}"
 mode = "execute"
 
 [actions.remove]
 description = "Remove the selected remote"
-command = "git remote remove '{}'"
+command = "git remote remove {}"
 mode = "execute"

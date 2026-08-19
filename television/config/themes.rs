@@ -221,11 +221,11 @@ impl Theme {
     }
 }
 
-pub const DEFAULT_THEME: &str = "default";
+pub const DEFAULT_THEME: &str = "television";
 
 impl Default for Theme {
     fn default() -> Self {
-        let theme_content = include_str!("../../themes/default.toml");
+        let theme_content = include_str!("../../themes/television.toml");
         toml::from_str(theme_content).unwrap()
     }
 }
@@ -500,6 +500,7 @@ impl Into<GeneralColorscheme> for &Theme {
         GeneralColorscheme {
             background: self.background.as_ref().map(Into::into),
             border_fg: (&self.border_fg).into(),
+            dimmed_text_fg: (&self.dimmed_text_fg).into(),
         }
     }
 }
@@ -545,6 +546,7 @@ impl Into<InputColorscheme> for &Theme {
         InputColorscheme {
             input_fg: (&self.input_text_fg).into(),
             results_count_fg: (&self.result_count_fg).into(),
+            source_indicator_fg: (&self.result_line_number_fg).into(),
         }
     }
 }

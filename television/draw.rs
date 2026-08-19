@@ -7,11 +7,14 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        action_picker::draw_action_picker, colors::Colorscheme,
-        help_panel::draw_help_panel, input::draw_input_box, layout::Layout,
+        action_picker::draw_minimal_actions_pane,
+        colors::Colorscheme,
+        help_panel::draw_help_pane,
+        input::{SourceIndicator, draw_input_box},
+        layout::{Layout, pane_separator_side},
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
-        remote_control::draw_remote_control, results::draw_results_list,
+        results::{draw_minimal_picker_list, draw_results_list},
         status_bar,
     },
     television::{MissingRequirementsPopup, Mode},
@@ -89,6 +92,7 @@ pub struct TvState {
     pub ap_picker: Picker<ActionEntry>,
     pub channel_state: ChannelState,
     pub preview_state: PreviewState,
+    pub help_panel_scroll: u16,
     pub missing_requirements_popup: Option<MissingRequirementsPopup>,
 }
 
@@ -102,6 +106,7 @@ impl TvState {
         ap_picker: Picker<ActionEntry>,
         channel_state: ChannelState,
         preview_state: PreviewState,
+        help_panel_scroll: u16,
         missing_requirements_popup: Option<MissingRequirementsPopup>,
     ) -> Self {
         Self {
@@ -112,6 +117,7 @@ impl TvState {
             ap_picker,
             channel_state,
             preview_state,
+            help_panel_scroll,
             missing_requirements_popup,
         }
     }
@@ -192,47 +198,93 @@ impl UiComponent for StatusBarComponent<'_> {
 /// information can be useful or lead to optimizations.
 pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     let show_remote = matches!(ctx.tv_state.mode, Mode::RemoteControl);
+    let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
+    let minimal = ctx.config.input_bar_minimal;
 
-    let layout =
-        Layout::build(area, &ctx.config, ctx.tv_state.mode, &ctx.colorscheme);
+    let layout = Layout::build(area, &ctx.config, ctx.tv_state.mode);
 
-    // results list
-    let cycle_sources_key = ctx
-        .config
-        .input_map
-        .get_key_for_action(&Action::CycleSources);
-    draw_results_list(
-        f,
-        layout.results,
-        &ctx.tv_state.results_picker.entries,
-        &ctx.tv_state.channel_state.selected_entries,
-        &mut ctx.tv_state.results_picker.relative_state.clone(),
-        ctx.config.input_bar_position,
-        &ctx.colorscheme,
-        &ctx.config.results_panel_padding,
-        &ctx.config.results_panel_border_type,
-        ctx.tv_state.channel_state.source_index,
-        ctx.tv_state.channel_state.source_count,
-        ctx.tv_state.channel_state.current_source_name.as_deref(),
-        cycle_sources_key,
-    )?;
+    // the remote control takes over the main results and input areas
+    if show_remote {
+        let picker = &ctx.tv_state.rc_picker;
+        draw_minimal_picker_list(
+            f,
+            layout.results,
+            &picker.entries,
+            &mut picker.relative_state.clone(),
+            ctx.config.input_bar_position,
+            &ctx.colorscheme,
+            &ctx.config.results_panel_padding,
+            ctx.config.remote_show_channel_descriptions,
+        )?;
+        draw_input_box(
+            f,
+            layout.input,
+            &ctx.config,
+            &ctx.colorscheme,
+            &picker.input,
+            &picker.state,
+            picker.total_items,
+            picker.total_count,
+            false,
+            "channels",
+            // with no status bar, the picker hint stands in for the mode
+            ctx.config
+                .status_bar_hidden
+                .then_some(("channels", ctx.colorscheme.mode.remote_control)),
+            None,
+        )?;
+    } else {
+        // results list
+        let cycle_sources_key = ctx
+            .config
+            .input_map
+            .get_key_for_action(&Action::CycleSources);
+        draw_results_list(
+            f,
+            layout.results,
+            &ctx.tv_state.results_picker.entries,
+            &ctx.tv_state.channel_state.selected_entries,
+            &mut ctx.tv_state.results_picker.relative_state.clone(),
+            ctx.config.input_bar_position,
+            &ctx.colorscheme,
+            &ctx.config.results_panel_padding,
+            &ctx.config.results_panel_border_type,
+            ctx.tv_state.channel_state.source_index,
+            ctx.tv_state.channel_state.source_count,
+            ctx.tv_state.channel_state.current_source_name.as_deref(),
+            cycle_sources_key,
+        )?;
 
-    draw_input_box(
-        f,
-        layout.input,
-        ctx.tv_state.results_picker.total_items,
-        ctx.tv_state.channel_state.total_count,
-        &ctx.tv_state.results_picker.input,
-        &ctx.tv_state.results_picker.state,
-        ctx.tv_state.channel_state.running,
-        &ctx.tv_state.channel_state.current_channel_name,
-        &ctx.colorscheme,
-        ctx.config.input_bar_position,
-        &ctx.config.input_bar_header,
-        &ctx.config.input_bar_padding,
-        &ctx.config.input_bar_border_type,
-        ctx.config.input_bar_prompt.as_ref(),
-    )?;
+        draw_input_box(
+            f,
+            layout.input,
+            &ctx.config,
+            &ctx.colorscheme,
+            &ctx.tv_state.results_picker.input,
+            &ctx.tv_state.results_picker.state,
+            ctx.tv_state.results_picker.total_items,
+            ctx.tv_state.channel_state.total_count,
+            ctx.tv_state.channel_state.running,
+            &ctx.tv_state.channel_state.current_channel_name,
+            // with no status bar, the channel name moves next to the count,
+            // in the same color the status bar would use
+            (minimal && ctx.config.status_bar_hidden).then(|| {
+                (
+                    ctx.tv_state.channel_state.current_channel_name.as_str(),
+                    ctx.colorscheme.results.result_fg,
+                )
+            }),
+            Some(&SourceIndicator {
+                name: ctx
+                    .tv_state
+                    .channel_state
+                    .current_source_name
+                    .as_deref(),
+                index: ctx.tv_state.channel_state.source_index,
+                count: ctx.tv_state.channel_state.source_count,
+            }),
+        )?;
+    }
 
     // status bar at the bottom
     if let Some(status_bar_area) = layout.status_bar {
@@ -245,6 +297,14 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             .config
             .input_map
             .get_key_for_action(&Action::CyclePreviews);
+        // when the minimal UI preset is active, draw a hairline on the side
+        // of the preview that faces the results list
+        let separator = ctx.config.preview_panel_separator.then(|| {
+            pane_separator_side(
+                ctx.config.layout,
+                ctx.config.input_bar_position,
+            )
+        });
         draw_preview_content_block(
             f,
             preview_rect,
@@ -255,33 +315,23 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.preview_panel_scrollbar,
             ctx.config.preview_panel_word_wrap,
             cycle_previews_key,
+            separator,
         )?;
     }
 
-    // remote control
-    if show_remote {
-        draw_remote_control(
+    // the actions picker borrows the preview pane, so the entry the action
+    // applies to stays visible in the results list
+    if show_action_picker && let Some(pane) = layout.action_picker {
+        draw_minimal_actions_pane(
             f,
-            layout.remote_control.unwrap(),
-            // FIXME: the way the code is mutualized right now requires only having the entries we
-            // want to display here (i.e. we need to filter here before passing them down)
-            &ctx.tv_state.rc_picker.entries,
-            &mut ctx.tv_state.rc_picker.relative_state.clone(),
-            &mut ctx.tv_state.rc_picker.input.clone(),
-            &ctx.colorscheme,
-            ctx.config.remote_show_channel_descriptions,
-        )?;
-    }
-
-    // action picker
-    let show_action_picker = matches!(ctx.tv_state.mode, Mode::ActionPicker);
-    if show_action_picker {
-        draw_action_picker(
-            f,
-            layout.action_picker.unwrap(),
+            pane,
             &ctx.tv_state.ap_picker.entries,
             &mut ctx.tv_state.ap_picker.relative_state.clone(),
-            &mut ctx.tv_state.ap_picker.input.clone(),
+            &ctx.tv_state.ap_picker.state,
+            &ctx.tv_state.ap_picker.input,
+            ctx.tv_state.ap_picker.total_items,
+            ctx.tv_state.ap_picker.total_count,
+            &ctx.config,
             &ctx.colorscheme,
         )?;
     }
@@ -290,13 +340,14 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
         draw_missing_requirements_popup(f, area, popup, &ctx.colorscheme);
     }
 
-    // floating help panel (rendered last to appear on top)
+    // help panel in the borrowed preview pane
     if let Some(help_area) = layout.help_panel {
-        draw_help_panel(
+        draw_help_pane(
             f,
             help_area,
             &ctx.config,
             ctx.tv_state.mode,
+            ctx.tv_state.help_panel_scroll,
             &ctx.colorscheme,
         );
     }

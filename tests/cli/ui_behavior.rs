@@ -18,13 +18,13 @@ fn test_toggle_preview_keybinding() {
         .unwrap();
 
     // Verify preview is initially visible (two panels side by side)
-    s.wait().text("───╮╭───").until().unwrap();
+    s.wait().text("▏").until().unwrap();
 
     // Send Ctrl+O to toggle preview off
     s.send().key("ctrl-o").unwrap();
 
     // Verify preview is now hidden
-    s.wait().text_absent("───╮╭───").until().unwrap();
+    s.wait().text_absent("▏").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -38,17 +38,17 @@ fn test_toggle_remote_control_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+T to open remote control panel
     s.send().key("ctrl-t").unwrap();
 
-    s.wait().text("(1) (2) (3)").until().unwrap();
+    s.wait().text("● channels").until().unwrap();
 
     // Send Ctrl+C to exit remote control mode; wait for the panel to
     // disappear before sending the app-level quit to avoid races.
     s.send().key("ctrl-c").unwrap();
-    s.wait().text_absent("(1) (2) (3)").until().unwrap();
+    s.wait().text_absent("● channels").until().unwrap();
 
     // Send Ctrl+C again to exit the application
     s.send().key("ctrl-c").unwrap();
@@ -66,12 +66,12 @@ fn test_toggle_status_bar_keybinding() {
     )
     .start()
     .unwrap();
-    s.wait().text("CHANNEL  files").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+K to toggle status bar off
     s.send().key("ctrl-k").unwrap();
 
-    s.wait().text_absent("CHANNEL  files").until().unwrap();
+    s.wait().text_absent("● files").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -85,12 +85,12 @@ fn test_toggle_help_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+H to open help panel
     s.send().key("ctrl-h").unwrap();
 
-    s.wait().text("───── Help ─────").until().unwrap();
+    s.wait().text("▏ help").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -107,19 +107,19 @@ fn test_scroll_preview_keybindings() {
     )
     .start()
     .unwrap();
-    s.wait().text("││   1").until().unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
 
     // Send Page Down to scroll preview down
     s.send().key("pagedown").unwrap();
     s.send().key("pagedown").unwrap();
 
-    s.wait().text_absent("││   1").until().unwrap();
+    s.wait().text_absent("▏    1 ").until().unwrap();
 
     // Send Page Up to scroll preview up
     s.send().key("pageup").unwrap();
     s.send().key("pageup").unwrap();
 
-    s.wait().text("││   1").until().unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -174,7 +174,7 @@ fn test_cycle_sources_keybinding() {
     let s = tv_local_config_and_cable_with_args(&pt, &["files"])
         .start()
         .unwrap();
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Send Ctrl+S to cycle to next source
     s.send().key("ctrl-s").unwrap();
@@ -195,19 +195,15 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
         .start()
         .unwrap();
 
-    // Verify preview is initially visible (two panels side by side)
-    s.wait()
-        .text("╭───────────────────────── files ──────────────────────────╮╭─")
-        .text("───╮╭───")
-        .until()
-        .unwrap();
+    // Verify preview is initially visible
+    s.wait().text("▏").until().unwrap();
 
     // Enter remote control mode
     s.send().key("ctrl-t").unwrap();
 
     s.wait()
-        .text("(1) (2) (3)")
-        .text("Back to Channel:")
+        .text("● channels")
+        .text("● channels")
         .until()
         .unwrap();
 
@@ -217,9 +213,8 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     // Verify we're still in remote control mode and preview is still visible
     // (the toggle should have been ignored)
     s.wait()
-        .text("(1) (2) (3)")
-        .text("Back to Channel:")
-        .text("╭───────────────────────── files ──────────────────────────╮╭─")
+        .text("● channels")
+        .text("● channels")
         .until()
         .unwrap();
 
@@ -227,12 +222,37 @@ fn test_toggle_preview_disabled_in_remote_control_mode() {
     s.send().key("ctrl-t").unwrap();
 
     // Verify we're back in channel mode
-    s.wait().text_absent("Back to Channel:").until().unwrap();
-    s.wait().text("───╮╭───").until().unwrap();
+    s.wait().text_absent("● channels").until().unwrap();
+    s.wait().text("▏").until().unwrap();
 
     // Verify preview toggle works again in channel mode
     s.send().key("ctrl-o").unwrap();
-    s.wait().text_absent("───╮╭───").until().unwrap();
+    s.wait().text_absent("▏").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+/// Tests that scrolling the preview shows a dimmed percentage in the title
+/// row (standing in for the scrollbar), which disappears when scrolled back.
+#[test]
+fn test_preview_scroll_percent_hint() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "LICENSE"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
+    assert_frame_not_contains(&s, "%");
+
+    s.send().key("pagedown").unwrap();
+    s.wait().text("% ").until().unwrap();
+
+    s.send().key("pageup").unwrap();
+    s.wait().text_absent("% ").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

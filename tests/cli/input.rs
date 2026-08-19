@@ -19,7 +19,7 @@ fn test_input_prefills_search_box() {
     .start()
     .unwrap();
 
-    s.wait().text("│> UNIQUE16CHARID").until().unwrap();
+    s.wait().text("UNIQUE16CHARID").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
@@ -37,7 +37,7 @@ fn test_keybindings_override_default() {
     )
     .start()
     .unwrap();
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Test that ESC no longer quits (default behavior is overridden)
     s.send().key("escape").unwrap();
@@ -64,7 +64,7 @@ fn test_multiple_keybindings_override() {
     )
     .start()
     .unwrap();
-    s.wait().text("── files ──").until().unwrap();
+    s.wait().text("● files").until().unwrap();
 
     // Note: we intentionally don't re-test esc=no_op here — that's already
     // covered by test_keybindings_override_default. Sending escape
@@ -76,13 +76,13 @@ fn test_multiple_keybindings_override() {
     // Test that Ctrl+X opens remote control panel (custom keybinding works)
     s.send().key("ctrl-x").unwrap();
     s.wait()
-        .text("(1) (2) (3)")
+        .text("● channels")
         .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
     s.send().key("ctrl-t").unwrap();
     s.wait()
-        .text_absent("(1) (2) (3)")
+        .text_absent("● channels")
         .timeout_ms(wait_timeout_ms())
         .until()
         .unwrap();
@@ -140,8 +140,8 @@ fn test_exact_matching_enabled_fails() {
     .unwrap();
 
     s.wait()
-        .text("│> UNIQUE16CHARIDfl")
-        .text("0 / 0")
+        .text("UNIQUE16CHARIDfl")
+        .text(" 0/1")
         .until()
         .unwrap();
     assert_frame_not_contains(&s, "UNIQUE16CHARIDfile.txt");

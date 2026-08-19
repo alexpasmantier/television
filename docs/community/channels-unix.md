@@ -216,7 +216,7 @@ size = 40
 
 [actions.export]
 description = "Export the selected profile (sets AWS_PROFILE)"
-command = "export AWS_PROFILE='{}' && echo \"AWS_PROFILE set to '{}'\" && $SHELL"
+command = "export AWS_PROFILE={} && echo \"AWS_PROFILE set to {}\" && $SHELL"
 mode = "execute"
 
 ```
@@ -283,12 +283,12 @@ ctrl-d = "actions:uninstall"
 
 [actions.upgrade]
 description = "Upgrade the selected package"
-command = "brew upgrade '{}'"
+command = "brew upgrade {}"
 mode = "execute"
 
 [actions.uninstall]
 description = "Uninstall the selected package"
-command = "brew uninstall '{}'"
+command = "brew uninstall {}"
 mode = "execute"
 
 ```
@@ -327,7 +327,7 @@ size = 60
 
 [actions.run]
 description = "Run the selected cargo command"
-command = "cargo '{}'"
+command = "cargo {}"
 mode = "execute"
 
 ```
@@ -470,7 +470,7 @@ shortcut = "f2"
 
 [actions.cd]
 description = "Open a shell in the selected directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.goto_parent_dir]
@@ -561,9 +561,11 @@ requirements = [ "distrobox", "bat",]
 
 [source]
 command = [ "distrobox list | awk -F '|' '{ gsub(/ /, \"\", $2); print $2}' | tail --lines=+2",]
+shell = "bash"
 
 [preview]
 command = "(distrobox list | column -t -s '|' | awk -v selected_name={} 'NR==1 || $0 ~ selected_name') && echo && distrobox enter -d {} | bat --plain --color=always -lbash"
+shell = "bash"
 
 [keybindings]
 ctrl-e = "actions:distrobox-enter"
@@ -625,7 +627,7 @@ command = "rpm -q --info '{}' 2>/dev/null"
 
 [actions.remove]
 description = "Remove the selected package"
-command = "sudo dnf remove '{}'"
+command = "sudo dnf remove {}"
 mode = "execute"
 
 ```
@@ -903,7 +905,7 @@ enter = "actions:edit"
 
 [actions.edit]
 description = "Edit the selected dotfile"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -942,17 +944,17 @@ BAT_THEME = "ansi"
 
 [actions.open]
 description = "Open the selected file with default application"
-command = "xdg-open '{}' 2>/dev/null || open '{}'"
+command = "xdg-open {} 2>/dev/null || open {}"
 mode = "fork"
 
 [actions.delete]
 description = "Delete the selected file"
-command = "rm -i '{}'"
+command = "rm -i {}"
 mode = "execute"
 
 [actions.move]
 description = "Move the selected file to current directory"
-command = "mv '{}' ."
+command = "mv {} ."
 mode = "fork"
 
 ```
@@ -1062,7 +1064,7 @@ BAT_THEME = "ansi"
 
 [actions.edit]
 description = "Opens the selected entries with the default editor (falls back to vim)"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -1456,12 +1458,12 @@ ctrl-r = "actions:restore_file"
 
 [actions.print_commit]
 description = "Print the latest commit where file was deleted"
-command = "echo \"$(git rev-list -n1 HEAD -- '{}')\""
+command = "echo \"$(git rev-list -n1 HEAD -- {})\""
 mode = "execute"
 
 [actions.restore_file]
 description = "Restore the selected file"
-command = "git checkout \"$(git rev-list -n1 HEAD -- '{}')^\" -- '{}'"
+command = "git checkout \"$(git rev-list -n1 HEAD -- {})^\" -- {}"
 
 ```
 
@@ -1498,17 +1500,17 @@ ctrl-e = "actions:edit"
 
 [actions.stage]
 description = "Stage the selected file"
-command = "git add '{}'"
+command = "git add {}"
 mode = "fork"
 
 [actions.restore]
 description = "Discard changes in the selected file"
-command = "git restore '{}'"
+command = "git restore {}"
 mode = "fork"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -1546,7 +1548,7 @@ BAT_THEME = "ansi"
 
 [actions.edit]
 description = "Opens the selected entries with the default editor (falls back to vim)"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -1669,12 +1671,12 @@ command = "git remote show '{}'"
 
 [actions.fetch]
 description = "Fetch from the selected remote"
-command = "git fetch '{}'"
+command = "git fetch {}"
 mode = "execute"
 
 [actions.remove]
 description = "Remove the selected remote"
-command = "git remote remove '{}'"
+command = "git remote remove {}"
 mode = "execute"
 
 ```
@@ -1712,12 +1714,12 @@ ctrl-e = "actions:edit"
 
 [actions.cd]
 description = "Open a new shell in the selected repository"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.edit]
 description = "Open the repository in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -1800,12 +1802,12 @@ command = "git -C '{}' log --oneline -10 --color=always"
 
 [actions.update]
 description = "Update the selected submodule"
-command = "git submodule update --init --recursive '{}'"
+command = "git submodule update --init --recursive {}"
 mode = "execute"
 
 [actions.sync]
 description = "Sync the selected submodule URL"
-command = "git submodule sync '{}'"
+command = "git submodule sync {}"
 mode = "execute"
 
 ```
@@ -1841,12 +1843,12 @@ ctrl-d = "actions:delete"
 
 [actions.checkout]
 description = "Checkout the selected tag"
-command = "git checkout '{}'"
+command = "git checkout {}"
 mode = "execute"
 
 [actions.delete]
 description = "Delete the selected tag"
-command = "git tag -d '{}'"
+command = "git tag -d {}"
 mode = "execute"
 
 ```
@@ -1880,12 +1882,12 @@ ctrl-d = "actions:remove"
 
 [actions.cd]
 description = "Change to the selected worktree"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.remove]
 description = "Remove the selected worktree"
-command = "git worktree remove '{}'"
+command = "git worktree remove {}"
 mode = "execute"
 
 ```
@@ -1918,7 +1920,7 @@ enter = "actions:run"
 
 [actions.run]
 description = "Run the selected Gradle task"
-command = "gradle '{}'"
+command = "gradle {}"
 mode = "execute"
 
 ```
@@ -1993,7 +1995,7 @@ enter = "actions:open"
 
 [actions.open]
 description = "Open the selected image with default viewer"
-command = "xdg-open '{}' 2>/dev/null || open '{}'"
+command = "xdg-open {} 2>/dev/null || open {}"
 mode = "fork"
 
 ```
@@ -2089,23 +2091,23 @@ ctrl-a = "actions:absorb"
 
 [actions.restore]
 description = "Discard changes in the selected file"
-command = "jj restore '{}'"
+command = "jj restore {}"
 mode = "fork"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
 [actions.squash]
 description = "Squash changes to the selected file into the parent change"
-command = "jj squash -- '{}'"
+command = "jj squash -- {}"
 mode = "fork"
 
 [actions.absorb]
 description = "Absorb changes to the selected file into the appropriate ancestor"
-command = "jj absorb -- '{}'"
+command = "jj absorb -- {}"
 mode = "fork"
 
 ```
@@ -2143,13 +2145,13 @@ BAT_THEME = "ansi"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
 [actions.restore]
 description = "Discard changes to the selected file"
-command = "jj restore '{}'"
+command = "jj restore {}"
 mode = "fork"
 
 ```
@@ -2394,12 +2396,12 @@ size = 70
 
 [actions.logs]
 description = "Follow live logs for the selected identifier"
-command = "journalctl -f SYSLOG_IDENTIFIER='{}'"
+command = "journalctl -f SYSLOG_IDENTIFIER={}"
 mode = "execute"
 
 [actions.full]
 description = "View all logs for the selected identifier in a pager"
-command = "journalctl -b --no-pager -o short-iso SYSLOG_IDENTIFIER='{}' | less"
+command = "journalctl -b --no-pager -o short-iso SYSLOG_IDENTIFIER={} | less"
 mode = "fork"
 
 ```
@@ -2470,12 +2472,12 @@ ctrl-d = "actions:delete"
 
 [actions.use]
 description = "Switch to the selected context"
-command = "kubectl config use-context '{}'"
+command = "kubectl config use-context {}"
 mode = "execute"
 
 [actions.delete]
 description = "Delete the selected context"
-command = "kubectl config delete-context '{}'"
+command = "kubectl config delete-context {}"
 mode = "execute"
 
 ```
@@ -2840,7 +2842,7 @@ enter = "actions:cd"
 
 [actions.cd]
 description = "Open a shell in the selected mount point"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 ```
@@ -2906,12 +2908,12 @@ command = "npm info '{}' 2>/dev/null | head -30"
 
 [actions.uninstall]
 description = "Uninstall the selected global package"
-command = "npm uninstall -g '{}'"
+command = "npm uninstall -g {}"
 mode = "execute"
 
 [actions.update]
 description = "Update the selected global package"
-command = "npm update -g '{}'"
+command = "npm update -g {}"
 mode = "execute"
 
 ```
@@ -3088,7 +3090,7 @@ command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --c
 
 [actions.cd]
 description = "Open a shell in the selected PATH directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 ```
@@ -3130,7 +3132,7 @@ enter = "actions:open"
 
 [actions.open]
 description = "Open the selected PDF with default viewer"
-command = "xdg-open '{}' 2>/dev/null || open '{}'"
+command = "xdg-open {} 2>/dev/null || open {}"
 mode = "fork"
 
 ```
@@ -3167,12 +3169,12 @@ ctrl-d = "actions:uninstall"
 
 [actions.upgrade]
 description = "Upgrade the selected package"
-command = "pip install --upgrade '{}'"
+command = "pip install --upgrade {}"
 mode = "execute"
 
 [actions.uninstall]
 description = "Uninstall the selected package"
-command = "pip uninstall '{}'"
+command = "pip uninstall {}"
 mode = "execute"
 
 ```
@@ -3534,7 +3536,7 @@ BAT_THEME = "ansi"
 
 [actions.edit]
 description = "Open the selected file in editor"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"
 
@@ -3640,6 +3642,146 @@ mode = "fork"
 
 ---
 
+### *snap-interfaces*
+
+Show details of snap interfaces
+
+**Requirements:** `snap`
+
+**Code:** *snap-interfaces.toml*
+
+```toml
+[metadata]
+name = "snap-interfaces"
+description = "Show details of snap interfaces"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "Running"
+run = "snap interface | tail -n +2"
+
+[[source.command]]
+name = "All"
+run = "snap interface --all | tail -n +2"
+
+[preview]
+command = "snap interface '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+```
+
+
+---
+
+### *snap-services*
+
+Show details of Snap services
+
+**Requirements:** `snap`
+
+**Code:** *snap-services.toml*
+
+```toml
+[metadata]
+name = "snap-services"
+description = "Show details of Snap services"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "User"
+run = "snap services --user | tail -n +2"
+
+[[source.command]]
+name = "Global"
+run = "snap services --global | tail -n +2"
+
+[preview]
+command = "snap services '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[keybindings]
+ctrl-u = "actions:start"
+ctrl-d = "actions:stop"
+ctrl-r = "actions:restart"
+ctrl-l = "actions:logs"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+[actions.start]
+description = "Start the selected service"
+command = "snap start '{split: :0}'"
+mode = "fork"
+
+[actions.stop]
+description = "Stop the selected service"
+command = "snap stop '{split: :0}'"
+mode = "fork"
+
+[actions.restart]
+description = "Restart the selected service"
+command = "snap restart '{split: :0}'"
+mode = "fork"
+
+[actions.logs]
+description = "View logs of the selected service"
+command = "snap logs '{split: :0}'"
+mode = "execute"
+
+```
+
+
+---
+
+### *snap*
+
+List and manage Snaps
+
+**Requirements:** `snap`
+
+**Code:** *snap.toml*
+
+```toml
+[metadata]
+name = "snap"
+description = "List and manage Snaps"
+requirements = [ "snap",]
+
+[source]
+output = "{split: :0}"
+[[source.command]]
+name = "Running"
+run = "snap list | tail -n +2"
+
+[[source.command]]
+name = "All"
+run = "snap list --all | tail -n +2"
+
+[preview]
+command = "snap info '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
+
+```
+
+
+---
+
 ### *ssh-hosts*
 
 A channel to select hosts from your SSH config
@@ -3666,7 +3808,7 @@ enter = "actions:connect"
 
 [actions.connect]
 description = "SSH into the selected host"
-command = "ssh '{}'"
+command = "ssh {}"
 mode = "execute"
 
 ```
@@ -3766,7 +3908,7 @@ enter = "actions:connect"
 
 [actions.connect]
 description = "Set selected host as exit node"
-command = "tailscale set --exit-node='{}'"
+command = "tailscale set --exit-node={}"
 mode = "execute"
 
 ```
@@ -4208,12 +4350,12 @@ ctrl-d = "actions:remove"
 
 [actions.cd]
 description = "Change to the selected directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"
 
 [actions.remove]
 description = "Remove the selected directory from zoxide"
-command = "zoxide remove '{}'"
+command = "zoxide remove {}"
 mode = "fork"
 
 ```

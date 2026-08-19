@@ -278,9 +278,11 @@ fn test_cli_input_position_override() {
     let prompt_index = frame
         .find("position-prompt>")
         .expect("Expected input prompt in frame");
+    // anchor on a results entry (the old "Default" header anchor now
+    // matches the multi-source indicator in the input row itself)
     let results_index = frame
-        .find("Default")
-        .expect("Expected results header in frame");
+        .find("Cargo.toml")
+        .expect("Expected a results entry in frame");
 
     assert!(
         prompt_index > results_index,

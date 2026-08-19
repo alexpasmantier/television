@@ -1,6 +1,6 @@
 [package]
 name = "television"
-version = "0.15.7"
+version = "0.15.9"
 edition = "2024"
 description = "A very fast, portable and hackable fuzzy finder for the terminal"
 license = "MIT"
@@ -25,7 +25,6 @@ path = "television/lib.rs"
 anyhow = "1.0"
 base64 = "0.22"
 directories = "6.0"
-devicons = "0.6"
 tokio = { version = "1.48", features = ["full"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
@@ -38,7 +37,6 @@ better-panic = "0.3"
 signal-hook = "0.4"
 human-panic = "2.0"
 parking_lot = "0.12"
-television-nucleo = "0.5.0"
 toml = "0.9"
 lazy-regex = { version = "3.4", features = ["lite"], default-features = false }
 ansi-to-tui = "8.0"
@@ -52,7 +50,12 @@ which = "8.0"
 clap_complete = "4.5"
 rayon = "1.11"
 smallvec = "1.15"
+memchr = "2"
 fast-strip-ansi = "0.13"
+# the parser `fast-strip-ansi` is built on, driven directly to collect the
+# styling of a line alongside its stripped text (see utils/ansi.rs)
+vt-push-parser = "0.13"
+frizbee = "0.13"
 
 
 # target specific dependencies
@@ -70,7 +73,7 @@ clipboard-win = "5.4.0"
 [dev-dependencies]
 criterion = { version = "0.8", features = ["async_tokio"] }
 tempfile = "3.16.0"
-phantom-test = { version = "0.1" }
+phantom-test = { version = "0.2" }
 
 
 [build-dependencies]

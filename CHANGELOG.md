@@ -4,6 +4,63 @@ All notable changes to this project will be documented in this file.
 <!-- ignore lint rules that are often triggered by content generated from commits / git-cliff -->
 <!-- markdownlint-disable line-length no-bare-urls ul-style emphasis-style -->
 
+## [0.15.9](https://github.com/alexpasmantier/television/releases/tag/0.15.9) - 2026-06-14
+
+### 🐛 Bug Fixes
+
+- [c233146](https://github.com/alexpasmantier/television/commit/c23314661745102759b48a03f8d529081d412995) *(autocomplete)* Ignore enter keybindings for shell integration by @alexpasmantier in [#1092](https://github.com/alexpasmantier/television/pull/1092)
+
+- [c44cbed](https://github.com/alexpasmantier/television/commit/c44cbeddf5fe0c297d23d3eaa1b6663d9d971dfc) *(cable)* Remove redundant quoting around \{\} in action commands by @Mic92 in [#1048](https://github.com/alexpasmantier/television/pull/1048)
+
+### ⚡ Performance
+
+- [bdb2c35](https://github.com/alexpasmantier/television/commit/bdb2c35028dd81f7a2edd593f132f9c8c72f1502) *(uncategorized)* Better thread allocation for the matcher by @alexpasmantier in [#1091](https://github.com/alexpasmantier/television/pull/1091)
+
+### ⚙️ Miscellaneous Tasks
+
+- [b17cdfa](https://github.com/alexpasmantier/television/commit/b17cdfaa43c7e1300d52d2660fc9793a1fda7e21) *(uncategorized)* Release version 0.15.9 by @alexpasmantier
+
+
+
+### New Contributors
+* @Mic92 made their first contribution in [#1048](https://github.com/alexpasmantier/television/pull/1048)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.8...0.15.9
+
+
+## [0.15.8](https://github.com/alexpasmantier/television/releases/tag/0.15.8) - 2026-06-08
+
+### ⛰️  Features
+
+- [bb13d78](https://github.com/alexpasmantier/television/commit/bb13d78722f1a22cde5f99d5d2168bb4ab908746) *(cable)* Add snap-related channels by @abbyssoul
+
+### 🐛 Bug Fixes
+
+- [45a5faa](https://github.com/alexpasmantier/television/commit/45a5faa1a7d27c063d4db7cdee6b93af0d393682) *(cable)* Use bash by default for distrobox-list channel by @jinliu in [#1071](https://github.com/alexpasmantier/television/pull/1071)
+
+- [3f298b7](https://github.com/alexpasmantier/television/commit/3f298b7e3c621cd0b945a1cdcb44fada6743ee7c) *(cli)* Prioritize registered channel over path when argument matches both by @wucm667 in [#1054](https://github.com/alexpasmantier/television/pull/1054)
+
+- [63d79ac](https://github.com/alexpasmantier/television/commit/63d79acf4f467c757e8fdd61a0f51dfd50075203) *(preview)* Increase default job timeout by @alexpasmantier
+
+- [e5ca92e](https://github.com/alexpasmantier/television/commit/e5ca92e2b2414bf8f6b07cc7bdd04fa9bed5c05e) *(preview)* Always kill child process when dropping tokio tasks by @alexpasmantier
+
+- [6897c1b](https://github.com/alexpasmantier/television/commit/6897c1b2da2f41cfb5a4d8735078113731205f0a) *(shell)* PowerShell and interactive flag ordering by @HeyItsGilbert in [#1067](https://github.com/alexpasmantier/television/pull/1067)
+
+### ⚙️ Miscellaneous Tasks
+
+- [125e07a](https://github.com/alexpasmantier/television/commit/125e07ab7adae1cad12c7a17090a4297a2755e8e) *(uncategorized)* Release version 0.15.8 by @alexpasmantier
+
+
+
+### New Contributors
+* @abbyssoul made their first contribution
+* @wucm667 made their first contribution in [#1054](https://github.com/alexpasmantier/television/pull/1054)
+* @HeyItsGilbert made their first contribution in [#1067](https://github.com/alexpasmantier/television/pull/1067)
+* @jinliu made their first contribution in [#1071](https://github.com/alexpasmantier/television/pull/1071)
+
+**Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.7...0.15.8
+
+
 ## [0.15.7](https://github.com/alexpasmantier/television/releases/tag/0.15.7) - 2026-05-12
 
 ### ⛰️  Features
@@ -223,6 +280,7 @@ All notable changes to this project will be documented in this file.
 * @LeeSF03 made their first contribution
 * @f440 made their first contribution
 * @CodeMarco05 made their first contribution
+* @ made their first contribution
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.3...0.15.4
 
@@ -267,7 +325,7 @@ All notable changes to this project will be documented in this file.
 
 ### ⚡ Performance
 
-- [30c4951](https://github.com/alexpasmantier/television/commit/30c4951b503001e8c96c7b205de5960179093ca3) *(uncategorized)* Undo 5eaa2c3 and 5019651 that regressed ingestion throughput
+- [30c4951](https://github.com/alexpasmantier/television/commit/30c4951b503001e8c96c7b205de5960179093ca3) *(uncategorized)* Undo 5eaa2c3 and 5019651 that regressed ingestion throughput by @alexpasmantier
 
 ### ⚙️ Miscellaneous Tasks
 
@@ -282,7 +340,6 @@ All notable changes to this project will be documented in this file.
 * @ThatOneCalculator made their first contribution
 * @r4v3n6101 made their first contribution
 * @cap153 made their first contribution
-* @ made their first contribution
 * @bet4it made their first contribution
 
 **Full Changelog**: https://github.com/alexpasmantier/television/compare/0.15.2...0.15.3

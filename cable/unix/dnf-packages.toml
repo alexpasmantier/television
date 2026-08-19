@@ -11,7 +11,7 @@ command = "rpm -q --info '{}' 2>/dev/null"
 # I use rpm here to avoid the delay that happens when dnf updates it's repository
 [actions.remove]
 description = "Remove the selected package"
-command = "sudo dnf remove '{}'"
+command = "sudo dnf remove {}"
 mode = "execute"
 
 

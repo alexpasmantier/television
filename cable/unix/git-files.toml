@@ -15,6 +15,6 @@ f12 = "actions:edit"
 
 [actions.edit]
 description = "Opens the selected entries with the default editor (falls back to vim)"
-command = "${EDITOR:-vim} '{}'"
+command = "${EDITOR:-vim} {}"
 shell = "bash"
 mode = "execute"

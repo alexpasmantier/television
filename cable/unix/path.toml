@@ -11,5 +11,5 @@ command = "fd -tx -d1 . \"{}\" -X printf \"%s\n\" \"{/}\" | sort -f | bat -n --c
 
 [actions.cd]
 description = "Open a shell in the selected PATH directory"
-command = "cd '{}' && $SHELL"
+command = "cd {} && $SHELL"
 mode = "execute"

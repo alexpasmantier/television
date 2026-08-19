@@ -1,0 +1,20 @@
+[metadata]
+name = "snap"
+description = "List and manage Snaps"
+requirements = ["snap"]
+
+[source]
+command = [
+  { name = "Running", run = "snap list | tail -n +2" },
+  { name = "All",     run = "snap list --all | tail -n +2" },
+]
+output = "{split: :0}"
+
+[preview]
+command = "snap info '{split: :0}'"
+
+[ui]
+layout = "portrait"
+
+[ui.preview_panel]
+header = "{split: :0}"
