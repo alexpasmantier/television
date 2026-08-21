@@ -402,6 +402,45 @@ mode = "execute"
 
 ---
 
+### *cred*
+
+A channel to select from cred data
+
+**Requirements:** *None*
+
+**Code:** *cred.toml*
+
+```toml
+[metadata]
+name = "cred"
+description = "A channel to select from cred data"
+
+[source]
+command = "fd . ~/.cred-store --type file --exclude config | sed \"s|.*/\\.cred-store/||\""
+
+[keybindings]
+enter = "actions:copy"
+
+[actions.copy]
+description = "Copy value to clipboard"
+command = "sh -c '\nstore=$(echo {} | cut -d/ -f1)\nfile=$(echo {} | sed \"s|$store/||\")\ncred \"$store\" copy \"$file\"\n'\n"
+mode = "execute"
+
+[actions.show]
+description = "Show value"
+command = "sh -c '\nstore=$(echo {} | cut -d/ -f1)\nfile=$(echo {} | sed \"s|$store/||\")\ncred \"$store\" show \"$file\"\n'\n"
+mode = "execute"
+
+[actions.connect]
+description = "Connect to ssh connection"
+command = "sh -c '\nstore=$(echo {} | cut -d/ -f1)\nfile=$(echo {} | sed \"s|$store/||\")\n\nif [ \"$store\" != \"ssh\" ]; then\n  echo \"This action is only available for ssh connections.\"\n  exit 1\nelse\n  basefile=$(basename \"$file\")\n  dir=$(echo \"$file\" | sed \"s|/$basefile||\")\n  cred \"$store\" connect \"$dir\"\nfi\n'\n"
+mode = "execute"
+
+```
+
+
+---
+
 ### *crontab*
 
 List and manage crontab entries
