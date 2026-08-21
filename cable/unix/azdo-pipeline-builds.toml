@@ -1,0 +1,79 @@
+[metadata]
+name = "azdo-pipeline-builds"
+description = """
+Azure DevOps builds for a selected pipeline.
+
+Required env vars:
+- AZDO_ORG
+- AZDO_PROJECT_ID
+- AZDO_PIPELINE_ID
+
+Optional env vars:
+- AZDO_AMT_PIPELINE_BUILDS=10  number of builds shown
+- AZDO_PROJECT_NAME  preview label fallback
+- AZDO_PIPELINE_NAME  preview label fallback
+"""
+requirements = ["az", "jq", "awk"]
+
+[source]
+command = '''
+set -eu
+org="${AZDO_ORG:-}"
+project="${AZDO_PROJECT_ID:-}"
+pipeline_id="${AZDO_PIPELINE_ID:-}"
+build_limit="${AZDO_AMT_PIPELINE_BUILDS:-10}"
+
+missing_env=0
+if [ -z "$org" ]; then
+  echo "missing env var: AZDO_ORG" >&2
+  missing_env=1
+fi
+if [ -z "$project" ]; then
+  echo "missing env var: AZDO_PROJECT_ID" >&2
+  missing_env=1
+fi
+if [ -z "$pipeline_id" ]; then
+  echo "missing env var: AZDO_PIPELINE_ID" >&2
+  missing_env=1
+fi
+if [ "$missing_env" -ne 0 ]; then
+  exit 1
+fi
+
+az pipelines runs list --org "https://dev.azure.com/$org" --project "$project" --pipeline-ids "$pipeline_id" |
+  jq -r --argjson build_limit "$build_limit" 'sort_by(.id) |
+     reverse |
+     .[:$build_limit] |
+     .[] |
+     (.result // "unknown") as $result |
+     ($result | ascii_downcase) as $result_lc |
+     (if $result_lc == "failed" then
+        "\u001b[31m" + $result + "\u001b[39m"
+      elif $result_lc == "succeeded" then
+        "\u001b[32m" + $result + "\u001b[39m"
+      else
+        $result
+      end) as $result_colored |
+     [
+        (.id | tostring),
+        (.state // "unknown"),
+        $result,
+        $result_colored,
+        ((.lastChangedDate // "") | sub("T"; " ") | sub("\\.[0-9]+Z$"; ""))
+    ] | @tsv'
+'''
+display = "#{split:\t:0}  {split:\t:1}/{split:\t:2}  {split:\t:4}"
+ansi = true
+
+[preview]
+command = '''printf "Project: %s\nPipeline: %s (#%s)\nBuild: #%s\nState/Result: %s/%s\nCreated: %s\n\nenter -> open logs\n" "${AZDO_PROJECT_NAME:-$AZDO_PROJECT_ID}" "${AZDO_PIPELINE_NAME:-$AZDO_PIPELINE_ID}" "${AZDO_PIPELINE_ID:-unknown}" "{split:\t:0}" "{split:\t:1}" "{split:\t:3}" "{split:\t:4}"'''
+shell = "bash"
+
+[keybindings]
+enter = "actions:stream-logs"
+
+[actions.stream-logs]
+description = "Open build logs channel"
+command = "AZDO_BUILD_ID='{split:\t:0}' tv azdo-build-log"
+mode = "execute"
+shell = "bash"
