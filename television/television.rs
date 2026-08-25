@@ -181,6 +181,7 @@ impl Television {
             frecency_config,
             merged_config.is_stdin,
             notify.clone(),
+            merged_config.path_separator,
         );
 
         let app_metadata = AppMetadata::new(
@@ -393,6 +394,7 @@ impl Television {
             frecency_config,
             false, // stdin only applies to the initial channel
             self.notify.clone(),
+            self.merged_config.path_separator,
         );
         self.was_running = true;
         self.channel.load();
