@@ -49,6 +49,7 @@ pub fn load_candidates_by_size(c: &mut Criterion) {
                         black_box(0),
                         black_box(PlainProcessor),
                         injector,
+                        black_box(None),
                     )
                     .await;
 
@@ -91,6 +92,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
                 black_box(0),
                 black_box(PlainProcessor),
                 injector,
+                black_box(None),
             )
             .await;
 
@@ -123,6 +125,7 @@ pub fn load_candidates_with_ansi(c: &mut Criterion) {
                 black_box(0),
                 black_box(AnsiProcessor::new()),
                 injector,
+                black_box(None),
             )
             .await;
 
@@ -161,6 +164,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                 black_box(0),
                 black_box(PlainProcessor),
                 injector,
+                black_box(None),
             )
             .await;
 
@@ -192,6 +196,7 @@ pub fn load_candidates_with_display_template(c: &mut Criterion) {
                     template: source_spec.display.unwrap(),
                 }),
                 injector,
+                black_box(None),
             )
             .await;
 

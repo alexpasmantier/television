@@ -34,6 +34,13 @@ history_size = 200
 # When true: history navigation shows entries from all channels
 # When false: history navigation is scoped to the current channel
 global_history = false
+# Path separator
+# --------------
+# Rewrite path separators in entries to this character, everywhere they show
+# up (results list, preview title and selected output). Handy on Windows to
+# work with forward slashes, e.g. turning `src\main.rs` into `src/main.rs`.
+# When unset, paths are left untouched.
+# path_separator = "/"
 
 [ui]
 # How much space to allocate for the UI (in percentage of the screen)

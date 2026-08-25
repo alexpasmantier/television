@@ -54,6 +54,11 @@ pub struct AppConfig {
     /// Channel-specific shell settings override this.
     #[serde(default)]
     pub shell: Option<Shell>,
+    /// Character to rewrite path separators to in entries (results, preview
+    /// title and output). Useful on Windows to display and copy paths with
+    /// forward slashes. When unset, paths are left untouched.
+    #[serde(default)]
+    pub path_separator: Option<char>,
 }
 
 impl Default for AppConfig {
@@ -67,6 +72,7 @@ impl Default for AppConfig {
             global_history: default_global_history(),
             frecency_max_entries: default_frecency_max_entries(),
             shell: None,
+            path_separator: None,
         }
     }
 }
@@ -97,6 +103,7 @@ impl Hash for AppConfig {
         self.global_history.hash(state);
         self.frecency_max_entries.hash(state);
         self.shell.hash(state);
+        self.path_separator.hash(state);
     }
 }
 

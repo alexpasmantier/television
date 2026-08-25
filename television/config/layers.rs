@@ -74,6 +74,7 @@ impl ConfigLayers {
         let history_size = self.base_config.application.history_size;
         let frecency_max_entries =
             self.base_config.application.frecency_max_entries;
+        let path_separator = self.base_config.application.path_separator;
         let theme = self.base_config.ui.theme.clone();
         let shell_integration_commands =
             self.base_config.shell_integration.commands.clone();
@@ -531,6 +532,7 @@ impl ConfigLayers {
             history_size,
             global_history,
             frecency_max_entries,
+            path_separator,
             working_directory,
             autocomplete_prompt,
             shell: global_shell,
@@ -634,6 +636,8 @@ pub struct MergedConfig {
     pub history_size: usize,
     pub global_history: bool,
     pub frecency_max_entries: usize,
+    /// Character to rewrite path separators to in ingested entries.
+    pub path_separator: Option<char>,
     pub working_directory: Option<PathBuf>,
     pub autocomplete_prompt: Option<String>,
     /// Global shell for command execution (from base config).

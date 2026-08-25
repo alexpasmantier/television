@@ -10,7 +10,7 @@ use crate::{
     matcher::{
         Matcher, Notify, SortStrategy, injector::Injector, matcher_threads,
     },
-    utils::command::shell_command,
+    utils::{command::shell_command, strings::apply_path_separator},
 };
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use std::collections::HashSet;
@@ -44,6 +44,9 @@ pub struct Channel<P: EntryProcessor> {
     /// source command. When true, `load()` reads `tokio::io::stdin()` and
     /// `reload()` is a no-op (stdin can only be consumed once).
     is_stdin: bool,
+    /// When set, path separators in ingested entries are rewritten to this
+    /// character (see [`apply_path_separator`]).
+    path_separator: Option<char>,
 }
 
 impl<P: EntryProcessor> Channel<P> {
@@ -58,6 +61,7 @@ impl<P: EntryProcessor> Channel<P> {
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
         notify: Notify,
+        path_separator: Option<char>,
     ) -> Self {
         let sort_strategy = if no_sort {
             SortStrategy::Index
@@ -86,6 +90,7 @@ impl<P: EntryProcessor> Channel<P> {
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
             is_stdin,
+            path_separator,
         }
     }
 
@@ -97,6 +102,7 @@ impl<P: EntryProcessor> Channel<P> {
                 self.source_entry_delimiter,
                 processor,
                 injector,
+                self.path_separator,
             ))
         } else {
             tokio::spawn(load_candidates(
@@ -105,6 +111,7 @@ impl<P: EntryProcessor> Channel<P> {
                 self.current_source_index,
                 processor,
                 injector,
+                self.path_separator,
             ))
         };
         self.crawl_handle = Some(crawl_handle);
@@ -279,6 +286,7 @@ async fn stream_entries<R, P>(
     delimiter: u8,
     processor: &P,
     injector: &Injector<P::Data>,
+    path_separator: Option<char>,
 ) -> bool
 where
     R: AsyncRead + Unpin,
@@ -310,7 +318,13 @@ where
                 let inj = injector.clone();
                 let mut proc = processor.clone();
                 flush_handles.spawn_blocking(move || {
-                    flush_chunk(&chunk, &inj, &mut proc, delimiter);
+                    flush_chunk(
+                        &chunk,
+                        &inj,
+                        &mut proc,
+                        delimiter,
+                        path_separator,
+                    );
                 });
                 produced_output = true;
                 last_flush = Instant::now();
@@ -323,7 +337,7 @@ where
         let inj = injector.clone();
         let mut proc = processor.clone();
         flush_handles.spawn_blocking(move || {
-            flush_chunk(&acc, &inj, &mut proc, delimiter);
+            flush_chunk(&acc, &inj, &mut proc, delimiter, path_separator);
         });
         produced_output = true;
     }
@@ -341,6 +355,7 @@ pub async fn load_candidates<P: EntryProcessor>(
     command_index: usize,
     mut processor: P,
     injector: Injector<P::Data>,
+    path_separator: Option<char>,
 ) {
     debug!("Loading candidates from command: {:?}", command);
     let mut std_command = shell_command(
@@ -363,8 +378,14 @@ pub async fn load_candidates<P: EntryProcessor>(
             .map(|d| *d as u8)
             .unwrap_or(DEFAULT_DELIMITER);
 
-        let produced_output =
-            stream_entries(out, delimiter, &processor, &injector).await;
+        let produced_output = stream_entries(
+            out,
+            delimiter,
+            &processor,
+            &injector,
+            path_separator,
+        )
+        .await;
 
         debug!("Finished reading command output.");
 
@@ -397,6 +418,7 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
     entry_delimiter: Option<char>,
     processor: P,
     injector: Injector<P::Data>,
+    path_separator: Option<char>,
 ) {
     debug!("Loading candidates from stdin");
     let stdin = tokio::io::stdin();
@@ -406,7 +428,8 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
         .map(|d| *d as u8)
         .unwrap_or(DEFAULT_DELIMITER);
 
-    stream_entries(stdin, delimiter, &processor, &injector).await;
+    stream_entries(stdin, delimiter, &processor, &injector, path_separator)
+        .await;
 
     debug!("Finished reading stdin.");
 }
@@ -420,6 +443,7 @@ fn flush_chunk<P: EntryProcessor>(
     injector: &Injector<P::Data>,
     processor: &mut P,
     delimiter: u8,
+    path_separator: Option<char>,
 ) {
     let mut entries = Vec::new();
     let mut start = 0;
@@ -432,7 +456,11 @@ fn flush_chunk<P: EntryProcessor>(
             continue;
         }
         if let Ok(line) = std::str::from_utf8(line) {
-            entries.push(processor.process(line.to_string()));
+            let line = match path_separator {
+                Some(sep) => apply_path_separator(line, sep).into_owned(),
+                None => line.to_string(),
+            };
+            entries.push(processor.process(line));
         }
     }
     injector.push_batch(entries);
@@ -527,6 +555,7 @@ impl ChannelKind {
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
         notify: Notify,
+        path_separator: Option<char>,
     ) -> Self {
         match (source_ansi, source_display) {
             (false, None) => ChannelKind::Plain(Channel::new(
@@ -539,6 +568,7 @@ impl ChannelKind {
                 frecency,
                 is_stdin,
                 notify,
+                path_separator,
             )),
             (true, None) => ChannelKind::Ansi(Channel::new(
                 source_command,
@@ -550,6 +580,7 @@ impl ChannelKind {
                 frecency,
                 is_stdin,
                 notify,
+                path_separator,
             )),
             (_, Some(template)) => ChannelKind::Display(Channel::new(
                 source_command,
@@ -561,6 +592,7 @@ impl ChannelKind {
                 frecency,
                 is_stdin,
                 notify,
+                path_separator,
             )),
         }
     }
@@ -623,6 +655,7 @@ mod tests {
             0,
             PlainProcessor,
             injector,
+            None,
         )
         .await;
 
@@ -654,6 +687,7 @@ mod tests {
             0,
             PlainProcessor,
             injector,
+            None,
         )
         .await;
 
@@ -685,6 +719,7 @@ mod tests {
             0,
             PlainProcessor,
             injector,
+            None,
         )
         .await;
 
@@ -717,6 +752,7 @@ mod tests {
             0,
             PlainProcessor,
             injector,
+            None,
         )
         .await;
 
@@ -751,6 +787,7 @@ mod tests {
             0,
             AnsiProcessor::new(),
             injector,
+            None,
         )
         .await;
 
@@ -762,5 +799,36 @@ mod tests {
         assert_eq!(results[0].matched_string, "test1");
         assert_eq!(results[1].matched_string, "test2");
         assert_eq!(results[2].matched_string, "test3");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_load_candidates_rewrites_path_separator() {
+        // Emit a path using the platform separator so the rewrite has
+        // something to act on regardless of the OS running the test.
+        let native = std::path::MAIN_SEPARATOR;
+        let source_spec: SourceSpec = toml::from_str(&format!(
+            "command = \"printf 'src{native}a{native}b'\""
+        ))
+        .unwrap();
+
+        let mut matcher =
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
+        let injector = matcher.injector();
+
+        load_candidates(
+            source_spec.command,
+            source_spec.entry_delimiter,
+            0,
+            PlainProcessor,
+            injector,
+            Some('|'),
+        )
+        .await;
+
+        matcher.find("src");
+        matcher.wait_for_idle();
+        let results = matcher.results(10, 0);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].matched_string, "src|a|b");
     }
 }

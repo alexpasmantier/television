@@ -605,6 +605,34 @@ pub fn to_title_case(s: &str) -> String {
         .join(" ")
 }
 
+/// Rewrites the platform path separator in `line` to `separator`.
+///
+/// This is meant for sources that emit filesystem paths (e.g. the `files`
+/// channel) so the same separator is used everywhere it shows up: the results
+/// list, the preview title and the selected output. On Windows for instance,
+/// setting this to `/` turns `src\main.rs` into `src/main.rs`, which is easier
+/// to paste back into a shell like git bash.
+///
+/// Nothing is allocated when there is nothing to replace (the separator is
+/// already the platform one, or the line doesn't contain it).
+pub fn apply_path_separator(line: &str, separator: char) -> Cow<'_, str> {
+    if separator == std::path::MAIN_SEPARATOR
+        || !line.contains(std::path::MAIN_SEPARATOR)
+    {
+        Cow::Borrowed(line)
+    } else {
+        let mut buf = String::with_capacity(line.len());
+        for c in line.chars() {
+            if c == std::path::MAIN_SEPARATOR {
+                buf.push(separator);
+            } else {
+                buf.push(c);
+            }
+        }
+        Cow::Owned(buf)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -958,5 +986,33 @@ mod tests {
         let (printable, match_indices) = make_result_item_printable(&entry);
         assert_eq!(printable, "ジェ abc");
         assert_eq!(match_indices, vec![(0, 1), (2, 3)]);
+    }
+
+    #[test]
+    fn test_apply_path_separator_replaces_platform_separator() {
+        let native = std::path::MAIN_SEPARATOR;
+        let line = format!("src{native}channels{native}entry.rs");
+        assert_eq!(apply_path_separator(&line, '/'), "src/channels/entry.rs");
+        assert_eq!(apply_path_separator(&line, '|'), "src|channels|entry.rs");
+    }
+
+    #[test]
+    fn test_apply_path_separator_noop_when_same_separator() {
+        let native = std::path::MAIN_SEPARATOR;
+        let line = format!("a{native}b{native}c");
+        // No allocation and identical content when the target is already the
+        // platform separator.
+        assert!(matches!(
+            apply_path_separator(&line, native),
+            Cow::Borrowed(_)
+        ));
+    }
+
+    #[test]
+    fn test_apply_path_separator_noop_without_separator() {
+        assert!(matches!(
+            apply_path_separator("no-separators-here", '/'),
+            Cow::Borrowed(_)
+        ));
     }
 }
