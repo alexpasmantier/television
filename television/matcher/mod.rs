@@ -17,7 +17,7 @@ pub mod injector;
 pub mod matched_item;
 mod worker;
 
-use worker::{Snapshot, Store, Worker, WorkerMsg};
+use worker::{Snapshot, Store, Worker, WorkerMessage};
 
 /// Hoist scores: keys of entries to hoist mapped to their score.
 pub type HoistTable = Arc<FxHashMap<String, u64>>;
@@ -36,12 +36,11 @@ pub enum SortStrategy<I: Sync + Send + 'static> {
     /// Sort by score (desc), then index (asc)
     #[default]
     Score,
-    /// Sort items by index (asc)
+    /// Sort items by index (asc) which preserves insertion order.
     Index,
     /// Like [`SortStrategy::Score`], but entries whose key is found in the
     /// hoist table (e.g. frecency records) are hoisted to the top, ordered
-    /// by their table score. Lookups happen once per matched item, not per
-    /// comparison, and an empty pattern keeps its implicit match list.
+    /// by their table score.
     Hoisted {
         table: HoistTableFn,
         key: HoistKeyFn<I>,
@@ -69,9 +68,9 @@ pub type Notify = Arc<dyn Fn() + Send + Sync>;
 /// This is a wrapper around the `frizbee` fuzzy matcher with matching on a
 /// dedicated background thread. Items are pushed to the matcher via injectors.
 ///
-/// [`Matcher::find`] updates the background thread's pattern
-/// [`Matcher::results`] reads the latest matched results
-/// [`Matcher::get_result`] reads a single result
+/// - [`Matcher::find`] updates the background thread's pattern
+/// - [`Matcher::results`] reads the latest matched results
+/// - [`Matcher::get_result`] reads a single result
 #[allow(clippy::struct_field_names)]
 pub struct Matcher<I>
 where
@@ -82,13 +81,10 @@ where
     /// Last snapshot of matches published by the background worker.
     snapshot: Arc<Mutex<Arc<Snapshot>>>,
     /// Channel used to notify the background worker of changes.
-    worker_tx: mpsc::Sender<WorkerMsg<I>>,
+    worker_tx: mpsc::Sender<WorkerMessage<I>>,
     /// Whether the background worker is currently matching or has pending
     /// work.
     running: Arc<AtomicBool>,
-    /// Bumped on every restart so that snapshots computed against a previous
-    /// store can be detected and discarded.
-    generation: u64,
     /// Live count of items pushed through injectors for the current store,
     /// swapped together with the store on restart. Kept separate from the
     /// store so the count stays current while batches are still in flight
@@ -146,7 +142,7 @@ where
         notify: Notify,
         initial_chunk_size: usize,
     ) -> Self {
-        let store = Arc::new(RwLock::new(Store::default()));
+        let store = Arc::new(RwLock::new(Store::new(0)));
         let snapshot = Arc::new(Mutex::new(Arc::new(Snapshot::empty(0))));
         let running = Arc::new(AtomicBool::new(false));
         let (worker_tx, worker_rx) = mpsc::channel();
@@ -171,7 +167,6 @@ where
             snapshot,
             worker_tx,
             running,
-            generation: 0,
             count: Arc::new(AtomicUsize::new(0)),
             last_pattern: String::new(),
             indices_matcher: (String::new(), build_indices_matcher("")),
@@ -207,7 +202,7 @@ where
         Injector::new(
             self.worker_tx.clone(),
             Arc::clone(&self.running),
-            self.generation,
+            self.store.read_recursive().generation,
             Arc::clone(&self.count),
         )
     }
@@ -223,7 +218,9 @@ where
         }
         self.last_pattern = pattern.to_string();
         self.running.store(true, Ordering::Relaxed);
-        let _ = self.worker_tx.send(WorkerMsg::Pattern(pattern.to_string()));
+        let _ = self
+            .worker_tx
+            .send(WorkerMessage::NewPattern(pattern.to_string()));
     }
 
     /// Get the matched items.
@@ -261,10 +258,16 @@ where
         offset: u32,
     ) -> Vec<matched_item::MatchedItem<I>> {
         let snapshot = self.snapshot.lock().clone();
+        // Clone the store handle so the read guard borrows a local instead of
+        // `self` (the indices matcher needs `&mut self` below)
+        let store = Arc::clone(&self.store);
+        // NOTE: `read_recursive` so reads never queue behind a writer that's
+        // waiting on the worker's long-held read lock during a matcher pass
+        let store = store.read_recursive();
 
         // Discard snapshots computed against a previous store (i.e. published
         // by the worker right before a restart)
-        if snapshot.generation != self.generation {
+        if snapshot.generation != store.generation {
             return Vec::new();
         }
 
@@ -276,12 +279,6 @@ where
         // Limit to available entries
         let num_entries = num_entries.min(match_count - offset);
 
-        // Clone the store handle so the read guard borrows a local instead of
-        // `self` (the indices matcher needs `&mut self` below)
-        let store = Arc::clone(&self.store);
-        // NOTE: `read_recursive` so reads never queue behind a writer that's
-        // waiting on the worker's long-held read lock during a matcher pass
-        let store = store.read_recursive();
         let indices_matcher = self.indices_matcher(&snapshot.pattern);
 
         // PERF: Pre-allocate the results Vec so we avoid repeated reallocations
@@ -314,13 +311,12 @@ where
         index: u32,
     ) -> Option<matched_item::MatchedItem<I>> {
         let snapshot = self.snapshot.lock().clone();
-        if snapshot.generation != self.generation {
+        let store = Arc::clone(&self.store);
+        let store = store.read_recursive();
+        if snapshot.generation != store.generation {
             return None;
         }
         let m = snapshot.matches.get(index)?;
-
-        let store = Arc::clone(&self.store);
-        let store = store.read_recursive();
         let indices_matcher = self.indices_matcher(&snapshot.pattern);
         Some(matched_item(&store, indices_matcher, m.index))
     }
@@ -328,8 +324,9 @@ where
     /// The number of items matching the current pattern.
     #[allow(clippy::cast_possible_truncation)]
     pub fn matched_item_count(&self) -> u32 {
+        let generation = self.store.read_recursive().generation;
         let snapshot = self.snapshot.lock();
-        if snapshot.generation == self.generation {
+        if snapshot.generation == generation {
             snapshot.matches.len() as u32
         } else {
             0
@@ -358,31 +355,38 @@ where
     /// generation, which the worker silently discards; call `injector` again
     /// to get an injector for the fresh store.
     pub fn restart(&mut self) {
-        self.generation += 1;
-        self.store = Arc::new(RwLock::new(Store::default()));
+        let generation = self.store.read_recursive().generation + 1;
+        self.store = Arc::new(RwLock::new(Store::new(generation)));
         self.count = Arc::new(AtomicUsize::new(0));
         // Clear the published snapshot right away so stale results don't
         // linger while the worker processes the restart
-        *self.snapshot.lock() = Arc::new(Snapshot::empty(self.generation));
+        *self.snapshot.lock() = Arc::new(Snapshot::empty(generation));
         self.running.store(true, Ordering::Relaxed);
-        let _ = self.worker_tx.send(WorkerMsg::Restart {
-            store: Arc::clone(&self.store),
-            generation: self.generation,
-        });
+        let _ = self
+            .worker_tx
+            .send(WorkerMessage::Restart(Arc::clone(&self.store)));
     }
 
     /// Block until the background worker has processed all previously sent
     /// messages and finished the resulting matcher pass.
     pub fn wait_for_idle(&self) {
         let (ack_tx, ack_rx) = mpsc::channel();
-        if self.worker_tx.send(WorkerMsg::WaitForIdle(ack_tx)).is_ok() {
+        if self
+            .worker_tx
+            .send(WorkerMessage::WaitForIdle(ack_tx))
+            .is_ok()
+        {
             let _ = ack_rx.recv();
         }
     }
 
     pub fn wait_for_idle_timeout(&self, timeout: Duration) {
         let (ack_tx, ack_rx) = mpsc::channel();
-        if self.worker_tx.send(WorkerMsg::WaitForIdle(ack_tx)).is_ok() {
+        if self
+            .worker_tx
+            .send(WorkerMessage::WaitForIdle(ack_tx))
+            .is_ok()
+        {
             let _ = ack_rx.recv_timeout(timeout);
         }
     }

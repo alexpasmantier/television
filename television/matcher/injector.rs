@@ -1,4 +1,4 @@
-use super::worker::WorkerMsg;
+use super::worker::WorkerMessage;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, AtomicUsize, Ordering},
@@ -22,9 +22,9 @@ where
     I: Sync + Send + Clone + 'static,
 {
     /// Channel used to send batches to the background worker.
-    worker_tx: mpsc::Sender<WorkerMsg<I>>,
-    /// The matcher's running flag, set when new items are pushed so the
-    /// front-end can display a loading indicator right away.
+    worker_tx: mpsc::Sender<WorkerMessage<I>>,
+    /// Shared flag indicating whether the matcher as a whole is currently running (ingestion,
+    /// matching, ...).
     running: Arc<AtomicBool>,
     /// The store generation this injector was created for (see
     /// [`super::Matcher::restart`]).
@@ -39,7 +39,7 @@ where
     I: Sync + Send + Clone + 'static,
 {
     pub(super) fn new(
-        worker_tx: mpsc::Sender<WorkerMsg<I>>,
+        worker_tx: mpsc::Sender<WorkerMessage<I>>,
         running: Arc<AtomicBool>,
         generation: u64,
         count: Arc<AtomicUsize>,
@@ -80,7 +80,7 @@ where
 
         self.count.fetch_add(batch.len(), Ordering::Relaxed);
         self.running.store(true, Ordering::Relaxed);
-        let _ = self.worker_tx.send(WorkerMsg::Items {
+        let _ = self.worker_tx.send(WorkerMessage::NewItems {
             generation: self.generation,
             batch,
         });
