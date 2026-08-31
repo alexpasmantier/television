@@ -54,6 +54,9 @@ pub struct AppConfig {
     /// Channel-specific shell settings override this.
     #[serde(default)]
     pub shell: Option<Shell>,
+    /// Whether fuzzy matching tolerates typos (default: false)
+    #[serde(default)]
+    pub typo_resistance: bool,
 }
 
 impl Default for AppConfig {
@@ -67,6 +70,7 @@ impl Default for AppConfig {
             global_history: default_global_history(),
             frecency_max_entries: default_frecency_max_entries(),
             shell: None,
+            typo_resistance: false,
         }
     }
 }
@@ -97,6 +101,7 @@ impl Hash for AppConfig {
         self.global_history.hash(state);
         self.frecency_max_entries.hash(state);
         self.shell.hash(state);
+        self.typo_resistance.hash(state);
     }
 }
 

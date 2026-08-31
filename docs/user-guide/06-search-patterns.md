@@ -39,5 +39,10 @@ fuzzily (`foo` behaves like `'foo`); all the operators above keep their
 meaning. Prefix a special character with a backslash to search for it
 literally (e.g. `\^foo`, `foo\$`, `foo\ bar`).
 
+With `--typo-resistance` (or `typo_resistance = true` in the config file),
+fuzzy patterns tolerate typos: each pattern gets a budget of one typo per 4
+characters, capped at 2, so `confg` still matches _config_. Typo'd matches
+score below clean ones, and substring/exact operators are unaffected.
+
 For more information on the matcher behavior, see the
 [frizbee](https://docs.rs/frizbee/latest/frizbee/) documentation.
