@@ -128,7 +128,6 @@ similar_names = "allow"
 float_cmp = "allow"
 implicit_hasher = "allow"
 wildcard_imports = "allow"
-from_iter_instead_of_collect = "allow"
 
 [package.metadata.deb]
 maintainer = "Alexandre Pasmantier <alex.pasmant@gmail.com>"

@@ -498,7 +498,7 @@ impl ConfigLayers {
 
         // Validate that all external actions referenced in channel keybindings exist
         if let Some(channel_bindings) = &self.channel.keybindings {
-            for (_, actions) in channel_bindings.bindings.iter() {
+            for actions in channel_bindings.bindings.values() {
                 for action in actions.as_slice() {
                     if let Action::ExternalAction(custom_with_prefix) = action
                         && !channel_actions.contains_key(

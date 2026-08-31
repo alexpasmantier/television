@@ -286,27 +286,27 @@ impl<'de> Deserialize<'de> for Theme {
             border_fg: Color::from_str(&inner.border_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.border_fg
+                    inner.border_fg
                 ))
             })?,
             text_fg: Color::from_str(&inner.text_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.text_fg
+                    inner.text_fg
                 ))
             })?,
             dimmed_text_fg: Color::from_str(&inner.dimmed_text_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.dimmed_text_fg
+                        inner.dimmed_text_fg
                     ))
                 })?,
             input_text_fg: Color::from_str(&inner.input_text_fg).ok_or_else(
                 || {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.input_text_fg
+                        inner.input_text_fg
                     ))
                 },
             )?,
@@ -314,14 +314,14 @@ impl<'de> Deserialize<'de> for Theme {
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.result_count_fg
+                        inner.result_count_fg
                     ))
                 })?,
             result_name_fg: Color::from_str(&inner.result_name_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.result_name_fg
+                        inner.result_name_fg
                     ))
                 })?,
             result_line_number_fg: Color::from_str(
@@ -330,33 +330,33 @@ impl<'de> Deserialize<'de> for Theme {
             .ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.result_line_number_fg
+                    inner.result_line_number_fg
                 ))
             })?,
             result_value_fg: Color::from_str(&inner.result_value_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.result_value_fg
+                        inner.result_value_fg
                     ))
                 })?,
             selection_bg: Color::from_str(&inner.selection_bg).ok_or_else(
                 || {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.selection_bg
+                        inner.selection_bg
                     ))
                 },
             )?,
             // this is optional for theme backwards compatibility and falls back to match_fg
             selection_fg: match inner.selection_fg {
                 Some(s) => Color::from_str(&s).ok_or_else(|| {
-                    serde::de::Error::custom(format!("invalid color {}", &s))
+                    serde::de::Error::custom(format!("invalid color {}", s))
                 })?,
                 None => Color::from_str(&inner.match_fg).ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.match_fg
+                        inner.match_fg
                     ))
                 })?,
             },
@@ -364,21 +364,21 @@ impl<'de> Deserialize<'de> for Theme {
             match_fg: Color::from_str(&inner.match_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.match_fg
+                    inner.match_fg
                 ))
             })?,
             preview_title_fg: Color::from_str(&inner.preview_title_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.preview_title_fg
+                        inner.preview_title_fg
                     ))
                 })?,
             channel_mode_fg: Color::from_str(&inner.channel_mode_fg)
                 .ok_or_else(|| {
                     serde::de::Error::custom(format!(
                         "invalid color {}",
-                        &inner.channel_mode_fg
+                        inner.channel_mode_fg
                     ))
                 })?,
             channel_mode_bg: match &inner.channel_mode_bg {
@@ -394,7 +394,7 @@ impl<'de> Deserialize<'de> for Theme {
             .ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.remote_control_mode_fg
+                    inner.remote_control_mode_fg
                 ))
             })?,
             remote_control_mode_bg: Color::from_str(
@@ -403,19 +403,19 @@ impl<'de> Deserialize<'de> for Theme {
             .ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
-                    &inner.remote_control_mode_bg
+                    inner.remote_control_mode_bg
                 ))
             })?,
             action_picker_mode_fg: match inner.action_picker_mode_fg {
                 Some(s) => Color::from_str(&s).ok_or_else(|| {
-                    serde::de::Error::custom(format!("invalid color {}", &s))
+                    serde::de::Error::custom(format!("invalid color {}", s))
                 })?,
                 // Default to channel mode foreground color for backwards compatibility
                 None => Color::from_str(&inner.channel_mode_fg).ok_or_else(
                     || {
                         serde::de::Error::custom(format!(
                             "invalid color {}",
-                            &inner.channel_mode_fg
+                            inner.channel_mode_fg
                         ))
                     },
                 )?,
