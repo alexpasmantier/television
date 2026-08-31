@@ -100,6 +100,11 @@ const config: Config = {
       },
       items: [
         {
+          to: "/intro",
+          label: "docs",
+          position: "right",
+        },
+        {
           href: "https://github.com/alexpasmantier/television/releases",
           label: "releases",
           position: "right",
