@@ -60,19 +60,14 @@ export default function Home() {
               <span className={styles.linkSep}>·</span>
               <Link to="/getting-started/quickstart">quickstart</Link>
               <span className={styles.linkSep}>·</span>
-              <Link to="/intro">docs</Link>
+              <Link to="/user-guide/channels">docs</Link>
               <span className={styles.linkSep}>·</span>
               <Link href="https://github.com/alexpasmantier/television">
                 github
               </Link>
             </p>
             <div className={styles.screenshotFrame}>
-              <div className={styles.screenshotBar}>
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-                <span className={styles.dot} />
-                <span className={styles.screenshotTitle}>tv — files</span>
-              </div>
+              <span className={styles.screenshotTitle}>tv — files</span>
               <img
                 className={styles.screenshot}
                 src={useBaseUrl("/img/tv-0.15.png")}

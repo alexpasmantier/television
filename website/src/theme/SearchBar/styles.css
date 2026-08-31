@@ -4,19 +4,67 @@
   --docsearch-searchbox-background: var(--ifm-background-color);
 }
 
+/* Search button, styled like tv's input prompt */
 .DocSearch-Button {
   margin: 0;
-  transition: all var(--ifm-transition-fast)
+  height: 2rem;
+  padding: 0 0.6rem;
+  background: transparent;
+  border: 1px solid var(--tv-border);
+  border-radius: 6px;
+  font-family: "Ubuntu Mono", monospace;
+  transition: border-color var(--ifm-transition-fast)
     var(--ifm-transition-timing-default);
-  border: 1px solid var(--ifm-color-primary);
+}
+
+.DocSearch-Button:active,
+.DocSearch-Button:focus,
+.DocSearch-Button:hover {
+  background: transparent;
+  border-color: var(--tv-pink);
+  box-shadow: none;
+}
+
+/* the placeholder text is enough on desktop; keep the icon on mobile
+   where the placeholder is hidden and the icon is the whole button */
+@media (min-width: 769px) {
+  .DocSearch-Search-Icon {
+    display: none;
+  }
+}
+
+.DocSearch-Search-Icon {
+  width: 16px;
+  height: 16px;
+  color: var(--tv-muted);
 }
 
 .DocSearch-Button-Placeholder {
-  font-family: "Doto", sans-serif;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+  color: var(--tv-muted);
+  padding: 0;
 }
 
-.DocSearch-Button:active, .DocSearch-Button:focus, .DocSearch-Button:hover {
-  box-shadow: 0px 0px 0px 1px var(--ifm-color-primary-light);
+/* flat kbd hints */
+.DocSearch-Button-Keys {
+  min-width: 0;
+  margin-left: 0.6rem;
+}
+
+.DocSearch-Button-Key {
+  width: auto;
+  height: auto;
+  padding: 0 0.25rem;
+  margin-right: 0.15rem;
+  top: 0;
+  background: var(--tv-bg-deep);
+  border: 1px solid var(--tv-border);
+  border-radius: 4px;
+  box-shadow: none;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.75rem;
+  color: var(--tv-muted);
 }
 
 .DocSearch-Container {

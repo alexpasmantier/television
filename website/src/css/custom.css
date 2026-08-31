@@ -25,28 +25,152 @@
   --ifm-color-primary-lightest: #f7f7fb;
   --ifm-background-color: #241f31;
 
+  /* shared palette */
+  --tv-bg-deep: #1c1828;
+  --tv-border: #3d3657;
+  --tv-muted: #7a7aa8;
+  --tv-pink: #efa6c2;
+
   --ifm-font-family-base: "Ubuntu Mono", monospace;
   --ifm-font-color-base: #aeaed1;
   --ifm-font-color-secondary: #545c8c;
-  --ifm-font-size-base: 1.1rem;
-  --ifm-code-font-size: 95%;
-  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.05);
+  --ifm-font-size-base: 1rem;
+  --ifm-code-font-size: 85%;
+  --ifm-table-border-color: var(--tv-border);
+  --ifm-table-stripe-background: rgba(174, 174, 209, 0.04);
+  --ifm-table-head-color: var(--ifm-color-primary-light);
+  --ifm-code-background: var(--tv-bg-deep);
+  --docusaurus-highlighted-code-line-bg: rgba(174, 174, 209, 0.08);
   --ifm-heading-font-family: "Doto", sans-serif;
-  --ifm-heading-color: var(--ifm-color-primary-darkest);
+  --ifm-heading-color: var(--tv-pink);
   --ifm-menu-color-active: var(--ifm-color-primary-lightest);
   --ifm-menu-color-background-active: var(--ifm-color-primary-darkest);
   --ifm-toc-link-color: var(--ifm-color-primary-dark);
-
 }
 
 /* For readability concerns, you should choose a lighter palette in dark mode. */
 [data-theme='dark'] {}
 
+/* Inline code */
+code {
+  border: 1px solid var(--tv-border);
+}
+
+pre code {
+  border: none;
+}
+
+/* Tables, TUI style: rounded panel frame, box-drawing-ish column
+   separators, and rows that highlight like tv's results list on hover. */
+.theme-doc-markdown table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--tv-border);
+  border-radius: 8px;
+  /* tables render as display:block for overflow scrolling, so without this
+     the border spans the full column while the cells don't */
+  width: fit-content;
+  max-width: 100%;
+}
+
+.theme-doc-markdown table th,
+.theme-doc-markdown table td {
+  border: none;
+  padding: 0.4rem 0.9rem;
+  background: none;
+}
+
+.theme-doc-markdown table th + th,
+.theme-doc-markdown table td + td {
+  border-left: 1px solid rgba(61, 54, 87, 0.6);
+}
+
+.theme-doc-markdown table thead th {
+  font-family: "Doto", sans-serif;
+  font-size: 0.95rem;
+  text-align: left;
+  border-bottom: 1px solid var(--tv-border);
+}
+
+.theme-doc-markdown table tr {
+  background: none;
+}
+
+.theme-doc-markdown table tbody tr + tr td {
+  border-top: 1px solid rgba(61, 54, 87, 0.45);
+}
+
+.theme-doc-markdown table tbody tr:hover td {
+  background-color: rgba(174, 174, 209, 0.1);
+}
+
+/* Code blocks as tv panels: transparent background, thin border, and the
+   title (when present) floating in the border like a panel label. */
+.theme-code-block {
+  --prism-background-color: transparent;
+  position: relative;
+  background-color: transparent;
+  border: 1px solid var(--tv-border);
+  border-radius: 8px;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.theme-code-block pre {
+  background-color: transparent !important;
+}
+
+/* code block title (only present on titled blocks) */
+.theme-code-block > div:first-child:not(:last-child) {
+  position: absolute;
+  top: -0.8em;
+  left: 0.9rem;
+  max-width: calc(100% - 2rem);
+  padding: 0 0.4rem;
+  background-color: var(--ifm-background-color);
+  border-bottom: none;
+  color: var(--tv-muted);
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Admonitions as tv panels, with the type label in the border */
+.theme-admonition {
+  position: relative;
+  background-color: transparent;
+  border: 1px solid var(--ifm-alert-border-color, var(--tv-border));
+  border-radius: 8px;
+  box-shadow: none;
+  color: var(--ifm-font-color-base);
+  margin-top: 1.4rem;
+  overflow: visible;
+}
+
+.theme-admonition [class*="admonitionHeading"] {
+  position: absolute;
+  top: -0.75em;
+  left: 0.9rem;
+  margin: 0;
+  padding: 0 0.4rem;
+  background-color: var(--ifm-background-color);
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+  text-transform: lowercase;
+  color: var(--ifm-alert-border-color, var(--tv-muted));
+}
+
+.theme-admonition [class*="admonitionHeading"] svg {
+  display: none;
+}
+
 .navbar {
   background-color: var(--ifm-background-color);
-  border-bottom: 3px solid var(--ifm-color-primary-darkest);
+  border-bottom: 1px solid var(--ifm-color-primary-darkest);
   font-family: "Doto", sans-serif;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-optical-sizing: auto;
   font-weight: 800;
   font-style: normal;
@@ -56,8 +180,33 @@
 
 @media screen and (max-width: 576px) {
   .navbar {
-    font-size: 1.2rem;
-  }  
+    font-size: 1.1rem;
+  }
+}
+
+/* GitHub mark icon in the navbar (mask so it follows the link color) */
+.header-github-link {
+  padding: 0 0.5rem;
+}
+
+.header-github-link::before {
+  content: "";
+  display: flex;
+  width: 22px;
+  height: 22px;
+  background-color: var(--ifm-navbar-link-color);
+  mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12'/%3E%3C/svg%3E");
+  mask-repeat: no-repeat;
+  mask-size: contain;
+}
+
+.header-github-link:hover::before {
+  background-color: var(--ifm-navbar-link-hover-color);
+}
+
+/* no external-link arrow next to the icon */
+.header-github-link svg {
+  display: none;
 }
 
 .hero {
@@ -68,14 +217,58 @@
 .footer {
   background-color: var(--ifm-background-color);
   color: var(--ifm-font-color-base);
-  border-top: 3px solid var(--ifm-color-primary-darkest);
+  border-top: 1px solid var(--ifm-color-primary-darkest);
 }
 
+/* Sidebar: keep the dot-matrix font for category labels only,
+   regular mono for doc entries. */
 nav.menu {
+  --ifm-menu-link-padding-vertical: 0.15rem;
+  --ifm-menu-link-padding-horizontal: 0.6rem;
   border-right: 1px solid var(--ifm-color-primary-darkest);
-  padding-right: 1rem;
-  font-family: "Doto", sans-serif;
-  font-weight: 400;
+  padding: 1rem 0.75rem 1rem 0.25rem;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+}
+
+/* categories: bold and brighter; doc entries stay regular */
+.menu__list-item-collapsible .menu__link {
+  font-weight: 700;
+  color: var(--ifm-color-primary-light);
+}
+
+/* the default caret icons render at 2rem — way oversized here */
+.menu__link--sublist-caret::after,
+.menu__caret::before {
+  background-size: 1.1rem 1.1rem;
+}
+
+/* nested lists: shallow indent with a faint tree rule */
+.menu__list .menu__list {
+  margin-left: 0.7rem;
+  padding-left: 0.3rem;
+  border-left: 1px solid rgba(61, 54, 87, 0.6);
+}
+
+.menu__list-item:not(:first-child) {
+  margin-top: 0.1rem;
+}
+
+/* Active doc in the sidebar: tv's selection pointer + highlight strip
+   instead of the solid infima block. */
+:root {
+  --ifm-menu-color-active: var(--ifm-color-primary-lighter);
+  --ifm-menu-color-background-active: rgba(174, 174, 209, 0.12);
+}
+
+.menu__link:not(.menu__link--sublist)::before {
+  content: "❯\00a0";
+  color: var(--tv-pink);
+  visibility: hidden;
+}
+
+.menu__link--active:not(.menu__link--sublist)::before {
+  visibility: visible;
 }
 
 .table-of-contents__left-border {
@@ -83,104 +276,198 @@ nav.menu {
   font-family: "Ubuntu Mono", monospace;
 }
 
-.theme-doc-markdown a {
-  color: var(--ifm-color-primary-darker)
+.table-of-contents {
+  font-size: 0.8rem;
 }
 
-/* Doc category cards container */
-.row.row--no-gutters {
-  gap: 1rem;
-  margin: 0 !important;
+/* tighter content column */
+main .container {
+  padding-top: 1.2rem !important;
 }
 
-.row.row--no-gutters > .col {
-  padding: 0 !important;
-  flex: 1 1 300px !important;
-  max-width: 100% !important;
+.table-of-contents__link--active {
+  color: var(--tv-pink);
 }
 
-/* Doc category cards */
-.card {
-  background-color: rgba(174, 174, 209, 0.08);
-  border: 1px solid var(--ifm-color-primary-darkest);
-  border-radius: 8px;
-  transition: all 0.25s ease;
-  height: 100%;
-  padding: 0.4rem 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+/* Breadcrumbs: plain mono path, no pill backgrounds */
+.breadcrumbs__link {
+  background: none !important;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.9rem;
+  color: var(--tv-muted);
 }
 
-.card .cardContainer_fWXF,
-.card [class*="cardContainer"] {
-  padding: 0 !important;
-}
-
-.card:hover {
-  background-color: rgba(174, 174, 209, 0.15);
-  border-color: var(--ifm-color-primary);
-  transform: translateY(-3px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-}
-
-/* Card title */
-.card h2 {
+.breadcrumbs__item--active .breadcrumbs__link {
   color: var(--ifm-color-primary-light);
-  font-family: "Doto", sans-serif;
+}
+
+/* Headings: compact, tight rhythm, and markdown-style level markers so
+   the hierarchy is parseable at a glance. */
+.markdown h1 {
+  font-size: 1.9rem;
+  --ifm-h1-vertical-rhythm-bottom: 0.6;
+}
+
+.markdown h2 {
+  font-size: 1.35rem;
+  margin-top: 2.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.markdown h3 {
   font-size: 1.1rem;
+  margin-top: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+
+.markdown h4 {
+  font-size: 1rem;
+}
+
+[class*="generatedIndexPage"] header h1 {
+  font-size: 1.9rem;
+  margin-bottom: 0.6rem;
+}
+
+.theme-doc-markdown a {
+  color: var(--tv-pink);
+}
+
+.theme-doc-markdown a:hover {
+  color: var(--ifm-color-primary-lighter);
+  text-decoration: none;
+}
+
+/* Generated category index pages, styled like tv's results panel: one
+   bordered panel with its label in the border, plain mono entries inside,
+   and the selection pointer + highlight strip on hover. */
+[class*="generatedIndexPage"] article section.row {
   margin: 0;
+}
+
+/* undo the stacked default gap above the card list (infima's utility is
+   !important inside the docusaurus.infima layer) */
+@layer docusaurus.infima {
+  [class*="generatedIndexPage"] article.margin-top--lg {
+    margin-top: 1rem !important;
+  }
+}
+
+/* single column, like a real results list */
+article[class*="docCardListItem"] {
+  --ifm-col-width: 100%;
+  margin-bottom: 0 !important;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.theme-doc-card-container {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: baseline;
+  gap: 1.25rem;
+  background-color: transparent;
+  border: none;
+  border-radius: 4px;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
 }
 
-/* Hide ALL SVGs inside doc cards - multiple approaches */
-.card svg,
-.card article svg,
-.cardContainer_node_modules svg,
-[class*="cardContainer"] svg,
-[class*="card_"] svg,
-main article svg,
-.theme-doc-markdown svg,
-.generatedIndexPage svg,
-[class*="generatedIndexPage"] svg,
-article[class*="cardContainer"] svg,
-a[class*="card"] svg,
-.card h2 svg,
-.card [class*="cardTitle"] svg {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
+.theme-doc-card-container:hover {
+  background-color: rgba(174, 174, 209, 0.12);
+  box-shadow: none;
 }
 
-/* Hide card description */
-.card p {
+.theme-doc-card-icon {
   display: none;
 }
 
-/* Card container (the link wrapper) */
-.card__body,
-.card article,
-.card [class*="cardContainer"] {
-  padding: 0 !important;
+.theme-doc-card-heading {
+  margin: 0;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+  font-weight: normal;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: var(--ifm-color-primary);
 }
 
-/* Pagination nav cards */
+.theme-doc-card-heading::before {
+  content: "❯\00a0";
+  color: var(--tv-pink);
+  visibility: hidden;
+}
+
+.theme-doc-card-container:hover .theme-doc-card-heading {
+  color: var(--ifm-color-primary-lighter);
+}
+
+.theme-doc-card-container:hover .theme-doc-card-heading::before {
+  visibility: visible;
+}
+
+.theme-doc-card-heading {
+  flex: 0 0 16rem;
+  min-width: 0;
+}
+
+.theme-doc-card-description {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--tv-muted);
+}
+
+/* infima's `.padding--lg` is `!important` inside the docusaurus.infima cascade
+   layer, which beats any unlayered override — so this one lives in the same
+   layer and wins on specificity instead */
+@layer docusaurus.infima {
+  .card.theme-doc-card-container {
+    padding: 0.1rem 0.6rem !important;
+  }
+}
+
+/* Pagination nav: plain pager-style links above a thin rule */
+.pagination-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--tv-border);
+  padding-top: 0.8rem;
+  margin-top: 2rem;
+}
+
 .pagination-nav__link {
-  background-color: rgba(174, 174, 209, 0.08);
-  border: 1px solid var(--ifm-color-primary-darkest);
-  border-radius: 8px;
-  transition: all 0.25s ease;
+  flex: 0 1 auto;
+  min-width: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0.15rem 0.5rem;
+  transition: background-color 0.15s ease;
 }
 
-.pagination-nav__link:hover {
-  background-color: rgba(174, 174, 209, 0.15);
-  border-color: var(--ifm-color-primary);
+.pagination-nav__link--next {
+  margin-left: auto;
 }
 
 .pagination-nav__sublabel {
-  color: var(--ifm-color-primary-dark);
+  display: none;
 }
 
 .pagination-nav__label {
-  color: var(--ifm-color-primary-light);
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.9rem;
+  font-weight: normal;
+  color: var(--ifm-color-primary);
+  transition: color 0.15s ease;
+}
+
+.pagination-nav__link:hover {
+  background-color: rgba(174, 174, 209, 0.1);
+}
+
+.pagination-nav__link:hover .pagination-nav__label {
+  color: var(--ifm-color-primary-lighter);
 }
