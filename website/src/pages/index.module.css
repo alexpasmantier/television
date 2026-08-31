@@ -11,12 +11,17 @@
   background-color: var(--lp-bg);
   color: var(--lp-fg);
   overflow-x: hidden;
+  padding-bottom: 3rem;
+}
+
+.main :global(.theme-code-block) {
+  margin-bottom: 0;
 }
 
 /* ---------- hero ---------- */
 
 .hero {
-  padding: 4rem 1.5rem 3rem;
+  padding: 3.5rem 1.5rem 2.5rem;
   text-align: center;
 }
 
@@ -29,15 +34,15 @@
   font-family: "Doto", sans-serif;
   font-weight: 900;
   font-size: clamp(2.5rem, 7vw, 4rem);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--lp-bright);
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .tagline {
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: var(--lp-fg);
-  margin-bottom: 1.75rem;
+  margin-bottom: 2rem;
 }
 
 .installCmd {
@@ -45,8 +50,8 @@
   align-items: center;
   gap: 0.75rem;
   max-width: 100%;
-  padding: 0.6rem 1rem;
-  margin-bottom: 1rem;
+  padding: 0.55rem 1rem;
+  margin-bottom: 1.1rem;
   background-color: var(--lp-bg-deep);
   border: 1px solid var(--lp-border);
   border-radius: 8px;
@@ -57,7 +62,7 @@
   border: none;
   padding: 0;
   color: var(--lp-bright);
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   white-space: nowrap;
   overflow-x: auto;
 }
@@ -75,7 +80,7 @@
   background: none;
   border: 1px solid var(--lp-border);
   border-radius: 5px;
-  padding: 0.15rem 0.55rem;
+  padding: 0.1rem 0.55rem;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -87,8 +92,8 @@
 
 .linkRow {
   font-family: "Ubuntu Mono", monospace;
-  font-size: 1.05rem;
-  margin-bottom: 2.5rem;
+  font-size: 1rem;
+  margin-bottom: 2.75rem;
 }
 
 .linkRow a {
@@ -108,68 +113,54 @@
 /* ---------- screenshot ---------- */
 
 .screenshotFrame {
+  position: relative;
   border: 1px solid var(--lp-border-strong);
-  border-radius: 10px;
-  overflow: hidden;
-  background-color: var(--lp-bg-deep);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-}
-
-.screenshotBar {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.5rem 0.9rem;
-  border-bottom: 1px solid var(--lp-border);
-  background-color: var(--lp-bg-deep);
-}
-
-.dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background-color: var(--lp-border-strong);
-  opacity: 0.6;
+  border-radius: 8px;
+  overflow: visible;
+  background-color: transparent;
+  padding: 0.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
 }
 
 .screenshotTitle {
-  flex: 1;
-  text-align: center;
+  position: absolute;
+  top: -0.8em;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 0.5rem;
+  background-color: var(--lp-bg);
   font-size: 0.85rem;
   color: var(--lp-muted);
-  /* offset the three dots so the title is visually centered */
-  margin-left: -3rem;
 }
 
 .screenshot {
   display: block;
   width: 100%;
-}
-
-/* ---------- sections ---------- */
-
-.section {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2.5rem 1.5rem;
+  border-radius: 4px;
 }
 
 /* ---------- intro ---------- */
 
-.intro {
-  max-width: 720px;
+.section {
+  max-width: 780px;
   margin: 0 auto;
+  padding: 2.5rem 1.5rem 1rem;
 }
 
 .intro p {
-  font-size: 1.05rem;
+  font-size: 1rem;
+  line-height: 1.7;
 }
 
 .intro pre {
-  margin: 1.25rem 0 1.5rem;
+  margin: 0;
 }
 
-.intro p:last-child {
+.intro > * + * {
+  margin-top: 1.4rem;
+}
+
+.intro p {
   margin-bottom: 0;
 }
 
@@ -182,7 +173,3 @@
   text-decoration: none;
 }
 
-.intro p code {
-  background-color: var(--lp-bg-deep);
-  border: 1px solid var(--lp-border);
-}
