@@ -34,5 +34,10 @@ And will produce the following results:
 | _the black motorbike flew past the tourists_ | ✅ | |
 | _the motorbike flew past the tourists_ | ❌ | doesn't contain 'car' |
 
+When running with `--exact`, bare patterns match as substrings instead of
+fuzzily (`foo` behaves like `'foo`); all the operators above keep their
+meaning. Prefix a special character with a backslash to search for it
+literally (e.g. `\^foo`, `foo\$`, `foo\ bar`).
+
 For more information on the matcher behavior, see the
-[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
+[frizbee](https://docs.rs/frizbee/latest/frizbee/) documentation.

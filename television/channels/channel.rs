@@ -8,7 +8,8 @@ use crate::{
     },
     frecency::FrecencyHandle,
     matcher::{
-        Matcher, Notify, SortStrategy, injector::Injector, matcher_threads,
+        Matcher, Matching, Notify, SortStrategy, injector::Injector,
+        matcher_threads,
     },
     utils::command::shell_command,
 };
@@ -54,6 +55,7 @@ impl<P: EntryProcessor> Channel<P> {
         source_output: Option<Template>,
         supports_preview: bool,
         no_sort: bool,
+        matching: Matching,
         processor: P,
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
@@ -71,8 +73,12 @@ impl<P: EntryProcessor> Channel<P> {
             SortStrategy::Score
         };
 
-        let matcher =
-            Matcher::with_notify(sort_strategy, matcher_threads(), notify);
+        let matcher = Matcher::with_notify(
+            sort_strategy,
+            matching,
+            matcher_threads(),
+            notify,
+        );
         let current_source_index = 0;
         Self {
             source_command,
@@ -524,6 +530,7 @@ impl ChannelKind {
         source_output: Option<Template>,
         supports_preview: bool,
         no_sort: bool,
+        matching: Matching,
         frecency: Option<(FrecencyHandle, String)>,
         is_stdin: bool,
         notify: Notify,
@@ -535,6 +542,7 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
+                matching,
                 PlainProcessor,
                 frecency,
                 is_stdin,
@@ -546,6 +554,7 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
+                matching,
                 AnsiProcessor::new(),
                 frecency,
                 is_stdin,
@@ -557,6 +566,7 @@ impl ChannelKind {
                 source_output,
                 supports_preview,
                 no_sort,
+                matching,
                 DisplayProcessor { template },
                 frecency,
                 is_stdin,
