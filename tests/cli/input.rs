@@ -1,4 +1,5 @@
-//! Tests for CLI input/interaction options: --input, --keybindings, --exact.
+//! Tests for CLI input/interaction options: --input, --keybindings, --exact,
+//! --typo-resistance.
 //!
 //! These tests verify Television's input handling and user interaction features,
 //! ensuring users can customize their interaction experience and search behavior.
@@ -145,6 +146,34 @@ fn test_exact_matching_enabled_fails() {
         .until()
         .unwrap();
     assert_frame_not_contains(&s, "UNIQUE16CHARIDfile.txt");
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+/// Tests that the --typo-resistance flag lets a misspelled pattern match.
+#[test]
+fn test_typo_resistance_matches_misspelled_input() {
+    let pt = phantom();
+    let tmp_dir = TempDir::new().unwrap();
+
+    std::fs::write(tmp_dir.path().join("UNIQUETYPOFILE.txt"), "").unwrap();
+
+    // "UNIQUETYPXFILE" needs one typo to match "UNIQUETYPOFILE.txt"
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--typo-resistance",
+            "--input",
+            "UNIQUETYPXFILE",
+            tmp_dir.path().to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("UNIQUETYPOFILE.txt").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();
