@@ -429,6 +429,8 @@ Behavior:
           (one typo per 4 characters, capped at 2), so longer patterns still
           match when slightly misspelled. Substring/exact operators are
           unaffected.
+          
+          [alias: --typos]
 
 Keybindings:
   -k, --keybindings <STRING>

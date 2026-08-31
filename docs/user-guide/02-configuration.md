@@ -32,7 +32,7 @@ If `TELEVISION_CONFIG` is set, tv uses that directory instead (for example,
 | `default_channel` | string  | `"files"` | The default channel to use when no channel is specified on the command line.                                             |
 | `history_size`    | integer | `200`     | Maximum number of entries to keep in the search history. Set to `0` to disable history functionality.                    |
 | `global_history`  | boolean | `false`   | When `true`, history navigation shows entries from all channels. When `false`, history is scoped to the current channel. |
-| `typo_resistance` | boolean | `false`   | When `true`, fuzzy patterns tolerate typos (one per 4 characters, capped at 2). Can also be enabled with `--typo-resistance`. |
+| `typo_resistance` | boolean | `false`   | When `true`, fuzzy patterns tolerate typos (one per 4 characters, capped at 2). Can also be enabled with `--typo-resistance` (alias `--typos`). |
 
 ### UI Configuration
 
