@@ -9,6 +9,7 @@ use crate::{
         ui::{BorderType, Padding, ThemeOverrides},
     },
     keymap::InputMap,
+    matcher::Matching,
     screen::layout::{InputPosition, Orientation},
     utils::shell::Shell,
 };
@@ -729,6 +730,17 @@ pub struct MergedConfig {
 }
 
 impl MergedConfig {
+    /// The matching mode bare pattern atoms use: `--exact` makes them match
+    /// as substrings instead of fuzzily; operators (`^`, `$`, `'`, `!`) keep
+    /// their meaning in both modes.
+    pub fn matching(&self) -> Matching {
+        if self.exact_match {
+            Matching::Substring
+        } else {
+            Matching::Fuzzy
+        }
+    }
+
     /// An empty input bar header means "no header line at all".
     pub fn input_bar_header_hidden(&self) -> bool {
         self.input_bar_header.as_deref().is_some_and(str::is_empty)

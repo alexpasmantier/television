@@ -1,5 +1,5 @@
 use super::{HoistTable, Notify, SortStrategy};
-use frizbee::Match;
+use frizbee::{Match, Matching};
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
     Arc,
@@ -176,6 +176,8 @@ pub(super) struct Worker<I: Sync + Send + 'static> {
     matcher: frizbee::Matcher,
     pattern: String,
     sort_strategy: SortStrategy<I>,
+    /// The matching mode bare pattern atoms use (fuzzy or substring).
+    matching: Matching,
     /// Last item that was matched
     last_match_index: usize,
     /// Number of threads to use when matching.
@@ -201,6 +203,7 @@ where
         notify: Notify,
         rx: mpsc::Receiver<WorkerMessage<I>>,
         sort_strategy: SortStrategy<I>,
+        matching: Matching,
         n_threads: usize,
         initial_chunk_size: usize,
     ) -> Self {
@@ -210,9 +213,10 @@ where
             running,
             notify,
             rx,
-            matcher: build_matcher("", &sort_strategy),
+            matcher: build_matcher("", matching, &sort_strategy),
             pattern: String::new(),
             sort_strategy,
+            matching,
             last_match_index: 0,
             n_threads,
             initial_chunk_size,
@@ -275,7 +279,11 @@ where
                 if pattern == self.pattern {
                     return false;
                 }
-                self.matcher = build_matcher(&pattern, &self.sort_strategy);
+                self.matcher = build_matcher(
+                    &pattern,
+                    self.matching,
+                    &self.sort_strategy,
+                );
                 self.pattern = pattern;
                 self.last_match_index = 0;
                 true
@@ -554,6 +562,7 @@ fn merge_matches(
 
 fn build_matcher<I: Sync + Send + 'static>(
     pattern: &str,
+    matching: Matching,
     sort_strategy: &SortStrategy<I>,
 ) -> frizbee::Matcher {
     let sort_strategy = match sort_strategy {
@@ -567,6 +576,7 @@ fn build_matcher<I: Sync + Send + 'static>(
         pattern,
         &frizbee::Config::default()
             .sort(sort_strategy)
+            .matching(matching)
             .casing(frizbee::CaseMatching::Smart),
     )
 }

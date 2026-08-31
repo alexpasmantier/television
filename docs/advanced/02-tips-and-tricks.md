@@ -247,6 +247,10 @@ Disable fuzzy matching for exact substring search:
 tv files --exact
 ```
 
+Bare patterns then match as substrings, while the
+[search-pattern operators](../user-guide/06-search-patterns.md) (`^foo`,
+`foo$`, `!foo`, ...) keep working.
+
 ### When to Use
 
 - Better performance on very large datasets

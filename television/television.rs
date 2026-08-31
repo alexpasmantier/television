@@ -71,12 +71,6 @@ pub struct MissingRequirementsPopup {
     pub missing_requirements: Vec<String>,
 }
 
-#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
-pub enum MatchingMode {
-    Substring,
-    Fuzzy,
-}
-
 pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub layered_config: ConfigLayers,
@@ -87,7 +81,6 @@ pub struct Television {
     pub mode: Mode,
     pub currently_selected: Option<Entry>,
     pub current_pattern: String,
-    pub matching_mode: MatchingMode,
     pub results_picker: Picker<Entry>,
     pub rc_picker: Picker<CableEntry>,
     pub ap_picker: Picker<ActionEntry>,
@@ -143,12 +136,6 @@ impl Television {
             results_picker = results_picker.inverted();
         }
 
-        let matching_mode = if merged_config.exact_match {
-            MatchingMode::Substring
-        } else {
-            MatchingMode::Fuzzy
-        };
-
         // previewer
         let preview_handles = merged_config
             .channel_preview_command
@@ -178,6 +165,7 @@ impl Television {
             merged_config.channel_source_output.clone(),
             merged_config.channel_preview_command.is_some(),
             merged_config.no_sort,
+            merged_config.matching(),
             frecency_config,
             merged_config.is_stdin,
             notify.clone(),
@@ -199,15 +187,7 @@ impl Television {
             });
         let colorscheme = (&theme).into();
 
-        let pattern = Television::preprocess_pattern(
-            matching_mode,
-            &merged_config
-                .input
-                .clone()
-                .unwrap_or(EMPTY_STRING.to_string()),
-        );
-
-        channel.find(&pattern);
+        channel.find(merged_config.input.as_deref().unwrap_or(EMPTY_STRING));
 
         let preview_state = PreviewState::new(
             channel.supports_preview(),
@@ -239,7 +219,6 @@ impl Television {
             currently_selected: None,
             current_pattern: EMPTY_STRING.to_string(),
             results_picker,
-            matching_mode,
             rc_picker: Picker::default(),
             ap_picker: Picker::default(),
             preview_state,
@@ -390,6 +369,7 @@ impl Television {
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
             self.merged_config.no_sort,
+            self.merged_config.matching(),
             frecency_config,
             false, // stdin only applies to the initial channel
             self.notify.clone(),
@@ -401,9 +381,7 @@ impl Television {
     pub fn find(&mut self, pattern: &str) {
         match self.mode {
             Mode::Channel => {
-                let processed_pattern =
-                    Self::preprocess_pattern(self.matching_mode, pattern);
-                self.channel.find(&processed_pattern);
+                self.channel.find(pattern);
             }
             Mode::RemoteControl => {
                 if let Some(rc) = self.remote_control.as_mut() {
@@ -415,31 +393,6 @@ impl Television {
                     ap.find(pattern);
                 }
             }
-        }
-    }
-
-    fn preprocess_pattern(mode: MatchingMode, pattern: &str) -> String {
-        if mode == MatchingMode::Substring {
-            let parts: Vec<&str> = pattern.split_ascii_whitespace().collect();
-            if parts.is_empty() {
-                return pattern.to_string();
-            }
-
-            let capacity = parts.iter().map(|s| s.len() + 2).sum::<usize>()
-                + parts.len()
-                - 1;
-            let mut result = String::with_capacity(capacity);
-
-            for (i, part) in parts.iter().enumerate() {
-                if i > 0 {
-                    result.push(' ');
-                }
-                result.push('\'');
-                result.push_str(part);
-            }
-            result
-        } else {
-            pattern.to_string()
         }
     }
 
@@ -1307,26 +1260,10 @@ mod test {
         config::layers::ConfigLayers,
         event::Key,
         frecency::Frecency,
-        television::{MatchingMode, Mode, Television},
+        television::{Mode, Television},
     };
     use std::sync::Arc;
     use tempfile::tempdir;
-
-    #[test]
-    fn test_prompt_preprocessing() {
-        let one_word = "test";
-        let mult_word = "this is a specific test";
-        let expect_one = "'test";
-        let expect_mult = "'this 'is 'a 'specific 'test";
-        assert_eq!(
-            Television::preprocess_pattern(MatchingMode::Substring, one_word),
-            expect_one
-        );
-        assert_eq!(
-            Television::preprocess_pattern(MatchingMode::Substring, mult_word),
-            expect_mult
-        );
-    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_cli_overrides() {
@@ -1357,7 +1294,7 @@ mod test {
             frecency,
         );
 
-        assert_eq!(tv.matching_mode, MatchingMode::Substring);
+        assert!(tv.merged_config.exact_match);
         assert!(tv.remote_control.is_none());
     }
 

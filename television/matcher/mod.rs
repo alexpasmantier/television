@@ -19,6 +19,8 @@ mod worker;
 
 use worker::{Snapshot, Store, Worker, WorkerMessage};
 
+pub use frizbee::Matching;
+
 /// Hoist scores: keys of entries to hoist mapped to their score.
 pub type HoistTable = Arc<FxHashMap<String, u64>>;
 
@@ -90,6 +92,8 @@ where
     /// store so the count stays current while batches are still in flight
     /// to the worker.
     count: Arc<AtomicUsize>,
+    /// The matching mode bare pattern atoms use (fuzzy or substring).
+    matching: Matching,
     /// The last pattern passed to `find`, used to avoid notifying the worker
     /// when the pattern hasn't changed.
     last_pattern: String,
@@ -107,18 +111,25 @@ where
     /// Use [`Matcher::with_notify`] to be woken as soon as fresh results are
     /// available.
     pub fn new(sort_strategy: SortStrategy<I>, n_threads: usize) -> Self {
-        Self::with_notify(sort_strategy, n_threads, Arc::new(|| {}))
+        Self::with_notify(
+            sort_strategy,
+            Matching::Fuzzy,
+            n_threads,
+            Arc::new(|| {}),
+        )
     }
 
     /// Create a new fuzzy matcher that calls `notify` every time the background
     /// worker publishes fresh results.
     pub fn with_notify(
         sort_strategy: SortStrategy<I>,
+        matching: Matching,
         n_threads: usize,
         notify: Notify,
     ) -> Self {
         Self::build(
             sort_strategy,
+            matching,
             n_threads,
             notify,
             worker::INITIAL_CHUNK_SIZE,
@@ -133,11 +144,18 @@ where
         n_threads: usize,
         chunk_size: usize,
     ) -> Self {
-        Self::build(sort_strategy, n_threads, Arc::new(|| {}), chunk_size)
+        Self::build(
+            sort_strategy,
+            Matching::Fuzzy,
+            n_threads,
+            Arc::new(|| {}),
+            chunk_size,
+        )
     }
 
     fn build(
         sort_strategy: SortStrategy<I>,
+        matching: Matching,
         n_threads: usize,
         notify: Notify,
         initial_chunk_size: usize,
@@ -154,6 +172,7 @@ where
             notify,
             worker_rx,
             sort_strategy,
+            matching,
             n_threads,
             initial_chunk_size,
         );
@@ -167,17 +186,23 @@ where
             snapshot,
             worker_tx,
             running,
+            matching,
             count: Arc::new(AtomicUsize::new(0)),
             last_pattern: String::new(),
-            indices_matcher: (String::new(), build_indices_matcher("")),
+            indices_matcher: (
+                String::new(),
+                build_indices_matcher("", matching),
+            ),
         }
     }
 
     /// The cached indices matcher, rebuilt only when `pattern` changes.
     fn indices_matcher(&mut self, pattern: &str) -> &mut frizbee::Matcher {
         if self.indices_matcher.0 != pattern {
-            self.indices_matcher =
-                (pattern.to_string(), build_indices_matcher(pattern));
+            self.indices_matcher = (
+                pattern.to_string(),
+                build_indices_matcher(pattern, self.matching),
+            );
         }
         &mut self.indices_matcher.1
     }
@@ -393,10 +418,15 @@ where
 }
 
 /// Build a matcher for computing match indices with the given pattern.
-fn build_indices_matcher(pattern: &str) -> frizbee::Matcher {
+fn build_indices_matcher(
+    pattern: &str,
+    matching: Matching,
+) -> frizbee::Matcher {
     frizbee::Matcher::from_query(
         pattern,
-        &frizbee::Config::default().casing(frizbee::CaseMatching::Smart),
+        &frizbee::Config::default()
+            .matching(matching)
+            .casing(frizbee::CaseMatching::Smart),
     )
 }
 

@@ -5,7 +5,7 @@ use crate::{
         prototypes::{BinaryRequirement, ChannelPrototype},
     },
     event::Key,
-    matcher::{Matcher, Notify, SortStrategy},
+    matcher::{Matcher, Matching, Notify, SortStrategy},
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
@@ -91,6 +91,7 @@ impl RemoteControl {
     ) -> Self {
         let matcher = Matcher::with_notify(
             SortStrategy::Score,
+            Matching::Fuzzy,
             REMOTE_NUM_THREADS,
             notify,
         );
