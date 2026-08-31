@@ -3,7 +3,7 @@ use crate::{
     channels::entry::into_ranges,
     channels::prototypes::ActionSpec,
     event::Key,
-    matcher::{Matcher, Notify, SortStrategy},
+    matcher::{Matcher, Matching, Notify, SortStrategy},
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
@@ -86,8 +86,12 @@ impl ActionPicker {
         action_keybindings: &FxHashMap<String, Key>,
         notify: Notify,
     ) -> Self {
-        let matcher =
-            Matcher::with_notify(SortStrategy::Score, NUM_THREADS, notify);
+        let matcher = Matcher::with_notify(
+            SortStrategy::Score,
+            Matching::Fuzzy,
+            NUM_THREADS,
+            notify,
+        );
         let injector = matcher.injector();
 
         // Sort actions alphabetically for consistent display
