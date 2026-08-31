@@ -19,7 +19,13 @@ mod worker;
 
 use worker::{Snapshot, Store, Worker, WorkerMessage};
 
-pub use frizbee::Matching;
+pub use frizbee::Matching as MatchingMode;
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct MatcherConfig {
+    pub matching_mode: MatchingMode,
+    pub typo_resistance: bool,
+}
 
 /// Hoist scores: keys of entries to hoist mapped to their score.
 pub type HoistTable = Arc<FxHashMap<String, u64>>;
@@ -85,15 +91,15 @@ where
     /// Channel used to notify the background worker of changes.
     worker_tx: mpsc::Sender<WorkerMessage<I>>,
     /// Whether the background worker is currently matching or has pending
-    /// work.
+    /// work (messages).
     running: Arc<AtomicBool>,
     /// Live count of items pushed through injectors for the current store,
     /// swapped together with the store on restart. Kept separate from the
     /// store so the count stays current while batches are still in flight
     /// to the worker.
     count: Arc<AtomicUsize>,
-    /// The matching mode bare pattern atoms use (fuzzy or substring).
-    matching: Matching,
+    /// The matching behavior, needed to rebuild the indices matcher.
+    config: MatcherConfig,
     /// The last pattern passed to `find`, used to avoid notifying the worker
     /// when the pattern hasn't changed.
     last_pattern: String,
@@ -113,7 +119,7 @@ where
     pub fn new(sort_strategy: SortStrategy<I>, n_threads: usize) -> Self {
         Self::with_notify(
             sort_strategy,
-            Matching::Fuzzy,
+            MatcherConfig::default(),
             n_threads,
             Arc::new(|| {}),
         )
@@ -123,13 +129,13 @@ where
     /// worker publishes fresh results.
     pub fn with_notify(
         sort_strategy: SortStrategy<I>,
-        matching: Matching,
+        config: MatcherConfig,
         n_threads: usize,
         notify: Notify,
     ) -> Self {
         Self::build(
             sort_strategy,
-            matching,
+            config,
             n_threads,
             notify,
             worker::INITIAL_CHUNK_SIZE,
@@ -146,7 +152,7 @@ where
     ) -> Self {
         Self::build(
             sort_strategy,
-            Matching::Fuzzy,
+            MatcherConfig::default(),
             n_threads,
             Arc::new(|| {}),
             chunk_size,
@@ -155,7 +161,7 @@ where
 
     fn build(
         sort_strategy: SortStrategy<I>,
-        matching: Matching,
+        config: MatcherConfig,
         n_threads: usize,
         notify: Notify,
         initial_chunk_size: usize,
@@ -172,7 +178,7 @@ where
             notify,
             worker_rx,
             sort_strategy,
-            matching,
+            config,
             n_threads,
             initial_chunk_size,
         );
@@ -186,12 +192,12 @@ where
             snapshot,
             worker_tx,
             running,
-            matching,
+            config,
             count: Arc::new(AtomicUsize::new(0)),
             last_pattern: String::new(),
             indices_matcher: (
                 String::new(),
-                build_indices_matcher("", matching),
+                build_indices_matcher("", config),
             ),
         }
     }
@@ -201,7 +207,7 @@ where
         if self.indices_matcher.0 != pattern {
             self.indices_matcher = (
                 pattern.to_string(),
-                build_indices_matcher(pattern, self.matching),
+                build_indices_matcher(pattern, self.config),
             );
         }
         &mut self.indices_matcher.1
@@ -420,14 +426,41 @@ where
 /// Build a matcher for computing match indices with the given pattern.
 fn build_indices_matcher(
     pattern: &str,
-    matching: Matching,
+    config: MatcherConfig,
 ) -> frizbee::Matcher {
-    frizbee::Matcher::from_query(
-        pattern,
+    frizbee::Matcher::from_patterns(
+        &parse_patterns(pattern, config),
         &frizbee::Config::default()
-            .matching(matching)
+            .matching(config.matching_mode)
             .casing(frizbee::CaseMatching::Smart),
     )
+}
+
+/// Parse the query into pattern atoms, giving each one a typo budget when
+/// typo resistance is enabled. The budget only affects fuzzy atoms; literal
+/// atoms (`'`, `^`, `$`, `!`) always match without typos.
+fn parse_patterns(
+    pattern: &str,
+    config: MatcherConfig,
+) -> Vec<frizbee::Pattern> {
+    let patterns = frizbee::Pattern::parse_query(pattern);
+    if !config.typo_resistance {
+        return patterns;
+    }
+    patterns
+        .into_iter()
+        .map(|pattern| {
+            let budget = typo_budget(&pattern.needle);
+            pattern.max_typos(Some(budget))
+        })
+        .collect()
+}
+
+/// The typo budget for a needle: one typo per 4 characters, capped at 2 so
+/// queries stay on frizbee's specialized prefiltered code paths.
+#[allow(clippy::cast_possible_truncation)]
+fn typo_budget(needle: &str) -> u16 {
+    (needle.chars().count() / 4).min(2) as u16
 }
 
 /// Assemble a `MatchedItem` for the store entry at `index`, computing the
@@ -556,6 +589,41 @@ mod tests {
         }
 
         assert_eq!(collect_ids(&mut matcher), (0..15).collect::<Vec<_>>());
+    }
+
+    /// Typo resistance gives fuzzy needles a budget (one typo per 4 chars,
+    /// capped at 2): misspelled patterns still match, ranked below clean
+    /// matches, while short needles keep matching exactly.
+    #[test]
+    fn typo_resistance_matches_misspelled_patterns() {
+        let items: Vec<(usize, String)> =
+            vec![(0, "config".to_string()), (1, "conxig".to_string())];
+
+        let mut strict: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        strict.injector().push_batch(items.clone());
+        strict.find("conxig");
+        strict.wait_for_idle();
+        assert_eq!(collect_ids(&mut strict), vec![1]);
+
+        let mut tolerant: Matcher<usize> = Matcher::with_notify(
+            SortStrategy::Score,
+            MatcherConfig {
+                typo_resistance: true,
+                ..MatcherConfig::default()
+            },
+            2,
+            Arc::new(|| {}),
+        );
+        tolerant.injector().push_batch(items);
+        tolerant.find("conxig");
+        tolerant.wait_for_idle();
+        // "conxig" matches "config" with one typo, ranked below the clean match
+        assert_eq!(collect_ids(&mut tolerant), vec![1, 0]);
+
+        // Needles under 4 characters get no typo budget
+        tolerant.find("cnx");
+        tolerant.wait_for_idle();
+        assert_eq!(collect_ids(&mut tolerant), vec![1]);
     }
 
     /// A hoisted strategy backed by a fixed score table, keyed on the

@@ -34,6 +34,10 @@ history_size = 200
 # When true: history navigation shows entries from all channels
 # When false: history navigation is scoped to the current channel
 global_history = false
+# Whether fuzzy matching tolerates typos (default: false)
+# When true, every fuzzy pattern gets a typo budget that scales with its
+# length (one typo per 4 characters, capped at 2)
+typo_resistance = false
 
 [ui]
 # How much space to allocate for the UI (in percentage of the screen)

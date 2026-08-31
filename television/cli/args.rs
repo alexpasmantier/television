@@ -657,6 +657,17 @@ pub struct Cli {
     #[arg(long, value_name = "PATH", verbatim_doc_comment, value_parser = validate_directory_path, help_heading = "Configuration")]
     pub cable_dir: Option<String>,
 
+    /// Tolerate typos when fuzzy matching.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// Every fuzzy pattern gets a typo budget that scales with its length
+    /// (one typo per 4 characters, capped at 2), so longer patterns still
+    /// match when slightly misspelled. Substring/exact operators are
+    /// unaffected.
+    #[arg(long, verbatim_doc_comment, help_heading = "Behavior")]
+    pub typo_resistance: bool,
+
     /// Use global history instead of channel-specific history.
     ///
     /// This flag only works in channel mode.

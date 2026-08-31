@@ -132,6 +132,7 @@ pub struct ChannelCli {
 pub struct GlobalCli {
     pub workdir: Option<PathBuf>,
     pub global_history: bool,
+    pub typo_resistance: bool,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
     pub command: Option<Command>,
@@ -390,6 +391,7 @@ pub fn post_process(
             // Workdir and global history
             workdir: working_directory,
             global_history: cli.global_history,
+            typo_resistance: cli.typo_resistance,
 
             // Configuration sources
             config_file: cli.config_file.map(|p| expand_tilde(&p)),

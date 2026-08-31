@@ -3,7 +3,7 @@ use crate::{
     channels::entry::into_ranges,
     channels::prototypes::ActionSpec,
     event::Key,
-    matcher::{Matcher, Matching, Notify, SortStrategy},
+    matcher::{Matcher, MatcherConfig, Notify, SortStrategy},
     screen::result_item::ResultItem,
 };
 use anyhow::Result;
@@ -88,7 +88,7 @@ impl ActionPicker {
     ) -> Self {
         let matcher = Matcher::with_notify(
             SortStrategy::Score,
-            Matching::Fuzzy,
+            MatcherConfig::default(),
             NUM_THREADS,
             notify,
         );

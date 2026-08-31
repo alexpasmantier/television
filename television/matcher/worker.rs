@@ -1,5 +1,5 @@
-use super::{HoistTable, Notify, SortStrategy};
-use frizbee::{Match, Matching};
+use super::{HoistTable, MatcherConfig, Notify, SortStrategy};
+use frizbee::Match;
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
     Arc,
@@ -176,8 +176,9 @@ pub(super) struct Worker<I: Sync + Send + 'static> {
     matcher: frizbee::Matcher,
     pattern: String,
     sort_strategy: SortStrategy<I>,
-    /// The matching mode bare pattern atoms use (fuzzy or substring).
-    matching: Matching,
+    /// The matching behavior, needed to rebuild the matcher on pattern
+    /// changes.
+    config: MatcherConfig,
     /// Last item that was matched
     last_match_index: usize,
     /// Number of threads to use when matching.
@@ -203,7 +204,7 @@ where
         notify: Notify,
         rx: mpsc::Receiver<WorkerMessage<I>>,
         sort_strategy: SortStrategy<I>,
-        matching: Matching,
+        config: MatcherConfig,
         n_threads: usize,
         initial_chunk_size: usize,
     ) -> Self {
@@ -213,10 +214,10 @@ where
             running,
             notify,
             rx,
-            matcher: build_matcher("", matching, &sort_strategy),
+            matcher: build_matcher("", config, &sort_strategy),
             pattern: String::new(),
             sort_strategy,
-            matching,
+            config,
             last_match_index: 0,
             n_threads,
             initial_chunk_size,
@@ -279,11 +280,8 @@ where
                 if pattern == self.pattern {
                     return false;
                 }
-                self.matcher = build_matcher(
-                    &pattern,
-                    self.matching,
-                    &self.sort_strategy,
-                );
+                self.matcher =
+                    build_matcher(&pattern, self.config, &self.sort_strategy);
                 self.pattern = pattern;
                 self.last_match_index = 0;
                 true
@@ -562,7 +560,7 @@ fn merge_matches(
 
 fn build_matcher<I: Sync + Send + 'static>(
     pattern: &str,
-    matching: Matching,
+    config: MatcherConfig,
     sort_strategy: &SortStrategy<I>,
 ) -> frizbee::Matcher {
     let sort_strategy = match sort_strategy {
@@ -572,11 +570,11 @@ fn build_matcher<I: Sync + Send + 'static>(
         SortStrategy::Index => frizbee::SortStrategy::IndexAsc,
     };
 
-    frizbee::Matcher::from_query(
-        pattern,
+    frizbee::Matcher::from_patterns(
+        &super::parse_patterns(pattern, config),
         &frizbee::Config::default()
             .sort(sort_strategy)
-            .matching(matching)
+            .matching(config.matching_mode)
             .casing(frizbee::CaseMatching::Smart),
     )
 }

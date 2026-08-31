@@ -165,7 +165,7 @@ impl Television {
             merged_config.channel_source_output.clone(),
             merged_config.channel_preview_command.is_some(),
             merged_config.no_sort,
-            merged_config.matching(),
+            merged_config.matcher_config(),
             frecency_config,
             merged_config.is_stdin,
             notify.clone(),
@@ -369,7 +369,7 @@ impl Television {
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
             self.merged_config.no_sort,
-            self.merged_config.matching(),
+            self.merged_config.matcher_config(),
             frecency_config,
             false, // stdin only applies to the initial channel
             self.notify.clone(),
