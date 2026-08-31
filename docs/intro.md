@@ -1,6 +1,6 @@
 ---
 sidebar_position: 0
-slug: /
+slug: /intro
 title: Television
 ---
 
