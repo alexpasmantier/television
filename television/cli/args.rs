@@ -665,7 +665,12 @@ pub struct Cli {
     /// (one typo per 4 characters, capped at 2), so longer patterns still
     /// match when slightly misspelled. Substring/exact operators are
     /// unaffected.
-    #[arg(long, verbatim_doc_comment, help_heading = "Behavior")]
+    #[arg(
+        long,
+        visible_alias = "typos",
+        verbatim_doc_comment,
+        help_heading = "Behavior"
+    )]
     pub typo_resistance: bool,
 
     /// Use global history instead of channel-specific history.
