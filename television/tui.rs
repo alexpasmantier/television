@@ -250,12 +250,11 @@ where
     ///
     /// More info: <https://github.com/crossterm-rs/crossterm/pull/957>
     pub fn clear(&mut self) -> Result<()> {
-        let area = match self.viewport {
-            Viewport::Fixed(area) => area,
-            _ => {
-                let size = self.terminal.size()?;
-                ratatui::layout::Rect::new(0, 0, size.width, size.height)
-            }
+        let area = if let Viewport::Fixed(area) = self.viewport {
+            area
+        } else {
+            let size = self.terminal.size()?;
+            ratatui::layout::Rect::new(0, 0, size.width, size.height)
         };
         self.terminal.resize(area)?;
         Ok(())
