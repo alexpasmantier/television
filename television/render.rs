@@ -77,7 +77,7 @@ pub async fn render<W: Write>(
         {
             match event {
                 RenderingTask::ClearScreen => {
-                    tui.terminal.clear()?;
+                    tui.clear()?;
                 }
                 RenderingTask::Render(context) => {
                     if let Ok(size) = tui.size() {
