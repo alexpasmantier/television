@@ -182,6 +182,11 @@ pre code {
   }
 }
 
+/* the landing page has its own links, no need for the mobile drawer there */
+html.landing-page .navbar__toggle {
+  display: none;
+}
+
 /* GitHub mark icon in the navbar (mask so it follows the link color) */
 .header-github-link {
   padding: 0 0.5rem;
@@ -207,9 +212,16 @@ pre code {
   display: none;
 }
 
-/* in the mobile drawer, show a text entry instead of the icon */
+/* in the mobile drawer, show a text entry instead of the icon, with the
+   same (hidden) pointer gutter as the other entries so they line up */
 .navbar-sidebar .header-github-link::before {
-  display: none;
+  content: "❯\00a0";
+  display: inline;
+  width: auto;
+  height: auto;
+  background: none;
+  mask-image: none;
+  visibility: hidden;
 }
 
 .navbar-sidebar .header-github-link::after {
@@ -258,6 +270,7 @@ nav.menu {
 
 .navbar-sidebar .menu {
   font-size: 0.95rem;
+  padding: 0.75rem;
 }
 
 .navbar-sidebar__back {
