@@ -9,7 +9,7 @@ Templates appear in several channel fields:
 - `source.display`: Format how entries appear in the results list
 - `source.output`: Format the final output when an entry is selected
 - `preview.command`: Build the preview command
-- `preview.header/footer`: Dynamic preview panel headers/footers
+- `ui.preview_panel.header/footer`: Dynamic preview panel headers/footers
 - `actions.*.command`: Format action commands
 
 ## Basic Placeholders
@@ -117,15 +117,16 @@ Operations execute left to right.
 ```
 {upper}      # UPPERCASE
 {lower}      # lowercase
-{capitalize} # Capitalize first letter
 ```
 
 ### Trimming
 
 ```
-{trim}       # Remove leading/trailing whitespace
-{trim_start} # Remove leading whitespace
-{trim_end}   # Remove trailing whitespace
+{trim}            # Remove leading/trailing whitespace
+{trim:left}       # Remove leading whitespace
+{trim:right}      # Remove trailing whitespace
+{trim:CHARS}      # Remove the given characters from both ends
+{trim:CHARS:left} # Remove the given characters from the left only
 ```
 
 ### Prefix and Suffix
@@ -145,18 +146,20 @@ display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
 ### Padding
 
 ```
+{pad:WIDTH}
+{pad:WIDTH:CHAR}
 {pad:WIDTH:CHAR:DIRECTION}
 ```
 
 - `WIDTH`: Target width
-- `CHAR`: Padding character
-- `DIRECTION`: `left`, `right`, or `center`
+- `CHAR`: Padding character (default: space)
+- `DIRECTION`: `left`, `right` (default), or `both`
 
 **Example:**
 
 ```toml
-{pad:10:0:left}   # "42" becomes "0000000042"
-{pad:10: :center} # "foo" becomes "   foo    "
+{pad:10:0:left}  # "42" becomes "0000000042"
+{pad:10: :both}  # "foo" becomes "   foo    "
 ```
 
 ## Regular Expressions
@@ -180,19 +183,21 @@ display = "{prepend:> |append: <}"  # Entry "foo" becomes "> foo <"
 
 ### Replace with Regex
 
+Uses sed-style syntax:
+
 ```
-{regex_replace:PATTERN:REPLACEMENT}
+{replace:s/PATTERN/REPLACEMENT/FLAGS}
 ```
 
 **Example:**
 
 ```toml
-{regex_replace:\s+:_}  # "hello world" -> "hello_world"
+{replace:s/\s+/_/g}  # "hello world" -> "hello_world"
 ```
 
 ## Working with Collections
 
-When processing multiple entries (e.g., multi-select), use collection operations:
+After a `split`, the template holds a list of parts from the current entry. These operations work on that list:
 
 ### Map
 
@@ -273,12 +278,10 @@ command = "kill -9 '{split: :0}'"  # Kill by PID
 ```toml
 [source]
 command = "docker ps --format '{{.ID}}\\t{{.Names}}\\t{{.Status}}'"
+display = "{split:\\t:1} ({split:\\t:2})"  # Show: name (status)
 
 [preview]
 command = "docker logs '{split:\\t:0}'"  # Use container ID
-
-[source]
-display = "{split:\\t:1} ({split:\\t:2})"  # Show: name (status)
 ```
 
 ## Complex Pipeline Example

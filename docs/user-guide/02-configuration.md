@@ -22,6 +22,8 @@ If `TELEVISION_CONFIG` is set, tv uses that directory instead (for example,
 
 **latest default config file: [config.toml](https://github.com/alexpasmantier/television/blob/main/.config/config.toml)**
 
+If you have an older config file, `tv migrate-config` trims machine-written defaults from it.
+
 ## Option reference
 
 ### General Settings
@@ -32,6 +34,8 @@ If `TELEVISION_CONFIG` is set, tv uses that directory instead (for example,
 | `default_channel` | string  | `"files"` | The default channel to use when no channel is specified on the command line.                                             |
 | `history_size`    | integer | `200`     | Maximum number of entries to keep in the search history. Set to `0` to disable history functionality.                    |
 | `global_history`  | boolean | `false`   | When `true`, history navigation shows entries from all channels. When `false`, history is scoped to the current channel. |
+| `frecency_max_entries` | integer | `1000` | Maximum number of frecency entries to keep per channel.                                                              |
+| `shell`           | string  | unset     | Shell used to run source, preview and action commands. Valid values: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu`. When unset, the shell is detected from the environment (`$SHELL` on Unix). Channels can override this. |
 | `typo_resistance` | boolean | `false`   | When `true`, fuzzy patterns tolerate typos (one per 4 characters, capped at 2). Can also be enabled with `--typo-resistance` (alias `--typos`). |
 
 ### UI Configuration
@@ -46,7 +50,7 @@ Top-level UI settings under the `[ui]` section:
 
 #### Available Themes
 
-Built-in themes: `default`, `television`, `gruvbox-dark`, `gruvbox-light`, `catppuccin`, `nord-dark`, `solarized-dark`, `solarized-light`, `dracula`, `monokai`, `onedark`, `tokyonight`, `rose-pine`, `rose-pine-moon`, `rose-pine-dawn`.
+Built-in themes: `catppuccin`, `cyberdream`, `cyberdream-light`, `default`, `dracula`, `gruvbox-dark`, `gruvbox-light`, `monokai`, `nord-dark`, `onedark`, `rose-pine`, `rose-pine-dawn`, `rose-pine-moon`, `solarized-dark`, `solarized-light`, `television`, `tokyonight`.
 
 You can also create custom themes by placing them in `$CONFIG_DIR/television/themes/` (see [themes](./05-themes.md) for
 details).
@@ -86,6 +90,7 @@ details).
 | `scrollbar`   | boolean         | `false`                                  | Whether to show a scrollbar in the preview panel.                                  |
 | `border_type` | string          | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`.           |
 | `padding`     | object          | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the preview panel.                                                  |
+| `word_wrap`   | boolean         | `false`                                  | Whether to wrap long lines in the preview panel.                                   |
 | `hidden`      | boolean         | `false`                                  | Whether to hide the preview panel by default.                                      |
 
 #### Help Panel (`[ui.help_panel]`)
@@ -129,15 +134,20 @@ Override specific colors from the selected theme without creating a full theme f
 | `channel_mode_bg`        | Channel mode indicator background color        |
 | `remote_control_mode_fg` | Remote control mode indicator foreground color |
 | `remote_control_mode_bg` | Remote control mode indicator background color |
+| `action_picker_mode_fg`  | Action picker mode indicator foreground color  |
+| `action_picker_mode_bg`  | Action picker mode indicator background color  |
 
 ### Keybindings (`[keybindings]`)
 
 Map keyboard keys to actions. Keys can be specified as:
 
 - Single characters: `a`, `b`, `1`, etc.
-- Special keys: `enter`, `esc`, `tab`, `backtab`, `space`, `backspace`, `delete`, `home`, `end`, `pageup`, `pagedown`, `up`, `down`, `left`, `right`
+- Special keys: `enter`, `esc`, `tab`, `backtab`, `space`, `backspace`, `delete`, `insert`, `home`, `end`, `pageup`, `pagedown`, `up`, `down`, `left`, `right`
 - Control keys: `ctrl-a`, `ctrl-b`, `ctrl-c`, etc.
+- Alt keys: `alt-a`, `alt-enter`, etc.
 - Function keys: `f1`, `f2`, ..., `f12`
+
+Modifiers can be combined with special keys, e.g. `ctrl-up`, `ctrl-down`, `alt-enter`.
 
 **Available Actions**:
 
@@ -154,6 +164,7 @@ Map keyboard keys to actions. Keys can be specified as:
 | `toggle_selection_down`         | Toggle selection and move down          |
 | `toggle_selection_up`           | Toggle selection and move up            |
 | `confirm_selection`             | Confirm current selection               |
+| `select_and_exit`               | Select the entry under the cursor and exit |
 | `select_next_entry`             | Select next entry in results            |
 | `select_prev_entry`             | Select previous entry in results        |
 | `select_next_page`              | Select next page of results             |
@@ -165,6 +176,7 @@ Map keyboard keys to actions. Keys can be specified as:
 | `scroll_preview_half_page_down` | Scroll preview down by half page        |
 | `quit`                          | Quit the application                    |
 | `toggle_remote_control`         | Toggle remote control mode              |
+| `toggle_action_picker`          | Toggle the action picker                |
 | `toggle_help`                   | Toggle help panel                       |
 | `toggle_status_bar`             | Toggle status bar visibility            |
 | `toggle_preview`                | Toggle preview panel visibility         |
@@ -174,6 +186,7 @@ Map keyboard keys to actions. Keys can be specified as:
 | `reload_source`                 | Reload the current source               |
 | `select_prev_history`           | Navigate to previous history entry      |
 | `select_next_history`           | Navigate to next history entry          |
+| `no_op`                         | Do nothing (useful to unbind a key)     |
 
 ### Shell Integration (`[shell_integration]`)
 

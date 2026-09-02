@@ -4,7 +4,7 @@ Builtin themes are available in the [themes](https://github.com/alexpasmantier/t
 
 |          ![catppuccin](../../assets/catppuccin.png "catppuccin") catppuccin           | ![gruvbox](../../assets/gruvbox.png "gruvbox") gruvbox-dark |
 | :-----------------------------------------------------------------------------------: | :---------------------------------------------------------: |
-| ![solarized-dark](../../assets/solarized-dark.png "gruvbox-light") **solarized-dark** |       ![nord](../../assets/nord.png "nord") **nord**        |
+| ![solarized-dark](../../assets/solarized-dark.png "solarized-dark") **solarized-dark** |       ![nord-dark](../../assets/nord.png "nord-dark") **nord-dark**        |
 
 ## Custom Themes
 
@@ -42,7 +42,8 @@ channel_mode_fg = '#1e1e2e'
 channel_mode_bg = '#f5c2e7'
 remote_control_mode_fg = '#1e1e2e'
 remote_control_mode_bg = '#a6e3a1'
-send_to_channel_mode_fg = '#89dceb'
+action_picker_mode_fg = '#1e1e2e'
+action_picker_mode_bg = '#89dceb'
 ```
 
 ## Theme Color Overrides
@@ -66,7 +67,7 @@ match_fg = "#ff0000"
 **Input:** `input_text_fg`, `result_count_fg`  
 **Results:** `result_name_fg`, `result_line_number_fg`, `result_value_fg`, `selection_bg`, `selection_fg`, `match_fg`  
 **Preview:** `preview_title_fg`  
-**Modes:** `channel_mode_fg`, `channel_mode_bg`, `remote_control_mode_fg`, `remote_control_mode_bg`
+**Modes:** `channel_mode_fg`, `channel_mode_bg`, `remote_control_mode_fg`, `remote_control_mode_bg`, `action_picker_mode_fg`, `action_picker_mode_bg`
 
 ### Colors
 
