@@ -48,9 +48,6 @@
   --ifm-toc-link-color: var(--ifm-color-primary-dark);
 }
 
-/* For readability concerns, you should choose a lighter palette in dark mode. */
-[data-theme='dark'] {}
-
 /* Inline code */
 code {
   border: 1px solid var(--tv-border);
@@ -108,6 +105,7 @@ pre code {
    title (when present) floating in the border like a panel label. */
 .theme-code-block {
   --prism-background-color: transparent;
+  --ifm-code-font-size: 80%;
   position: relative;
   background-color: transparent;
   border: 1px solid var(--tv-border);
@@ -209,9 +207,19 @@ pre code {
   display: none;
 }
 
-.hero {
-  background-color: var(--ifm-background-color);
-  margin-bottom: 4rem;
+/* in the mobile drawer, show a text entry instead of the icon */
+.navbar-sidebar .header-github-link::before {
+  display: none;
+}
+
+.navbar-sidebar .header-github-link::after {
+  content: "GitHub";
+}
+
+@media (min-width: 997px) {
+  .navbar-item-mobile-only {
+    display: none;
+  }
 }
 
 .footer {
@@ -220,14 +228,42 @@ pre code {
   border-top: 1px solid var(--ifm-color-primary-darkest);
 }
 
-/* Sidebar: keep the dot-matrix font for category labels only,
-   regular mono for doc entries. */
-nav.menu {
+/* Sidebar (desktop) and the mobile drawer share the menu styling */
+.menu {
   --ifm-menu-link-padding-vertical: 0.15rem;
   --ifm-menu-link-padding-horizontal: 0.6rem;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 0.85rem;
+}
+
+nav.menu {
   border-right: 1px solid var(--ifm-color-primary-darkest);
   padding: 1rem 0.75rem 1rem 0.25rem;
+}
+
+/* mobile drawer: it lives inside .navbar, so undo the Doto navbar font
+   and give it the site background instead of infima's gray */
+.navbar-sidebar {
+  background-color: var(--ifm-background-color);
   font-family: "Ubuntu Mono", monospace;
+  font-size: 1rem;
+  font-weight: normal;
+}
+
+.navbar-sidebar .navbar__title {
+  font-family: "Doto", sans-serif;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.navbar-sidebar .menu {
+  font-size: 0.95rem;
+}
+
+.navbar-sidebar__back {
+  background: none;
+  border-bottom: 1px solid var(--tv-border);
+  color: var(--tv-muted);
   font-size: 0.85rem;
 }
 
