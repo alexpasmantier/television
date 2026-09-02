@@ -1,7 +1,27 @@
-:root {
-  --docsearch-primary-color: var(--ifm-color-primary-dark);
+/* DocSearch, themed to the site palette. Set on both selectors so the
+   values win over docusaurus's own dark-mode overrides. */
+:root,
+[data-theme="dark"] {
+  --docsearch-primary-color: var(--tv-pink);
   --docsearch-text-color: var(--ifm-font-color-base);
-  --docsearch-searchbox-background: var(--ifm-background-color);
+  --docsearch-muted-color: var(--tv-muted);
+  --docsearch-highlight-color: var(--tv-pink);
+  --docsearch-logo-color: var(--tv-muted);
+  --docsearch-container-background: rgba(20, 17, 30, 0.75);
+  --docsearch-modal-background: var(--ifm-background-color);
+  --docsearch-modal-shadow: none;
+  --docsearch-searchbox-background: var(--tv-bg-deep);
+  --docsearch-searchbox-focus-background: var(--tv-bg-deep);
+  --docsearch-searchbox-shadow: inset 0 0 0 1px var(--tv-pink);
+  --docsearch-hit-color: var(--ifm-font-color-base);
+  --docsearch-hit-active-color: var(--ifm-color-primary-lighter);
+  --docsearch-hit-background: var(--tv-bg-deep);
+  --docsearch-hit-shadow: none;
+  --docsearch-key-gradient: var(--tv-bg-deep);
+  --docsearch-key-shadow: none;
+  --docsearch-key-pressed-shadow: none;
+  --docsearch-footer-background: var(--tv-bg-deep);
+  --docsearch-footer-shadow: none;
 }
 
 /* Search button, styled like tv's input prompt */
@@ -65,6 +85,37 @@
   font-family: "Ubuntu Mono", monospace;
   font-size: 0.75rem;
   color: var(--tv-muted);
+}
+
+/* Modal */
+.DocSearch-Modal {
+  font-family: "Ubuntu Mono", monospace;
+  border: 1px solid var(--tv-border);
+  border-radius: 8px;
+}
+
+.DocSearch-Form {
+  border-radius: 6px;
+}
+
+.DocSearch-Hit a {
+  border-radius: 6px;
+}
+
+.DocSearch-Hit[aria-selected="true"] a {
+  background-color: rgba(174, 174, 209, 0.15);
+}
+
+/* the algolia logo ships with hardcoded brand-blue fills */
+.DocSearch-Logo svg,
+.DocSearch-Logo svg path {
+  fill: var(--tv-muted);
+}
+
+.DocSearch-Hit-source {
+  font-family: "Doto", sans-serif;
+  color: var(--tv-pink);
+  background: var(--ifm-background-color);
 }
 
 .DocSearch-Container {
