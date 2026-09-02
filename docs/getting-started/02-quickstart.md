@@ -149,10 +149,15 @@ echo 'eval "$(tv init zsh)"' >> ~/.zshrc
 
 # Bash
 echo 'eval "$(tv init bash)"' >> ~/.bashrc
-
-# Fish
-tv init fish | source  # Add to config.fish
 ```
+
+For fish, add:
+
+```bash
+tv init fish | source
+```
+
+to your `is-interactive` block in your `~/.config/fish/config.fish` file and then restart your shell.
 
 This enables:
 - <kbd>Ctrl</kbd>+<kbd>T</kbd>: Smart autocomplete based on current command

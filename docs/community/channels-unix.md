@@ -1572,14 +1572,14 @@ description = "A channel to select from git log entries"
 requirements = [ "git",]
 
 [source]
-command = "git log --graph --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
-output = "{strip_ansi|split: :1}"
+command = "git log --pretty=format:'%C(yellow)%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --color=always"
+output = "{strip_ansi|split: :0}"
 ansi = true
 no_sort = true
 frecency = false
 
 [preview]
-command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :1}' | head -n 1000"
+command = "git show -p --stat --pretty=fuller --color=always '{strip_ansi|split: :0}' | head -n 1000"
 
 [keybindings]
 ctrl-y = "actions:cherry-pick"
@@ -1588,17 +1588,17 @@ ctrl-o = "actions:checkout"
 
 [actions.cherry-pick]
 description = "Cherry-pick the selected commit"
-command = "git cherry-pick '{strip_ansi|split: :1}'"
+command = "git cherry-pick '{strip_ansi|split: :0}'"
 mode = "execute"
 
 [actions.revert]
 description = "Revert the selected commit"
-command = "git revert '{strip_ansi|split: :1}'"
+command = "git revert '{strip_ansi|split: :0}'"
 mode = "execute"
 
 [actions.checkout]
 description = "Checkout the selected commit"
-command = "git checkout '{strip_ansi|split: :1}'"
+command = "git checkout '{strip_ansi|split: :0}'"
 mode = "execute"
 
 ```
@@ -2975,6 +2975,45 @@ description = "A channel to select from your nu history"
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
 no_sort = true
 frecency = false
+
+```
+
+
+---
+
+### *nvim-config-files*
+
+Search through Neovim configuration files
+
+![tv running the nvim-config-files channel](../../assets/channels/unix/nvim-config-files.png)
+**Requirements:** `fd`, `nvim`
+
+**Code:** *nvim-config-files.toml*
+
+```toml
+[metadata]
+name = "nvim-config-files"
+description = "Search through Neovim configuration files"
+requirements = [ "fd", "nvim",]
+
+[source]
+command = [ "fd . ~/.config/nvim --type f",]
+display = "{regex_extract:.*\\.config/nvim/(.*):1}"
+
+[preview]
+command = "bat -n --color=always '{}'"
+
+[keybindings]
+enter = "actions:edit"
+
+[preview.env]
+BAT_THEME = "ansi"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} '{}'"
+shell = "bash"
+mode = "execute"
 
 ```
 
