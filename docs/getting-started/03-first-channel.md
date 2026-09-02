@@ -38,10 +38,11 @@ The channel will browse and preview TLDR pages (quick command references).
 Create a new file:
 
 ```sh
-# NOTE for Microsoft Windows; md "%LOCALAPPDATA%\television\config\cable"
 mkdir -p ~/.config/television/cable
 touch ~/.config/television/cable/tldr.toml
 ```
+
+On Windows, create the directory with `md "%LOCALAPPDATA%\television\config\cable"` instead.
 
 ## Step 2: Add Basic Configuration
 
@@ -60,7 +61,7 @@ command = "tldr --list"
 **What this does:**
 - `name`: Identifier used to invoke the channel (`tv tldr`)
 - `description`: Shown in the remote control and help
-- `requirements`: Lists required binaries - tv checks these exist at runtime and warns if missing
+- `requirements`: Lists required binaries. tv checks these when you pick the channel from the remote control (and shows a popup if any are missing) and when installing channels with `tv update-channels`. Running `tv tldr` directly does not check them.
 - `source.command`: The shell command that produces searchable entries
 
 **Test it:**

@@ -12,6 +12,9 @@ Channels are stored as `.toml` files in:
 ## High-Level Structure
 
 ```toml
+# Top-level keys must come before the first table
+watch = 0.0  # Reload interval in seconds (0 = disabled)
+
 [metadata]
 # Channel identification and requirements
 
@@ -59,10 +62,14 @@ Defines what data the channel searches through.
 | `ansi` | boolean | No | Parse ANSI escape codes (default: false) |
 | `display` | string | No | Template for display (incompatible with `ansi = true`) |
 | `output` | string | No | Template for final output |
-| `watch` | float | No | Reload interval in seconds |
 | `entry_delimiter` | string | No | Custom entry delimiter (default: newline) |
 | `no_sort` | boolean | No | Preserve original source order, disabling match-quality sorting and frecency (default: false) |
 | `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
+| `shell` | string | No | Shell used to run the command: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu` (default: detected from the environment) |
+| `env` | table | No | Environment variables for the command |
+| `interactive` | boolean | No | Run the command in an interactive shell (`-i`), so shell rc files and aliases are loaded (default: false) |
+
+`shell`, `env` and `interactive` are also accepted in `[preview]` and `[actions.NAME]`.
 
 ### Single Source Command
 
@@ -116,10 +123,13 @@ output = "{split:\\t:0}"  # Output: container ID
 
 ### Watch Mode
 
+`watch` is a top-level key, not part of `[source]`:
+
 ```toml
+watch = 2.0  # Reload every 2 seconds
+
 [source]
 command = "docker ps"
-watch = 2.0  # Reload every 2 seconds
 ```
 
 ### Custom Delimiter
@@ -138,9 +148,12 @@ Defines how to preview entries.
 |-------|------|----------|-------------|
 | `command` | string or string[] | No | Preview command template(s) |
 | `env` | table | No | Environment variables for preview |
+| `shell` | string | No | Shell used to run the command (see `[source]`) |
+| `interactive` | boolean | No | Run in an interactive shell (see `[source]`) |
 | `offset` | string | No | Template to extract line offset |
-| `header` | string | No | Preview panel header template |
-| `footer` | string | No | Preview panel footer template |
+| `cached` | boolean | No | Cache preview output per entry (default: true) |
+
+Preview panel header and footer templates are set in `[ui.preview_panel]`, not here.
 
 ### Basic Preview
 
@@ -179,6 +192,8 @@ offset = "{split:\\::1}"  # Scroll to line 42
 ```toml
 [preview]
 command = "bat -n --color=always '{}'"
+
+[ui.preview_panel]
 header = "File: {}"
 footer = "Size: $(stat -c%s '{}')"
 ```
@@ -193,18 +208,14 @@ Customize the user interface.
 |-------|------|---------|-------------|
 | `ui_scale` | integer (0-100) | 100 | Percentage of terminal to use |
 | `layout` | string | "landscape" | "landscape" or "portrait" |
-| `input_bar_position` | string | "top" | "top" or "bottom" |
-| `input_header` | string | channel name | Input bar header text |
-| `input_prompt` | string | ">" | Input prompt string |
 
 ```toml
 [ui]
 ui_scale = 80
 layout = "portrait"
-input_bar_position = "bottom"
-input_header = "Search files:"
-input_prompt = ">> "
 ```
+
+Input bar position, header and prompt are set in `[ui.input_bar]` (see below).
 
 ### [ui.preview_panel]
 
@@ -216,6 +227,7 @@ input_prompt = ">> "
 | `scrollbar` | boolean | false | Show scrollbar |
 | `border_type` | string | "none" | "none", "plain", "rounded", "thick" |
 | `padding` | table | all 0 | Panel padding |
+| `word_wrap` | boolean | false | Wrap long lines |
 | `hidden` | boolean | false | Hide by default |
 
 ```toml
@@ -245,11 +257,17 @@ padding = { top = 1, bottom = 1 }
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
+| `position` | string | "top" | "top" or "bottom" |
+| `header` | string | "" | Input bar header text (empty: not rendered) |
+| `prompt` | string | "" | Input prompt string (empty: not rendered) |
 | `border_type` | string | "none" | Border style |
 | `padding` | table | all 0 | Bar padding |
 
 ```toml
 [ui.input_bar]
+position = "bottom"
+header = "Search files:"
+prompt = ">> "
 border_type = "rounded"
 padding = { left = 2, right = 2 }
 ```
@@ -302,15 +320,15 @@ Custom key mappings for this channel.
 | Field | Type | Description |
 |-------|------|-------------|
 | `shortcut` | string | Global shortcut to switch to this channel |
-| `<action>` | string or string[] | Override default keybinding |
+| `<key>` | string or string[] | Action (or list of actions run in sequence) bound to this key |
 
 ```toml
 [keybindings]
 shortcut = "f1"  # Press F1 to switch to this channel
 
 # Override defaults
-quit = ["esc", "ctrl-c"]
-select_next_entry = ["down", "ctrl-j"]
+ctrl-j = "select_next_entry"
+ctrl-r = ["reload_source", "go_to_input_start"]
 
 # Trigger custom actions
 ctrl-e = "actions:edit"
@@ -327,6 +345,9 @@ Define custom actions that can be triggered by keybindings.
 | `command` | string | Yes | Command template |
 | `mode` | string | No | "fork" (default) or "execute" |
 | `separator` | string | No | Multi-select join character (default: " ") |
+| `shell` | string | No | Shell used to run the command (see `[source]`) |
+| `env` | table | No | Environment variables for the command |
+| `interactive` | boolean | No | Run in an interactive shell (see `[source]`) |
 
 ### Fork Mode (Return to tv)
 
@@ -410,7 +431,7 @@ Templates use the [string-pipeline](https://docs.rs/string_pipeline) syntax. Com
 | Pattern | Description |
 |---------|-------------|
 | `{}` | Entire entry |
-| `{0}`, `{1}` | Positional fields (delimiter: `:`) |
+| `{0}`, `{1}` | Positional fields (split on whitespace) |
 | `{split:DELIM:INDEX}` | Split on custom delimiter |
 | `{strip_ansi}` | Remove ANSI codes |
 | `{trim}` | Remove whitespace |

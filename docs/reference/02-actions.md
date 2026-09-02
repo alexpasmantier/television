@@ -32,9 +32,10 @@ ctrl-k = "select_prev_entry"
 
 | Action | Description | Default Key |
 |--------|-------------|-------------|
-| `confirm_selection` | Select current entry and exit | <kbd>Enter</kbd> |
+| `confirm_selection` | Confirm current selection (multi-selection or entry under cursor) and exit | <kbd>Enter</kbd> |
+| `select_and_exit` | Select the entry under the cursor and exit | - |
 | `toggle_selection_down` | Toggle selection, move down | <kbd>Tab</kbd> |
-| `toggle_selection_up` | Toggle selection, move up | <kbd>Shift</kbd>+<kbd>Tab</kbd> |
+| `toggle_selection_up` | Toggle selection, move up | <kbd>Shift</kbd>+<kbd>Tab</kbd> (config key name: `backtab`) |
 | `copy_entry_to_clipboard` | Copy entry to clipboard | <kbd>Ctrl</kbd>+<kbd>y</kbd> |
 
 ## Input Editing Actions
@@ -90,6 +91,7 @@ ctrl-k = "select_prev_entry"
 | Action | Description | Default Key |
 |--------|-------------|-------------|
 | `quit` | Exit tv | <kbd>Esc</kbd>, <kbd>Ctrl</kbd>+<kbd>c</kbd> |
+| `no_op` | Do nothing (use it to unbind a default key) | - |
 
 ## Custom Actions
 
@@ -142,7 +144,6 @@ These actions are used internally and cannot be bound:
 | `suspend` | Suspend application |
 | `resume` | Resume application |
 | `error` | Display error |
-| `no_op` | No operation |
 
 ## Example Configurations
 

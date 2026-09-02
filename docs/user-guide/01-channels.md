@@ -15,7 +15,10 @@ description = "A channel to select files and directories"
 requirements = ["fd", "bat"]
 
 [source]
-command = "fd -t f"
+command = [
+  { name = "Default", run = "fd -t f" },
+  { name = "Hidden",  run = "fd -t f -H" },
+]
 
 [preview]
 command = "bat -n --color=always '{}'"
@@ -23,6 +26,20 @@ env = { BAT_THEME = "ansi" }
 
 [keybindings]
 shortcut = "f1"
+f12 = "actions:edit"
+ctrl-up = "actions:goto_parent_dir"
+
+[actions.edit]
+description = "Opens the selected entries with the default editor (falls back to vim)"
+command = "${EDITOR:-vim} {}"
+shell = "bash"
+# use `mode = "fork"` if you want to return to tv afterwards
+mode = "execute"
+
+[actions.goto_parent_dir]
+description = "Re-opens tv in the parent directory"
+command = "tv files .."
+mode = "execute"
 ```
 
 ## Default location on your system
@@ -93,7 +110,7 @@ Launch `tv` with your new channel (or select it via the remote control):
 tv my-awesome-channel
 ```
 
-The complete channel format spec can be found below.
+The complete channel format spec can be found below and in the [channel spec reference](../reference/03-channel-spec.md).
 
 ## Channel specification
 
@@ -183,36 +200,28 @@ offset = '{split:\::1}'  # extracts preview offset information from the entry
 [ui]
 ui_scale = 80  # use 80% of available screen
 layout = "portrait"
-input_bar_position = "bottom"
-input_header = "Search:"
+
+[ui.input_bar]
+position = "bottom"
+header = "Search:"
 
 [ui.preview_panel]
 size = 40  # 40%
 header = "{}"  # show the currently selected entry
 footer = "my awesome footer"
 scrollbar = false
+hidden = false
 
 [ui.status_bar]
 hidden = false
 
 [ui.help_panel]
 show_categories = true
+hidden = true
 
 [ui.remote_control]
 show_channel_descriptions = true
 sort_alphabetically = true
-
-# UI panel visibility (individual control)
-[ui.preview_panel]
-hidden = false
-
-[ui.status_bar]
-hidden = false
-
-[ui.help_panel]
-hidden = true
-
-[ui.remote_control]
 # disabled = false  # uncomment to disable remote control for this channel
 ```
 
@@ -286,7 +295,7 @@ separator = " "
 
 ## Templating syntax
 
-Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/0.12.0/string_pipeline/) crate.
+Several channel fields can be formatted dynamically using the syntax described in the [string-pipeline](https://docs.rs/string_pipeline/latest/string_pipeline/) crate.
 
 Here's a quick TLDR if you're feeling lazy:
 

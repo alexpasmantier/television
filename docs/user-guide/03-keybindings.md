@@ -37,7 +37,7 @@ Default keybindings are as follows:
 
 These keybindings are all configurable via tv's configuration file (see [Configuration](./02-configuration.md)).
 
-# Keybindings Guide
+## Keybindings Guide
 
 Following this are some configuration presets you can use for your bindings. Most of these will probably match an existing program.
 
@@ -45,7 +45,7 @@ Following this are some configuration presets you can use for your bindings. Mos
 **This list is maintained by the community, so feel free to contribute your own ideas too! 😊**
 :::
 
-## Emacs
+### Emacs
 
 ```toml
 # Television already has some pretty Emacsy keybinds.

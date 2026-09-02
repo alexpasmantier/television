@@ -5,7 +5,6 @@
 **A very fast, portable and hackable fuzzy finder.**
 
 ![GitHub Release](https://img.shields.io/github/v/release/alexpasmantier/television?display_name=tag&color=%23a6a)
-![docs.rs](https://img.shields.io/docsrs/television-channels)
 ![GitHub branch check runs](https://img.shields.io/github/check-runs/alexpasmantier/television/main)
 ![GitHub License](https://img.shields.io/github/license/alexpasmantier/television)
 [![Discord](https://img.shields.io/discord/1366133668535341116?logo=discord)](https://discord.gg/hQBrzsJgUg)
@@ -47,7 +46,7 @@ curl -fsSL https://alexpasmantier.github.io/television/install.sh | bash
 | -------------- | ------------------------------------------------------- |
 | **Arch Linux** | `pacman -S television`                                  |
 | **Homebrew**   | `brew install television`                               |
-| **Cargo**      | `cargo install television`                              |
+| **Cargo**      | `cargo install --locked television`                     |
 | **Scoop**      | `scoop bucket add extras && scoop install television`   |
 | **WinGet**     | `winget install --exact --id alexpasmantier.television` |
 | **Nix**        | `nix run nixpkgs#television`                            |
@@ -112,7 +111,7 @@ See [Shell Integration](https://alexpasmantier.github.io/television/user-guide/s
 ## Credits
 
 - [telescope.nvim](https://github.com/nvim-telescope/telescope.nvim)
-- [nucleo](https://github.com/helix-editor/nucleo)
+- [frizbee](https://github.com/saghen/frizbee)
 - [ratatui](https://github.com/ratatui/ratatui)
 
 <a href="https://github.com/alexpasmantier/television/graphs/contributors">
