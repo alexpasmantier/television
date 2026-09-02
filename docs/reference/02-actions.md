@@ -1,6 +1,6 @@
 # Actions Reference
 
-This document provides a complete reference of all actions available in Television.
+Complete reference of all actions available in Television.
 
 ## What are Actions?
 
