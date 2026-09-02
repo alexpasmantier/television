@@ -1,6 +1,6 @@
 # Template System
 
-Television uses a powerful template system based on [string-pipeline](https://docs.rs/string_pipeline) for dynamic formatting of entries, previews, and outputs. This guide covers everything you need to know to master templating.
+Television uses a template system based on [string-pipeline](https://docs.rs/string_pipeline) to format entries, previews, and outputs.
 
 ## Where Templates Are Used
 

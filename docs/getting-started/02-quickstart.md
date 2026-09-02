@@ -1,10 +1,10 @@
 # Quickstart
 
-Welcome to Television! This guide will get you up and running in under 5 minutes.
+This guide covers the basics of using tv.
 
 ## What is Television?
 
-Television (`tv`) is a fast, portable fuzzy finder for the terminal. Think of it as a universal search tool that can search through:
+Television (`tv`) is a fast, portable fuzzy finder for the terminal. It can search through:
 - Files and directories
 - Text content (like grep, but interactive)
 - Git repositories, branches, logs
