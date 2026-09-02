@@ -1,3 +1,7 @@
+---
+title: CLI Reference
+---
+
 ```text
 A very fast, portable and hackable fuzzy finder for the terminal
 
