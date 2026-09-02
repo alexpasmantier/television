@@ -446,7 +446,7 @@ Keybindings:
           The keybindings are specified as a semicolon separated list of keybinding
           expressions using the configuration file formalism.
           
-          Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
+          Example: `tv --keybindings='esc="quit";down="select_next_entry";ctrl-j="select_next_entry"'`
 
       --expect <STRING>
           Keys that can be used to confirm the current selection in addition to the default ones
