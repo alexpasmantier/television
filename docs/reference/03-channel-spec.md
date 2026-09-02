@@ -1,6 +1,6 @@
 # Channel Specification
 
-This document provides the complete reference for channel TOML configuration files.
+Complete reference for channel TOML configuration files.
 
 ## File Location
 

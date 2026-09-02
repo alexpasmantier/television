@@ -1,6 +1,6 @@
 # Create Your First Channel
 
-This tutorial walks you through creating a custom channel from scratch. By the end, you'll have a working channel with preview and custom actions.
+This tutorial builds a custom channel from scratch, with a preview and custom actions.
 
 ## Prerequisites
 
@@ -33,7 +33,7 @@ Channels live in `~/.config/television/cable/` (or `%LocalAppData%\television\co
 
 ## Step 1: Create the Channel File
 
-Let's build a channel to browse and preview TLDR pages (quick command references).
+The channel will browse and preview TLDR pages (quick command references).
 
 Create a new file:
 
@@ -73,7 +73,7 @@ You should see a list of TLDR pages. Try typing to filter them.
 
 ## Step 3: Add Preview
 
-Let's add a preview so you can see the content before selecting:
+Add a preview to see the content before selecting:
 
 ```toml
 [metadata]
@@ -100,7 +100,7 @@ Now when you navigate entries, you'll see the TLDR content in the preview panel.
 
 ## Step 4: Add a Custom Action
 
-Let's add an action to open the TLDR page in a pager:
+Add an action to open the TLDR page in a pager:
 
 ```toml
 [metadata]

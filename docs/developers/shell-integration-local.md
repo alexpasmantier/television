@@ -1,6 +1,6 @@
 # Shell Integration: Developing locally
 
-In order to develop locally on the shell integration scripts, here are a couple of steps to follow:
+To develop locally on the shell integration scripts:
 
 0. Clone the repo, make sure you're up to date and have the [just](https://github.com/casey/just) command runner installed.
 1. Make your changes to any one of the shell scripts (`television/utils/shell/`)
