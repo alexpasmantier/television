@@ -181,6 +181,7 @@ bump-version kind='patch':
 # Update CLI docs from tv --help
 @update-cli-help:
 	sh -ec 'help_output=$(cargo run --quiet -- --help); { \
+		printf "%s\n" "---" "title: CLI Reference" "---" ""; \
 		printf "%s\n" '\''```text'\''; \
 		printf "%s\n" "$help_output"; \
 		printf "%s\n" '\''```'\''; \
