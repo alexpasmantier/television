@@ -3,6 +3,7 @@ import Layout from "@theme/Layout";
 import Link from "@docusaurus/Link";
 import CodeBlock from "@theme/CodeBlock";
 import useBaseUrl from "@docusaurus/useBaseUrl";
+import { HtmlClassNameProvider } from "@docusaurus/theme-common";
 import styles from "./index.module.css";
 
 const INSTALL_CMD =
@@ -46,6 +47,7 @@ command = "git show -p '{split: :0}'"`;
 
 export default function Home() {
   return (
+    <HtmlClassNameProvider className="landing-page">
     <Layout description="A very fast, portable and hackable fuzzy finder for the terminal.">
       <main className={styles.main}>
         <section className={styles.hero}>
@@ -67,7 +69,7 @@ export default function Home() {
               </Link>
             </p>
             <div className={styles.screenshotFrame}>
-              <span className={styles.screenshotTitle}>tv — files</span>
+              <span className={styles.screenshotTitle}>tv - files</span>
               <img
                 className={styles.screenshot}
                 src={useBaseUrl("/img/tv-0.15.png")}
@@ -82,7 +84,7 @@ export default function Home() {
             <p>
               tv is a general-purpose fuzzy finder: it reads lines from a
               source command, lets you search through them in real time with a
-              live preview, and prints your selection to stdout — so it
+              live preview, and prints your selection to stdout, so it
               composes with scripts and pipes like any other unix tool.
             </p>
             <CodeBlock language="bash">
@@ -91,7 +93,7 @@ export default function Home() {
             <p>
               Searches you run often don't need to be retyped: a channel
               bundles a source command with an optional preview, keybindings,
-              and actions to run on the selection when you exit — all in a
+              and actions to run on the selection when you exit, all in a
               single TOML file.
             </p>
             <CodeBlock
@@ -115,5 +117,6 @@ export default function Home() {
 
       </main>
     </Layout>
+    </HtmlClassNameProvider>
   );
 }
