@@ -476,7 +476,7 @@ const CLI_PADDING_DELIMITER: char = ';';
 ///
 /// The formalism used is the same as the one used in the configuration file:
 /// ```ignore
-///     quit="esc";select_next_entry=["down","ctrl-j"]
+///     esc="quit";down="select_next_entry";ctrl-j="select_next_entry"
 /// ```
 /// Parsing it globally consists of splitting by the delimiter, reconstructing toml key-value pairs
 /// and parsing that using logic already implemented in the configuration module.
@@ -752,7 +752,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "expects binding toml structure"]
     fn test_custom_keybindings() {
         let cli = Cli {
             channel: Some("files".to_string()),
