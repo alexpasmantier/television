@@ -193,14 +193,14 @@ fallback_channel = "files"
 # by the corresponding commands.
 # Example: say you want the following commands to trigger the following channels
 # when pressing <CTRL-T>:
-#          `git checkout`  should trigger the `git-branches` channel
+#          `git checkout`  should trigger the `git-branch` channel
 #          `ls`            should trigger the `dirs` channel
 #          `cat` and `cp`  should trigger the `files` channel
 #
 # You would add the following to your configuration file:
 # ```
 # [shell_integration.channel_triggers]
-# "git-branches" = ["git checkout"]
+# "git-branch" = ["git checkout"]
 # "dirs" = ["ls"]
 # "files" = ["cat", "cp"]
 # ```
