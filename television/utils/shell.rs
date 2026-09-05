@@ -134,12 +134,60 @@ impl Shell {
 
     pub fn executable(&self) -> &'static str {
         match self {
-            Shell::Bash => "bash",
-            Shell::Zsh => "zsh",
-            Shell::Fish => "fish",
-            Shell::Psh => "powershell",
-            Shell::Cmd => "cmd",
-            Shell::Nu => "nu",
+            Shell::Bash => {
+                if cfg!(target_os = "windows") {
+                    "bash.exe"
+                } else {
+                    "bash"
+                }
+            }
+            Shell::Zsh => {
+                if cfg!(target_os = "windows") {
+                    "zsh.exe"
+                } else {
+                    "zsh"
+                }
+            }
+            Shell::Fish => {
+                if cfg!(target_os = "windows") {
+                    "fish.exe"
+                } else {
+                    "fish"
+                }
+            }
+            Shell::Cmd => {
+                if cfg!(target_os = "windows") {
+                    "cmd.exe"
+                } else {
+                    "cmd"
+                }
+            }
+            Shell::Nu => {
+                if cfg!(target_os = "windows") {
+                    "nu.exe"
+                } else {
+                    "nu"
+                }
+            }
+            Shell::Psh => {
+                if cfg!(target_os = "windows") {
+                    static PSH_EXE: std::sync::OnceLock<&'static str> =
+                        std::sync::OnceLock::new();
+                    PSH_EXE.get_or_init(|| {
+                        if std::process::Command::new("pwsh.exe")
+                            .arg("-Version")
+                            .output()
+                            .is_ok()
+                        {
+                            "pwsh.exe"
+                        } else {
+                            "powershell.exe"
+                        }
+                    })
+                } else {
+                    "pwsh"
+                }
+            }
         }
     }
 }
@@ -368,5 +416,22 @@ mod tests {
         assert!(script.contains("Invoke-TvSmartAutocomplete"));
         assert!(script.contains("Invoke-TvShellHistory"));
         assert!(script.contains("Set-PSReadLineKeyHandler"));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    #[cfg(target_os = "windows")]
+    fn test_windows_shell_executables_have_exe_extension() {
+        assert_eq!(Shell::Cmd.executable(), "cmd.exe");
+        assert_eq!(Shell::Bash.executable(), "bash.exe");
+
+        let psh_exec = Shell::Psh.executable();
+        // It should resolve to either pwsh.exe or powershell.exe depending on the system,
+        // but it MUST have the .exe extension on Windows.
+        assert!(psh_exec == "pwsh.exe" || psh_exec == "powershell.exe");
     }
 }
