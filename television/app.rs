@@ -67,6 +67,7 @@ pub enum ActionOutcome {
     Entries(FxHashSet<Entry>),
     EntriesWithExpect(FxHashSet<Entry>, Key),
     Input(String),
+    InputWithExpect(String, Key),
     None,
     ExternalAction(ActionSpec, FxHashSet<Entry>),
 }
@@ -97,6 +98,13 @@ impl AppOutput {
                     input,
                 )])),
                 expect_key: None,
+                external_action: None,
+            },
+            ActionOutcome::InputWithExpect(input, expect_key) => Self {
+                selected_entries: Some(FxHashSet::from_iter([Entry::new(
+                    input,
+                )])),
+                expect_key: Some(expect_key),
                 external_action: None,
             },
             ActionOutcome::None => Self {
@@ -578,8 +586,9 @@ impl App {
                             ));
                         }
 
-                        return Ok(ActionOutcome::Input(
+                        return Ok(ActionOutcome::InputWithExpect(
                             self.television.current_pattern.clone(),
+                            k,
                         ));
                     }
                     Action::ClearScreen => {
