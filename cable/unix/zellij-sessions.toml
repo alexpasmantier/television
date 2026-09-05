@@ -1,0 +1,27 @@
+[metadata]
+name = "zellij-sessions"
+description = "List and manage zellij sessions"
+requirements = ["zellij"]
+
+[source]
+command = "zellij list-sessions | sed 's/\\x1b\\[[0-9;]*m//g'"
+display = "{}"
+output = "{split: :0}"
+
+[preview]
+command = "zellij --session '{split: :0}' action dump-screen 2>/dev/null || echo 'No preview available'"
+
+[actions.attach]
+description = "Attach to the selected session"
+command = "zellij attach '{split: :0}'"
+mode = "execute"
+
+[actions.kill]
+description = "Kill the selected session (resurrectable)"
+command = "zellij kill-session '{split: :0}'"
+mode = "fork"
+
+[actions.delete]
+description = "Delete the selected session (permanent)"
+command = "zellij delete-session '{split: :0}'"
+mode = "fork"
