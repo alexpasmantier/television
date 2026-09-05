@@ -61,10 +61,7 @@ pub fn draw_input_box(
         .as_deref()
         .unwrap_or(header_fallback);
     let mut input_block = Block::default()
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(RatatuiPadding::from(*padding));
     if !header.is_empty() {
         input_block = input_block

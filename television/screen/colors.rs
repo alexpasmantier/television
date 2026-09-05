@@ -13,7 +13,7 @@ pub struct Colorscheme {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GeneralColorscheme {
     pub border_fg: Color,
-    pub background: Option<Color>,
+    pub background: Color,
     pub dimmed_text_fg: Color,
 }
 

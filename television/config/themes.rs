@@ -96,7 +96,7 @@ impl RGBColor {
 #[derive(Clone, Debug, PartialEq)]
 pub struct Theme {
     // general
-    pub background: Option<Color>,
+    pub background: Color,
     pub border_fg: Color,
     pub text_fg: Color,
     pub dimmed_text_fg: Color,
@@ -173,22 +173,10 @@ impl Theme {
                         })?;
                 }
             };
-            (opt $field:ident, $override_field:expr) => {
-                if let Some(ref color_str) = $override_field {
-                    merged_theme.$field =
-                        Some(Color::from_str(color_str).ok_or_else(|| {
-                            format!(
-                                "invalid {} color: {}",
-                                stringify!($field),
-                                color_str
-                            )
-                        })?);
-                }
-            };
         }
 
         // Apply overrides using the macro
-        apply_override!(opt background, overrides.background);
+        apply_override!(background, overrides.background);
         apply_override!(border_fg, overrides.border_fg);
         apply_override!(text_fg, overrides.text_fg);
         apply_override!(dimmed_text_fg, overrides.dimmed_text_fg);
@@ -288,7 +276,8 @@ impl<'de> Deserialize<'de> for Theme {
                         ))
                     })
                 })
-                .transpose()?,
+                .transpose()?
+                .unwrap_or(Color::Reset),
             border_fg: Color::from_str(&inner.border_fg).ok_or_else(|| {
                 serde::de::Error::custom(format!(
                     "invalid color {}",
@@ -505,7 +494,7 @@ impl Into<Colorscheme> for &Theme {
 impl Into<GeneralColorscheme> for &Theme {
     fn into(self) -> GeneralColorscheme {
         GeneralColorscheme {
-            background: self.background.as_ref().map(Into::into),
+            background: (&self.background).into(),
             border_fg: (&self.border_fg).into(),
             dimmed_text_fg: (&self.dimmed_text_fg).into(),
         }
@@ -578,7 +567,7 @@ mod tests {
 
     fn create_test_theme() -> Theme {
         Theme {
-            background: Some(Color::Ansi(ANSIColor::Black)),
+            background: Color::Ansi(ANSIColor::Black),
             border_fg: Color::Ansi(ANSIColor::White),
             text_fg: Color::Ansi(ANSIColor::BrightWhite),
             dimmed_text_fg: Color::Ansi(ANSIColor::BrightBlack),
@@ -624,7 +613,7 @@ mod tests {
         let theme: Theme = toml::from_str(theme_content).unwrap();
         assert_eq!(
             theme.background,
-            Some(Color::Rgb(RGBColor::from_str("000000").unwrap()))
+            Color::Rgb(RGBColor::from_str("000000").unwrap())
         );
         assert_eq!(theme.border_fg, Color::Ansi(ANSIColor::Black));
         assert_eq!(theme.text_fg, Color::Ansi(ANSIColor::White));
@@ -672,7 +661,7 @@ mod tests {
             remote_control_mode_bg = "bright-black"
         "##;
         let theme: Theme = toml::from_str(theme_content).unwrap();
-        assert_eq!(theme.background, None);
+        assert_eq!(theme.background, Color::Reset);
         assert_eq!(theme.border_fg, Color::Ansi(ANSIColor::Black));
         assert_eq!(theme.text_fg, Color::Ansi(ANSIColor::White));
         assert_eq!(theme.dimmed_text_fg, Color::Ansi(ANSIColor::BrightBlack));
@@ -717,7 +706,7 @@ mod tests {
         // Check that overridden colors are changed
         assert_eq!(
             merged_theme.background,
-            Some(Color::Rgb(RGBColor::from_str("ff0000").unwrap()))
+            Color::Rgb(RGBColor::from_str("ff0000").unwrap())
         );
         assert_eq!(merged_theme.text_fg, Color::Ansi(ANSIColor::Red));
         assert_eq!(
@@ -833,7 +822,7 @@ mod tests {
 
     #[test]
     fn test_theme_deserialization_none_background() {
-        let theme_content = r##"
+        let theme_content = r#"
             background = "none"
             border_fg = "black"
             text_fg = "white"
@@ -851,9 +840,9 @@ mod tests {
             channel_mode_bg = "bright-black"
             remote_control_mode_fg = "bright-white"
             remote_control_mode_bg = "bright-black"
-        "##;
+        "#;
         let theme: Theme = toml::from_str(theme_content).unwrap();
-        assert_eq!(theme.background, Some(Color::Reset));
+        assert_eq!(theme.background, Color::Reset);
     }
 
     #[test]
@@ -866,7 +855,7 @@ mod tests {
 
         let merged_theme =
             base_theme.merge_with_overrides(&overrides).unwrap();
-        assert_eq!(merged_theme.background, Some(Color::Reset));
+        assert_eq!(merged_theme.background, Color::Reset);
     }
 
     #[test]
