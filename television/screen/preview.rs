@@ -249,10 +249,7 @@ fn draw_content_outer_block(
     }
 
     let mut preview_outer_block = block
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(RatatuiPadding::from(padding));
     if let Some(border_type) = border_type.to_ratatui_border_type() {
         preview_outer_block = preview_outer_block

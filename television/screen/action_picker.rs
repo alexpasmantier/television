@@ -37,10 +37,7 @@ pub fn draw_minimal_actions_pane(
     let separator =
         pane_separator_side(config.layout, config.input_bar_position);
     let pane_block = Block::default()
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .borders(separator)
         .border_set(HAIRLINE_BORDER_SET)
         .border_style(Style::default().fg(colorscheme.general.border_fg));

@@ -64,10 +64,7 @@ pub fn draw_help_pane(
 
     let mut block = Block::default()
         .title_top(Line::from(title_spans))
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .borders(separator)
         .border_set(HAIRLINE_BORDER_SET)
         .border_style(Style::default().fg(colorscheme.general.border_fg))
