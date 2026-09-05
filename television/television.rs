@@ -187,7 +187,10 @@ impl Television {
             });
         let colorscheme = (&theme).into();
 
-        channel.find(merged_config.input.as_deref().unwrap_or(EMPTY_STRING));
+        // input query
+        let input_query =
+            merged_config.input.as_deref().unwrap_or(EMPTY_STRING);
+        channel.find(input_query);
 
         let preview_state = PreviewState::new(
             channel.supports_preview(),
@@ -217,7 +220,7 @@ impl Television {
             action_picker,
             mode: Mode::Channel,
             currently_selected: None,
-            current_pattern: EMPTY_STRING.to_string(),
+            current_pattern: input_query.to_string(),
             results_picker,
             rc_picker: Picker::default(),
             ap_picker: Picker::default(),
