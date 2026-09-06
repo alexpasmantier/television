@@ -1,0 +1,31 @@
+name: Nix
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - flake.nix
+      - flake.lock
+      - rust-toolchain.toml
+      - Cargo.toml
+      - Cargo.lock
+  pull_request:
+    paths:
+      - flake.nix
+      - flake.lock
+      - rust-toolchain.toml
+      - Cargo.toml
+      - Cargo.lock
+
+jobs:
+  build:
+    name: Nix Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+      - name: Build flake
+        run: nix flake check -L
