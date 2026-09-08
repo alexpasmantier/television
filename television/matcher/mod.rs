@@ -487,6 +487,17 @@ fn matched_item<I: Sync + Send + Clone + 'static>(
     )
 }
 
+/// Threads left to the rest of the program, so the matcher doesn't saturate
+/// the system.
+const RESERVED_THREADS: usize = 3;
+
+/// Upper bound on matcher threads, to avoid impacting startup time and memory
+/// usage.
+const MAX_MATCHER_THREADS: usize = 32;
+
+/// Fallback when the number of available threads cannot be determined.
+const FALLBACK_MATCHER_THREADS: usize = 4;
+
 /// Get the number of threads to use for the matcher.
 ///
 /// This uses the number of available threads on the system, minus 3, to avoid
@@ -497,8 +508,18 @@ fn matched_item<I: Sync + Send + Clone + 'static>(
 /// Defaults to 4 if the number of available threads cannot be determined.
 pub fn matcher_threads() -> usize {
     available_parallelism()
-        .map(|n| n.get().saturating_sub(3).clamp(1, 32))
-        .unwrap_or(4)
+        .map_or(FALLBACK_MATCHER_THREADS, |n| matcher_threads_for(n.get()))
+}
+
+/// The matcher thread count for a given amount of available parallelism.
+///
+/// Always returns at least one thread: machines with `RESERVED_THREADS` cores
+/// or fewer would otherwise be left with zero, which used to be passed
+/// straight through to the matcher backend and crash it (issue #1139).
+fn matcher_threads_for(available_parallelism: usize) -> usize {
+    available_parallelism
+        .saturating_sub(RESERVED_THREADS)
+        .clamp(1, MAX_MATCHER_THREADS)
 }
 
 #[cfg(test)]
@@ -752,5 +773,77 @@ mod tests {
         let mut expected = vec![5];
         expected.extend((0..11).filter(|i| *i != 5));
         assert_eq!(collect_ids(&mut matcher), expected);
+    }
+
+    /// Small machines must still get a usable thread count.
+    ///
+    /// Regression test for issue #1139: with `RESERVED_THREADS` cores or
+    /// fewer, the subtraction saturated to zero and the matcher was started
+    /// with no threads at all.
+    #[test]
+    fn matcher_threads_on_small_machines() {
+        for available in 1..=RESERVED_THREADS + 1 {
+            assert_eq!(
+                matcher_threads_for(available),
+                1,
+                "{available} available thread(s) should yield a single \
+                 matcher thread",
+            );
+        }
+    }
+
+    /// Whatever the machine, the matcher never gets zero threads.
+    #[test]
+    fn matcher_threads_are_never_zero() {
+        for available in 0..=128 {
+            assert!(
+                matcher_threads_for(available) >= 1,
+                "{available} available thread(s) yielded zero matcher threads",
+            );
+        }
+    }
+
+    /// Bigger machines get `available - RESERVED_THREADS`, capped.
+    #[test]
+    fn matcher_threads_leave_room_and_stay_capped() {
+        assert_eq!(matcher_threads_for(8), 8 - RESERVED_THREADS);
+        assert_eq!(matcher_threads_for(1024), MAX_MATCHER_THREADS);
+    }
+
+    /// The thread count actually used at runtime stays within bounds on
+    /// whichever machine the tests run.
+    #[test]
+    fn matcher_threads_are_within_bounds() {
+        assert!((1..=MAX_MATCHER_THREADS).contains(&matcher_threads()));
+    }
+
+    /// A single-threaded matcher (what small machines get, see #1139) must
+    /// return the same results, in the same order, as a multi-threaded one.
+    #[test]
+    fn single_threaded_matching_equals_multi_threaded() {
+        let items: Vec<(usize, String)> = (0..300)
+            .map(|i| {
+                let haystack = match i % 3 {
+                    0 => format!("abc_{i}"),
+                    1 => format!("xx_abc_{i}"),
+                    _ => format!("a{i}b{i}c{i}"),
+                };
+                (i, haystack)
+            })
+            .collect();
+
+        let mut single: Matcher<usize> = Matcher::new(SortStrategy::Score, 1);
+        single.injector().push_batch(items.clone());
+        single.find("abc");
+        single.wait_for_idle();
+
+        let mut multi: Matcher<usize> = Matcher::new(SortStrategy::Score, 4);
+        multi.injector().push_batch(items);
+        multi.find("abc");
+        multi.wait_for_idle();
+
+        let multi_ids = collect_ids(&mut multi);
+        assert!(!multi_ids.is_empty());
+        assert_eq!(collect_ids(&mut single), multi_ids);
     }
 }
