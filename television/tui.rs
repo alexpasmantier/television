@@ -55,6 +55,8 @@ where
 {
     pub terminal: ratatui::Terminal<CrosstermBackend<W>>,
     pub viewport: Viewport,
+    /// Whether the terminal supports the kitty keyboard protocol.
+    keyboard_enhancement: bool,
 }
 
 pub const TESTING_ENV_VAR: &str = "TV_TEST";
@@ -81,6 +83,12 @@ where
         let mut backend = CrosstermBackend::new(writer);
         let mut options = TerminalOptions::default();
         enable_raw_mode()?;
+
+        // This is a blocking round trip to the terminal, so do it once here
+        // (raw mode is on and nothing else is reading events yet) rather
+        // than on every enter/exit.
+        let keyboard_enhancement =
+            supports_keyboard_enhancement().unwrap_or(false);
 
         let terminal_size = backend.size()?;
         let viewport = match mode {
@@ -128,7 +136,11 @@ where
 
         options.viewport = viewport.clone();
         let terminal = Terminal::with_options(backend, options)?;
-        Ok(Self { terminal, viewport })
+        Ok(Self {
+            terminal,
+            viewport,
+            keyboard_enhancement,
+        })
     }
 
     /// Handles scrolling logic when there's insufficient space for the requested height.
@@ -269,15 +281,6 @@ where
 
         execute!(backend, EnableMouseCapture)?;
 
-        if supports_keyboard_enhancement().unwrap_or(false) {
-            execute!(
-                backend,
-                PushKeyboardEnhancementFlags(
-                    KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES,
-                )
-            )?;
-        }
-
         if self.viewport == Viewport::Fullscreen {
             execute!(backend, EnterAlternateScreen)?;
             self.clear()?;
@@ -285,6 +288,18 @@ where
             // the minimal non-fullscreen UI has no prompt decoration; a
             // steady bar cursor marks the input position instead
             execute!(backend, cursor::SetCursorStyle::SteadyBar)?;
+        }
+
+        // Terminals keep separate keyboard flag stacks for the main and
+        // alternate screens, so this has to happen after entering the
+        // alternate screen (and the matching pop before leaving it).
+        if self.keyboard_enhancement {
+            execute!(
+                self.terminal.backend_mut(),
+                PushKeyboardEnhancementFlags(
+                    KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
+                )
+            )?;
         }
         Ok(())
     }
@@ -308,7 +323,7 @@ where
 
             execute!(backend, cursor::Show)?;
 
-            if supports_keyboard_enhancement().unwrap_or(false) {
+            if self.keyboard_enhancement {
                 execute!(backend, PopKeyboardEnhancementFlags)?;
             }
 
