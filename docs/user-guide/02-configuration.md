@@ -145,9 +145,18 @@ Map keyboard keys to actions. Keys can be specified as:
 - Special keys: `enter`, `esc`, `tab`, `backtab`, `space`, `backspace`, `delete`, `insert`, `home`, `end`, `pageup`, `pagedown`, `up`, `down`, `left`, `right`
 - Control keys: `ctrl-a`, `ctrl-b`, `ctrl-c`, etc.
 - Alt keys: `alt-a`, `alt-enter`, etc.
+- Shifted letters: `ctrl-shift-a`, `alt-shift-a`, etc. An uppercase letter implies shift: `ctrl-A` is the same as `ctrl-shift-a`.
 - Function keys: `f1`, `f2`, ..., `f12`
 
 Modifiers can be combined with special keys, e.g. `ctrl-up`, `ctrl-down`, `alt-enter`.
+
+:::note
+Telling `ctrl-a` apart from `ctrl-shift-a` requires a terminal that supports the
+[kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) (kitty, Ghostty, WezTerm, foot, recent
+Alacritty and iTerm2, ...). Television enables it automatically when available. In other terminals, and inside tmux,
+both combinations send the same bytes, so only the lowercase binding fires. Terminals that support the protocol also
+report `ctrl-i`, `ctrl-m` and `ctrl-[` as themselves instead of `tab`, `enter` and `esc`.
+:::
 
 **Available Actions**:
 

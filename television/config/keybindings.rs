@@ -119,6 +119,8 @@ pub fn merge_keybindings(
 /// - `cmd-` - Command key (macOS)
 /// - `super-` - Super key (Linux/Windows)
 ///
+/// An uppercase letter implies shift: `ctrl-A` is the same as `ctrl-shift-a`.
+///
 /// # Examples
 ///
 /// ```rust
@@ -136,6 +138,7 @@ pub fn merge_keybindings(
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
     let raw_lower = raw.to_ascii_lowercase();
     let (remaining_lower, modifiers) = extract_modifiers(&raw_lower);
+    // recover the original key (ascii lowercasing preserves boundaries)
     let remaining = &raw[raw.len() - remaining_lower.len()..];
     parse_key_code_with_modifiers(remaining, modifiers)
 }
