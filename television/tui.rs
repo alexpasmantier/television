@@ -84,9 +84,6 @@ where
         let mut options = TerminalOptions::default();
         enable_raw_mode()?;
 
-        // This is a blocking round trip to the terminal, so do it once here
-        // (raw mode is on and nothing else is reading events yet) rather
-        // than on every enter/exit.
         let keyboard_enhancement =
             supports_keyboard_enhancement().unwrap_or(false);
 
