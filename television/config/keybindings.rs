@@ -136,10 +136,7 @@ pub fn merge_keybindings(
 /// assert_eq!(event.modifiers, KeyModifiers::ALT);
 /// ```
 pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
-    let raw_lower = raw.to_ascii_lowercase();
-    let (remaining_lower, modifiers) = extract_modifiers(&raw_lower);
-    // recover the original key (ascii lowercasing preserves boundaries)
-    let remaining = &raw[raw.len() - remaining_lower.len()..];
+    let (remaining, modifiers) = extract_modifiers(raw);
     parse_key_code_with_modifiers(remaining, modifiers)
 }
 
@@ -151,7 +148,7 @@ pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
 ///
 /// # Arguments
 ///
-/// * `raw` - The raw key string (already lowercased)
+/// * `raw` - The raw key string (modifier prefixes are matched case-insensitively)
 ///
 /// # Returns
 ///
@@ -165,39 +162,39 @@ pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
 /// assert!(mods.contains(KeyModifiers::CONTROL | KeyModifiers::ALT));
 /// ```
 fn extract_modifiers(raw: &str) -> (&str, KeyModifiers) {
+    const MODIFIERS: [(&str, KeyModifiers); 5] = [
+        ("ctrl-", KeyModifiers::CONTROL),
+        ("shift-", KeyModifiers::SHIFT),
+        ("alt-", KeyModifiers::ALT),
+        ("cmd-", KeyModifiers::SUPER),
+        ("super-", KeyModifiers::SUPER),
+    ];
+
     let mut modifiers = KeyModifiers::empty();
     let mut current = raw;
 
-    loop {
-        if let Some(rest) = current.strip_prefix("ctrl-") {
-            modifiers.insert(KeyModifiers::CONTROL);
-            current = rest;
-            continue;
-        }
-        if let Some(rest) = current.strip_prefix("shift-") {
-            modifiers.insert(KeyModifiers::SHIFT);
-            current = rest;
-            continue;
-        }
-        if let Some(rest) = current.strip_prefix("alt-") {
-            modifiers.insert(KeyModifiers::ALT);
-            current = rest;
-            continue;
-        }
-        if let Some(rest) = current.strip_prefix("cmd-") {
-            modifiers.insert(KeyModifiers::SUPER);
-            current = rest;
-            continue;
-        }
-        if let Some(rest) = current.strip_prefix("super-") {
-            modifiers.insert(KeyModifiers::SUPER);
-            current = rest;
-            continue;
+    'strip: loop {
+        for (prefix, modifier) in MODIFIERS {
+            if let Some(rest) = strip_prefix_ignore_ascii_case(current, prefix)
+            {
+                modifiers.insert(modifier);
+                current = rest;
+                continue 'strip;
+            }
         }
         break;
     }
 
     (current, modifiers)
+}
+
+fn strip_prefix_ignore_ascii_case<'a>(
+    s: &'a str,
+    prefix: &str,
+) -> Option<&'a str> {
+    let head = s.get(..prefix.len())?;
+    head.eq_ignore_ascii_case(prefix)
+        .then(|| &s[prefix.len()..])
 }
 
 /// Parses a key code string with pre-extracted modifiers into a `KeyEvent`.
@@ -585,6 +582,14 @@ mod tests {
         assert_eq!(
             parse_key_event("AlT-eNtEr").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
+        );
+
+        assert_eq!(
+            parse_key_event("Ctrl-Shift-A").unwrap(),
+            KeyEvent::new(
+                KeyCode::Char('A'),
+                KeyModifiers::CONTROL | KeyModifiers::SHIFT
+            )
         );
     }
 
