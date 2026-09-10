@@ -1,5 +1,5 @@
 [metadata]
-name = "nvim-config-files"
+name = "nvim-config"
 description = "Search through Neovim configuration files"
 requirements = ["fd", "nvim"]
 
