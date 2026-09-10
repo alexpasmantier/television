@@ -176,6 +176,7 @@ tv files --expect "ctrl-e,ctrl-v,ctrl-x"
 ```
 
 If you press <kbd>Ctrl</kbd>+<kbd>E</kbd>, output is:
+
 ```
 ctrl-e
 selected_file.txt
@@ -183,7 +184,7 @@ selected_file.txt
 
 ### Use Cases
 
-Useful for shell scripts that need to know *how* an item was selected:
+Useful for shell scripts that need to know _how_ an item was selected:
 
 ```sh
 output=$(tv files --expect "ctrl-e,ctrl-v")
@@ -377,12 +378,12 @@ tv --cable-dir ~/my-channels/
 
 ## Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
+| Variable            | Purpose                   |
+| ------------------- | ------------------------- |
 | `TELEVISION_CONFIG` | Override config directory |
-| `TELEVISION_DATA` | Override data directory |
-| `XDG_CONFIG_HOME` | XDG config base |
-| `XDG_DATA_HOME` | XDG data base |
+| `TELEVISION_DATA`   | Override data directory   |
+| `XDG_CONFIG_HOME`   | XDG config base           |
+| `XDG_DATA_HOME`     | XDG data base             |
 
 ## Combining Features
 

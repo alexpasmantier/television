@@ -488,9 +488,17 @@ where
                         let index = m.index as usize;
                         let hoist_key =
                             key(&store.items[index], &store.haystacks[index]);
+                        // Only hoist entries that are exact substring matches
                         match table.get(hoist_key.as_ref()) {
-                            Some(&score) => new_hoisted.push((score, m)),
-                            None => rest.push(m),
+                            Some(&score)
+                                if is_substring_match(
+                                    self.matcher.patterns(),
+                                    &store.haystacks[index],
+                                ) =>
+                            {
+                                new_hoisted.push((score, m));
+                            }
+                            _ => rest.push(m),
                         }
                     }
                 }
@@ -527,6 +535,18 @@ where
         // Wake the front-end so it can render the results
         (self.notify)();
     }
+}
+
+/// Whether every "positive" needle appears contiguously in `haystack`.
+fn is_substring_match(patterns: &[frizbee::Pattern], haystack: &str) -> bool {
+    patterns.iter().filter(|p| !p.negated).all(|p| {
+        let needle = p.needle.as_str();
+        if needle.chars().any(char::is_uppercase) {
+            haystack.contains(needle)
+        } else {
+            haystack.to_lowercase().contains(needle)
+        }
+    })
 }
 
 /// Score (desc) then index (asc): the display order of non-hoisted matches.
