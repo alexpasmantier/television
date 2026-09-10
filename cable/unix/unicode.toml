@@ -20,17 +20,19 @@ UnicodData.txt may also aleady be provided by:
 2) Latex packages
 3) Still others
 
-It may in some cases be necessary to alter UNICODE_FILE below.
+The channel looks for it in the usual locations; set the UNICODE_FILE environment variable to point at it otherwise.
 
 '''
 requirements = ["awk", "perl"]
 
 [source]
 command = '''
-UNICODE_FILE="/usr/share/unicode/ucd/UnicodeData.txt"
+for f in "$UNICODE_FILE" /usr/share/unicode/ucd/UnicodeData.txt /usr/share/unicode/UnicodeData.txt /usr/share/unicode-data/UnicodeData.txt; do
+  [ -f "$f" ] && break
+done
 awk -F';' '
   $2 !~ /^</ { print $1 "|" $2 }
-' "$UNICODE_FILE" \
+' "$f" \
 | perl -CS -F'\|' -lane '
     $code = $F[0];
     $desc = $F[1];
@@ -39,5 +41,5 @@ awk -F';' '
 '
 '''
 
-display = "{split:|:0}    {split:|:1}    {split:|:2}"
-output = "{split:|:1}"
+display = '{split:\|:0}    {split:\|:1}    {split:\|:2}'
+output = '{split:\|:1}'
