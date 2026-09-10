@@ -4,7 +4,7 @@ description = "List and manage tmux sessions"
 requirements = ["tmux"]
 
 [source]
-command = "tmux list-sessions -F '#{session_name}\t#{session_windows} windows\t#{session_created_string}'"
+command = "tmux list-sessions -F '#{session_name}\t#{session_windows} windows\t#{t:session_created}'"
 display = "{split:\t:0} ({split:\t:1})"
 output = "{split:\t:0}"
 
