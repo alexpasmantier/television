@@ -13,7 +13,7 @@ command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 [keybindings]
 enter = "actions:checkout"
 ctrl-d = "actions:delete"
-ctrl-m = "actions:merge"
+ctrl-g = "actions:merge"
 ctrl-r = "actions:rebase"
 
 [actions.checkout]
