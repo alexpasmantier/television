@@ -55,10 +55,10 @@ description = "A channel to select from shell aliases"
 
 [source]
 command = "$SHELL -ic 'alias'"
-output = "{split:=:0}"
+output = "{split:=:0|replace:s/^alias //}"
 
 [preview]
-command = "$SHELL -ic 'alias' | grep -E '^(alias )?{split:=:0}='"
+command = "$SHELL -ic 'alias' | grep -E '^(alias )?{split:=:0|replace:s/^alias //}='"
 
 [ui.preview_panel]
 size = 30
@@ -929,7 +929,7 @@ description = "Browse recent files in Downloads folder"
 requirements = [ "fd", "bat",]
 
 [source]
-command = "fd -t f . ~/Downloads 2>/dev/null | head -200"
+command = "fd -t f . ~/Downloads -X ls -t 2>/dev/null | head -200"
 
 [preview]
 command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
@@ -1988,7 +1988,7 @@ name = "Hidden"
 run = "fd -t f -e png -e jpg -e jpeg -e gif -e webp -e bmp -e svg -H ."
 
 [preview]
-command = "chafa -s 80x40 '{}' 2>/dev/null || file '{}'"
+command = "chafa -f symbols -s 80x40 '{}' 2>/dev/null || file '{}'"
 
 [keybindings]
 enter = "actions:open"
@@ -2755,10 +2755,10 @@ description = "List and run Makefile targets"
 requirements = [ "make", "awk",]
 
 [source]
-command = "make -pRrq 2>/dev/null | awk -F: '/^[a-zA-Z0-9][^$#\\/\\t=]*:([^=]|$)/ {split($1,a,\" \"); print a[1]}' | sort -u | grep -v '^Makefile$'"
+command = "make -pRrq 2>/dev/null | awk -F: '/^[a-zA-Z0-9][^$#\\/\\t=]*:([^=]|$)/ {split($1,a,\" \"); print a[1]}' | sort -u | grep -Ev '^(GNUmakefile|makefile|Makefile)$'"
 
 [preview]
-command = "awk '/^{}[[:space:]]*:/{found=1} found{print; if(/^[^\\t]/ && NR>1 && !/^{}[[:space:]]*:/) exit}' Makefile"
+command = "awk '/^{}[[:space:]]*:/{found=1} found{if(/^[^\\t]/ && !/^{}[[:space:]]*:/) exit; print}' \"$(ls GNUmakefile makefile Makefile 2>/dev/null | head -n 1)\""
 
 [keybindings]
 enter = "actions:run"
@@ -2792,7 +2792,7 @@ requirements = [ "apropos", "man",]
 command = "apropos ."
 
 [preview]
-command = "man '{0}'"
+command = "man {1|replace:s/[(),]//g} '{0}'"
 
 [keybindings]
 enter = "actions:open"
@@ -2805,7 +2805,7 @@ MANWIDTH = "80"
 
 [actions.open]
 description = "Open the selected man page in the system pager"
-command = "man '{0}'"
+command = "man {1|replace:s/[(),]//g} '{0}'"
 mode = "execute"
 
 [ui.preview_panel]
@@ -2833,16 +2833,17 @@ requirements = [ "df", "awk",]
 [source]
 command = "df -h --output=target,fstype,size,used,avail,pcent 2>/dev/null | tail -n +2"
 display = "{split: :0}"
+output = "{split: :0}"
 
 [preview]
-command = "df -h '{}' && echo && ls -la '{}' 2>/dev/null | head -20"
+command = "df -h '{split: :0}' && echo && ls -la '{split: :0}' 2>/dev/null | head -20"
 
 [keybindings]
 enter = "actions:cd"
 
 [actions.cd]
 description = "Open a shell in the selected mount point"
-command = "cd {} && $SHELL"
+command = "cd '{split: :0}' && $SHELL"
 mode = "execute"
 
 ```
@@ -2962,7 +2963,7 @@ mode = "execute"
 
 A channel to select from your nu history
 
-**Requirements:** *None*
+**Requirements:** `nu`
 
 **Code:** *nu-history.toml*
 
@@ -2970,6 +2971,7 @@ A channel to select from your nu history
 [metadata]
 name = "nu-history"
 description = "A channel to select from your nu history"
+requirements = [ "nu",]
 
 [source]
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
@@ -2981,18 +2983,18 @@ frecency = false
 
 ---
 
-### *nvim-config-files*
+### *nvim-config*
 
 Search through Neovim configuration files
 
-![tv running the nvim-config-files channel](../../assets/channels/unix/nvim-config-files.png)
+![tv running the nvim-config channel](../../assets/channels/unix/nvim-config.png)
 **Requirements:** `fd`, `nvim`
 
-**Code:** *nvim-config-files.toml*
+**Code:** *nvim-config.toml*
 
 ```toml
 [metadata]
-name = "nvim-config-files"
+name = "nvim-config"
 description = "Search through Neovim configuration files"
 requirements = [ "fd", "nvim",]
 
@@ -3434,7 +3436,7 @@ description = "List listening ports and associated processes"
 requirements = [ "ss", "awk",]
 
 [source]
-command = "ss -tlnp 2>/dev/null | tail -n +2 | awk '{gsub(/.*:/,\"\",$4); print $4, $1, $6}' | sed 's/users:((\"//; s/\".*//'"
+command = "ss -tlnp 2>/dev/null | tail -n +2 | awk '{gsub(/.*:/,\"\",$4); print $4, $1, ($6 == \"\" ? \"-\" : $6)}' | sed 's/users:((\"//; s/\".*//'"
 display = "{split: :0} ({split: :2})"
 
 [preview]
@@ -3528,12 +3530,12 @@ command = "cat '{}/pyvenv.cfg' 2>/dev/null && echo '' && echo 'Packages:' && '{}
 
 [actions.activate]
 description = "Open a shell with the selected venv activated"
-command = "source '{}/bin/activate' && $SHELL"
+command = "source {}/bin/activate && $SHELL"
 mode = "execute"
 
 [actions.packages]
 description = "List all packages in the selected venv"
-command = "'{}/bin/pip' list | less"
+command = "{}/bin/pip list | less"
 mode = "execute"
 
 ```
@@ -3657,7 +3659,7 @@ run = "sesh list -z --icons"
 
 [[source.command]]
 name = "Directories"
-run = "fd -H -d 2 -t d -E .Trash . ~"
+run = "fd -H -d 2 -t d -E .Trash . ~ | sed 's/^/\uf114 /'"
 
 [preview]
 command = "sesh preview '{strip_ansi|split: :1..|join: }'"
@@ -3826,7 +3828,7 @@ header = "{split: :0}"
 A channel to select hosts from your SSH config
 
 ![tv running the ssh-hosts channel](../../assets/channels/ssh-hosts.png)
-**Requirements:** `grep`, `tr`, `cut`, `awk`
+**Requirements:** `awk`
 
 **Code:** *ssh-hosts.toml*
 
@@ -3834,13 +3836,13 @@ A channel to select hosts from your SSH config
 [metadata]
 name = "ssh-hosts"
 description = "A channel to select hosts from your SSH config"
-requirements = [ "grep", "tr", "cut", "awk",]
+requirements = [ "awk",]
 
 [source]
-command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
+command = "awk '/^[[:space:]]*Host[[:space:]]/ { for (i = 2; i <= NF; i++) if ($i !~ /[*?!]/) print $i }' $HOME/.ssh/config"
 
 [preview]
-command = "awk '/^Host / { found=0 } /^Host (.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
+command = "awk '/^[[:space:]]*Host[[:space:]]/ { found=0 } /^[[:space:]]*Host[[:space:]]+(.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
 
 [keybindings]
 enter = "actions:connect"
@@ -4137,7 +4139,7 @@ description = "List and manage tmux sessions"
 requirements = [ "tmux",]
 
 [source]
-command = "tmux list-sessions -F '#{session_name}\t#{session_windows} windows\t#{session_created_string}'"
+command = "tmux list-sessions -F '#{session_name}\t#{session_windows} windows\t#{t:session_created}'"
 display = "{split:\t:0} ({split:\t:1})"
 output = "{split:\t:0}"
 
@@ -4269,7 +4271,7 @@ size = 30
 
 [actions.restore]
 description = "Restore the selected trashed file"
-command = "echo '{split: :1..}' | trash-restore"
+command = "trash-restore '{split: :2..}'"
 mode = "execute"
 
 [actions.empty]
@@ -4304,7 +4306,7 @@ UnicodData.txt may also aleady be provided by:
 2) Latex packages
 3) Still others
 
-It may in some cases be necessary to alter UNICODE_FILE below.
+The channel looks for it in the usual locations; set the UNICODE_FILE environment variable to point at it otherwise.
 
 
 
@@ -4316,13 +4318,13 @@ It may in some cases be necessary to alter UNICODE_FILE below.
 ```toml
 [metadata]
 name = "unicode"
-description = "Search and insert unicode characters\n\nThe UnicodeData.txt file is included by many packages.\n\nIn addition to:\n\nAlpine Linux: unicode-character-database\nArch: unicode-character-database\nDebian/Ubuntu: unicode-data\nFedora / RHEL / CentOS unicode-ucd\nGentoo: app-i18n/unicode-data\nNixOS: unicode/unicode-data\nopenSUSE: unicode-ucd\n\nUnicodData.txt may also aleady be provided by:\n\n1) Many java packages\n2) Latex packages\n3) Still others\n\nIt may in some cases be necessary to alter UNICODE_FILE below.\n\n"
+description = "Search and insert unicode characters\n\nThe UnicodeData.txt file is included by many packages.\n\nIn addition to:\n\nAlpine Linux: unicode-character-database\nArch: unicode-character-database\nDebian/Ubuntu: unicode-data\nFedora / RHEL / CentOS unicode-ucd\nGentoo: app-i18n/unicode-data\nNixOS: unicode/unicode-data\nopenSUSE: unicode-ucd\n\nUnicodData.txt may also aleady be provided by:\n\n1) Many java packages\n2) Latex packages\n3) Still others\n\nThe channel looks for it in the usual locations; set the UNICODE_FILE environment variable to point at it otherwise.\n\n"
 requirements = [ "awk", "perl",]
 
 [source]
-command = "UNICODE_FILE=\"/usr/share/unicode/ucd/UnicodeData.txt\"\nawk -F';' '\n  $2 !~ /^</ { print $1 \"|\" $2 }\n' \"$UNICODE_FILE\" | perl -CS -F'\\|' -lane '\n    $code = $F[0];\n    $desc = $F[1];\n    $char = chr(hex($code));\n    print \"U+$code|$char|$desc\" if $char =~ /\\p{Print}/;\n'\n"
-display = "{split:|:0}    {split:|:1}    {split:|:2}"
-output = "{split:|:1}"
+command = "for f in \"$UNICODE_FILE\" /usr/share/unicode/ucd/UnicodeData.txt /usr/share/unicode/UnicodeData.txt /usr/share/unicode-data/UnicodeData.txt; do\n  [ -f \"$f\" ] && break\ndone\nawk -F';' '\n  $2 !~ /^</ { print $1 \"|\" $2 }\n' \"$f\" | perl -CS -F'\\|' -lane '\n    $code = $F[0];\n    $desc = $F[1];\n    $char = chr(hex($code));\n    print \"U+$code|$char|$desc\" if $char =~ /\\p{Print}/;\n'\n"
+display = "{split:\\|:0}    {split:\\|:1}    {split:\\|:2}"
+output = "{split:\\|:1}"
 
 ```
 
@@ -4418,14 +4420,14 @@ requirements = [ "zsh",]
 
 [source]
 command = "sed '1!G;h;$!d' ${HISTFILE:-${HOME}/.zsh_history}"
-display = "{split:;:1..}"
-output = "{split:;:1..}"
+display = "{replace:s/^: \\d+:\\d+;//}"
+output = "{replace:s/^: \\d+:\\d+;//}"
 no_sort = true
 frecency = false
 
 [actions.execute]
 description = "Execute the selected command"
-command = "zsh -c '{split:;:1..}'"
+command = "zsh -c '{replace:s/^: \\d+:\\d+;//}'"
 mode = "execute"
 
 ```

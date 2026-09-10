@@ -321,7 +321,7 @@ command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
 
 A channel to select from your nu history
 
-**Requirements:** *None*
+**Requirements:** `nu`
 
 **Code:** *nu-history.toml*
 
@@ -329,6 +329,7 @@ A channel to select from your nu history
 [metadata]
 name = "nu-history"
 description = "A channel to select from your nu history"
+requirements = [ "nu",]
 
 [source]
 command = "nu -c 'open $nu.history-path | lines | uniq | reverse | to text'"
