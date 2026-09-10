@@ -17,7 +17,7 @@ preview_panel = { size = 30 }
 
 [actions.restore]
 description = "Restore the selected trashed file"
-command = "echo '{split: :1..}' | trash-restore"
+command = "trash-restore '{split: :2..}'"
 mode = "execute"
 
 [actions.empty]
