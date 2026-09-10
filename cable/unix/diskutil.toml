@@ -14,7 +14,7 @@ command = "df -h '{split:\t:0}' && echo && ls -la '{split:\t:0}' 2>/dev/null | h
 [keybindings]
 enter = "actions:cd"
 ctrl-o = "actions:open"
-ctrl-i = "actions:info"
+ctrl-g = "actions:info"
 ctrl-d = "actions:eject"
 ctrl-v = "actions:verify"
 
