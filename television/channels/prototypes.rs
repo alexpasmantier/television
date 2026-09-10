@@ -334,6 +334,16 @@ impl ChannelPrototype {
         self.preview = preview;
         self
     }
+
+    /// Names of the required binaries that can't be found in PATH.
+    pub fn missing_requirements(&self) -> Vec<String> {
+        self.metadata
+            .requirements
+            .iter()
+            .filter(|r| which(&r.bin_name).is_err())
+            .map(|r| r.bin_name.clone())
+            .collect()
+    }
 }
 
 impl Display for ChannelPrototype {
