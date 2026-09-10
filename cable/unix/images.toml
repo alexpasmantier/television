@@ -10,7 +10,7 @@ command = [
 ]
 
 [preview]
-command = "chafa -s 80x40 '{}' 2>/dev/null || file '{}'"
+command = "chafa -f symbols -s 80x40 '{}' 2>/dev/null || file '{}'"
 
 [keybindings]
 enter = "actions:open"
