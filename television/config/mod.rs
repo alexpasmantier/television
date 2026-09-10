@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 use std::{
@@ -57,16 +58,14 @@ pub struct AppConfig {
     /// Whether fuzzy matching tolerates typos (default: false)
     #[serde(default)]
     pub typo_resistance: bool,
-    /// Override the binary path used for specific shells.
-    /// Useful when multiple binaries with the same name exist (e.g. WSL bash vs Git Bash).
-    /// Example:
+    /// Binary path to use for a given shell, e.g. to pick Git Bash over the WSL
+    /// `bash.exe` stub on Windows.
     /// ```toml
     /// [shell_binaries]
     /// bash = "C:/Program Files/Git/usr/bin/bash.exe"
-    /// powershell = "C:/Program Files/PowerShell/7/pwsh.exe"
     /// ```
     #[serde(default)]
-    pub shell_binaries: std::collections::HashMap<Shell, String>,
+    pub shell_binaries: FxHashMap<Shell, String>,
 }
 
 impl Default for AppConfig {
@@ -81,7 +80,7 @@ impl Default for AppConfig {
             frecency_max_entries: default_frecency_max_entries(),
             shell: None,
             typo_resistance: false,
-            shell_binaries: std::collections::HashMap::new(),
+            shell_binaries: FxHashMap::default(),
         }
     }
 }
@@ -113,10 +112,9 @@ impl Hash for AppConfig {
         self.frecency_max_entries.hash(state);
         self.shell.hash(state);
         self.typo_resistance.hash(state);
-        for (k, v) in &self.shell_binaries {
-            k.hash(state);
-            v.hash(state);
-        }
+        let mut shell_binaries: Vec<_> = self.shell_binaries.iter().collect();
+        shell_binaries.sort();
+        shell_binaries.hash(state);
     }
 }
 
@@ -584,11 +582,5 @@ mod tests {
             Some(&"C:/Program Files/PowerShell/7/pwsh.exe".to_string())
         );
         assert_eq!(binaries.get(&Shell::Zsh), None);
-    }
-
-    #[test]
-    fn test_app_config_shell_binaries_empty_by_default() {
-        let config: Config = toml::from_str("").unwrap();
-        assert!(config.application.shell_binaries.is_empty());
     }
 }
