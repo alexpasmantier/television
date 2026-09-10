@@ -65,7 +65,7 @@ impl<P: EntryProcessor> Channel<P> {
             SortStrategy::Index
         } else if let Some((frecency_handle, channel_name)) = frecency {
             let cache = frecency_handle.create_cache(channel_name);
-            SortStrategy::Hoisted {
+            SortStrategy::Promoted {
                 table: Box::new(move || cache.table()),
                 key: Box::new(P::frecency_key),
             }
