@@ -14,7 +14,7 @@ command = [
   { name = "Tmux",        run = "sesh list -t --icons" },
   { name = "Configs",     run = "sesh list -c --icons" },
   { name = "Zoxide",      run = "sesh list -z --icons" },
-  { name = "Directories", run = "fd -H -d 2 -t d -E .Trash . ~" },
+  { name = "Directories", run = "fd -H -d 2 -t d -E .Trash . ~ | sed 's/^/\uf114 /'" },
 ]
 ansi = true
 frecency = false # handled by sesh
