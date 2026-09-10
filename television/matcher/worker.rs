@@ -1,4 +1,4 @@
-use super::{HoistTable, MatcherConfig, Notify, SortStrategy};
+use super::{MatcherConfig, Notify, PromoteTable, SortStrategy};
 use frizbee::Match;
 use parking_lot::{Mutex, RwLock};
 use std::sync::{
@@ -44,27 +44,27 @@ impl<I> Store<I> {
 pub(super) enum Matches {
     /// Every item in store, in the order they were ingested (and how many).
     All(u32),
-    /// Same as [`Matches::All`], but with hoisted entries materialized and sorted at the front of
+    /// Same as [`Matches::All`], but with promoted entries materialized and sorted at the front of
     /// the list.
-    AllWithHoisted {
-        /// Total number of matched items, hoisted entries included.
+    AllWithPromoted {
+        /// Total number of matched items, promoted entries included.
         total: u32,
-        /// The hoisted matches, in display order.
-        hoisted: Vec<Match>,
-        /// The hoisted store indices in ascending order, used to skip over
-        /// hoisted entries when indexing into the implicit remainder.
+        /// The promoted matches, in display order.
+        promoted: Vec<Match>,
+        /// The promoted store indices in ascending order, used to skip over
+        /// promoted entries when indexing into the implicit remainder.
         by_index: Vec<u32>,
     },
     /// The matched items, ordered according to the sort strategy. The first
-    /// `hoisted` entries are the hoisted prefix (see [`SortStrategy::Hoisted`]).
-    Sorted { matches: Vec<Match>, hoisted: u32 },
+    /// `promoted` entries are the promoted prefix (see [`SortStrategy::Promoted`]).
+    Sorted { matches: Vec<Match>, promoted: u32 },
 }
 
 impl Matches {
     pub(super) fn len(&self) -> usize {
         match self {
             Matches::All(count) => *count as usize,
-            Matches::AllWithHoisted { total, .. } => *total as usize,
+            Matches::AllWithPromoted { total, .. } => *total as usize,
             Matches::Sorted { matches, .. } => matches.len(),
         }
     }
@@ -75,23 +75,23 @@ impl Matches {
             Matches::All(count) => {
                 (index < *count).then(|| Match::from_index(index as usize))
             }
-            Matches::AllWithHoisted {
+            Matches::AllWithPromoted {
                 total,
-                hoisted,
+                promoted,
                 by_index,
             } => {
-                if let Some(m) = hoisted.get(index as usize) {
+                if let Some(m) = promoted.get(index as usize) {
                     return Some(*m);
                 }
                 if index >= *total {
                     return None;
                 }
                 // The remainder is every store index in order minus the
-                // hoisted ones: walk the hoisted indices to translate the
+                // promoted ones: walk the promoted indices to translate the
                 // rank into a store index.
-                let mut store_index = index - hoisted.len() as u32;
-                for &hoisted_index in by_index {
-                    if hoisted_index <= store_index {
+                let mut store_index = index - promoted.len() as u32;
+                for &promoted_index in by_index {
+                    if promoted_index <= store_index {
                         store_index += 1;
                     } else {
                         break;
@@ -105,12 +105,14 @@ impl Matches {
         }
     }
 
-    /// The materialized matches and the length of their hoisted prefix, if
+    /// The materialized matches and the length of their promoted prefix, if
     /// this snapshot holds any.
     fn as_sorted(&self) -> Option<(&[Match], u32)> {
         match self {
-            Matches::All(_) | Matches::AllWithHoisted { .. } => None,
-            Matches::Sorted { matches, hoisted } => Some((matches, *hoisted)),
+            Matches::All(_) | Matches::AllWithPromoted { .. } => None,
+            Matches::Sorted { matches, promoted } => {
+                Some((matches, *promoted))
+            }
         }
     }
 }
@@ -135,7 +137,7 @@ impl Snapshot {
             pattern: String::new(),
             matches: Matches::Sorted {
                 matches: Vec::new(),
-                hoisted: 0,
+                promoted: 0,
             },
         }
     }
@@ -185,11 +187,11 @@ pub(super) struct Worker<I: Sync + Send + 'static> {
     n_threads: usize,
     /// Size of the first chunk of a matching pass.
     initial_chunk_size: usize,
-    /// Hoist table sampled at the start of the current pass.
-    hoist_table: Option<HoistTable>,
-    /// Hoisted matches accumulated by the current pass, tagged with their
-    /// hoist score and kept in display order.
-    hoisted_matches: Vec<(u64, Match)>,
+    /// Promote table sampled at the start of the current pass.
+    promote_table: Option<PromoteTable>,
+    /// Promoted matches accumulated by the current pass, tagged with their
+    /// promote score and kept in display order.
+    promoted_matches: Vec<(u64, Match)>,
 }
 
 impl<I> Worker<I>
@@ -221,8 +223,8 @@ where
             last_match_index: 0,
             n_threads,
             initial_chunk_size,
-            hoist_table: None,
-            hoisted_matches: Vec::new(),
+            promote_table: None,
+            promoted_matches: Vec::new(),
         }
     }
 
@@ -325,25 +327,25 @@ where
         let store = store.read();
         let total = store.haystacks.len();
 
-        // Sample the hoist table once per pass; hoisting depends on it, so
+        // Sample the promote table once per pass; promoting depends on it, so
         // a new table invalidates any matched progress.
-        if let SortStrategy::Hoisted { table, .. } = &self.sort_strategy {
+        if let SortStrategy::Promoted { table, .. } = &self.sort_strategy {
             let table = table();
             if self
-                .hoist_table
+                .promote_table
                 .as_ref()
                 .is_none_or(|current| !Arc::ptr_eq(current, &table))
             {
                 self.last_match_index = 0;
-                self.hoist_table = Some(table);
+                self.promote_table = Some(table);
             }
         }
 
         let empty_pattern =
             self.matcher.patterns().iter().all(|p| p.needle.is_empty());
-        // With an empty pattern and nothing to hoist, everything matches in store order.
+        // With an empty pattern and nothing to promote, everything matches in store order.
         if empty_pattern
-            && self.hoist_table.as_ref().is_none_or(|t| t.is_empty())
+            && self.promote_table.as_ref().is_none_or(|t| t.is_empty())
         {
             self.last_match_index = total;
             self.publish(store.generation, Matches::All(total as u32));
@@ -354,13 +356,13 @@ where
         loop {
             let offset = self.last_match_index;
             if offset == 0 {
-                // A fresh pass starts with a clean hoisted accumulator
-                self.hoisted_matches.clear();
+                // A fresh pass starts with a clean promoted accumulator
+                self.promoted_matches.clear();
             }
             let end = (offset + chunk_size).min(total);
 
             let matches = if empty_pattern {
-                self.find_hoisted_in_chunk(&store, offset, end)
+                self.find_promoted_in_chunk(&store, offset, end)
             } else {
                 self.match_chunk(&store, offset, end)
             };
@@ -378,42 +380,44 @@ where
         }
     }
 
-    /// Find the hoisted entries in a chunk of the store and merge them with the
-    /// previously published hoisted entries.
+    /// Find the promoted entries in a chunk of the store and merge them with the
+    /// previously published promoted entries.
     #[allow(clippy::cast_possible_truncation)]
-    fn find_hoisted_in_chunk(
+    fn find_promoted_in_chunk(
         &mut self,
         store: &Store<I>,
         offset: usize,
         end: usize,
     ) -> Matches {
-        let SortStrategy::Hoisted { key, .. } = &self.sort_strategy else {
-            unreachable!("hoist_chunk requires a hoist table");
+        let SortStrategy::Promoted { key, .. } = &self.sort_strategy else {
+            unreachable!("promote_chunk requires a promote table");
         };
         let table = self
-            .hoist_table
+            .promote_table
             .as_ref()
-            .expect("hoist_chunk requires a hoist table");
+            .expect("promote_chunk requires a promote table");
 
-        let mut new_hoisted = Vec::new();
+        let mut new_promoted = Vec::new();
         for index in offset..end {
-            let hoist_key = key(&store.items[index], &store.haystacks[index]);
-            if let Some(&score) = table.get(hoist_key.as_ref()) {
-                new_hoisted.push((score, Match::from_index(index)));
+            let promote_key =
+                key(&store.items[index], &store.haystacks[index]);
+            if let Some(&score) = table.get(promote_key.as_ref()) {
+                new_promoted.push((score, Match::from_index(index)));
             }
         }
 
-        self.hoisted_matches.append(&mut new_hoisted);
-        self.hoisted_matches
+        self.promoted_matches.append(&mut new_promoted);
+        self.promoted_matches
             .sort_by(|a, b| b.0.cmp(&a.0).then(a.1.index.cmp(&b.1.index)));
 
-        let hoisted: Vec<Match> =
-            self.hoisted_matches.iter().map(|(_, m)| *m).collect();
-        let mut by_index: Vec<u32> = hoisted.iter().map(|m| m.index).collect();
+        let promoted: Vec<Match> =
+            self.promoted_matches.iter().map(|(_, m)| *m).collect();
+        let mut by_index: Vec<u32> =
+            promoted.iter().map(|m| m.index).collect();
         by_index.sort_unstable();
-        Matches::AllWithHoisted {
+        Matches::AllWithPromoted {
             total: end as u32,
-            hoisted,
+            promoted,
             by_index,
         }
     }
@@ -447,7 +451,7 @@ where
         let prev = (offset != 0)
             .then(|| Arc::clone(&self.snapshot.lock()))
             .filter(|prev| prev.generation == store.generation);
-        let (prev_matches, prev_num_hoisted) = prev
+        let (prev_matches, prev_num_promoted) = prev
             .as_ref()
             .and_then(|prev| prev.matches.as_sorted())
             .unwrap_or((&[], 0));
@@ -459,7 +463,7 @@ where
                     &new_matches,
                     score_then_index,
                 ),
-                hoisted: 0,
+                promoted: 0,
             },
             // Chunk matches are already in store order
             SortStrategy::Index => {
@@ -469,58 +473,58 @@ where
                 matches.append(&mut new_matches);
                 Matches::Sorted {
                     matches,
-                    hoisted: 0,
+                    promoted: 0,
                 }
             }
-            SortStrategy::Hoisted { key, .. } => {
+            SortStrategy::Promoted { key, .. } => {
                 let table = self
-                    .hoist_table
+                    .promote_table
                     .as_ref()
                     .expect("sampled at the start of the pass");
-                // Split this chunk's matches into hoisted entries and the
+                // Split this chunk's matches into promoted entries and the
                 // rest, preserving their score order.
                 let mut rest = Vec::with_capacity(new_matches.len());
-                let mut new_hoisted = Vec::new();
+                let mut new_promoted = Vec::new();
                 if table.is_empty() {
                     rest = new_matches;
                 } else {
                     for m in new_matches {
                         let index = m.index as usize;
-                        let hoist_key =
+                        let promote_key =
                             key(&store.items[index], &store.haystacks[index]);
-                        // Only hoist entries that are exact substring matches
-                        match table.get(hoist_key.as_ref()) {
+                        // Only promote entries that are exact substring matches
+                        match table.get(promote_key.as_ref()) {
                             Some(&score)
                                 if is_substring_match(
                                     self.matcher.patterns(),
                                     &store.haystacks[index],
                                 ) =>
                             {
-                                new_hoisted.push((score, m));
+                                new_promoted.push((score, m));
                             }
                             _ => rest.push(m),
                         }
                     }
                 }
-                // The hoisted prefix is tiny (bounded by the table size),
+                // The promoted prefix is tiny (bounded by the table size),
                 // so a full re-sort per chunk is cheaper than bookkeeping
-                self.hoisted_matches.append(&mut new_hoisted);
-                self.hoisted_matches.sort_by(|a, b| {
+                self.promoted_matches.append(&mut new_promoted);
+                self.promoted_matches.sort_by(|a, b| {
                     b.0.cmp(&a.0)
                         .then(b.1.score.cmp(&a.1.score))
                         .then(a.1.index.cmp(&b.1.index))
                 });
 
-                let prev_rest = &prev_matches[prev_num_hoisted as usize..];
+                let prev_rest = &prev_matches[prev_num_promoted as usize..];
                 let rest = merge_matches(prev_rest, &rest, score_then_index);
                 let mut matches = Vec::with_capacity(
-                    self.hoisted_matches.len() + rest.len(),
+                    self.promoted_matches.len() + rest.len(),
                 );
-                matches.extend(self.hoisted_matches.iter().map(|(_, m)| *m));
+                matches.extend(self.promoted_matches.iter().map(|(_, m)| *m));
                 matches.extend(rest);
                 Matches::Sorted {
                     matches,
-                    hoisted: self.hoisted_matches.len() as u32,
+                    promoted: self.promoted_matches.len() as u32,
                 }
             }
         }
@@ -549,7 +553,7 @@ fn is_substring_match(patterns: &[frizbee::Pattern], haystack: &str) -> bool {
     })
 }
 
-/// Score (desc) then index (asc): the display order of non-hoisted matches.
+/// Score (desc) then index (asc): the display order of non-promoted matches.
 #[allow(clippy::trivially_copy_pass_by_ref)]
 fn score_then_index(a: &Match, b: &Match) -> std::cmp::Ordering {
     b.score.cmp(&a.score).then(a.index.cmp(&b.index))
@@ -584,7 +588,7 @@ fn build_matcher<I: Sync + Send + 'static>(
     sort_strategy: &SortStrategy<I>,
 ) -> frizbee::Matcher {
     let sort_strategy = match sort_strategy {
-        SortStrategy::Score | SortStrategy::Hoisted { .. } => {
+        SortStrategy::Score | SortStrategy::Promoted { .. } => {
             frizbee::SortStrategy::ScoreThenIndexAsc
         }
         SortStrategy::Index => frizbee::SortStrategy::IndexAsc,
