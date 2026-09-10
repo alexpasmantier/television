@@ -8,8 +8,8 @@ requirements = ["apropos", "man"]
 command = "apropos ."
 
 [preview]
-# Show the man page for the selected entry
-command = "man '{0}'"
+# Show the man page for the selected entry, in the right section
+command = "man {1|replace:s/[(),]//g} '{0}'"
 env = { "MANWIDTH" = "80" }
 
 [keybindings]
@@ -17,7 +17,7 @@ enter = "actions:open"
 
 [actions.open]
 description = "Open the selected man page in the system pager"
-command = "man '{0}'"
+command = "man {1|replace:s/[(),]//g} '{0}'"
 mode = "execute"
 
 [ui]
