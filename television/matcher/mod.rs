@@ -47,7 +47,7 @@ pub enum SortStrategy<I: Sync + Send + 'static> {
     /// Sort items by index (asc) which preserves insertion order.
     Index,
     /// Like [`SortStrategy::Score`], but entries whose key is found in the
-    /// hoist table (e.g. frecency records) are hoisted to the top, ordered
+    /// hoist table (e.g. frecency records) and are a substring match are hoisted to the top, ordered
     /// by their table score.
     Hoisted {
         table: HoistTableFn,
@@ -668,6 +668,33 @@ mod tests {
                 .into_iter()
                 .filter(|id| *id != 7 && *id != 42),
         );
+        assert_eq!(collect_ids(&mut hoisted), expected);
+    }
+
+    #[test]
+    fn hoisted_entries_require_a_substring_match() {
+        let items = vec![
+            (0, "log/index.bak".to_string()),
+            (1, "src/lib.rs".to_string()),
+            (2, "docs/lib.md".to_string()),
+        ];
+
+        let mut hoisted: Matcher<usize> = Matcher::new(
+            hoisted_strategy(&[("log/index.bak", 9), ("src/lib.rs", 5)]),
+            2,
+        );
+        hoisted.injector().push_batch(items.clone());
+        hoisted.find("lib");
+        hoisted.wait_for_idle();
+
+        let mut score: Matcher<usize> = Matcher::new(SortStrategy::Score, 2);
+        score.injector().push_batch(items);
+        score.find("lib");
+        score.wait_for_idle();
+
+        let mut expected = vec![1];
+        expected
+            .extend(collect_ids(&mut score).into_iter().filter(|id| *id != 1));
         assert_eq!(collect_ids(&mut hoisted), expected);
     }
 
