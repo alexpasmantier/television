@@ -35,6 +35,18 @@ use television::{
 };
 use tracing::{debug, info};
 
+/// Replaces control characters (which can include terminal escape
+/// sequences) with the Unicode replacement character. A selected entry's
+/// output can originate from an untrusted source (e.g. a file name in
+/// the current directory), which has no character restrictions, and is
+/// printed to the real terminal after the TUI has already exited,
+/// bypassing ratatui's own protective rendering entirely.
+fn sanitize_for_display(s: &str) -> String {
+    s.chars()
+        .map(|c| if c.is_control() { '\u{FFFD}' } else { c })
+        .collect()
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> Result<()> {
     television::errors::init()?;
@@ -121,7 +133,7 @@ async fn main() -> Result<()> {
     }
     if let Some(entries) = output.selected_entries {
         for entry in &entries {
-            writeln!(bufwriter, "{}", entry.output()?)?;
+            writeln!(bufwriter, "{}", sanitize_for_display(&entry.output()?))?;
         }
     }
     bufwriter.flush()?;
