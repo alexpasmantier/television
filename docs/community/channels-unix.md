@@ -509,7 +509,7 @@ command = "df -h '{split:\t:0}' && echo && ls -la '{split:\t:0}' 2>/dev/null | h
 [keybindings]
 enter = "actions:cd"
 ctrl-o = "actions:open"
-ctrl-i = "actions:info"
+ctrl-g = "actions:info"
 ctrl-d = "actions:eject"
 ctrl-v = "actions:verify"
 
@@ -937,7 +937,7 @@ command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
 [keybindings]
 enter = "actions:open"
 ctrl-d = "actions:delete"
-ctrl-m = "actions:move"
+ctrl-v = "actions:move"
 
 [preview.env]
 BAT_THEME = "ansi"
@@ -1403,7 +1403,7 @@ command = "git show -p --stat --pretty=fuller --color=always '{0}'"
 [keybindings]
 enter = "actions:checkout"
 ctrl-d = "actions:delete"
-ctrl-m = "actions:merge"
+ctrl-g = "actions:merge"
 ctrl-r = "actions:rebase"
 
 [actions.checkout]
@@ -2187,7 +2187,7 @@ command = "jj show --color=always '{strip_ansi|split:\t:0}'"
 
 [keybindings]
 enter = "actions:edit"
-ctrl-i = "actions:insert_before"
+ctrl-g = "actions:insert_before"
 ctrl-a = "actions:insert_after"
 ctrl-shift-d = "actions:diff"
 ctrl-s = "actions:squash"
