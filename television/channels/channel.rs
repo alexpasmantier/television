@@ -354,7 +354,6 @@ pub async fn load_candidates<P: EntryProcessor>(
         command.interactive,
         &command.env,
         command.shell,
-        &command.shell_binaries,
     );
     std_command.stdout(Stdio::piped()).stderr(Stdio::piped());
     let mut child = TokioCommand::from(std_command)

@@ -24,6 +24,10 @@ default_channel = "files"
 # If not specified, the shell is detected from the environment ($SHELL on Unix).
 # Channel-specific shell settings override this global setting.
 # shell = "bash"
+# Binary to use for a given shell. Useful on Windows when `bash` resolves to the
+# WSL stub in System32 instead of Git Bash.
+# [shell_binaries]
+# bash = "C:/Program Files/Git/usr/bin/bash.exe"
 # History settings
 # ---------------
 # Maximum number of entries to keep in the global history (default: 100)

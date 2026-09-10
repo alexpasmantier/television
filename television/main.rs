@@ -52,6 +52,7 @@ async fn main() -> Result<()> {
     let config_file = raw_cli.config_file.as_deref().map(expand_tilde);
     let base_config =
         Config::new(&ConfigEnv::init()?, config_file.as_deref())?;
+    Shell::set_binaries(base_config.application.shell_binaries.clone());
 
     let cable_dir = raw_cli
         .cable_dir
