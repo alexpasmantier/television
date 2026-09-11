@@ -1,13 +1,13 @@
 [metadata]
 name = "ssh-hosts"
 description = "A channel to select hosts from your SSH config"
-requirements = ["grep", "tr", "cut", "awk"]
+requirements = ["awk"]
 
 [source]
-command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2- | tr ' ' '\n' | grep -v '^$'"
+command = "awk '/^[[:space:]]*Host[[:space:]]/ { for (i = 2; i <= NF; i++) if ($i !~ /[*?!]/) print $i }' $HOME/.ssh/config"
 
 [preview]
-command = "awk '/^Host / { found=0 } /^Host (.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
+command = "awk '/^[[:space:]]*Host[[:space:]]/ { found=0 } /^[[:space:]]*Host[[:space:]]+(.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
 
 [keybindings]
 enter = "actions:connect"

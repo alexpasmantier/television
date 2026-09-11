@@ -83,6 +83,16 @@ async fn main() -> Result<()> {
     let channel_prototype =
         determine_channel(&cli.channel, &base_config, readable_stdin, &cable);
 
+    let missing = channel_prototype.missing_requirements();
+    if !missing.is_empty() {
+        eprintln!(
+            "Channel '{}' requires binaries that are not in PATH: {}",
+            channel_prototype.metadata.name,
+            missing.join(", ")
+        );
+        exit(1);
+    }
+
     let layered_config =
         ConfigLayers::new(base_config, channel_prototype, cli.clone());
 

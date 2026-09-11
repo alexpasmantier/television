@@ -4,6 +4,8 @@
 //! features, ensuring that the autocomplete prompt can automatically select appropriate
 //! channels based on command analysis.
 
+use tempfile::TempDir;
+
 use std::{
     io,
     process::{Command, Stdio},
@@ -107,6 +109,44 @@ fn test_init_subcommand_invalid_shell_errors() {
         .unwrap();
 
     s.wait().text("invalid value").until().unwrap();
+}
+
+/// Tests that launching a channel whose requirements are not installed exits with a clear error.
+#[test]
+fn test_channel_with_missing_requirements_exits_with_error() {
+    let pt = phantom();
+    let cable_dir = TempDir::new().unwrap();
+    std::fs::write(
+        cable_dir.path().join("needs-bogus.toml"),
+        r#"
+[metadata]
+name = "needs-bogus"
+requirements = ["tv-bogus-binary"]
+
+[source]
+command = "ls"
+"#,
+    )
+    .unwrap();
+
+    let s = tv_with_args(
+        &pt,
+        &[
+            "--cable-dir",
+            cable_dir.path().to_str().unwrap(),
+            "--config-file",
+            DEFAULT_CONFIG_FILE,
+            "needs-bogus",
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait()
+        .text("Channel 'needs-bogus' requires binaries that are not in PATH: tv-bogus-binary")
+        .until()
+        .unwrap();
+    s.wait().exit_code(1).until().unwrap();
 }
 
 /// Tests that `tv list-channels` handles broken pipe (EPIPE) gracefully.
