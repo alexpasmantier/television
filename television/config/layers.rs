@@ -170,7 +170,7 @@ impl ConfigLayers {
                 },
             );
         let channel_preview_cached = self.channel_cli.cache_preview
-            || self.channel.preview.as_ref().is_some_and(|p| p.cached);
+            || self.channel.preview.as_ref().is_none_or(|p| p.cached);
 
         // Channel > base config fields
         let remote_show_channel_descriptions = self
@@ -763,7 +763,12 @@ impl MergedConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::channels::prototypes::UiSpec;
+    use crate::{
+        cable::Cable,
+        channels::prototypes::UiSpec,
+        cli::{args::Cli, post_process},
+    };
+    use clap::Parser;
 
     fn merge_layers(
         config: Config,
@@ -780,6 +785,65 @@ mod tests {
             },
         )
         .merge()
+    }
+
+    #[test]
+    fn preview_cache_respects_channel_config_and_explicit_cli_override() {
+        for (setting, flag, expected) in [
+            ("", false, true),
+            ("cached = true", false, true),
+            ("cached = false", false, false),
+            ("cached = false", true, true),
+        ] {
+            let prototype: ChannelPrototype = toml::from_str(&format!(
+                r#"
+                [metadata]
+                name = "test"
+                [source]
+                command = "echo entry"
+                [preview]
+                command = "echo preview"
+                {setting}
+                "#
+            ))
+            .unwrap();
+            let cable = Cable::from_prototypes(vec![prototype.clone()]);
+            let mut args = vec!["tv", "test"];
+            if flag {
+                args.push("--cache-preview");
+            }
+            let cli = post_process(
+                Cli::try_parse_from(args).unwrap(),
+                false,
+                &cable,
+            );
+            let merged =
+                ConfigLayers::new(Config::default(), prototype, cli).merge();
+            assert_eq!(
+                merged.channel_preview_cached, expected,
+                "{setting:?}, --cache-preview: {flag}"
+            );
+        }
+    }
+
+    #[test]
+    fn preview_cache_defaults_to_enabled_for_adhoc_preview() {
+        let cli = Cli::try_parse_from([
+            "tv",
+            "--source-command",
+            "echo entry",
+            "--preview-command",
+            "echo preview",
+        ])
+        .unwrap();
+        let cli = post_process(cli, false, &Cable::default());
+        let merged = ConfigLayers::new(
+            Config::default(),
+            ChannelPrototype::new("test", "echo entry"),
+            cli,
+        )
+        .merge();
+        assert!(merged.channel_preview_cached);
     }
 
     #[test]
