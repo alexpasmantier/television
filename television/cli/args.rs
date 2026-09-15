@@ -164,18 +164,17 @@ pub struct Cli {
     )]
     pub preview_footer: Option<String>,
 
-    /// Whether to cache the preview command output for each entry.
+    /// Enable caching of the preview command output for each entry.
     ///
     /// This can be useful when the preview command is expensive to run
     /// and you want to avoid running it multiple times for the same entry.
     ///
     /// This is enabled by default since most channels will benefit from it.
     ///
-    /// This can be disabled for special cases e.g. where the preview command output changes
-    /// frequently and/or you want live udpates.
+    /// Set `cached = false` in the channel's [preview] section to disable caching.
+    /// Passing this flag overrides that setting and enables caching for this invocation.
     #[arg(
         long,
-        default_value = "true",
         verbatim_doc_comment,
         conflicts_with = "no_preview",
         help_heading = "Preview"
