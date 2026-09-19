@@ -73,13 +73,13 @@ impl Keybindings {
 ///
 /// let custom = Keybindings::from(vec![
 ///     (Key::Esc, Action::NoOp), // Override quit with no-op
-///     (Key::Tab, Action::ToggleSelectionDown), // Add new binding
+///     (Key::Tab, Action::ToggleSelection), // Add new binding
 /// ]);
 ///
 /// let merged = merge_keybindings(base, &custom);
 /// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
 /// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
-/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelectionDown.into()));
+/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelection.into()));
 /// ```
 pub fn merge_keybindings(
     mut base: Keybindings,
@@ -609,8 +609,8 @@ mod tests {
                 "pageup" = "select_prev_page"
                 "ctrl-d" = "scroll_preview_half_page_down"
                 "ctrl-u" = "scroll_preview_half_page_up"
-                "tab" = "toggle_selection_down"
-                "backtab" = "toggle_selection_up"
+                "tab" = "toggle_selection"
+                "backtab" = "toggle_selection_all"
                 "enter" = "confirm_selection"
                 "ctrl-y" = "copy_entry_to_clipboard"
                 "ctrl-r" = "toggle_remote_control"
@@ -634,8 +634,8 @@ mod tests {
                 (Key::PageUp, Action::SelectPrevPage),
                 (Key::Ctrl('d'), Action::ScrollPreviewHalfPageDown),
                 (Key::Ctrl('u'), Action::ScrollPreviewHalfPageUp),
-                (Key::Tab, Action::ToggleSelectionDown),
-                (Key::BackTab, Action::ToggleSelectionUp),
+                (Key::Tab, Action::ToggleSelection),
+                (Key::BackTab, Action::ToggleSelectionAll),
                 (Key::Enter, Action::ConfirmSelection),
                 (Key::Ctrl('y'), Action::CopyEntryToClipboard),
                 (Key::Ctrl('r'), Action::ToggleRemoteControl),
@@ -794,7 +794,7 @@ mod tests {
                 ctrl-c = "no_op"
 
                 # Single action in array format (should work)
-                tab = ["toggle_selection_down"]
+                tab = ["toggle_selection"]
             "#,
         )
         .unwrap();
@@ -831,7 +831,27 @@ mod tests {
         );
         assert_eq!(
             keybindings.0.get(&Key::Tab),
-            Some(&Actions::multiple(vec![Action::ToggleSelectionDown]))
+            Some(&Actions::multiple(vec![Action::ToggleSelection]))
+        );
+    }
+
+    #[test]
+    fn test_deserialize_legacy_toggle_selection_names() {
+        let keybindings: Keybindings = toml::from_str(
+            r#"
+                tab = "toggle_selection_down"
+                backtab = "toggle_selection_up"
+            "#,
+        )
+        .unwrap();
+
+        assert_eq!(
+            keybindings.0.get(&Key::Tab),
+            Some(&Actions::single(Action::ToggleSelection))
+        );
+        assert_eq!(
+            keybindings.0.get(&Key::BackTab),
+            Some(&Actions::single(Action::ToggleSelection))
         );
     }
 }

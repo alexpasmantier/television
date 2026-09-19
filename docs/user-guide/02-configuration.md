@@ -6,10 +6,10 @@ TV uses a single configuration file written in [TOML](https://toml.io/en/) forma
 
 Locations where `television` expects the user configuration file to be located for each platform:
 
-| Platform |                 Value                  |
-| -------- | :------------------------------------: |
-| Linux    | `$HOME/.config/television/config.toml` |
-| macOS    | `$HOME/.config/television/config.toml` |
+| Platform |                     Value                      |
+| -------- | :--------------------------------------------: |
+| Linux    |     `$HOME/.config/television/config.toml`     |
+| macOS    |     `$HOME/.config/television/config.toml`     |
 | Windows  | `%LocalAppData%\television\config\config.toml` |
 
 Or, if you'd rather use the XDG Base Directory Specification, tv will look for the configuration file in
@@ -28,24 +28,24 @@ If you have an older config file, `tv migrate-config` trims machine-written defa
 
 ### General Settings
 
-| Option            | Type    | Default   | Description                                                                                                              |
-| ----------------- | ------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `tick_rate`       | integer | `50`      | Application tick rate in milliseconds. Controls how frequently the UI updates.                                           |
-| `default_channel` | string  | `"files"` | The default channel to use when no channel is specified on the command line.                                             |
-| `history_size`    | integer | `200`     | Maximum number of entries to keep in the search history. Set to `0` to disable history functionality.                    |
-| `global_history`  | boolean | `false`   | When `true`, history navigation shows entries from all channels. When `false`, history is scoped to the current channel. |
-| `frecency_max_entries` | integer | `1000` | Maximum number of frecency entries to keep per channel.                                                              |
-| `shell`           | string  | unset     | Shell used to run source, preview and action commands. Valid values: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu`. When unset, the shell is detected from the environment (`$SHELL` on Unix). Channels can override this. |
-| `typo_resistance` | boolean | `false`   | When `true`, fuzzy patterns tolerate typos (one per 4 characters, capped at 2). Can also be enabled with `--typo-resistance` (alias `--typos`). |
+| Option                 | Type    | Default   | Description                                                                                                                                                                                                                   |
+| ---------------------- | ------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tick_rate`            | integer | `50`      | Application tick rate in milliseconds. Controls how frequently the UI updates.                                                                                                                                                |
+| `default_channel`      | string  | `"files"` | The default channel to use when no channel is specified on the command line.                                                                                                                                                  |
+| `history_size`         | integer | `200`     | Maximum number of entries to keep in the search history. Set to `0` to disable history functionality.                                                                                                                         |
+| `global_history`       | boolean | `false`   | When `true`, history navigation shows entries from all channels. When `false`, history is scoped to the current channel.                                                                                                      |
+| `frecency_max_entries` | integer | `1000`    | Maximum number of frecency entries to keep per channel.                                                                                                                                                                       |
+| `shell`                | string  | unset     | Shell used to run source, preview and action commands. Valid values: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu`. When unset, the shell is detected from the environment (`$SHELL` on Unix). Channels can override this. |
+| `typo_resistance`      | boolean | `false`   | When `true`, fuzzy patterns tolerate typos (one per 4 characters, capped at 2). Can also be enabled with `--typo-resistance` (alias `--typos`).                                                                               |
 
 ### UI Configuration
 
 Top-level UI settings under the `[ui]` section:
 
-| Option        | Type            | Default       | Description                                                                    |
-| ------------- | --------------- | ------------- | ------------------------------------------------------------------------------ |
-| `ui_scale`    | integer (0-100) | `100`         | Percentage of terminal space to allocate for the Television UI.                |
-| `orientation` | string          | `"landscape"` | UI orientation. Valid values: `"landscape"`, `"portrait"`.                     |
+| Option        | Type            | Default        | Description                                                                    |
+| ------------- | --------------- | -------------- | ------------------------------------------------------------------------------ |
+| `ui_scale`    | integer (0-100) | `100`          | Percentage of terminal space to allocate for the Television UI.                |
+| `orientation` | string          | `"landscape"`  | UI orientation. Valid values: `"landscape"`, `"portrait"`.                     |
 | `theme`       | string          | `"television"` | Theme name to use for the UI. See [Available Themes](#available-themes) below. |
 
 #### Available Themes
@@ -59,13 +59,13 @@ details).
 
 #### Input Bar (`[ui.input_bar]`)
 
-| Option        | Type   | Default                                  | Description                                                              |
-| ------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
-| `position`    | string | `"top"`                                  | Position of the input bar. Valid values: `"top"`, `"bottom"`.            |
+| Option        | Type   | Default                                  | Description                                                                                                                |
+| ------------- | ------ | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `position`    | string | `"top"`                                  | Position of the input bar. Valid values: `"top"`, `"bottom"`.                                                              |
 | `prompt`      | string | `""`                                     | The input prompt string displayed before user input. Empty by default: the minimal UI shows a mode-colored marker instead. |
-| `header`      | string | `""`                                     | Optional header text displayed above the input bar. Empty by default (no header line). |
-| `border_type` | string | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
-| `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the input bar.                                            |
+| `header`      | string | `""`                                     | Optional header text displayed above the input bar. Empty by default (no header line).                                     |
+| `border_type` | string | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`.                                                   |
+| `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the input bar.                                                                                              |
 
 #### Status Bar (`[ui.status_bar]`)
 
@@ -160,42 +160,50 @@ report `ctrl-i`, `ctrl-m` and `ctrl-[` as themselves instead of `tab`, `enter` a
 
 **Available Actions**:
 
-| Action                          | Description                             |
-| ------------------------------- | --------------------------------------- |
-| `delete_prev_char`              | Delete the character before the cursor  |
-| `delete_prev_word`              | Delete the previous word                |
-| `delete_next_char`              | Delete the character after the cursor   |
-| `delete_line`                   | Delete the current line                 |
-| `go_to_prev_char`               | Move cursor to previous character       |
-| `go_to_next_char`               | Move cursor to next character           |
-| `go_to_input_start`             | Move cursor to start of input           |
-| `go_to_input_end`               | Move cursor to end of input             |
-| `toggle_selection_down`         | Toggle selection and move down          |
-| `toggle_selection_up`           | Toggle selection and move up            |
-| `confirm_selection`             | Confirm current selection               |
+| Action                          | Description                                |
+| ------------------------------- | ------------------------------------------ |
+| `delete_prev_char`              | Delete the character before the cursor     |
+| `delete_prev_word`              | Delete the previous word                   |
+| `delete_next_char`              | Delete the character after the cursor      |
+| `delete_line`                   | Delete the current line                    |
+| `go_to_prev_char`               | Move cursor to previous character          |
+| `go_to_next_char`               | Move cursor to next character              |
+| `go_to_input_start`             | Move cursor to start of input              |
+| `go_to_input_end`               | Move cursor to end of input                |
+| `toggle_selection`              | Toggle selection                           |
+| `toggle_selection_all`          | Select all entries (again to clear)        |
+| `confirm_selection`             | Confirm current selection                  |
 | `select_and_exit`               | Select the entry under the cursor and exit |
-| `select_next_entry`             | Select next entry in results            |
-| `select_prev_entry`             | Select previous entry in results        |
-| `select_next_page`              | Select next page of results             |
-| `select_prev_page`              | Select previous page of results         |
-| `copy_entry_to_clipboard`       | Copy selected entry to clipboard        |
-| `scroll_preview_up`             | Scroll preview up by one line           |
-| `scroll_preview_down`           | Scroll preview down by one line         |
-| `scroll_preview_half_page_up`   | Scroll preview up by half page          |
-| `scroll_preview_half_page_down` | Scroll preview down by half page        |
-| `quit`                          | Quit the application                    |
-| `toggle_remote_control`         | Toggle remote control mode              |
-| `toggle_action_picker`          | Toggle the action picker                |
-| `toggle_help`                   | Toggle help panel                       |
-| `toggle_status_bar`             | Toggle status bar visibility            |
-| `toggle_preview`                | Toggle preview panel visibility         |
-| `toggle_layout`                 | Switch between landscape and portrait   |
-| `cycle_sources`                 | Cycle through available source commands |
-| `cycle_previews`                | Cycle through available preview commands |
-| `reload_source`                 | Reload the current source               |
-| `select_prev_history`           | Navigate to previous history entry      |
-| `select_next_history`           | Navigate to next history entry          |
-| `no_op`                         | Do nothing (useful to unbind a key)     |
+| `select_next_entry`             | Select next entry in results               |
+| `select_prev_entry`             | Select previous entry in results           |
+| `select_next_page`              | Select next page of results                |
+| `select_prev_page`              | Select previous page of results            |
+| `copy_entry_to_clipboard`       | Copy selected entry to clipboard           |
+| `scroll_preview_up`             | Scroll preview up by one line              |
+| `scroll_preview_down`           | Scroll preview down by one line            |
+| `scroll_preview_half_page_up`   | Scroll preview up by half page             |
+| `scroll_preview_half_page_down` | Scroll preview down by half page           |
+| `quit`                          | Quit the application                       |
+| `toggle_remote_control`         | Toggle remote control mode                 |
+| `toggle_action_picker`          | Toggle the action picker                   |
+| `toggle_help`                   | Toggle help panel                          |
+| `toggle_status_bar`             | Toggle status bar visibility               |
+| `toggle_preview`                | Toggle preview panel visibility            |
+| `toggle_layout`                 | Switch between landscape and portrait      |
+| `cycle_sources`                 | Cycle through available source commands    |
+| `cycle_previews`                | Cycle through available preview commands   |
+| `reload_source`                 | Reload the current source                  |
+| `select_prev_history`           | Navigate to previous history entry         |
+| `select_next_history`           | Navigate to next history entry             |
+| `no_op`                         | Do nothing (useful to unbind a key)        |
+
+A key can also run several actions in a row. To have <kbd>Tab</kbd> toggle the current entry and move to the next one (fzf-style):
+
+```toml
+[keybindings]
+tab = ["toggle_selection", "select_next_entry"]
+backtab = ["toggle_selection", "select_prev_entry"]
+```
 
 ### Shell Integration (`[shell_integration]`)
 

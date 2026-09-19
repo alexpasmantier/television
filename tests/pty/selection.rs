@@ -296,3 +296,66 @@ fn test_tv_pipes_correctly() -> io::Result<()> {
 
     Ok(())
 }
+
+#[test]
+fn test_toggle_selection_all() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "television"],
+    )
+    .size(DEFAULT_COLS, 6)
+    .start()
+    .unwrap();
+
+    s.wait()
+        // wait for the ui to load
+        .text("television")
+        // and for the channel to finish loading
+        .text_absent("Default ●")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    s.send().key("shift-tab").unwrap();
+    s.send().key("enter").unwrap();
+
+    let output = exit_and_output(&s);
+    let num_output_lines = output.lines().count();
+
+    // the output should contain more entries than visible on the screen
+    // 6 - 1 (input) -1 (separator) -1 (status) = 3
+    assert!(
+        num_output_lines > 3,
+        "expected more than 3 lines in output, got {}",
+        num_output_lines
+    );
+}
+
+#[test]
+fn test_toggle_selection_all_twice_clears_selection() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "television"],
+    )
+    .start()
+    .unwrap();
+
+    s.wait()
+        .text("television")
+        .text_absent("Default ●")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    s.send().key("shift-tab").unwrap();
+    s.send().key("shift-tab").unwrap();
+    s.send().key("enter").unwrap();
+
+    // with nothing selected, enter outputs the entry under the cursor only
+    let output = exit_and_output(&s);
+    assert_eq!(output.lines().count(), 1, "output: {output:?}");
+}
