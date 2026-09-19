@@ -223,7 +223,7 @@ mod tests {
 
     // real machine-written config from the 0.13-0.15 era (comments stripped)
     const OLD_GENERATED_CONFIG: &str =
-        include_str!("../../tests/fixtures/machine_written_config_0_15.toml");
+        include_str!("fixtures/machine_written_config_0_15.toml");
 
     fn write_config(dir: &Path, contents: &str) -> PathBuf {
         let config_file = dir.join(CONFIG_FILE_NAME);

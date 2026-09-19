@@ -1,13 +1,9 @@
-//! Tests for CLI monitoring options: --watch.
-//!
-//! These tests verify Television's live monitoring capabilities,
-//! ensuring users can enable real-time data updates.
+//! `--watch` and `--tick-rate`.
 
 use tempfile::TempDir;
 
-use super::super::common::*;
+use crate::common::*;
 
-/// Tests that --watch enables live monitoring with automatic source command re-execution.
 #[test]
 fn test_watch_reloads_source_command() {
     let pt = phantom();
@@ -49,7 +45,6 @@ fn test_watch_reloads_source_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --tick-rate accepts a valid positive number.
 #[test]
 fn test_tick_rate_valid_value_starts_application() {
     let pt = phantom();
@@ -67,7 +62,6 @@ fn test_tick_rate_valid_value_starts_application() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --tick-rate rejects non-positive numbers.
 #[test]
 fn test_tick_rate_invalid_value_errors() {
     let pt = phantom();

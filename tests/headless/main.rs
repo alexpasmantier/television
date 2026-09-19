@@ -57,8 +57,7 @@ fn setup_app(
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
     let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("target_dir");
+        .join("tests/headless/target_dir");
     std::env::set_current_dir(&target_dir).unwrap();
 
     let chan: ChannelPrototype = channel_prototype
