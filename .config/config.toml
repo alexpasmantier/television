@@ -142,8 +142,8 @@ ctrl-down = "select_next_history"
 
 # Multi-selection
 # --------------
-tab = "toggle_selection_down"
-backtab = "toggle_selection_up"
+tab = "toggle_selection"
+backtab = "toggle_selection_all"
 enter = "confirm_selection"
 
 # Preview panel control

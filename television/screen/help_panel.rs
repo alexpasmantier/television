@@ -141,8 +141,8 @@ fn help_section(action: &Action) -> Option<(usize, u8)> {
         Action::SelectNextHistory => (0, 5),
         // selection
         Action::ConfirmSelection => (1, 0),
-        Action::ToggleSelectionDown => (1, 1),
-        Action::ToggleSelectionUp => (1, 2),
+        Action::ToggleSelection => (1, 1),
+        Action::ToggleSelectionAll => (1, 2),
         Action::CopyEntryToClipboard => (1, 3),
         // preview
         Action::ScrollPreviewUp => (2, 0),
