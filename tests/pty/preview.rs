@@ -1,12 +1,7 @@
-//! Tests for CLI preview options: --preview-*, --no-preview, and their combinations.
-//!
-//! These tests verify Television's preview panel functionality, ensuring users can
-//! customize preview behavior and that conflicting options are properly detected.
-//! Preview features are essential for examining file contents and command outputs.
+//! The preview panel: `--preview-*` flags, toggling and scrolling.
 
-use super::super::common::*;
+use crate::common::*;
 
-/// Tests that --preview-command works in Ad-hoc Mode.
 #[test]
 fn test_preview_command_in_adhoc_mode() {
     let pt = phantom();
@@ -24,7 +19,6 @@ fn test_preview_command_in_adhoc_mode() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-command can override channel defaults in Channel Mode.
 #[test]
 fn test_preview_command_override_in_channel_mode() {
     let pt = phantom();
@@ -42,7 +36,6 @@ fn test_preview_command_override_in_channel_mode() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-header displays custom text above the preview panel.
 #[test]
 fn test_preview_header_with_preview_command() {
     let pt = phantom();
@@ -60,7 +53,6 @@ fn test_preview_header_with_preview_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-footer displays custom text below the preview panel.
 #[test]
 fn test_preview_footer_with_preview_command() {
     let pt = phantom();
@@ -78,7 +70,6 @@ fn test_preview_footer_with_preview_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-offset controls the scroll position in preview content.
 #[test]
 fn test_preview_offset_with_preview_command() {
     let pt = phantom();
@@ -104,7 +95,6 @@ fn test_preview_offset_with_preview_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-size controls the width of the preview panel.
 #[test]
 fn test_preview_size_with_preview_command() {
     let pt = phantom();
@@ -134,7 +124,6 @@ fn test_preview_size_with_preview_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --preview-word-wrap enables preview panel word wrapping.
 #[test]
 fn test_preview_word_wrap_with_preview_command() {
     let pt = phantom();
@@ -160,7 +149,6 @@ fn test_preview_word_wrap_with_preview_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --no-preview completely disables the preview panel.
 #[test]
 fn test_no_preview_disables_preview_panel() {
     let pt = phantom();
@@ -179,7 +167,6 @@ fn test_no_preview_disables_preview_panel() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --no-preview conflicts with --preview-command.
 #[test]
 fn test_no_preview_conflicts_with_preview_command() {
     let pt = phantom();
@@ -194,7 +181,6 @@ fn test_no_preview_conflicts_with_preview_command() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --no-preview conflicts with --preview-header.
 #[test]
 fn test_no_preview_conflicts_with_preview_header() {
     let pt = phantom();
@@ -215,7 +201,6 @@ fn test_no_preview_conflicts_with_preview_header() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --no-preview conflicts with --preview-footer.
 #[test]
 fn test_no_preview_conflicts_with_preview_footer() {
     let pt = phantom();
@@ -236,7 +221,6 @@ fn test_no_preview_conflicts_with_preview_footer() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --no-preview conflicts with --preview-offset.
 #[test]
 fn test_no_preview_conflicts_with_preview_offset() {
     let pt = phantom();
@@ -257,7 +241,6 @@ fn test_no_preview_conflicts_with_preview_offset() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --no-preview conflicts with --preview-size.
 #[test]
 fn test_no_preview_conflicts_with_preview_size() {
     let pt = phantom();
@@ -278,7 +261,6 @@ fn test_no_preview_conflicts_with_preview_size() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that preview flags require --preview-command in Ad-hoc Mode.
 #[test]
 fn test_preview_flags_without_preview_command_errors_in_adhoc_mode() {
     let pt = phantom();
@@ -296,7 +278,6 @@ fn test_preview_flags_without_preview_command_errors_in_adhoc_mode() {
         .unwrap();
 }
 
-/// Tests that --hide-preview starts the interface with the preview panel hidden.
 #[test]
 fn test_hide_preview_flag_starts_with_preview_hidden() {
     let pt = phantom();
@@ -313,7 +294,6 @@ fn test_hide_preview_flag_starts_with_preview_hidden() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --show-preview starts the interface with the preview panel visible.
 #[test]
 fn test_show_preview_flag_starts_with_preview_visible() {
     let pt = phantom();
@@ -329,7 +309,6 @@ fn test_show_preview_flag_starts_with_preview_visible() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --hide-preview conflicts with --no-preview.
 #[test]
 fn test_hide_preview_conflicts_with_no_preview() {
     let pt = phantom();
@@ -342,4 +321,101 @@ fn test_hide_preview_conflicts_with_no_preview() {
     .unwrap();
 
     s.wait().text("cannot be used with").until().unwrap();
+}
+
+#[test]
+fn test_toggle_preview_keybinding() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(&pt, &["files"])
+        .start()
+        .unwrap();
+
+    // Verify preview is initially visible (two panels side by side)
+    s.wait().text("▏").until().unwrap();
+
+    // Send Ctrl+O to toggle preview off
+    s.send().key("ctrl-o").unwrap();
+
+    // Verify preview is now hidden
+    s.wait().text_absent("▏").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+#[test]
+fn test_scroll_preview_keybindings() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "README.md"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
+
+    // Send Page Down to scroll preview down
+    s.send().key("pagedown").unwrap();
+    s.send().key("pagedown").unwrap();
+
+    s.wait().text_absent("▏    1 ").until().unwrap();
+
+    // Send Page Up to scroll preview up
+    s.send().key("pageup").unwrap();
+    s.send().key("pageup").unwrap();
+
+    s.wait().text("▏    1 ").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+/// Tests that scrolling the preview shows a dimmed percentage in the title
+/// row (standing in for the scrollbar), which disappears when scrolled back.
+#[test]
+fn test_preview_scroll_percent_hint() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--input", "LICENSE"],
+    )
+    .start()
+    .unwrap();
+    s.wait().text("▏    1 ").until().unwrap();
+    assert_frame_not_contains(&s, "%");
+
+    s.send().key("pagedown").unwrap();
+    s.wait().text("% ").until().unwrap();
+
+    s.send().key("pageup").unwrap();
+    s.wait().text_absent("% ").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+#[test]
+fn test_hide_preview_scrollbar_hides_scrollbar() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--hide-preview-scrollbar",
+            "--preview-border",
+            "rounded",
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("──╮").until().unwrap();
+    assert_frame_not_contains(&s, "▲");
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
 }
