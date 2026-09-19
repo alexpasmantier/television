@@ -599,8 +599,8 @@ impl Television {
                     | Action::GoToNextChar
                     | Action::GoToInputStart
                     | Action::GoToInputEnd
-                    | Action::ToggleSelectionDown
-                    | Action::ToggleSelectionUp
+                    | Action::ToggleSelection
+                    | Action::ToggleSelectionAll
                     | Action::ConfirmSelection
                     | Action::SelectNextEntry
                     | Action::SelectPrevEntry
@@ -827,15 +827,13 @@ impl Television {
     }
 
     pub fn handle_toggle_selection(&mut self, action: &Action) {
-        if matches!(self.mode, Mode::Channel)
-            && let Some(entry) = &self.currently_selected
-        {
-            self.channel.toggle_selection(entry);
-            if matches!(action, Action::ToggleSelectionDown) {
-                self.move_cursor(Movement::Next, 1);
-            } else {
-                self.move_cursor(Movement::Prev, 1);
-            }
+        if !matches!(self.mode, Mode::Channel) {
+            return;
+        }
+        if matches!(action, Action::ToggleSelectionAll) {
+            self.channel.toggle_selection_all();
+        } else if let Some(entry) = self.get_selected_entry() {
+            self.channel.toggle_selection(&entry);
         }
     }
 
@@ -1041,8 +1039,7 @@ impl Television {
                     self.preview_state.scroll_up(20);
                 }
             }
-
-            Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
+            Action::ToggleSelection | Action::ToggleSelectionAll => {
                 self.handle_toggle_selection(action);
             }
             Action::ConfirmSelection => {

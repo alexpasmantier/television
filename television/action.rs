@@ -37,10 +37,12 @@ pub enum Action {
     #[serde(skip)]
     ClearScreen,
     // results actions
-    /// Add entry under cursor to the list of selected entries and move the cursor down.
-    ToggleSelectionDown,
-    /// Add entry under cursor to the list of selected entries and move the cursor up.
-    ToggleSelectionUp,
+    /// Add entry under cursor to the list of selected entries.
+    /// (aliases are for backward compatibility)
+    #[serde(alias = "toggle_selection_down", alias = "toggle_selection_up")]
+    ToggleSelection,
+    /// Select all entries, or clear the selection if all are already selected.
+    ToggleSelectionAll,
     /// Confirm current selection (multi select or entry under cursor).
     ConfirmSelection,
     /// Select the entry currently under the cursor and exit the application.
@@ -363,8 +365,8 @@ impl Action {
             Action::ClearScreen => "Clear screen",
 
             // Selection actions
-            Action::ToggleSelectionDown => "Toggle selection down",
-            Action::ToggleSelectionUp => "Toggle selection up",
+            Action::ToggleSelection => "Toggle selection",
+            Action::ToggleSelectionAll => "Select all",
             Action::ConfirmSelection => "Select entry",
             Action::SelectAndExit => "Select and exit",
             Action::Expect(_) => "Expect key",

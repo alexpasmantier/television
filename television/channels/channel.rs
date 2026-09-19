@@ -194,6 +194,20 @@ impl<P: EntryProcessor> Channel<P> {
         }
     }
 
+    /// Select every result, or clear the selection if they are all already selected.
+    pub fn toggle_selection_all(&mut self) {
+        let entries = self.results(self.result_count(), 0);
+        self.selected_entries.reserve(entries.len());
+        let mut newly_selected = false;
+        for entry in entries {
+            newly_selected |= self.selected_entries.insert(entry);
+        }
+        if !newly_selected {
+            debug!("all entries were already selected, clearing selection");
+            self.selected_entries.clear();
+        }
+    }
+
     pub fn result_count(&self) -> u32 {
         self.matcher.matched_item_count()
     }
@@ -583,6 +597,7 @@ impl ChannelKind {
         results(num_entries: u32, offset: u32) -> Vec<Entry>,
         get_result(index: u32) -> Option<Entry>,
         toggle_selection(entry: &Entry) -> (),
+        toggle_selection_all() -> (),
         cycle_sources() -> (),
         shutdown() -> (),
     );
