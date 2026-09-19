@@ -1,12 +1,9 @@
-//! Tests for CLI operating modes, path detection, and mode switching.
-//!
-//! These tests verify Television's two primary operating modes (Channel Mode and Ad-hoc Mode)
-//! and the intelligent path detection logic that automatically switches between them.
-//! This is fundamental to how Television interprets CLI arguments.
+//! Channel mode vs ad-hoc mode, path detection, `--autocomplete-prompt`.
 
-use super::super::common::*;
+use tempfile::TempDir;
 
-/// Tests that basic Channel Mode activation works with a channel name.
+use crate::common::*;
+
 #[test]
 fn test_channel_mode_with_channel_name() {
     let pt = phantom();
@@ -21,7 +18,6 @@ fn test_channel_mode_with_channel_name() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that Channel Mode works with both channel name and working directory specified.
 #[test]
 fn test_channel_mode_with_channel_and_path() {
     let pt = phantom();
@@ -41,7 +37,6 @@ fn test_channel_mode_with_channel_and_path() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that CLI flags can override channel defaults in Channel Mode.
 #[test]
 fn test_channel_mode_with_channel_and_overrides() {
     let pt = phantom();
@@ -59,7 +54,6 @@ fn test_channel_mode_with_channel_and_overrides() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that basic Ad-hoc Mode activation works with --source-command.
 #[test]
 fn test_adhoc_mode_with_source_command() {
     let pt = phantom();
@@ -75,7 +69,6 @@ fn test_adhoc_mode_with_source_command() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that Ad-hoc Mode requires --source-command for dependent flags.
 #[test]
 fn test_adhoc_mode_missing_source_command_errors() {
     let pt = phantom();
@@ -91,7 +84,6 @@ fn test_adhoc_mode_missing_source_command_errors() {
         .unwrap();
 }
 
-/// Tests that smart path detection automatically switches to Channel Mode.
 #[test]
 fn test_smart_path_detection_switches_to_adhoc_mode() {
     let pt = phantom();
@@ -113,7 +105,6 @@ fn test_smart_path_detection_switches_to_adhoc_mode() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that fallback to default channel works when no arguments are provided.
 #[test]
 fn test_no_arguments_uses_default_channel() {
     let pt = phantom();
@@ -123,6 +114,83 @@ fn test_no_arguments_uses_default_channel() {
         .unwrap();
 
     s.wait().text("● files").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+#[test]
+fn test_path_as_positional_argument_sets_working_directory() {
+    let pt = phantom();
+    let tmp_dir = TempDir::new().unwrap();
+
+    // Create initial files to be detected
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDfile.txt"), "").unwrap();
+
+    // Starts the files channel in the specified temporary directory
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--input",
+            "UNIQUE16CHARID",
+            tmp_dir.path().to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("● files").until().unwrap();
+    s.wait().text("UNIQUE16CHARIDfile.txt").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+#[test]
+fn test_autocomplete_prompt_activates_channel_mode() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--autocomplete-prompt", "git log --oneline"],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("● git-log").until().unwrap();
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
+#[test]
+fn test_autocomplete_prompt_and_channel_argument_conflict_errors() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["files", "--autocomplete-prompt", "git log --oneline"],
+    )
+    .start()
+    .unwrap();
+
+    s.wait().text("cannot be used with").until().unwrap();
+}
+
+#[test]
+fn test_autocomplete_prompt_with_working_directory() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &["--autocomplete-prompt", "ls", "/etc"],
+    )
+    .start()
+    .unwrap();
+    // Main assertion: no CLI parsing error — wait for the status bar to
+    // appear, which confirms the TUI launched successfully.
+    s.wait().text("help ctrl-h").until().unwrap();
 
     s.send().key("ctrl-c").unwrap();
     s.wait().exit_code(0).until().unwrap();

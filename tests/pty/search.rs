@@ -1,14 +1,9 @@
-//! Tests for CLI input/interaction options: --input, --keybindings, --exact,
-//! --typo-resistance.
-//!
-//! These tests verify Television's input handling and user interaction features,
-//! ensuring users can customize their interaction experience and search behavior.
+//! Search input and matching: `--input`, `--exact`, typo resistance, `--no-sort`.
 
 use tempfile::TempDir;
 
-use super::super::common::*;
+use crate::common::*;
 
-/// Tests that the --input flag pre-fills the search box with specified text.
 #[test]
 fn test_input_prefills_search_box() {
     let pt = phantom();
@@ -26,74 +21,6 @@ fn test_input_prefills_search_box() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that custom keybindings override default keyboard shortcuts.
-#[test]
-fn test_keybindings_override_default() {
-    let pt = phantom();
-
-    // This adds a new mapping for the quit action
-    let s = tv_local_config_and_cable_with_args(
-        &pt,
-        &["--keybindings", "a=\"quit\";ctrl-c=\"no_op\";esc=\"no_op\""],
-    )
-    .start()
-    .unwrap();
-    s.wait().text("● files").until().unwrap();
-
-    // Test that ESC no longer quits (default behavior is overridden)
-    s.send().key("escape").unwrap();
-    // Still running — send our custom quit key
-    // Test that Ctrl+C no longer quits (default behavior is overridden)
-    s.send().key("ctrl-c").unwrap();
-
-    // Test that our custom "a" key now quits the application
-    s.send().type_text("'a'").unwrap();
-    s.wait().exit_code(0).until().unwrap();
-}
-
-/// Tests that multiple keybinding overrides can be specified simultaneously.
-#[test]
-fn test_multiple_keybindings_override() {
-    let pt = phantom();
-
-    let s = tv_local_config_and_cable_with_args(
-        &pt,
-        &[
-            "--keybindings",
-            "a=\"quit\";ctrl-x=\"toggle_remote_control\";esc=\"no_op\"",
-        ],
-    )
-    .start()
-    .unwrap();
-    s.wait().text("● files").until().unwrap();
-
-    // Note: we intentionally don't re-test esc=no_op here — that's already
-    // covered by test_keybindings_override_default. Sending escape
-    // immediately followed by another byte is also racy with crossterm's
-    // escape-disambiguation window (a bare ESC followed quickly by another
-    // key can be interpreted as an alt-key combo). This test focuses on
-    // ctrl-x toggling remote control.
-
-    // Test that Ctrl+X opens remote control panel (custom keybinding works)
-    s.send().key("ctrl-x").unwrap();
-    s.wait()
-        .text("● channels")
-        .timeout_ms(wait_timeout_ms())
-        .until()
-        .unwrap();
-    s.send().key("ctrl-t").unwrap();
-    s.wait()
-        .text_absent("● channels")
-        .timeout_ms(wait_timeout_ms())
-        .until()
-        .unwrap();
-
-    // Use "a" to quit the application
-    s.send().type_text("'a'").unwrap();
-    s.wait().exit_code(0).until().unwrap();
-}
-
-/// Tests that the --exact flag enables exact substring matching instead of fuzzy matching.
 #[test]
 fn test_exact_matching_enabled() {
     let pt = phantom();
@@ -151,7 +78,6 @@ fn test_exact_matching_enabled_fails() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that the --typo-resistance flag lets a misspelled pattern match.
 #[test]
 fn test_typo_resistance_matches_misspelled_input() {
     let pt = phantom();
@@ -179,7 +105,6 @@ fn test_typo_resistance_matches_misspelled_input() {
     s.wait().exit_code(0).until().unwrap();
 }
 
-/// Tests that --no-sort keeps results in the source order for selection.
 #[test]
 fn test_no_sort_preserves_source_order() {
     let pt = phantom();

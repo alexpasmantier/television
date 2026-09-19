@@ -1,12 +1,13 @@
-//! Tests for CLI selection behavior: --select-1, --take-1, --take-1-fast, and their conflicts.
-//!
-//! These tests verify Television's automatic selection behaviors that allow scripts and
-//! automated workflows to get results without user interaction. They also ensure that
-//! conflicting selection modes are properly detected and rejected.
+//! Selection and output: `--select-1`, `--take-1`, `--take-1-fast`, `--expect`, piping.
 
-use super::super::common::*;
+use std::{
+    io,
+    process::{Command, Stdio},
+    time::{Duration, Instant},
+};
 
-/// Tests that --select-1 automatically selects and returns when only one entry matches.
+use crate::common::*;
+
 #[test]
 fn test_select_1_auto_selects_single_entry() {
     let pt = phantom();
@@ -25,7 +26,6 @@ fn test_select_1_auto_selects_single_entry() {
     );
 }
 
-/// Tests that --select-1 respects the initial --input filter.
 #[test]
 fn test_select_1_respects_initial_input() {
     let pt = phantom();
@@ -50,7 +50,6 @@ fn test_select_1_respects_initial_input() {
     );
 }
 
-/// Tests that --take-1 automatically selects the first entry after loading completes.
 #[test]
 fn test_take_1_auto_selects_first_entry() {
     let pt = phantom();
@@ -69,7 +68,6 @@ fn test_take_1_auto_selects_first_entry() {
     );
 }
 
-/// Tests that --take-1-fast immediately selects the first entry as it appears.
 #[test]
 fn test_take_1_fast_auto_selects_first_entry_immediately() {
     let pt = phantom();
@@ -114,7 +112,6 @@ fn test_take_1_fast_flushes_before_source_completion() {
     );
 }
 
-/// Tests that --select-1 and --take-1 cannot be used together.
 #[test]
 fn test_select_1_and_take_1_conflict_errors() {
     let pt = phantom();
@@ -129,7 +126,6 @@ fn test_select_1_and_take_1_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --select-1 and --take-1-fast cannot be used together.
 #[test]
 fn test_select_1_and_take_1_fast_conflict_errors() {
     let pt = phantom();
@@ -144,7 +140,6 @@ fn test_select_1_and_take_1_fast_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --take-1 and --take-1-fast cannot be used together.
 #[test]
 fn test_take_1_and_take_1_fast_conflict_errors() {
     let pt = phantom();
@@ -159,7 +154,6 @@ fn test_take_1_and_take_1_fast_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --watch and --select-1 cannot be used together.
 #[test]
 fn test_watch_and_select_1_conflict_errors() {
     let pt = phantom();
@@ -174,7 +168,6 @@ fn test_watch_and_select_1_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --watch and --take-1 cannot be used together.
 #[test]
 fn test_watch_and_take_1_conflict_errors() {
     let pt = phantom();
@@ -189,7 +182,6 @@ fn test_watch_and_take_1_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --watch and --take-1-fast cannot be used together.
 #[test]
 fn test_watch_and_take_1_fast_conflict_errors() {
     let pt = phantom();
@@ -204,7 +196,6 @@ fn test_watch_and_take_1_fast_conflict_errors() {
     s.wait().text("cannot be used with").until().unwrap();
 }
 
-/// Tests that --expect works as intended.
 #[test]
 fn test_expect_with_selection() {
     let pt = phantom();
@@ -237,4 +228,71 @@ fn test_expect_with_selection() {
         output.contains("ctrl-c") && output.contains("Cargo.toml"),
         "expected output to contain 'ctrl-c' and 'Cargo.toml', got:\n{output}"
     );
+}
+
+#[test]
+fn test_tv_pipes_correctly() -> io::Result<()> {
+    if is_ci() {
+        dbg!("Skipping test_tv_pipes_correctly in CI environment");
+        return Ok(());
+    }
+    let mut tv_command = Command::new(TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["--input", "Cargo.toml"])
+        .arg("--take-1")
+        .stderr(Stdio::null())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    let tv_stdout =
+        tv_command.stdout.take().expect("Failed to capture stdout");
+
+    let mut cat = Command::new("cat")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()?;
+
+    let mut subprocess_stdin = cat
+        .stdin
+        .take()
+        .expect("Failed to capture subprocess stdin");
+    std::thread::spawn(move || {
+        let _ = io::copy(
+            &mut io::BufReader::new(tv_stdout),
+            &mut subprocess_stdin,
+        );
+    });
+
+    // tv occasionally never completes under heavy parallel test load, which
+    // would otherwise hang the whole suite: kill it after a generous
+    // deadline so the pipe closes and the test fails instead
+    let deadline = Instant::now() + Duration::from_secs(30);
+    let mut timed_out = false;
+    while tv_command.try_wait()?.is_none() {
+        if Instant::now() > deadline {
+            tv_command.kill()?;
+            timed_out = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    assert!(!timed_out, "tv did not complete within 30s");
+
+    let subprocess_output = cat.wait_with_output()?;
+
+    assert!(
+        subprocess_output.status.success(),
+        "cat failed: {}",
+        String::from_utf8_lossy(&subprocess_output.stderr)
+    );
+
+    let output = String::from_utf8_lossy(&subprocess_output.stdout);
+    assert!(!output.trim().is_empty(), "Output should not be empty");
+    assert_eq!(
+        output.trim(),
+        "Cargo.toml",
+        "Output should match input file name"
+    );
+
+    Ok(())
 }
