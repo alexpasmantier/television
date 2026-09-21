@@ -674,6 +674,8 @@ fn test_cli_input_position_override() {
             "position-prompt>",
             "--input-position",
             "bottom",
+            "--input",
+            "Cargo.toml",
         ],
     )
     .start()
