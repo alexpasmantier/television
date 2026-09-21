@@ -308,14 +308,20 @@ fn test_minimal_ui_auto_hides_preview_when_narrow() {
 
     let s = tv_local_config_and_cable_with_args(
         &pt,
-        &["files", "--height", "20", "--width", "35"],
+        &[
+            "files",
+            "--height",
+            "20",
+            "--width",
+            "35",
+            "--input",
+            "Cargo.toml",
+        ],
     )
     .env(TESTING_ENV_VAR, "1")
     .start()
     .unwrap();
 
-    // at this width the count line drops the source indicator and channel
-    // hint entirely, so neither can serve as the ready signal
     s.wait().text("Cargo.toml").until().unwrap();
 
     assert_frame_not_contains_any(&s, &["▏"]);
