@@ -53,7 +53,7 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
 
     // Selected count indicator
     if ctx.tv_state.mode == Mode::Channel {
-        let selected_count = ctx.tv_state.channel_state.selected_entries.len();
+        let selected_count = ctx.tv_state.channel_state.selected.len();
         if selected_count > 0 {
             left_spans.extend([
                 Span::styled(" · ", faint),

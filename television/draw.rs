@@ -31,7 +31,8 @@ use std::{hash::Hash, sync::Arc, time::Instant};
 /// This struct is passed along to the UI thread as part of the `TvState` struct.
 pub struct ChannelState {
     pub current_channel_name: String,
-    pub selected_entries: FxHashSet<Entry>,
+    /// Store indices of the selected entries.
+    pub selected: FxHashSet<u32>,
     pub total_count: u32,
     pub running: bool,
     pub current_command: String,
@@ -44,7 +45,7 @@ impl ChannelState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         current_channel_name: String,
-        selected_entries: FxHashSet<Entry>,
+        selected: FxHashSet<u32>,
         total_count: u32,
         running: bool,
         current_command: String,
@@ -54,7 +55,7 @@ impl ChannelState {
     ) -> Self {
         Self {
             current_channel_name,
-            selected_entries,
+            selected,
             total_count,
             running,
             current_command,
@@ -68,9 +69,7 @@ impl ChannelState {
 impl Hash for ChannelState {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.current_channel_name.hash(state);
-        self.selected_entries
-            .iter()
-            .for_each(|entry| entry.hash(state));
+        self.selected.iter().for_each(|index| index.hash(state));
         self.total_count.hash(state);
         self.running.hash(state);
         self.current_command.hash(state);
@@ -243,7 +242,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             f,
             layout.results,
             &ctx.tv_state.results_picker.entries,
-            &ctx.tv_state.channel_state.selected_entries,
+            &ctx.tv_state.channel_state.selected,
             &mut ctx.tv_state.results_picker.relative_state.clone(),
             ctx.config.input_bar_position,
             &ctx.colorscheme,

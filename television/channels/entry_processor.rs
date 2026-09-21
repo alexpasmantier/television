@@ -60,6 +60,7 @@ impl EntryProcessor for PlainProcessor {
         source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.matched_string)
+            .with_index(item.index)
             .with_match_indices(&item.match_indices);
         if let Some(output) = source_output {
             entry = entry.with_output(output.clone());
@@ -118,6 +119,7 @@ impl EntryProcessor for AnsiProcessor {
         source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.matched_string)
+            .with_index(item.index)
             .with_match_indices(&item.match_indices);
         if !item.inner.is_empty() {
             // Resolving the palette here (rather than storing styles per
@@ -174,6 +176,7 @@ impl EntryProcessor for DisplayProcessor {
         source_output: Option<&Template>,
     ) -> Entry {
         let mut entry = Entry::new(item.inner)
+            .with_index(item.index)
             .with_display(item.matched_string)
             .with_match_indices(&item.match_indices);
         if let Some(output) = source_output {

@@ -10,7 +10,7 @@ Default keybindings are as follows:
 |                                          <kbd>Ctrl</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd>                                         | Navigate to previous / next history entry          |
 |                                            <kbd>PageUp</kbd> / <kbd>PageDown</kbd>                                            | Scroll the preview pane by half a page             |
 |                                                       <kbd>Enter</kbd>                                                        | Select the current entry                           |
-|                                              <kbd>Tab</kbd> / <kbd>BackTab</kbd>                                              | Toggle selection and move to next / previous entry |
+|                                              <kbd>Tab</kbd> / <kbd>BackTab</kbd>                                              | Toggle selection of the current entry / all entries |
 |                                                <kbd>Ctrl</kbd> + <kbd>y</kbd>                                                 | Copy the selected entry to the clipboard           |
 |                                                <kbd>Ctrl</kbd> + <kbd>r</kbd>                                                 | Reload the current source                          |
 |                                                <kbd>Ctrl</kbd> + <kbd>s</kbd>                                                 | Cycle through source commands (channel mode only)  |
