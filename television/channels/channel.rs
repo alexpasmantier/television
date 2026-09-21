@@ -35,7 +35,8 @@ pub struct Channel<P: EntryProcessor> {
     pub supports_preview: bool,
     processor: P,
     matcher: Matcher<P::Data>,
-    selected_entries: FxHashSet<Entry>,
+    /// Store indices of the selected entries (see [`Entry::index`]).
+    selected: FxHashSet<u32>,
     crawl_handle: Option<tokio::task::JoinHandle<()>>,
     current_source_index: usize,
     /// Indicates if the channel is currently reloading to prevent UI flickering
@@ -87,7 +88,7 @@ impl<P: EntryProcessor> Channel<P> {
             supports_preview,
             processor,
             matcher,
-            selected_entries: HashSet::with_hasher(FxBuildHasher),
+            selected: HashSet::with_hasher(FxBuildHasher),
             crawl_handle: None,
             current_source_index,
             reloading: Arc::new(AtomicBool::new(false)),
@@ -134,6 +135,7 @@ impl<P: EntryProcessor> Channel<P> {
             handle.abort();
         }
         self.matcher.restart();
+        self.selected.clear();
         self.load();
         // Spawn a thread that turns off reloading after a short delay
         // to avoid UI flickering (this boolean is used by `Television::should_render`)
@@ -182,29 +184,42 @@ impl<P: EntryProcessor> Channel<P> {
         })
     }
 
-    pub fn selected_entries(&self) -> &FxHashSet<Entry> {
-        &self.selected_entries
+    /// Store indices of the selected entries.
+    pub fn selected(&self) -> &FxHashSet<u32> {
+        &self.selected
     }
 
-    pub fn toggle_selection(&mut self, entry: &Entry) {
-        if self.selected_entries.contains(entry) {
-            self.selected_entries.remove(entry);
-        } else {
-            self.selected_entries.insert(entry.clone());
+    /// Build the selected entries from the store. Selected items that don't
+    /// match the current pattern are included.
+    pub fn selected_entries(&self) -> Vec<Entry> {
+        self.selected
+            .iter()
+            .filter_map(|&index| self.matcher.item(index))
+            .map(|item| {
+                self.processor.make_entry(item, self.source_output.as_ref())
+            })
+            .collect()
+    }
+
+    pub fn toggle_selection(&mut self, index: u32) {
+        if !self.selected.remove(&index) {
+            self.selected.insert(index);
         }
     }
 
-    /// Select every result, or clear the selection if they are all already selected.
+    /// Select every result, or clear the selection if they are all already
+    /// selected.
     pub fn toggle_selection_all(&mut self) {
-        let entries = self.results(self.result_count(), 0);
-        self.selected_entries.reserve(entries.len());
-        let mut newly_selected = false;
-        for entry in entries {
-            newly_selected |= self.selected_entries.insert(entry);
-        }
-        if !newly_selected {
-            debug!("all entries were already selected, clearing selection");
-            self.selected_entries.clear();
+        let indices = self.matcher.matched_store_indices();
+        if indices.iter().all(|index| self.selected.contains(index)) {
+            debug!(
+                "all {} results already selected, clearing selection",
+                indices.len()
+            );
+            self.selected.clear();
+        } else {
+            debug!("selecting all {} results", indices.len());
+            self.selected.extend(indices);
         }
     }
 
@@ -238,6 +253,7 @@ impl<P: EntryProcessor> Channel<P> {
             handle.abort();
         }
         self.matcher.restart();
+        self.selected.clear();
     }
 
     pub fn cycle_sources(&mut self) {
@@ -596,7 +612,7 @@ impl ChannelKind {
         find(pattern: &str) -> (),
         results(num_entries: u32, offset: u32) -> Vec<Entry>,
         get_result(index: u32) -> Option<Entry>,
-        toggle_selection(entry: &Entry) -> (),
+        toggle_selection(index: u32) -> (),
         toggle_selection_all() -> (),
         cycle_sources() -> (),
         shutdown() -> (),
@@ -606,7 +622,8 @@ impl ChannelKind {
     delegate_to_channel!(ref
         current_command() -> &str,
         current_source_name() -> Option<&str>,
-        selected_entries() -> &FxHashSet<Entry>,
+        selected() -> &FxHashSet<u32>,
+        selected_entries() -> Vec<Entry>,
         result_count() -> u32,
         total_count() -> u32,
         running() -> bool,

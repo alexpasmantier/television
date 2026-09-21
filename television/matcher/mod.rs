@@ -352,6 +352,29 @@ where
         Some(matched_item(&store, indices_matcher, m.index))
     }
 
+    /// Get an item straight from the store by its store index, whether or
+    /// not it matches the current pattern. No match indices are computed.
+    pub fn item(&self, index: u32) -> Option<matched_item::MatchedItem<I>> {
+        let store = self.store.read_recursive();
+        let haystack = store.haystacks.get(index as usize)?;
+        Some(matched_item::MatchedItem::new(
+            index,
+            store.items[index as usize].clone(),
+            haystack.to_string(),
+            Vec::new(),
+        ))
+    }
+
+    /// The store indices of every item matching the current pattern.
+    pub fn matched_store_indices(&self) -> Vec<u32> {
+        let generation = self.store.read_recursive().generation;
+        let snapshot = self.snapshot.lock();
+        if snapshot.generation != generation {
+            return Vec::new();
+        }
+        snapshot.matches.store_indices()
+    }
+
     /// The number of items matching the current pattern.
     #[allow(clippy::cast_possible_truncation)]
     pub fn matched_item_count(&self) -> u32 {
@@ -480,6 +503,7 @@ fn matched_item<I: Sync + Send + Clone + 'static>(
     match_indices.reverse();
 
     MatchedItem::new(
+        index,
         store.items[index as usize].clone(),
         haystack.to_string(),
         // Convert UTF-8 byte offsets to UTF-32 character indices

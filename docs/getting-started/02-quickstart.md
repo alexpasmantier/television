@@ -70,7 +70,7 @@ ps aux | tv
 | <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate results |
 | <kbd>Ctrl</kbd>+<kbd>j</kbd> / <kbd>k</kbd> | Navigate results (vim-style) |
 | <kbd>Enter</kbd> | Select current entry |
-| <kbd>Tab</kbd> | Toggle selection (multi-select) |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Toggle selection of the current entry / all entries |
 | <kbd>Ctrl</kbd>+<kbd>y</kbd> | Copy entry to clipboard |
 | <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Scroll preview |
 | <kbd>Ctrl</kbd>+<kbd>o</kbd> | Toggle preview panel |
@@ -79,7 +79,8 @@ ps aux | tv
 
 ### Multi-Select
 
-Select multiple entries with <kbd>Tab</kbd>, then press <kbd>Enter</kbd> to output all selected items:
+Select entries with <kbd>Tab</kbd> (or all of them with <kbd>Shift</kbd>+<kbd>Tab</kbd>), then press <kbd>Enter</kbd> to
+output all selected items. Reloading the source clears the selection.
 
 ```sh
 # Select multiple files, then open in editor
