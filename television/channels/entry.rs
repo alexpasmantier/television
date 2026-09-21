@@ -9,6 +9,9 @@ use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq)]
 pub struct Entry {
+    /// The index of the entry in the matcher's store, used to key the
+    /// multi-selection. Zero for entries that never went through a matcher.
+    pub index: u32,
     /// The raw entry (as captured from the source)
     pub raw: String,
     /// The actual entry string that will be displayed in the UI.
@@ -88,12 +91,18 @@ impl Entry {
     /// The other fields are set to `None` by default.
     pub fn new(raw: String) -> Self {
         Self {
+            index: 0,
             raw,
             display: None,
             output: None,
             match_ranges: None,
             styles: None,
         }
+    }
+
+    pub fn with_index(mut self, index: u32) -> Self {
+        self.index = index;
+        self
     }
 
     pub fn with_display(mut self, display: String) -> Self {
@@ -187,6 +196,7 @@ mod tests {
     #[test]
     fn test_leaves_name_intact() {
         let entry = Entry {
+            index: 0,
             raw: "test name with spaces".to_string(),
             display: None,
             output: None,

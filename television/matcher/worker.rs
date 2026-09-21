@@ -105,6 +105,18 @@ impl Matches {
         }
     }
 
+    /// The store index of every match. `All` and `AllWithPromoted` hold the
+    /// whole store, so no walk over the matches is needed there.
+    pub(super) fn store_indices(&self) -> Vec<u32> {
+        match self {
+            Matches::All(count) => (0..*count).collect(),
+            Matches::AllWithPromoted { total, .. } => (0..*total).collect(),
+            Matches::Sorted { matches, .. } => {
+                matches.iter().map(|m| m.index).collect()
+            }
+        }
+    }
+
     /// The materialized matches and the length of their promoted prefix, if
     /// this snapshot holds any.
     fn as_sorted(&self) -> Option<(&[Match], u32)> {

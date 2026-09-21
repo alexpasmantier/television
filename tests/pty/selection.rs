@@ -7,6 +7,7 @@ use std::{
 };
 
 use crate::common::*;
+use tempfile::TempDir;
 
 #[test]
 fn test_select_1_auto_selects_single_entry() {
@@ -356,6 +357,43 @@ fn test_toggle_selection_all_twice_clears_selection() {
     s.send().key("enter").unwrap();
 
     // with nothing selected, enter outputs the entry under the cursor only
+    let output = exit_and_output(&s);
+    assert_eq!(output.lines().count(), 1, "output: {output:?}");
+}
+
+#[test]
+fn test_reload_clears_selection() {
+    let pt = phantom();
+    let tmp_dir = TempDir::new().unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDa.txt"), "").unwrap();
+    std::fs::write(tmp_dir.path().join("UNIQUE16CHARIDb.txt"), "").unwrap();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--input",
+            "UNIQUE16CHARID",
+            tmp_dir.path().to_str().unwrap(),
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait()
+        .text("UNIQUE16CHARIDa.txt")
+        .text("UNIQUE16CHARIDb.txt")
+        .until()
+        .unwrap();
+
+    s.send().key("shift-tab").unwrap();
+    s.wait().text("2 selected").until().unwrap();
+
+    // reloading rebuilds the matcher store, which drops the selection
+    s.send().key("ctrl-r").unwrap();
+    s.wait().text_absent("2 selected").until().unwrap();
+
+    s.send().key("enter").unwrap();
     let output = exit_and_output(&s);
     assert_eq!(output.lines().count(), 1, "output: {output:?}");
 }

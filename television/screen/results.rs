@@ -22,7 +22,7 @@ pub fn draw_results_list(
     f: &mut Frame,
     rect: Rect,
     entries: &[Entry],
-    selected_entries: &FxHashSet<Entry>,
+    selected: &FxHashSet<u32>,
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
     colorscheme: &Colorscheme,
@@ -85,7 +85,7 @@ pub fn draw_results_list(
         InputPosition::Top => ratatui::widgets::ListDirection::TopToBottom,
     };
 
-    let has_multi_select = !selected_entries.is_empty();
+    let has_multi_select = !selected.is_empty();
 
     let results_list = result_item::build_results_list(
         results_block,
@@ -97,7 +97,7 @@ pub fn draw_results_list(
         if borderless { "" } else { POINTER_SYMBOL },
         |entry| {
             if has_multi_select {
-                Some(selected_entries.contains(entry))
+                Some(selected.contains(&entry.index))
             } else {
                 None
             }
