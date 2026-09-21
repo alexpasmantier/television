@@ -68,7 +68,7 @@ alias t := test
 # Run the tests for the project
 @test:
 	echo "Running {{ NAME }}'s test suite..."
-	cargo test --all --all-features -- --nocapture --test-threads=4
+	cargo test --all --all-features -- --nocapture --test-threads=4 --color always
 	echo "Done"
 
 # Run tests with faster delays for local development
