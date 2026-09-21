@@ -794,9 +794,10 @@ impl App {
 
     fn record_selection(&mut self, entries: &FxHashSet<Entry>) -> Result<()> {
         let channel_name = self.television.current_channel();
-        for entry in entries {
-            self.frecency.record_access(&channel_name, &entry.raw);
-        }
+        self.frecency.record_accesses(
+            &channel_name,
+            entries.iter().map(|entry| entry.raw.as_str()),
+        );
 
         let query = self.television.current_pattern.clone();
         self.history.add_entry(query, channel_name)?;
