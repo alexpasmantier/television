@@ -1,12 +1,12 @@
 use crate::{
     channels::action_picker::ActionEntry,
     config::layers::MergedConfig,
+    config::ui::BorderType,
     screen::{
         colors::Colorscheme,
-        constants::HAIRLINE_BORDER_SET,
         input::draw_input_box,
-        layout::{InputPosition, pane_separator_side},
-        results::draw_minimal_picker_list,
+        layout::{InputPosition, preview_pane_block},
+        results::{draw_picker_list, picker_list_padding},
     },
     utils::input::Input,
 };
@@ -14,14 +14,11 @@ use anyhow::Result;
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    prelude::Style,
-    widgets::{Block, ListState},
+    widgets::ListState,
 };
 
-/// Draw the minimal-mode actions picker inside the preview pane, so the
-/// entry the action applies to stays visible in the results list.
 #[allow(clippy::too_many_arguments)]
-pub fn draw_minimal_actions_pane(
+pub fn draw_actions_pane(
     f: &mut Frame,
     rect: Rect,
     entries: &[ActionEntry],
@@ -33,14 +30,8 @@ pub fn draw_minimal_actions_pane(
     config: &MergedConfig,
     colorscheme: &Colorscheme,
 ) -> Result<()> {
-    // hairline on the side facing the results, mirroring the preview
-    let separator =
-        pane_separator_side(config.layout, config.input_bar_position);
-    let pane_block = Block::default()
-        .style(Style::default().bg(colorscheme.general.background))
-        .borders(separator)
-        .border_set(HAIRLINE_BORDER_SET)
-        .border_style(Style::default().fg(colorscheme.general.border_fg));
+    // the action pane reuses the preview pane
+    let pane_block = preview_pane_block(config, colorscheme);
     let inner = pane_block.inner(rect);
     f.render_widget(pane_block, rect);
     if inner.area() == 0 {
@@ -85,14 +76,20 @@ pub fn draw_minimal_actions_pane(
             .then_some(("actions", colorscheme.mode.action_picker)),
         None,
     )?;
-    draw_minimal_picker_list(
+    let list_padding = picker_list_padding(
+        config.results_panel_padding,
+        config.preview_panel_border_type != BorderType::None,
+    );
+    draw_picker_list(
         f,
         list_rect,
         entries,
         relative_picker_state,
         config.input_bar_position,
         colorscheme,
-        &config.results_panel_padding,
+        &list_padding,
+        &BorderType::None,
+        None,
         true,
     )?;
 
