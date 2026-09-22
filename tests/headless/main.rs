@@ -63,7 +63,7 @@ fn setup_app(
     std::env::set_current_dir(&target_dir).unwrap();
 
     let chan: ChannelPrototype = channel_prototype
-        .unwrap_or(ChannelPrototype::new("files", "find . -type f"));
+        .unwrap_or(ChannelPrototype::new("files", "find . -type f | sort"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
     config.application.tick_rate = 100;
