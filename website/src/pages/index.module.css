@@ -6,7 +6,7 @@
   --lp-fg: #aeaed1;
   --lp-bright: #d3d3e6;
   --lp-muted: #7a7aa8;
-  --lp-pink: #efa6c2;
+  --lp-accent: #fab387;
 
   background-color: var(--lp-bg);
   color: var(--lp-fg);
@@ -51,7 +51,7 @@
   gap: 0.75rem;
   max-width: 100%;
   padding: 0.55rem 1rem;
-  margin-bottom: 1.1rem;
+  margin-bottom: 2.75rem;
   background-color: var(--lp-bg-deep);
   border: 1px solid var(--lp-border);
   border-radius: 8px;
@@ -68,7 +68,7 @@
 }
 
 .installPrompt {
-  color: var(--lp-pink);
+  color: var(--lp-accent);
   font-weight: bold;
 }
 
@@ -88,26 +88,6 @@
 .copyBtn:hover {
   color: var(--lp-bright);
   border-color: var(--lp-border-strong);
-}
-
-.linkRow {
-  font-family: "Ubuntu Mono", monospace;
-  font-size: 1rem;
-  margin-bottom: 2.75rem;
-}
-
-.linkRow a {
-  color: var(--lp-pink);
-}
-
-.linkRow a:hover {
-  color: var(--lp-bright);
-  text-decoration: none;
-}
-
-.linkSep {
-  color: var(--lp-muted);
-  margin: 0 0.75rem;
 }
 
 /* ---------- screenshot ---------- */
@@ -165,7 +145,7 @@
 }
 
 .intro a {
-  color: var(--lp-pink);
+  color: var(--lp-accent);
 }
 
 .intro a:hover {
