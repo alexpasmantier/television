@@ -57,17 +57,6 @@ export default function Home() {
               A very fast, portable and hackable fuzzy finder for the terminal.
             </p>
             <InstallCommand />
-            <p className={styles.linkRow}>
-              <Link to="/getting-started/installation">install</Link>
-              <span className={styles.linkSep}>·</span>
-              <Link to="/getting-started/quickstart">quickstart</Link>
-              <span className={styles.linkSep}>·</span>
-              <Link to="/user-guide/channels">docs</Link>
-              <span className={styles.linkSep}>·</span>
-              <Link href="https://github.com/alexpasmantier/television">
-                github
-              </Link>
-            </p>
             <div className={styles.screenshotFrame}>
               <span className={styles.screenshotTitle}>tv - files</span>
               <img

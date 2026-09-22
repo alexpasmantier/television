@@ -86,7 +86,8 @@
   --tv-bg-deep: #1c1828;
   --tv-border: #3d3657;
   --tv-muted: #7a7aa8;
-  --tv-pink: #efa6c2;
+  --tv-accent: #fab387;
+  --tv-bright: #d3d3e6;
   /* results-list style highlight strip, used for every hover/active row */
   --tv-highlight: rgba(174, 174, 209, 0.1);
 
@@ -110,11 +111,13 @@
   --ifm-table-head-color: var(--ifm-color-primary-light);
   --ifm-code-background: var(--tv-bg-deep);
   --docusaurus-highlighted-code-line-bg: rgba(174, 174, 209, 0.08);
+  /* Doto is dotted at low weights and solid pixels at 900, so everything
+     set in it uses 900 */
   --ifm-heading-font-family: "Doto", sans-serif;
-  --ifm-heading-color: var(--tv-pink);
+  --ifm-heading-font-weight: 900;
+  --ifm-heading-color: var(--tv-accent);
   --ifm-menu-color: var(--ifm-color-primary);
   --ifm-toc-link-color: var(--ifm-color-primary-dark);
-  --ifm-toc-border-color: var(--tv-border);
 
   /* Hover, everywhere: text goes one step lighter with no underline, row
      like controls (menu entries, tabs, list rows) get the highlight strip,
@@ -131,6 +134,16 @@
 [data-theme="dark"]:root {
   --docusaurus-collapse-button-bg: rgba(174, 174, 209, 0.05);
   --docusaurus-collapse-button-bg-hover: var(--tv-highlight);
+  /* sidebar and toc scrollbars (infima ships grays) */
+  --ifm-scrollbar-track-background-color: transparent;
+  --ifm-scrollbar-thumb-background-color: var(--tv-border);
+  --ifm-scrollbar-thumb-hover-background-color: var(--ifm-color-primary-darkest);
+}
+
+/* infima only styles the webkit scrollbar, firefox reads this */
+.thin-scrollbar {
+  scrollbar-color: var(--ifm-scrollbar-thumb-background-color)
+    var(--ifm-scrollbar-track-background-color);
 }
 
 /* infima defines the base weight variable but never applies it */
@@ -180,6 +193,7 @@ pre code {
 
 .theme-doc-markdown table thead th {
   font-family: "Doto", sans-serif;
+  font-weight: 900;
   font-size: 0.95rem;
   text-align: left;
   border-bottom: 1px solid var(--tv-border);
@@ -292,21 +306,26 @@ pre code {
   font-family: "Doto", sans-serif;
   font-size: 1.25rem;
   font-optical-sizing: auto;
-  font-weight: 800;
+  font-weight: 900;
   font-style: normal;
   font-variation-settings:
     "ROND" 0;
+}
+
+/* infima pins the title to 700 */
+.navbar__title {
+  font-weight: 900;
+}
+
+/* anchor for the landing page links, which are centered on the navbar */
+.navbar__inner {
+  position: relative;
 }
 
 @media screen and (max-width: 576px) {
   .navbar {
     font-size: 1.1rem;
   }
-}
-
-/* the landing page has its own links, no need for the mobile drawer there */
-html.landing-page .navbar__toggle {
-  display: none;
 }
 
 /* GitHub mark icon in the navbar (mask so it follows the link color) */
@@ -350,12 +369,6 @@ html.landing-page .navbar__toggle {
   content: "GitHub";
 }
 
-@media (min-width: 997px) {
-  .navbar-item-mobile-only {
-    display: none;
-  }
-}
-
 .footer {
   background-color: var(--ifm-background-color);
   color: var(--ifm-font-color-base);
@@ -387,7 +400,6 @@ nav.menu {
 .navbar-sidebar .navbar__title {
   font-family: "Doto", sans-serif;
   font-size: 1.25rem;
-  font-weight: 800;
 }
 
 .navbar-sidebar .menu {
@@ -448,7 +460,7 @@ nav.menu {
 
 .menu__link:not(.menu__link--sublist)::before {
   content: "❯\00a0";
-  color: var(--tv-pink);
+  color: var(--tv-accent);
   visibility: hidden;
 }
 
@@ -457,7 +469,7 @@ nav.menu {
 }
 
 .table-of-contents__left-border {
-  border-left: 1px solid var(--ifm-color-primary-darkest);
+  border-left: none;
 }
 
 .table-of-contents,
@@ -474,12 +486,33 @@ main .container {
   padding-top: 1.2rem !important;
 }
 
+/* Docs layout spans the whole width instead of a centered 1320px box: the
+   content column keeps the width it had in that box (75% of 1320px) and the
+   toc sticks to the right edge. */
+[class*="docMainContainer"] > .container {
+  max-width: none;
+}
+
+@media (min-width: 997px) {
+  /* docusaurus caps the column with an !important max-width from inside a
+     cascade layer, which beats any !important written here, so size it
+     through its flex basis instead (the 75% cap still applies on narrower
+     screens) */
+  [class*="docItemCol"] {
+    flex: 0 1 990px;
+  }
+
+  [class*="docMainContainer"] .row > .col--3 {
+    margin-left: auto;
+  }
+}
+
 .table-of-contents__link:hover {
   color: var(--ifm-color-primary-lighter);
 }
 
 .table-of-contents__link--active {
-  color: var(--tv-pink);
+  color: var(--tv-accent);
 }
 
 /* Breadcrumbs: plain mono path, no pill backgrounds */
@@ -536,7 +569,7 @@ main .container {
 }
 
 .theme-doc-markdown a {
-  color: var(--tv-pink);
+  color: var(--tv-accent);
 }
 
 .theme-doc-markdown a:hover {
