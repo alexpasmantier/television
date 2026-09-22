@@ -406,6 +406,64 @@ fn test_height_minimal_picker_takeover() {
     s.wait().exit_code(0).until().unwrap();
 }
 
+/// The remote control uses the results border (with a title), the actions
+/// picker and the help panel use the preview border.
+#[test]
+fn test_takeover_panes_follow_configured_borders() {
+    let pt = phantom();
+
+    let s = tv_local_config_and_cable_with_args(
+        &pt,
+        &[
+            "files",
+            "--height",
+            "20",
+            "--results-border",
+            "rounded",
+            "--preview-border",
+            "thick",
+        ],
+    )
+    .env(TESTING_ENV_VAR, "1")
+    .start()
+    .unwrap();
+
+    s.wait().text("· files").until().unwrap();
+
+    // remote control: rounded results border with a title, entries not
+    // touching it
+    s.send().key("ctrl-t").unwrap();
+    s.wait()
+        .text("· channels")
+        .text(" Channels ")
+        .until()
+        .unwrap();
+    s.send().type_text("files").unwrap();
+    s.wait().text("│ files").until().unwrap();
+    s.send().key("esc").unwrap();
+    s.wait().text("· files").until().unwrap();
+
+    // actions picker: thick preview border, entries not touching it
+    s.send().key("ctrl-x").unwrap();
+    s.wait().text("· actions").text("┃ edit").until().unwrap();
+    let frame = stable_frame(&s);
+    assert!(
+        frame.contains('┏') && !frame.contains('▏'),
+        "Expected a thick border around the actions picker:\n{}",
+        frame
+    );
+    s.send().key("esc").unwrap();
+    s.wait().text_absent("· actions").until().unwrap();
+
+    // help panel: title centered in the thick top border
+    s.send().key("ctrl-h").unwrap();
+    s.wait().text("━ help ━").until().unwrap();
+    assert_frame_not_contains(&s, "▏");
+
+    s.send().key("ctrl-c").unwrap();
+    s.wait().exit_code(0).until().unwrap();
+}
+
 /// Tests that on a narrow viewport the count line drops the source
 /// indicator as a whole instead of starving the query field or clipping
 /// itself mid-segment.

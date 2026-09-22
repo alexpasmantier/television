@@ -3,11 +3,14 @@ use crate::{
         layers::MergedConfig,
         ui::{BorderType, Padding},
     },
+    screen::{colors::Colorscheme, constants::HAIRLINE_BORDER_SET},
     television::Mode,
 };
 use clap::ValueEnum;
-use ratatui::layout::{
-    self, Constraint, Direction, Layout as RatatuiLayout, Rect,
+use ratatui::{
+    layout::{self, Constraint, Direction, Layout as RatatuiLayout, Rect},
+    style::Style,
+    widgets::{Block, Borders},
 };
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
@@ -92,12 +95,11 @@ impl From<crate::cli::args::LayoutOrientation> for Orientation {
 }
 
 /// Which side of the preview pane (or whatever borrows it) faces the
-/// results list — that's where the minimal UI draws its hairline separator.
-pub fn pane_separator_side(
+/// results list.
+fn results_facing_side(
     layout: Orientation,
     input_bar_position: InputPosition,
-) -> ratatui::widgets::Borders {
-    use ratatui::widgets::Borders;
+) -> Borders {
     match (layout, input_bar_position) {
         // pane on the right
         (Orientation::Landscape, _) => Borders::LEFT,
@@ -105,6 +107,35 @@ pub fn pane_separator_side(
         (Orientation::Portrait, InputPosition::Top) => Borders::TOP,
         // pane at the top
         (Orientation::Portrait, InputPosition::Bottom) => Borders::BOTTOM,
+    }
+}
+
+/// Even with no borders on the preview, we still draw a hairline to separate it from the results
+/// list.
+pub fn preview_hairline(config: &MergedConfig) -> Option<Borders> {
+    (config.preview_panel_border_type == BorderType::None)
+        .then(|| results_facing_side(config.layout, config.input_bar_position))
+}
+
+/// Block for the preview pane and whatever borrows it (actions picker,
+/// help panel)
+pub fn preview_pane_block(
+    config: &MergedConfig,
+    colorscheme: &Colorscheme,
+) -> Block<'static> {
+    let block = Block::default()
+        .style(Style::default().bg(colorscheme.general.background))
+        .border_style(Style::default().fg(colorscheme.general.border_fg));
+    match config.preview_panel_border_type.to_ratatui_border_type() {
+        Some(border_type) => {
+            block.borders(Borders::ALL).border_type(border_type)
+        }
+        None => block
+            .borders(results_facing_side(
+                config.layout,
+                config.input_bar_position,
+            ))
+            .border_set(HAIRLINE_BORDER_SET),
     }
 }
 

@@ -1,8 +1,11 @@
 use crate::{
-    config::ui::{BorderType, Padding},
+    config::layers::MergedConfig,
     event::Key,
     previewer::state::PreviewState,
-    screen::colors::Colorscheme,
+    screen::{
+        colors::Colorscheme,
+        layout::{preview_hairline, preview_pane_block},
+    },
     utils::strings::{
         ReplaceNonPrintableConfig, SPACE, replace_non_printable_bulk,
         shrink_with_ellipsis,
@@ -19,19 +22,15 @@ use ratatui::{
     },
 };
 
-#[allow(clippy::too_many_arguments)]
 pub fn draw_preview_content_block(
     f: &mut Frame,
     rect: Rect,
     preview_state: PreviewState,
     colorscheme: &Colorscheme,
-    border_type: &BorderType,
-    padding: &Padding,
-    scrollbar: bool,
-    word_wrap: bool,
+    config: &MergedConfig,
     cycle_key: Option<Key>,
-    separator: Option<Borders>,
 ) -> Result<()> {
+    let scrollbar = config.preview_panel_scrollbar;
     let total_lines =
         preview_state.preview.total_lines.saturating_sub(1) as usize;
     let scroll = preview_state.scroll;
@@ -52,14 +51,12 @@ pub fn draw_preview_content_block(
         f,
         rect,
         colorscheme,
-        *border_type,
-        *padding,
+        config,
         &preview_state.preview.title,
         preview_state.preview.footer,
         preview_state.preview.preview_index,
         preview_state.preview.preview_count,
         cycle_key,
-        separator,
         scroll_percent,
     );
 
@@ -71,7 +68,7 @@ pub fn draw_preview_content_block(
         content,
         preview_state.preview.target_line,
         colorscheme.preview.highlight_bg,
-        word_wrap,
+        config.preview_panel_word_wrap,
     );
     f.render_widget(Clear, inner);
     f.render_widget(rp, inner);
@@ -138,14 +135,12 @@ fn draw_content_outer_block(
     f: &mut Frame,
     rect: Rect,
     colorscheme: &Colorscheme,
-    border_type: BorderType,
-    padding: Padding,
+    config: &MergedConfig,
     preview_title: &str,
     preview_footer: Option<String>,
     preview_index: usize,
     preview_count: usize,
     cycle_key: Option<Key>,
-    separator: Option<Borders>,
     scroll_percent: Option<u8>,
 ) -> Rect {
     let (indicator, key_hint) = if preview_count > 1 {
@@ -190,27 +185,27 @@ fn draw_content_outer_block(
     }
     preview_title_spans.push(Span::from(SPACE));
 
+    let hairline = preview_hairline(config);
+    let borderless = hairline.is_some();
     // without a border to anchor them, titles read better left-aligned
-    let title_alignment = if border_type.to_ratatui_border_type().is_some() {
-        Alignment::Center
-    } else {
+    let title_alignment = if borderless {
         Alignment::Left
+    } else {
+        Alignment::Center
     };
 
     // ratatui draws titles on the border row: with a horizontal hairline the
     // title embeds into the line, so lead with a line segment instead of a
     // bare space (`─ title ───` rather than ` title ───`)
-    let borderless = border_type.to_ratatui_border_type().is_none();
-    let embeds_into = |side: Borders| {
-        borderless && separator.is_some_and(|s| s.contains(side))
-    };
+    let embeds_into =
+        |side: Borders| hairline.is_some_and(|h| h.contains(side));
     let hairline_style = Style::default().fg(colorscheme.general.border_fg);
 
     if embeds_into(Borders::TOP) {
         preview_title_spans.insert(0, Span::styled("─", hairline_style));
     }
 
-    let mut block = Block::default().title_top(
+    let mut block = preview_pane_block(config, colorscheme).title_top(
         Line::from(preview_title_spans)
             .alignment(title_alignment)
             .style(Style::default().fg(colorscheme.preview.title_fg)),
@@ -248,22 +243,8 @@ fn draw_content_outer_block(
         block = block.title_bottom(footer_line);
     }
 
-    let mut preview_outer_block = block
-        .style(Style::default().bg(colorscheme.general.background))
-        .padding(RatatuiPadding::from(padding));
-    if let Some(border_type) = border_type.to_ratatui_border_type() {
-        preview_outer_block = preview_outer_block
-            .borders(Borders::ALL)
-            .border_type(border_type)
-            .border_style(Style::default().fg(colorscheme.general.border_fg));
-    } else if let Some(separator) = separator {
-        // borderless preview (minimal UI): a thin hairline on the side
-        // facing the results provides just enough separation
-        preview_outer_block = preview_outer_block
-            .borders(separator)
-            .border_set(crate::screen::constants::HAIRLINE_BORDER_SET)
-            .border_style(hairline_style);
-    }
+    let preview_outer_block =
+        block.padding(RatatuiPadding::from(config.preview_panel_padding));
 
     let inner = preview_outer_block.inner(rect);
     f.render_widget(preview_outer_block, rect);
