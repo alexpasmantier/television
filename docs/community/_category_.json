@@ -1,8 +1,4 @@
 {
   "label": "Community",
-  "position": 5,
-  "link": {
-    "type": "generated-index",
-    "description": "Community channels, showcase, and contribution guides."
-  }
+  "position": 5
 }
