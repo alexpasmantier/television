@@ -1,6 +1,4 @@
-use crate::screen::{
-    constants::HAIRLINE_BORDER_SET, layout::pane_separator_side,
-};
+use crate::screen::layout::{preview_hairline, preview_pane_block};
 use crate::utils::strings::SPACE;
 use crate::{
     action::{Action, CUSTOM_ACTION_PREFIX},
@@ -13,7 +11,7 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::Style,
     text::{Line, Span},
-    widgets::{Block, Borders, Padding, Paragraph},
+    widgets::{Borders, Padding, Paragraph},
 };
 use std::collections::BTreeMap;
 
@@ -28,8 +26,7 @@ pub fn max_help_scroll(config: &MergedConfig, mode: Mode) -> u16 {
         .saturating_sub(MIN_VISIBLE_LINES)
 }
 
-/// Draws the help panel inside the preview pane (behind the hairline
-/// separator), like the actions picker.
+/// Draws the help panel inside the preview pane
 pub fn draw_help_pane(
     f: &mut Frame<'_>,
     rect: Rect,
@@ -38,36 +35,32 @@ pub fn draw_help_pane(
     scroll: u16,
     colorscheme: &Colorscheme,
 ) {
-    // hairline on the side facing the results, mirroring the preview
-    let separator =
-        pane_separator_side(config.layout, config.input_bar_position);
+    let hairline = preview_hairline(config);
+    let title_included_in_hairline =
+        hairline.is_some_and(|h| h.contains(Borders::TOP));
+    let hairline_style = Style::default().fg(colorscheme.general.border_fg);
+    // centered on a border, left-aligned otherwise
+    let title_alignment = if hairline.is_some() {
+        Alignment::Left
+    } else {
+        Alignment::Center
+    };
     let mode_color = match tv_mode {
         Mode::Channel => colorscheme.mode.channel,
         Mode::RemoteControl => colorscheme.mode.remote_control,
         Mode::ActionPicker => colorscheme.mode.action_picker,
     };
     let mut title_spans = vec![Span::from(" ")];
-    // the title embeds into a horizontal hairline, so lead with a line
-    // segment (same treatment as the preview title)
-    if separator.intersects(Borders::TOP) {
-        title_spans.insert(
-            0,
-            Span::styled(
-                "─",
-                Style::default().fg(colorscheme.general.border_fg),
-            ),
-        );
+    if title_included_in_hairline {
+        // "- title ------------------"
+        title_spans.insert(0, Span::styled("─", hairline_style));
     }
     title_spans
         .push(Span::styled("help", Style::default().fg(mode_color).bold()));
     title_spans.push(Span::from(" "));
 
-    let mut block = Block::default()
-        .title_top(Line::from(title_spans))
-        .style(Style::default().bg(colorscheme.general.background))
-        .borders(separator)
-        .border_set(HAIRLINE_BORDER_SET)
-        .border_style(Style::default().fg(colorscheme.general.border_fg))
+    let mut block = preview_pane_block(config, colorscheme)
+        .title_top(Line::from(title_spans).alignment(title_alignment))
         .padding(Padding {
             top: 1,
             right: 1,
@@ -100,11 +93,9 @@ pub fn draw_help_pane(
                 .fg(colorscheme.general.dimmed_text_fg)
                 .italic(),
         )];
-        if separator.intersects(Borders::TOP) {
-            percent_spans.push(Span::styled(
-                "─",
-                Style::default().fg(colorscheme.general.border_fg),
-            ));
+        // "------------- 7% -"
+        if title_included_in_hairline {
+            percent_spans.push(Span::styled("─", hairline_style));
         }
         block = block
             .title_top(Line::from(percent_spans).alignment(Alignment::Right));

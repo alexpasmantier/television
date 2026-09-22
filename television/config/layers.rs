@@ -474,12 +474,8 @@ impl ConfigLayers {
             // 1-column left margin, aligning the entries with the query
             results_panel_padding = Padding::new(0, 0, 1, 0);
         }
-        // a borderless preview still needs a hint of separation from the
-        // results list: a thin hairline on the side facing them
-        let preview_panel_separator =
-            preview_panel_border_type == BorderType::None;
-        // breathing room between the preview title and its content
-        if preview_panel_separator
+        // space between the preview title and its content
+        if preview_panel_border_type == BorderType::None
             && self.channel_cli.preview_padding.is_none()
             && preview_panel_padding == Padding::default()
         {
@@ -579,7 +575,6 @@ impl ConfigLayers {
             preview_panel_word_wrap,
             preview_panel_hidden,
             preview_panel_disabled,
-            preview_panel_separator,
             preview_panel_auto_hide,
             fullscreen,
             // help panel
@@ -686,9 +681,6 @@ pub struct MergedConfig {
     pub preview_panel_word_wrap: bool,
     pub preview_panel_hidden: bool,
     pub preview_panel_disabled: bool,
-    /// Draw a single separator line between results and preview
-    /// (minimal UI preset, only when no preview border is configured).
-    pub preview_panel_separator: bool,
     /// Hide the preview automatically when the viewport is too small to fit
     /// a useful pane next to (or below) the results.
     pub preview_panel_auto_hide: bool,
@@ -818,7 +810,6 @@ mod tests {
             assert_eq!(merged.input_bar_padding, Padding::new(0, 1, 1, 0));
             assert_eq!(merged.results_panel_padding, Padding::new(0, 0, 1, 0));
             assert_eq!(merged.preview_panel_padding, Padding::new(1, 0, 0, 0));
-            assert!(merged.preview_panel_separator);
             assert!(merged.preview_panel_auto_hide);
             assert!(!merged.preview_panel_scrollbar);
             assert!(merged.input_bar_minimal);
@@ -840,7 +831,6 @@ mod tests {
         assert_eq!(merged.preview_panel_border_type, BorderType::None);
         assert!(merged.input_bar_header_hidden());
         assert_eq!(merged.input_bar_prompt.as_deref(), Some(""));
-        assert!(merged.preview_panel_separator);
         assert!(merged.input_bar_minimal);
         // ...but the status bar stays
         assert!(!merged.status_bar_hidden);
@@ -897,7 +887,6 @@ mod tests {
         );
         assert_eq!(merged.preview_panel_size, 60);
         assert_eq!(merged.preview_panel_border_type, BorderType::None);
-        assert!(merged.preview_panel_separator);
         // but a channel explicitly picking a non-default border keeps it
         let mut prototype = ChannelPrototype::new("test", "echo 1");
         prototype.ui = Some(UiSpec {
@@ -917,7 +906,6 @@ mod tests {
             },
         );
         assert_eq!(merged.preview_panel_border_type, BorderType::Thick);
-        assert!(!merged.preview_panel_separator);
     }
 
     #[test]
@@ -939,7 +927,6 @@ mod tests {
         );
         assert!(!merged.status_bar_hidden);
         assert_eq!(merged.preview_panel_border_type, BorderType::Rounded);
-        assert!(!merged.preview_panel_separator);
         assert_eq!(merged.input_bar_header.as_deref(), Some("Custom"));
         // fields the CLI didn't touch still get the preset
         assert_eq!(merged.results_panel_border_type, BorderType::None);
