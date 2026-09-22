@@ -52,7 +52,7 @@ export default function Home() {
       <main className={styles.main}>
         <section className={styles.hero}>
           <div className={styles.heroInner}>
-            <h1 className={styles.title}>television</h1>
+            <h1 className={styles.title}>tv(1)</h1>
             <p className={styles.tagline}>
               A very fast, portable and hackable fuzzy finder for the terminal.
             </p>
