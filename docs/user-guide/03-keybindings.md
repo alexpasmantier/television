@@ -42,7 +42,7 @@ These keybindings are all configurable via tv's configuration file (see [Configu
 Following this are some configuration presets you can use for your bindings. Most of these will probably match an existing program.
 
 :::note
-**This list is maintained by the community, so feel free to contribute your own ideas too! 😊**
+**This list is maintained by the community, so feel free to contribute your own ideas too!**
 :::
 
 ### Emacs

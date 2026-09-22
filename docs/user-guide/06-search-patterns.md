@@ -29,10 +29,10 @@ anything that:
 And will produce the following results:
 | haystack | match | explanation |
 | :------- | :---: | :------: |
-| _the car drove past the bike_ | ❌ | ends with bike |
-| _car, bike or bus?_ | ❌ | starts with car |
-| _the black motorbike flew past the tourists_ | ✅ | |
-| _the motorbike flew past the tourists_ | ❌ | doesn't contain 'car' |
+| _the car drove past the bike_ | ✗ | ends with bike |
+| _car, bike or bus?_ | ✗ | starts with car |
+| _the black motorbike flew past the tourists_ | ✓ | |
+| _the motorbike flew past the tourists_ | ✗ | doesn't contain 'car' |
 
 When running with `--exact`, bare patterns match as substrings instead of
 fuzzily (`foo` behaves like `'foo`); all the operators above keep their
