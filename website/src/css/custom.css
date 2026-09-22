@@ -9,9 +9,53 @@
   src: url("/fonts/Doto.ttf");
 }
 
+/* Ubuntu for prose, Ubuntu Mono for code and the navigation chrome */
+@font-face {
+  font-family: "Ubuntu";
+  src: url("/fonts/Ubuntu-Regular.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu";
+  font-weight: bold;
+  src: url("/fonts/Ubuntu-Bold.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu";
+  font-style: italic;
+  src: url("/fonts/Ubuntu-Italic.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu";
+  font-weight: bold;
+  font-style: italic;
+  src: url("/fonts/Ubuntu-BoldItalic.ttf");
+}
+
 @font-face {
   font-family: "Ubuntu Mono";
   src: url("/fonts/UbuntuMono-Regular.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu Mono";
+  font-weight: bold;
+  src: url("/fonts/UbuntuMono-Bold.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu Mono";
+  font-style: italic;
+  src: url("/fonts/UbuntuMono-Italic.ttf");
+}
+
+@font-face {
+  font-family: "Ubuntu Mono";
+  font-weight: bold;
+  font-style: italic;
+  src: url("/fonts/UbuntuMono-BoldItalic.ttf");
 }
 
 /* You can override the default Infima variables here. */
@@ -30,12 +74,21 @@
   --tv-border: #3d3657;
   --tv-muted: #7a7aa8;
   --tv-pink: #efa6c2;
+  /* results-list style highlight strip, used for every hover/active row */
+  --tv-highlight: rgba(174, 174, 209, 0.1);
 
-  --ifm-font-family-base: "Ubuntu Mono", monospace;
+  --ifm-font-family-base: "Ubuntu", sans-serif;
+  --ifm-font-family-monospace: "Ubuntu Mono", monospace;
   --ifm-font-color-base: #aeaed1;
   --ifm-font-color-secondary: #545c8c;
-  --ifm-font-size-base: 1rem;
+  /* infima sets the root font size from this, so every rem-based size on
+     the site scales with it */
+  --ifm-font-size-base: 1.125rem;
+  --ifm-line-height-base: 1.4;
+  /* vertical rhythm: paragraphs and code blocks get one line of margin */
+  --ifm-leading-desktop: 1;
   --ifm-code-font-size: 85%;
+  --ifm-code-padding-horizontal: 0.3rem;
   --ifm-table-border-color: var(--tv-border);
   --ifm-table-stripe-background: rgba(174, 174, 209, 0.04);
   --ifm-table-head-color: var(--ifm-color-primary-light);
@@ -43,9 +96,25 @@
   --docusaurus-highlighted-code-line-bg: rgba(174, 174, 209, 0.08);
   --ifm-heading-font-family: "Doto", sans-serif;
   --ifm-heading-color: var(--tv-pink);
-  --ifm-menu-color-active: var(--ifm-color-primary-lightest);
-  --ifm-menu-color-background-active: var(--ifm-color-primary-darkest);
+  --ifm-menu-color: var(--ifm-color-primary);
   --ifm-toc-link-color: var(--ifm-color-primary-dark);
+  --ifm-toc-border-color: var(--tv-border);
+
+  /* Hover, everywhere: text goes one step lighter with no underline, row
+     like controls (menu entries, tabs, list rows) get the highlight strip,
+     bordered buttons get a stronger border. */
+  --ifm-link-hover-color: var(--ifm-color-primary-lighter);
+  --ifm-link-hover-decoration: none;
+  --ifm-navbar-link-hover-color: var(--ifm-color-primary-lighter);
+  --ifm-footer-link-hover-color: var(--ifm-color-primary-lighter);
+  --ifm-hover-overlay: var(--tv-highlight);
+}
+
+/* docusaurus defines these with a [data-theme]:root selector, so a plain
+   :root override loses on specificity */
+[data-theme="dark"]:root {
+  --docusaurus-collapse-button-bg: rgba(174, 174, 209, 0.05);
+  --docusaurus-collapse-button-bg-hover: var(--tv-highlight);
 }
 
 /* Inline code */
@@ -98,16 +167,16 @@ pre code {
 }
 
 .theme-doc-markdown table tbody tr:hover td {
-  background-color: rgba(174, 174, 209, 0.1);
+  background-color: var(--tv-highlight);
 }
 
-/* Code blocks as tv panels: transparent background, thin border, and the
-   title (when present) floating in the border like a panel label. */
+/* Code blocks as tv panels: a slightly darker background than the page,
+   thin border, and the title (when present) floating in the border like a
+   panel label. */
 .theme-code-block {
-  --prism-background-color: transparent;
   --ifm-code-font-size: 80%;
   position: relative;
-  background-color: transparent;
+  background-color: var(--tv-bg-deep);
   border: 1px solid var(--tv-border);
   border-radius: 8px;
   box-shadow: none;
@@ -118,14 +187,40 @@ pre code {
   background-color: transparent !important;
 }
 
-/* code block title (only present on titled blocks) */
+/* tighter vertical padding inside the panel, horizontal stays at 1rem */
+.theme-code-block pre code {
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+/* copy button: same bordered-button look as the landing page. The prism
+   theme sets its background through an inline style variable, so it has
+   to be set explicitly here. */
+.theme-code-block button {
+  background: var(--tv-bg-deep);
+  border-color: var(--tv-border);
+  color: var(--tv-muted);
+}
+
+.theme-code-block button:hover {
+  border-color: var(--ifm-color-primary-darkest);
+  color: var(--ifm-color-primary-lighter);
+}
+
+/* code block title (only present on titled blocks). It sits centered on
+   the top border, so the top half covers the page and the bottom half the
+   block: the background is split to match both. */
 .theme-code-block > div:first-child:not(:last-child) {
   position: absolute;
   top: -0.8em;
   left: 0.9rem;
   max-width: calc(100% - 2rem);
   padding: 0 0.4rem;
-  background-color: var(--ifm-background-color);
+  background: linear-gradient(
+    to bottom,
+    var(--ifm-background-color) 50%,
+    var(--tv-bg-deep) 50%
+  );
   border-bottom: none;
   color: var(--tv-muted);
   font-family: "Ubuntu Mono", monospace;
@@ -280,6 +375,10 @@ nav.menu {
   font-size: 0.85rem;
 }
 
+.navbar-sidebar__back:hover {
+  color: var(--ifm-color-primary-lighter);
+}
+
 /* categories: bold and brighter; doc entries stay regular */
 .menu__list-item-collapsible .menu__link {
   font-weight: 700;
@@ -310,6 +409,16 @@ nav.menu {
   --ifm-menu-color-background-active: rgba(174, 174, 209, 0.12);
 }
 
+.menu__link:hover {
+  color: var(--ifm-color-primary-lighter);
+}
+
+/* desktop collapse / expand sidebar buttons */
+[class*="collapseSidebarButton"]:hover,
+[class*="expandButton"]:hover {
+  color: var(--ifm-color-primary-lighter);
+}
+
 .menu__link:not(.menu__link--sublist)::before {
   content: "❯\00a0";
   color: var(--tv-pink);
@@ -322,6 +431,10 @@ nav.menu {
 
 .table-of-contents__left-border {
   border-left: 1px solid var(--ifm-color-primary-darkest);
+}
+
+.table-of-contents,
+[class*="tocCollapsibleButton"] {
   font-family: "Ubuntu Mono", monospace;
 }
 
@@ -334,11 +447,19 @@ main .container {
   padding-top: 1.2rem !important;
 }
 
+.table-of-contents__link:hover {
+  color: var(--ifm-color-primary-lighter);
+}
+
 .table-of-contents__link--active {
   color: var(--tv-pink);
 }
 
 /* Breadcrumbs: plain mono path, no pill backgrounds */
+.breadcrumbs {
+  font-family: "Ubuntu Mono", monospace;
+}
+
 .breadcrumbs__link {
   background: none !important;
   padding: 0.2rem 0.3rem;
@@ -346,8 +467,17 @@ main .container {
   color: var(--tv-muted);
 }
 
+.breadcrumbs__link:hover {
+  color: var(--ifm-color-primary-lighter);
+}
+
 .breadcrumbs__item--active .breadcrumbs__link {
   color: var(--ifm-color-primary-light);
+}
+
+/* heading anchor links: muted `#`, lighter on hover like any other link */
+.hash-link {
+  color: var(--tv-muted);
 }
 
 /* Headings: compact, tight rhythm, and markdown-style level markers so
@@ -387,96 +517,6 @@ main .container {
   text-decoration: none;
 }
 
-/* Generated category index pages, styled like tv's results panel: one
-   bordered panel with its label in the border, plain mono entries inside,
-   and the selection pointer + highlight strip on hover. */
-[class*="generatedIndexPage"] article section.row {
-  margin: 0;
-}
-
-/* undo the stacked default gap above the card list (infima's utility is
-   !important inside the docusaurus.infima layer) */
-@layer docusaurus.infima {
-  [class*="generatedIndexPage"] article.margin-top--lg {
-    margin-top: 1rem !important;
-  }
-}
-
-/* single column, like a real results list */
-article[class*="docCardListItem"] {
-  --ifm-col-width: 100%;
-  margin-bottom: 0 !important;
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.theme-doc-card-container {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
-  gap: 1.25rem;
-  background-color: transparent;
-  border: none;
-  border-radius: 4px;
-  box-shadow: none;
-  transition: background-color 0.15s ease;
-}
-
-.theme-doc-card-container:hover {
-  background-color: rgba(174, 174, 209, 0.12);
-  box-shadow: none;
-}
-
-.theme-doc-card-icon {
-  display: none;
-}
-
-.theme-doc-card-heading {
-  margin: 0;
-  font-family: "Ubuntu Mono", monospace;
-  font-size: 0.85rem;
-  font-weight: normal;
-  line-height: 1.5;
-  letter-spacing: 0;
-  color: var(--ifm-color-primary);
-}
-
-.theme-doc-card-heading::before {
-  content: "❯\00a0";
-  color: var(--tv-pink);
-  visibility: hidden;
-}
-
-.theme-doc-card-container:hover .theme-doc-card-heading {
-  color: var(--ifm-color-primary-lighter);
-}
-
-.theme-doc-card-container:hover .theme-doc-card-heading::before {
-  visibility: visible;
-}
-
-.theme-doc-card-heading {
-  flex: 0 0 16rem;
-  min-width: 0;
-}
-
-.theme-doc-card-description {
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--tv-muted);
-}
-
-/* infima's `.padding--lg` is `!important` inside the docusaurus.infima cascade
-   layer, which beats any unlayered override — so this one lives in the same
-   layer and wins on specificity instead */
-@layer docusaurus.infima {
-  .card.theme-doc-card-container {
-    padding: 0.1rem 0.6rem !important;
-  }
-}
-
 /* Pagination nav: plain pager-style links above a thin rule */
 .pagination-nav {
   display: flex;
@@ -514,9 +554,29 @@ article[class*="docCardListItem"] {
 }
 
 .pagination-nav__link:hover {
-  background-color: rgba(174, 174, 209, 0.1);
+  background-color: var(--tv-highlight);
 }
 
 .pagination-nav__link:hover .pagination-nav__label {
   color: var(--ifm-color-primary-lighter);
+}
+
+/* Back-to-top button: a small bordered panel instead of infima's gray disc */
+[class*="backToTopButton"] {
+  background-color: var(--tv-bg-deep);
+  border: 1px solid var(--tv-border);
+  box-shadow: none;
+}
+
+[class*="backToTopButton"]::after {
+  background-color: var(--tv-muted);
+}
+
+[class*="backToTopButton"]:hover {
+  background-color: var(--tv-bg-deep);
+  border-color: var(--ifm-color-primary-darkest);
+}
+
+[class*="backToTopButton"]:hover::after {
+  background-color: var(--ifm-color-primary-lighter);
 }
