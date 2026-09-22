@@ -1,7 +1,8 @@
 use std::{
     fs::OpenOptions,
-    io::{BufReader, LineWriter, Read, Write, stderr, stdout},
+    io::{self, BufReader, LineWriter, Read, Write, stderr, stdout},
     ops::{Deref, DerefMut},
+    time::{Duration, Instant},
 };
 
 use anyhow::Result;
@@ -15,7 +16,6 @@ use crossterm::{
     terminal::{
         ClearType, EnterAlternateScreen, LeaveAlternateScreen, ScrollUp,
         disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
-        supports_keyboard_enhancement,
     },
 };
 use ratatui::{
@@ -84,8 +84,7 @@ where
         let mut options = TerminalOptions::default();
         enable_raw_mode()?;
 
-        let keyboard_enhancement =
-            supports_keyboard_enhancement().unwrap_or(false);
+        let keyboard_enhancement = Self::supports_keyboard_enhancement();
 
         let terminal_size = backend.size()?;
         let viewport = match mode {
@@ -234,6 +233,88 @@ where
         } else {
             Position::default() // Default position if parsing fails
         }
+    }
+
+    /// Whether the terminal supports the kitty keyboard protocol.
+    ///
+    /// Crossterm's current version is broken (it tries to write to /dev/tty with the wrong
+    /// permissions) and causes the query to be sent to stdout which is not always a tty (e.g.
+    /// when piping tv's output to another command).
+    #[cfg(unix)]
+    fn supports_keyboard_enhancement() -> bool {
+        use std::os::fd::AsRawFd;
+
+        /// See <https://sw.kovidgoyal.net/kitty/keyboard-protocol/#detection-of-support-for-this-protocol>.
+        const QUERY: &[u8] = b"\x1b[?u\x1b[c";
+        const TIMEOUT: Duration = Duration::from_secs(2);
+
+        let Ok(mut tty) =
+            OpenOptions::new().read(true).append(true).open("/dev/tty")
+        else {
+            debug!(
+                "Failed to open /dev/tty, assuming no keyboard enhancement support"
+            );
+            return false;
+        };
+        if let Err(e) = tty.write_all(QUERY) {
+            debug!(
+                "Failed to write to /dev/tty ({}), assuming no keyboard enhancement support",
+                e
+            );
+            return false;
+        }
+
+        // poll for the response
+        let deadline = Instant::now() + TIMEOUT;
+        let mut supported = false;
+        let mut buf = [0u8; 64];
+        'wait: loop {
+            let remaining = deadline.saturating_duration_since(Instant::now());
+            let timeout_ms =
+                i32::try_from(remaining.as_millis()).unwrap_or(i32::MAX);
+            let mut pfd = libc::pollfd {
+                fd: tty.as_raw_fd(),
+                events: libc::POLLIN,
+                revents: 0,
+            };
+            let ready = unsafe { libc::poll(&raw mut pfd, 1, timeout_ms) };
+            // poll returns 0 on timeout, -1 on error, and the number of ready fds otherwise
+            if ready == 0 {
+                debug!(
+                    "Timed out waiting for the keyboard enhancement query response"
+                );
+                break;
+            }
+            if ready < 0 {
+                debug!(
+                    "Failed to poll /dev/tty: {}",
+                    io::Error::last_os_error()
+                );
+                break;
+            }
+            let n = match tty.read(&mut buf) {
+                Ok(0) => break,
+                Ok(n) => n,
+                Err(e) => {
+                    debug!("Error reading from /dev/tty: {}", e);
+                    break;
+                }
+            };
+            for &byte in &buf[..n] {
+                match byte {
+                    b'u' => supported = true,
+                    b'c' => break 'wait, // End of the device attributes response
+                    _ => {}
+                }
+            }
+        }
+        debug!("Keyboard enhancement supported: {}", supported);
+        supported
+    }
+
+    #[cfg(windows)]
+    fn supports_keyboard_enhancement() -> bool {
+        crossterm::terminal::supports_keyboard_enhancement().unwrap_or(false)
     }
 
     pub fn resize_viewport(&mut self, w: u16, h: u16) -> Result<()> {
