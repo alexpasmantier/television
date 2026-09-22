@@ -65,6 +65,9 @@ crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 crossterm = { version = "0.28", features = ["serde"] }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
 clipboard-win = "5.4.0"

@@ -2758,6 +2758,7 @@ dependencies = [
  "frizbee",
  "human-panic",
  "lazy-regex",
+ "libc",
  "memchr",
  "parking_lot",
  "phantom-test",
