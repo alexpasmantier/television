@@ -2,17 +2,17 @@
    values win over docusaurus's own dark-mode overrides. */
 :root,
 [data-theme="dark"] {
-  --docsearch-primary-color: var(--tv-pink);
+  --docsearch-primary-color: var(--tv-accent);
   --docsearch-text-color: var(--ifm-font-color-base);
   --docsearch-muted-color: var(--tv-muted);
-  --docsearch-highlight-color: var(--tv-pink);
+  --docsearch-highlight-color: var(--tv-accent);
   --docsearch-logo-color: var(--tv-muted);
   --docsearch-container-background: rgba(20, 17, 30, 0.75);
   --docsearch-modal-background: var(--ifm-background-color);
   --docsearch-modal-shadow: none;
   --docsearch-searchbox-background: var(--tv-bg-deep);
   --docsearch-searchbox-focus-background: var(--tv-bg-deep);
-  --docsearch-searchbox-shadow: inset 0 0 0 1px var(--tv-pink);
+  --docsearch-searchbox-shadow: inset 0 0 0 1px var(--tv-accent);
   --docsearch-hit-color: var(--ifm-font-color-base);
   --docsearch-hit-active-color: var(--ifm-color-primary-lighter);
   --docsearch-hit-background: var(--tv-bg-deep);
@@ -41,7 +41,7 @@
 .DocSearch-Button:focus,
 .DocSearch-Button:hover {
   background: transparent;
-  border-color: var(--tv-pink);
+  border-color: var(--tv-accent);
   box-shadow: none;
 }
 
@@ -114,7 +114,8 @@
 
 .DocSearch-Hit-source {
   font-family: "Doto", sans-serif;
-  color: var(--tv-pink);
+  font-weight: 900;
+  color: var(--tv-accent);
   background: var(--ifm-background-color);
 }
 

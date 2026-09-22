@@ -1,6 +1,6 @@
-import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import catppuccinMocha from "./src/prism/catppuccin-mocha";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -85,12 +85,9 @@ const config: Config = {
       },
       items: [
         {
-          // only shown in the mobile drawer, where it opens the docs sidebar
-          type: "docSidebar",
-          sidebarId: "docSidebar",
-          label: "docs",
+          // see src/components/LandingLinks
+          type: "custom-landingLinks",
           position: "left",
-          className: "navbar-item-mobile-only",
         },
         {
           href: "https://github.com/alexpasmantier/television",
@@ -104,8 +101,9 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} alexpasmantier`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      // the site is dark only, so both point at the same theme
+      theme: catppuccinMocha,
+      darkTheme: catppuccinMocha,
       additionalLanguages: ["bash", "json", "yaml", "toml", "diff"],
     },
     algolia: {

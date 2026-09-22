@@ -1,0 +1,37 @@
+.links {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0.75rem;
+  font-family: "Ubuntu Mono", monospace;
+  font-size: 1rem;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+.links a {
+  color: var(--tv-accent);
+}
+
+.links a:hover {
+  color: var(--tv-bright);
+}
+
+.sep {
+  color: var(--tv-muted);
+}
+
+/* the navbar is shared by every page, the links only belong on the landing */
+:global(html:not(.landing-page)) .links,
+:global(html:not(.landing-page)) .mobile {
+  display: none;
+}
+
+/* on mobile the links live in the drawer instead */
+@media (max-width: 996px) {
+  .links {
+    display: none;
+  }
+}
