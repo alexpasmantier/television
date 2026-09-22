@@ -1,8 +1,4 @@
 {
   "label": "Reference",
-  "position": 4,
-  "link": {
-    "type": "generated-index",
-    "description": "Complete reference documentation for CLI, actions, and channels."
-  }
+  "position": 4
 }
