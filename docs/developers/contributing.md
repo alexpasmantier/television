@@ -71,11 +71,11 @@ just run
 
 The logs are written to a file called `television.log` in a directory that depends on your operating system / configuration:
 
-| Platform | Location                                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------------------ |
-| Linux    | `$XDG_DATA_HOME/television/television.log` or `$HOME/.local/share/television/television.log`                 |
-| macOS    | `$XDG_DATA_HOME/television/television.log` or `$HOME/Library/Application\ Support/television/television.log` |
-| Windows  | `%LocalAppData%\television\data\television.log`                                                     |
+| Platform | Location                                                                                                             |
+| -------- | -------------------------------------------------------------------------------------------------------------------- |
+| Linux    | `$XDG_DATA_HOME/television/television.log` or `$HOME/.local/share/television/television.log`                         |
+| macOS    | `$XDG_DATA_HOME/com.television/television.log` or `$HOME/Library/Application\ Support/com.television/television.log` |
+| Windows  | `%LocalAppData%\television\data\television.log`                                                                      |
 
 If `TELEVISION_DATA` is set, logs will be written to `$TELEVISION_DATA/television.log` instead.
 
@@ -99,7 +99,6 @@ Running the tests can be done with:
 ```shell
 just test
 ```
-
 
 ## Hot Topics
 
