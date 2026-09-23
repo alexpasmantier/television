@@ -38,6 +38,7 @@ __tv_path_completion() {
             
             # Call tv with proper arguments and process output
             matches=$(
+                LBUF="$lbuf" BASE="$base" LEFTOVER="$leftover" DIR="$dir" \
                 tv "$dir" --autocomplete-prompt "$lbuf" --no-status-bar --inline --input "$leftover" < /dev/tty | while IFS= read -r item; do
                     item="${item%$suffix}$suffix"
                     dirP="$dir/"
