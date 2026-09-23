@@ -1,0 +1,41 @@
+[metadata]
+name = "pj"
+description = "Fast project directory finder that searches your filesystem for project directories"
+requirements = ["pj"]
+
+[source]
+command = [
+  "pj --icons --ansi --shorten",
+  "pj --icons --ansi --shorten --no-nested"
+]
+ansi = true
+
+[preview]
+command = "Get-ChildItem -Force '{strip_ansi|split: :1}' | Format-Table Mode,LastWriteTime,Length,Name -AutoSize"
+
+[keybindings]
+enter = "actions:expand"
+ctrl-e = "actions:edit"
+ctrl-n = "actions:new_tab"
+ctrl-r = ["actions:clear_cache", "reload_source"]
+
+[actions.expand]
+description = "Expand to absolute path"
+command = "Write-Output ('{strip_ansi|split: :1}' -replace '^~', $HOME)"
+mode = "execute"
+
+[actions.edit]
+description = "Open in $EDITOR"
+command = "& $env:EDITOR ('{strip_ansi|split: :1}' -replace '^~', $HOME)"
+mode = "execute"
+
+# Requires Windows Terminal
+[actions.new_tab]
+description = "Open in new Windows Terminal tab"
+command = "$p = ('{strip_ansi|split: :1}' -replace '^~', $HOME); $n = (Split-Path $p -Leaf) -replace '[.:]','_'; wt new-tab --title $n -d $p"
+mode = "execute"
+
+[actions.clear_cache]
+description = "Clear pj cache"
+command = "pj --clear-cache"
+mode = "fork"
