@@ -1,0 +1,49 @@
+[metadata]
+name = "azdo-projects"
+description = """
+Azure DevOps projects.
+
+Required env vars:
+- AZDO_ORG
+
+"""
+requirements = ["az", "jq", "tv"]
+
+[source]
+command = '''
+set -eu
+org="${AZDO_ORG:-}"
+
+missing_env=0
+if [ -z "$org" ]; then
+  echo "missing env var: AZDO_ORG" >&2
+  missing_env=1
+fi
+if [ "$missing_env" -ne 0 ]; then
+  exit 1
+fi
+
+az devops project list --org "https://dev.azure.com/$org" |
+  jq -r '.value |
+    sort_by(.name) |
+    .[] |
+    [
+      .id,
+      .name,
+      (.description // "")
+    ] | @tsv'
+'''
+display = "{split:\t:1}"
+
+[preview]
+command = '''printf "Project: %s\nID: %s\n\n%s\n" "{split:\t:1}" "{split:\t:0}" "{split:\t:2}"'''
+shell = "bash"
+
+[keybindings]
+enter = "actions:open-pipelines"
+
+[actions.open-pipelines]
+description = "Open project pipelines"
+command = "AZDO_PROJECT_ID='{split:\t:0}' AZDO_PROJECT_NAME='{split:\t:1}' tv azdo-pipelines"
+mode = "execute"
+shell = "bash"
