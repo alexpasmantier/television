@@ -1,0 +1,23 @@
+[metadata]
+name = "zmx"
+requirements = ["zmx"]
+
+[source]
+command = "zmx"
+
+[preview]
+command = "zmx hi $(echo {} | grep -oP '(?<=name=)\\S+')"
+
+[keybindings]
+enter = "actions:a"
+x = "actions:k"
+
+[actions.a]
+description = "Attach to session"
+mode = "execute"
+command = "zmx a $(echo {} | grep -oP '(?<=name=)\\S+')"
+
+[actions.k]
+description = "Kill a session"
+mode = "execute"
+command = "zmx k $(echo {} | grep -oP '(?<=name=)\\S+')"
