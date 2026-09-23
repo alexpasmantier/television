@@ -1,0 +1,50 @@
+[metadata]
+name = "cred"
+description = "A channel to select from cred data"
+
+[source]
+command = 'fd . ~/.cred-store --type file --exclude config | sed "s|.*/\.cred-store/||"'
+
+[keybindings]
+enter = "actions:copy"
+
+[actions.copy]
+description = "Copy value to clipboard"
+command = '''
+sh -c '
+store=$(echo {} | cut -d/ -f1)
+file=$(echo {} | sed "s|$store/||")
+cred "$store" copy "$file"
+'
+'''
+mode = "execute"
+
+[actions.show]
+description = "Show value"
+command = '''
+sh -c '
+store=$(echo {} | cut -d/ -f1)
+file=$(echo {} | sed "s|$store/||")
+cred "$store" show "$file"
+'
+'''
+mode = "execute"
+
+[actions.connect]
+description = "Connect to ssh connection"
+command = '''
+sh -c '
+store=$(echo {} | cut -d/ -f1)
+file=$(echo {} | sed "s|$store/||")
+
+if [ "$store" != "ssh" ]; then
+  echo "This action is only available for ssh connections."
+  exit 1
+else
+  basefile=$(basename "$file")
+  dir=$(echo "$file" | sed "s|/$basefile||")
+  cred "$store" connect "$dir"
+fi
+'
+'''
+mode = "execute"
