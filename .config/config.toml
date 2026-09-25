@@ -80,6 +80,8 @@ hidden = false
 [ui.results_panel]
 border_type = "none"
 # padding = {"left": 0, "right": 0, "top": 0, "bottom": 0}
+# Rows per entry; above 1, entries are split on newlines (see `entry_delimiter`)
+# entry_height = 1
 
 [ui.preview_panel]
 # Preview panel size (percentage of screen width/height)
