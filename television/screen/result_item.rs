@@ -15,6 +15,7 @@ use crate::{
 use anyhow::Result;
 use ratatui::{
     prelude::{Color, Line, Span, Style},
+    text::Text,
     widgets::{Block, List, ListDirection, ListState},
 };
 use unicode_width::UnicodeWidthStr;
@@ -118,6 +119,173 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
     }
 
     Line::from(spans)
+}
+
+/// Build the rows of a [`ResultItem`] that is drawn `height` rows tall.
+///
+/// A height of 1 is exactly [`build_result_line`]. Above that, the item's
+/// text is split on `\n` and each line gets a row of its own, so the result
+/// always has exactly `height` lines: an item with fewer lines is padded with
+/// blank ones, and whatever lies beyond the last row is joined onto it.
+///
+/// The selection prefix is drawn on the first row only; the rows below it are
+/// indented by the prefix's width so that the lines stay aligned.
+#[allow(clippy::too_many_arguments)]
+pub fn build_result_text<'a, T: ResultItem + ?Sized>(
+    item: &'a T,
+    selection_fg: Color,
+    result_fg: Color,
+    match_fg: Color,
+    area_width: u16,
+    prefix: Option<bool>,
+    height: u16,
+) -> Text<'a> {
+    if height <= 1 {
+        return Text::from(build_result_line(
+            item,
+            selection_fg,
+            result_fg,
+            match_fg,
+            area_width,
+            prefix,
+        ));
+    }
+    let mut lines: Vec<Line<'a>> = split_entry_lines(item, height)
+        .into_iter()
+        .enumerate()
+        .map(|(i, line)| {
+            let line_prefix = if i == 0 {
+                prefix
+            } else {
+                prefix.map(|_| false)
+            };
+            // `EntryLine` owns its text, so the spans are made `'static`
+            // rather than borrowing from a temporary
+            let built = build_result_line(
+                &line,
+                selection_fg,
+                result_fg,
+                match_fg,
+                area_width,
+                line_prefix,
+            );
+            Line::from(
+                built
+                    .spans
+                    .into_iter()
+                    .map(|span| {
+                        Span::styled(span.content.into_owned(), span.style)
+                    })
+                    .collect::<Vec<_>>(),
+            )
+        })
+        .collect();
+    lines.resize(usize::from(height), Line::default());
+    Text::from(lines)
+}
+
+/// One line of a multi-line [`ResultItem`], with its match ranges and style
+/// runs rebased onto the line.
+struct EntryLine {
+    text: String,
+    match_ranges: Option<Vec<(u32, u32)>>,
+    styles: Option<Vec<(u32, Style)>>,
+}
+
+impl ResultItem for EntryLine {
+    fn raw(&self) -> &str {
+        &self.text
+    }
+
+    fn display(&self) -> &str {
+        &self.text
+    }
+
+    fn output(&self) -> Result<String> {
+        Ok(self.text.clone())
+    }
+
+    fn match_ranges(&self) -> Option<&[(u32, u32)]> {
+        self.match_ranges.as_deref()
+    }
+
+    fn styles(&self) -> Option<&[(u32, Style)]> {
+        self.styles.as_deref()
+    }
+}
+
+/// Split an item's display text into at most `height` lines.
+///
+/// Match ranges and style runs are character offsets into the whole text, so
+/// each line keeps the part of them that falls inside it, shifted to start at
+/// the line's first character. A style run that began on an earlier line
+/// carries over to the start of this one.
+///
+/// The last line keeps any remaining `\n`s; they are removed when it is made
+/// printable, which joins the overflow onto it.
+fn split_entry_lines<T: ResultItem + ?Sized>(
+    item: &T,
+    height: u16,
+) -> Vec<EntryLine> {
+    let display = item.display();
+    let max_lines = usize::from(height.max(1));
+
+    // (start, end) character offsets of each line, `end` excluding the `\n`
+    let mut bounds: Vec<(u32, u32)> = Vec::with_capacity(max_lines);
+    let mut start = 0u32;
+    let mut count = 0u32;
+    for c in display.chars() {
+        if c == '\n' && bounds.len() + 1 < max_lines {
+            bounds.push((start, count));
+            start = count + 1;
+        }
+        count += 1;
+    }
+    bounds.push((start, count));
+
+    let styles = item.styles().filter(|s| !s.is_empty());
+    bounds
+        .into_iter()
+        .map(|(start, end)| {
+            let text = display
+                .chars()
+                .skip(start as usize)
+                .take((end - start) as usize)
+                .collect();
+            let match_ranges = item.match_ranges().map(|ranges| {
+                ranges
+                    .iter()
+                    .filter(|&&(s, e)| s < end && e > start)
+                    .map(|&(s, e)| (s.max(start) - start, e.min(end) - start))
+                    .collect()
+            });
+            let styles = styles.map(|runs| {
+                let mut line_runs: Vec<(u32, Style)> = Vec::new();
+                // the run in effect where this line begins
+                if let Some(&(_, style)) =
+                    runs.iter().rev().find(|&&(at, _)| at <= start)
+                {
+                    line_runs.push((0, style));
+                }
+                line_runs.extend(
+                    runs.iter()
+                        .filter(|&&(at, _)| at > start && at < end)
+                        .map(|&(at, style)| (at - start, style)),
+                );
+                // keep the item on the styled path even if no run reaches
+                // this line, so it is not repainted in the plain colours
+                if line_runs.is_empty() {
+                    line_runs.push((0, Style::default()));
+                }
+                line_runs
+            });
+            EntryLine {
+                text,
+                match_ranges,
+                styles,
+            }
+        })
+        .collect()
 }
 
 fn build_entry_spans<T: ResultItem + ?Sized>(
@@ -271,6 +439,7 @@ pub fn build_results_list<'a, 'b, T, F>(
     colorscheme: &ResultsColorscheme,
     area_width: u16,
     highlight_symbol: &'a str,
+    entry_height: u16,
     mut prefix_fn: F,
 ) -> List<'a>
 where
@@ -287,13 +456,14 @@ where
             } else {
                 colorscheme.result_fg
             };
-        build_result_line(
+        build_result_text(
             e,
             colorscheme.result_selected_fg,
             result_fg,
             colorscheme.match_foreground_color,
             area_width,
             prefix,
+            entry_height,
         )
     }))
     .direction(list_direction)
@@ -426,6 +596,174 @@ mod tests {
 
     /// The style runs `utils::ansi` produces for
     /// `"\x1b[31mRed\x1b[0m and \x1b[32mGreen\x1b[0m"`.
+    /// The text of each row, with the spans of a row joined.
+    fn row_texts(text: &Text) -> Vec<String> {
+        text.lines
+            .iter()
+            .map(|l| l.spans.iter().map(|s| s.content.as_ref()).collect())
+            .collect()
+    }
+
+    #[test]
+    fn test_build_result_text_height_one_is_one_line() {
+        let entry = Entry::new("subject\ncrumb".to_string());
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
+            200,
+            None,
+            1,
+        );
+        // the single-line path is unchanged: the newline is removed
+        assert_eq!(row_texts(&text), vec!["subjectcrumb"]);
+    }
+
+    #[test]
+    fn test_build_result_text_splits_lines_and_matches() {
+        // matches on "sub" in the first line and "cr" in the second
+        let entry = Entry::new("subject\ncrumb".to_string())
+            .with_match_indices(&[0, 1, 2, 8, 9]);
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Yellow,
+            200,
+            None,
+            2,
+        );
+        assert_eq!(row_texts(&text), vec!["subject", "crumb"]);
+        assert_eq!(text.lines[0].spans[0], Span::raw("sub").fg(Color::Yellow));
+        assert_eq!(text.lines[1].spans[0], Span::raw("cr").fg(Color::Yellow));
+        assert_eq!(text.lines[1].spans[1], Span::raw("umb").fg(Color::Reset));
+    }
+
+    #[test]
+    fn test_build_result_text_match_spanning_the_newline() {
+        // one range covering "t\nc" is cut in two at the line break
+        let entry = Entry::new("subject\ncrumb".to_string())
+            .with_match_indices(&[6, 7, 8]);
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Yellow,
+            200,
+            None,
+            2,
+        );
+        assert_eq!(
+            text.lines[0].spans.last().unwrap(),
+            &Span::raw("t").fg(Color::Yellow)
+        );
+        assert_eq!(text.lines[1].spans[0], Span::raw("c").fg(Color::Yellow));
+    }
+
+    #[test]
+    fn test_build_result_text_pads_short_entries() {
+        let entry = Entry::new("only one line".to_string());
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
+            200,
+            None,
+            3,
+        );
+        assert_eq!(row_texts(&text), vec!["only one line", "", ""]);
+    }
+
+    #[test]
+    fn test_build_result_text_joins_overflow_onto_last_row() {
+        let entry = Entry::new("a\nb\nc\nd".to_string());
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
+            200,
+            None,
+            2,
+        );
+        assert_eq!(row_texts(&text), vec!["a", "bcd"]);
+    }
+
+    #[test]
+    fn test_build_result_text_carries_style_across_lines() {
+        // red from the start of "Red\nand", then green from "Green"
+        let styles = vec![
+            (0, Style::default().fg(Color::Red)),
+            (8, Style::default().fg(Color::Green)),
+        ];
+        let entry = Entry::new("Red\nand Green".to_string())
+            .with_match_indices(&[4])
+            .with_styles(styles);
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Yellow,
+            200,
+            None,
+            2,
+        );
+        assert_eq!(text.lines[0].spans, vec![Span::raw("Red").fg(Color::Red)]);
+        assert_eq!(
+            text.lines[1].spans,
+            vec![
+                Span::raw("a").fg(Color::Yellow),
+                Span::raw("nd ").fg(Color::Red),
+                Span::raw("Green").fg(Color::Green),
+            ]
+        );
+    }
+
+    #[test]
+    fn test_build_result_text_styled_line_without_runs() {
+        // the only run starts on the second line; the first stays unstyled
+        // rather than falling back to the plain colours
+        let styles = vec![(4, Style::default().fg(Color::Green))];
+        let entry = Entry::new("abc\ndef".to_string()).with_styles(styles);
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Blue,
+            Color::Yellow,
+            200,
+            None,
+            2,
+        );
+        assert_eq!(text.lines[0].spans, vec![Span::raw("abc")]);
+        assert_eq!(
+            text.lines[1].spans,
+            vec![Span::raw("def").fg(Color::Green)]
+        );
+    }
+
+    #[test]
+    fn test_build_result_text_prefix_only_on_first_row() {
+        let entry = Entry::new("subject\ncrumb".to_string());
+        let text = build_result_text(
+            &entry,
+            Color::Reset,
+            Color::Reset,
+            Color::Reset,
+            200,
+            Some(true),
+            2,
+        );
+        assert_eq!(
+            row_texts(&text),
+            vec![
+                format!("{SELECTED_SYMBOL}subject"),
+                format!("{DESELECTED_SYMBOL}crumb"),
+            ]
+        );
+    }
+
     fn red_and_green() -> Vec<(u32, Style)> {
         vec![
             (0, Style::default().fg(Color::Red)),
