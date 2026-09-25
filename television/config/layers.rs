@@ -301,6 +301,15 @@ impl ConfigLayers {
                 Some(self.channel.ui.as_ref()?.results_panel.as_ref()?.padding)
             })
             .unwrap_or(self.base_config.ui.results_panel.padding);
+        let results_panel_entry_height = self
+            .channel
+            .ui
+            .as_ref()
+            .and_then(|ui| ui.results_panel.as_ref())
+            .map_or(self.base_config.ui.results_panel.entry_height, |rp| {
+                rp.entry_height
+            })
+            .max(1);
         let preview_panel_size = self
             .channel_cli
             .preview_size
@@ -565,6 +574,7 @@ impl ConfigLayers {
             // results panel
             results_panel_border_type,
             results_panel_padding,
+            results_panel_entry_height,
             // preview panel
             preview_panel_size,
             preview_panel_header,
@@ -671,6 +681,8 @@ pub struct MergedConfig {
     // results panel
     pub results_panel_border_type: BorderType,
     pub results_panel_padding: Padding,
+    /// Terminal rows per results entry (at least 1).
+    pub results_panel_entry_height: u16,
     // preview panel
     pub preview_panel_size: u16,
     pub preview_panel_header: Option<Template>,
@@ -748,6 +760,13 @@ impl MergedConfig {
 
     /// Number of vertical cells the results block chrome (borders + padding)
     /// takes away from the results area.
+    /// How many entries fit in a results area `height` rows tall, chrome
+    /// included.
+    pub fn results_panel_entry_capacity(&self, height: u16) -> u16 {
+        height.saturating_sub(self.results_panel_chrome_height())
+            / self.results_panel_entry_height.max(1)
+    }
+
     pub fn results_panel_chrome_height(&self) -> u16 {
         let borders = if self.results_panel_border_type == BorderType::None {
             0
@@ -780,6 +799,47 @@ mod tests {
             },
         )
         .merge()
+    }
+
+    #[test]
+    fn results_entry_height_comes_from_the_channel() {
+        let prototype: ChannelPrototype = toml::from_str(
+            r#"
+            [metadata]
+            name = "two-lines"
+            [source]
+            command = "printf 'a\\nb\\0'"
+            entry_delimiter = "\\0"
+            [ui.results_panel]
+            entry_height = 2
+            "#,
+        )
+        .unwrap();
+        let merged = merge_layers(
+            Config::default(),
+            prototype,
+            ChannelCli::default(),
+            GlobalCli::default(),
+        );
+        assert_eq!(merged.results_panel_entry_height, 2);
+        let chrome = merged.results_panel_chrome_height();
+        // 20 rows inside the chrome hold 10 two-row entries
+        assert_eq!(merged.results_panel_entry_capacity(20 + chrome), 10);
+        // an odd row left over is not a half entry
+        assert_eq!(merged.results_panel_entry_capacity(21 + chrome), 10);
+    }
+
+    #[test]
+    fn results_entry_height_defaults_to_one() {
+        let merged = merge_layers(
+            Config::default(),
+            ChannelPrototype::new("test", "echo 1"),
+            ChannelCli::default(),
+            GlobalCli::default(),
+        );
+        assert_eq!(merged.results_panel_entry_height, 1);
+        let chrome = merged.results_panel_chrome_height();
+        assert_eq!(merged.results_panel_entry_capacity(20 + chrome), 20);
     }
 
     #[test]

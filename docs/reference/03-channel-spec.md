@@ -246,12 +246,30 @@ hidden = false
 |-------|------|---------|-------------|
 | `border_type` | string | "none" | Border style |
 | `padding` | table | all 0 | Panel padding |
+| `entry_height` | integer | 1 | Rows each entry takes. Above 1, an entry is split on newlines and each line gets its own row |
 
 ```toml
 [ui.results_panel]
 border_type = "plain"
 padding = { top = 1, bottom = 1 }
 ```
+
+With `entry_height = 2`, a source can put a secondary line under each entry,
+such as a path under a title. Entries have to contain newlines for that, so the
+source needs a different `entry_delimiter`:
+
+```toml
+[source]
+command = "for f in *; do printf '%s\\n  %s\\0' \"$f\" \"$(stat -c %y \"$f\")\"; done"
+entry_delimiter = '\0'
+
+[ui.results_panel]
+entry_height = 2
+```
+
+Every entry has the same height, so scrolling stays predictable. An entry with
+fewer lines is padded with blank rows, and lines beyond the last row are joined
+onto it. The search covers all of an entry's lines.
 
 ### [ui.input_bar]
 
