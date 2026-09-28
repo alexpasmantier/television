@@ -452,7 +452,7 @@ impl PreviewSpec {
         Self {
             command,
             offset,
-            cached: false,
+            cached: cached_default(),
         }
     }
 
@@ -469,7 +469,7 @@ impl PreviewSpec {
                 shell: None,
             },
             offset: None,
-            cached: false,
+            cached: cached_default(),
         }
     }
 }

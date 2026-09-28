@@ -171,15 +171,25 @@ pub struct Cli {
     ///
     /// This is enabled by default since most channels will benefit from it.
     ///
-    /// Set `cached = false` in the channel's [preview] section to disable caching.
-    /// Passing this flag overrides that setting and enables caching for this invocation.
+    /// Passing this flag overrides the current channel's settings.
     #[arg(
         long,
         verbatim_doc_comment,
-        conflicts_with = "no_preview",
+        conflicts_with_all = ["no_cache_preview", "no_preview"],
         help_heading = "Preview"
     )]
     pub cache_preview: bool,
+
+    /// Disable caching of the preview command output for each entry.
+    ///
+    /// See `--cache-preview` for more information.
+    #[arg(
+        long,
+        verbatim_doc_comment,
+        conflicts_with_all = ["cache_preview", "no_preview"],
+        help_heading = "Preview"
+    )]
+    pub no_cache_preview: bool,
 
     /// A preview line number offset template to use to scroll the preview to for each
     /// entry.
