@@ -59,10 +59,13 @@ tv files --watch 5.0  # Reload every 5 seconds
 
 ### Channel Configuration
 
+`watch` is a top-level key in the channel file, so it must come before the first table:
+
 ```toml
+watch = 2.0  # Reload every 2 seconds
+
 [source]
 command = "docker ps"
-watch = 2.0  # Reload every 2 seconds
 ```
 
 ### Use Cases
@@ -173,6 +176,7 @@ tv files --expect "ctrl-e,ctrl-v,ctrl-x"
 ```
 
 If you press <kbd>Ctrl</kbd>+<kbd>E</kbd>, output is:
+
 ```
 ctrl-e
 selected_file.txt
@@ -180,7 +184,7 @@ selected_file.txt
 
 ### Use Cases
 
-Useful for shell scripts that need to know *how* an item was selected:
+Useful for shell scripts that need to know _how_ an item was selected:
 
 ```sh
 output=$(tv files --expect "ctrl-e,ctrl-v")
@@ -246,6 +250,10 @@ Disable fuzzy matching for exact substring search:
 ```sh
 tv files --exact
 ```
+
+Bare patterns then match as substrings, while the
+[search-pattern operators](../user-guide/06-search-patterns.md) (`^foo`,
+`foo$`, `!foo`, ...) keep working.
 
 ### When to Use
 
@@ -370,12 +378,12 @@ tv --cable-dir ~/my-channels/
 
 ## Environment Variables
 
-| Variable | Purpose |
-|----------|---------|
+| Variable            | Purpose                   |
+| ------------------- | ------------------------- |
 | `TELEVISION_CONFIG` | Override config directory |
-| `TELEVISION_DATA` | Override data directory |
-| `XDG_CONFIG_HOME` | XDG config base |
-| `XDG_DATA_HOME` | XDG data base |
+| `TELEVISION_DATA`   | Override data directory   |
+| `XDG_CONFIG_HOME`   | XDG config base           |
+| `XDG_DATA_HOME`     | XDG data base             |
 
 ## Combining Features
 
@@ -383,7 +391,7 @@ These features compose well together:
 
 ```sh
 # Watch docker containers, inline, with fast selection
-tv docker-ps --watch 2.0 --inline --height 10
+tv docker-containers --watch 2.0 --inline --height 10
 
 # File picker with preview, expect keys for different actions
 tv files --preview-size 70 --expect "ctrl-e,ctrl-o" --ui-scale 80

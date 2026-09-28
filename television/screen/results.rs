@@ -22,7 +22,7 @@ pub fn draw_results_list(
     f: &mut Frame,
     rect: Rect,
     entries: &[Entry],
-    selected_entries: &FxHashSet<Entry>,
+    selected: &FxHashSet<u32>,
     relative_picker_state: &mut ListState,
     input_bar_position: InputPosition,
     colorscheme: &Colorscheme,
@@ -66,10 +66,7 @@ pub fn draw_results_list(
     };
 
     let mut results_block = Block::default()
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(RatatuiPadding::from(*results_panel_padding));
     if let Some(title) = title {
         results_block = results_block.title_top(title);
@@ -88,7 +85,7 @@ pub fn draw_results_list(
         InputPosition::Top => ratatui::widgets::ListDirection::TopToBottom,
     };
 
-    let has_multi_select = !selected_entries.is_empty();
+    let has_multi_select = !selected.is_empty();
 
     let results_list = result_item::build_results_list(
         results_block,
@@ -100,7 +97,7 @@ pub fn draw_results_list(
         if borderless { "" } else { POINTER_SYMBOL },
         |entry| {
             if has_multi_select {
-                Some(selected_entries.contains(entry))
+                Some(selected.contains(&entry.index))
             } else {
                 None
             }
@@ -111,11 +108,18 @@ pub fn draw_results_list(
     Ok(())
 }
 
-/// Draw a minimal-mode picker list (remote control / actions picker
-/// takeover): borderless, color-only selection, dimmed description and
-/// shortcut columns.
+/// Picker lists have no pointer column keeping entries off a border, so
+/// inside one they get a 1-column inset.
+pub fn picker_list_padding(padding: Padding, bordered: bool) -> Padding {
+    let mut padding = padding;
+    if bordered {
+        padding.left = padding.left.max(1);
+    }
+    padding
+}
+
 #[allow(clippy::too_many_arguments)]
-pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
+pub fn draw_picker_list<T: result_item::ResultItem>(
     f: &mut Frame,
     rect: Rect,
     entries: &[T],
@@ -123,14 +127,27 @@ pub fn draw_minimal_picker_list<T: result_item::ResultItem>(
     input_bar_position: InputPosition,
     colorscheme: &Colorscheme,
     padding: &Padding,
+    border_type: &BorderType,
+    title: Option<&str>,
     show_descriptions: bool,
 ) -> Result<()> {
-    let block = Block::default()
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
-        .padding(RatatuiPadding::from(*padding));
+    let padding =
+        picker_list_padding(*padding, *border_type != BorderType::None);
+    let mut block = Block::default()
+        .style(Style::default().bg(colorscheme.general.background))
+        .padding(RatatuiPadding::from(padding));
+    if let Some(border_type) = border_type.to_ratatui_border_type() {
+        block = block
+            .borders(Borders::ALL)
+            .border_type(border_type)
+            .border_style(Style::default().fg(colorscheme.general.border_fg));
+        if let Some(title) = title {
+            block = block.title_top(
+                Line::from(format!(" {} ", title))
+                    .alignment(Alignment::Center),
+            );
+        }
+    }
 
     let list_direction = match input_bar_position {
         InputPosition::Bottom => ratatui::widgets::ListDirection::BottomToTop,

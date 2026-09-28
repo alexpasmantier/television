@@ -18,7 +18,7 @@ chmod +x install.sh
 
 ## Dependencies
 
-`tv` ships with a few channels by default, which require the following dependencies in order to work correctly:
+`tv` ships with a few channels by default, which require the following dependencies to work correctly:
 
 - [`fd`](https://github.com/sharkdp/fd) – `find` alternative
 - [`bat`](https://github.com/sharkdp/bat) – `cat` alternative with syntax highlighting  

@@ -95,9 +95,9 @@ Which channel gets effectively chosen for different commands can be tweaked in t
 
 Each key is a channel name and each value is a set of commands that should trigger that channel.
 
-Example: say you want the following prompts to trigger the following channels when pressing <kbd>CTRL-T</kbd>`:
+Example: say you want the following prompts to trigger the following channels when pressing <kbd>CTRL-T</kbd>:
 
-- `git checkout` should trigger the `git-branches` channel
+- `git checkout` should trigger the `git-branch` channel
 - `ls` should trigger the `dirs` channel
 - `cat` and `nano` should trigger the `files` channel
 
@@ -105,7 +105,7 @@ You would add the following to your configuration file:
 
 ```toml
 [shell_integration.channel_triggers]
-"git-branches" = ["git checkout"]
+"git-branch" = ["git checkout"]
 "dirs" = ["ls"]
 "files" = ["cat", "nano"]
 ```
@@ -168,58 +168,35 @@ For all shells you'll have to restart it (or similar) to integrate the changes.
 
 #### Automatically executing selection
 
-Edit the `~/.config/television/shell/integration.zsh` file and add the following:
+Edit the `~/.config/television/shell/integration.zsh` file.
+
+For history search, uncomment the `zle accept-line` line at the end of `_tv_shell_history`:
 
 ```zsh
-_tv_search() {
-    emulate -L zsh
-    zle -I
-
-    local current_prompt
-    current_prompt=$LBUFFER
-
-    local output
-
-    output=$(tv --autocomplete-prompt "$current_prompt" $*)
-
-    zle reset-prompt
-
     if [[ -n $output ]]; then
         RBUFFER=""
-        LBUFFER=$current_prompt$output
-
-        # uncomment this to automatically accept the line
-        # (i.e. run the command without having to press enter twice)
-        # zle accept-line
+        LBUFFER=$(echo "$output")
+        zle accept-line
     fi
-}
-
-
-zle -N tv-search _tv_search
-
-
-bindkey '^T' tv-search
 ```
 
-Note: Uncommenting `zle accept-line` below will automatically execute the command when accepting a suggestion
+For smart autocompletion, add `zle accept-line` after the `__tv_path_completion` call in `_tv_smart_autocomplete`:
+
+```zsh
+  __tv_path_completion "$prefix" "$lbuf"
+  zle accept-line
+```
+
+Note: this runs the command as soon as you accept a suggestion, without pressing enter a second time.
 
 #### Open history channel with the most up to date version of the history file
 
-Edit the `~/.config/television/shell/integration.bash` file and replace the `tv_shell_history` function with the following (or rename to keep the default implementation):
+Edit the `~/.config/television/shell/integration.bash` file and replace the `output=` line in `tv_shell_history` with:
 
 ```bash
-function tv_shell_history() {
-  local current_prompt="${READLINE_LINE:0:$READLINE_POINT}"
-
-  local output=$(history -n && history -a && tv bash-history --input "$current_prompt")
-
-  if [[ -n $output ]]; then
-    READLINE_LINE=$output
-    READLINE_POINT=${#READLINE_LINE}
-  fi
-}
-# history -n  to read the current file, in case other sessions wrote some commands
-# history -a  to commit the current one
+    output=$(history -n && history -a && tv bash-history --no-status-bar --input "$current_prompt" --inline)
 ```
+
+`history -n` reads commands written by other sessions and `history -a` commits the current session to the history file before `tv` reads it.
 
 **WARNING:** committing the current history to file could have unintended consequences as a default, for example if the user was planning to run `history -c` to clear the current session (perhaps some commands have sensitive information)

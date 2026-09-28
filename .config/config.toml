@@ -24,6 +24,10 @@ default_channel = "files"
 # If not specified, the shell is detected from the environment ($SHELL on Unix).
 # Channel-specific shell settings override this global setting.
 # shell = "bash"
+# Binary to use for a given shell. Useful on Windows when `bash` resolves to the
+# WSL stub in System32 instead of Git Bash.
+# [shell_binaries]
+# bash = "C:/Program Files/Git/usr/bin/bash.exe"
 # History settings
 # ---------------
 # Maximum number of entries to keep in the global history (default: 100)
@@ -34,6 +38,10 @@ history_size = 200
 # When true: history navigation shows entries from all channels
 # When false: history navigation is scoped to the current channel
 global_history = false
+# Whether fuzzy matching tolerates typos (default: false)
+# When true, every fuzzy pattern gets a typo budget that scales with its
+# length (one typo per 4 characters, capped at 2)
+typo_resistance = false
 
 [ui]
 # How much space to allocate for the UI (in percentage of the screen)
@@ -134,8 +142,8 @@ ctrl-down = "select_next_history"
 
 # Multi-selection
 # --------------
-tab = "toggle_selection_down"
-backtab = "toggle_selection_up"
+tab = "toggle_selection"
+backtab = "toggle_selection_all"
 enter = "confirm_selection"
 
 # Preview panel control
@@ -189,14 +197,14 @@ fallback_channel = "files"
 # by the corresponding commands.
 # Example: say you want the following commands to trigger the following channels
 # when pressing <CTRL-T>:
-#          `git checkout`  should trigger the `git-branches` channel
+#          `git checkout`  should trigger the `git-branch` channel
 #          `ls`            should trigger the `dirs` channel
 #          `cat` and `cp`  should trigger the `files` channel
 #
 # You would add the following to your configuration file:
 # ```
 # [shell_integration.channel_triggers]
-# "git-branches" = ["git checkout"]
+# "git-branch" = ["git checkout"]
 # "dirs" = ["ls"]
 # "files" = ["cat", "cp"]
 # ```

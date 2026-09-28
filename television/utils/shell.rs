@@ -4,11 +4,24 @@ use crate::{
 };
 use anyhow::Result;
 use clap::CommandFactory;
-use std::fmt::Display;
+use rustc_hash::FxHashMap;
+use std::{fmt::Display, sync::OnceLock};
 use tracing::{debug, warn};
 
+/// User-configured binary paths (see `shell_binaries` in the config).
+static SHELL_BINARIES: OnceLock<FxHashMap<Shell, String>> = OnceLock::new();
+
 #[derive(
-    Debug, Clone, Copy, PartialEq, Hash, serde::Serialize, serde::Deserialize,
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
 )]
 #[serde(rename_all = "lowercase")]
 pub enum Shell {
@@ -132,7 +145,15 @@ impl Shell {
         Ok(Shell::default())
     }
 
+    /// Register user-configured binary paths.
+    pub fn set_binaries(binaries: FxHashMap<Shell, String>) {
+        let _ = SHELL_BINARIES.set(binaries);
+    }
+
     pub fn executable(&self) -> &'static str {
+        if let Some(binary) = SHELL_BINARIES.get().and_then(|b| b.get(self)) {
+            return binary;
+        }
         match self {
             Shell::Bash => "bash",
             Shell::Zsh => "zsh",
@@ -263,6 +284,16 @@ pub fn render_clap_autocomplete(shell: Shell) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_executable_uses_configured_binary() {
+        Shell::set_binaries(FxHashMap::from_iter([(
+            Shell::Nu,
+            "/custom/bin/nu".to_string(),
+        )]));
+        assert_eq!(Shell::Nu.executable(), "/custom/bin/nu");
+        assert_eq!(Shell::Bash.executable(), "bash");
+    }
 
     #[test]
     fn test_bash_ctrl_keybinding() {

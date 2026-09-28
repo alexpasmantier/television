@@ -29,10 +29,21 @@ anything that:
 And will produce the following results:
 | haystack | match | explanation |
 | :------- | :---: | :------: |
-| _the car drove past the bike_ | ❌ | ends with bike |
-| _car, bike or bus?_ | ❌ | starts with car |
-| _the black motorbike flew past the tourists_ | ✅ | |
-| _the motorbike flew past the tourists_ | ❌ | doesn't contain 'car' |
+| _the car drove past the bike_ | ✗ | ends with bike |
+| _car, bike or bus?_ | ✗ | starts with car |
+| _the black motorbike flew past the tourists_ | ✓ | |
+| _the motorbike flew past the tourists_ | ✗ | doesn't contain 'car' |
+
+When running with `--exact`, bare patterns match as substrings instead of
+fuzzily (`foo` behaves like `'foo`); all the operators above keep their
+meaning. Prefix a special character with a backslash to search for it
+literally (e.g. `\^foo`, `foo\$`, `foo\ bar`).
+
+With `--typo-resistance` (alias `--typos`, or `typo_resistance = true` in
+the config file),
+fuzzy patterns tolerate typos: each pattern gets a budget of one typo per 4
+characters, capped at 2, so `confg` still matches _config_. Typo'd matches
+score below clean ones, and substring/exact operators are unaffected.
 
 For more information on the matcher behavior, see the
-[nucleo-matcher](https://docs.rs/nucleo-matcher/latest/nucleo_matcher/pattern/enum.AtomKind.html) documentation.
+[frizbee](https://docs.rs/frizbee/latest/frizbee/) documentation.

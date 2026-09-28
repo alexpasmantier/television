@@ -9,9 +9,10 @@ pub struct MatchedItem<I>
 where
     I: Sync + Send + Clone + 'static,
 {
+    /// The index of the item in the matcher's store.
+    pub index: u32,
     /// The matched item.
     pub inner: I,
-    /// The dimension against which the item was matched (as a string).
     pub matched_string: String,
     /// The UTF-32 char indices of the matched characters.
     pub match_indices: Vec<u32>,
@@ -24,11 +25,13 @@ where
     /// Create a new `MatchedItem` from the given frizbee `Match` and the
     /// dimension against which it was matched.
     pub fn new(
+        index: u32,
         inner: I,
         matched_string: String,
         match_indices: Vec<u32>,
     ) -> Self {
         Self {
+            index,
             inner,
             matched_string,
             match_indices,

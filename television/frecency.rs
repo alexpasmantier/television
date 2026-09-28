@@ -186,28 +186,45 @@ impl Frecency {
     /// * `channel_name` - The name of the channel
     /// * `raw` - The raw entry string (canonical key)
     pub fn record_access(&self, channel_name: &str, raw: &str) {
+        self.record_accesses(channel_name, std::iter::once(raw));
+    }
+
+    /// Record an access for several entries at once, pruning the channel
+    /// only once at the end.
+    ///
+    /// # Arguments
+    /// * `channel_name` - The name of the channel
+    /// * `keys` - The raw entry strings (canonical keys)
+    pub fn record_accesses<'a>(
+        &self,
+        channel_name: &str,
+        keys: impl IntoIterator<Item = &'a str>,
+    ) {
         let mut data = self.data.write();
         let channel_entries =
             data.channels.entry(channel_name.to_string()).or_default();
 
-        if let Some(record) = channel_entries.get_mut(raw) {
-            record.record_access();
-            debug!(
-                "Updated frecency for '{}' in channel '{}': count={}",
-                raw, channel_name, record.access_count
-            );
-        } else {
-            channel_entries
-                .insert(raw.to_string(), FrecencyRecord::new(raw.to_string()));
-            debug!(
-                "Created frecency record for '{}' in channel '{}'",
-                raw, channel_name
-            );
-
-            // Prune if over limit
-            if channel_entries.len() > self.max_entries_per_channel {
-                self.prune_channel_entries(channel_entries);
+        for key in keys {
+            if let Some(record) = channel_entries.get_mut(key) {
+                record.record_access();
+                debug!(
+                    "Updated frecency for '{}' in channel '{}': count={}",
+                    key, channel_name, record.access_count
+                );
+            } else {
+                channel_entries.insert(
+                    key.to_string(),
+                    FrecencyRecord::new(key.to_string()),
+                );
+                debug!(
+                    "Created frecency record for '{}' in channel '{}'",
+                    key, channel_name
+                );
             }
+        }
+
+        if channel_entries.len() > self.max_entries_per_channel {
+            self.prune_channel_entries(channel_entries);
         }
     }
 

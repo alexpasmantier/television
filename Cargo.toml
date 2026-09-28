@@ -15,7 +15,7 @@ categories = [
   "development-tools",
 ]
 exclude = ["website", ".github", "apt", "website", "assets"]
-rust-version = "1.90"
+rust-version = "1.98"
 build = "build.rs"
 
 [lib]
@@ -65,6 +65,9 @@ crossterm = { version = "0.28.1", features = ["serde", "use-dev-tty"] }
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 crossterm = { version = "0.28", features = ["serde"] }
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [target.'cfg(windows)'.dependencies]
 winapi-util = "0.1.9"
 clipboard-win = "5.4.0"
@@ -73,7 +76,9 @@ clipboard-win = "5.4.0"
 [dev-dependencies]
 criterion = { version = "0.8", features = ["async_tokio"] }
 tempfile = "3.16.0"
-phantom-test = { version = "0.2" }
+phantom-test = { version = "0.3", default-features = false, features = [
+  "alacritty",
+] }
 
 
 [build-dependencies]
@@ -93,6 +98,8 @@ harness = false
 
 [profile.staging]
 inherits = "release"
+codegen-units = 16
+incremental = true
 opt-level = 3
 lto = false
 
@@ -128,7 +135,6 @@ similar_names = "allow"
 float_cmp = "allow"
 implicit_hasher = "allow"
 wildcard_imports = "allow"
-from_iter_instead_of_collect = "allow"
 
 [package.metadata.deb]
 maintainer = "Alexandre Pasmantier <alex.pasmant@gmail.com>"

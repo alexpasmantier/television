@@ -49,10 +49,7 @@ pub fn draw_missing_requirements_popup(
             ))
             .alignment(Alignment::Center),
         )
-        .style(
-            Style::default()
-                .bg(colorscheme.general.background.unwrap_or_default()),
-        )
+        .style(Style::default().bg(colorscheme.general.background))
         .padding(Padding::horizontal(1));
 
     let paragraph = Paragraph::new(content)

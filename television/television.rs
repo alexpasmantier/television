@@ -71,12 +71,6 @@ pub struct MissingRequirementsPopup {
     pub missing_requirements: Vec<String>,
 }
 
-#[derive(PartialEq, Copy, Clone, Hash, Eq, Debug, Serialize, Deserialize)]
-pub enum MatchingMode {
-    Substring,
-    Fuzzy,
-}
-
 pub struct Television {
     action_tx: UnboundedSender<Action>,
     pub layered_config: ConfigLayers,
@@ -87,7 +81,6 @@ pub struct Television {
     pub mode: Mode,
     pub currently_selected: Option<Entry>,
     pub current_pattern: String,
-    pub matching_mode: MatchingMode,
     pub results_picker: Picker<Entry>,
     pub rc_picker: Picker<CableEntry>,
     pub ap_picker: Picker<ActionEntry>,
@@ -143,12 +136,6 @@ impl Television {
             results_picker = results_picker.inverted();
         }
 
-        let matching_mode = if merged_config.exact_match {
-            MatchingMode::Substring
-        } else {
-            MatchingMode::Fuzzy
-        };
-
         // previewer
         let preview_handles = merged_config
             .channel_preview_command
@@ -178,6 +165,7 @@ impl Television {
             merged_config.channel_source_output.clone(),
             merged_config.channel_preview_command.is_some(),
             merged_config.no_sort,
+            merged_config.matcher_config(),
             frecency_config,
             merged_config.is_stdin,
             notify.clone(),
@@ -199,15 +187,10 @@ impl Television {
             });
         let colorscheme = (&theme).into();
 
-        let pattern = Television::preprocess_pattern(
-            matching_mode,
-            &merged_config
-                .input
-                .clone()
-                .unwrap_or(EMPTY_STRING.to_string()),
-        );
-
-        channel.find(&pattern);
+        // input query
+        let input_query =
+            merged_config.input.as_deref().unwrap_or(EMPTY_STRING);
+        channel.find(input_query);
 
         let preview_state = PreviewState::new(
             channel.supports_preview(),
@@ -237,9 +220,8 @@ impl Television {
             action_picker,
             mode: Mode::Channel,
             currently_selected: None,
-            current_pattern: EMPTY_STRING.to_string(),
+            current_pattern: input_query.to_string(),
             results_picker,
-            matching_mode,
             rc_picker: Picker::default(),
             ap_picker: Picker::default(),
             preview_state,
@@ -288,7 +270,7 @@ impl Television {
     pub fn dump_context(&self) -> Ctx {
         let channel_state = ChannelState::new(
             self.current_channel(),
-            self.channel.selected_entries().clone(),
+            self.channel.selected().clone(),
             self.channel.total_count(),
             self.channel.running(),
             self.channel.current_command().to_string(),
@@ -390,6 +372,7 @@ impl Television {
             self.merged_config.channel_source_output.clone(),
             self.merged_config.channel_preview_command.is_some(),
             self.merged_config.no_sort,
+            self.merged_config.matcher_config(),
             frecency_config,
             false, // stdin only applies to the initial channel
             self.notify.clone(),
@@ -401,9 +384,7 @@ impl Television {
     pub fn find(&mut self, pattern: &str) {
         match self.mode {
             Mode::Channel => {
-                let processed_pattern =
-                    Self::preprocess_pattern(self.matching_mode, pattern);
-                self.channel.find(&processed_pattern);
+                self.channel.find(pattern);
             }
             Mode::RemoteControl => {
                 if let Some(rc) = self.remote_control.as_mut() {
@@ -415,31 +396,6 @@ impl Television {
                     ap.find(pattern);
                 }
             }
-        }
-    }
-
-    fn preprocess_pattern(mode: MatchingMode, pattern: &str) -> String {
-        if mode == MatchingMode::Substring {
-            let parts: Vec<&str> = pattern.split_ascii_whitespace().collect();
-            if parts.is_empty() {
-                return pattern.to_string();
-            }
-
-            let capacity = parts.iter().map(|s| s.len() + 2).sum::<usize>()
-                + parts.len()
-                - 1;
-            let mut result = String::with_capacity(capacity);
-
-            for (i, part) in parts.iter().enumerate() {
-                if i > 0 {
-                    result.push(' ');
-                }
-                result.push('\'');
-                result.push_str(part);
-            }
-            result
-        } else {
-            pattern.to_string()
         }
     }
 
@@ -481,12 +437,12 @@ impl Television {
     #[must_use]
     pub fn get_selected_entries(&mut self) -> Option<FxHashSet<Entry>> {
         // if nothing is selected, return the currently hovered entry
-        if self.channel.selected_entries().is_empty() {
+        if self.channel.selected().is_empty() {
             return self
                 .get_selected_entry()
                 .map(|e| FxHashSet::from_iter([e]));
         }
-        Some(self.channel.selected_entries().clone())
+        Some(self.channel.selected_entries().into_iter().collect())
     }
 
     /// Unified cursor movement for both Channel and Remote-control pickers.
@@ -643,8 +599,8 @@ impl Television {
                     | Action::GoToNextChar
                     | Action::GoToInputStart
                     | Action::GoToInputEnd
-                    | Action::ToggleSelectionDown
-                    | Action::ToggleSelectionUp
+                    | Action::ToggleSelection
+                    | Action::ToggleSelectionAll
                     | Action::ConfirmSelection
                     | Action::SelectNextEntry
                     | Action::SelectPrevEntry
@@ -870,16 +826,17 @@ impl Television {
         }
     }
 
-    pub fn handle_toggle_selection(&mut self, action: &Action) {
-        if matches!(self.mode, Mode::Channel)
-            && let Some(entry) = &self.currently_selected
+    pub fn handle_toggle_selection(&mut self) {
+        if self.mode == Mode::Channel
+            && let Some(entry) = self.get_selected_entry()
         {
-            self.channel.toggle_selection(entry);
-            if matches!(action, Action::ToggleSelectionDown) {
-                self.move_cursor(Movement::Next, 1);
-            } else {
-                self.move_cursor(Movement::Prev, 1);
-            }
+            self.channel.toggle_selection(entry.index);
+        }
+    }
+
+    pub fn handle_toggle_selection_all(&mut self) {
+        if self.mode == Mode::Channel {
+            self.channel.toggle_selection_all();
         }
     }
 
@@ -1085,9 +1042,11 @@ impl Television {
                     self.preview_state.scroll_up(20);
                 }
             }
-
-            Action::ToggleSelectionDown | Action::ToggleSelectionUp => {
-                self.handle_toggle_selection(action);
+            Action::ToggleSelection => {
+                self.handle_toggle_selection();
+            }
+            Action::ToggleSelectionAll => {
+                self.handle_toggle_selection_all();
             }
             Action::ConfirmSelection => {
                 self.handle_confirm_selection()?;
@@ -1307,26 +1266,10 @@ mod test {
         config::layers::ConfigLayers,
         event::Key,
         frecency::Frecency,
-        television::{MatchingMode, Mode, Television},
+        television::{Mode, Television},
     };
     use std::sync::Arc;
     use tempfile::tempdir;
-
-    #[test]
-    fn test_prompt_preprocessing() {
-        let one_word = "test";
-        let mult_word = "this is a specific test";
-        let expect_one = "'test";
-        let expect_mult = "'this 'is 'a 'specific 'test";
-        assert_eq!(
-            Television::preprocess_pattern(MatchingMode::Substring, one_word),
-            expect_one
-        );
-        assert_eq!(
-            Television::preprocess_pattern(MatchingMode::Substring, mult_word),
-            expect_mult
-        );
-    }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     async fn test_cli_overrides() {
@@ -1357,7 +1300,7 @@ mod test {
             frecency,
         );
 
-        assert_eq!(tv.matching_mode, MatchingMode::Substring);
+        assert!(tv.merged_config.exact_match);
         assert!(tv.remote_control.is_none());
     }
 

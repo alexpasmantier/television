@@ -1,12 +1,14 @@
-//! This module tests the inner `App` struct of the `television` crate.
+//! This module tests the inner `App` struct of the `television` crate
+//! by running it in headless mode and sending actions to it programmatically.
 
 use std::{collections::HashSet, path::PathBuf, time::Duration};
 
+use rustc_hash::FxHashSet;
 use television::{
     action::Action,
     app::App,
     cable::Cable,
-    channels::prototypes::ChannelPrototype,
+    channels::{entry::Entry, prototypes::ChannelPrototype},
     cli::{ChannelCli, PostProcessedCli},
     config::{default_config_from_file, layers::ConfigLayers},
 };
@@ -57,12 +59,11 @@ fn setup_app(
     tokio::sync::mpsc::UnboundedSender<Action>,
 ) {
     let target_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("tests")
-        .join("target_dir");
+        .join("tests/headless/target_dir");
     std::env::set_current_dir(&target_dir).unwrap();
 
     let chan: ChannelPrototype = channel_prototype
-        .unwrap_or(ChannelPrototype::new("files", "find . -type f"));
+        .unwrap_or(ChannelPrototype::new("files", "find . -type f | sort"));
     let mut config = default_config_from_file().unwrap();
     // this speeds up the tests
     config.application.tick_rate = 100;
@@ -158,9 +159,10 @@ async fn test_app_basic_search_multiselect() {
     }
 
     // select both files
-    tx.send(Action::ToggleSelectionDown).unwrap();
+    tx.send(Action::ToggleSelection).unwrap();
+    tx.send(Action::SelectNextEntry).unwrap();
     sleep(input_delay()).await;
-    tx.send(Action::ToggleSelectionDown).unwrap();
+    tx.send(Action::ToggleSelection).unwrap();
     sleep(input_delay()).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
@@ -221,9 +223,10 @@ async fn test_app_exact_search_positive() {
     }
 
     // select both files
-    tx.send(Action::ToggleSelectionDown).unwrap();
+    tx.send(Action::ToggleSelection).unwrap();
+    tx.send(Action::SelectNextEntry).unwrap();
     sleep(input_delay()).await;
-    tx.send(Action::ToggleSelectionDown).unwrap();
+    tx.send(Action::ToggleSelection).unwrap();
     sleep(input_delay()).await;
     tx.send(Action::ConfirmSelection).unwrap();
 
@@ -247,6 +250,55 @@ async fn test_app_exact_search_positive() {
             &"./file2.txt".to_string()
         ])
     );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn test_app_toggle_selection() {
+    let (f, tx) = setup_app(None, false, false);
+
+    // select the first file
+    tx.send(Action::ToggleSelection).unwrap();
+    sleep(input_delay()).await;
+
+    tx.send(Action::ConfirmSelection).unwrap();
+    sleep(input_delay()).await;
+
+    // check the output with a timeout
+    let output = timeout(default_timeout(), f)
+        .await
+        .expect("app did not finish within the default timeout")
+        .unwrap();
+
+    assert!(output.selected_entries.is_some());
+    assert_eq!(
+        &output.selected_entries.unwrap().drain().next().unwrap().raw,
+        "./file1.txt"
+    );
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn test_app_toggle_selection_all() {
+    let (f, tx) = setup_app(None, false, false);
+
+    // select the first file
+    tx.send(Action::ToggleSelectionAll).unwrap();
+    sleep(input_delay()).await;
+
+    tx.send(Action::ConfirmSelection).unwrap();
+    sleep(input_delay()).await;
+
+    // check the output with a timeout
+    let output = timeout(default_timeout(), f)
+        .await
+        .expect("app did not finish within the default timeout")
+        .unwrap();
+
+    assert!(output.selected_entries.is_some());
+    let expected = FxHashSet::from_iter(vec![
+        Entry::new("./file1.txt".to_string()),
+        Entry::new("./file2.txt".to_string()),
+    ]);
+    assert_eq!(output.selected_entries.unwrap(), expected);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

@@ -132,6 +132,7 @@ pub struct ChannelCli {
 pub struct GlobalCli {
     pub workdir: Option<PathBuf>,
     pub global_history: bool,
+    pub typo_resistance: bool,
     pub config_file: Option<PathBuf>,
     pub cable_dir: Option<PathBuf>,
     pub command: Option<Command>,
@@ -390,6 +391,7 @@ pub fn post_process(
             // Workdir and global history
             workdir: working_directory,
             global_history: cli.global_history,
+            typo_resistance: cli.typo_resistance,
 
             // Configuration sources
             config_file: cli.config_file.map(|p| expand_tilde(&p)),
@@ -474,7 +476,7 @@ const CLI_PADDING_DELIMITER: char = ';';
 ///
 /// The formalism used is the same as the one used in the configuration file:
 /// ```ignore
-///     quit="esc";select_next_entry=["down","ctrl-j"]
+///     esc="quit";down="select_next_entry";ctrl-j="select_next_entry"
 /// ```
 /// Parsing it globally consists of splitting by the delimiter, reconstructing toml key-value pairs
 /// and parsing that using logic already implemented in the configuration module.
@@ -750,7 +752,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "expects binding toml structure"]
     fn test_custom_keybindings() {
         let cli = Cli {
             channel: Some("files".to_string()),

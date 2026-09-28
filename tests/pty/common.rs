@@ -21,8 +21,6 @@ pub const DEFAULT_CABLE_DIR: &str = "./cable/unix";
 #[cfg(windows)]
 pub const DEFAULT_CABLE_DIR: &str = "./cable/windows";
 
-pub const TARGET_DIR: &str = "./tests/target_dir";
-
 pub const DEFAULT_COLS: u16 = 120;
 pub const DEFAULT_ROWS: u16 = 30;
 

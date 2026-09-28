@@ -9,6 +9,7 @@ use crate::{
         ui::{BorderType, Padding, ThemeOverrides},
     },
     keymap::InputMap,
+    matcher::{MatcherConfig, MatchingMode},
     screen::layout::{InputPosition, Orientation},
     utils::shell::Shell,
 };
@@ -60,6 +61,8 @@ impl ConfigLayers {
         let autocomplete_prompt = self.channel_cli.autocomplete_prompt.clone();
         let input = self.channel_cli.input.clone();
         let exact_match = self.channel_cli.exact;
+        let typo_resistance = self.global_cli.typo_resistance
+            || self.base_config.application.typo_resistance;
         let select_1 = self.channel_cli.select_1;
         let take_1 = self.channel_cli.take_1;
         let take_1_fast = self.channel_cli.take_1_fast;
@@ -471,12 +474,8 @@ impl ConfigLayers {
             // 1-column left margin, aligning the entries with the query
             results_panel_padding = Padding::new(0, 0, 1, 0);
         }
-        // a borderless preview still needs a hint of separation from the
-        // results list: a thin hairline on the side facing them
-        let preview_panel_separator =
-            preview_panel_border_type == BorderType::None;
-        // breathing room between the preview title and its content
-        if preview_panel_separator
+        // space between the preview title and its content
+        if preview_panel_border_type == BorderType::None
             && self.channel_cli.preview_padding.is_none()
             && preview_panel_padding == Padding::default()
         {
@@ -498,7 +497,7 @@ impl ConfigLayers {
 
         // Validate that all external actions referenced in channel keybindings exist
         if let Some(channel_bindings) = &self.channel.keybindings {
-            for (_, actions) in channel_bindings.bindings.iter() {
+            for actions in channel_bindings.bindings.values() {
                 for action in actions.as_slice() {
                     if let Action::ExternalAction(custom_with_prefix) = action
                         && !channel_actions.contains_key(
@@ -536,6 +535,7 @@ impl ConfigLayers {
             shell: global_shell,
             // matcher configuration
             exact_match,
+            typo_resistance,
             select_1,
             take_1,
             take_1_fast,
@@ -575,7 +575,6 @@ impl ConfigLayers {
             preview_panel_word_wrap,
             preview_panel_hidden,
             preview_panel_disabled,
-            preview_panel_separator,
             preview_panel_auto_hide,
             fullscreen,
             // help panel
@@ -641,6 +640,7 @@ pub struct MergedConfig {
     pub shell: Option<Shell>,
     // matcher configuration
     pub exact_match: bool,
+    pub typo_resistance: bool,
     pub select_1: bool,
     pub take_1: bool,
     pub take_1_fast: bool,
@@ -681,9 +681,6 @@ pub struct MergedConfig {
     pub preview_panel_word_wrap: bool,
     pub preview_panel_hidden: bool,
     pub preview_panel_disabled: bool,
-    /// Draw a single separator line between results and preview
-    /// (minimal UI preset, only when no preview border is configured).
-    pub preview_panel_separator: bool,
     /// Hide the preview automatically when the viewport is too small to fit
     /// a useful pane next to (or below) the results.
     pub preview_panel_auto_hide: bool,
@@ -729,6 +726,21 @@ pub struct MergedConfig {
 }
 
 impl MergedConfig {
+    /// The matching behavior: `--exact` makes bare pattern atoms match as
+    /// substrings instead of fuzzily (operators `^`, `$`, `'`, `!` keep
+    /// their meaning in both modes), and `typo_resistance` lets fuzzy atoms
+    /// tolerate typos.
+    pub fn matcher_config(&self) -> MatcherConfig {
+        MatcherConfig {
+            matching_mode: if self.exact_match {
+                MatchingMode::Substring
+            } else {
+                MatchingMode::Fuzzy
+            },
+            typo_resistance: self.typo_resistance,
+        }
+    }
+
     /// An empty input bar header means "no header line at all".
     pub fn input_bar_header_hidden(&self) -> bool {
         self.input_bar_header.as_deref().is_some_and(str::is_empty)
@@ -798,7 +810,6 @@ mod tests {
             assert_eq!(merged.input_bar_padding, Padding::new(0, 1, 1, 0));
             assert_eq!(merged.results_panel_padding, Padding::new(0, 0, 1, 0));
             assert_eq!(merged.preview_panel_padding, Padding::new(1, 0, 0, 0));
-            assert!(merged.preview_panel_separator);
             assert!(merged.preview_panel_auto_hide);
             assert!(!merged.preview_panel_scrollbar);
             assert!(merged.input_bar_minimal);
@@ -820,7 +831,6 @@ mod tests {
         assert_eq!(merged.preview_panel_border_type, BorderType::None);
         assert!(merged.input_bar_header_hidden());
         assert_eq!(merged.input_bar_prompt.as_deref(), Some(""));
-        assert!(merged.preview_panel_separator);
         assert!(merged.input_bar_minimal);
         // ...but the status bar stays
         assert!(!merged.status_bar_hidden);
@@ -877,7 +887,6 @@ mod tests {
         );
         assert_eq!(merged.preview_panel_size, 60);
         assert_eq!(merged.preview_panel_border_type, BorderType::None);
-        assert!(merged.preview_panel_separator);
         // but a channel explicitly picking a non-default border keeps it
         let mut prototype = ChannelPrototype::new("test", "echo 1");
         prototype.ui = Some(UiSpec {
@@ -897,7 +906,6 @@ mod tests {
             },
         );
         assert_eq!(merged.preview_panel_border_type, BorderType::Thick);
-        assert!(!merged.preview_panel_separator);
     }
 
     #[test]
@@ -919,7 +927,6 @@ mod tests {
         );
         assert!(!merged.status_bar_hidden);
         assert_eq!(merged.preview_panel_border_type, BorderType::Rounded);
-        assert!(!merged.preview_panel_separator);
         assert_eq!(merged.input_bar_header.as_deref(), Some("Custom"));
         // fields the CLI didn't touch still get the preset
         assert_eq!(merged.results_panel_border_type, BorderType::None);

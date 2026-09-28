@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::{Context, Result};
 use directories::ProjectDirs;
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use shell_integration::ShellIntegrationConfig;
 use std::{
@@ -54,6 +55,17 @@ pub struct AppConfig {
     /// Channel-specific shell settings override this.
     #[serde(default)]
     pub shell: Option<Shell>,
+    /// Whether fuzzy matching tolerates typos (default: false)
+    #[serde(default)]
+    pub typo_resistance: bool,
+    /// Binary path to use for a given shell, e.g. to pick Git Bash over the WSL
+    /// `bash.exe` stub on Windows.
+    /// ```toml
+    /// [shell_binaries]
+    /// bash = "C:/Program Files/Git/usr/bin/bash.exe"
+    /// ```
+    #[serde(default)]
+    pub shell_binaries: FxHashMap<Shell, String>,
 }
 
 impl Default for AppConfig {
@@ -67,6 +79,8 @@ impl Default for AppConfig {
             global_history: default_global_history(),
             frecency_max_entries: default_frecency_max_entries(),
             shell: None,
+            typo_resistance: false,
+            shell_binaries: FxHashMap::default(),
         }
     }
 }
@@ -97,6 +111,10 @@ impl Hash for AppConfig {
         self.global_history.hash(state);
         self.frecency_max_entries.hash(state);
         self.shell.hash(state);
+        self.typo_resistance.hash(state);
+        let mut shell_binaries: Vec<_> = self.shell_binaries.iter().collect();
+        shell_binaries.sort();
+        shell_binaries.hash(state);
     }
 }
 
@@ -543,5 +561,26 @@ mod tests {
         .collect();
 
         assert_eq!(config.shell_integration.keybindings, expected);
+    }
+
+    #[test]
+    fn test_app_config_shell_binaries_deserialize() {
+        let config_toml = r#"
+            [shell_binaries]
+            bash = "/usr/local/bin/bash"
+            powershell = "C:/Program Files/PowerShell/7/pwsh.exe"
+        "#;
+
+        let config: Config = toml::from_str(config_toml).unwrap();
+        let binaries = &config.application.shell_binaries;
+        assert_eq!(
+            binaries.get(&Shell::Bash),
+            Some(&"/usr/local/bin/bash".to_string())
+        );
+        assert_eq!(
+            binaries.get(&Shell::Psh),
+            Some(&"C:/Program Files/PowerShell/7/pwsh.exe".to_string())
+        );
+        assert_eq!(binaries.get(&Shell::Zsh), None);
     }
 }

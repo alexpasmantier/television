@@ -1,10 +1,10 @@
 # Quickstart
 
-Welcome to Television! This guide will get you up and running in under 5 minutes.
+This guide covers the basics of using tv.
 
 ## What is Television?
 
-Television (`tv`) is a fast, portable fuzzy finder for the terminal. Think of it as a universal search tool that can search through:
+Television (`tv`) is a fast, portable fuzzy finder for the terminal. It can search through:
 - Files and directories
 - Text content (like grep, but interactive)
 - Git repositories, branches, logs
@@ -70,7 +70,7 @@ ps aux | tv
 | <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate results |
 | <kbd>Ctrl</kbd>+<kbd>j</kbd> / <kbd>k</kbd> | Navigate results (vim-style) |
 | <kbd>Enter</kbd> | Select current entry |
-| <kbd>Tab</kbd> | Toggle selection (multi-select) |
+| <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Toggle selection of the current entry / all entries |
 | <kbd>Ctrl</kbd>+<kbd>y</kbd> | Copy entry to clipboard |
 | <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Scroll preview |
 | <kbd>Ctrl</kbd>+<kbd>o</kbd> | Toggle preview panel |
@@ -79,7 +79,8 @@ ps aux | tv
 
 ### Multi-Select
 
-Select multiple entries with <kbd>Tab</kbd>, then press <kbd>Enter</kbd> to output all selected items:
+Select entries with <kbd>Tab</kbd> (or all of them with <kbd>Shift</kbd>+<kbd>Tab</kbd>), then press <kbd>Enter</kbd> to
+output all selected items. Reloading the source clears the selection.
 
 ```sh
 # Select multiple files, then open in editor
@@ -149,10 +150,15 @@ echo 'eval "$(tv init zsh)"' >> ~/.zshrc
 
 # Bash
 echo 'eval "$(tv init bash)"' >> ~/.bashrc
-
-# Fish
-tv init fish | source  # Add to config.fish
 ```
+
+For fish, add:
+
+```bash
+tv init fish | source
+```
+
+to your `is-interactive` block in your `~/.config/fish/config.fish` file and then restart your shell.
 
 This enables:
 - <kbd>Ctrl</kbd>+<kbd>T</kbd>: Smart autocomplete based on current command

@@ -38,7 +38,7 @@ cargo install --locked television
 
 ```toml
 [ui]
-theme = "default"  # Try different themes
+theme = "television"  # The default; try other themes
 ```
 
 ### Characters Not Rendering
@@ -47,14 +47,9 @@ Ensure your terminal font supports the characters tv uses. Try a Nerd Font or si
 
 ### UI Garbled or Misaligned
 
-1. **Terminal resize**: Try resizing your terminal
-2. **Clear screen**: Press <kbd>Ctrl</kbd>+<kbd>L</kbd> or restart tv
+1. **Terminal resize**: Try resizing your terminal, which forces a redraw
+2. **Restart tv**
 3. **Alternate screen**: Some terminals don't support alternate screen properly
-
-```sh
-# Force redraw
-tv files  # Then Ctrl+L
-```
 
 ### Preview Not Showing
 
@@ -125,13 +120,7 @@ echo $TELEVISION_CONFIG
 
 ### Config Syntax Error
 
-Validate TOML syntax:
-
-```sh
-# Install a TOML validator
-pip install toml-cli
-toml-cli validate ~/.config/television/config.toml
-```
+tv reports TOML parse errors on startup, with the line and column of the problem. Run `tv` from a terminal and read the error message.
 
 Common TOML errors:
 - Missing quotes around strings with special characters
@@ -182,8 +171,7 @@ Adjust channel triggers in config:
 
 ### Memory Usage
 
-1. **Limit source output**: try piping into `head -n N` in source command. Start with N=100.
-3. **Disable caching**: `--no-cache-preview`
+**Limit source output**: try piping into `head -n N` in the source command. Start with N=100.
 
 ## Logs
 
@@ -218,7 +206,7 @@ And check the logs.
 If you can't resolve an issue:
 
 1. **Check GitHub Issues**: [television issues](https://github.com/alexpasmantier/television/issues)
-2. **Discord**: Join the community Discord
+2. **Discord**: [join the community Discord](https://discord.gg/hQBrzsJgUg)
 3. **Create an issue**: Include:
    - tv version (`tv --version`)
    - OS and terminal

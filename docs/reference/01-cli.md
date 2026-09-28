@@ -1,3 +1,7 @@
+---
+title: CLI Reference
+---
+
 ```text
 A very fast, portable and hackable fuzzy finder for the terminal
 
@@ -420,6 +424,18 @@ Behavior:
           appears in the results, without waiting for the channel to finish loading.
           This is the fastest option when you just want the first result.
 
+      --typo-resistance
+          Tolerate typos when fuzzy matching.
+          
+          This flag works identically in both channel mode and ad-hoc mode.
+          
+          Every fuzzy pattern gets a typo budget that scales with its length
+          (one typo per 4 characters, capped at 2), so longer patterns still
+          match when slightly misspelled. Substring/exact operators are
+          unaffected.
+          
+          [alias: --typos]
+
 Keybindings:
   -k, --keybindings <STRING>
           Keybindings to override the default keybindings.
@@ -430,7 +446,7 @@ Keybindings:
           The keybindings are specified as a semicolon separated list of keybinding
           expressions using the configuration file formalism.
           
-          Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
+          Example: `tv --keybindings='esc="quit";down="select_next_entry";ctrl-j="select_next_entry"'`
 
       --expect <STRING>
           Keys that can be used to confirm the current selection in addition to the default ones

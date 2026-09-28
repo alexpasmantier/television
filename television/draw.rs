@@ -7,14 +7,14 @@ use crate::{
     picker::Picker,
     previewer::state::PreviewState,
     screen::{
-        action_picker::draw_minimal_actions_pane,
+        action_picker::draw_actions_pane,
         colors::Colorscheme,
         help_panel::draw_help_pane,
         input::{SourceIndicator, draw_input_box},
-        layout::{Layout, pane_separator_side},
+        layout::Layout,
         missing_requirements_popup::draw_missing_requirements_popup,
         preview::draw_preview_content_block,
-        results::{draw_minimal_picker_list, draw_results_list},
+        results::{draw_picker_list, draw_results_list},
         status_bar,
     },
     television::{MissingRequirementsPopup, Mode},
@@ -31,7 +31,8 @@ use std::{hash::Hash, sync::Arc, time::Instant};
 /// This struct is passed along to the UI thread as part of the `TvState` struct.
 pub struct ChannelState {
     pub current_channel_name: String,
-    pub selected_entries: FxHashSet<Entry>,
+    /// Store indices of the selected entries.
+    pub selected: FxHashSet<u32>,
     pub total_count: u32,
     pub running: bool,
     pub current_command: String,
@@ -44,7 +45,7 @@ impl ChannelState {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
         current_channel_name: String,
-        selected_entries: FxHashSet<Entry>,
+        selected: FxHashSet<u32>,
         total_count: u32,
         running: bool,
         current_command: String,
@@ -54,7 +55,7 @@ impl ChannelState {
     ) -> Self {
         Self {
             current_channel_name,
-            selected_entries,
+            selected,
             total_count,
             running,
             current_command,
@@ -68,9 +69,7 @@ impl ChannelState {
 impl Hash for ChannelState {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.current_channel_name.hash(state);
-        self.selected_entries
-            .iter()
-            .for_each(|entry| entry.hash(state));
+        self.selected.iter().for_each(|index| index.hash(state));
         self.total_count.hash(state);
         self.running.hash(state);
         self.current_command.hash(state);
@@ -206,7 +205,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
     // the remote control takes over the main results and input areas
     if show_remote {
         let picker = &ctx.tv_state.rc_picker;
-        draw_minimal_picker_list(
+        draw_picker_list(
             f,
             layout.results,
             &picker.entries,
@@ -214,6 +213,8 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             ctx.config.input_bar_position,
             &ctx.colorscheme,
             &ctx.config.results_panel_padding,
+            &ctx.config.results_panel_border_type,
+            Some("Channels"),
             ctx.config.remote_show_channel_descriptions,
         )?;
         draw_input_box(
@@ -243,7 +244,7 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             f,
             layout.results,
             &ctx.tv_state.results_picker.entries,
-            &ctx.tv_state.channel_state.selected_entries,
+            &ctx.tv_state.channel_state.selected,
             &mut ctx.tv_state.results_picker.relative_state.clone(),
             ctx.config.input_bar_position,
             &ctx.colorscheme,
@@ -297,32 +298,20 @@ pub fn draw(ctx: Ctx, f: &mut Frame<'_>, area: Rect) -> Result<Layout> {
             .config
             .input_map
             .get_key_for_action(&Action::CyclePreviews);
-        // when the minimal UI preset is active, draw a hairline on the side
-        // of the preview that faces the results list
-        let separator = ctx.config.preview_panel_separator.then(|| {
-            pane_separator_side(
-                ctx.config.layout,
-                ctx.config.input_bar_position,
-            )
-        });
         draw_preview_content_block(
             f,
             preview_rect,
             ctx.tv_state.preview_state,
             &ctx.colorscheme,
-            &ctx.config.preview_panel_border_type,
-            &ctx.config.preview_panel_padding,
-            ctx.config.preview_panel_scrollbar,
-            ctx.config.preview_panel_word_wrap,
+            &ctx.config,
             cycle_previews_key,
-            separator,
         )?;
     }
 
     // the actions picker borrows the preview pane, so the entry the action
     // applies to stays visible in the results list
     if show_action_picker && let Some(pane) = layout.action_picker {
-        draw_minimal_actions_pane(
+        draw_actions_pane(
             f,
             pane,
             &ctx.tv_state.ap_picker.entries,

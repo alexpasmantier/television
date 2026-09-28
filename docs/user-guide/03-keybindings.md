@@ -10,7 +10,7 @@ Default keybindings are as follows:
 |                                          <kbd>Ctrl</kbd> + <kbd>↑</kbd> / <kbd>↓</kbd>                                         | Navigate to previous / next history entry          |
 |                                            <kbd>PageUp</kbd> / <kbd>PageDown</kbd>                                            | Scroll the preview pane by half a page             |
 |                                                       <kbd>Enter</kbd>                                                        | Select the current entry                           |
-|                                              <kbd>Tab</kbd> / <kbd>BackTab</kbd>                                              | Toggle selection and move to next / previous entry |
+|                                              <kbd>Tab</kbd> / <kbd>BackTab</kbd>                                              | Toggle selection of the current entry / all entries |
 |                                                <kbd>Ctrl</kbd> + <kbd>y</kbd>                                                 | Copy the selected entry to the clipboard           |
 |                                                <kbd>Ctrl</kbd> + <kbd>r</kbd>                                                 | Reload the current source                          |
 |                                                <kbd>Ctrl</kbd> + <kbd>s</kbd>                                                 | Cycle through source commands (channel mode only)  |
@@ -37,15 +37,15 @@ Default keybindings are as follows:
 
 These keybindings are all configurable via tv's configuration file (see [Configuration](./02-configuration.md)).
 
-# Keybindings Guide
+## Keybindings Guide
 
 Following this are some configuration presets you can use for your bindings. Most of these will probably match an existing program.
 
 :::note
-**This list is maintained by the community, so feel free to contribute your own ideas too! 😊**
+**This list is maintained by the community, so feel free to contribute your own ideas too!**
 :::
 
-## Emacs
+### Emacs
 
 ```toml
 # Television already has some pretty Emacsy keybinds.

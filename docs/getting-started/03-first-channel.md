@@ -1,6 +1,6 @@
 # Create Your First Channel
 
-This tutorial walks you through creating a custom channel from scratch. By the end, you'll have a working channel with preview and custom actions.
+This tutorial builds a custom channel from scratch, with a preview and custom actions.
 
 ## Prerequisites
 
@@ -33,15 +33,16 @@ Channels live in `~/.config/television/cable/` (or `%LocalAppData%\television\co
 
 ## Step 1: Create the Channel File
 
-Let's build a channel to browse and preview TLDR pages (quick command references).
+The channel will browse and preview TLDR pages (quick command references).
 
 Create a new file:
 
 ```sh
-# NOTE for Microsoft Windows; md "%LOCALAPPDATA%\television\config\cable"
 mkdir -p ~/.config/television/cable
 touch ~/.config/television/cable/tldr.toml
 ```
+
+On Windows, create the directory with `md "%LOCALAPPDATA%\television\config\cable"` instead.
 
 ## Step 2: Add Basic Configuration
 
@@ -60,7 +61,7 @@ command = "tldr --list"
 **What this does:**
 - `name`: Identifier used to invoke the channel (`tv tldr`)
 - `description`: Shown in the remote control and help
-- `requirements`: Lists required binaries - tv checks these exist at runtime and warns if missing
+- `requirements`: Lists required binaries. tv checks these when you pick the channel from the remote control (and shows a popup if any are missing) and when installing channels with `tv update-channels`. Running `tv tldr` directly does not check them.
 - `source.command`: The shell command that produces searchable entries
 
 **Test it:**
@@ -73,7 +74,7 @@ You should see a list of TLDR pages. Try typing to filter them.
 
 ## Step 3: Add Preview
 
-Let's add a preview so you can see the content before selecting:
+Add a preview to see the content before selecting:
 
 ```toml
 [metadata]
@@ -100,7 +101,7 @@ Now when you navigate entries, you'll see the TLDR content in the preview panel.
 
 ## Step 4: Add a Custom Action
 
-Let's add an action to open the TLDR page in a pager:
+Add an action to open the TLDR page in a pager:
 
 ```toml
 [metadata]

@@ -619,7 +619,7 @@ pub struct Cli {
     /// The keybindings are specified as a semicolon separated list of keybinding
     /// expressions using the configuration file formalism.
     ///
-    /// Example: `tv --keybindings='quit="esc";select_next_entry=["down","ctrl-j"]'`
+    /// Example: `tv --keybindings='esc="quit";down="select_next_entry";ctrl-j="select_next_entry"'`
     #[arg(
         short,
         long,
@@ -656,6 +656,22 @@ pub struct Cli {
     /// This flag works identically in both channel mode and ad-hoc mode.
     #[arg(long, value_name = "PATH", verbatim_doc_comment, value_parser = validate_directory_path, help_heading = "Configuration")]
     pub cable_dir: Option<String>,
+
+    /// Tolerate typos when fuzzy matching.
+    ///
+    /// This flag works identically in both channel mode and ad-hoc mode.
+    ///
+    /// Every fuzzy pattern gets a typo budget that scales with its length
+    /// (one typo per 4 characters, capped at 2), so longer patterns still
+    /// match when slightly misspelled. Substring/exact operators are
+    /// unaffected.
+    #[arg(
+        long,
+        visible_alias = "typos",
+        verbatim_doc_comment,
+        help_heading = "Behavior"
+    )]
+    pub typo_resistance: bool,
 
     /// Use global history instead of channel-specific history.
     ///

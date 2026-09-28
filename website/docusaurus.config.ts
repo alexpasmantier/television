@@ -1,6 +1,6 @@
-import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import catppuccinMocha from "./src/prism/catppuccin-mocha";
 
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
@@ -27,7 +27,6 @@ const config: Config = {
   deploymentBranch: "gh-pages",
 
   onBrokenLinks: "throw",
-  onBrokenMarkdownLinks: "warn",
 
   headTags: [
     {
@@ -58,21 +57,7 @@ const config: Config = {
           // editUrl:
           //   "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
         },
-        blog: {
-          showReadingTime: true,
-          feedOptions: {
-            type: ["rss", "atom"],
-            xslt: true,
-          },
-          // Please change this to your repo.
-          // Remove this to remove the "edit this page" links.
-          // editUrl:
-          //   "https://github.com/facebook/docusaurus/tree/main/packages/create-docusaurus/templates/shared/",
-          // Useful options to enforce blogging best practices
-          onInlineTags: "warn",
-          onInlineAuthors: "warn",
-          onUntruncatedBlogPosts: "warn",
-        },
+        blog: false,
         theme: {
           customCss: "./src/css/custom.css",
         },
@@ -100,14 +85,15 @@ const config: Config = {
       },
       items: [
         {
-          href: "https://github.com/alexpasmantier/television/releases",
-          label: "releases",
-          position: "right",
+          // see src/components/LandingLinks
+          type: "custom-landingLinks",
+          position: "left",
         },
         {
           href: "https://github.com/alexpasmantier/television",
-          label: "GitHub",
           position: "right",
+          className: "header-github-link",
+          "aria-label": "GitHub repository",
         },
       ],
     },
@@ -115,8 +101,9 @@ const config: Config = {
       copyright: `Copyright © ${new Date().getFullYear()} alexpasmantier`,
     },
     prism: {
-      theme: prismThemes.github,
-      darkTheme: prismThemes.dracula,
+      // the site is dark only, so both point at the same theme
+      theme: catppuccinMocha,
+      darkTheme: catppuccinMocha,
       additionalLanguages: ["bash", "json", "yaml", "toml", "diff"],
     },
     algolia: {
@@ -141,6 +128,9 @@ const config: Config = {
   // you also need to enable the Remark plugin with this option
   markdown: {
     mermaid: true,
+    hooks: {
+      onBrokenMarkdownLinks: "warn",
+    },
   },
 };
 
