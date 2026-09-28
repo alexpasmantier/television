@@ -76,7 +76,7 @@ pub struct ChannelCli {
     // Preview configuration
     pub preview_command: Option<Template>,
     pub preview_offset: Option<Template>,
-    pub cache_preview: bool,
+    pub cache_preview: Option<bool>,
     pub no_preview: bool,
     pub hide_preview: bool,
     pub show_preview: bool,
@@ -223,6 +223,12 @@ pub fn post_process(
         })
     });
 
+    let cache_preview = match (cli.cache_preview, cli.no_cache_preview) {
+        (true, _) => Some(true),
+        (_, true) => Some(false),
+        _ => None,
+    };
+
     // Forbid `--autocomplete-prompt` together with a real channel arg.
     // It's allowed when the arg resolves to a working-directory path (not a registered channel).
     if cli.autocomplete_prompt.is_some()
@@ -337,7 +343,7 @@ pub fn post_process(
             // Preview configuration
             preview_command,
             preview_offset,
-            cache_preview: cli.cache_preview,
+            cache_preview,
             no_preview: cli.no_preview,
             hide_preview: cli.hide_preview,
             show_preview: cli.show_preview,
