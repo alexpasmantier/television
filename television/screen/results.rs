@@ -28,6 +28,7 @@ pub fn draw_results_list(
     colorscheme: &Colorscheme,
     results_panel_padding: &Padding,
     results_panel_border_type: &BorderType,
+    results_panel_entry_height: u16,
     source_index: usize,
     source_count: usize,
     current_source_name: Option<&str>,
@@ -95,6 +96,7 @@ pub fn draw_results_list(
         &colorscheme.results,
         rect.width.saturating_sub(1), // right padding
         if borderless { "" } else { POINTER_SYMBOL },
+        results_panel_entry_height,
         |entry| {
             if has_multi_select {
                 Some(selected.contains(&entry.index))

@@ -453,8 +453,8 @@ impl Television {
                     movement,
                     step,
                     self.channel.result_count() as usize,
-                    self.ui_state.layout.results.height.saturating_sub(
-                        self.merged_config.results_panel_chrome_height(),
+                    self.merged_config.results_panel_entry_capacity(
+                        self.ui_state.layout.results.height,
                     ) as usize,
                 );
             }
@@ -695,12 +695,9 @@ impl Television {
         {
             let offset = u32::try_from(self.results_picker.offset()).unwrap();
             let height = self
-                .ui_state
-                .layout
-                .results
-                .height
-                .saturating_sub(
-                    self.merged_config.results_panel_chrome_height(),
+                .merged_config
+                .results_panel_entry_capacity(
+                    self.ui_state.layout.results.height,
                 )
                 .into();
 
