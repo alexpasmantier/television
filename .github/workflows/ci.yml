@@ -19,6 +19,8 @@ jobs:
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
+      - name: Update apt index
+        run: sudo apt-get update
       - name: Install fd
         run: sudo apt install -y fd-find && sudo ln -s $(which fdfind) /usr/bin/fd
       - name: Install bat
