@@ -17,8 +17,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
+        run: rustup toolchain install
       - uses: Swatinem/rust-cache@v2
+        with:
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Update apt index
         run: sudo apt-get update
       - name: Install fd
@@ -35,10 +37,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@nightly
-        with:
-          components: rustfmt
-      - uses: Swatinem/rust-cache@v2
+        run: rustup toolchain install
       - name: Check formatting
         run: cargo fmt --all --check
 
@@ -48,10 +47,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust toolchain
+        run: rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
         with:
-          components: clippy
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - name: Clippy Check
         run: cargo clippy -- -D warnings
 
