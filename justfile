@@ -12,6 +12,12 @@ alias r := run-staging
 	RUST_LOG=debug cargo run
 	echo "Done"
 
+# Run in debug mode with repo channels
+@run-dev-channels:
+	echo "Running {{ NAME }} in dev mode..."
+	RUST_LOG=debug cargo run -- --cable-dir ./cable/unix/
+	echo "Done"
+
 # Run the program in staging mode (optimized but no lto)
 @run-staging:
 	echo "Running {{ NAME }} in staging mode..."
