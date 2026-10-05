@@ -79,6 +79,7 @@ tempfile = "3.16.0"
 phantom-test = { version = "0.3", default-features = false, features = [
   "alacritty",
 ] }
+yare = "3.0.0"
 
 
 [build-dependencies]

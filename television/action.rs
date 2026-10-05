@@ -3,7 +3,7 @@ use serde::Deserialize;
 use serde_with::{OneOrMany, serde_as};
 
 /// The different actions that can be performed by the application.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd)]
 #[serde(rename_all = "snake_case")]
 pub enum Action {
     // input actions
@@ -172,7 +172,7 @@ pub const CUSTOM_ACTION_PREFIX: &str = "actions:";
 /// assert_eq!(actions_vec, vec![Action::ReloadSource, Action::Quit]);
 /// ```
 #[serde_as]
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Hash, PartialOrd)]
 #[serde(transparent)]
 pub struct Actions {
     #[serde_as(as = "OneOrMany<_>")]
