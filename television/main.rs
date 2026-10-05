@@ -348,7 +348,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .bindings
-                .contains_key(&Key::Enter)
+                .contains_key(&Key::enter())
         );
 
         let cable = Cable::from_prototypes(vec![branches]);
@@ -384,7 +384,7 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .bindings
-                .contains_key(&Key::Enter)
+                .contains_key(&Key::enter())
         );
     }
 

@@ -92,19 +92,19 @@ mod tests {
     fn test_input_map_multiple_actions_per_key() {
         let mut keybindings = Keybindings::default();
         keybindings.insert(
-            Key::Ctrl('s'),
+            Key::ctrl('s'),
             Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard,
             ]),
         );
-        keybindings.insert(Key::Esc, Actions::single(Action::Quit));
+        keybindings.insert(Key::escape(), Actions::single(Action::Quit));
 
         let input_map = InputMap::new(keybindings, Keybindings::default());
 
         // Test getting all actions for multiple action binding
         let ctrl_s_actions = input_map
-            .get_actions_for_key(&Key::Ctrl('s'), &Mode::Channel)
+            .get_actions_for_key(&Key::ctrl('s'), &Mode::Channel)
             .unwrap();
         assert_eq!(
             ctrl_s_actions.as_slice(),
@@ -116,17 +116,17 @@ mod tests {
     fn test_input_map_from_keybindings_with_multiple_actions() {
         let mut bindings = Keybindings::default();
         bindings.insert(
-            Key::Ctrl('r'),
+            Key::ctrl('r'),
             Actions::multiple(vec![Action::ReloadSource, Action::ClearScreen]),
         );
-        bindings.insert(Key::Esc, Actions::single(Action::Quit));
+        bindings.insert(Key::escape(), Actions::single(Action::Quit));
 
         let input_map: InputMap =
             InputMap::new(bindings, Keybindings::default());
 
         // Test multiple actions are preserved
         let ctrl_r_actions = input_map
-            .get_actions_for_key(&Key::Ctrl('r'), &Mode::Channel)
+            .get_actions_for_key(&Key::ctrl('r'), &Mode::Channel)
             .unwrap();
         assert_eq!(
             ctrl_r_actions.as_slice(),
@@ -135,7 +135,7 @@ mod tests {
 
         // Test single actions still work
         let esc_actions = input_map
-            .get_actions_for_key(&Key::Esc, &Mode::Channel)
+            .get_actions_for_key(&Key::escape(), &Mode::Channel)
             .unwrap();
         assert_eq!(esc_actions.as_slice(), &[Action::Quit]);
     }
@@ -144,24 +144,24 @@ mod tests {
     fn test_input_map_constructor_no_intersection() {
         let mut global_bindings = Keybindings::default();
         global_bindings
-            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+            .insert(Key::enter(), Actions::single(Action::ConfirmSelection));
 
         let mut channel_bindings = Keybindings::default();
         channel_bindings
-            .insert(Key::Ctrl('x'), Actions::single(Action::DeletePrevChar));
+            .insert(Key::ctrl('x'), Actions::single(Action::DeletePrevChar));
 
         let input_map =
             InputMap::new(global_bindings.clone(), channel_bindings.clone());
 
         // Test global keybindings
         let enter_actions = input_map
-            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .get_actions_for_key(&Key::enter(), &Mode::Channel)
             .unwrap();
         assert_eq!(enter_actions.as_slice(), &[Action::ConfirmSelection]);
 
         // Test channel keybindings
         let esc_actions = input_map
-            .get_actions_for_key(&Key::Ctrl('x'), &Mode::Channel)
+            .get_actions_for_key(&Key::ctrl('x'), &Mode::Channel)
             .unwrap();
         assert_eq!(esc_actions.as_slice(), &[Action::DeletePrevChar]);
     }
@@ -170,12 +170,12 @@ mod tests {
     fn test_input_map_constructor_with_intersection() {
         let mut global_bindings = Keybindings::default();
         global_bindings
-            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
-        global_bindings.insert(Key::Esc, Actions::single(Action::Quit));
+            .insert(Key::enter(), Actions::single(Action::ConfirmSelection));
+        global_bindings.insert(Key::escape(), Actions::single(Action::Quit));
 
         let mut channel_bindings = Keybindings::default();
         channel_bindings.insert(
-            Key::Enter,
+            Key::enter(),
             Actions::single(Action::ExternalAction(String::from(
                 "custom_enter",
             ))),
@@ -185,7 +185,7 @@ mod tests {
             InputMap::new(global_bindings.clone(), channel_bindings.clone());
 
         let channel_action = input_map
-            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .get_actions_for_key(&Key::enter(), &Mode::Channel)
             .unwrap();
         assert_eq!(
             channel_action.as_slice(),
@@ -193,7 +193,7 @@ mod tests {
         );
 
         let remote_action = input_map
-            .get_actions_for_key(&Key::Enter, &Mode::RemoteControl)
+            .get_actions_for_key(&Key::enter(), &Mode::RemoteControl)
             .unwrap();
         assert_eq!(remote_action.as_slice(), &[Action::ConfirmSelection]);
     }
@@ -202,11 +202,11 @@ mod tests {
     fn test_input_map_get_actions_for_key() {
         let mut global_bindings = Keybindings::default();
         global_bindings
-            .insert(Key::Enter, Actions::single(Action::ConfirmSelection));
+            .insert(Key::enter(), Actions::single(Action::ConfirmSelection));
 
         let mut channel_bindings = Keybindings::default();
         channel_bindings.insert(
-            Key::Enter,
+            Key::enter(),
             Actions::single(Action::ExternalAction(String::from(
                 "custom_enter",
             ))),
@@ -216,12 +216,12 @@ mod tests {
             InputMap::new(global_bindings.clone(), channel_bindings.clone());
 
         let global_action = input_map
-            .get_actions_for_key(&Key::Enter, &Mode::RemoteControl)
+            .get_actions_for_key(&Key::enter(), &Mode::RemoteControl)
             .unwrap();
         assert_eq!(global_action.as_slice(), &[Action::ConfirmSelection]);
 
         let channel_action = input_map
-            .get_actions_for_key(&Key::Enter, &Mode::Channel)
+            .get_actions_for_key(&Key::enter(), &Mode::Channel)
             .unwrap();
         assert_eq!(
             channel_action.as_slice(),

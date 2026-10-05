@@ -6,8 +6,8 @@ use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::Deserialize;
 use std::ops::Deref;
-use std::ops::DerefMut;
 use std::str::FromStr;
+use std::{ops::DerefMut, sync::LazyLock};
 use tracing::debug;
 
 /// A hashmap of keyboard key bindings to actions.
@@ -67,19 +67,19 @@ impl Keybindings {
 /// use television::action::Action;
 ///
 /// let base = Keybindings::from(vec![
-///     (Key::Enter, Action::ConfirmSelection),
-///     (Key::Esc, Action::Quit),
+///     (Key::enter(), Action::ConfirmSelection),
+///     (Key::escape(), Action::Quit),
 /// ]);
 ///
 /// let custom = Keybindings::from(vec![
-///     (Key::Esc, Action::NoOp), // Override quit with no-op
-///     (Key::Tab, Action::ToggleSelection), // Add new binding
+///     (Key::escape(), Action::NoOp), // Override quit with no-op
+///     (Key::tab(), Action::ToggleSelection), // Add new binding
 /// ]);
 ///
 /// let merged = merge_keybindings(base, &custom);
-/// assert_eq!(merged.get(&Key::Enter), Some(&Action::ConfirmSelection.into()));
-/// assert_eq!(merged.get(&Key::Esc), Some(&Action::NoOp.into()));
-/// assert_eq!(merged.get(&Key::Tab), Some(&Action::ToggleSelection.into()));
+/// assert_eq!(merged.get(&Key::enter()), Some(&Action::ConfirmSelection.into()));
+/// assert_eq!(merged.get(&Key::escape()), Some(&Action::NoOp.into()));
+/// assert_eq!(merged.get(&Key::tab()), Some(&Action::ToggleSelection.into()));
 /// ```
 pub fn merge_keybindings(
     mut base: Keybindings,
@@ -124,18 +124,18 @@ pub fn merge_keybindings(
 /// # Examples
 ///
 /// ```rust
-/// use television::config::keybindings::parse_key_event;
+/// use television::config::keybindings::parse_into_key_event;
 /// use crossterm::event::{KeyCode, KeyModifiers};
 ///
-/// let event = parse_key_event("ctrl-a").unwrap();
+/// let event = parse_into_key_event("ctrl-a").unwrap();
 /// assert_eq!(event.code, KeyCode::Char('a'));
 /// assert_eq!(event.modifiers, KeyModifiers::CONTROL);
 ///
-/// let event = parse_key_event("alt-enter").unwrap();
+/// let event = parse_into_key_event("alt-enter").unwrap();
 /// assert_eq!(event.code, KeyCode::Enter);
 /// assert_eq!(event.modifiers, KeyModifiers::ALT);
 /// ```
-pub fn parse_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
+pub fn parse_into_key_event(raw: &str) -> anyhow::Result<KeyEvent, String> {
     let (remaining, modifiers) = extract_modifiers(raw);
     parse_key_code_with_modifiers(remaining, modifiers)
 }
@@ -197,79 +197,54 @@ fn strip_prefix_ignore_ascii_case<'a>(
         .then(|| &s[prefix.len()..])
 }
 
+static KEY_CODE_MAP: LazyLock<FxHashMap<&'static str, KeyCode>> =
+    LazyLock::new(|| {
+        [
+            ("esc", KeyCode::Esc),
+            ("enter", KeyCode::Enter),
+            ("left", KeyCode::Left),
+            ("right", KeyCode::Right),
+            ("up", KeyCode::Up),
+            ("down", KeyCode::Down),
+            ("home", KeyCode::Home),
+            ("end", KeyCode::End),
+            ("pageup", KeyCode::PageUp),
+            ("pagedown", KeyCode::PageDown),
+            ("backspace", KeyCode::Backspace),
+            ("delete", KeyCode::Delete),
+            ("insert", KeyCode::Insert),
+            ("f1", KeyCode::F(1)),
+            ("f2", KeyCode::F(2)),
+            ("f3", KeyCode::F(3)),
+            ("f4", KeyCode::F(4)),
+            ("f5", KeyCode::F(5)),
+            ("f6", KeyCode::F(6)),
+            ("f7", KeyCode::F(7)),
+            ("f8", KeyCode::F(8)),
+            ("f9", KeyCode::F(9)),
+            ("f10", KeyCode::F(10)),
+            ("f11", KeyCode::F(11)),
+            ("f12", KeyCode::F(12)),
+            ("space", KeyCode::Char(' ')),
+            (" ", KeyCode::Char(' ')),
+            ("hyphen", KeyCode::Char('-')),
+            ("minus", KeyCode::Char('-')),
+            ("tab", KeyCode::Tab),
+            ("backtab", KeyCode::BackTab),
+        ]
+        .into_iter()
+        .collect()
+    });
+
 /// Parses a key code string with pre-extracted modifiers into a `KeyEvent`.
-///
-/// This function handles the actual key code parsing after modifiers have
-/// been extracted. It supports named keys (like "esc", "enter") and
-/// single character keys.
-///
-/// # Arguments
-///
-/// * `raw` - The key string with modifiers already removed
-/// * `modifiers` - Pre-extracted modifier keys
-///
-/// # Returns
-///
-/// * `Ok(KeyEvent)` - Successfully parsed key event
-/// * `Err(String)` - Parse error for unrecognized keys
-///
-/// # Supported Keys
-///
-/// - Named keys: esc, enter, left, right, up, down, home, end, etc.
-/// - Function keys: f1-f12
-/// - Special keys: space, tab, backspace, delete, etc.
-/// - Single characters: a-z, 0-9, punctuation
 fn parse_key_code_with_modifiers(
     raw: &str,
-    mut modifiers: KeyModifiers,
+    modifiers: KeyModifiers,
 ) -> anyhow::Result<KeyEvent, String> {
-    use rustc_hash::FxHashMap;
-    use std::sync::LazyLock;
-
-    static KEY_CODE_MAP: LazyLock<FxHashMap<&'static str, KeyCode>> =
-        LazyLock::new(|| {
-            [
-                ("esc", KeyCode::Esc),
-                ("enter", KeyCode::Enter),
-                ("left", KeyCode::Left),
-                ("right", KeyCode::Right),
-                ("up", KeyCode::Up),
-                ("down", KeyCode::Down),
-                ("home", KeyCode::Home),
-                ("end", KeyCode::End),
-                ("pageup", KeyCode::PageUp),
-                ("pagedown", KeyCode::PageDown),
-                ("backspace", KeyCode::Backspace),
-                ("delete", KeyCode::Delete),
-                ("insert", KeyCode::Insert),
-                ("f1", KeyCode::F(1)),
-                ("f2", KeyCode::F(2)),
-                ("f3", KeyCode::F(3)),
-                ("f4", KeyCode::F(4)),
-                ("f5", KeyCode::F(5)),
-                ("f6", KeyCode::F(6)),
-                ("f7", KeyCode::F(7)),
-                ("f8", KeyCode::F(8)),
-                ("f9", KeyCode::F(9)),
-                ("f10", KeyCode::F(10)),
-                ("f11", KeyCode::F(11)),
-                ("f12", KeyCode::F(12)),
-                ("space", KeyCode::Char(' ')),
-                (" ", KeyCode::Char(' ')),
-                ("hyphen", KeyCode::Char('-')),
-                ("minus", KeyCode::Char('-')),
-                ("tab", KeyCode::Tab),
-            ]
-            .into_iter()
-            .collect()
-        });
-
     let raw_lower = raw.to_ascii_lowercase();
+
     let c = if let Some(&key_code) = KEY_CODE_MAP.get(raw_lower.as_str()) {
         key_code
-    } else if raw_lower == "backtab" {
-        modifiers.insert(KeyModifiers::SHIFT);
-        KeyCode::BackTab
     } else if raw.len() == 1 {
         let c = raw.chars().next().unwrap();
         if c.is_ascii_uppercase() || modifiers.contains(KeyModifiers::SHIFT) {
@@ -281,114 +256,8 @@ fn parse_key_code_with_modifiers(
         return Err(format!("Unable to parse {raw}"));
     };
 
+    debug!("Parsed key event: {:?} with modifiers {:?}", c, modifiers);
     Ok(KeyEvent::new(c, modifiers))
-}
-
-/// Converts a `KeyEvent` back to its string representation.
-///
-/// This function performs the reverse operation of `parse_key_event`,
-/// converting a crossterm `KeyEvent` back into a human-readable string
-/// format that can be used in configuration files.
-///
-/// # Arguments
-///
-/// * `key_event` - The key event to convert
-///
-/// # Returns
-///
-/// String representation of the key event (e.g., "ctrl-a", "alt-enter")
-///
-/// # Examples
-///
-/// ```rust
-/// use television::config::keybindings::key_event_to_string;
-/// use crossterm::event::{KeyEvent, KeyCode, KeyModifiers};
-///
-/// let event = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-/// assert_eq!(key_event_to_string(&event), "ctrl-a");
-///
-/// let event = KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT);
-/// assert_eq!(key_event_to_string(&event), "alt-enter");
-/// ```
-#[allow(dead_code)]
-pub fn key_event_to_string(key_event: &KeyEvent) -> String {
-    let char;
-    let is_shifted_char = key_event.modifiers.intersects(KeyModifiers::SHIFT)
-        && matches!(key_event.code, KeyCode::Char(_));
-    let key_code = match key_event.code {
-        KeyCode::Backspace => "backspace",
-        KeyCode::Enter => "enter",
-        KeyCode::Left => "left",
-        KeyCode::Right => "right",
-        KeyCode::Up => "up",
-        KeyCode::Down => "down",
-        KeyCode::Home => "home",
-        KeyCode::End => "end",
-        KeyCode::PageUp => "pageup",
-        KeyCode::PageDown => "pagedown",
-        KeyCode::Tab => "tab",
-        KeyCode::BackTab => "backtab",
-        KeyCode::Delete => "delete",
-        KeyCode::Insert => "insert",
-        KeyCode::F(c) => {
-            char = format!("f({c})");
-            &char
-        }
-        KeyCode::Char(' ') => "space",
-        KeyCode::Char(c) => {
-            char = if is_shifted_char {
-                c.to_ascii_uppercase().to_string()
-            } else {
-                c.to_string()
-            };
-            &char
-        }
-        KeyCode::Esc => "esc",
-        KeyCode::Null
-        | KeyCode::CapsLock
-        | KeyCode::Menu
-        | KeyCode::ScrollLock
-        | KeyCode::Media(_)
-        | KeyCode::NumLock
-        | KeyCode::PrintScreen
-        | KeyCode::Pause
-        | KeyCode::KeypadBegin
-        | KeyCode::Modifier(_) => "",
-    };
-
-    let mut modifiers = Vec::with_capacity(3);
-
-    if key_event.modifiers.intersects(KeyModifiers::CONTROL) {
-        modifiers.push("ctrl");
-    }
-
-    if key_event.modifiers.intersects(KeyModifiers::SHIFT) && !is_shifted_char
-    {
-        modifiers.push("shift");
-    }
-
-    #[cfg(target_os = "macos")]
-    if key_event.modifiers.intersects(KeyModifiers::SUPER) {
-        modifiers.push("cmd");
-    }
-
-    #[cfg(not(target_os = "macos"))]
-    if key_event.modifiers.intersects(KeyModifiers::SUPER) {
-        modifiers.push("super");
-    }
-
-    if key_event.modifiers.intersects(KeyModifiers::ALT) {
-        modifiers.push("alt");
-    }
-
-    let mut key = modifiers.join("-");
-
-    if !key.is_empty() {
-        key.push('-');
-    }
-    key.push_str(key_code);
-
-    key
 }
 
 impl FromStr for Key {
@@ -407,7 +276,7 @@ impl FromStr for Key {
             raw.strip_suffix('>').unwrap_or(raw)
         };
 
-        let key_event = parse_key_event(raw)?;
+        let key_event = parse_into_key_event(raw)?;
         Ok(convert_raw_event_to_key(key_event))
     }
 }
@@ -419,17 +288,17 @@ mod tests {
     #[test]
     fn test_simple_keys() {
         assert_eq!(
-            parse_key_event("a").unwrap(),
+            parse_into_key_event("a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::empty())
         );
 
         assert_eq!(
-            parse_key_event("enter").unwrap(),
+            parse_into_key_event("enter").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::empty())
         );
 
         assert_eq!(
-            parse_key_event("esc").unwrap(),
+            parse_into_key_event("esc").unwrap(),
             KeyEvent::new(KeyCode::Esc, KeyModifiers::empty())
         );
     }
@@ -437,17 +306,17 @@ mod tests {
     #[test]
     fn test_with_modifiers() {
         assert_eq!(
-            parse_key_event("ctrl-a").unwrap(),
+            parse_into_key_event("ctrl-a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)
         );
 
         assert_eq!(
-            parse_key_event("alt-enter").unwrap(),
+            parse_into_key_event("alt-enter").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
         );
 
         assert_eq!(
-            parse_key_event("shift-esc").unwrap(),
+            parse_into_key_event("shift-esc").unwrap(),
             KeyEvent::new(KeyCode::Esc, KeyModifiers::SHIFT)
         );
     }
@@ -455,7 +324,7 @@ mod tests {
     #[test]
     fn test_multiple_modifiers() {
         assert_eq!(
-            parse_key_event("ctrl-alt-a").unwrap(),
+            parse_into_key_event("ctrl-alt-a").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::CONTROL | KeyModifiers::ALT
@@ -464,7 +333,7 @@ mod tests {
 
         #[cfg(target_os = "macos")]
         assert_eq!(
-            parse_key_event("cmd-alt-a").unwrap(),
+            parse_into_key_event("cmd-alt-a").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::SUPER | KeyModifiers::ALT
@@ -473,7 +342,7 @@ mod tests {
 
         #[cfg(not(target_os = "macos"))]
         assert_eq!(
-            parse_key_event("super-alt-a").unwrap(),
+            parse_into_key_event("super-alt-a").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('a'),
                 KeyModifiers::SUPER | KeyModifiers::ALT
@@ -481,7 +350,7 @@ mod tests {
         );
 
         assert_eq!(
-            parse_key_event("ctrl-shift-enter").unwrap(),
+            parse_into_key_event("ctrl-shift-enter").unwrap(),
             KeyEvent::new(
                 KeyCode::Enter,
                 KeyModifiers::CONTROL | KeyModifiers::SHIFT
@@ -490,102 +359,52 @@ mod tests {
     }
 
     #[test]
-    fn test_reverse_multiple_modifiers() {
-        assert_eq!(
-            key_event_to_string(&KeyEvent::new(
-                KeyCode::Char('a'),
-                KeyModifiers::CONTROL | KeyModifiers::ALT
-            )),
-            "ctrl-alt-a".to_string()
-        );
-    }
-
-    #[test]
     fn test_uppercase_bindings() {
         // Bare uppercase char → Char('A') with no modifiers
         assert_eq!(
-            parse_key_event("A").unwrap(),
+            parse_into_key_event("A").unwrap(),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::NONE)
         );
 
         // ctrl + uppercase char → Char('A') with CONTROL
         assert_eq!(
-            parse_key_event("ctrl-A").unwrap(),
+            parse_into_key_event("ctrl-A").unwrap(),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::CONTROL)
         );
 
         // alt + uppercase char → Char('A') with ALT
         assert_eq!(
-            parse_key_event("alt-A").unwrap(),
+            parse_into_key_event("alt-A").unwrap(),
             KeyEvent::new(KeyCode::Char('A'), KeyModifiers::ALT)
         );
 
         // shift-a and bare A are equivalent
         assert_eq!(
-            parse_key_event("shift-a").unwrap(),
-            parse_key_event("A").unwrap()
-        );
-    }
-
-    #[test]
-    fn test_key_event_to_string_uppercase() {
-        // Shift+char → uppercase notation, no "shift-" prefix
-        assert_eq!(
-            key_event_to_string(&KeyEvent::new(
-                KeyCode::Char('a'),
-                KeyModifiers::SHIFT
-            )),
-            "A".to_string()
-        );
-
-        // ctrl + shift + char → "ctrl-A"
-        assert_eq!(
-            key_event_to_string(&KeyEvent::new(
-                KeyCode::Char('a'),
-                KeyModifiers::CONTROL | KeyModifiers::SHIFT
-            )),
-            "ctrl-A".to_string()
-        );
-
-        // Already uppercase char with no modifiers → "A"
-        assert_eq!(
-            key_event_to_string(&KeyEvent::new(
-                KeyCode::Char('A'),
-                KeyModifiers::NONE
-            )),
-            "A".to_string()
-        );
-
-        // Non-char shift (e.g. shift-enter) keeps the "shift-" prefix
-        assert_eq!(
-            key_event_to_string(&KeyEvent::new(
-                KeyCode::Enter,
-                KeyModifiers::SHIFT
-            )),
-            "shift-enter".to_string()
+            parse_into_key_event("shift-a").unwrap(),
+            parse_into_key_event("A").unwrap()
         );
     }
 
     #[test]
     fn test_invalid_keys() {
-        assert!(parse_key_event("invalid-key").is_err());
-        assert!(parse_key_event("ctrl-invalid-key").is_err());
+        assert!(parse_into_key_event("invalid-key").is_err());
+        assert!(parse_into_key_event("ctrl-invalid-key").is_err());
     }
 
     #[test]
     fn test_case_insensitivity() {
         assert_eq!(
-            parse_key_event("CTRL-a").unwrap(),
+            parse_into_key_event("CTRL-a").unwrap(),
             KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL)
         );
 
         assert_eq!(
-            parse_key_event("AlT-eNtEr").unwrap(),
+            parse_into_key_event("AlT-eNtEr").unwrap(),
             KeyEvent::new(KeyCode::Enter, KeyModifiers::ALT)
         );
 
         assert_eq!(
-            parse_key_event("Ctrl-Shift-A").unwrap(),
+            parse_into_key_event("Ctrl-Shift-A").unwrap(),
             KeyEvent::new(
                 KeyCode::Char('A'),
                 KeyModifiers::CONTROL | KeyModifiers::SHIFT
@@ -622,24 +441,24 @@ mod tests {
         assert_eq!(
             keybindings,
             Keybindings::from(vec![
-                (Key::Esc, Action::Quit),
-                (Key::Ctrl('c'), Action::Quit),
-                (Key::Down, Action::SelectNextEntry),
-                (Key::Ctrl('n'), Action::SelectNextEntry),
-                (Key::Ctrl('j'), Action::SelectNextEntry),
-                (Key::Up, Action::SelectPrevEntry),
-                (Key::Ctrl('p'), Action::SelectPrevEntry),
-                (Key::Ctrl('k'), Action::SelectPrevEntry),
-                (Key::PageDown, Action::SelectNextPage),
-                (Key::PageUp, Action::SelectPrevPage),
-                (Key::Ctrl('d'), Action::ScrollPreviewHalfPageDown),
-                (Key::Ctrl('u'), Action::ScrollPreviewHalfPageUp),
-                (Key::Tab, Action::ToggleSelection),
-                (Key::BackTab, Action::ToggleSelectionAll),
-                (Key::Enter, Action::ConfirmSelection),
-                (Key::Ctrl('y'), Action::CopyEntryToClipboard),
-                (Key::Ctrl('r'), Action::ToggleRemoteControl),
-                (Key::Ctrl('o'), Action::TogglePreview),
+                (Key::escape(), Action::Quit),
+                (Key::ctrl('c'), Action::Quit),
+                (Key::down(), Action::SelectNextEntry),
+                (Key::ctrl('n'), Action::SelectNextEntry),
+                (Key::ctrl('j'), Action::SelectNextEntry),
+                (Key::up(), Action::SelectPrevEntry),
+                (Key::ctrl('p'), Action::SelectPrevEntry),
+                (Key::ctrl('k'), Action::SelectPrevEntry),
+                (Key::page_down(), Action::SelectNextPage),
+                (Key::page_up(), Action::SelectPrevPage),
+                (Key::ctrl('d'), Action::ScrollPreviewHalfPageDown),
+                (Key::ctrl('u'), Action::ScrollPreviewHalfPageUp),
+                (Key::tab(), Action::ToggleSelection),
+                (Key::back_tab(), Action::ToggleSelectionAll),
+                (Key::enter(), Action::ConfirmSelection),
+                (Key::ctrl('y'), Action::CopyEntryToClipboard),
+                (Key::ctrl('r'), Action::ToggleRemoteControl),
+                (Key::ctrl('o'), Action::TogglePreview),
             ])
         );
     }
@@ -647,35 +466,35 @@ mod tests {
     #[test]
     fn test_merge_keybindings() {
         let base = Keybindings::from(vec![
-            (Key::Esc, Action::Quit),
-            (Key::Down, Action::SelectNextEntry),
-            (Key::Ctrl('n'), Action::SelectNextEntry),
-            (Key::Up, Action::SelectPrevEntry),
+            (Key::escape(), Action::Quit),
+            (Key::down(), Action::SelectNextEntry),
+            (Key::up(), Action::SelectPrevEntry),
+            (Key::ctrl('n'), Action::SelectNextEntry),
         ]);
         let new = Keybindings::from(vec![
-            (Key::Ctrl('j'), Action::SelectNextEntry),
-            (Key::Ctrl('k'), Action::SelectPrevEntry),
-            (Key::PageDown, Action::SelectNextPage),
+            (Key::ctrl('j'), Action::SelectNextEntry),
+            (Key::ctrl('k'), Action::SelectPrevEntry),
+            (Key::page_down(), Action::SelectNextPage),
         ]);
 
         let merged = merge_keybindings(base, &new);
 
         // Should contain both base and custom keybindings
-        assert!(merged.0.contains_key(&Key::Esc));
-        assert_eq!(merged.0.get(&Key::Esc), Some(&Action::Quit.into()));
-        assert!(merged.0.contains_key(&Key::Down));
+        assert!(merged.0.contains_key(&Key::escape()));
+        assert_eq!(merged.0.get(&Key::escape()), Some(&Action::Quit.into()));
+        assert!(merged.0.contains_key(&Key::down()));
         assert_eq!(
-            merged.0.get(&Key::Down),
+            merged.0.get(&Key::down()),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.0.contains_key(&Key::Ctrl('j')));
+        assert!(merged.0.contains_key(&Key::ctrl('j')));
         assert_eq!(
-            merged.0.get(&Key::Ctrl('j')),
+            merged.0.get(&Key::ctrl('j')),
             Some(&Action::SelectNextEntry.into())
         );
-        assert!(merged.0.contains_key(&Key::PageDown));
+        assert!(merged.0.contains_key(&Key::page_down()));
         assert_eq!(
-            merged.0.get(&Key::PageDown),
+            merged.0.get(&Key::page_down()),
             Some(&Action::SelectNextPage.into())
         );
     }
@@ -692,15 +511,18 @@ mod tests {
         .unwrap();
 
         // Normal action binding should work
-        assert_eq!(keybindings.0.get(&Key::Esc), Some(&Action::Quit.into()));
         assert_eq!(
-            keybindings.0.get(&Key::Down),
+            keybindings.0.get(&Key::escape()),
+            Some(&Action::Quit.into())
+        );
+        assert_eq!(
+            keybindings.0.get(&Key::down()),
             Some(&Action::SelectNextEntry.into())
         );
 
         // false should bind to NoOp (unbinding)
         assert_eq!(
-            keybindings.0.get(&Key::Ctrl('c')),
+            keybindings.0.get(&Key::ctrl('c')),
             Some(&Action::NoOp.into())
         );
     }
@@ -717,11 +539,14 @@ mod tests {
         .unwrap();
 
         // Single action should work
-        assert_eq!(keybindings.0.get(&Key::Esc), Some(&Action::Quit.into()));
+        assert_eq!(
+            keybindings.0.get(&Key::escape()),
+            Some(&Action::Quit.into())
+        );
 
         // Multiple actions should work
         assert_eq!(
-            keybindings.0.get(&Key::Ctrl('s')),
+            keybindings.0.get(&Key::ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -730,7 +555,7 @@ mod tests {
 
         // Three actions should work
         assert_eq!(
-            keybindings.0.get(&Key::F(1)),
+            keybindings.0.get(&Key::f(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -742,26 +567,26 @@ mod tests {
     #[test]
     fn test_merge_keybindings_with_multiple_actions() {
         let base_keybindings = Keybindings::from(vec![
-            (Key::Esc, Action::Quit),
-            (Key::Enter, Action::ConfirmSelection),
+            (Key::escape(), Action::Quit),
+            (Key::enter(), Action::ConfirmSelection),
         ]);
 
         let mut custom_bindings = FxHashMap::default();
         custom_bindings.insert(
-            Key::Ctrl('s'),
+            Key::ctrl('s'),
             Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard,
             ]),
         );
-        custom_bindings.insert(Key::Esc, Action::NoOp.into()); // Override
+        custom_bindings.insert(Key::escape(), Action::NoOp.into()); // Override
         let custom_keybindings = Keybindings(custom_bindings);
 
         let merged = merge_keybindings(base_keybindings, &custom_keybindings);
 
         // Custom multiple actions should be present
         assert_eq!(
-            merged.0.get(&Key::Ctrl('s')),
+            merged.0.get(&Key::ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
@@ -769,11 +594,11 @@ mod tests {
         );
 
         // Override should work
-        assert_eq!(merged.0.get(&Key::Esc), Some(&Action::NoOp.into()));
+        assert_eq!(merged.0.get(&Key::escape()), Some(&Action::NoOp.into()));
 
         // Original binding should be preserved
         assert_eq!(
-            merged.0.get(&Key::Enter),
+            merged.0.get(&Key::enter()),
             Some(&Action::ConfirmSelection.into())
         );
     }
@@ -803,22 +628,22 @@ mod tests {
 
         // Verify all binding types work correctly
         assert_eq!(
-            keybindings.0.get(&Key::Esc),
+            keybindings.0.get(&Key::escape()),
             Some(&Actions::single(Action::Quit))
         );
         assert_eq!(
-            keybindings.0.get(&Key::Enter),
+            keybindings.0.get(&Key::enter()),
             Some(&Action::ConfirmSelection.into())
         );
         assert_eq!(
-            keybindings.0.get(&Key::Ctrl('s')),
+            keybindings.0.get(&Key::ctrl('s')),
             Some(&Actions::multiple(vec![
                 Action::ReloadSource,
                 Action::CopyEntryToClipboard
             ]))
         );
         assert_eq!(
-            keybindings.0.get(&Key::F(1)),
+            keybindings.0.get(&Key::f(1)),
             Some(&Actions::multiple(vec![
                 Action::ToggleHelp,
                 Action::TogglePreview,
@@ -826,11 +651,11 @@ mod tests {
             ]))
         );
         assert_eq!(
-            keybindings.0.get(&Key::Ctrl('c')),
+            keybindings.0.get(&Key::ctrl('c')),
             Some(&Actions::single(Action::NoOp))
         );
         assert_eq!(
-            keybindings.0.get(&Key::Tab),
+            keybindings.0.get(&Key::tab()),
             Some(&Actions::multiple(vec![Action::ToggleSelection]))
         );
     }
@@ -846,11 +671,11 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            keybindings.0.get(&Key::Tab),
+            keybindings.0.get(&Key::tab()),
             Some(&Actions::single(Action::ToggleSelection))
         );
         assert_eq!(
-            keybindings.0.get(&Key::BackTab),
+            keybindings.0.get(&Key::back_tab()),
             Some(&Actions::single(Action::ToggleSelection))
         );
     }
