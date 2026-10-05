@@ -358,7 +358,6 @@ impl App {
 
         trace!("Entering main event loop");
         loop {
-            trace!("Waiting for new events or actions...");
             tokio::select! {
                 _ = self.event_rx.recv_many(&mut event_buf, EVENT_BUF_SIZE) => {}
                 _ = self.action_rx.recv_many(&mut action_buf, ACTION_BUF_SIZE) => {}
@@ -380,7 +379,6 @@ impl App {
                 }
             }
 
-            trace!("Event buffer processed, handling actions...");
             // It's important that this shouldn't block if no actions are available
             action_outcome = self.handle_actions(&mut action_buf).await?;
 
@@ -460,25 +458,25 @@ impl App {
     /// # Returns
     /// A vector of actions that correspond to the given event. Multiple actions
     /// will be returned for keys/events bound to action sequences.
+    // FIXME: we shouldn't need to allocate vecs everywhere like this, maybe turn Action into an
+    // enum that can be Single or Multiple, or use smallvec
     fn convert_event_to_actions(&self, event: Event<Key>) -> Vec<Action> {
         let actions = match event {
-            Event::Input(keycode) => {
+            Event::Input(key) => {
                 // First try to get actions based on keybindings
                 if let Some(actions) = self
                     .television
                     .merged_config
                     .input_map
-                    .get_actions_for_key(&keycode, &self.television.mode)
+                    .get_actions_for_key(&key, &self.television.mode)
                 {
                     let actions_vec = actions.as_slice().to_vec();
                     debug!("Keybinding found: {actions_vec:?}");
                     actions_vec
+                } else if let Some(c) = key.text_char() {
+                    vec![Action::AddInputChar(c)]
                 } else {
-                    // fallback to text input events
-                    match keycode {
-                        Key::Char(c) => vec![Action::AddInputChar(c)],
-                        _ => vec![Action::NoOp],
-                    }
+                    vec![Action::NoOp]
                 }
             }
             Event::Mouse(me) => {

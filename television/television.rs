@@ -1311,7 +1311,7 @@ mod test {
         let mut config = crate::config::Config::default();
         config
             .keybindings
-            .insert(Key::Ctrl('n'), Action::SelectNextEntry.into());
+            .insert(Key::ctrl('n'), Action::SelectNextEntry.into());
 
         let prototype =
             toml::from_str::<crate::channels::prototypes::ChannelPrototype>(
@@ -1346,7 +1346,7 @@ mod test {
         assert_eq!(
             tv.merged_config
                 .input_map
-                .get_actions_for_key(&Key::Ctrl('j'), &Mode::Channel),
+                .get_actions_for_key(&Key::ctrl('j'), &Mode::Channel),
             Some(&Actions::single(Action::SelectNextEntry)),
         );
     }
