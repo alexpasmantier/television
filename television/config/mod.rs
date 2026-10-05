@@ -346,6 +346,7 @@ mod tests {
     use crate::event::Key;
 
     use super::*;
+    use crossterm::event::{KeyCode, KeyModifiers};
     use std::fs::File;
     use std::io::Write;
     use std::str::FromStr;
@@ -450,9 +451,10 @@ mod tests {
         // the fixture sets an explicit prompt (the built-in default is none)
         default_config.ui.input_bar.prompt = Some(">".to_string());
         // With new architecture, we add directly to the bindings map
-        default_config
-            .keybindings
-            .insert(Key::CtrlEnter, Action::ConfirmSelection.into());
+        default_config.keybindings.insert(
+            Key::new(KeyCode::Enter, KeyModifiers::CONTROL),
+            Action::ConfirmSelection.into(),
+        );
 
         default_config.shell_integration.keybindings.insert(
             "command_history".to_string(),

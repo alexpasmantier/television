@@ -1,9 +1,5 @@
 use crossterm::event::{
-    KeyCode::{
-        BackTab, Backspace, Char, Delete, Down, End, Enter, Esc, F, Home,
-        Insert, Left, PageDown, PageUp, Right, Tab, Up,
-    },
-    KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
+    KeyCode, KeyEvent, KeyEventKind, KeyModifiers, MouseEvent,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -28,46 +24,179 @@ pub enum Event<I> {
     Tick,
 }
 
-#[derive(
-    Debug, Clone, Copy, Serialize, PartialEq, PartialOrd, Eq, Hash, Ord,
-)]
-pub enum Key {
-    Backspace,
-    Enter,
-    Left,
-    Right,
-    Up,
-    Down,
-    CtrlSpace,
-    CtrlBackspace,
-    CtrlEnter,
-    CtrlLeft,
-    CtrlRight,
-    CtrlUp,
-    CtrlDown,
-    CtrlDelete,
-    AltSpace,
-    AltEnter,
-    AltBackspace,
-    AltDelete,
-    AltUp,
-    AltDown,
-    AltLeft,
-    AltRight,
-    Home,
-    End,
-    PageUp,
-    PageDown,
-    BackTab,
-    Delete,
-    Insert,
-    F(u8),
-    Char(char),
-    Alt(char),
-    Ctrl(char),
-    Null,
-    Esc,
-    Tab,
+/// This is a stripped down version of crossterm's `KeyEvent`.
+/// Only meant to represent key presses and repeats (not releases, these get converted to the
+/// `NULL_KEY`).
+#[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq, Hash, PartialOrd)]
+pub struct Key {
+    pub code: KeyCode,
+    pub modifiers: KeyModifiers,
+}
+
+pub const NULL_KEY: Key = Key {
+    code: KeyCode::Null,
+    modifiers: KeyModifiers::NONE,
+};
+
+impl Key {
+    pub fn new(code: KeyCode, modifiers: KeyModifiers) -> Self {
+        Self { code, modifiers }
+    }
+
+    /// The character this key types into the input, if any: a char key with no
+    /// modifiers other than shift.
+    pub fn text_char(&self) -> Option<char> {
+        match self.code {
+            KeyCode::Char(c)
+                if (self.modifiers - KeyModifiers::SHIFT).is_empty() =>
+            {
+                Some(c)
+            }
+            _ => None,
+        }
+    }
+
+    // Copied over from crossterm's KeyEvent::normalize_case
+    pub fn normalize_case(mut self) -> Key {
+        let KeyCode::Char(c) = self.code else {
+            return self;
+        };
+
+        if c.is_ascii_uppercase() {
+            self.modifiers.insert(KeyModifiers::SHIFT);
+        } else if self.modifiers.contains(KeyModifiers::SHIFT) {
+            self.code = KeyCode::Char(c.to_ascii_uppercase());
+        }
+        self
+    }
+
+    pub fn ctrl(c: char) -> Self {
+        Self {
+            code: KeyCode::Char(c),
+            modifiers: KeyModifiers::CONTROL,
+        }
+    }
+
+    pub fn escape() -> Self {
+        Self {
+            code: KeyCode::Esc,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn enter() -> Self {
+        Self {
+            code: KeyCode::Enter,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn backspace() -> Self {
+        Self {
+            code: KeyCode::Backspace,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn delete() -> Self {
+        Self {
+            code: KeyCode::Delete,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn tab() -> Self {
+        Self {
+            code: KeyCode::Tab,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn space() -> Self {
+        Self {
+            code: KeyCode::Char(' '),
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn up() -> Self {
+        Self {
+            code: KeyCode::Up,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn down() -> Self {
+        Self {
+            code: KeyCode::Down,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn left() -> Self {
+        Self {
+            code: KeyCode::Left,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn right() -> Self {
+        Self {
+            code: KeyCode::Right,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn home() -> Self {
+        Self {
+            code: KeyCode::Home,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn end() -> Self {
+        Self {
+            code: KeyCode::End,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn page_up() -> Self {
+        Self {
+            code: KeyCode::PageUp,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn page_down() -> Self {
+        Self {
+            code: KeyCode::PageDown,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn back_tab() -> Self {
+        Self {
+            code: KeyCode::BackTab,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+
+    pub fn f(n: u8) -> Self {
+        Self {
+            code: KeyCode::F(n),
+            modifiers: KeyModifiers::NONE,
+        }
+    }
+}
+
+impl From<KeyCode> for Key {
+    fn from(keycode: KeyCode) -> Self {
+        Self {
+            code: keycode,
+            modifiers: KeyModifiers::NONE,
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for Key {
@@ -82,43 +211,30 @@ impl<'de> Deserialize<'de> for Key {
 
 impl Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Key::Backspace => write!(f, "backspace"),
-            Key::Enter => write!(f, "enter"),
-            Key::Left => write!(f, "left"),
-            Key::Right => write!(f, "right"),
-            Key::Up => write!(f, "up"),
-            Key::Down => write!(f, "down"),
-            Key::CtrlSpace => write!(f, "ctrl-space"),
-            Key::CtrlBackspace => write!(f, "ctrl-backspace"),
-            Key::CtrlEnter => write!(f, "ctrl-enter"),
-            Key::CtrlLeft => write!(f, "ctrl-left"),
-            Key::CtrlRight => write!(f, "ctrl-right"),
-            Key::CtrlUp => write!(f, "ctrl-up"),
-            Key::CtrlDown => write!(f, "ctrl-down"),
-            Key::CtrlDelete => write!(f, "ctrl-del"),
-            Key::AltSpace => write!(f, "alt-space"),
-            Key::AltEnter => write!(f, "alt-enter"),
-            Key::AltBackspace => write!(f, "alt-backspace"),
-            Key::AltDelete => write!(f, "alt-delete"),
-            Key::AltUp => write!(f, "alt-up"),
-            Key::AltDown => write!(f, "alt-down"),
-            Key::AltLeft => write!(f, "alt-left"),
-            Key::AltRight => write!(f, "alt-right"),
-            Key::Home => write!(f, "home"),
-            Key::End => write!(f, "end"),
-            Key::PageUp => write!(f, "pageup"),
-            Key::PageDown => write!(f, "pagedown"),
-            Key::BackTab => write!(f, "backtab"),
-            Key::Delete => write!(f, "delete"),
-            Key::Insert => write!(f, "insert"),
-            Key::F(k) => write!(f, "f{k}"),
-            Key::Char(c) => write!(f, "{c}"),
-            Key::Alt(c) => write!(f, "alt-{c}"),
-            Key::Ctrl(c) => write!(f, "ctrl-{c}"),
-            Key::Null => write!(f, "null"),
-            Key::Esc => write!(f, "esc"),
-            Key::Tab => write!(f, "tab"),
+        let mut modifiers = Vec::new();
+        if self.modifiers.contains(KeyModifiers::SUPER) {
+            modifiers.push("super");
+        }
+        if self.modifiers.contains(KeyModifiers::CONTROL) {
+            modifiers.push("ctrl");
+        }
+        if self.modifiers.contains(KeyModifiers::ALT) {
+            modifiers.push("alt");
+        }
+        if self.modifiers.contains(KeyModifiers::SHIFT) {
+            modifiers.push("shift");
+        }
+        if !modifiers.is_empty() {
+            write!(f, "{}-", modifiers.join("-"))?;
+        }
+        if let KeyCode::Char(c) = self.code {
+            write!(f, "{}", c)
+        } else if let KeyCode::F(n) = self.code {
+            write!(f, "f{}", n)
+        } else {
+            // convert to lowercase
+            let code_str = format!("{:?}", self.code).to_lowercase();
+            write!(f, "{}", code_str)
         }
     }
 }
@@ -230,7 +346,7 @@ impl EventLoop {
                     },
                     _ = signal::ctrl_c() => {
                         debug!("Received SIGINT");
-                        tx.send(Event::Input(Key::Ctrl('c'))).unwrap_or_else(|_| warn!("Unable to send Ctrl-C event"));
+                        tx.send(Event::Input(Key::ctrl('c'))).unwrap_or_else(|_| warn!("Unable to send Ctrl-C event"));
                     },
                     // if `delay` completes, pass to the next event "frame"
                     () = delay => {
@@ -291,299 +407,60 @@ fn flush_resize_events(first_resize: (u16, u16)) -> ((u16, u16), (u16, u16)) {
     (first_resize, last_resize)
 }
 
-/// Converts a crossterm `KeyEvent` into Television's internal `Key` representation.
-///
-/// This function handles the conversion from crossterm's key event format into
-/// Television's simplified key representation, applying modifier key combinations
-/// and filtering out key release events.
-///
-/// # Arguments
-///
-/// * `event` - The crossterm `KeyEvent` to convert
-///
-/// # Returns
-///
-/// The corresponding `Key` enum variant, or `Key::Null` for unsupported events
-///
-/// # Key Mapping
-///
-/// - Modifier combinations are mapped to specific variants (e.g., `Ctrl+a` → `Key::Ctrl('a')`)
-/// - Key release events are ignored (return `Key::Null`)
-/// - Special keys are mapped directly (e.g., `Enter` → `Key::Enter`)
-/// - Function keys preserve their number (e.g., `F1` → `Key::F(1)`)
-///
-/// # Examples
-///
-/// ```rust
-/// use television::event::{convert_raw_event_to_key, Key};
-/// use crossterm::event::{KeyEvent, KeyCode, KeyModifiers, KeyEventKind};
-///
-/// let event = KeyEvent::new(KeyCode::Char('a'), KeyModifiers::CONTROL);
-/// assert_eq!(convert_raw_event_to_key(event), Key::Ctrl('a'));
-///
-/// let event = KeyEvent::new(KeyCode::Enter, KeyModifiers::empty());
-/// assert_eq!(convert_raw_event_to_key(event), Key::Enter);
-/// ```
+/// We only keep key presses and repeats, not releases.
+/// Releases are converted to the `NULL_KEY`.
 pub fn convert_raw_event_to_key(event: KeyEvent) -> Key {
     trace!("Raw event: {:?}", event);
     if event.kind == KeyEventKind::Release {
-        return Key::Null;
+        return NULL_KEY;
     }
-    match event.code {
-        Backspace => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlBackspace,
-            KeyModifiers::ALT => Key::AltBackspace,
-            _ => Key::Backspace,
-        },
-        Delete => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlDelete,
-            KeyModifiers::ALT => Key::AltDelete,
-            _ => Key::Delete,
-        },
-        Enter => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlEnter,
-            KeyModifiers::ALT => Key::AltEnter,
-            _ => Key::Enter,
-        },
-        Up => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlUp,
-            KeyModifiers::ALT => Key::AltUp,
-            _ => Key::Up,
-        },
-        Down => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlDown,
-            KeyModifiers::ALT => Key::AltDown,
-            _ => Key::Down,
-        },
-        Left => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlLeft,
-            KeyModifiers::ALT => Key::AltLeft,
-            _ => Key::Left,
-        },
-        Right => match event.modifiers {
-            KeyModifiers::CONTROL => Key::CtrlRight,
-            KeyModifiers::ALT => Key::AltRight,
-            _ => Key::Right,
-        },
-        Home => Key::Home,
-        End => Key::End,
-        PageUp => Key::PageUp,
-        PageDown => Key::PageDown,
-        Tab => Key::Tab,
-        BackTab => Key::BackTab,
-        Insert => Key::Insert,
-        F(k) => Key::F(k),
-        Esc => Key::Esc,
-        Char(' ') => match event.modifiers {
-            KeyModifiers::NONE | KeyModifiers::SHIFT => Key::Char(' '),
-            KeyModifiers::CONTROL => Key::CtrlSpace,
-            KeyModifiers::ALT => Key::AltSpace,
-            _ => Key::Null,
-        },
-        Char(c) => {
-            let c = if event.modifiers.contains(KeyModifiers::SHIFT) {
-                c.to_uppercase().next().unwrap_or(c)
-            } else {
-                c
-            };
-            match event.modifiers - KeyModifiers::SHIFT {
-                KeyModifiers::NONE => Key::Char(c),
-                KeyModifiers::CONTROL => Key::Ctrl(c),
-                KeyModifiers::ALT => Key::Alt(c),
-                _ => Key::Null,
-            }
-        }
-        _ => Key::Null,
+    if event.code == KeyCode::BackTab
+        || event.code == KeyCode::Tab && event.modifiers == KeyModifiers::SHIFT
+    {
+        return Key::new(KeyCode::BackTab, KeyModifiers::NONE);
     }
+    Key::new(event.code, event.modifiers).normalize_case()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crossterm::event::{
-        KeyCode, KeyEvent, KeyEventKind, KeyEventState, KeyModifiers,
-    };
+    use yare::parameterized;
 
-    #[test]
-    fn test_convert_raw_event_to_key() {
-        // character keys
-        let event = KeyEvent {
-            code: KeyCode::Char('a'),
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Char('a'));
+    #[parameterized(
+        plain_char = { Key::new(KeyCode::Char('a'), KeyModifiers::NONE), "a" },
+        ctrl_char = { Key::new(KeyCode::Char('a'), KeyModifiers::CONTROL), "ctrl-a" },
+        alt_char = { Key::new(KeyCode::Char('a'), KeyModifiers::ALT), "alt-a" },
+        shift_char = { Key::new(KeyCode::Char('a'), KeyModifiers::SHIFT), "shift-a" },
+        super_char = { Key::new(KeyCode::Char('a'), KeyModifiers::SUPER), "super-a" },
+        ctrl_alt_char = { Key::new(KeyCode::Char('a'), KeyModifiers::CONTROL | KeyModifiers::ALT), "ctrl-alt-a" },
+        ctrl_shift_char = { Key::new(KeyCode::Char('a'), KeyModifiers::CONTROL | KeyModifiers::SHIFT), "ctrl-shift-a" },
+        alt_shift_char = { Key::new(KeyCode::Char('a'), KeyModifiers::ALT | KeyModifiers::SHIFT), "alt-shift-a" },
+        ctrl_alt_shift_char = { Key::new(KeyCode::Char('a'), KeyModifiers::CONTROL | KeyModifiers::ALT | KeyModifiers::SHIFT), "ctrl-alt-shift-a" },
+        f_key = { Key::new(KeyCode::F(1), KeyModifiers::NONE), "f1" },
+        enter_key = { Key::new(KeyCode::Enter, KeyModifiers::NONE), "enter" },
+        ctrl_enter_key = { Key::new(KeyCode::Enter, KeyModifiers::CONTROL), "ctrl-enter" },
+    )]
+    fn test_key_display(key: Key, expected: &str) {
+        assert_eq!(key.to_string(), expected);
+    }
 
-        let event = KeyEvent {
-            code: KeyCode::Char('a'),
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Ctrl('a'));
-
-        let event = KeyEvent {
-            code: KeyCode::Char('a'),
-            modifiers: KeyModifiers::ALT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Alt('a'));
-
-        let event = KeyEvent {
-            code: KeyCode::Char('a'),
-            modifiers: KeyModifiers::SHIFT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Char('A'));
-
-        let event = KeyEvent {
-            code: KeyCode::Char(' '),
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Char(' '));
-
-        let event = KeyEvent {
-            code: KeyCode::Char(' '),
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::CtrlSpace);
-
-        let event = KeyEvent {
-            code: KeyCode::Char(' '),
-            modifiers: KeyModifiers::ALT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::AltSpace);
-
-        let event = KeyEvent {
-            code: KeyCode::Char(' '),
-            modifiers: KeyModifiers::SHIFT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Char(' '));
-
-        let event = KeyEvent {
-            code: KeyCode::Backspace,
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::Backspace);
-
-        let event = KeyEvent {
-            code: KeyCode::Backspace,
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-        assert_eq!(convert_raw_event_to_key(event), Key::CtrlBackspace);
-
-        let event = KeyEvent {
-            code: KeyCode::Backspace,
-            modifiers: KeyModifiers::ALT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::AltBackspace);
-
-        let event = KeyEvent {
-            code: KeyCode::Backspace,
-            modifiers: KeyModifiers::SHIFT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Backspace);
-
-        let event = KeyEvent {
-            code: KeyCode::Delete,
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Delete);
-
-        let event = KeyEvent {
-            code: KeyCode::Delete,
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::CtrlDelete);
-
-        let event = KeyEvent {
-            code: KeyCode::Delete,
-            modifiers: KeyModifiers::ALT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::AltDelete);
-
-        let event = KeyEvent {
-            code: KeyCode::Delete,
-            modifiers: KeyModifiers::SHIFT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Delete);
-
-        let event = KeyEvent {
-            code: KeyCode::Enter,
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Enter);
-
-        let event = KeyEvent {
-            code: KeyCode::Enter,
-            modifiers: KeyModifiers::CONTROL,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::CtrlEnter);
-
-        let event = KeyEvent {
-            code: KeyCode::Enter,
-            modifiers: KeyModifiers::ALT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::AltEnter);
-
-        let event = KeyEvent {
-            code: KeyCode::Enter,
-            modifiers: KeyModifiers::SHIFT,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Enter);
-
-        let event = KeyEvent {
-            code: KeyCode::Up,
-            modifiers: KeyModifiers::NONE,
-            kind: KeyEventKind::Press,
-            state: KeyEventState::NONE,
-        };
-
-        assert_eq!(convert_raw_event_to_key(event), Key::Up);
+    #[parameterized(
+        lowercase = { KeyCode::Char('a'), KeyModifiers::NONE, Some('a') },
+        // crossterm reports typed capitals with the shift modifier set
+        uppercase = { KeyCode::Char('A'), KeyModifiers::SHIFT, Some('A') },
+        space = { KeyCode::Char(' '), KeyModifiers::NONE, Some(' ') },
+        ctrl = { KeyCode::Char('a'), KeyModifiers::CONTROL, None },
+        alt = { KeyCode::Char('a'), KeyModifiers::ALT, None },
+        ctrl_shift = { KeyCode::Char('A'), KeyModifiers::CONTROL | KeyModifiers::SHIFT, None },
+        non_char = { KeyCode::Enter, KeyModifiers::NONE, None },
+    )]
+    fn test_typed_key_to_text_char(
+        code: KeyCode,
+        modifiers: KeyModifiers,
+        expected: Option<char>,
+    ) {
+        let key = convert_raw_event_to_key(KeyEvent::new(code, modifiers));
+        assert_eq!(key.text_char(), expected);
     }
 }

@@ -1,6 +1,7 @@
 use std::hash::Hash;
 
 use crate::{event::Key, utils::hashmaps};
+use crossterm::event::{KeyCode, KeyModifiers};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -78,9 +79,9 @@ static DEFAULT_CHANNEL_TRIGGERS: &[(&str, &[&str])] = &[
     ("git-repos", &["nvim", "code", "hx", "git clone"]),
 ];
 
-static DEFAULT_KEYBINDINGS: &[(&str, Key)] = &[
-    ("smart_autocomplete", Key::Ctrl('t')),
-    ("command_history", Key::Ctrl('r')),
+static DEFAULT_KEYBINDINGS: &[(&str, &str)] = &[
+    ("smart_autocomplete", "ctrl-t"),
+    ("command_history", "ctrl-r"),
 ];
 
 impl Default for ShellIntegrationConfig {
@@ -104,7 +105,7 @@ impl Default for ShellIntegrationConfig {
             fallback_channel: DEFAULT_FALLBACK_CHANNEL.to_string(),
             keybindings: DEFAULT_KEYBINDINGS
                 .iter()
-                .map(|(name, key)| ((*name).to_string(), *key))
+                .map(|(name, key)| ((*name).to_string(), key.parse().unwrap()))
                 .collect(),
         }
     }
@@ -148,9 +149,13 @@ impl ShellIntegrationConfig {
 /// Extract an upper-case character from a `Key` if it is a single CTRL key
 /// (or CTRL-Space).  Returns `None` otherwise.
 fn extract_ctrl_char(key: Key) -> Option<char> {
-    match key {
-        Key::Ctrl(c) => Some(c.to_ascii_uppercase()),
-        Key::CtrlSpace => Some(' '),
-        _ => None,
+    if key.modifiers == KeyModifiers::CONTROL {
+        match key.code {
+            KeyCode::Char(' ') => Some(' '),
+            KeyCode::Char(c) => Some(c.to_ascii_uppercase()),
+            _ => None,
+        }
+    } else {
+        None
     }
 }

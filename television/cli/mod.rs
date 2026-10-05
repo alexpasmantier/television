@@ -772,9 +772,9 @@ mod tests {
         let post_processed_cli = post_process(cli, false, &test_cable());
 
         let mut expected = Keybindings::new();
-        expected.insert(Key::Esc, Action::Quit.into());
-        expected.insert(Key::Down, Action::SelectNextEntry.into());
-        expected.insert(Key::Ctrl('j'), Action::SelectNextEntry.into());
+        expected.insert(Key::escape(), Action::Quit.into());
+        expected.insert(Key::down(), Action::SelectNextEntry.into());
+        expected.insert(Key::ctrl('j'), Action::SelectNextEntry.into());
 
         assert_eq!(post_processed_cli.channel.keybindings, Some(expected));
     }
@@ -872,10 +872,13 @@ mod tests {
 
         let mut expected = Keybindings::new();
         expected.insert(
-            Key::Ctrl('q'),
-            Actions::single(Action::Expect(Key::Ctrl('q'))),
+            Key::ctrl('q'),
+            Actions::single(Action::Expect(Key::ctrl('q'))),
         );
-        expected.insert(Key::Esc, Actions::single(Action::Expect(Key::Esc)));
+        expected.insert(
+            Key::escape(),
+            Actions::single(Action::Expect(Key::escape())),
+        );
 
         assert_eq!(bindings, expected);
     }
