@@ -13,6 +13,7 @@ use crossterm::{
         PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
     },
     execute,
+    style::Print,
     terminal::{
         ClearType, EnterAlternateScreen, LeaveAlternateScreen, ScrollUp,
         disable_raw_mode, enable_raw_mode, is_raw_mode_enabled,
@@ -25,6 +26,10 @@ use ratatui::{
     prelude::Backend,
 };
 use tracing::debug;
+
+/// xterm `modifyOtherKeys` mode 2 on / reset.
+const MODIFY_OTHER_KEYS_ON: &str = "\x1b[>4;2m";
+const MODIFY_OTHER_KEYS_OFF: &str = "\x1b[>4;0m";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TuiMode {
@@ -378,6 +383,14 @@ where
                     KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES
                 )
             )?;
+        } else {
+            // Terminals without the kitty protocol (e.g. tmux) only report
+            // modified keys like shift-enter if asked via modifyOtherKeys.
+            debug!("Enabling xterm modifyOtherKeys");
+            execute!(
+                self.terminal.backend_mut(),
+                Print(MODIFY_OTHER_KEYS_ON)
+            )?;
         }
         Ok(())
     }
@@ -403,6 +416,8 @@ where
 
             if self.keyboard_enhancement {
                 execute!(backend, PopKeyboardEnhancementFlags)?;
+            } else {
+                execute!(backend, Print(MODIFY_OTHER_KEYS_OFF))?;
             }
 
             execute!(backend, DisableMouseCapture)?;
