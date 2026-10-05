@@ -237,7 +237,7 @@ impl ChannelKeyBindings {
 
 pub fn remove_enter_keybinding(prototype: &mut ChannelPrototype) {
     if let Some(keybindings) = &mut prototype.keybindings {
-        keybindings.bindings.remove(&Key::Enter);
+        keybindings.bindings.remove(&Key::enter());
     }
 }
 
@@ -689,39 +689,39 @@ mod tests {
 
         let keybindings = prototype.keybindings.unwrap();
         assert_eq!(
-            keybindings.bindings.get(&Key::Esc),
+            keybindings.bindings.get(&Key::escape()),
             Some(&Action::Quit.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('c')),
+            keybindings.bindings.get(&Key::ctrl('c')),
             Some(&Action::Quit.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Down),
+            keybindings.bindings.get(&Key::down()),
             Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('n')),
+            keybindings.bindings.get(&Key::ctrl('n')),
             Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('j')),
+            keybindings.bindings.get(&Key::ctrl('j')),
             Some(&Action::SelectNextEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Up),
+            keybindings.bindings.get(&Key::up()),
             Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('p')),
+            keybindings.bindings.get(&Key::ctrl('p')),
             Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Ctrl('k')),
+            keybindings.bindings.get(&Key::ctrl('k')),
             Some(&Action::SelectPrevEntry.into())
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::Enter),
+            keybindings.bindings.get(&Key::enter()),
             Some(&Action::ConfirmSelection.into())
         );
     }
@@ -747,16 +747,16 @@ mod tests {
                 .as_ref()
                 .unwrap()
                 .bindings
-                .contains_key(&Key::Enter)
+                .contains_key(&Key::enter()),
         );
 
         remove_enter_keybinding(&mut prototype);
 
         let keybindings = prototype.keybindings.unwrap();
         // The <Enter> binding is gone, but other bindings are untouched.
-        assert!(!keybindings.bindings.contains_key(&Key::Enter));
+        assert!(!keybindings.bindings.contains_key(&Key::enter()));
         assert_eq!(
-            keybindings.bindings.get(&Key::Esc),
+            keybindings.bindings.get(&Key::escape()),
             Some(&Action::Quit.into())
         );
     }
@@ -1027,7 +1027,7 @@ mod tests {
         // Verify keybindings reference the actions
         let keybindings = prototype.keybindings.as_ref().unwrap();
         assert_eq!(
-            keybindings.bindings.get(&Key::F(8)),
+            keybindings.bindings.get(&Key::f(8)),
             Some(
                 &crate::action::Action::ExternalAction(
                     "actions:thebatman".to_string()
@@ -1036,7 +1036,7 @@ mod tests {
             )
         );
         assert_eq!(
-            keybindings.bindings.get(&Key::F(9)),
+            keybindings.bindings.get(&Key::f(9)),
             Some(
                 &crate::action::Action::ExternalAction(
                     "actions:lsman".to_string()
