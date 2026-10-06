@@ -5,6 +5,7 @@ This guide covers the basics of using tv.
 ## What is Television?
 
 Television (`tv`) is a fast, portable fuzzy finder for the terminal. It can search through:
+
 - Files and directories
 - Text content (like grep, but interactive)
 - Git repositories, branches, logs
@@ -23,6 +24,7 @@ tv
 ```
 
 This launches tv with the default channel (usually `files`). You'll see:
+
 - An input bar at the top for typing your search
 - A results panel showing matching entries
 - A preview panel (if configured) showing content
@@ -65,17 +67,17 @@ ps aux | tv
 
 ### Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate results |
-| <kbd>Ctrl</kbd>+<kbd>j</kbd> / <kbd>k</kbd> | Navigate results (vim-style) |
-| <kbd>Enter</kbd> | Select current entry |
+| Key                                              | Action                                              |
+| ------------------------------------------------ | --------------------------------------------------- |
+| <kbd>↑</kbd> / <kbd>↓</kbd>                      | Navigate results                                    |
+| <kbd>Ctrl</kbd>+<kbd>j</kbd> / <kbd>k</kbd>      | Navigate results (vim-style)                        |
+| <kbd>Enter</kbd>                                 | Select current entry                                |
 | <kbd>Tab</kbd> / <kbd>Shift</kbd>+<kbd>Tab</kbd> | Toggle selection of the current entry / all entries |
-| <kbd>Ctrl</kbd>+<kbd>y</kbd> | Copy entry to clipboard |
-| <kbd>PageUp</kbd> / <kbd>PageDown</kbd> | Scroll preview |
-| <kbd>Ctrl</kbd>+<kbd>o</kbd> | Toggle preview panel |
-| <kbd>Ctrl</kbd>+<kbd>h</kbd> | Show help panel |
-| <kbd>Esc</kbd> or <kbd>Ctrl</kbd>+<kbd>c</kbd> | Quit |
+| <kbd>Ctrl</kbd>+<kbd>y</kbd>                     | Copy entry to clipboard                             |
+| <kbd>PageUp</kbd> / <kbd>PageDown</kbd>          | Scroll preview                                      |
+| <kbd>Ctrl</kbd>+<kbd>o</kbd>                     | Toggle preview panel                                |
+| <kbd>Ctrl</kbd>+<kbd>h</kbd>                     | Show help panel                                     |
+| <kbd>Esc</kbd> or <kbd>Ctrl</kbd>+<kbd>c</kbd>   | Quit                                                |
 
 ### Multi-Select
 
@@ -106,17 +108,27 @@ tv --source-command "fd -t f" --preview-command "bat -n --color=always '{}'"
 tv --source-command "ls -la" --preview-command "file '{}'" --preview-size 70
 ```
 
+## Get More Channels
+
+Browse and install community channels:
+
+```sh
+tv cable-manager
+```
+
+See [community-maintained channels](../user-guide/01-channels.md#community-maintained-channels) for details.
+
 ## Search Patterns
 
 Tv supports multiple search patterns:
 
-| Pattern | Type | Example |
-|---------|------|---------|
-| `foo` | Fuzzy match | Matches "foo", "foobar", "folder_foo" |
-| `'foo` | Substring (exact) | Contains "foo" exactly |
-| `^foo` | Prefix | Starts with "foo" |
-| `foo$` | Suffix | Ends with "foo" |
-| `!foo` | Negate | Doesn't match "foo" |
+| Pattern | Type              | Example                               |
+| ------- | ----------------- | ------------------------------------- |
+| `foo`   | Fuzzy match       | Matches "foo", "foobar", "folder_foo" |
+| `'foo`  | Substring (exact) | Contains "foo" exactly                |
+| `^foo`  | Prefix            | Starts with "foo"                     |
+| `foo$`  | Suffix            | Ends with "foo"                       |
+| `!foo`  | Negate            | Doesn't match "foo"                   |
 
 Combine patterns with spaces (AND logic):
 
@@ -161,16 +173,9 @@ tv init fish | source
 to your `is-interactive` block in your `~/.config/fish/config.fish` file and then restart your shell.
 
 This enables:
+
 - <kbd>Ctrl</kbd>+<kbd>T</kbd>: Smart autocomplete based on current command
 - <kbd>Ctrl</kbd>+<kbd>R</kbd>: Search shell history
-
-## Updating Channels
-
-Get the latest community channels:
-
-```sh
-tv update-channels
-```
 
 ## What's Next?
 

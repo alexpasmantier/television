@@ -217,6 +217,10 @@ const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
         "bash-history.toml",
         include_str!("../cable/unix/bash-history.toml"),
     ),
+    (
+        "cable-manager.toml",
+        include_str!("../cable/unix/cable-manager.toml"),
+    ),
     ("dirs.toml", include_str!("../cable/unix/dirs.toml")),
     (
         "docker-images.toml",
@@ -240,6 +244,10 @@ const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
 #[cfg(windows)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     ("alias.toml", include_str!("../cable/windows/alias.toml")),
+    (
+        "cable-manager.toml",
+        include_str!("../cable/windows/cable-manager.toml"),
+    ),
     ("dirs.toml", include_str!("../cable/windows/dirs.toml")),
     (
         "docker-images.toml",
