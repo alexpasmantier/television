@@ -5,6 +5,7 @@ Complete reference for channel TOML configuration files.
 ## File Location
 
 Channels are stored as `.toml` files in:
+
 - **Linux/macOS**: `~/.config/television/cable/`
 - **Windows**: `%LocalAppData%\television\config\cable\`
 - **Custom**: Set via `$TELEVISION_CONFIG/cable/` or `--cable-dir`
@@ -38,13 +39,14 @@ watch = 0.0  # Reload interval in seconds (0 = disabled)
 
 Channel identification and documentation.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Unique channel identifier |
-| `description` | string | No | Human-readable description |
-| `requirements` | string[] | No | Required external tools (checked at runtime) |
+| Field          | Type     | Required | Description                                  |
+| -------------- | -------- | -------- | -------------------------------------------- |
+| `name`         | string   | Yes      | Unique channel identifier                    |
+| `description`  | string   | No       | Human-readable description                   |
+| `requirements` | string[] | No       | Required external tools (checked at runtime) |
 
 **Example:**
+
 ```toml
 [metadata]
 name = "files"
@@ -56,18 +58,18 @@ requirements = ["fd", "bat"]
 
 Defines what data the channel searches through.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `command` | string, string[], `{name, run}`, or array thereof | Yes | Command(s) that produce entries. Entries may be bare strings or `{ name = "...", run = "..." }` tables; names appear in the results panel header when cycling |
-| `ansi` | boolean | No | Parse ANSI escape codes (default: false) |
-| `display` | string | No | Template for display (incompatible with `ansi = true`) |
-| `output` | string | No | Template for final output |
-| `entry_delimiter` | string | No | Custom entry delimiter (default: newline) |
-| `no_sort` | boolean | No | Preserve original source order, disabling match-quality sorting and frecency (default: false) |
-| `frecency` | boolean | No | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting) |
-| `shell` | string | No | Shell used to run the command: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu` (default: detected from the environment) |
-| `env` | table | No | Environment variables for the command |
-| `interactive` | boolean | No | Run the command in an interactive shell (`-i`), so shell rc files and aliases are loaded (default: false) |
+| Field             | Type                                              | Required | Description                                                                                                                                                   |
+| ----------------- | ------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `command`         | string, string[], `{name, run}`, or array thereof | Yes      | Command(s) that produce entries. Entries may be bare strings or `{ name = "...", run = "..." }` tables; names appear in the results panel header when cycling |
+| `ansi`            | boolean                                           | No       | Parse ANSI escape codes (default: false)                                                                                                                      |
+| `display`         | string                                            | No       | Template for display (incompatible with `ansi = true`)                                                                                                        |
+| `output`          | string                                            | No       | Template for final output                                                                                                                                     |
+| `entry_delimiter` | string                                            | No       | Custom entry delimiter (default: newline)                                                                                                                     |
+| `no_sort`         | boolean                                           | No       | Preserve original source order, disabling match-quality sorting and frecency (default: false)                                                                 |
+| `frecency`        | boolean                                           | No       | Enable frecency-based ranking for this channel (default: true). See [Frecency Sorting](../advanced/02-tips-and-tricks.md#frecency-sorting)                    |
+| `shell`           | string                                            | No       | Shell used to run the command: `bash`, `zsh`, `fish`, `powershell`, `cmd`, `nu` (default: detected from the environment)                                      |
+| `env`             | table                                             | No       | Environment variables for the command                                                                                                                         |
+| `interactive`     | boolean                                           | No       | Run the command in an interactive shell (`-i`), so shell rc files and aliases are loaded (default: false)                                                     |
 
 `shell`, `env` and `interactive` are also accepted in `[preview]` and `[actions.NAME]`.
 
@@ -144,14 +146,14 @@ entry_delimiter = "\0"  # Null-byte separated
 
 Defines how to preview entries.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `command` | string or string[] | No | Preview command template(s) |
-| `env` | table | No | Environment variables for preview |
-| `shell` | string | No | Shell used to run the command (see `[source]`) |
-| `interactive` | boolean | No | Run in an interactive shell (see `[source]`) |
-| `offset` | string | No | Template to extract line offset |
-| `cached` | boolean | No | Cache preview output per entry (default: true) |
+| Field         | Type               | Required | Description                                    |
+| ------------- | ------------------ | -------- | ---------------------------------------------- |
+| `command`     | string or string[] | No       | Preview command template(s)                    |
+| `env`         | table              | No       | Environment variables for preview              |
+| `shell`       | string             | No       | Shell used to run the command (see `[source]`) |
+| `interactive` | boolean            | No       | Run in an interactive shell (see `[source]`)   |
+| `offset`      | string             | No       | Template to extract line offset                |
+| `cached`      | boolean            | No       | Cache preview output per entry (default: true) |
 
 Preview panel header and footer templates are set in `[ui.preview_panel]`, not here.
 
@@ -204,10 +206,10 @@ Customize the user interface.
 
 ### Top-Level Options
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `ui_scale` | integer (0-100) | 100 | Percentage of terminal to use |
-| `layout` | string | "landscape" | "landscape" or "portrait" |
+| Field      | Type            | Default     | Description                   |
+| ---------- | --------------- | ----------- | ----------------------------- |
+| `ui_scale` | integer (0-100) | 100         | Percentage of terminal to use |
+| `layout`   | string          | "landscape" | "landscape" or "portrait"     |
 
 ```toml
 [ui]
@@ -219,16 +221,16 @@ Input bar position, header and prompt are set in `[ui.input_bar]` (see below).
 
 ### [ui.preview_panel]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `size` | integer (0-100) | 50 | Preview panel size percentage |
-| `header` | string | - | Header template |
-| `footer` | string | - | Footer template |
-| `scrollbar` | boolean | false | Show scrollbar |
-| `border_type` | string | "none" | "none", "plain", "rounded", "thick" |
-| `padding` | table | all 0 | Panel padding |
-| `word_wrap` | boolean | false | Wrap long lines |
-| `hidden` | boolean | false | Hide by default |
+| Field         | Type            | Default | Description                         |
+| ------------- | --------------- | ------- | ----------------------------------- |
+| `size`        | integer (0-100) | 50      | Preview panel size percentage       |
+| `header`      | string          | -       | Header template                     |
+| `footer`      | string          | -       | Footer template                     |
+| `scrollbar`   | boolean         | false   | Show scrollbar                      |
+| `border_type` | string          | "none"  | "none", "plain", "rounded", "thick" |
+| `padding`     | table           | all 0   | Panel padding                       |
+| `word_wrap`   | boolean         | false   | Wrap long lines                     |
+| `hidden`      | boolean         | false   | Hide by default                     |
 
 ```toml
 [ui.preview_panel]
@@ -242,10 +244,10 @@ hidden = false
 
 ### [ui.results_panel]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `border_type` | string | "none" | Border style |
-| `padding` | table | all 0 | Panel padding |
+| Field         | Type   | Default | Description   |
+| ------------- | ------ | ------- | ------------- |
+| `border_type` | string | "none"  | Border style  |
+| `padding`     | table  | all 0   | Panel padding |
 
 ```toml
 [ui.results_panel]
@@ -255,13 +257,13 @@ padding = { top = 1, bottom = 1 }
 
 ### [ui.input_bar]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `position` | string | "top" | "top" or "bottom" |
-| `header` | string | "" | Input bar header text (empty: not rendered) |
-| `prompt` | string | "" | Input prompt string (empty: not rendered) |
-| `border_type` | string | "none" | Border style |
-| `padding` | table | all 0 | Bar padding |
+| Field         | Type   | Default | Description                                 |
+| ------------- | ------ | ------- | ------------------------------------------- |
+| `position`    | string | "top"   | "top" or "bottom"                           |
+| `header`      | string | ""      | Input bar header text (empty: not rendered) |
+| `prompt`      | string | ""      | Input prompt string (empty: not rendered)   |
+| `border_type` | string | "none"  | Border style                                |
+| `padding`     | table  | all 0   | Bar padding                                 |
 
 ```toml
 [ui.input_bar]
@@ -274,9 +276,9 @@ padding = { left = 2, right = 2 }
 
 ### [ui.status_bar]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `hidden` | boolean | false | Hide by default |
+| Field    | Type    | Default | Description     |
+| -------- | ------- | ------- | --------------- |
+| `hidden` | boolean | false   | Hide by default |
 
 ```toml
 [ui.status_bar]
@@ -285,11 +287,11 @@ hidden = false
 
 ### [ui.help_panel]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `show_categories` | boolean | true | Group by category |
-| `hidden` | boolean | true | Hide by default |
-| `disabled` | boolean | false | Completely disable |
+| Field             | Type    | Default | Description        |
+| ----------------- | ------- | ------- | ------------------ |
+| `show_categories` | boolean | true    | Group by category  |
+| `hidden`          | boolean | true    | Hide by default    |
+| `disabled`        | boolean | false   | Completely disable |
 
 ```toml
 [ui.help_panel]
@@ -300,11 +302,11 @@ disabled = false
 
 ### [ui.remote_control]
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `show_channel_descriptions` | boolean | true | Show descriptions |
-| `sort_alphabetically` | boolean | true | Alphabetical sort |
-| `disabled` | boolean | false | Disable feature |
+| Field                       | Type    | Default | Description       |
+| --------------------------- | ------- | ------- | ----------------- |
+| `show_channel_descriptions` | boolean | true    | Show descriptions |
+| `sort_alphabetically`       | boolean | true    | Alphabetical sort |
+| `disabled`                  | boolean | false   | Disable feature   |
 
 ```toml
 [ui.remote_control]
@@ -317,10 +319,10 @@ disabled = false
 
 Custom key mappings for this channel.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `shortcut` | string | Global shortcut to switch to this channel |
-| `<key>` | string or string[] | Action (or list of actions run in sequence) bound to this key |
+| Field      | Type               | Description                                                   |
+| ---------- | ------------------ | ------------------------------------------------------------- |
+| `shortcut` | string             | Global shortcut to switch to this channel                     |
+| `<key>`    | string or string[] | Action (or list of actions run in sequence) bound to this key |
 
 ```toml
 [keybindings]
@@ -339,15 +341,16 @@ ctrl-o = "actions:open"
 
 Define custom actions that can be triggered by keybindings.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `description` | string | No | Action description |
-| `command` | string | Yes | Command template |
-| `mode` | string | No | "fork" (default) or "execute" |
-| `separator` | string | No | Multi-select join character (default: " ") |
-| `shell` | string | No | Shell used to run the command (see `[source]`) |
-| `env` | table | No | Environment variables for the command |
-| `interactive` | boolean | No | Run in an interactive shell (see `[source]`) |
+| Field           | Type    | Required | Description                                         |
+| --------------- | ------- | -------- | --------------------------------------------------- |
+| `description`   | string  | No       | Action description                                  |
+| `command`       | string  | Yes      | Command template                                    |
+| `mode`          | string  | No       | "fork" (default) or "execute"                       |
+| `separator`     | string  | No       | Multi-select join character (default: " ")          |
+| `reload_source` | boolean | No       | Reload the source after completion (default: false) |
+| `shell`         | string  | No       | Shell used to run the command (see `[source]`)      |
+| `env`           | table   | No       | Environment variables for the command               |
+| `interactive`   | boolean | No       | Run in an interactive shell (see `[source]`)        |
 
 ### Fork Mode (Return to tv)
 
@@ -365,6 +368,18 @@ mode = "fork"
 description = "Edit in nvim"
 command = "nvim '{}'"
 mode = "execute"
+```
+
+### Reload After the Action
+
+This is useful when the action changes what the source lists, e.g. modifying entries.
+
+```toml
+[actions.delete]
+description = "delete file"
+command = "rm '{}'"
+mode = "fork"
+reload_source = true
 ```
 
 ### Multi-Select with Custom Separator
@@ -428,14 +443,14 @@ mode = "execute"
 
 Templates use the [string-pipeline](https://docs.rs/string_pipeline) syntax. Common patterns:
 
-| Pattern | Description |
-|---------|-------------|
-| `{}` | Entire entry |
-| `{0}`, `{1}` | Positional fields (split on whitespace) |
-| `{split:DELIM:INDEX}` | Split on custom delimiter |
-| `{strip_ansi}` | Remove ANSI codes |
-| `{trim}` | Remove whitespace |
-| `{upper}`, `{lower}` | Case conversion |
+| Pattern               | Description                             |
+| --------------------- | --------------------------------------- |
+| `{}`                  | Entire entry                            |
+| `{0}`, `{1}`          | Positional fields (split on whitespace) |
+| `{split:DELIM:INDEX}` | Split on custom delimiter               |
+| `{strip_ansi}`        | Remove ANSI codes                       |
+| `{trim}`              | Remove whitespace                       |
+| `{upper}`, `{lower}`  | Case conversion                         |
 
 For complete template documentation, see [Template System](../advanced/01-template-system.md).
 

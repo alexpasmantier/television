@@ -642,6 +642,14 @@ impl App {
                                             &action_spec,
                                             &selected_entries,
                                         )?;
+                                        if action_spec.reload_source {
+                                            debug!(
+                                                "Reloading source after action {}",
+                                                action_name
+                                            );
+                                            self.action_tx
+                                                .send(Action::ReloadSource)?;
+                                        }
                                     }
                                     // clean up and exit the TUI and execute the action
                                     ExecutionMode::Execute => {

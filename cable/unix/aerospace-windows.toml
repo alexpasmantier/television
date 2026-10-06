@@ -13,7 +13,7 @@ output = "{split:\\t:0}"
 
 [keybindings]
 shift-enter = "actions:focus"
-ctrl-x = [ "actions:close", "reload_source" ]
+ctrl-x = "actions:close"
 
 [actions.focus]
 description = "Focus the selected window"
@@ -24,3 +24,4 @@ mode = "execute"
 description = "Close the selected window"
 command = "aerospace close --window-id '{split:\\t:0}'"
 mode = "fork"
+reload_source = true
