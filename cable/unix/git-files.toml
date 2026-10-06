@@ -1,13 +1,13 @@
 [metadata]
 name = "git-files"
 description = "A channel to list the files currently tracked in the Git repository"
-requirements = ["git", "bat"]
+requirements = ["git", ["bat", "batcat"]]
 
 [source]
 command = "git ls-files $(git rev-parse --show-toplevel)"
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]

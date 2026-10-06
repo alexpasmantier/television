@@ -8,7 +8,7 @@ command = ["$(command -v fd || echo fdfind) . ~/.config/nvim --type f"]
 display = "{regex_extract:.*\\.config/nvim/(.*):1}"
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]

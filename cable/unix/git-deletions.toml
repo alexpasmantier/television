@@ -1,13 +1,13 @@
 [metadata]
 name = "git-deletions"
 description = "A channel to list files which were deleted from the Git repository"
-requirements = ["git", "rg", "bat"]
+requirements = ["git", "rg", ["bat", "batcat"]]
 
 [source]
 command = "git log --diff-filter=D --summary | rg 'delete mode \\d+' -r '' --trim"
 
 [preview]
-command = ["git show \"$(git rev-list -n1 HEAD -- '{}')^:{}\" | bat -n --color always --file-name '{}'", "git show --summary \"$(git rev-list -n1 HEAD -- '{}')\""]
+command = ["git show \"$(git rev-list -n1 HEAD -- '{}')^:{}\" | $(command -v bat || echo batcat) -n --color always --file-name '{}'", "git show --summary \"$(git rev-list -n1 HEAD -- '{}')\""]
 
 [keybindings]
 enter = "actions:print_commit"

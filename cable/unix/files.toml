@@ -1,7 +1,7 @@
 [metadata]
 name = "files"
 description = "A channel to select files and directories"
-requirements = [["fd", "fdfind"], "bat"]
+requirements = [["fd", "fdfind"], ["bat", "batcat"]]
 
 [source]
 command = [
@@ -10,7 +10,7 @@ command = [
 ]
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]

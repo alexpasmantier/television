@@ -1,7 +1,7 @@
 [metadata]
 name = "text"
 description = "A channel to find and select text from files"
-requirements = ["rg", "bat"]
+requirements = ["rg", ["bat", "batcat"]]
 
 [source]
 command = [
@@ -12,7 +12,7 @@ ansi = true
 output = "{strip_ansi|split:\\::..2}"
 
 [preview]
-command = "bat -n --color=always '{strip_ansi|split:\\::0}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{strip_ansi|split:\\::0}'"
 env = { BAT_THEME = "ansi" }
 offset = '{strip_ansi|split:\::1}'
 
