@@ -25,6 +25,7 @@ Run `tldr --list` to verify it works before continuing.
 ## What is a Channel?
 
 A channel is a TOML configuration file that tells tv:
+
 - **What to search** (the source command)
 - **How to preview** results (optional)
 - **Custom keybindings and actions** (optional)
@@ -59,9 +60,10 @@ command = "tldr --list"
 ```
 
 **What this does:**
+
 - `name`: Identifier used to invoke the channel (`tv tldr`)
 - `description`: Shown in the remote control and help
-- `requirements`: Lists required binaries. tv checks these when you pick the channel from the remote control (and shows a popup if any are missing) and when installing channels with `tv update-channels`. Running `tv tldr` directly does not check them.
+- `requirements`: Lists required binaries.
 - `source.command`: The shell command that produces searchable entries
 
 **Test it:**
@@ -125,11 +127,13 @@ mode = "fork"
 ```
 
 **What's new:**
+
 - `keybindings.ctrl-e`: Maps Ctrl+E to trigger the "open" action
 - `actions.open`: Defines a custom action with a command
 - `mode = "fork"`: Runs the command and returns to tv when done
 
 **Action modes:**
+
 - `fork`: Run command, return to tv afterward
 - `execute`: Replace tv with the command (doesn't return)
 
@@ -239,14 +243,14 @@ command = "bat -n --color=always '{}'"
 
 ## Channel Specification Quick Reference
 
-| Section | Purpose |
-|---------|---------|
-| `[metadata]` | Channel name, description, requirements |
-| `[source]` | Command that produces entries |
-| `[preview]` | Command to generate previews |
-| `[ui]` | Layout and display options |
-| `[keybindings]` | Custom key mappings |
-| `[actions.*]` | Custom action definitions |
+| Section         | Purpose                                 |
+| --------------- | --------------------------------------- |
+| `[metadata]`    | Channel name, description, requirements |
+| `[source]`      | Command that produces entries           |
+| `[preview]`     | Command to generate previews            |
+| `[ui]`          | Layout and display options              |
+| `[keybindings]` | Custom key mappings                     |
+| `[actions.*]`   | Custom action definitions               |
 
 ## What's Next?
 

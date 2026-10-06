@@ -1,0 +1,40 @@
+[metadata]
+name = "cable-manager"
+description = "Browse, install and remove channels from the television repository"
+requirements = ["tv", "bat"]
+
+[source]
+command = [
+  { "name" = "All", run = "tv cable list --color" },
+  { "name" = "Installed", run = "tv cable list --color --installed --modified" },
+  { "name" = "Available", run = "tv cable list --color --available" },
+  { "name" = "Built-in", run = "tv cable list --color --built-in" },
+]
+ansi = true
+output = "{strip_ansi|split: :0}"
+frecency = false
+
+[preview]
+command = "tv cable show {strip_ansi|split: :0} | bat -p -l toml --color=always"
+
+[ui.preview_panel]
+header = "{strip_ansi|split: :0}"
+size = 40
+
+[keybindings]
+shift-enter = "actions:install"
+ctrl-d = "actions:remove"
+
+[actions.install]
+description = "Install the selected channels"
+command = "tv cable install {split:\\n:..|map:{strip_ansi|split: :0}|join: }"
+mode = "fork"
+separator = "\n"
+reload_source = true
+
+[actions.remove]
+description = "Remove the selected channels"
+command = "tv cable remove {split:\\n:..|map:{strip_ansi|split: :0}|join: }"
+mode = "fork"
+separator = "\n"
+reload_source = true
