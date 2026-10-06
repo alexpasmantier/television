@@ -816,11 +816,14 @@ impl Television {
             | Action::DeleteLine
             | Action::DeleteNextChar => {
                 let new_pattern = input.value().to_string();
-                if new_pattern != self.current_pattern {
+                if self.mode == Mode::Channel {
+                    if new_pattern == self.current_pattern {
+                        return;
+                    }
                     self.current_pattern.clone_from(&new_pattern);
-                    self.find(&new_pattern);
-                    self.reset_picker_selection();
                 }
+                self.find(&new_pattern);
+                self.reset_picker_selection();
             }
             _ => {}
         }
