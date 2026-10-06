@@ -1,9 +1,11 @@
-//! Subcommands: `--version`, `list-channels`, `init`.
+//! Subcommands: `--version`, `list-channels`, `init`, `cable`.
 
 use std::{
-    io,
+    fs, io,
     process::{Command, Stdio},
 };
+
+use tempfile::{TempDir, tempdir};
 
 use crate::common::*;
 
@@ -136,4 +138,93 @@ fn test_init_shell_broken_pipe() -> io::Result<()> {
     );
 
     Ok(())
+}
+
+const REMOTE_FOO: &str = r#"[metadata]
+name = "foo"
+description = """Foo channel
+
+Longer notes that `list` leaves out."""
+
+[source]
+command = "echo foo"
+"#;
+
+const REMOTE_BAR: &str = r#"[metadata]
+name = "bar"
+requirements = ["tv-missing-binary"]
+
+[source]
+command = "echo bar"
+"#;
+
+/// A data directory with the remote channel cache already filled, so that
+/// `tv cable` doesn't hit the network.
+fn data_dir_with_remote_cache() -> TempDir {
+    let dir = tempdir().unwrap();
+    let cache = dir
+        .path()
+        .join("gh-cable-cache")
+        .join(env!("CARGO_PKG_VERSION"));
+    fs::create_dir_all(&cache).unwrap();
+    fs::write(cache.join("foo.toml"), REMOTE_FOO).unwrap();
+    fs::write(cache.join("bar.toml"), REMOTE_BAR).unwrap();
+    dir
+}
+
+fn tv_cable(data_dir: &TempDir, config: &TempConfig, args: &[&str]) -> String {
+    let output = Command::new(TV_BIN_PATH)
+        .env("TELEVISION_DATA", data_dir.path())
+        .arg("--config-file")
+        .arg(&config.config_file)
+        .arg("--cable-dir")
+        .arg(&config.cable_dir)
+        .arg("cable")
+        .args(args)
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "tv cable {args:?} failed: {output:?}"
+    );
+    String::from_utf8(output.stdout).unwrap()
+}
+
+#[test]
+fn test_cable_list_shows_status() {
+    let data_dir = data_dir_with_remote_cache();
+    let config = TempConfig::init();
+    config
+        .write_channel("foo", &format!("{REMOTE_FOO}# edited\n"))
+        .unwrap();
+
+    assert_eq!(
+        tv_cable(&data_dir, &config, &["list"]),
+        "bar  available  (needs tv-missing-binary)\nfoo  modified   Foo channel\n"
+    );
+    assert_eq!(
+        tv_cable(&data_dir, &config, &["list", "--modified", "--installed"]),
+        "foo  modified  Foo channel\n"
+    );
+}
+
+#[test]
+fn test_cable_install_and_remove() {
+    let data_dir = data_dir_with_remote_cache();
+    let config = TempConfig::init();
+    let foo = config.cable_dir.join("foo.toml");
+    let bar = config.cable_dir.join("bar.toml");
+    config.write_channel("foo", REMOTE_FOO).unwrap();
+
+    // `--all` skips bar (missing requirements)
+    tv_cable(&data_dir, &config, &["install", "--all"]);
+    assert_eq!(fs::read_to_string(&foo).unwrap(), REMOTE_FOO);
+    assert!(!bar.exists());
+
+    // naming bar installs it regardless of requirements
+    tv_cable(&data_dir, &config, &["install", "bar"]);
+    assert_eq!(fs::read_to_string(&bar).unwrap(), REMOTE_BAR);
+
+    tv_cable(&data_dir, &config, &["remove", "foo", "bar"]);
+    assert!(!foo.exists() && !bar.exists());
 }
