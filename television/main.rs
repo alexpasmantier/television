@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Parser;
 use std::env;
 use std::io::{BufWriter, IsTerminal, Write, stderr, stdout};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::exit;
 use television::channels::prototypes::remove_enter_keybinding;
 use television::cli::ChannelCli;
@@ -11,9 +11,10 @@ use television::config::shell_integration::ShellIntegrationConfig;
 use television::{
     app::App,
     cable::{Cable, load_cable},
+    cable_manager,
     channels::prototypes::ChannelPrototype,
     cli::{
-        args::{Cli, Command},
+        args::{CableCommand, Cli, Command},
         guess_channel_from_prompt, list_channels, post_process,
     },
     config::{
@@ -21,7 +22,6 @@ use television::{
         migration::{maybe_print_migration_notice, migrate_config},
     },
     errors::os_error_exit,
-    gh::update_local_channels,
     television::Mode,
     utils::clipboard::CLIPBOARD,
     utils::paths::expand_tilde,
@@ -69,7 +69,12 @@ async fn main() -> Result<()> {
     // handle subcommands
     debug!("Handling subcommands...");
     if let Some(subcommand) = &cli.global.command {
-        handle_subcommand(subcommand, &cable, &base_config.shell_integration)?;
+        handle_subcommand(
+            subcommand,
+            &cable,
+            &cable_dir,
+            &base_config.shell_integration,
+        )?;
     }
 
     // optionally change the working directory
@@ -143,6 +148,7 @@ pub fn set_current_dir(path: &PathBuf) -> Result<()> {
 pub fn handle_subcommand(
     command: &Command,
     cable: &Cable,
+    cable_dir: &Path,
     shell_integration_config: &ShellIntegrationConfig,
 ) -> Result<()> {
     match command {
@@ -175,8 +181,37 @@ pub fn handle_subcommand(
             }
             exit(0);
         }
+        Command::Cable { command } => {
+            match command {
+                CableCommand::List {
+                    color,
+                    no_color,
+                    status,
+                } => {
+                    let color = if *no_color {
+                        false
+                    } else {
+                        *color || stdout().is_terminal()
+                    };
+                    cable_manager::list(cable_dir, color, &status.statuses())?;
+                }
+                CableCommand::Show { name } => cable_manager::show(name)?,
+                CableCommand::Install {
+                    all: true, force, ..
+                } => {
+                    cable_manager::install_all(cable_dir, *force)?;
+                }
+                CableCommand::Install { names, .. } => {
+                    cable_manager::install(cable_dir, names)?;
+                }
+                CableCommand::Remove { names } => {
+                    cable_manager::remove(cable_dir, names)?;
+                }
+            }
+            exit(0);
+        }
         Command::UpdateChannels { force } => {
-            update_local_channels(force)?;
+            cable_manager::install_all(cable_dir, *force)?;
             exit(0);
         }
         Command::MigrateConfig => {

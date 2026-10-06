@@ -204,6 +204,13 @@ where
     Cable::from_prototypes(prototypes)
 }
 
+/// Whether a channel file ships with tv.
+pub fn is_default_cable_file(file_name: &str) -> bool {
+    DEFAULT_CABLE_FILES
+        .iter()
+        .any(|(name, _)| *name == file_name)
+}
+
 #[cfg(unix)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     (

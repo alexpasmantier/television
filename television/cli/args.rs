@@ -1,4 +1,4 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Args, Parser, Subcommand, ValueEnum};
 
 /// Television CLI arguments structure.
 ///
@@ -16,8 +16,8 @@ pub struct Cli {
     ///
     /// To list available channels, use the `list-channels` subcommand.
     ///
-    /// To pull the latest collection of channels from github, use the
-    /// `update-channels` subcommand.
+    /// To browse and install channels from github, use the `cable`
+    /// subcommand.
     #[arg(index = 1, verbatim_doc_comment)]
     pub channel: Option<String>,
 
@@ -697,29 +697,34 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug, PartialEq, Clone)]
 pub enum Command {
-    /// Lists the available channels.
+    /// List the available channels.
     ListChannels,
-    /// Initializes shell completion ("tv init zsh")
+    /// Initialize shell completion ("tv init zsh")
     #[clap(name = "init")]
     InitShell {
         /// The shell for which to generate the autocompletion script
         #[arg(value_enum)]
         shell: Shell,
     },
-    /// Generates standard shell tab-completion scripts for tv's various subcommands.
+    /// Generate standard shell tab-completion scripts for tv's various subcommands.
     #[clap(name = "completions")]
     Completions {
         #[arg(value_enum)]
         shell: Shell,
     },
-    /// Downloads the latest collection of channel prototypes from github
-    /// and saves them to the local configuration directory.
+    /// Manage channels and install new ones.
+    Cable {
+        #[command(subcommand)]
+        command: CableCommand,
+    },
+    /// Deprecated: use `tv cable` instead.
+    #[command(hide = true)]
     UpdateChannels {
         /// Force update on unsupported and already existing channels.
         #[arg(long, default_value = "false")]
         force: bool,
     },
-    /// Trims machine-written defaults from your configuration file.
+    /// Trim machine-written defaults from your configuration file.
     ///
     /// Older tv versions wrote the full default configuration to your config
     /// directory on first run, which pins you to that version's defaults.
@@ -727,6 +732,98 @@ pub enum Command {
     /// the settings you actually changed (or removes it entirely if you
     /// never changed anything).
     MigrateConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum CableChannelStatus {
+    Available,
+    BuiltIn,
+    Installed,
+    Modified,
+}
+
+impl std::fmt::Display for CableChannelStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.pad(match self {
+            CableChannelStatus::Available => "available",
+            CableChannelStatus::BuiltIn => "built-in",
+            CableChannelStatus::Installed => "installed",
+            CableChannelStatus::Modified => "modified",
+        })
+    }
+}
+
+/// Status flags for `tv cable list`. They can be combined.
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Args, Debug, PartialEq, Clone)]
+pub struct CableStatusFilter {
+    /// Only list channels that can be installed.
+    #[arg(long)]
+    available: bool,
+
+    /// Only list channels shipped with tv that aren't installed yet.
+    #[arg(long)]
+    built_in: bool,
+
+    /// Only list installed channels that match the remote version.
+    #[arg(long)]
+    installed: bool,
+
+    /// Only list installed channels that differ from the remote version.
+    #[arg(long)]
+    modified: bool,
+}
+
+impl CableStatusFilter {
+    /// The selected statuses, empty when no flag is set.
+    pub fn statuses(&self) -> Vec<CableChannelStatus> {
+        [
+            (self.available, CableChannelStatus::Available),
+            (self.built_in, CableChannelStatus::BuiltIn),
+            (self.installed, CableChannelStatus::Installed),
+            (self.modified, CableChannelStatus::Modified),
+        ]
+        .into_iter()
+        .filter_map(|(set, status)| set.then_some(status))
+        .collect()
+    }
+}
+
+#[derive(Subcommand, Debug, PartialEq, Clone)]
+pub enum CableCommand {
+    /// List the community channels available for this version of tv and their status.
+    List {
+        /// Color the output even when it isn't printed to a terminal.
+        #[arg(long, conflicts_with = "no_color")]
+        color: bool,
+
+        /// Disable color output entirely.
+        #[arg(long, conflicts_with = "color")]
+        no_color: bool,
+
+        #[command(flatten)]
+        status: CableStatusFilter,
+    },
+    /// Prints the definition of a channel.
+    Show { name: String },
+    /// Installs channels, overwriting any local version.
+    Install {
+        #[arg(required_unless_present = "all", conflicts_with = "all")]
+        names: Vec<String>,
+        /// Install every channel that isn't installed yet and whose
+        /// requirements are met.
+        #[arg(long)]
+        all: bool,
+        /// With `--all`, also overwrite installed channels and install
+        /// channels with missing requirements.
+        #[arg(long)]
+        force: bool,
+    },
+    /// Removes installed channels.
+    Remove {
+        #[arg(required = true)]
+        names: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
