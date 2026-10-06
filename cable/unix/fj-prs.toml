@@ -1,7 +1,7 @@
 [metadata]
 name = "fj-prs"
 description = "List Forgejo PRs for the current repo"
-requirements = ["fj", "bat"]
+requirements = ["fj", ["bat", "batcat"]]
 
 [source]
 command = '''fj pr search --state open | awk -F ' [(]by ' '/^#[0-9]+:/ {
@@ -18,7 +18,7 @@ layout = "portrait"
 preview_panel = { header = '{strip_ansi|split:\t:1}' }
 
 [preview]
-command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} | bat --language=md --style=plain --color=always"
+command = "fj pr view {strip_ansi|split:\t:0|replace:s/^#//} | $(command -v bat || echo batcat) --language=md --style=plain --color=always"
 env = { BAT_THEME = "ansi" }
 
 [actions.open]

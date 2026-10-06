@@ -268,23 +268,38 @@ mod tests {
         os::unix::fs::{PermissionsExt, symlink},
     };
     use tempfile::tempdir;
+    use yare::parameterized;
 
-    /// Debian-based distributions ship `fd` as `fdfind`: default channels
-    /// relying on it should still work when only `fdfind` is available.
-    #[test]
-    fn test_default_fd_channels_fall_back_to_fdfind() {
-        // PATH containing a fake `fdfind` and no `fd`
+    fn write_script(dir: &Path, name: &str, body: &str) {
+        let path = dir.join(name);
+        fs::write(&path, format!("#!/bin/sh\n{body}\n")).unwrap();
+        fs::set_permissions(&path, fs::Permissions::from_mode(0o755)).unwrap();
+    }
+
+    /// Debian-based distributions ship some tools under a different name
+    /// (e.g. `fd` as `fdfind`): default channels relying on them should still
+    /// work when only the alternative name is available.
+    #[parameterized(
+        fd = { "fd", "fdfind" },
+        bat = { "bat", "batcat" },
+    )]
+    fn test_default_channels_fall_back_to_alternative(
+        bin: &str,
+        alternative: &str,
+    ) {
+        // PATH containing a fake `alternative` and no `bin`
         let bin_dir = tempdir().unwrap();
-        let fdfind = bin_dir.path().join("fdfind");
-        fs::write(&fdfind, "#!/bin/sh\necho fdfind\n").unwrap();
-        fs::set_permissions(&fdfind, fs::Permissions::from_mode(0o755))
-            .unwrap();
-        for bin in ["bash", "head"] {
-            symlink(which::which(bin).unwrap(), bin_dir.path().join(bin))
+        write_script(
+            bin_dir.path(),
+            alternative,
+            &format!("echo {alternative}"),
+        );
+        for core in ["bash", "cat", "head", "sort", "awk"] {
+            symlink(which::which(core).unwrap(), bin_dir.path().join(core))
                 .unwrap();
         }
 
-        let fd_channels = DEFAULT_CABLE_FILES
+        let channels = DEFAULT_CABLE_FILES
             .iter()
             .map(|(_, content)| {
                 toml::from_str::<ChannelPrototype>(content).unwrap()
@@ -293,20 +308,39 @@ mod tests {
                 p.metadata
                     .requirements
                     .iter()
-                    .any(|r| r.alternatives.iter().any(|b| b == "fd"))
+                    .any(|r| r.alternatives.iter().any(|b| b == bin))
             });
 
         let mut tested_commands = 0;
-        for prototype in fd_channels {
-            let commands = prototype.source.command.inner.iter();
-            for command in
-                commands.filter(|c| c.template().raw().contains("fd"))
+        for prototype in channels {
+            // Other requirements pass their input through, since commands
+            // may pipe them into `bin`
+            for other in prototype
+                .metadata
+                .requirements
+                .iter()
+                .flat_map(|r| &r.alternatives)
+                .filter(|b| *b != bin && *b != alternative)
             {
-                let raw = command.template().raw();
+                write_script(bin_dir.path(), other, "cat");
+            }
+
+            let preview_commands =
+                prototype.preview.iter().flat_map(|p| &p.command.inner);
+            let commands = prototype
+                .source
+                .command
+                .inner
+                .iter()
+                .chain(preview_commands);
+            for command in
+                commands.filter(|c| c.template().raw().contains(bin))
+            {
+                let formatted = command.template().format("entry").unwrap();
                 let output = shell_command(
-                    raw,
+                    &formatted,
                     false,
-                    &prototype.source.command.env,
+                    &FxHashMap::default(),
                     Some(Shell::Bash),
                 )
                 .env("PATH", bin_dir.path())
@@ -315,8 +349,8 @@ mod tests {
 
                 assert_eq!(
                     String::from_utf8_lossy(&output.stdout).trim(),
-                    "fdfind",
-                    "channel `{}` failed to run `{raw}`: {}",
+                    alternative,
+                    "channel `{}` failed to run `{formatted}`: {}",
                     prototype.metadata.name,
                     String::from_utf8_lossy(&output.stderr)
                 );
