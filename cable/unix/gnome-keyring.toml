@@ -1,0 +1,98 @@
+[metadata]
+name = "gnome-keyring"
+description = """
+Browse secrets stored in the GNOME keyring (or any Secret Service provider).
+Passwords are masked in the preview until revealed with ctrl-f, and ctrl-y
+copies the selected password to the clipboard (wl-copy on Wayland, xclip on X11)."""
+requirements = ["secret-tool", "busctl", "jq"]
+
+# Lists every item over D-Bus (SearchItems with no attributes) as
+# "<item object path>\t<label>". No secret is read at this stage.
+[source]
+command = '''
+busctl --user --json=short call org.freedesktop.secrets /org/freedesktop/secrets \
+  org.freedesktop.Secret.Service SearchItems 'a{ss}' 0 \
+  | jq -r '.data[][]' \
+  | while read -r item; do
+      printf '%s\t' "$item"
+      busctl --user --json=short call org.freedesktop.secrets "$item" \
+        org.freedesktop.DBus.Properties Get ss org.freedesktop.Secret.Item Label
+    done \
+  | jq -Rr 'split("\t") | "\(.[0])\t\(.[1] | fromjson | .data[0].data | gsub("[\t\n]"; " "))"'
+'''
+display = "{split:\\t:1}"
+output = "{split:\\t:1}"
+shell = "bash"
+
+# The masked preview only reads metadata; the secret is fetched (and the
+# keyring unlocked if needed) only when revealed with ctrl-f.
+[preview]
+command = [
+  { name = "Masked", run = '''bash -c "$KEYRING_PREVIEW" - mask '{split:\t:0}' ''' },
+  { name = "Revealed", run = '''bash -c "$KEYRING_PREVIEW" - reveal '{split:\t:0}' ''' },
+]
+shell = "bash"
+# Never keep revealed passwords in tv's preview cache.
+cached = false
+
+# Preview and action commands are templated, so scripts with braces live in env.
+[preview.env]
+KEYRING_PREVIEW = '''
+mode=$1 item=$2
+props=$(busctl --user --json=short call org.freedesktop.secrets "$item" \
+  org.freedesktop.DBus.Properties GetAll s org.freedesktop.Secret.Item) || exit 1
+set --
+while IFS= read -r -d '' arg; do set -- "$@" "$arg"; done < <(
+  jq -j '.data[0].Attributes.data | to_entries[] | .key, "\u0000", .value, "\u0000"' <<<"$props")
+
+if [ $# -eq 0 ]; then
+  echo "Secret     (item has no attributes, cannot be looked up)"
+elif [ "$mode" = reveal ]; then
+  printf 'Secret     %s\n' "$(secret-tool lookup "$@")"
+else
+  echo "Secret     **********"
+fi
+jq -r '.data[0] |
+  "Locked     \(.Locked.data)",
+  "Created    \(.Created.data | strflocaltime("%Y-%m-%d %H:%M"))",
+  "Modified   \(.Modified.data | strflocaltime("%Y-%m-%d %H:%M"))",
+  "Item       \($item)",
+  "",
+  "Attributes",
+  (.Attributes.data | to_entries[] | "  \(.key) = \(.value)")' --arg item "$item" <<<"$props"
+
+# secret-tool returns the first unlocked match, so warn about look-alikes.
+matches=$(busctl --user --json=short call org.freedesktop.secrets /org/freedesktop/secrets \
+  org.freedesktop.Secret.Service SearchItems 'a{ss}' $(($# / 2)) "$@" | jq '.data | add | length')
+if [ "${matches:-0}" -gt 1 ]; then
+  printf '\nWarning: %s items share these attributes; the secret may belong to another one.\n' "$matches"
+fi
+'''
+
+[ui.preview_panel]
+header = "{split:\\t:1}"
+
+[keybindings]
+ctrl-f = "cycle_previews"
+ctrl-y = "actions:copy"
+
+[actions.copy]
+description = "Copy the selected password to the clipboard"
+command = '''bash -c "$KEYRING_COPY" - '{split:\t:0}' '''
+shell = "bash"
+mode = "fork"
+
+[actions.copy.env]
+KEYRING_COPY = '''
+props=$(busctl --user --json=short call org.freedesktop.secrets "$1" \
+  org.freedesktop.DBus.Properties GetAll s org.freedesktop.Secret.Item) || exit 1
+set --
+while IFS= read -r -d '' arg; do set -- "$@" "$arg"; done < <(
+  jq -j '.data[0].Attributes.data | to_entries[] | .key, "\u0000", .value, "\u0000"' <<<"$props")
+[ $# -gt 0 ] || exit 1
+if [ -n "$WAYLAND_DISPLAY" ]; then
+  secret-tool lookup "$@" | wl-copy --sensitive
+else
+  secret-tool lookup "$@" | xclip -selection clipboard
+fi
+'''
