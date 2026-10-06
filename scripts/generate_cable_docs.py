@@ -1,9 +1,29 @@
+import tomllib
 from pathlib import Path
-from toml import load as load_toml, dumps
+from toml import dumps
 
 
 CABLE_DIR = Path("./cable")
 DOCS_DIR = Path("./docs/community")
+
+
+def load_toml(path: Path) -> dict:
+    """
+    Load a channel file (`tomllib` supports mixed-type arrays, unlike `toml`).
+    """
+    with open(path, "rb") as f:
+        return tomllib.load(f)
+
+
+def format_requirement(requirement: str | list[str]) -> str:
+    """
+    Format a requirement, either a binary or a list of alternatives.
+    """
+    if isinstance(requirement, str):
+        return f"`{requirement}`"
+    first, *rest = requirement
+    alternatives = ", ".join(f"`{alt}`" for alt in rest)
+    return f"`{first}` (or {alternatives})" if rest else f"`{first}`"
 
 
 def generate_cable_docs(os_name: str) -> str:
@@ -40,7 +60,7 @@ def generate_cable_docs(os_name: str) -> str:
                 docs += f"![tv running the {channel_name} channel](../../{img_path})\n"
                 break
 
-        docs += f"""**Requirements:** {", ".join((f"`{req}`" for req in channel_requirements)) if channel_requirements else "*None*"}
+        docs += f"""**Requirements:** {", ".join(map(format_requirement, channel_requirements)) if channel_requirements else "*None*"}
 
 **Code:** *{channel_name}.toml*
 
