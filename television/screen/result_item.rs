@@ -96,7 +96,9 @@ pub fn build_result_line<'a, T: ResultItem + ?Sized>(
 
     match item.styles() {
         Some(styles) if !styles.is_empty() => {
-            spans.extend(build_entry_spans_styled(item, styles, match_fg));
+            spans.extend(build_entry_spans_styled(
+                item, styles, result_fg, match_fg,
+            ));
         }
         _ => {
             spans.extend(build_entry_spans(
@@ -174,26 +176,10 @@ fn build_entry_spans<T: ResultItem + ?Sized>(
 }
 
 /// Builds a vector of [`Span`]s for a [`ResultItem`] that may contain ANSI escape codes.
-///
-/// # Algorithm
-///
-/// The item's style runs and its match ranges are two independent partitions
-/// of the same text, so this walks the characters once, tracking the current
-/// run and the current match range, and starts a new span wherever either
-/// changes. Matched characters keep the style of the run they fall in, with
-/// the foreground overridden to `match_fg`, so highlights never disrupt the
-/// item's own styling beyond that.
-///
-/// # Parameters
-/// - `item`: The result item to render.
-/// - `styles`: The item's style runs (see [`ResultItem::styles`]).
-/// - `match_fg`: The foreground color to use for highlighted (matched) text.
-///
-/// # Returns
-/// A vector of [`Span`]s, each with appropriate styling and highlighting.
 fn build_entry_spans_styled<'a, T: ResultItem + ?Sized>(
     item: &'a T,
     styles: &[(u32, Style)],
+    result_fg: Color,
     match_fg: Color,
 ) -> Vec<Span<'a>> {
     let display = item.display();
@@ -214,11 +200,14 @@ fn build_entry_spans_styled<'a, T: ResultItem + ?Sized>(
             run += 1;
         }
         // the first run may start after the first character
-        let base = if styles[run].0 > pos {
+        let base =
             Style::default()
-        } else {
-            styles[run].1
-        };
+                .fg(result_fg)
+                .patch(if styles[run].0 > pos {
+                    Style::default()
+                } else {
+                    styles[run].1
+                });
 
         while range < match_ranges.len() && match_ranges[range].1 <= pos {
             range += 1;
@@ -440,7 +429,12 @@ mod tests {
         let entry = Entry::new("Red and Green".to_string())
             .with_match_indices(&[1, 4, 5])
             .with_styles(styles.clone());
-        let spans = build_entry_spans_styled(&entry, &styles, Color::Yellow);
+        let spans = build_entry_spans_styled(
+            &entry,
+            &styles,
+            Color::White,
+            Color::Yellow,
+        );
 
         assert_eq!(
             spans.len(),
@@ -454,9 +448,9 @@ mod tests {
         assert_eq!(spans[0], Span::raw("R").fg(Color::Red));
         assert_eq!(spans[1], Span::raw("e").fg(Color::Yellow));
         assert_eq!(spans[2], Span::raw("d").fg(Color::Red));
-        assert_eq!(spans[3], Span::raw(" "));
+        assert_eq!(spans[3], Span::raw(" ").fg(Color::White));
         assert_eq!(spans[4], Span::raw("an").fg(Color::Yellow));
-        assert_eq!(spans[5], Span::raw("d "));
+        assert_eq!(spans[5], Span::raw("d ").fg(Color::White));
         assert_eq!(spans[6], Span::raw("Green").fg(Color::Green));
     }
 
@@ -470,7 +464,12 @@ mod tests {
         let entry = Entry::new("Red\tGreen".to_string())
             .with_match_indices(&[1, 4, 5])
             .with_styles(styles.clone());
-        let spans = build_entry_spans_styled(&entry, &styles, Color::Yellow);
+        let spans = build_entry_spans_styled(
+            &entry,
+            &styles,
+            Color::White,
+            Color::Yellow,
+        );
 
         assert_eq!(
             spans.len(),
@@ -485,7 +484,7 @@ mod tests {
         assert_eq!(spans[1], Span::raw("e").fg(Color::Yellow));
         assert_eq!(spans[2], Span::raw("d").fg(Color::Red));
         // tabs are expanded like everywhere else in the results list
-        assert_eq!(spans[3], Span::raw("    "));
+        assert_eq!(spans[3], Span::raw("    ").fg(Color::White));
         assert_eq!(spans[4], Span::raw("Gr").fg(Color::Yellow));
         assert_eq!(spans[5], Span::raw("een").fg(Color::Green));
     }
@@ -497,22 +496,39 @@ mod tests {
         let entry = Entry::new("A".to_string())
             .with_match_indices(&[0])
             .with_styles(styles.clone());
-        let spans = build_entry_spans_styled(&entry, &styles, Color::Red);
+        let spans = build_entry_spans_styled(
+            &entry,
+            &styles,
+            Color::White,
+            Color::Red,
+        );
         assert_eq!(spans.len(), 1);
         assert_eq!(spans[0], Span::raw("A").fg(Color::Red));
 
         // no text at all
         let entry = Entry::new(String::new()).with_match_indices(&[]);
         assert!(
-            build_entry_spans_styled(&entry, &styles, Color::Red).is_empty()
+            build_entry_spans_styled(
+                &entry,
+                &styles,
+                Color::White,
+                Color::Red
+            )
+            .is_empty()
         );
 
-        // a run starting after the first character leaves it unstyled
+        // a run starting after the first character leaves it in the
+        // default result color
         let styles = vec![(1, Style::default().fg(Color::Green))];
         let entry = Entry::new("ab".to_string()).with_match_indices(&[]);
-        let spans = build_entry_spans_styled(&entry, &styles, Color::Red);
+        let spans = build_entry_spans_styled(
+            &entry,
+            &styles,
+            Color::White,
+            Color::Red,
+        );
         assert_eq!(spans.len(), 2);
-        assert_eq!(spans[0], Span::raw("a"));
+        assert_eq!(spans[0], Span::raw("a").fg(Color::White));
         assert_eq!(spans[1], Span::raw("b").fg(Color::Green));
     }
 
