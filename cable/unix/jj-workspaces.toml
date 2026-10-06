@@ -12,7 +12,7 @@ output = "{split:\t:0}"
 command = "cd '{split:\t:1}' && jj log --color=always --no-graph -r '::@' --ignore-working-copy -T 'change_id.shortest(8) ++ \"\\t\" ++ description.first_line() ++ \"\\n\"'"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 ctrl-d = "actions:forget"
 
 [actions.cd]

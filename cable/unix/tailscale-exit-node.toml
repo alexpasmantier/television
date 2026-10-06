@@ -10,7 +10,7 @@ command = "tailscale exit-node list | awk '/^[[:space:]]*[0-9]+\\./ {gsub(/^[[:s
 command = "tailscale whois {}"
 
 [keybindings]
-enter = "actions:connect"
+shift-enter = "actions:connect"
 
 [actions.connect]
 description = "Set selected host as exit node"

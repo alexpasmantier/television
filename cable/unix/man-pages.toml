@@ -13,7 +13,7 @@ command = "man '{0}'"
 env = { "MANWIDTH" = "80" }
 
 [keybindings]
-enter = "actions:open"
+shift-enter = "actions:open"
 
 [actions.open]
 description = "Open the selected man page in the system pager"

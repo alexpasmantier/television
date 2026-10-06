@@ -16,7 +16,7 @@ display = "{split:/:-1}"
 command = "cd '{}'; git log -n 200 --pretty=medium --all --graph --color"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 ctrl-e = "actions:edit"
 
 [actions.cd]

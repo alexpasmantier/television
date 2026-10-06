@@ -13,7 +13,7 @@ command = "aws configure list --profile '{}' 2>/dev/null"
 size = 40
 
 [keybindings]
-enter = "actions:export"
+shift-enter = "actions:export"
 
 [actions.export]
 description = "Export the selected profile (sets AWS_PROFILE)"

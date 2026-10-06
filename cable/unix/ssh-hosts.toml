@@ -10,7 +10,7 @@ command = "grep -E '^Host(name)? ' $HOME/.ssh/config | tr -s ' ' | cut -d' ' -f2
 command = "awk '/^Host / { found=0 } /^Host (.*[[:space:]])?'{}'([[:space:]].*)?$/ { found=1 } found' $HOME/.ssh/config"
 
 [keybindings]
-enter = "actions:connect"
+shift-enter = "actions:connect"
 
 [actions.connect]
 description = "SSH into the selected host"

@@ -15,7 +15,7 @@ frecency = false
 command = "jj show --color=always '{strip_ansi|split:\t:0}'"
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 ctrl-i = "actions:insert_before"
 ctrl-a = "actions:insert_after"
 ctrl-shift-d = "actions:diff"

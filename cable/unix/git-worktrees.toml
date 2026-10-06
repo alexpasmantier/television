@@ -10,7 +10,7 @@ command = "git worktree list --porcelain | grep '^worktree' | cut -d' ' -f2-"
 command = "cd '{}' && git log --oneline -10 --color=always && echo && git status --short"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 ctrl-d = "actions:remove"
 
 [actions.cd]

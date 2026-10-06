@@ -12,7 +12,7 @@ output = "{split:\t:0}"
 command = "df -h '{split:\t:0}' && echo && ls -la '{split:\t:0}' 2>/dev/null | head -20"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 ctrl-o = "actions:open"
 ctrl-i = "actions:info"
 ctrl-d = "actions:eject"

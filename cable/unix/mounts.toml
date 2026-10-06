@@ -11,7 +11,7 @@ display = "{split: :0}"
 command = "df -h '{}' && echo && ls -la '{}' 2>/dev/null | head -20"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 
 [actions.cd]
 description = "Open a shell in the selected mount point"

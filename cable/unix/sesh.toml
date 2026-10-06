@@ -25,7 +25,7 @@ output = "{strip_ansi|split: :1..|join: }"
 command = "sesh preview '{strip_ansi|split: :1..|join: }'"
 
 [keybindings]
-enter = "actions:connect"
+shift-enter = "actions:connect"
 ctrl-d = ["actions:kill_session", "reload_source"]
 
 [actions.connect]

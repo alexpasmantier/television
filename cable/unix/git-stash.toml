@@ -17,7 +17,7 @@ command = "git stash show -p --color=always '{strip_ansi|split:\\::0}'"
 layout = "portrait"
 
 [keybindings]
-enter = "actions:apply"
+shift-enter = "actions:apply"
 ctrl-p = "actions:pop"
 ctrl-d = "actions:drop"
 

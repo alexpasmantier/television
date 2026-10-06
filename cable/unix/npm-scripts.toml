@@ -14,7 +14,7 @@ command = "jq -r '.scripts[\"{split:\\t:0}\"]' package.json"
 size = 30
 
 [keybindings]
-enter = "actions:run"
+shift-enter = "actions:run"
 
 [actions.run]
 description = "Run the selected npm script"

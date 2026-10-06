@@ -12,7 +12,7 @@ display = "{split:\\t:1}"
 output = "{split:\\t:0}"
 
 [keybindings]
-enter = "actions:focus"
+shift-enter = "actions:focus"
 ctrl-x = [ "actions:close", "reload_source" ]
 
 [actions.focus]
