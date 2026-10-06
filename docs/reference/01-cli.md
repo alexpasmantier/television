@@ -8,12 +8,12 @@ A very fast, portable and hackable fuzzy finder for the terminal
 Usage: tv [OPTIONS] [CHANNEL] [PATH] [COMMAND]
 
 Commands:
-  list-channels    Lists the available channels
-  init             Initializes shell completion ("tv init zsh")
-  completions      Generates standard shell tab-completion scripts for tv's various subcommands
-  update-channels  Downloads the latest collection of channel prototypes from github and saves them to the local configuration directory
-  migrate-config   Trims machine-written defaults from your configuration file
-  help             Print this message or the help of the given subcommand(s)
+  list-channels   List the available channels
+  init            Initialize shell completion ("tv init zsh")
+  completions     Generate standard shell tab-completion scripts for tv's various subcommands
+  cable           Manage channels and install new ones
+  migrate-config  Trim machine-written defaults from your configuration file
+  help            Print this message or the help of the given subcommand(s)
 
 Arguments:
   [CHANNEL]
@@ -24,8 +24,8 @@ Arguments:
           
           To list available channels, use the `list-channels` subcommand.
           
-          To pull the latest collection of channels from github, use the
-          `update-channels` subcommand.
+          To browse and install channels from github, use the `cable`
+          subcommand.
 
   [PATH]
           The working directory to start the application in.
@@ -127,8 +127,12 @@ Preview:
           
           This is enabled by default since most channels will benefit from it.
           
-          Set `cached = false` in the channel's [preview] section to disable caching.
-          Passing this flag overrides that setting and enables caching for this invocation.
+          Passing this flag overrides the current channel's settings.
+
+      --no-cache-preview
+          Disable caching of the preview command output for each entry.
+          
+          See `--cache-preview` for more information.
 
       --preview-offset <STRING>
           A preview line number offset template to use to scroll the preview to for each
