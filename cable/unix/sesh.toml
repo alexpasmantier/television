@@ -26,7 +26,7 @@ command = "sesh preview '{strip_ansi|split: :1..|join: }'"
 
 [keybindings]
 shift-enter = "actions:connect"
-ctrl-d = ["actions:kill_session", "reload_source"]
+ctrl-d = "actions:kill_session"
 
 [actions.connect]
 description = "Connect to selected session"
@@ -34,6 +34,7 @@ command = "sesh connect '{strip_ansi|split: :1..|join: }'"
 mode = "execute"
 
 [actions.kill_session]
-description = "Kill selected tmux session (press Ctrl+r to reload)"
+description = "Kill selected tmux session"
 command = "tmux kill-session -t '{strip_ansi|split: :1..|join: }'"
 mode = "fork"
+reload_source = true

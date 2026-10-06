@@ -215,6 +215,9 @@ pub struct ActionSpec {
     /// Example: `rm file1+SEPARATOR+file2+SEPARATOR+file3`
     #[serde(default = "default_separator")]
     pub separator: String,
+    /// Reload the source command once a `fork` action is done
+    #[serde(default)]
+    pub reload_source: bool,
     // TODO: add `requirements` (see `prototypes::BinaryRequirement`)
 }
 

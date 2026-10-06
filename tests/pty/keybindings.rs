@@ -403,3 +403,70 @@ fn test_multiple_keybindings_override() {
     s.send().type_text("'a'").unwrap();
     s.wait().exit_code(0).until().unwrap();
 }
+
+/// A fork action with `reload_source = true` reloads the source even when
+/// it's run from the action picker, which doesn't go through keybindings.
+/// The reloaded results must be filtered by the channel's query, not by what
+/// was typed in the picker.
+#[test]
+fn test_fork_action_reloads_source_from_action_picker() {
+    let pt = phantom();
+
+    let tempdir = TempDir::new().unwrap();
+    let entries = tempdir.path().join("entries");
+    fs::write(&entries, "before\n").unwrap();
+    let config = TempConfig::init();
+    config
+        .write_channel(
+            "reloading",
+            &format!(
+                r#"
+[metadata]
+name = "reloading"
+
+[source]
+command = "cat '{path}'"
+
+[actions.update]
+command = "echo after > '{path}'"
+mode = "fork"
+reload_source = true
+"#,
+                path = entries.display()
+            ),
+        )
+        .unwrap();
+
+    let s = tv_with_args(
+        &pt,
+        &[
+            "--cable-dir",
+            config.cable_dir.to_str().unwrap(),
+            "--config-file",
+            DEFAULT_CONFIG_FILE,
+            "reloading",
+        ],
+    )
+    .start()
+    .unwrap();
+    s.wait()
+        .text("before")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    s.send().key("ctrl-x").unwrap();
+    s.wait()
+        .text("update")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+    s.send().type_text("upd").unwrap();
+    s.send().key("enter").unwrap();
+
+    s.wait()
+        .text("after")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+}
