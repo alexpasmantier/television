@@ -142,8 +142,7 @@
 
 /* infima only styles the webkit scrollbar, firefox reads this */
 .thin-scrollbar {
-  scrollbar-color: var(--ifm-scrollbar-thumb-background-color)
-    var(--ifm-scrollbar-track-background-color);
+  scrollbar-color: var(--ifm-scrollbar-thumb-background-color) var(--ifm-scrollbar-track-background-color);
 }
 
 /* infima defines the base weight variable but never applies it */
@@ -186,8 +185,8 @@ pre code {
   background: none;
 }
 
-.theme-doc-markdown table th + th,
-.theme-doc-markdown table td + td {
+.theme-doc-markdown table th+th,
+.theme-doc-markdown table td+td {
   border-left: 1px solid rgba(61, 54, 87, 0.6);
 }
 
@@ -203,7 +202,7 @@ pre code {
   background: none;
 }
 
-.theme-doc-markdown table tbody tr + tr td {
+.theme-doc-markdown table tbody tr+tr td {
   border-top: 1px solid rgba(61, 54, 87, 0.45);
 }
 
@@ -248,20 +247,36 @@ pre code {
   color: var(--ifm-color-primary-lighter);
 }
 
+.theme-code-block [class*="buttonGroup"] {
+  top: calc(1.23rem - 0.85rem - 1px);
+}
+
+.theme-code-block [class*="buttonGroup"] button {
+  padding: 0.35rem;
+}
+
+.theme-code-block [class*="copyButtonIcons"],
+.theme-code-block [class*="wordWrapButtonIcon"] {
+  width: 1rem;
+  height: 1rem;
+}
+
+.theme-code-block [class*="copyButtonSuccessIcon"] {
+  color: #a6e3a1;
+}
+
 /* code block title (only present on titled blocks). It sits centered on
    the top border, so the top half covers the page and the bottom half the
    block: the background is split to match both. */
-.theme-code-block > div:first-child:not(:last-child) {
+.theme-code-block>div:first-child:not(:last-child) {
   position: absolute;
   top: -0.8em;
   left: 0.9rem;
   max-width: calc(100% - 2rem);
   padding: 0 0.4rem;
-  background: linear-gradient(
-    to bottom,
-    var(--ifm-background-color) 50%,
-    var(--tv-bg-deep) 50%
-  );
+  background: linear-gradient(to bottom,
+      var(--ifm-background-color) 50%,
+      var(--tv-bg-deep) 50%);
   border-bottom: none;
   color: var(--tv-muted);
   font-family: "Ubuntu Mono", monospace;
@@ -489,11 +504,12 @@ main .container {
 /* Docs layout spans the whole width instead of a centered 1320px box: the
    content column keeps the width it had in that box (75% of 1320px) and the
    toc sticks to the right edge. */
-[class*="docMainContainer"] > .container {
+[class*="docMainContainer"]>.container {
   max-width: none;
 }
 
 @media (min-width: 997px) {
+
   /* docusaurus caps the column with an !important max-width from inside a
      cascade layer, which beats any !important written here, so size it
      through its flex basis instead (the 75% cap still applies on narrower
@@ -502,7 +518,7 @@ main .container {
     flex: 0 1 990px;
   }
 
-  [class*="docMainContainer"] .row > .col--3 {
+  [class*="docMainContainer"] .row>.col--3 {
     margin-left: auto;
   }
 }
