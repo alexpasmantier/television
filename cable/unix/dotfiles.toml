@@ -1,10 +1,10 @@
 [metadata]
 name = "dotfiles"
 description = "A channel to select from your user's dotfiles"
-requirements = ["fd", "bat"]
+requirements = [["fd", "fdfind"], "bat"]
 
 [source]
-command = "fd -t f . $HOME/.config"
+command = "$(command -v fd || echo fdfind) -t f . $HOME/.config"
 
 [preview]
 command = "bat -n --color=always '{}'"

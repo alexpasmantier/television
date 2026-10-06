@@ -1,12 +1,12 @@
 [metadata]
 name = "dirs"
 description = "A channel to select from directories"
-requirements = ["fd"]
+requirements = [["fd", "fdfind"]]
 
 [source]
 command = [
-  { name = "Default", run = "fd -t d" },
-  { name = "Hidden",  run = "fd -t d --hidden" },
+  { name = "Default", run = "$(command -v fd || echo fdfind) -t d" },
+  { name = "Hidden",  run = "$(command -v fd || echo fdfind) -t d --hidden" },
 ]
 
 [preview]
