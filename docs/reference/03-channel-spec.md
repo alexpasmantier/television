@@ -42,14 +42,14 @@ Channel identification and documentation.
 |-------|------|----------|-------------|
 | `name` | string | Yes | Unique channel identifier |
 | `description` | string | No | Human-readable description |
-| `requirements` | string[] | No | Required external tools (checked at runtime) |
+| `requirements` | (string \| string[])[] | No | Required external tools (checked at runtime) |
 
 **Example:**
 ```toml
 [metadata]
 name = "files"
 description = "Browse and select files"
-requirements = ["fd", "bat"]
+requirements = [["fd", "fdfind"], "bat"]
 ```
 
 ## [source]
