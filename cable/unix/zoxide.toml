@@ -12,7 +12,7 @@ frecency = false
 command = "ls -la --color=always '{}'"
 
 [keybindings]
-enter = "actions:cd"
+shift-enter = "actions:cd"
 ctrl-d = "actions:remove"
 
 [actions.cd]

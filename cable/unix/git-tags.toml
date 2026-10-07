@@ -12,7 +12,7 @@ frecency = false
 command = "git show --color=always '{}'"
 
 [keybindings]
-enter = "actions:checkout"
+shift-enter = "actions:checkout"
 ctrl-d = "actions:delete"
 
 [actions.checkout]
