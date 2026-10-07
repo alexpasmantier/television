@@ -5,7 +5,9 @@ use crate::{
         action_picker::{ActionEntry, ActionPicker},
         channel::ChannelKind as CableChannel,
         entry::Entry,
-        prototypes::{ChannelPrototype, CommandSpec, Template},
+        prototypes::{
+            BinaryRequirement, ChannelPrototype, CommandSpec, Template,
+        },
         remote_control::{CableEntry, RemoteControl},
     },
     config::{
@@ -856,7 +858,7 @@ impl Television {
                         .requirements
                         .iter()
                         .filter(|r| !r.is_met())
-                        .map(|r| r.bin_name.clone())
+                        .map(BinaryRequirement::display_name)
                         .collect();
 
                     if !missing.is_empty() {

@@ -1,13 +1,13 @@
 [metadata]
 name = "channels"
 description = "Select a television channel"
-requirements = ["tv", "bat"]
+requirements = ["tv", ["bat", "batcat"]]
 
 [source]
 command = ["tv list-channels"]
 
 [preview]
-command = "bat -pn --color always ${TELEVISION_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/television}/cable/{}.toml"
+command = "$(command -v bat || echo batcat) -pn --color always ${TELEVISION_CONFIG:-${XDG_CONFIG_HOME:-$HOME/.config}/television}/cable/{}.toml"
 shell = "bash"
 
 [keybindings]
