@@ -10,7 +10,7 @@ command = "$(command -v fd || echo fdfind) -t f . $HOME/.config"
 command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 
 [actions.edit]
 description = "Edit the selected dotfile"

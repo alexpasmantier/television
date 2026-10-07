@@ -13,7 +13,7 @@ command = "kubectl config view --minify --context='{}' -o yaml"
 layout = "portrait"
 
 [keybindings]
-enter = "actions:use"
+shift-enter = "actions:use"
 ctrl-d = "actions:delete"
 
 [actions.use]

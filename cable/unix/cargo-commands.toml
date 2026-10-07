@@ -14,7 +14,7 @@ layout = "portrait"
 preview_panel = { size = 60 }
 
 [keybindings]
-enter = "actions:run"
+shift-enter = "actions:run"
 
 [actions.run]
 description = "Run the selected cargo command"

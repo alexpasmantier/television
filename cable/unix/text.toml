@@ -20,7 +20,7 @@ offset = '{strip_ansi|split:\::1}'
 preview_panel = { header = '{strip_ansi|split:\::..2}' }
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 
 [actions.edit]
 description = "Open file in editor at line"

@@ -10,7 +10,7 @@ command = "gradle tasks --all -q 2>/dev/null | grep -E '^[a-zA-Z]' | awk '{print
 command = "gradle help --task '{}' -q 2>/dev/null || echo 'Task: {}'"
 
 [keybindings]
-enter = "actions:run"
+shift-enter = "actions:run"
 
 [actions.run]
 description = "Run the selected Gradle task"

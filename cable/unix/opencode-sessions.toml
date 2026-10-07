@@ -22,7 +22,7 @@ border_type = "rounded"
 
 [keybindings]
 shortcut = "f4"
-enter = "actions:resume"
+shift-enter = "actions:resume"
 ctrl-d = "actions:delete"
 
 [actions.resume]

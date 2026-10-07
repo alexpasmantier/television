@@ -16,7 +16,7 @@ command = "pdftotext -l 2 -layout '{}' - 2>/dev/null | head -100 || file '{}'"
 layout = "portrait"
 
 [keybindings]
-enter = "actions:open"
+shift-enter = "actions:open"
 
 [actions.open]
 description = "Open the selected PDF with default viewer"

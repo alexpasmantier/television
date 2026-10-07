@@ -12,7 +12,7 @@ command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 
 [actions.edit]
 description = "Opens the selected entries with the default editor (falls back to vim)"

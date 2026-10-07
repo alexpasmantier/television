@@ -10,7 +10,7 @@ command = "git log --diff-filter=D --summary | rg 'delete mode \\d+' -r '' --tri
 command = ["git show \"$(git rev-list -n1 HEAD -- '{}')^:{}\" | $(command -v bat || echo batcat) -n --color always --file-name '{}'", "git show --summary \"$(git rev-list -n1 HEAD -- '{}')\""]
 
 [keybindings]
-enter = "actions:print_commit"
+shift-enter = "actions:print_commit"
 ctrl-r = "actions:restore_file"
 
 [actions.print_commit]

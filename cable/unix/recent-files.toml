@@ -14,7 +14,7 @@ command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 
 [actions.edit]
 description = "Open the selected file in editor"

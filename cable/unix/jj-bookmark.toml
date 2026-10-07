@@ -12,7 +12,7 @@ output = "{split:\t:0}"
 command = "jj log --color=always --no-graph -r '{split:\t:0}'"
 
 [keybindings]
-enter = "actions:edit"
+shift-enter = "actions:edit"
 ctrl-d = "actions:delete"
 ctrl-s = "actions:set"
 ctrl-f = "actions:forget"
