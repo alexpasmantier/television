@@ -47,9 +47,9 @@ pub fn cli_parsing_error_exit(message: &str) -> ! {
 
 pub fn unknown_channel_exit(channel: &str) -> ! {
     eprintln!(
-        "Channel not found: {}\n\nTry running {} to update the channel list.\n\nSee {} for more information.",
+        "Channel not found: {}\n\nTry running {} to browse and install channels.\n\nSee {} for more information.",
         channel.red(),
-        "tv update-channels [--force]".blue(),
+        "tv cable-manager".blue(),
         "tv --help".blue()
     );
     std::process::exit(1);

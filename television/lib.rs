@@ -1,6 +1,7 @@
 pub mod action;
 pub mod app;
 pub mod cable;
+pub mod cable_manager;
 pub mod channels;
 pub mod cli;
 pub mod config;

@@ -61,11 +61,28 @@ Channels live in the `cable` directory inside your [television configuration dir
 
 ## Community-maintained channels
 
-The repository hosts a list of community-maintained channels which you can get and install to your cable directory using:
+The repository hosts a list of community-maintained channels. Browse, install and remove them with the built-in `cable-manager` channel:
 
 ```sh
-tv update-channels
+tv cable-manager
 ```
+
+- <kbd>Shift</kbd>+<kbd>Enter</kbd>: install the selected channels (also updates channels that are already installed)
+- <kbd>Ctrl</kbd>+<kbd>D</kbd>: remove the selected channels
+- <kbd>Ctrl</kbd>+<kbd>X</kbd>: open the action picker, which lists both actions
+
+The same can be done from the command line:
+
+```sh
+tv cable list                 # channels and their status
+tv cable list --installed --modified  # only channels with these statuses
+tv cable show <name>          # print a channel's definition
+tv cable install <name>...    # install or overwrite channels
+tv cable install --all        # install every missing channel whose requirements are met
+tv cable remove <name>...     # remove installed channels
+```
+
+Channels are taken from the release matching your version of tv.
 
 ## Invocation
 

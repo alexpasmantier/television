@@ -204,11 +204,22 @@ where
     Cable::from_prototypes(prototypes)
 }
 
+/// Whether a channel file ships with tv.
+pub fn is_default_cable_file(file_name: &str) -> bool {
+    DEFAULT_CABLE_FILES
+        .iter()
+        .any(|(name, _)| *name == file_name)
+}
+
 #[cfg(unix)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     (
         "bash-history.toml",
         include_str!("../cable/unix/bash-history.toml"),
+    ),
+    (
+        "cable-manager.toml",
+        include_str!("../cable/unix/cable-manager.toml"),
     ),
     ("dirs.toml", include_str!("../cable/unix/dirs.toml")),
     (
@@ -233,6 +244,10 @@ const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
 #[cfg(windows)]
 const DEFAULT_CABLE_FILES: &[(&str, &str)] = &[
     ("alias.toml", include_str!("../cable/windows/alias.toml")),
+    (
+        "cable-manager.toml",
+        include_str!("../cable/windows/cable-manager.toml"),
+    ),
     ("dirs.toml", include_str!("../cable/windows/dirs.toml")),
     (
         "docker-images.toml",

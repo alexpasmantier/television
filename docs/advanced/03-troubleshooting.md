@@ -66,8 +66,8 @@ Ensure your terminal font supports the characters tv uses. Try a Nerd Font or si
 # List available channels
 tv list-channels
 
-# Update community channels
-tv update-channels
+# Browse and install community channels
+tv cable-manager
 ```
 
 ### Source Command Fails
