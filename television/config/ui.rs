@@ -44,11 +44,31 @@ pub struct StatusBarConfig {
     pub hidden: bool,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash, Default)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
 #[serde(default)]
 pub struct ResultsPanelConfig {
     pub border_type: BorderType,
     pub padding: Padding,
+    /// How many terminal rows each entry occupies.
+    ///
+    /// With more than one, an entry's text is split on `\n` and each line is
+    /// drawn on a row of its own. Entries with fewer lines are padded with
+    /// blank rows so that every entry has the same height; lines beyond the
+    /// last row are joined onto it.
+    ///
+    /// Pair this with `source.entry_delimiter` so that entries can contain
+    /// newlines in the first place.
+    pub entry_height: u16,
+}
+
+impl Default for ResultsPanelConfig {
+    fn default() -> Self {
+        Self {
+            border_type: BorderType::default(),
+            padding: Padding::default(),
+            entry_height: 1,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Hash)]
