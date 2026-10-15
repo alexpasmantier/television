@@ -503,8 +503,9 @@ mod tests {
 
         // no text at all
         let entry = Entry::new(String::new()).with_match_indices(&[]);
-        assert!(
-            build_entry_spans_styled(&entry, &styles, Color::Red).is_empty()
+        assert_eq!(
+            build_entry_spans_styled(&entry, &styles, Color::Red),
+            [] as [ratatui::prelude::Span<'_>; 0]
         );
 
         // a run starting after the first character leaves it unstyled
