@@ -373,7 +373,7 @@ mod tests {
         );
         assert!(result.is_ok());
         let result = result.unwrap();
-        assert!(result.is_empty());
+        assert_eq!(result, "");
     }
 
     #[test]

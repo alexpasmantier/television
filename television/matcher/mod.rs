@@ -564,7 +564,7 @@ mod tests {
         full.wait_for_idle();
 
         let full_ids = collect_ids(&mut full);
-        assert!(!full_ids.is_empty());
+        assert_ne!(full_ids, [] as [usize; 0]);
         assert_eq!(collect_ids(&mut incremental), full_ids);
     }
 
@@ -595,7 +595,7 @@ mod tests {
         single.wait_for_idle();
 
         let single_ids = collect_ids(&mut single);
-        assert!(!single_ids.is_empty());
+        assert_ne!(single_ids, [] as [usize; 0]);
         assert_eq!(collect_ids(&mut chunked), single_ids);
     }
 
