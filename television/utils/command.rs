@@ -126,10 +126,13 @@ pub fn format_command(
             template_str
         );
 
-        // Multiple entries: quote each and join with spaces
+        // Multiple entries: quote each and join with spaces.
+        // Inside POSIX single quotes a backslash has no escaping meaning, so a
+        // literal apostrophe must close the quote, emit an escaped apostrophe,
+        // and reopen the quote (the standard '\'' sequence).
         let quoted_entries: Vec<String> = entries
             .iter()
-            .map(|entry| format!("'{}'", entry.raw.replace('\'', r"\'")))
+            .map(|entry| format!("'{}'", entry.raw.replace('\'', r"'\''")))
             .collect();
         let entries_joined = quoted_entries.join(SPACE);
         let formatted_command = template_str.replace("{}", &entries_joined);
