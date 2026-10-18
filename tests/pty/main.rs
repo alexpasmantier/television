@@ -1,3 +1,4 @@
+mod actions;
 mod channels;
 mod common;
 mod config;
