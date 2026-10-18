@@ -79,6 +79,7 @@ details).
 | ------------- | ------ | ---------------------------------------- | ------------------------------------------------------------------------ |
 | `border_type` | string | `"none"`                                 | Border style. Valid values: `"none"`, `"plain"`, `"rounded"`, `"thick"`. |
 | `padding`     | object | `{left: 0, right: 0, top: 0, bottom: 0}` | Padding around the results panel.                                        |
+| `entry_height` | integer | `1`                                     | Rows each entry takes. Above 1, entries are split on newlines, one line per row. Use with `source.entry_delimiter`. |
 
 #### Preview Panel (`[ui.preview_panel]`)
 
