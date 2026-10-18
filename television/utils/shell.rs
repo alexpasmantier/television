@@ -163,6 +163,38 @@ impl Shell {
             Shell::Nu => "nu",
         }
     }
+
+    /// Quote `s` so that this shell passes it on as a single literal argument.
+    pub fn quote(&self, s: &str) -> String {
+        match self {
+            Shell::Bash | Shell::Zsh => {
+                format!("'{}'", s.replace('\'', r"'\''"))
+            }
+            // fish treats `\\` and `\'` as escapes inside single quotes
+            Shell::Fish => {
+                format!("'{}'", s.replace('\\', r"\\").replace('\'', r"\'"))
+            }
+            // PowerShell escapes a quote by doubling it, and also treats
+            // curly single quotes as quotes
+            Shell::Psh => {
+                let mut quoted = String::from("'");
+                for c in s.chars() {
+                    if matches!(c, '\'' | '‘' | '’' | '‚' | '‛') {
+                        quoted.push(c);
+                    }
+                    quoted.push(c);
+                }
+                quoted.push('\'');
+                quoted
+            }
+            Shell::Nu => {
+                format!("\"{}\"", s.replace('\\', r"\\").replace('"', "\\\""))
+            }
+            // cmd has no reliable escaping, double quotes at least keep
+            // arguments with spaces together
+            Shell::Cmd => format!("\"{s}\""),
+        }
+    }
 }
 
 impl From<CliShell> for Shell {
@@ -399,5 +431,14 @@ mod tests {
         assert!(script.contains("Invoke-TvSmartAutocomplete"));
         assert!(script.contains("Invoke-TvShellHistory"));
         assert!(script.contains("Set-PSReadLineKeyHandler"));
+    }
+
+    #[test]
+    fn test_quote() {
+        let s = r"it's a\b";
+        assert_eq!(Shell::Bash.quote(s), r"'it'\''s a\b'");
+        assert_eq!(Shell::Fish.quote(s), r"'it\'s a\\b'");
+        assert_eq!(Shell::Psh.quote("it's it’s"), "'it''s it’’s'");
+        assert_eq!(Shell::Nu.quote(r#"a "b" \c"#), r#""a \"b\" \\c""#);
     }
 }
