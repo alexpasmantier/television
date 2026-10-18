@@ -138,6 +138,63 @@ fn test_external_action_thebatman_with_f8() {
     );
 }
 
+/// A `{}` action quotes the entry, so a single quote in it can't break out
+/// and run the rest of the entry as shell code.
+#[test]
+fn test_external_action_quotes_correctly_when_entry_contains_single_quote() {
+    let pt = phantom();
+
+    let tempdir = TempDir::new().unwrap();
+    let cable_dir = tempdir.path().join("quoted_entry");
+    fs::create_dir_all(&cable_dir).unwrap();
+
+    let channel_toml = r#"
+[metadata]
+name = "quotes"
+
+[source]
+command = '''echo "x'; echo INJECTED; #"'''
+
+[keybindings]
+f8 = "actions:print"
+
+[actions.print]
+description = "print the entry as a single argument"
+command = "printf 'ARG=[%s]\\n' {}"
+shell = "bash"
+mode = "execute"
+"#;
+    write_toml_config(&cable_dir, "quotes.toml", channel_toml);
+
+    let s = tv_with_args(
+        &pt,
+        &[
+            "--cable-dir",
+            cable_dir.to_str().unwrap(),
+            "--config-file",
+            DEFAULT_CONFIG_FILE,
+            "quotes",
+        ],
+    )
+    .start()
+    .unwrap();
+
+    s.wait()
+        .text(" 1/")
+        .text("echo INJECTED")
+        .timeout_ms(wait_timeout_ms())
+        .until()
+        .unwrap();
+
+    s.send().key("f8").unwrap();
+
+    let output = exit_and_output(&s);
+    assert!(
+        output.contains("ARG=[x'; echo INJECTED; #]"),
+        "expected the entry to be passed as one literal argument, got:\n{output}"
+    );
+}
+
 /// Verifies that execute-mode actions attach their stdout to the
 /// controlling tty, not to tv's stdout. We run tv inside a bash script
 /// that captures its stdout (`out=$(tv ...)`); with the fix, the action's
