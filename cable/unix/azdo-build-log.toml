@@ -1,0 +1,198 @@
+[metadata]
+name = "azdo-build-log"
+description = """
+Azure DevOps build log channel (reload with ctrl-r).
+
+Required env vars:
+- AZDO_ORG
+- AZDO_PROJECT_ID
+- AZDO_BUILD_ID
+
+Optional env vars:
+- AZDO_API_KEY  to enable faster curl-based log retrieval
+- AZDO_FILTER_EXTENSIVE=0  disable filtering (default: 1)
+- AZDO_KEEP_DATE_PREFIX=1  keep ISO timestamp prefixes (default: 0)
+- AZDO_LOG_FETCH_PARALLELISM=8  concurrent log fetch workers
+"""
+requirements = ["az", "jq", "awk"]
+
+[source]
+command = '''
+set -eu
+org="${AZDO_ORG:-}"
+project="${AZDO_PROJECT_ID:-}"
+build_id="${AZDO_BUILD_ID:-}"
+api_key="${AZDO_API_KEY:-}"
+keep_date_prefix="${AZDO_KEEP_DATE_PREFIX:-0}"
+filter_extensive="${AZDO_FILTER_EXTENSIVE:-1}"
+
+case "$keep_date_prefix" in
+  1|true|TRUE|yes|YES|on|ON) keep_date_prefix=1 ;;
+  *) keep_date_prefix=0 ;;
+esac
+
+case "$filter_extensive" in
+  0|false|FALSE|no|NO|off|OFF) filter_extensive=0 ;;
+  *) filter_extensive=1 ;;
+esac
+
+missing_env=0
+if [ -z "$org" ]; then
+  echo "missing env var: AZDO_ORG" >&2
+  missing_env=1
+fi
+if [ -z "$project" ]; then
+  echo "missing env var: AZDO_PROJECT_ID" >&2
+  missing_env=1
+fi
+if [ -z "$build_id" ]; then
+  echo "missing env var: AZDO_BUILD_ID" >&2
+  missing_env=1
+fi
+if [ "$missing_env" -ne 0 ]; then
+  exit 1
+fi
+
+retrieve_logs() {
+  # function has multiple flows:
+  # empty input -> retrieve available log ids
+  # log id given -> retrieve log entries
+  # uses curl if an api key is set (a LOT faster), else leverages az devops invoke
+  log_id="${1:-}"
+
+  if [ -n "$api_key" ]; then
+    if [ -n "$log_id" ]; then
+      curl -fsS -u ":$api_key" "https://dev.azure.com/$org/$project/_apis/build/builds/$build_id/logs/$log_id?api-version=7.1" 2>/dev/null
+      return
+    fi
+
+    curl -fsS -u ":$api_key" "https://dev.azure.com/$org/$project/_apis/build/builds/$build_id/logs?api-version=7.1" 2>/dev/null | jq -r '.value[]?.id'
+    return
+  fi
+
+  if [ -n "$log_id" ]; then
+    az devops invoke --area build --resource logs --route-parameters "project=$project" "buildId=$build_id" "logId=$log_id" --org "https://dev.azure.com/$org" | jq -r '.value | join("\n")'
+    return
+  fi
+
+  az devops invoke --area build --resource logs --route-parameters "project=$project" "buildId=$build_id" --org "https://dev.azure.com/$org" | jq -r '.value[]?.id'
+}
+
+log_ids="$(retrieve_logs)"
+
+if [ -z "$log_ids" ]; then
+  echo "no logs found for build $build_id"
+  exit 0
+fi
+
+fetch_parallelism="${AZDO_LOG_FETCH_PARALLELISM:-8}"
+case "$fetch_parallelism" in
+  ''|*[!0-9]*|0) fetch_parallelism=8 ;;
+esac
+
+tmp_dir="$(mktemp -d)"
+cleanup_tmp_dir() {
+  rm -rf "$tmp_dir"
+}
+trap cleanup_tmp_dir EXIT INT TERM
+
+active_jobs=0
+idx=0
+while IFS= read -r log_id; do
+  [ -n "$log_id" ] || continue
+  idx=$((idx + 1))
+  idx_padded="$(printf '%06d' "$idx")"
+
+  {
+    chunk="$(retrieve_logs "$log_id")"
+    [ -n "$chunk" ] || exit 0
+    printf '%s\n' "$chunk" > "$tmp_dir/$idx_padded.log"
+  } &
+
+  active_jobs=$((active_jobs + 1))
+  if [ "$active_jobs" -ge "$fetch_parallelism" ]; then
+    wait -n
+    active_jobs=$((active_jobs - 1))
+  fi
+done <<EOF
+$log_ids
+EOF
+
+wait
+
+for file in "$tmp_dir"/*.log; do
+  [ -f "$file" ] || continue
+  cat "$file"
+done | awk -v keep_date_prefix="$keep_date_prefix" -v filter_extensive="$filter_extensive" '
+  # keep_date_prefix=0 strips leading ISO timestamp prefixes
+  # filter_extensive=1 drops Azure banners/metadata and boilerplate sections
+
+  function is_azure_banner_delim(s) {
+    # looks like a banner, but only marks start of output -> ignore
+    if (s ~ /^=+[[:space:]]*Starting Command Output[[:space:]]*=+$/) {
+      return 0
+    }
+    return s ~ /^={20,}.*={20,}$/
+  }
+
+  {
+    line = $0
+    # azure log lines start with: 2026-01-01T12:34:56.0123456Z ...
+    if (match($0, /^[0-9-]+T[0-9:]+[.][0-9]+Z /)) {
+      if (keep_date_prefix != 1) {
+        line = substr($0, RLENGTH + 1)
+      }
+    }
+
+    sub(/\r$/, "", line)
+
+    if (filter_extensive == 1) {
+      # replace starting command output line with an empty line
+      if (index(line, "Starting Command Output") > 0) {
+        seen_starting_command_output = 1
+        print ""
+        next
+      }
+
+      # start output only after the first command-output marker, everything before is pipeline-setup
+      if (seen_starting_command_output != 1) {
+        next
+      }
+
+      # non-extensive boilerplate detection
+      if (index(line, "Checking job knob settings.") > 0) {
+        in_knob_settings = 1
+        next
+      }
+
+      if (in_knob_settings == 1) {
+        if (index(line, "Finished checking job knob settings.") > 0) {
+          in_knob_settings = 0
+        }
+        next
+      }
+       
+      # drops boxed banner sections
+      if (is_azure_banner_delim(line)) {
+        in_azure_banner = !in_azure_banner
+        next
+      }
+
+      # reset to non-banner state if in banner-mode and delim occurs
+      if (in_azure_banner == 1) {
+        next
+      }
+
+    }
+
+    print line
+  }
+'
+'''
+shell = "bash"
+ansi = true
+no_sort = true
+frecency = false
+
+[ui.preview_panel]
+hidden = true
