@@ -238,8 +238,8 @@ where
     /// Whether the terminal supports the kitty keyboard protocol.
     ///
     /// Crossterm's current version is broken (it tries to write to /dev/tty with the wrong
-    /// permissions) and causes the query to be sent to stdout which is not always a tty (e.g.
-    /// when piping tv's output to another command).
+    /// permissions) and causes the query to be sent to stdout instead which is not always a tty
+    /// (e.g. when piping tv's output to another command).
     #[cfg(unix)]
     fn supports_keyboard_enhancement() -> bool {
         use std::os::fd::AsRawFd;
@@ -264,21 +264,35 @@ where
             return false;
         }
 
-        // poll for the response
+        // wait for the response
+        // NOTE: we use `libc::select` here instead of `libc::poll` which doesn't work on /dev/tty
+        // on macOS (it returns POLLNVAL which would make us block on the `read` forever, see
+        // <https://nathancraddock.com/blog/macos-dev-tty-polling/>).
+        let fd = tty.as_raw_fd();
         let deadline = Instant::now() + TIMEOUT;
         let mut supported = false;
         let mut buf = [0u8; 64];
         'wait: loop {
             let remaining = deadline.saturating_duration_since(Instant::now());
-            let timeout_ms =
-                i32::try_from(remaining.as_millis()).unwrap_or(i32::MAX);
-            let mut pfd = libc::pollfd {
-                fd: tty.as_raw_fd(),
-                events: libc::POLLIN,
-                revents: 0,
+            #[allow(clippy::cast_possible_wrap, clippy::cast_lossless)]
+            let mut timeout = libc::timeval {
+                tv_sec: remaining.as_secs() as libc::time_t,
+                tv_usec: remaining.subsec_micros() as libc::suseconds_t,
             };
-            let ready = unsafe { libc::poll(&raw mut pfd, 1, timeout_ms) };
-            // poll returns 0 on timeout, -1 on error, and the number of ready fds otherwise
+            let ready = unsafe {
+                let mut read_fds: libc::fd_set = std::mem::zeroed();
+                libc::FD_SET(fd, &raw mut read_fds);
+                libc::select(
+                    fd + 1,
+                    // read fds
+                    &raw mut read_fds,
+                    // write and error fds
+                    std::ptr::null_mut(),
+                    std::ptr::null_mut(),
+                    &raw mut timeout,
+                )
+            };
+            // select returns 0 on timeout, -1 on error, and the number of ready fds otherwise
             if ready == 0 {
                 debug!(
                     "Timed out waiting for the keyboard enhancement query response"
@@ -287,7 +301,7 @@ where
             }
             if ready < 0 {
                 debug!(
-                    "Failed to poll /dev/tty: {}",
+                    "Failed to select on /dev/tty: {}",
                     io::Error::last_os_error()
                 );
                 break;
