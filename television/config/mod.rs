@@ -20,6 +20,7 @@ pub use ui::UiConfig;
 
 mod themes;
 
+pub mod explain;
 pub mod keybindings;
 pub mod layers;
 pub mod migration;
@@ -225,6 +226,16 @@ impl Config {
             );
             Ok(default_config)
         }
+    }
+
+    /// The configuration file [`Config::new`] loads, if any.
+    pub fn user_config_file(
+        custom_config_file: Option<&Path>,
+    ) -> Option<PathBuf> {
+        custom_config_file.map(Path::to_path_buf).or_else(|| {
+            let config_file = get_config_dir().join(CONFIG_FILE_NAME);
+            config_file.is_file().then_some(config_file)
+        })
     }
 
     fn load_user_config(config_file: &Path) -> Result<Self> {
