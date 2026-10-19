@@ -175,6 +175,7 @@ impl Explanation {
                 .iter()
                 .filter(|l| {
                     l.layer != setting.source
+                        && !l.value.is_null()
                         && (derived || l.value != setting.value)
                 })
                 .map(|l| {
