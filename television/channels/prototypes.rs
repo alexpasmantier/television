@@ -350,28 +350,75 @@ pub struct Metadata {
     pub requirements: Vec<BinaryRequirement>,
 }
 
+/// A binary required by a channel, optionally with alternative names.
+///
+/// Accepts two TOML forms:
+/// - Bare string: `"bat"`
+/// - Array: `["fd", "fdfind"]`
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(transparent)]
+#[serde(try_from = "RequirementSpec", into = "RequirementSpec")]
 pub struct BinaryRequirement {
-    pub bin_name: String,
-    #[serde(skip)]
+    pub alternatives: Vec<String>,
     met: bool,
+}
+
+#[derive(serde::Deserialize, serde::Serialize)]
+#[serde(untagged)]
+enum RequirementSpec {
+    Single(String),
+    Alternatives(Vec<String>),
+}
+
+impl TryFrom<RequirementSpec> for BinaryRequirement {
+    type Error = String;
+
+    fn try_from(spec: RequirementSpec) -> Result<Self, Self::Error> {
+        let alternatives = match spec {
+            RequirementSpec::Single(bin_name) => vec![bin_name],
+            RequirementSpec::Alternatives(alternatives) => alternatives,
+        };
+        if alternatives.is_empty() {
+            return Err("requirement alternatives cannot be empty".into());
+        }
+        Ok(Self {
+            alternatives,
+            met: false,
+        })
+    }
+}
+
+impl From<BinaryRequirement> for RequirementSpec {
+    fn from(req: BinaryRequirement) -> Self {
+        match <[String; 1]>::try_from(req.alternatives) {
+            Ok([bin_name]) => Self::Single(bin_name),
+            Err(alternatives) => Self::Alternatives(alternatives),
+        }
+    }
 }
 
 impl BinaryRequirement {
     pub fn new(bin_name: &str) -> Self {
         Self {
-            bin_name: bin_name.to_string(),
+            alternatives: vec![bin_name.to_string()],
             met: false,
         }
     }
 
-    /// Check if the required binary is available in the system's PATH.
+    /// Check if the required binary or its alternatives are available in the system's PATH.
     ///
     /// This method updates the requirement's state in place to reflect whether the binary was
     /// found.
     pub fn init(&mut self) {
-        self.met = which(&self.bin_name).is_ok();
+        self.met = self.alternatives.iter().any(|b| which(b).is_ok());
+    }
+
+    /// Human-readable name of the requirement, e.g. `fd` or `fd (or fdfind)`.
+    pub fn display_name(&self) -> String {
+        match self.alternatives.split_first() {
+            Some((first, [])) => first.clone(),
+            Some((first, rest)) => format!("{first} (or {})", rest.join(", ")),
+            None => String::new(),
+        }
     }
 
     /// Whether the requirement is available in the system's PATH.
@@ -528,6 +575,60 @@ mod tests {
 
     use super::*;
     use toml::from_str;
+
+    #[test]
+    fn test_requirements_single_and_alternatives() {
+        let toml_data = r#"
+        name = "files"
+        requirements = [["fd", "fdfind"], "bat"]
+        "#;
+        let metadata: Metadata = from_str(toml_data).unwrap();
+
+        assert_eq!(metadata.requirements.len(), 2);
+        assert_eq!(
+            metadata.requirements[0].alternatives,
+            vec!["fd", "fdfind"]
+        );
+        assert_eq!(metadata.requirements[1].alternatives, vec!["bat"]);
+        assert_eq!(metadata.requirements[0].display_name(), "fd (or fdfind)");
+        assert_eq!(metadata.requirements[1].display_name(), "bat");
+
+        // Single binaries serialize back to a bare string
+        let serialized = toml::to_string(&metadata).unwrap();
+        assert!(
+            serialized.contains(r#"requirements = [["fd", "fdfind"], "bat"]"#)
+        );
+    }
+
+    #[test]
+    fn test_requirements_empty_alternatives_rejected() {
+        let toml_data = r#"
+        name = "files"
+        requirements = [[]]
+        "#;
+        assert!(from_str::<Metadata>(toml_data).is_err());
+    }
+
+    #[test]
+    fn test_binary_requirement_init_alternatives() {
+        let mut req =
+            BinaryRequirement::try_from(RequirementSpec::Alternatives(vec![
+                "tv-nonexistent-bin".into(),
+                "sh".into(),
+            ]))
+            .unwrap();
+        req.init();
+        assert!(req.is_met());
+
+        let mut req =
+            BinaryRequirement::try_from(RequirementSpec::Alternatives(vec![
+                "tv-nonexistent-a".into(),
+                "tv-nonexistent-b".into(),
+            ]))
+            .unwrap();
+        req.init();
+        assert!(!req.is_met());
+    }
 
     #[test]
     fn test_command_spec_get_nth() {

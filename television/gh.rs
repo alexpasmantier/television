@@ -184,8 +184,8 @@ pub fn update_local_channels(force: &bool) -> Result<()> {
                     p.name.blue().bold(),
                     missing_requirements
                         .iter()
-                        .map(|r| r.bin_name.as_str())
-                        .collect::<Vec<&str>>()
+                        .map(|r| r.display_name())
+                        .collect::<Vec<String>>()
                         .join(", ")
                         .red()
                         .bold()

@@ -1,13 +1,13 @@
 [metadata]
 name = "downloads"
 description = "Browse recent files in Downloads folder"
-requirements = ["fd", "bat"]
+requirements = [["fd", "fdfind"], ["bat", "batcat"]]
 
 [source]
-command = "fd -t f . ~/Downloads 2>/dev/null | head -200"
+command = "$(command -v fd || echo fdfind) -t f . ~/Downloads 2>/dev/null | head -200"
 
 [preview]
-command = "bat -n --color=always '{}' 2>/dev/null || file '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}' 2>/dev/null || file '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
