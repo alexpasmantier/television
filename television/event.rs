@@ -43,17 +43,17 @@ impl Key {
         Self { code, modifiers }
     }
 
-    /// The character this key types into the input, if any: a char key with no
-    /// modifiers other than shift.
+    /// The character this key types into the input, if any.
     pub fn text_char(&self) -> Option<char> {
-        match self.code {
-            KeyCode::Char(c)
-                if (self.modifiers - KeyModifiers::SHIFT).is_empty() =>
-            {
-                Some(c)
-            }
-            _ => None,
-        }
+        let KeyCode::Char(c) = self.code else {
+            return None;
+        };
+        let mods = self.modifiers - KeyModifiers::SHIFT;
+        // ctrl+alt is how AltGr gets reported on Windows
+        (mods.is_empty()
+            || (mods == KeyModifiers::CONTROL | KeyModifiers::ALT
+                && !c.is_ascii_alphanumeric()))
+        .then_some(c)
     }
 
     // Copied over from crossterm's KeyEvent::normalize_case
@@ -453,7 +453,9 @@ mod tests {
         ctrl = { KeyCode::Char('a'), KeyModifiers::CONTROL, None },
         alt = { KeyCode::Char('a'), KeyModifiers::ALT, None },
         ctrl_shift = { KeyCode::Char('A'), KeyModifiers::CONTROL | KeyModifiers::SHIFT, None },
-        non_char = { KeyCode::Enter, KeyModifiers::NONE, None },
+        enter = { KeyCode::Enter, KeyModifiers::NONE, None },
+        ctrl_alt = { KeyCode::Char('a'), KeyModifiers::CONTROL | KeyModifiers::ALT, None },
+        altgr = { KeyCode::Char('€'), KeyModifiers::CONTROL | KeyModifiers::ALT, Some('€') },
     )]
     fn test_typed_key_to_text_char(
         code: KeyCode,

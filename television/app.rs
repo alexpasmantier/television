@@ -402,15 +402,8 @@ impl App {
                 && (!self.television.results_picker.entries.is_empty()
                     || !self.television.channel.running())
             {
-                // `take_1_fast`: pick the first entry as soon as it lands
-                // in the picker, without waiting for the channel to finish
-                // loading. We only enter this branch once there's actually
-                // something to pick, OR the channel has finished loading
-                // and we know nothing more is coming (in which case
-                // `maybe_take_1` will exit with None). This avoids a race
-                // where a loop iteration firing before the first batch of
-                // entries has been flushed (batch flush interval is 200ms)
-                // would otherwise quit tv with an empty selection.
+                // `take_1_fast`: pick the first entry that becomes available, even if the channel
+                // is still loading.
                 action_outcome = self.maybe_take_1();
             }
 
@@ -767,6 +760,9 @@ impl App {
     /// Take the first entry from the list regardless of how many entries are available.
     /// If the list is empty, exit with None.
     fn maybe_take_1(&mut self) -> ActionOutcome {
+        // this just makes sure we have the latest entries
+        self.television.update_results_picker_state();
+
         if let Some(first_entry) =
             self.television.results_picker.entries.first()
         {
