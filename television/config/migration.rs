@@ -238,7 +238,7 @@ mod tests {
 
         let report = migrate_config(dir.path()).unwrap();
 
-        assert!(report.kept.is_empty());
+        assert_eq!(report.kept, [] as [std::string::String; 0]);
         assert!(!config_file.exists());
         assert!(report.backup.is_file());
     }
