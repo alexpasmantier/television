@@ -1,4 +1,4 @@
-//! Subcommands: `--version`, `list-channels`, `init`.
+//! Subcommands: `--version`, `list-channels`, `init`, `explain-config`.
 
 use std::{
     io,
@@ -86,6 +86,62 @@ fn test_init_subcommand_invalid_shell_errors() {
         .unwrap();
 
     s.wait().text("invalid value").until().unwrap();
+}
+
+/// Tests `tv explain-config --json`: CLI flags passed before the subcommand
+/// override the channel definition and are reported as such.
+#[test]
+fn test_explain_config_json() {
+    let output = Command::new(TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["--preview-size", "70", "explain-config", "files", "--json"])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let json: serde_json::Value =
+        serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(json["channel"], "files");
+    let setting = |key: &str| {
+        json["settings"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|s| s["key"] == key)
+            .unwrap()
+            .clone()
+    };
+    let size = setting("ui.preview_panel.size");
+    assert_eq!(size["value"], 70);
+    assert_eq!(size["source"], "cli");
+    assert_eq!(setting("source.command")["source"], "channel");
+    assert_eq!(setting("tick_rate")["source"], "default");
+}
+
+/// Tests the human-readable `tv explain-config` output.
+#[test]
+fn test_explain_config_table() {
+    let output = Command::new(TV_BIN_PATH)
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["--exact", "explain-config", "files"])
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("Effective configuration for channel 'files'"));
+    assert!(stdout.contains("cli > channel > config file > default"));
+    let exact = stdout
+        .lines()
+        .find(|l| l.starts_with("exact "))
+        .expect("missing `exact` line");
+    assert!(exact.contains("cli") && exact.contains("true"), "{exact}");
 }
 
 /// Tests that `tv list-channels` handles broken pipe (EPIPE) gracefully.

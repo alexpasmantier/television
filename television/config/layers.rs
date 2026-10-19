@@ -20,16 +20,16 @@ use std::path::PathBuf;
 /// merged configuration used by the application.
 pub struct ConfigLayers {
     /// The base configuration that is loaded from the config file.
-    base_config: Config,
+    pub(crate) base_config: Config,
     /// The channel prototype that is currently loaded.
-    channel: ChannelPrototype,
+    pub(crate) channel: ChannelPrototype,
     /// The CLI configuration for the channel.
     ///
     /// This contains the channel-specific CLI options that were processed
     /// for the current channel.
-    channel_cli: ChannelCli,
+    pub(crate) channel_cli: ChannelCli,
     /// The global CLI configuration options that will persist across channels.
-    global_cli: GlobalCli,
+    pub(crate) global_cli: GlobalCli,
 }
 
 impl ConfigLayers {

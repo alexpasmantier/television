@@ -118,6 +118,20 @@ ls -la ~/.config/television/config.toml
 echo $TELEVISION_CONFIG
 ```
 
+### Setting Not Taking Effect
+
+Settings are layered: CLI flags > channel definition > config file > built-in defaults. `tv explain-config` shows the effective value of each setting for a channel and which layer it comes from:
+
+```sh
+tv explain-config files
+
+# CLI overrides go before the subcommand
+tv --preview-size 70 explain-config files
+
+# machine-readable, e.g. to attach to a bug report
+tv explain-config files --json
+```
+
 ### Config Syntax Error
 
 tv reports TOML parse errors on startup, with the line and column of the problem. Run `tv` from a terminal and read the error message.

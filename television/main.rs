@@ -42,9 +42,23 @@ async fn main() -> Result<()> {
 
     debug!("\n\n====  NEW SESSION  =====\n");
 
-    let readable_stdin = is_readable_stdin();
+    let mut raw_cli = Cli::parse();
 
-    let raw_cli = Cli::parse();
+    // `tv explain-config <channel>` resolves the channel like `tv <channel>`
+    // would, so CLI overrides passed alongside it are validated and layered
+    // the same way.
+    let explain_json = match &raw_cli.command {
+        Some(Command::ExplainConfig { channel, json }) => {
+            if channel.is_some() {
+                raw_cli.channel.clone_from(channel);
+            }
+            Some(*json)
+        }
+        _ => None,
+    };
+
+    // explain-config only inspects the configuration, it never reads stdin
+    let readable_stdin = explain_json.is_none() && is_readable_stdin();
 
     // Load configuration first so the cable directory it points to (which may differ
     // from the default) is honored when resolving channel-vs-path ambiguity in post_process.
@@ -82,6 +96,19 @@ async fn main() -> Result<()> {
     debug!("Determining base channel prototype...");
     let channel_prototype =
         determine_channel(&cli.channel, &base_config, readable_stdin, &cable);
+
+    if let Some(json) = explain_json {
+        let explanation =
+            ConfigLayers::new(base_config, channel_prototype, cli.clone())
+                .explain(Config::user_config_file(config_file.as_deref()));
+        let output = if json {
+            explanation.to_json()
+        } else {
+            explanation.render(stdout().is_terminal())
+        };
+        let _ = writeln!(stdout().lock(), "{}", output.trim_end());
+        exit(0);
+    }
 
     let layered_config =
         ConfigLayers::new(base_config, channel_prototype, cli.clone());
@@ -186,6 +213,8 @@ pub fn handle_subcommand(
             writeln!(out, "Done.")?;
             exit(0);
         }
+        // needs the resolved channel, handled in `main`
+        Command::ExplainConfig { .. } => Ok(()),
     }
 }
 

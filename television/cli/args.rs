@@ -727,6 +727,23 @@ pub enum Command {
     /// the settings you actually changed (or removes it entirely if you
     /// never changed anything).
     MigrateConfig,
+    /// Shows the effective configuration for a channel and where each value
+    /// comes from.
+    ///
+    /// Settings are resolved exactly like tv does at startup, layering
+    /// CLI flags > channel definition > config file > built-in defaults.
+    /// For each setting this prints the effective value, the layer it comes
+    /// from, and the lower-precedence values it overrides.
+    ///
+    /// CLI overrides are taken into account when passed before the
+    /// subcommand, e.g. `tv --preview-size 70 explain-config files`.
+    ExplainConfig {
+        /// The channel to inspect (defaults to the configured `default_channel`).
+        channel: Option<String>,
+        /// Output machine-readable JSON instead of a table.
+        #[arg(long, default_value = "false")]
+        json: bool,
+    },
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, ValueEnum)]
