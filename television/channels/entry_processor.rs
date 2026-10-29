@@ -1,7 +1,7 @@
 use crate::{
     channels::{entry::Entry, prototypes::Template},
     matcher::matched_item::MatchedItem,
-    utils::ansi::{AnsiParser, SharedPalette, StyleRuns},
+    utils::ansi::{AnsiParser, SharedStyleTable, StyleRuns},
 };
 use std::{borrow::Cow, sync::Arc};
 
@@ -17,9 +17,6 @@ pub trait EntryProcessor: Send + Sync + Clone + 'static {
 
     /// Process a raw line into the data stored in the matcher and the haystack
     /// string the line will be matched against.
-    ///
-    /// Takes `&mut self` so processors can keep per-worker state across the
-    /// lines of a batch (see [`AnsiProcessor`]).
     fn process(&mut self, line: String) -> (Self::Data, String);
 
     fn make_entry(
@@ -78,23 +75,19 @@ impl EntryProcessor for PlainProcessor {
 
 /// A processor for sources that emit ANSI escape codes.
 ///
-/// The line is parsed once here: the matcher stores the stripped text and the
-/// styling is reduced to a few interned runs (see [`crate::utils::ansi`]).
-/// Keeping the styling instead of the original line costs a fraction of the
-/// memory, and results render from resolved runs rather than re-parsing
-/// escape codes on every frame.
+/// We store the stripped line in the matcher, and the style runs in the data.
 #[derive(Clone, Debug)]
 pub struct AnsiProcessor {
     parser: AnsiParser,
-    palette: SharedPalette,
+    style_table: SharedStyleTable,
 }
 
 impl AnsiProcessor {
     pub fn new() -> Self {
-        let palette = SharedPalette::default();
+        let style_table = SharedStyleTable::default();
         Self {
-            parser: AnsiParser::new(Arc::clone(&palette)),
-            palette,
+            parser: AnsiParser::new(Arc::clone(&style_table)),
+            style_table,
         }
     }
 }
@@ -122,13 +115,13 @@ impl EntryProcessor for AnsiProcessor {
             .with_index(item.index)
             .with_match_indices(&item.match_indices);
         if !item.inner.is_empty() {
-            // Resolving the palette here (rather than storing styles per
+            // Resolving the style table here (rather than storing styles per
             // entry) keeps it to the handful of rows actually on screen
-            let palette = self.palette.read();
+            let style_table = self.style_table.read();
             entry = entry.with_styles(
                 item.inner
                     .iter()
-                    .map(|&(at, id)| (at, palette.resolve(id)))
+                    .map(|&(at, id)| (at, style_table.resolve(id)))
                     .collect(),
             );
         }

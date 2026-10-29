@@ -1,15 +1,11 @@
-//! Compact storage for the styling of ANSI source lines.
+//! For ansi styled inputs, we need to store both the stripped text (for the matcher)
+//! and the style for rendering.
 //!
-//! Channels whose source emits ANSI escape codes used to keep the raw line
-//! next to the stripped one, which is what the matcher works on. That doubled
-//! what a store costs for styling that only ever reaches a few dozen visible
-//! rows. The escapes are parsed once at ingest instead: the text is kept
-//! stripped and the styling is reduced to a handful of runs pointing into a
-//! palette of interned styles.
+//! The styles are broken down into:
+//! - a style table of the distinct styles seen in the channel's output
+//! - a list of (starting offset, style id in the style table) for each line
 //!
-//! The stripped text comes out of the same parser `fast_strip_ansi` uses, so
-//! haystacks are byte for byte what they were when the raw line was stripped
-//! separately.
+//! This is mostly a space optimization.
 
 use parking_lot::RwLock;
 use ratatui::style::{Color, Modifier, Style};
@@ -18,39 +14,30 @@ use smallvec::SmallVec;
 use std::sync::Arc;
 use vt_push_parser::{VT_PARSER_INTEREST_CSI, VTPushParser, event::VTEvent};
 
-/// The style a line takes from a character offset onwards, as an index into
-/// a [`StylePalette`].
+/// A start offset (in chars) and a style id (that maps to a style in the style table).
 pub type StyleRun = (u32, u16);
 
-/// The style runs of a single line.
-///
-/// The inline capacity covers the common case without allocating: colored
-/// `rg` output, the heaviest source we know of, is exactly 5 runs per line.
+/// The style runs for a line.
 pub type StyleRuns = SmallVec<[StyleRun; 5]>;
 
-/// The distinct styles seen in a channel's output.
-///
-/// Sources reuse a handful of styles across all their lines, so interning
-/// them keeps a stored line's styling down to a few bytes per run.
+/// This keeps track of the distinct styles seen in a channel's output and maps each one to a small
+/// integer id (its index in the `styles` vector).
 #[derive(Debug, Default)]
-pub struct StylePalette {
+pub struct StyleTable {
     styles: Vec<Style>,
-    ids: FxHashMap<Style, u16>,
+    ids_by_style: FxHashMap<Style, u16>,
 }
 
-impl StylePalette {
-    /// The id of `style`, registering it if it's new.
-    ///
-    /// Ids saturate at `u16::MAX`: a source with that many distinct styles
-    /// is pathological, and reusing the last id only mis-styles it.
+impl StyleTable {
+    /// Add a style to the table if it isn't already present, returning its id.
     fn intern(&mut self, style: Style) -> u16 {
-        if let Some(&id) = self.ids.get(&style) {
+        if let Some(&id) = self.ids_by_style.get(&style) {
             return id;
         }
         let id = u16::try_from(self.styles.len()).unwrap_or(u16::MAX);
         if usize::from(id) == self.styles.len() {
             self.styles.push(style);
-            self.ids.insert(style, id);
+            self.ids_by_style.insert(style, id);
         }
         id
     }
@@ -64,26 +51,20 @@ impl StylePalette {
     }
 }
 
-/// A handle to the palette shared by a channel's ingest workers and its
-/// result rendering.
-pub type SharedPalette = Arc<RwLock<StylePalette>>;
+/// A handle to the style table (shared by the ingest workers and the screen to render results).
+pub type SharedStyleTable = Arc<RwLock<StyleTable>>;
 
-/// Parses ANSI lines against a shared palette.
-///
-/// Ingest runs on several workers at once, so each keeps a small local cache
-/// of the styles it has already interned and only takes the shared lock when
-/// a genuinely new one turns up — which stops happening within the first few
-/// lines of a source.
 #[derive(Debug, Clone)]
 pub struct AnsiParser {
-    palette: SharedPalette,
+    style_table: SharedStyleTable,
+    /// Caching the last seen styles locally is a cheap way to avoid locks on the shared style table
     cache: Vec<(Style, u16)>,
 }
 
 impl AnsiParser {
-    pub fn new(palette: SharedPalette) -> Self {
+    pub fn new(style_table: SharedStyleTable) -> Self {
         Self {
-            palette,
+            style_table,
             cache: Vec::new(),
         }
     }
@@ -94,26 +75,19 @@ impl AnsiParser {
         {
             return id;
         }
-        let id = self.palette.write().intern(style);
+        let id = self.style_table.write().intern(style);
         self.cache.push((style, id));
         id
     }
 
     /// Split a line into its stripped text and the style runs over it.
-    ///
-    /// Offsets are character (not byte) based so they line up with the match
-    /// indices the results list overlays on top of them. A line with no
-    /// styling at all yields no runs.
     #[allow(clippy::cast_possible_truncation)]
     pub fn parse(&mut self, line: &str) -> (String, StyleRuns) {
         let mut text = String::with_capacity(line.len());
         let mut runs = StyleRuns::new();
         let mut style = Style::default();
-        let mut last_id: Option<u16> = None;
+        let mut last_style = Style::default();
         let mut chars: u32 = 0;
-        // The palette is behind a lock, so styles are interned after the
-        // parse rather than from inside its callback.
-        let mut pending: Vec<(u32, Style)> = Vec::new();
 
         let mut parser =
             VTPushParser::new_with_interest::<VT_PARSER_INTEREST_CSI>();
@@ -123,8 +97,9 @@ impl AnsiParser {
                 if chunk.is_empty() {
                     return;
                 }
-                if pending.last().is_none_or(|(_, last)| *last != style) {
-                    pending.push((chars, style));
+                if style != last_style {
+                    runs.push((chars, self.intern(style)));
+                    last_style = style;
                 }
                 chars += chunk.chars().count() as u32;
                 text.push_str(&chunk);
@@ -136,27 +111,12 @@ impl AnsiParser {
             _ => {}
         });
 
-        for (offset, style) in pending {
-            let id = self.intern(style);
-            if last_id != Some(id) {
-                runs.push((offset, id));
-                last_id = Some(id);
-            }
-        }
-        // A single default run means the line wasn't styled at all
-        if runs.len() == 1 && runs[0] == (0, self.intern(Style::default())) {
-            runs.clear();
-        }
         text.shrink_to_fit();
         (text, runs)
     }
 }
 
-/// Apply an SGR sequence to a style.
-///
-/// Unknown parameters are skipped rather than treated as a reset, so an
-/// exotic sequence degrades to slightly-off colors instead of dropping the
-/// styling of the rest of the line.
+/// Apply an SGR sequence (italic, bold, ...) to a style.
 fn apply_sgr(mut style: Style, csi: &vt_push_parser::event::CSI<'_>) -> Style {
     let params: Vec<u16> = csi
         .params
@@ -214,6 +174,7 @@ fn apply_sgr(mut style: Style, csi: &vt_push_parser::event::CSI<'_>) -> Style {
             49 => style = style.bg(Color::Reset),
             c @ 90..=97 => style = style.fg(bright_color(c - 90)),
             c @ 100..=107 => style = style.bg(bright_color(c - 100)),
+            // ignore unknown codes
             _ => {}
         }
         i += 1;
@@ -274,7 +235,7 @@ mod tests {
     use std::fmt::Write;
 
     fn parser() -> AnsiParser {
-        AnsiParser::new(Arc::new(RwLock::new(StylePalette::default())))
+        AnsiParser::new(Arc::new(RwLock::new(StyleTable::default())))
     }
 
     /// The line `rg` emits for the text channel: path, line number and
@@ -302,10 +263,10 @@ mod tests {
         let (text, runs) = p.parse(RG_LINE);
         assert_eq!(text, "Kconfig:12:# a comment");
 
-        let palette = p.palette.read();
+        let style_table = p.style_table.read();
         let styles: Vec<(u32, Style)> = runs
             .iter()
-            .map(|&(at, id)| (at, palette.resolve(id)))
+            .map(|&(at, id)| (at, style_table.resolve(id)))
             .collect();
         assert_eq!(
             styles,
@@ -332,8 +293,7 @@ mod tests {
         assert!(p.parse("\x1b[0mplain text").1.is_empty());
     }
 
-    /// Offsets index characters, not bytes, so they line up with the match
-    /// indices the results list overlays on them.
+    /// Offsets index characters (lines up with match indices).
     #[test]
     fn offsets_are_character_based() {
         let mut p = parser();
@@ -348,8 +308,8 @@ mod tests {
         let mut p = parser();
         p.parse("\x1b[31mred\x1b[0m");
         p.parse("\x1b[31malso red\x1b[0m");
-        // default + red, registered once each
-        assert_eq!(p.palette.read().styles.len(), 2);
+        // red, registered once
+        assert_eq!(p.style_table.read().styles.len(), 1);
     }
 
     #[test]
@@ -359,8 +319,8 @@ mod tests {
         assert!(!runs.spilled(), "rg lines should not allocate");
     }
 
-    /// Styling that changes on every character (a truecolor gradient, say)
-    /// still parses correctly, spilling the runs to the heap.
+    /// Styling that changes on every character (e.g. a truecolor gradient)
+    /// still parses correctly (the runs spill to the heap).
     #[test]
     fn heavily_styled_lines_still_parse() {
         let mut p = parser();
@@ -371,6 +331,6 @@ mod tests {
         let (text, runs) = p.parse(&line);
         assert_eq!(text, "x".repeat(64));
         assert_eq!(runs.len(), 64);
-        assert_eq!(p.palette.read().styles.len(), 64);
+        assert_eq!(p.style_table.read().styles.len(), 64);
     }
 }
