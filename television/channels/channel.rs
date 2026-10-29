@@ -20,6 +20,7 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 use tokio::process::Command as TokioCommand;
+use tokio::sync::oneshot;
 use tokio::{
     io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, BufReader},
     time::Instant,
@@ -291,9 +292,6 @@ impl<P: EntryProcessor> Channel<P> {
     }
 }
 
-// Read the source's output in chunks of at least this size: reading in bulk
-// instead of line by line keeps the per-line overhead (syscalls, timestamps,
-// allocations) off the reader loop
 const READ_CHUNK_SIZE: usize = 64 * 1024;
 // Flush accumulated bytes to a processing task after this size
 // (~100k entries at 40 bytes per line)
@@ -304,71 +302,7 @@ const UPDATE_INTERVAL: Duration = Duration::from_millis(200);
 // Maximum number of concurrent flush tasks to prevent unbounded memory growth
 // 4 * ~2x FLUSH_SIZE (raw bytes + processed entries) = ~32 MB
 const MAX_CONCURRENT_FLUSHES: usize = 4;
-const DEFAULT_DELIMITER: u8 = b'\n';
-
-/// Reads `reader` in large chunks and ships complete entries to blocking
-/// tasks that split, process and push them to the injector in batches.
-///
-/// Returns whether the reader produced any output.
-async fn stream_entries<R, P>(
-    mut reader: R,
-    delimiter: u8,
-    processor: &P,
-    injector: &Injector<P::Data>,
-) -> bool
-where
-    R: AsyncRead + Unpin,
-    P: EntryProcessor,
-{
-    let mut acc: Vec<u8> = Vec::new();
-    let mut flush_handles = tokio::task::JoinSet::new();
-    let mut produced_output = false;
-    let mut last_flush = Instant::now();
-
-    loop {
-        acc.reserve(READ_CHUNK_SIZE);
-        let n = reader.read_buf(&mut acc).await.unwrap_or(0);
-        if n == 0 {
-            break;
-        }
-
-        if acc.len() >= FLUSH_SIZE || last_flush.elapsed() >= UPDATE_INTERVAL {
-            // Only complete entries are flushed: bytes after the last
-            // delimiter stay in the accumulator
-            if let Some(pos) = memchr::memrchr(delimiter, &acc) {
-                let rest = acc.split_off(pos + 1);
-                let chunk = std::mem::replace(&mut acc, rest);
-
-                if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
-                    // Wait for any task to complete
-                    let _ = flush_handles.join_next().await;
-                }
-                let inj = injector.clone();
-                let mut proc = processor.clone();
-                flush_handles.spawn_blocking(move || {
-                    flush_chunk(&chunk, &inj, &mut proc, delimiter);
-                });
-                produced_output = true;
-                last_flush = Instant::now();
-            }
-        }
-    }
-
-    // Flush whatever is left (the last entry may not be delimited)
-    if !acc.is_empty() {
-        let inj = injector.clone();
-        let mut proc = processor.clone();
-        flush_handles.spawn_blocking(move || {
-            flush_chunk(&acc, &inj, &mut proc, delimiter);
-        });
-        produced_output = true;
-    }
-
-    // Wait for all remaining flush tasks to complete
-    while flush_handles.join_next().await.is_some() {}
-
-    produced_output
-}
+const NEWLINE_CHAR: u8 = b'\n';
 
 /// Collects entries before pushing them to the injector.
 pub async fn load_candidates<P: EntryProcessor>(
@@ -397,7 +331,7 @@ pub async fn load_candidates<P: EntryProcessor>(
         let delimiter = entry_delimiter
             .as_ref()
             .map(|d| *d as u8)
-            .unwrap_or(DEFAULT_DELIMITER);
+            .unwrap_or(NEWLINE_CHAR);
 
         let produced_output =
             stream_entries(out, delimiter, &processor, &injector).await;
@@ -440,23 +374,96 @@ pub async fn load_stdin_candidates<P: EntryProcessor>(
     let delimiter = entry_delimiter
         .as_ref()
         .map(|d| *d as u8)
-        .unwrap_or(DEFAULT_DELIMITER);
+        .unwrap_or(NEWLINE_CHAR);
 
     stream_entries(stdin, delimiter, &processor, &injector).await;
 
     debug!("Finished reading stdin.");
 }
 
-/// Splits a chunk of complete entries on `delimiter`, filters
-/// empty/whitespace-only lines and runs the processor up front so the whole
-/// chunk is pushed under a single injector call.
-/// This is called from a blocking task spawned in the threadpool.
-fn flush_chunk<P: EntryProcessor>(
-    chunk: &[u8],
+/// Returns whether the reader produced any output.
+async fn stream_entries<R, P>(
+    mut reader: R,
+    delimiter: u8,
+    processor: &P,
     injector: &Injector<P::Data>,
+) -> bool
+where
+    R: AsyncRead + Unpin,
+    P: EntryProcessor,
+{
+    let mut buf: Vec<u8> = Vec::new();
+    let mut flush_handles = tokio::task::JoinSet::new();
+    let mut produced_output = false;
+    let mut last_flush = Instant::now();
+
+    // we use oneshot channels here as a way for each flush task to signal to the next
+    // that it's finished to preserve the original order of the entries.
+    let (order_tx, mut order_rx) = oneshot::channel();
+    let _ = order_tx.send(());
+    let mut spawn_flush =
+        |chunk: Vec<u8>, handles: &mut tokio::task::JoinSet<()>| {
+            let (pushed_tx, pushed_rx) = oneshot::channel();
+            let wait_for = std::mem::replace(&mut order_rx, pushed_rx);
+            let inj = injector.clone();
+            // PERF: could we maybe keep a pool of processors to avoid cloning with each flush?
+            // this would also be a natural concurrency cap instead of relying on
+            // MAX_CONCURRENT_FLUSHES and the number of pending handles. But then maybe cloning
+            // is just faster than the overhead of a channel and a pool.
+            let mut proc = processor.clone();
+            handles.spawn_blocking(move || {
+                let entries = process_chunk(&chunk, &mut proc, delimiter);
+                // an error means the previous task died, don't wait on it
+                let _ = wait_for.blocking_recv();
+                inj.push_batch(entries);
+                let _ = pushed_tx.send(());
+            });
+        };
+
+    loop {
+        buf.reserve(READ_CHUNK_SIZE);
+        let n = reader.read_buf(&mut buf).await.unwrap_or(0);
+        if n == 0 {
+            break;
+        }
+
+        if buf.len() >= FLUSH_SIZE || last_flush.elapsed() >= UPDATE_INTERVAL {
+            // keep the bytes after the last delimiter for the next flush
+            if let Some(pos) = memchr::memrchr(delimiter, &buf) {
+                let rest = buf.split_off(pos + 1);
+                // put rest in buf and retrieve what to flush
+                let chunk = std::mem::replace(&mut buf, rest);
+
+                if flush_handles.len() >= MAX_CONCURRENT_FLUSHES {
+                    // Wait for any task to complete
+                    let _ = flush_handles.join_next().await;
+                }
+
+                spawn_flush(chunk, &mut flush_handles);
+                produced_output = true;
+                last_flush = Instant::now();
+            }
+        }
+    }
+
+    // Flush whatever is left (the last entry may not be delimited)
+    if !buf.is_empty() {
+        spawn_flush(buf, &mut flush_handles);
+        produced_output = true;
+    }
+
+    // Wait for all remaining flush tasks to complete
+    while flush_handles.join_next().await.is_some() {}
+
+    produced_output
+}
+
+/// process a chunk into entries
+fn process_chunk<P: EntryProcessor>(
+    chunk: &[u8],
     processor: &mut P,
     delimiter: u8,
-) {
+) -> Vec<(P::Data, String)> {
     let mut entries = Vec::new();
     let mut start = 0;
     for end in memchr::memchr_iter(delimiter, chunk)
@@ -471,7 +478,7 @@ fn flush_chunk<P: EntryProcessor>(
             entries.push(processor.process(line.to_string()));
         }
     }
-    injector.push_batch(entries);
+    entries
 }
 
 /// Channels can be in one of several modes depending on the source configuration.
@@ -769,6 +776,32 @@ mod tests {
         assert_eq!(results.len(), 1000);
         assert_eq!(results[0].matched_string, "1");
         assert_eq!(results[999].matched_string, "1000");
+    }
+
+    #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+    async fn test_stream_entries_keeps_source_order_across_chunks() {
+        // Enough output for several flush chunks to be processed concurrently
+        let n = 2_000_000;
+        let source = (1..=n)
+            .map(|i| i.to_string())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(source.len() > 3 * FLUSH_SIZE);
+
+        let mut matcher =
+            Matcher::<()>::new(SortStrategy::Score, MATCHER_TEST_THREADS);
+        let injector = matcher.injector();
+
+        stream_entries(source.as_bytes(), b'\n', &PlainProcessor, &injector)
+            .await;
+
+        matcher.find("");
+        matcher.wait_for_idle();
+        let results = matcher.results(n, 0);
+        assert_eq!(results.len(), n as usize);
+        for (i, item) in results.iter().enumerate() {
+            assert_eq!(item.matched_string, (i + 1).to_string());
+        }
     }
 
     #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
