@@ -62,8 +62,9 @@ mod tests {
         // the help panel borrows the preview pane: `preview_window` is None
         // and `help_panel` holds the pane rect
         let layout = Layout::new(
+            Rect::new(0, 0, 50, 33),
             Rect::new(0, 0, 50, 30),
-            Rect::new(0, 30, 100, 1),
+            Rect::new(0, 1, 50, 3),
             None,
             None,
             Some(Rect::new(50, 0, 50, 30)),

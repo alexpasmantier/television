@@ -26,7 +26,7 @@ use crate::{
     screen::{
         colors::Colorscheme,
         help_panel::max_help_scroll,
-        layout::{InputPosition, Orientation},
+        layout::{InputPosition, Layout, Orientation},
     },
     utils::{
         clipboard::CLIPBOARD,
@@ -265,6 +265,16 @@ impl Television {
 
     pub fn update_ui_state(&mut self, ui_state: UiState) {
         self.ui_state = ui_state;
+    }
+
+    /// Recompute the layout based on the current canvas size and the app state.
+    pub fn hint_layout(&mut self) {
+        let layout = Layout::build(
+            self.ui_state.layout.canvas,
+            &self.merged_config,
+            self.mode,
+        );
+        self.ui_state.layout = layout;
     }
 
     pub fn dump_context(&self) -> Ctx {
@@ -1222,11 +1232,19 @@ impl Television {
         // to restart the fast-render window. This ensures newly loaded results
         // are rendered immediately instead of waiting for the next
         // RENDERING_INTERVAL.
+        // TODO: maybe reassess this
         let running = self.channel.running();
         if self.was_running && !running {
             self.ticks = 0;
         }
         self.was_running = running;
+
+        // we may need to reassess the layout in some cases so that computations
+        // below are based on the correct numbers. this will be thrown away on the
+        // next frame anyway since it gets recomputed in `crate::draw::draw`.
+        if action.affects_layout() {
+            self.hint_layout();
+        }
 
         // Only run the full results pipeline when the action could
         // have changed the results or the visible viewport

@@ -311,10 +311,6 @@ impl Action {
                 | Action::ScrollPreviewHalfPageUp
                 | Action::ScrollPreviewHalfPageDown
                 | Action::CyclePreviews
-                | Action::ToggleHelp
-                | Action::TogglePreview
-                | Action::ToggleStatusBar
-                | Action::ToggleOrientation
                 | Action::CopyEntryToClipboard
                 | Action::OpenEntry
                 | Action::Render
@@ -323,6 +319,18 @@ impl Action {
                 | Action::Resume
                 | Action::Error(_)
                 | Action::NoOp
+        )
+    }
+
+    pub fn affects_layout(&self) -> bool {
+        matches!(
+            self,
+            Action::ToggleHelp
+                | Action::TogglePreview
+                | Action::ToggleStatusBar
+                | Action::ToggleOrientation
+                | Action::ToggleActionPicker
+                | Action::ToggleRemoteControl
         )
     }
 
