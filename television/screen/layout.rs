@@ -516,7 +516,7 @@ fn centered_rect_with_dimensions(dimensions: &Dimensions, r: Rect) -> Rect {
 /// Minimum dimensions each pane must end up with for the preview to be worth
 /// showing; below these the preview is automatically hidden so the results
 /// list stays usable (e.g. `--inline` in a handful of rows).
-const MIN_PREVIEW_HEIGHT: u16 = 8;
+const MIN_PREVIEW_HEIGHT: u16 = 4;
 const MIN_RESULTS_HEIGHT: u16 = 4;
 const MIN_PREVIEW_WIDTH: u16 = 25;
 const MIN_RESULTS_WIDTH: u16 = 30;

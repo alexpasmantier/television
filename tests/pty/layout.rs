@@ -285,7 +285,7 @@ fn test_minimal_ui_auto_hides_preview_when_cramped() {
 
     let s = tv_local_config_and_cable_with_args(
         &pt,
-        &["files", "--height", "10", "--layout", "portrait"],
+        &["files", "--height", "6", "--layout", "portrait"],
     )
     .env(TESTING_ENV_VAR, "1")
     .start()
