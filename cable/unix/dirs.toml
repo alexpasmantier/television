@@ -11,6 +11,7 @@ command = [
 
 [preview]
 command = "ls -la --color=always '{}'"
+shell = "bash"
 
 [keybindings]
 shortcut = "f2"
@@ -18,6 +19,7 @@ shortcut = "f2"
 [actions.cd]
 description = "Open a shell in the selected directory"
 command = "cd {} && $SHELL"
+shell = "bash"
 mode = "execute"
 
 [actions.goto_parent_dir]
