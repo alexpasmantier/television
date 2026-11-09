@@ -1100,6 +1100,22 @@ mod tests {
     }
 
     #[test]
+    fn test_builtin_dirs_channel_pins_posix_shell() {
+        // `ls --color` and `cd .. && $SHELL` are POSIX-shell syntax: they
+        // must not depend on the user's login shell (e.g. Nushell).
+        let prototype: ChannelPrototype =
+            from_str(include_str!("../../cable/unix/dirs.toml")).unwrap();
+        assert_eq!(
+            prototype.preview.unwrap().command.shell,
+            Some(Shell::Bash)
+        );
+        assert_eq!(
+            prototype.actions.get("cd").unwrap().command.shell,
+            Some(Shell::Bash)
+        );
+    }
+
+    #[test]
     fn test_command_spec_without_shell_uses_default() {
         let toml_data = r#"
         [metadata]
