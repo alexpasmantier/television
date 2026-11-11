@@ -1,7 +1,7 @@
 [metadata]
 name = "recent-files"
 description = "List recently modified files (via git or filesystem)"
-requirements = ["git", "bat"]
+requirements = ["git", ["bat", "batcat"]]
 
 [source]
 command = [
@@ -10,7 +10,7 @@ command = [
 ]
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
