@@ -1,0 +1,54 @@
+[metadata]
+name = "azdo-pipelines"
+description = """
+Azure DevOps pipelines for a selected project.
+
+Required env vars:
+- AZDO_ORG
+- AZDO_PROJECT_ID
+
+Optional env vars:
+- AZDO_PROJECT_NAME  preview label fallback
+"""
+requirements = ["az", "jq", "tv"]
+
+[source]
+command = '''
+set -eu
+org="${AZDO_ORG:-}"
+project="${AZDO_PROJECT_ID:-}"
+
+missing_env=0
+if [ -z "$org" ]; then
+  echo "missing env var: AZDO_ORG" >&2
+  missing_env=1
+fi
+if [ -z "$project" ]; then
+  echo "missing env var: AZDO_PROJECT_ID" >&2
+  missing_env=1
+fi
+if [ "$missing_env" -ne 0 ]; then
+  exit 1
+fi
+
+az pipelines list --org "https://dev.azure.com/$org" --project "$project" |
+  jq -r '.[] |
+    [
+      (.id | tostring),
+      .name
+    ] | @tsv'
+'''
+display = "#{split:\t:0}  {split:\t:1}"
+
+[preview]
+command = '''printf "Project: %s\nPipeline: %s\nID: %s\n" "${AZDO_PROJECT_NAME:-$AZDO_PROJECT_ID}" "{split:\t:1}" "{split:\t:0}"'''
+shell = "bash"
+
+[keybindings]
+enter = "actions:open-builds"
+
+[actions.open-builds]
+description = "Open pipeline builds"
+command = "AZDO_PIPELINE_ID='{split:\t:0}' AZDO_PIPELINE_NAME='{split:\t:1}' tv azdo-pipeline-builds"
+mode = "execute"
+shell = "bash"
