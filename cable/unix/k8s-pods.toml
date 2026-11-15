@@ -3,12 +3,6 @@ name = "k8s-pods"
 description = '''List and preview Pods in a Kubernetes Cluster.
 
 The first source lists only from the current namespace, while the second lists from all.
-
-Keybindings
-
-Press `ctrl-e` to execute shell inside the selected Pod.
-Press `ctrl-d` to delete the selected Pod.
-Press `ctrl-l` to print and follow the logs of the selected Pod.
 '''
 requirements = ["kubectl"]
 
