@@ -387,11 +387,11 @@ fn test_reload_clears_selection() {
         .unwrap();
 
     s.send().key("shift-tab").unwrap();
-    s.wait().text("2 selected").until().unwrap();
+    s.wait().text("· 2").until().unwrap();
 
     // reloading rebuilds the matcher store, which drops the selection
     s.send().key("ctrl-r").unwrap();
-    s.wait().text_absent("2 selected").until().unwrap();
+    s.wait().text_absent("· 2").until().unwrap();
 
     s.send().key("enter").unwrap();
     let output = exit_and_output(&s);

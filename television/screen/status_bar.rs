@@ -10,26 +10,13 @@ use ratatui::{
     text::{Line, Span},
     widgets::Paragraph,
 };
+use unicode_width::UnicodeWidthStr;
 
 const HINT_SEP: &str = " · ";
+const HINT_SEP_WIDTH: usize = 3;
 
-/// Draw the status bar at the bottom of the screen: a mode-colored dot and
-/// the channel name on the left, dimmed keybinding hints in the middle, and
-/// the version on the right.
+///  |● files            source ctrl-s · remote ctrl-t · actions ctrl-x · help ctrl-h|
 pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
-    let chunks = RatatuiLayout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Fill(1), // Left: mode dot + channel info
-            Constraint::Fill(3), // Middle: hints
-            Constraint::Fill(1), // Right: version
-        ])
-        .split(area);
-
-    let dimmed = Style::default().fg(ctx.colorscheme.general.dimmed_text_fg);
-    let faint = Style::default().fg(ctx.colorscheme.general.border_fg);
-
-    // === LEFT SECTION: mode dot + label ===
     let (mode_color, mode_label) = match ctx.tv_state.mode {
         Mode::Channel => (
             ctx.colorscheme.mode.channel,
@@ -40,6 +27,24 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         }
         Mode::ActionPicker => (ctx.colorscheme.mode.action_picker, "actions"),
     };
+    let selected_count = ctx.tv_state.channel_state.selected.len();
+    let mut left_chunk_width = 3 + mode_label.width();
+    if selected_count > 0 {
+        left_chunk_width += 3 + selected_count.to_string().len();
+    }
+
+    let chunks = RatatuiLayout::default()
+        .direction(Direction::Horizontal)
+        .constraints([
+            Constraint::Length(
+                u16::try_from(left_chunk_width).unwrap_or(u16::MAX),
+            ),
+            Constraint::Fill(1),
+        ])
+        .split(area);
+
+    let dimmed = Style::default().fg(ctx.colorscheme.general.dimmed_text_fg);
+    let faint = Style::default().fg(ctx.colorscheme.general.border_fg);
 
     let mut left_spans = vec![
         Span::raw(SPACE),
@@ -51,26 +56,13 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         ),
     ];
 
-    // Selected count indicator
-    if ctx.tv_state.mode == Mode::Channel {
-        let selected_count = ctx.tv_state.channel_state.selected.len();
-        if selected_count > 0 {
-            left_spans.extend([
-                Span::styled(" · ", faint),
-                Span::styled(
-                    format!("{} selected", selected_count),
-                    dimmed.add_modifier(Modifier::ITALIC),
-                ),
-            ]);
-        }
+    if selected_count > 0 {
+        left_spans
+            .push(Span::styled(format!(" · {}", selected_count), dimmed));
     }
 
-    // === MIDDLE SECTION: dimmed hints ===
-    let mut hints: Vec<String> = Vec::new();
-    let mut add_hint = |description: &str, keybinding: &str| {
-        hints.push(format!("{} {}", description, keybinding));
-    };
-
+    // keybinding hints
+    let mut hints: Vec<(String, String)> = Vec::new();
     if ctx.tv_state.mode == Mode::Channel
         && ctx.tv_state.channel_state.source_count > 1
     {
@@ -79,10 +71,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             .input_map
             .get_key_for_action(&Action::CycleSources);
         if let Some(k) = key {
-            add_hint("source", &k.to_string());
+            hints.push(("source".to_string(), k.to_string()));
         }
     }
-
     if !ctx.config.remote_disabled {
         let key = &ctx
             .config
@@ -93,10 +84,9 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
                 Mode::Channel | Mode::ActionPicker => "remote",
                 Mode::RemoteControl => "back",
             };
-            add_hint(hint_text, &k.to_string());
+            hints.push((hint_text.to_string(), k.to_string()));
         }
     }
-
     if ctx.tv_state.mode == Mode::Channel
         && !ctx.config.channel_actions.is_empty()
     {
@@ -105,27 +95,27 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
             .input_map
             .get_key_for_action(&Action::ToggleActionPicker);
         if let Some(k) = key {
-            add_hint("actions", &k.to_string());
+            hints.push(("actions".to_string(), k.to_string()));
         }
     }
-
     let help_hint = ctx
         .config
         .input_map
         .get_key_for_action(&Action::ToggleHelp)
-        .map(|k| format!("help {}", k));
+        .map(|k| ("help".to_string(), k.to_string()));
     hints.extend(help_hint.clone());
 
-    // on narrow terminals, rather than let the centered paragraph clip the
-    // line mid-word, fall back to the help hint alone: it leads to the full
-    // keybinding list anyway
-    let line_width = |hints: &[String]| {
-        hints.iter().map(|h| h.chars().count()).sum::<usize>()
-            + HINT_SEP.chars().count() * hints.len().saturating_sub(1)
-    };
-    if line_width(&hints) > chunks[1].width as usize {
+    // if we lack space, fall back to just showing the help hint or nothing at all
+    let available_width = chunks[1].width as usize;
+    let hint_width =
+        |hint: &(String, String)| hint.0.width() + 1 + hint.1.width();
+    if hints.iter().map(hint_width).sum::<usize>()
+        + HINT_SEP_WIDTH * hints.len().saturating_sub(1)
+        + 2 // LR padding
+        > available_width
+    {
         hints = help_hint.into_iter().collect();
-        if line_width(&hints) > chunks[1].width as usize {
+        if hints.iter().map(hint_width).sum::<usize>() + 2 > available_width {
             hints.clear();
         }
     }
@@ -135,25 +125,20 @@ pub fn draw_status_bar(f: &mut Frame<'_>, area: Rect, ctx: &Ctx) {
         if !hint_spans.is_empty() {
             hint_spans.push(Span::styled(HINT_SEP, faint));
         }
-        hint_spans.push(Span::styled(hint.clone(), dimmed));
+        hint_spans.extend([
+            Span::styled(hint.0.clone(), dimmed),
+            Span::raw(SPACE),
+            Span::styled(hint.1.clone(), dimmed.add_modifier(Modifier::BOLD)),
+        ]);
     }
-
-    // === RIGHT SECTION: version ===
-    let right_spans = vec![Span::styled(
-        format!("v{} ", ctx.app_metadata.version),
-        faint.add_modifier(Modifier::ITALIC),
-    )];
+    hint_spans.push(Span::raw(SPACE));
 
     f.render_widget(
         Paragraph::new(Line::from(left_spans)).alignment(Alignment::Left),
         chunks[0],
     );
     f.render_widget(
-        Paragraph::new(Line::from(hint_spans)).alignment(Alignment::Center),
+        Paragraph::new(Line::from(hint_spans)).alignment(Alignment::Right),
         chunks[1],
-    );
-    f.render_widget(
-        Paragraph::new(Line::from(right_spans)).alignment(Alignment::Right),
-        chunks[2],
     );
 }
