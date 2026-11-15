@@ -118,6 +118,7 @@ pub fn picker_list_padding(padding: Padding, bordered: bool) -> Padding {
     padding
 }
 
+/// This is used by both the remote and the actions pickers
 #[allow(clippy::too_many_arguments)]
 pub fn draw_picker_list<T: result_item::ResultItem>(
     f: &mut Frame,
@@ -154,7 +155,7 @@ pub fn draw_picker_list<T: result_item::ResultItem>(
         InputPosition::Top => ratatui::widgets::ListDirection::TopToBottom,
     };
 
-    let list = result_item::build_minimal_picker_list(
+    let list = result_item::build_picker_list(
         block,
         entries,
         &colorscheme.results,

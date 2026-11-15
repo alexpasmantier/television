@@ -308,7 +308,7 @@ where
 /// entry name with match highlights, followed by a dimmed description
 /// column and a dimmed shortcut key. Selection is color-only (background
 /// wash, no symbol).
-pub fn build_minimal_picker_list<'a, 'b, T>(
+pub fn build_picker_list<'a, 'b, T>(
     block: Block<'b>,
     entries: &'a [T],
     colorscheme: &ResultsColorscheme,
@@ -321,6 +321,8 @@ where
     'b: 'a,
     T: ResultItem,
 {
+    // FIXME: these should probably be proper columns or at least truncate the description so we
+    // always leave room for the keybindings
     let name_col = entries
         .iter()
         .map(|e| UnicodeWidthStr::width(e.display()))
