@@ -3,10 +3,6 @@ name = "k8s-deployments"
 description = '''List and preview Deployments in a Kubernetes Cluster.
 
 The first source lists only from the current namespace, while the second lists from all.
-
-Keybindings
-
-Press `ctrl-d` to delete the selected Deployment.
 '''
 requirements = ["kubectl"]
 
