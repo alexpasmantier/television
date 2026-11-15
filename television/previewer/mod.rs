@@ -339,7 +339,7 @@ fn build_preview_from_text(
     preview_index: usize,
     preview_count: usize,
 ) -> Result<Preview> {
-    let total_lines = u16::try_from(text.lines.len()).unwrap_or(0);
+    let total_lines = u16::try_from(text.lines.len()).unwrap_or(u16::MAX);
 
     // try to extract a line number from the offset expression if provided
     let line_number = if let Some(offset_expr) = offset_expr.as_ref() {
@@ -458,6 +458,30 @@ pub async fn try_preview(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn large_previews_remain_scrollable() {
+        for line_count in [65_535, 65_536, 100_000] {
+            let text = Arc::new(Text::from(vec!["line".into(); line_count]));
+            let preview = build_preview_from_text(
+                "cat file",
+                &Entry::new("file".to_string()),
+                text,
+                None,
+                None,
+                None,
+                0,
+                1,
+            )
+            .unwrap();
+            let mut state = state::PreviewState::new(true, preview, 0);
+
+            state.scroll_down(20);
+
+            assert_eq!(state.scroll, 20, "preview with {line_count} lines");
+            assert_eq!(state.preview.total_lines, u16::MAX);
+        }
+    }
 
     fn preview_request(name: &str, age_ms: u64) -> Request {
         Request::Preview(Ticket {
