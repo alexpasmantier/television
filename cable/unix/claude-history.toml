@@ -1,0 +1,39 @@
+[metadata]
+name = "claude-history"
+description = "Search Claude Code prompt history and resume its session"
+requirements = ["claude", "jq", "xclip"]
+
+# Each entry: prompt(oneline) \t project \t sessionId \t timestamp(ms) \t date \t project basename
+# Slash commands without arguments (/exit, /model, ...) are skipped.
+# ctrl-s cycles between all projects and the current directory only.
+[source]
+command = [
+  '''jq -r 'select(.display | test("^/\\S*$") | not) | [(.display | gsub("[\t\r\n]+"; " ")), .project, .sessionId, (.timestamp | tostring), (.timestamp / 1000 | strflocaltime("%Y-%m-%d %H:%M")), (.project | split("/") | last | .[0:14] | . + " " * (14 - length))] | join("\t")' ~/.claude/history.jsonl | tac''',
+  '''jq -r --arg p "$PWD" 'select(.project == $p) | select(.display | test("^/\\S*$") | not) | [(.display | gsub("[\t\r\n]+"; " ")), .project, .sessionId, (.timestamp | tostring), (.timestamp / 1000 | strflocaltime("%Y-%m-%d %H:%M")), (.project | split("/") | last | .[0:14] | . + " " * (14 - length))] | join("\t")' ~/.claude/history.jsonl | tac''',
+]
+display = "{split:\t:4}  {split:\t:5}  │ {split:\t:0}"
+output = "{split:\t:0}"
+no_sort = true
+
+[preview]
+command = '''jq -r --argjson ts {split:\t:3} 'select(.timestamp == $ts) | "DATE:     \(.timestamp / 1000 | strflocaltime("%Y-%m-%d %H:%M:%S"))\nPROJECT:  \(.project)\nSESSION:  \(.sessionId)\n────────────────────────────────────────\n\(.display)" + ([.pastedContents[] | select(.content) | "\n\n──── pasted #\(.id) ────\n\(.content)"] | join(""))' ~/.claude/history.jsonl'''
+
+[ui]
+layout = "landscape"
+[ui.preview_panel]
+size = 50
+header = "session {split:\t:2}"
+
+[keybindings]
+enter = "actions:resume"
+ctrl-y = "actions:copy"
+
+[actions.resume]
+description = "Resume the Claude session in its project directory"
+command = "cd '{split:\t:1}' && claude --resume {split:\t:2}"
+mode = "execute"
+
+[actions.copy]
+description = "Copy the full prompt to the clipboard"
+command = '''jq -j --argjson ts {split:\t:3} 'select(.timestamp == $ts) | .display' ~/.claude/history.jsonl | xclip -selection clipboard'''
+mode = "fork"
