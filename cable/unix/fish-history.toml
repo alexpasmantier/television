@@ -4,6 +4,22 @@ description = "A channel to select from your fish history"
 requirements = ["fish"]
 
 [source]
-command = "fish -c 'history'"
+command = "fish -c 'history --null'"
+entry_delimiter = "\\0"
 no_sort = true
 frecency = false
+
+[preview]
+command = "printf '%s\\n' '{}' | fish_indent --ansi"
+shell = "fish"
+
+[ui]
+layout = "portrait"
+
+[ui.input_bar]
+position = "top"
+
+[ui.preview_panel]
+size = 30
+word_wrap = false
+hidden = false
