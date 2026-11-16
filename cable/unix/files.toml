@@ -1,16 +1,16 @@
 [metadata]
 name = "files"
 description = "A channel to select files and directories"
-requirements = ["fd", "bat"]
+requirements = [["fd", "fdfind"], ["bat", "batcat"]]
 
 [source]
 command = [
-  { name = "Default", run = "fd -t f" },
-  { name = "Hidden",  run = "fd -t f -H" },
+  { name = "Default", run = "$(command -v fd || echo fdfind) -t f" },
+  { name = "Hidden",  run = "$(command -v fd || echo fdfind) -t f -H" },
 ]
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]

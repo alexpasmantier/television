@@ -4,7 +4,7 @@
 [metadata]
 name = "sesh"
 description = "Session manager integrating tmux sessions, zoxide directories, and config paths"
-requirements = ["sesh", "fd"]
+requirements = ["sesh", ["fd", "fdfind"]]
 
 [source]
 # Multiple source commands for cycling through different modes
@@ -14,7 +14,7 @@ command = [
   { name = "Tmux",        run = "sesh list -t --icons" },
   { name = "Configs",     run = "sesh list -c --icons" },
   { name = "Zoxide",      run = "sesh list -z --icons" },
-  { name = "Directories", run = "fd -H -d 2 -t d -E .Trash . ~" },
+  { name = "Directories", run = "$(command -v fd || echo fdfind) -H -d 2 -t d -E .Trash . ~" },
 ]
 ansi = true
 frecency = false # handled by sesh

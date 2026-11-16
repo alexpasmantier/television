@@ -1,14 +1,14 @@
 [metadata]
 name = "nvim-config-files"
 description = "Search through Neovim configuration files"
-requirements = ["fd", "nvim"]
+requirements = [["fd", "fdfind"], "nvim"]
 
 [source]
-command = ["fd . ~/.config/nvim --type f"]
+command = ["$(command -v fd || echo fdfind) . ~/.config/nvim --type f"]
 display = "{regex_extract:.*\\.config/nvim/(.*):1}"
 
 [preview]
-command = "bat -n --color=always '{}'"
+command = "$(command -v bat || echo batcat) -n --color=always '{}'"
 env = { BAT_THEME = "ansi" }
 
 [keybindings]
