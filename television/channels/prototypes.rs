@@ -1115,6 +1115,53 @@ mod tests {
         );
     }
 
+    #[cfg(unix)]
+    fn run_history_channel(
+        toml: &str,
+        histfile: Option<&std::path::Path>,
+        home: &std::path::Path,
+    ) -> String {
+        let prototype: ChannelPrototype = from_str(toml).unwrap();
+        let command = prototype.source.command.get_nth(0).template().raw();
+        let mut cmd = std::process::Command::new("bash");
+        cmd.arg("-c").arg(command).env("HOME", home);
+        match histfile {
+            Some(path) => cmd.env("HISTFILE", path),
+            None => cmd.env_remove("HISTFILE"),
+        };
+        String::from_utf8_lossy(&cmd.output().unwrap().stdout).into_owned()
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_history_channels_handle_paths_with_spaces() {
+        let dir = tempfile::tempdir().unwrap();
+        let home = dir.path().join("my home");
+        std::fs::create_dir(&home).unwrap();
+        let channels = [
+            (
+                include_str!("../../cable/unix/bash-history.toml"),
+                ".bash_history",
+            ),
+            (
+                include_str!("../../cable/unix/zsh-history.toml"),
+                ".zsh_history",
+            ),
+        ];
+        for (toml, default_name) in channels {
+            // HISTFILE explicitly set to a path containing a space
+            let explicit = home.join("my history");
+            std::fs::write(&explicit, "first\nsecond\n").unwrap();
+            let out = run_history_channel(toml, Some(&explicit), &home);
+            assert_eq!(out.lines().next(), Some("second"), "{default_name}");
+
+            // HISTFILE unset: falls back to $HOME/<default>, HOME has a space
+            std::fs::write(home.join(default_name), "alpha\nbeta\n").unwrap();
+            let out = run_history_channel(toml, None, &home);
+            assert_eq!(out.lines().next(), Some("beta"), "{default_name}");
+        }
+    }
+
     #[test]
     fn test_command_spec_without_shell_uses_default() {
         let toml_data = r#"
