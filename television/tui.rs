@@ -80,9 +80,20 @@ where
     ///
     /// More info: <https://github.com/crossterm-rs/crossterm/pull/957>
     pub fn new(writer: W, mode: &TuiMode) -> Result<Self> {
+        let was_raw = is_raw_mode_enabled()?;
+        enable_raw_mode()?;
+
+        // A failed constructor has no Tui to restore the terminal on drop.
+        Self::new_in_raw_mode(writer, mode).inspect_err(|_| {
+            if !was_raw && let Err(err) = disable_raw_mode() {
+                debug!("Failed to restore terminal mode: {err}");
+            }
+        })
+    }
+
+    fn new_in_raw_mode(writer: W, mode: &TuiMode) -> Result<Self> {
         let mut backend = CrosstermBackend::new(writer);
         let mut options = TerminalOptions::default();
-        enable_raw_mode()?;
 
         let keyboard_enhancement = Self::supports_keyboard_enhancement();
 
@@ -90,7 +101,7 @@ where
         let viewport = match mode {
             TuiMode::Fullscreen => Viewport::Fullscreen,
             TuiMode::Inline => {
-                let cursor_position = Self::get_cursor_position();
+                let cursor_position = Self::get_cursor_position()?;
                 let cursor_position = Self::handle_viewport_scrolling(
                     &mut backend,
                     cursor_position,
@@ -112,7 +123,7 @@ where
                 ))
             }
             TuiMode::Fixed { width, height } => {
-                let cursor_position = Self::get_cursor_position();
+                let cursor_position = Self::get_cursor_position()?;
                 let cursor_position = Self::handle_viewport_scrolling(
                     &mut backend,
                     cursor_position,
@@ -189,34 +200,30 @@ where
     /// This is manually implemented as a workaround to a [crossterm issue](https://github.com/crossterm-rs/crossterm/pull/957).
     ///
     /// See the `Tui::new` method for more details.
-    fn get_cursor_position() -> Position {
+    fn get_cursor_position() -> Result<Position> {
         if std::env::var(TESTING_ENV_VAR).is_ok() {
             // In tests, return a fixed position
-            return Position { x: 0, y: 0 };
+            return Ok(Position { x: 0, y: 0 });
         } else if cfg!(windows) {
-            let position = crossterm::cursor::position()
-                .expect("Failed to get cursor position on Windows");
-            return Position {
+            let position = crossterm::cursor::position()?;
+            return Ok(Position {
                 x: position.0,
                 y: position.1,
-            };
+            });
         }
         let mut tty = OpenOptions::new()
             .read(true)
-            // .write(true)
             .append(true)
-            .open("/dev/tty")
-            .expect("Failed to open /dev/tty");
+            .open("/dev/tty")?;
 
-        writeln!(tty, "{}", Self::DSR).expect("Failed to write to /dev/tty");
+        writeln!(tty, "{}", Self::DSR)?;
 
         let mut response = Vec::new();
         for byte in BufReader::new(tty).bytes() {
-            match byte {
-                Ok(b'R') => break,       // End of response
-                Ok(b'\x1B' | b'[') => {} // Ignore CSI sequences
-                Ok(b) => response.push(b),
-                Err(e) => panic!("Error reading from /dev/tty: {}", e),
+            match byte? {
+                b'R' => break,       // End of response
+                b'\x1B' | b'[' => {} // Ignore CSI sequences
+                b => response.push(b),
             }
         }
 
@@ -226,12 +233,12 @@ where
                 String::from_utf8_lossy(pos[1]).parse::<u16>().unwrap_or(0);
             let y =
                 String::from_utf8_lossy(pos[0]).parse::<u16>().unwrap_or(0);
-            Position {
+            Ok(Position {
                 x: x.saturating_sub(1),
                 y: y.saturating_sub(1),
-            } // Convert to zero-based index
+            }) // Convert to zero-based index
         } else {
-            Position::default() // Default position if parsing fails
+            Ok(Position::default()) // Default position if parsing fails
         }
     }
 

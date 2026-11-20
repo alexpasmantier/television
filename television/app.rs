@@ -17,7 +17,7 @@ use crate::{
     tui::{IoStream, Tui, TuiMode},
     utils::command::execute_action,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use rustc_hash::FxHashSet;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -300,9 +300,9 @@ impl App {
                 IoStream::BufferedStderr.to_stream()
             };
             let mut tui = Tui::new(stream, &tui_mode)
-                .expect("Failed to create TUI instance");
+                .context("Could not initialize the terminal UI")?;
             debug!("Entering tui");
-            tui.enter().expect("Failed to enter TUI mode");
+            tui.enter().context("Could not enter the terminal UI")?;
 
             self.render_task = Some(tokio::spawn(async move {
                 render(render_rx, action_tx_r, ui_state_tx, tui).await
