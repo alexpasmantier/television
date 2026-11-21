@@ -4,6 +4,43 @@ use tempfile::TempDir;
 
 use crate::common::*;
 
+#[cfg(unix)]
+#[test]
+fn test_interactive_start_without_terminal_reports_error()
+-> std::io::Result<()> {
+    use std::{io, os::unix::process::CommandExt, process::Stdio};
+
+    let tmp_dir = TempDir::new()?;
+    let mut command = tv_command();
+    command
+        .args(LOCAL_CONFIG_AND_CABLE)
+        .args(["--source-command", "echo entry"])
+        .env("TELEVISION_DATA", tmp_dir.path())
+        .stdin(Stdio::null());
+
+    // Detach in the child so the test also works when Cargo has a terminal.
+    // SAFETY: setsid is async-signal-safe and runs before exec.
+    unsafe {
+        command.pre_exec(|| {
+            if libc::setsid() == -1 {
+                return Err(io::Error::last_os_error());
+            }
+            Ok(())
+        });
+    }
+
+    let output = command.output()?;
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert_eq!(output.status.code(), Some(1), "{stderr}");
+    assert!(
+        stderr.starts_with("Error: Could not initialize the terminal UI"),
+        "{stderr}"
+    );
+    assert!(stderr.contains("Caused by:"), "{stderr}");
+    assert!(output.stdout.is_empty(), "{:?}", output.stdout);
+    Ok(())
+}
+
 #[test]
 fn test_channel_mode_with_channel_name() {
     let pt = phantom();
